@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.common.diff;
@@ -48,26 +38,29 @@ public class CollectionChangeTracker<T extends SchemaObject, S extends Diff> ext
     private List<T> duplicateList = new ArrayList<T>();
     private List<S> diffs = new ArrayList<S>();
 
-    public static <T extends SchemaObject, S extends Diff> CollectionChangeTracker<T,S> newInstance(
+    public static <T extends SchemaObject, S extends Diff> CollectionChangeTracker<T, S> newInstance(
             Class<T> schemaClass, Class<S> diffClass, List<T> srcList, List<T> tgtList) {
-        if (srcList == null && tgtList == null)
+        if (srcList == null && tgtList == null) {
             return null;
+        }
 
-        if (srcList != null && srcList.equals(tgtList))
+        if (srcList != null && srcList.equals(tgtList)) {
             return null;
+        }
 
-        CollectionChangeTracker<T,S> ret = new CollectionChangeTracker<T,S>(schemaClass,
+        CollectionChangeTracker<T, S> ret = new CollectionChangeTracker<T, S>(schemaClass,
                 diffClass, srcList, tgtList);
-        if (ret.isChanged())
+        if (ret.isChanged()) {
             return ret;
-        else
+        } else {
             return null;
+        }
     }
 
     private CollectionChangeTracker() {
     }
 
-    private CollectionChangeTracker(Class<T> schemaClass, Class<S> diffClass, 
+    private CollectionChangeTracker(Class<T> schemaClass, Class<S> diffClass,
             List<T> srcList, List<T> tgtList) {
         clazz = schemaClass;
 
@@ -81,8 +74,8 @@ public class CollectionChangeTracker<T extends SchemaObject, S extends Diff> ext
             return;
         }
 
-        //We want to catch whether there are duplicate keys in the tgt list.
-        //This is primarily for CFs. Now let's assume that the src list is safe.
+        // We want to catch whether there are duplicate keys in the tgt list.
+        // This is primarily for CFs. Now let's assume that the src list is safe.
         Map<String, T> tgtMap = new HashMap<String, T>();
         for (T tgt : tgtList) {
             String tgtKey = getKey(tgt);
@@ -94,7 +87,7 @@ public class CollectionChangeTracker<T extends SchemaObject, S extends Diff> ext
         }
         tgtMap.clear();
 
-        //initialize newList
+        // initialize newList
         for (T tgt : tgtList) {
             String tgtKey = getKey(tgt);
             boolean found = false;
@@ -104,10 +97,11 @@ public class CollectionChangeTracker<T extends SchemaObject, S extends Diff> ext
                     found = true;
                     if (!tgt.equals(src)) {
                         try {
-                            S diff = diffClass.getConstructor(schemaClass, 
+                            S diff = diffClass.getConstructor(schemaClass,
                                     schemaClass).newInstance(src, tgt);
-                            if (diff.isChanged())
+                            if (diff.isChanged()) {
                                 diffs.add(diff);
+                            }
                         } catch (NoSuchMethodException | InstantiationException |
                                 IllegalAccessException | InvocationTargetException e) {
                             log.error("Failed to instantiate {}", diffClass, e);
@@ -115,65 +109,68 @@ public class CollectionChangeTracker<T extends SchemaObject, S extends Diff> ext
                     }
                 }
             }
-            if (!found)
+            if (!found) {
                 newList.add(tgt);
+            }
         }
 
-        //initialize removedList
+        // initialize removedList
         for (T src : srcList) {
             String srcKey = getKey(src);
             boolean found = false;
             for (T tgt : tgtList) {
                 String tgtKey = getKey(tgt);
-                if (tgtKey.equals(srcKey))
+                if (tgtKey.equals(srcKey)) {
                     found = true;
+                }
             }
-            if (!found)
+            if (!found) {
                 removedList.add(src);
+            }
         }
 
     }
 
     @XmlElements({
-        @XmlElement(name = "new_annotation", type = AnnotationType.class),
-        @XmlElement(name = "new_annotation_value", type = AnnotationValue.class),
-        @XmlElement(name = "new_schema", type = DbSchema.class),
-        @XmlElement(name = "new_field", type = FieldInfo.class)
+            @XmlElement(name = "new_annotation", type = AnnotationType.class),
+            @XmlElement(name = "new_annotation_value", type = AnnotationValue.class),
+            @XmlElement(name = "new_schema", type = DbSchema.class),
+            @XmlElement(name = "new_field", type = FieldInfo.class)
     })
     public List<T> getNewList() {
         return newList;
     }
- 
+
     @XmlElements({
-        @XmlElement(name = "removed_annotation", type = AnnotationType.class),
-        @XmlElement(name = "removed_annotation_value", type = AnnotationValue.class),
-        @XmlElement(name = "removed_schema", type = DbSchema.class),
-        @XmlElement(name = "removed_field", type = FieldInfo.class)
+            @XmlElement(name = "removed_annotation", type = AnnotationType.class),
+            @XmlElement(name = "removed_annotation_value", type = AnnotationValue.class),
+            @XmlElement(name = "removed_schema", type = DbSchema.class),
+            @XmlElement(name = "removed_field", type = FieldInfo.class)
     })
     public List<T> getRemovedList() {
         return removedList;
     }
- 
+
     @XmlElements({
-        @XmlElement(name = "duplicate_annotation", type = AnnotationType.class),
-        @XmlElement(name = "duplicate_annotation_value", type = AnnotationValue.class),
-        @XmlElement(name = "duplicate_schema", type = DbSchema.class),
-        @XmlElement(name = "duplicate_field", type = FieldInfo.class)
+            @XmlElement(name = "duplicate_annotation", type = AnnotationType.class),
+            @XmlElement(name = "duplicate_annotation_value", type = AnnotationValue.class),
+            @XmlElement(name = "duplicate_schema", type = DbSchema.class),
+            @XmlElement(name = "duplicate_field", type = FieldInfo.class)
     })
     public List<T> getDuplicateList() {
         return duplicateList;
     }
- 
+
     @XmlElements({
-        @XmlElement(name = "changed_annotation", type = AnnotationTypeDiff.class),
-        @XmlElement(name = "changed_annotation_value", type = AnnotationValueDiff.class),
-        @XmlElement(name = "changed_schema", type = DbSchemaDiff.class),
-        @XmlElement(name = "changed_field", type = FieldInfoDiff.class)
+            @XmlElement(name = "changed_annotation", type = AnnotationTypeDiff.class),
+            @XmlElement(name = "changed_annotation_value", type = AnnotationValueDiff.class),
+            @XmlElement(name = "changed_schema", type = DbSchemaDiff.class),
+            @XmlElement(name = "changed_field", type = FieldInfoDiff.class)
     })
     public List<S> getDiff() {
         return diffs;
     }
- 
+
     @XmlTransient
     public Class<T> getSchemaClass() {
         return clazz;
@@ -184,8 +181,8 @@ public class CollectionChangeTracker<T extends SchemaObject, S extends Diff> ext
         for (int i = 0; i < methods.length; i++) {
             if (methods[i].isAnnotationPresent(Key.class)) {
                 try {
-                    return (String)methods[i].invoke(value);
-                } catch (Exception e){
+                    return (String) methods[i].invoke(value);
+                } catch (Exception e) {
                     log.error("Failed to get key", e);
                 }
             }
@@ -222,18 +219,18 @@ public class CollectionChangeTracker<T extends SchemaObject, S extends Diff> ext
         }
 
         for (S diff : diffs) {
-            if (!diff.isUpgradable())
+            if (!diff.isUpgradable()) {
                 returnVal = false;
+            }
         }
 
-        
         if (clazz.equals(AnnotationType.class)) {
             for (T element : newList) {
                 AnnotationType at = (AnnotationType) element;
                 Class cfClass = at.getCfClass();
-                
-                // refuse adding any annotation (including index) on existing field 
-                if(cfClass.isAnnotationPresent(DbKeyspace.class)) {
+
+                // refuse adding any annotation (including index) on existing field
+                if (cfClass.isAnnotationPresent(DbKeyspace.class)) {
                     DbKeyspace keyspaceType = (DbKeyspace) cfClass.getAnnotation(DbKeyspace.class);
                     if (DbKeyspace.Keyspaces.GLOBAL.equals(keyspaceType.value())) {
                         log.warn("An unsupported geo schema change has been made. {} has been added",
@@ -242,7 +239,7 @@ public class CollectionChangeTracker<T extends SchemaObject, S extends Diff> ext
                         break;
                     }
                 }
-                
+
                 // check UpgradeAllowed annotation for new annotations
                 if (!CustomMigrationCallback.class.isAssignableFrom(at.getAnnoClass()) &&
                         !at.getAnnoClass().isAnnotationPresent(UpgradeAllowed.class)) {
@@ -258,18 +255,22 @@ public class CollectionChangeTracker<T extends SchemaObject, S extends Diff> ext
     }
 
     public boolean isChanged() {
-        if (!newList.isEmpty())
+        if (!newList.isEmpty()) {
             return true;
+        }
 
-        if (!removedList.isEmpty())
+        if (!removedList.isEmpty()) {
             return true;
+        }
 
-        if (!duplicateList.isEmpty())
+        if (!duplicateList.isEmpty()) {
             return true;
+        }
 
         for (S diff : diffs) {
-            if (diff.isChanged())
+            if (diff.isChanged()) {
                 return true;
+            }
         }
         return false;
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util.datatable;
@@ -37,8 +37,8 @@ public class DataTableColumnConfiguration {
             column.setSearchable(searchable);
         }
         return this;
-    }    
-    
+    }
+
     public DataTableColumnConfiguration setVisible(boolean visible) {
         for (DataTableColumn column : columns) {
             column.setVisible(visible);

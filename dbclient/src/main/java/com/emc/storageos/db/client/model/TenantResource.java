@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
@@ -26,10 +26,11 @@ public interface TenantResource {
 
     /**
      * Returns the list of parameters used in audit logs for this resource.
+     * 
      * @return the list of parameters used in audit logs for this resource.
      */
     public Object[] auditParameters();
-    
+
     /**
      * Return the data object instance that backs this interface
      * 

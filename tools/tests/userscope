@@ -1,0 +1,71 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+
+USER_SCOPE = "user_scope"
+
+def set_user_scope(args):
+    bourne.connect(args.ip)
+    properties = dict()
+    properties[USER_SCOPE] = args.scope
+    response = bourne.set_object_props(properties)
+    print response
+    return args.scope
+
+	
+def get_user_scope(args):
+    bourne.connect(args.ip)
+    props = bourne.get_object_props()
+    print props[USER_SCOPE]
+    return props[USER_SCOPE]
+    
+	
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# security <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne set user scope cli usage.')
+parser.add_argument('cmd', help = 'cmd = (set | get)')
+parser.add_argument('--ip',    metavar = 'ipaddr',    help = 'IP address of bourne', default=bourne_ip)
+
+# set the user scope
+setscope = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+setscope.add_argument('scope',    help = 'pass the user scope to be set GLOBAL | NAMESPACE', default = None)
+
+# get the user scope
+getscope = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        parser.print_help()
+        sys.exit(1)
+
+    bourne = Bourne()
+
+    if(cmd == "set"):
+        args = setscope.parse_args()
+        set_user_scope(args)  		
+    elif(cmd == "get"):
+        args = getscope.parse_args()  	
+    	get_user_scope(args) 
+    else:
+        parser.print_help()
+
+except:
+    raise

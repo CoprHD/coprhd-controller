@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.datatable;
@@ -56,7 +56,7 @@ public class VirtualPoolDataTable extends DataTable {
             this.name = vsp.getName();
             this.poolType = vsp.getType();
             this.provisioningType = vsp.getProvisioningType();
-            
+
             this.poolTypeDisplay = PoolTypes.getDisplayValue(vsp.getType());
             this.provisioningTypeDisplay = ProvisioningTypes.getDisplayValue(vsp.getProvisioningType());
             this.provisionedAs = String.format("%s (%s)", poolTypeDisplay, provisioningTypeDisplay);

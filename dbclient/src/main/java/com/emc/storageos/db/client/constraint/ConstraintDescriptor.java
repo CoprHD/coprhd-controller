@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.constraint;
@@ -90,7 +80,7 @@ public class ConstraintDescriptor {
     }
 
     public Constraint toConstraint() throws ClassNotFoundException, NoSuchMethodException, IllegalAccessException
-                                      , InvocationTargetException, InstantiationException {
+            , InvocationTargetException, InstantiationException {
         log.info("ConstraintDescriptor {}", this);
 
         Class type = Class.forName(dataObjectClassName);
@@ -99,8 +89,8 @@ public class ConstraintDescriptor {
 
         Class constraintClass = Class.forName(constraintClassName);
 
-        List<Class> parameterTypes = new ArrayList(arguments.size()+1);
-        List<Object> args = new ArrayList(arguments.size()+1);
+        List<Class> parameterTypes = new ArrayList(arguments.size() + 1);
+        List<Object> args = new ArrayList(arguments.size() + 1);
 
         int i = 1;
         for (Object arg : arguments) {
@@ -120,7 +110,7 @@ public class ConstraintDescriptor {
         }
 
         Constructor constructor = constraintClass.getConstructor(parameterTypes.toArray(new Class[0]));
-        Constraint  constraint = (Constraint)constructor.newInstance(args.toArray());
+        Constraint constraint = (Constraint) constructor.newInstance(args.toArray());
 
         return constraint;
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.protection;
@@ -14,17 +14,19 @@ import java.util.List;
 
 @XmlRootElement(name = "protection_set_resources")
 public class ProtectionResourcesList {
-    
+
     private List<NamedRelatedResourceRep> resources;
 
-    public ProtectionResourcesList() {}
-            
+    public ProtectionResourcesList() {
+    }
+
     public ProtectionResourcesList(List<NamedRelatedResourceRep> resources) {
         this.resources = resources;
     }
 
     /**
      * List of Protection Set Resources. Not currently being used.
+     * 
      * @valid none - not currently implemented
      */
     @XmlElement(name = "protection_set_resource")
@@ -38,5 +40,5 @@ public class ProtectionResourcesList {
     public void setResources(List<NamedRelatedResourceRep> resources) {
         this.resources = resources;
     }
-    
+
 }

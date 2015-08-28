@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.hds.api;
 
@@ -45,154 +35,156 @@ import com.google.gson.internal.Pair;
 import com.sun.jersey.api.client.ClientResponse;
 
 public class HDSApiProtectionManager {
-	/**
+    /**
      * Logger instance to log messages.
      */
     private static final Logger log = LoggerFactory.getLogger(HDSApiProtectionManager.class);
-    
-    public static enum ShadowImageOperationType{
-    	split,
-    	resync,
-    	restore
+
+    public static enum ShadowImageOperationType {
+        split,
+        resync,
+        restore
     }
 
     private HDSApiClient hdsApiClient;
-    
+
     public HDSApiProtectionManager(HDSApiClient hdsApiClient) {
-    	this.hdsApiClient = hdsApiClient;
-	}
-    
+        this.hdsApiClient = hdsApiClient;
+    }
+
     /**
-     * Returns ViPR-Replication-Group objectID collected from Device manager to create ShadowImage pair on 
+     * Returns ViPR-Replication-Group objectID collected from Device manager to create ShadowImage pair on
      * Hitachi StorageSystem.
+     * 
      * @return replicationGroup's objectID
      * @throws Exception
      */
-    public String getReplicationGroupObjectId() throws Exception{
+    public String getReplicationGroupObjectId() throws Exception {
 
-    	List<HDSHost> hostList = getHDSHostList();
-    	String replicationGroupObjectId = null;
-    	HDSHost pairMgmtServer = null;
-    	if(hostList != null){
-    		outerloop:
-    		for(HDSHost hdsHost:hostList){
-    			log.info("HDSHost :{}",hdsHost.toXMLString());
-    			if(hdsHost !=null && hdsHost.getConfigFileList() !=null 
-    					&& !hdsHost.getConfigFileList().isEmpty()){
-    				for(ConfigFile configFile:hdsHost.getConfigFileList()){
-    					if(configFile != null){
-    						ReplicationGroup replicationGroup = configFile.getReplicationGroup();
-    						if(replicationGroup!=null && HDSConstants.VIPR_REPLICATION_GROUP_NAME.equalsIgnoreCase(replicationGroup.getGroupName())){
-    							pairMgmtServer = hdsHost;
-    							log.info("Pair management server {} found",pairMgmtServer.getName());
-    							replicationGroupObjectId = replicationGroup.getObjectID();
-    							log.info("ViPR Replication Group {} found",replicationGroup.toXMLString());
-    							break outerloop;
-    						}
-    					}
-    				}
-    			}
-    		}
-    	}
-    	return replicationGroupObjectId;
-    
+        List<HDSHost> hostList = getHDSHostList();
+        String replicationGroupObjectId = null;
+        HDSHost pairMgmtServer = null;
+        if (hostList != null) {
+            outerloop: for (HDSHost hdsHost : hostList) {
+                log.info("HDSHost :{}", hdsHost.toXMLString());
+                if (hdsHost != null && hdsHost.getConfigFileList() != null
+                        && !hdsHost.getConfigFileList().isEmpty()) {
+                    for (ConfigFile configFile : hdsHost.getConfigFileList()) {
+                        if (configFile != null) {
+                            ReplicationGroup replicationGroup = configFile.getReplicationGroup();
+                            if (replicationGroup != null
+                                    && HDSConstants.VIPR_REPLICATION_GROUP_NAME.equalsIgnoreCase(replicationGroup.getGroupName())) {
+                                pairMgmtServer = hdsHost;
+                                log.info("Pair management server {} found", pairMgmtServer.getName());
+                                replicationGroupObjectId = replicationGroup.getObjectID();
+                                log.info("ViPR Replication Group {} found", replicationGroup.toXMLString());
+                                break outerloop;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return replicationGroupObjectId;
+
     }
-    
+
     /**
      * Return's replicationGroup's objectID and replicationInfo's objectID for the given P-VOl and S-VOL
+     * 
      * @param primaryVolumeNativeId
      * @param secondaryVolumeNativeId
      * @return {@link Map} replicationGroup's objectID and replicationInfo's objectID
      * @throws Exception
      */
     public Map<String, String> getReplicationRelatedObjectIds(String primaryVolumeNativeId,
-    		String secondaryVolumeNativeId) throws Exception{
-    	Map<String, String> objectIds = new HashMap<>();
-    	log.info("primaryVolumeNativeId :{}",primaryVolumeNativeId);
-    	log.info("secondaryVolumeNativeId :{}",secondaryVolumeNativeId);
-    	List<HDSHost> hostList = getHDSHostList();
-    	if(hostList != null){
-    		for(HDSHost hdsHost:hostList){
-    			log.info("HDSHost :{}",hdsHost.toXMLString());
-    			if(hdsHost !=null && hdsHost.getConfigFileList() !=null 
-    					&& !hdsHost.getConfigFileList().isEmpty()){
-    				for(ConfigFile configFile:hdsHost.getConfigFileList()){
-    					if(configFile != null){
-    						ReplicationGroup replicationGroup = configFile.getReplicationGroup();
-    						if(replicationGroup!=null && replicationGroup.getReplicationInfoList() !=null){
-    							log.debug("replicationGroup :{}",replicationGroup.toXMLString());
-    							List<ReplicationInfo> replicationInfoList = replicationGroup.
-        								getReplicationInfoList();
-    							if(replicationInfoList != null){
-    								for(ReplicationInfo replicationInfo:replicationInfoList){
-    									log.debug("replicationInfo :{}",replicationInfo.toXMLString());
-            							if(primaryVolumeNativeId.equalsIgnoreCase(replicationInfo.getPvolDevNum())
-            									&& secondaryVolumeNativeId.equalsIgnoreCase(replicationInfo.getSvolDevNum())){
-            								objectIds.put(HDSConstants.REPLICATION_INFO_OBJ_ID, replicationInfo.getObjectID());
-            								objectIds.put(HDSConstants.REPLICATION_GROUP_OBJ_ID, replicationGroup.getObjectID());
-            								log.info("objectIds :{}",objectIds);
-            								return objectIds;
-            							}
-            						}
-    							}
-    						}
-    					}
-    				}
-    			}
-    		}
-    	}
-    	log.error("Unable to get replication information from pair management server");
-    	return objectIds;
+            String secondaryVolumeNativeId) throws Exception {
+        Map<String, String> objectIds = new HashMap<>();
+        log.info("primaryVolumeNativeId :{}", primaryVolumeNativeId);
+        log.info("secondaryVolumeNativeId :{}", secondaryVolumeNativeId);
+        List<HDSHost> hostList = getHDSHostList();
+        if (hostList != null) {
+            for (HDSHost hdsHost : hostList) {
+                log.info("HDSHost :{}", hdsHost.toXMLString());
+                if (hdsHost != null && hdsHost.getConfigFileList() != null
+                        && !hdsHost.getConfigFileList().isEmpty()) {
+                    for (ConfigFile configFile : hdsHost.getConfigFileList()) {
+                        if (configFile != null) {
+                            ReplicationGroup replicationGroup = configFile.getReplicationGroup();
+                            if (replicationGroup != null && replicationGroup.getReplicationInfoList() != null) {
+                                log.debug("replicationGroup :{}", replicationGroup.toXMLString());
+                                List<ReplicationInfo> replicationInfoList = replicationGroup.
+                                        getReplicationInfoList();
+                                if (replicationInfoList != null) {
+                                    for (ReplicationInfo replicationInfo : replicationInfoList) {
+                                        log.debug("replicationInfo :{}", replicationInfo.toXMLString());
+                                        if (primaryVolumeNativeId.equalsIgnoreCase(replicationInfo.getPvolDevNum())
+                                                && secondaryVolumeNativeId.equalsIgnoreCase(replicationInfo.getSvolDevNum())) {
+                                            objectIds.put(HDSConstants.REPLICATION_INFO_OBJ_ID, replicationInfo.getObjectID());
+                                            objectIds.put(HDSConstants.REPLICATION_GROUP_OBJ_ID, replicationGroup.getObjectID());
+                                            log.info("objectIds :{}", objectIds);
+                                            return objectIds;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        log.error("Unable to get replication information from pair management server");
+        return objectIds;
     }
-    
-    
-    public Pair<ReplicationInfo, String> getReplicationInfoFromSystem(String sourceNativeId, String targetNativeId) throws Exception{
 
-    	log.info("sourceNativeId :{}",sourceNativeId);
-    	log.info("targetNativeId :{}",targetNativeId);
-    	
-    	List<HDSHost> hostList = getHDSHostList();
-    	if(hostList != null){
-    		for(HDSHost hdsHost:hostList){
-    			log.info("HDSHost :{}",hdsHost.toXMLString());
-    			if(hdsHost !=null && hdsHost.getConfigFileList() !=null 
-    					&& !hdsHost.getConfigFileList().isEmpty()){
-    				for(ConfigFile configFile:hdsHost.getConfigFileList()){
-    					if(configFile != null){
-    						ReplicationGroup replicationGroup = configFile.getReplicationGroup();
-    						if(replicationGroup!=null && replicationGroup.getReplicationInfoList() !=null){
-    							log.info("replicationGroup :{}",replicationGroup.toXMLString());
-    							List<ReplicationInfo> replicationInfoList = replicationGroup.
-        								getReplicationInfoList();
-    							if(replicationInfoList != null){
-    								for(ReplicationInfo replicationInfo:replicationInfoList){
-    									log.debug("replicationInfo :{}",replicationInfo.toXMLString());
-    									if(sourceNativeId.equals(replicationInfo.getPvolDevNum())
-    											&& targetNativeId.equals(replicationInfo.getSvolDevNum())){
-    										log.info("Found replicationInfo object from system:{}",replicationInfo.toXMLString());
-    										log.info("Host Object Id :{}",hdsHost.getObjectID());
-    										return (new Pair<ReplicationInfo, String>(replicationInfo, hdsHost.getObjectID()));
-    									}
-            						}
-    							}
-    						}
-    					}
-    				}
-    			}
-    		}
-    	}
-    	// If we are here there is no matching replication info available on pair management server.
-    	log.error("Unable to find replication info details from device manager for the pvol {} svol {}",sourceNativeId,targetNativeId);
-    	return null;
+    public Pair<ReplicationInfo, String> getReplicationInfoFromSystem(String sourceNativeId, String targetNativeId) throws Exception {
+
+        log.info("sourceNativeId :{}", sourceNativeId);
+        log.info("targetNativeId :{}", targetNativeId);
+
+        List<HDSHost> hostList = getHDSHostList();
+        if (hostList != null) {
+            for (HDSHost hdsHost : hostList) {
+                log.info("HDSHost :{}", hdsHost.toXMLString());
+                if (hdsHost != null && hdsHost.getConfigFileList() != null
+                        && !hdsHost.getConfigFileList().isEmpty()) {
+                    for (ConfigFile configFile : hdsHost.getConfigFileList()) {
+                        if (configFile != null) {
+                            ReplicationGroup replicationGroup = configFile.getReplicationGroup();
+                            if (replicationGroup != null && replicationGroup.getReplicationInfoList() != null) {
+                                log.info("replicationGroup :{}", replicationGroup.toXMLString());
+                                List<ReplicationInfo> replicationInfoList = replicationGroup.
+                                        getReplicationInfoList();
+                                if (replicationInfoList != null) {
+                                    for (ReplicationInfo replicationInfo : replicationInfoList) {
+                                        log.debug("replicationInfo :{}", replicationInfo.toXMLString());
+                                        if (sourceNativeId.equals(replicationInfo.getPvolDevNum())
+                                                && targetNativeId.equals(replicationInfo.getSvolDevNum())) {
+                                            log.info("Found replicationInfo object from system:{}", replicationInfo.toXMLString());
+                                            log.info("Host Object Id :{}", hdsHost.getObjectID());
+                                            return (new Pair<ReplicationInfo, String>(replicationInfo, hdsHost.getObjectID()));
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        // If we are here there is no matching replication info available on pair management server.
+        log.error("Unable to find replication info details from device manager for the pvol {} svol {}", sourceNativeId, targetNativeId);
+        return null;
     }
-    
+
     /**
      * Returns Host List collected from Device Manager.
+     * 
      * @return
      * @throws Exception
      */
-    private List<HDSHost> getHDSHostList() throws Exception{
-    	List<HDSHost> hostList = null;
+    private List<HDSHost> getHDSHostList() throws Exception {
+        List<HDSHost> hostList = null;
 
         InputStream responseStream = null;
         try {
@@ -202,12 +194,12 @@ public class HDSApiProtectionManager {
             HDSHost host = new HDSHost();
             host.setName("*");
             attributeMap.put(HDSConstants.HOST, host);
-            
+
             String getAllHSDQuery = InputXMLGenerationClient.getInputXMLString(
                     HDSConstants.GET_ALL_HOST_INFO_OP, attributeMap,
                     HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
                     HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-            
+
             log.info("Query to get All Host: {}", getAllHSDQuery);
             URI endpointURI = hdsApiClient.getBaseURI();
             ClientResponse response = hdsApiClient.post(endpointURI, getAllHSDQuery);
@@ -219,9 +211,9 @@ public class HDSApiProtectionManager {
                 hostList = (List<HDSHost>) javaResult.getBean(HDSConstants.HOST_LIST_BEAN_NAME);
             } else {
                 throw HDSException.exceptions
-                .invalidResponseFromHDS(String
-                        .format("Not able to query HostStorageDomain's due to invalid response %1$s from server",
-                                response.getStatus()));
+                        .invalidResponseFromHDS(String
+                                .format("Not able to query HostStorageDomain's due to invalid response %1$s from server",
+                                        response.getStatus()));
             }
         } finally {
             if (null != responseStream) {
@@ -232,30 +224,31 @@ public class HDSApiProtectionManager {
                 }
             }
         }
-    	return hostList;
+        return hostList;
     }
-    
+
     /**
-     * Creates ShadowImage Pair 
+     * Creates ShadowImage Pair
+     * 
      * @param replicationGroupObjId
      * @param pairName
      * @param arrayType
      * @param arraySerialNumber
      * @param pvolDevNum
      * @param svolDevNum
-     * @return {@link ReplicationInfo} 
+     * @return {@link ReplicationInfo}
      */
     public ReplicationInfo createShadowImagePair(String replicationGroupObjId, String pairName, String arrayType,
-    							String arraySerialNumber, String pvolDevNum, String svolDevNum) throws Exception{
-    	log.info("Shadow Image pair creation started");
+            String arraySerialNumber, String pvolDevNum, String svolDevNum) throws Exception {
+        log.info("Shadow Image pair creation started");
         InputStream responseStream = null;
         String syncTaskMessageId = null;
         ReplicationInfo replicationInfoResponse = null;
         try {
-        	log.info("replicationGroupObjId {} "
-        			,replicationGroupObjId);
-        	log.info("arrayType {} arraySerialNumber {}",arrayType,arraySerialNumber);
-        	log.info(" pvolDevNum {} svolDevNum {}",pvolDevNum,svolDevNum );
+            log.info("replicationGroupObjId {} "
+                    , replicationGroupObjId);
+            log.info("arrayType {} arraySerialNumber {}", arrayType, arraySerialNumber);
+            log.info(" pvolDevNum {} svolDevNum {}", pvolDevNum, svolDevNum);
             Map<String, Object> attributeMap = new HashMap<String, Object>();
             Add addOp = new Add(HDSConstants.REPLICATION);
             ReplicationGroup replicationGroup = new ReplicationGroup();
@@ -270,11 +263,11 @@ public class HDSApiProtectionManager {
             replicationInfo.setSvolSerialNumber(arraySerialNumber);
             replicationInfo.setSvolDevNum(svolDevNum);
             replicationInfo.setReplicationFunction(HDSConstants.SHADOW_IMAGE);
-            
+
             attributeMap.put(HDSConstants.ADD, addOp);
             attributeMap.put(HDSConstants.REPLICATION_GROUP, replicationGroup);
             attributeMap.put(HDSConstants.REPLICATION_INFO, replicationInfo);
-            
+
             String createShadowImagePairInputXML = InputXMLGenerationClient.getInputXMLString(
                     HDSConstants.CREATE_SHADOW_IMAGE_PAIR_OP, attributeMap,
                     HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
@@ -287,10 +280,10 @@ public class HDSApiProtectionManager {
                 responseStream = response.getEntityInputStream();
                 JavaResult result = SmooksUtil.getParsedXMLJavaResult(responseStream, HDSConstants.HITACHI_SMOOKS_REPLICATION_CONFIG_FILE);
                 EchoCommand command = result.getBean(EchoCommand.class);
-                if(HDSConstants.COMPLETED_STR.equalsIgnoreCase(command.getStatus())){
-                	log.info("ShadowImage Pair has been created successfully");
-                	replicationInfoResponse =  result.getBean(ReplicationInfo.class);
-                	if (null == replicationInfoResponse) {
+                if (HDSConstants.COMPLETED_STR.equalsIgnoreCase(command.getStatus())) {
+                    log.info("ShadowImage Pair has been created successfully");
+                    replicationInfoResponse = result.getBean(ReplicationInfo.class);
+                    if (null == replicationInfoResponse) {
                         throw HDSException.exceptions.notAbleToCreateShadowImagePair();
                     }
                 } else if (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command.getStatus())) {
@@ -298,7 +291,8 @@ public class HDSApiProtectionManager {
                 } else if (HDSConstants.FAILED_STR.equalsIgnoreCase(command.getStatus())) {
                     Error error = result.getBean(Error.class);
                     log.error("Shadow Image pair creation failed status messageID: {}", command.getMessageID());
-                    log.error("Shadow Image pair creation failed with error code: {} with message: {}", error.getCode(), error.getDescription());
+                    log.error("Shadow Image pair creation failed with error code: {} with message: {}", error.getCode(),
+                            error.getDescription());
                     throw HDSException.exceptions.notAbleToCreateVolume(
                             error.getCode(), error.getDescription());
 
@@ -321,11 +315,12 @@ public class HDSApiProtectionManager {
             }
         }
         log.info("Shadow Image pair creation completed");
-    	return replicationInfoResponse;
+        return replicationInfoResponse;
     }
-    
+
     /**
      * Creates ThinImage pair for HDS Snapshot
+     * 
      * @param snapshotGroupObjId
      * @param hostObjId
      * @param sourNativeId
@@ -334,38 +329,37 @@ public class HDSApiProtectionManager {
      * @return
      * @throws Exception
      */
-    public boolean createThinImagePair(String snapshotGroupObjId, String hostObjId, 
-    		String sourNativeId, String snapNativeId,String thinImagePoolId) throws Exception{
-    	log.info("Thin Image pair creation started");
-    	boolean status = false;
+    public boolean createThinImagePair(String snapshotGroupObjId, String hostObjId,
+            String sourNativeId, String snapNativeId, String thinImagePoolId) throws Exception {
+        log.info("Thin Image pair creation started");
+        boolean status = false;
         InputStream responseStream = null;
         String syncTaskMessageId = null;
         ReplicationInfo replicationInfoResponse = null;
         try {
-        	log.info("snapshotGroupObjId {} "
-        			,snapshotGroupObjId);
-        	
+            log.info("snapshotGroupObjId {} "
+                    , snapshotGroupObjId);
+
             Map<String, Object> attributeMap = new HashMap<String, Object>();
             Add addOp = new Add(HDSConstants.REPLICATION);
             addOp.setOption(HDSConstants.INBAND2);
-            
+
             HDSHost host = new HDSHost();
             host.setObjectID(hostObjId);
             SnapshotGroup snapshotGroup = new SnapshotGroup();
             snapshotGroup.setObjectID(snapshotGroupObjId);
             snapshotGroup.setReplicationFunction(HDSConstants.THIN_IMAGE);
-            
-            
+
             ReplicationInfo replicationInfo = new ReplicationInfo();
             replicationInfo.setPvolDevNum(sourNativeId);
             replicationInfo.setSvolDevNum(snapNativeId);
             replicationInfo.setPvolPoolID(thinImagePoolId);
-            
+
             attributeMap.put(HDSConstants.ADD, addOp);
             attributeMap.put(HDSConstants.HOST, host);
             attributeMap.put(HDSConstants.SNAPSHOTGROUP, snapshotGroup);
             attributeMap.put(HDSConstants.REPLICATION_INFO, replicationInfo);
-            
+
             String createThinImagePairInputXML = InputXMLGenerationClient.getInputXMLString(
                     HDSConstants.CREATE_THIN_IMAGE_PAIR_OP, attributeMap,
                     HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
@@ -378,11 +372,11 @@ public class HDSApiProtectionManager {
                 responseStream = response.getEntityInputStream();
                 JavaResult result = SmooksUtil.getParsedXMLJavaResult(responseStream, HDSConstants.HITACHI_SMOOKS_THINIMAGE_CONFIG_FILE);
                 EchoCommand command = result.getBean(EchoCommand.class);
-                if(HDSConstants.COMPLETED_STR.equalsIgnoreCase(command.getStatus())){
-                	log.info("ThinImage Pair has been created successfully");
-                	status = true;
-                	SnapshotGroup snapshotGrpResponse =  result.getBean(SnapshotGroup.class);
-                	if (null == snapshotGrpResponse) {
+                if (HDSConstants.COMPLETED_STR.equalsIgnoreCase(command.getStatus())) {
+                    log.info("ThinImage Pair has been created successfully");
+                    status = true;
+                    SnapshotGroup snapshotGrpResponse = result.getBean(SnapshotGroup.class);
+                    if (null == snapshotGrpResponse) {
                         throw HDSException.exceptions.notAbleToCreateThinImagePair();
                     }
                 } else if (HDSConstants.PROCESSING_STR.equalsIgnoreCase(command.getStatus())) {
@@ -390,7 +384,8 @@ public class HDSApiProtectionManager {
                 } else if (HDSConstants.FAILED_STR.equalsIgnoreCase(command.getStatus())) {
                     Error error = result.getBean(Error.class);
                     log.error("Thin Image pair creation failed status messageID: {}", command.getMessageID());
-                    log.error("Thin Image pair creation failed with error code: {} with message: {}", error.getCode(), error.getDescription());
+                    log.error("Thin Image pair creation failed with error code: {} with message: {}", error.getCode(),
+                            error.getDescription());
                     throw HDSException.exceptions.notAbleToCreateThinImagePairError(
                             error.getCode(), error.getDescription());
 
@@ -413,38 +408,38 @@ public class HDSApiProtectionManager {
             }
         }
         log.info("Thin Image pair creation completed");
-    	return status;
+        return status;
     }
-    
+
     /**
      * Modify ShadowImage pair operation .
+     * 
      * @param replicationGroupId
      * @param replicationInfoId
      * @param operationType
      * @return {@link ReplicationInfo}
      * @throws Exception
      */
-    public ReplicationInfo modifyShadowImagePair(String replicationGroupId, String replicationInfoId, 
-    		ShadowImageOperationType operationType) throws Exception{
+    public ReplicationInfo modifyShadowImagePair(String replicationGroupId, String replicationInfoId,
+            ShadowImageOperationType operationType) throws Exception {
 
         InputStream responseStream = null;
         ReplicationInfo replicationInfo = null;
         try {
-        	if(replicationGroupId!=null && replicationInfoId!=null){
-        		Map<String, Object> attributeMap = new HashMap<String, Object>();
-            	Modify modifyOp = new Modify();
-            	modifyOp.setTarget(HDSConstants.REPLICATION);
-            	modifyOp.setOption(operationType.name());
-            	ReplicationGroup replicationGroup = new ReplicationGroup();
-            	replicationGroup.setObjectID(replicationGroupId);
-            	
-            	replicationInfo = new ReplicationInfo();
-            	replicationInfo.setObjectID(replicationInfoId);
-            	attributeMap.put(HDSConstants.MODIFY, modifyOp);
+            if (replicationGroupId != null && replicationInfoId != null) {
+                Map<String, Object> attributeMap = new HashMap<String, Object>();
+                Modify modifyOp = new Modify();
+                modifyOp.setTarget(HDSConstants.REPLICATION);
+                modifyOp.setOption(operationType.name());
+                ReplicationGroup replicationGroup = new ReplicationGroup();
+                replicationGroup.setObjectID(replicationGroupId);
+
+                replicationInfo = new ReplicationInfo();
+                replicationInfo.setObjectID(replicationInfoId);
+                attributeMap.put(HDSConstants.MODIFY, modifyOp);
                 attributeMap.put(HDSConstants.REPLICATION_GROUP, replicationGroup);
                 attributeMap.put(HDSConstants.REPLICATION_INFO, replicationInfo);
-            	
-            	
+
                 String modifyPairQuery = InputXMLGenerationClient.getInputXMLString(
                         HDSConstants.MODIFY_SHADOW_IMAGE_PAIR_OP, attributeMap,
                         HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
@@ -457,20 +452,22 @@ public class HDSApiProtectionManager {
                     JavaResult javaResult = SmooksUtil.getParsedXMLJavaResult(responseStream,
                             HDSConstants.HITACHI_SMOOKS_REPLICATION_CONFIG_FILE);
                     verifyErrorPayload(javaResult);
-                    log.info("Successfully {}ed pair",operationType.name());
+                    log.info("Successfully {}ed pair", operationType.name());
                     replicationInfo = javaResult.getBean(ReplicationInfo.class);
-                    log.info("replicationInfo :{}",replicationInfo);
-                    /*if (null == replicationInfo) {
-                        throw HDSException.exceptions.notAbleToCreateShadowImagePair();
-                    }*/
+                    log.info("replicationInfo :{}", replicationInfo);
+                    /*
+                     * if (null == replicationInfo) {
+                     * throw HDSException.exceptions.notAbleToCreateShadowImagePair();
+                     * }
+                     */
                 } else {
                     throw HDSException.exceptions
-                    .invalidResponseFromHDS(String
-                            .format("Not able to modify replication info due to invalid response %1$s from server",
-                                    response.getStatus()));
+                            .invalidResponseFromHDS(String
+                                    .format("Not able to modify replication info due to invalid response %1$s from server",
+                                            response.getStatus()));
                 }
-        	}
-        	
+            }
+
         } finally {
             if (null != responseStream) {
                 try {
@@ -482,10 +479,10 @@ public class HDSApiProtectionManager {
         }
         return replicationInfo;
     }
-    
-    
+
     /**
      * Utility method to check if there are any errors or not.
+     * 
      * @param javaResult
      * @throws Exception
      */
@@ -496,39 +493,37 @@ public class HDSApiProtectionManager {
             Error error = javaResult.getBean(Error.class);
             log.info("Error response received from Hitachi server for messageID", command.getMessageID());
             log.info("Hitachi command failed with error code:{} with message:{} for request:{}",
-                    new Object[] {error.getCode().toString(), error.getDescription(), error.getSource() });
+                    new Object[] { error.getCode().toString(), error.getDescription(), error.getSource() });
             throw HDSException.exceptions.errorResponseReceived(
                     error.getCode(), error.getDescription());
         }
     }
-    
-    
+
     /**
      * Deletes SI replicationInfo instance from replication group
+     * 
      * @param replicationGroupObjId
      * @param replicationInfoObjId
      * @return {@link ReplicationInfo}
      * @throws Exception
      */
-    public ReplicationInfo deleteShadowImagePair(String replicationGroupObjId, String replicationInfoObjId) throws Exception{
-
+    public ReplicationInfo deleteShadowImagePair(String replicationGroupObjId, String replicationInfoObjId) throws Exception {
 
         InputStream responseStream = null;
         ReplicationInfo replicationInfo = null;
         try {
-        	if(replicationGroupObjId!=null && replicationInfoObjId!=null){
-        		Map<String, Object> attributeMap = new HashMap<String, Object>();
-            	Delete deleteOp = new Delete(HDSConstants.REPLICATION);
-            	ReplicationGroup replicationGroup = new ReplicationGroup();
-            	replicationGroup.setObjectID(replicationGroupObjId);
-            	
-            	replicationInfo = new ReplicationInfo();
-            	replicationInfo.setObjectID(replicationInfoObjId);
-            	attributeMap.put(HDSConstants.DELETE, deleteOp);
+            if (replicationGroupObjId != null && replicationInfoObjId != null) {
+                Map<String, Object> attributeMap = new HashMap<String, Object>();
+                Delete deleteOp = new Delete(HDSConstants.REPLICATION);
+                ReplicationGroup replicationGroup = new ReplicationGroup();
+                replicationGroup.setObjectID(replicationGroupObjId);
+
+                replicationInfo = new ReplicationInfo();
+                replicationInfo.setObjectID(replicationInfoObjId);
+                attributeMap.put(HDSConstants.DELETE, deleteOp);
                 attributeMap.put(HDSConstants.REPLICATION_GROUP, replicationGroup);
                 attributeMap.put(HDSConstants.REPLICATION_INFO, replicationInfo);
-            	
-            	
+
                 String deletePairQuery = InputXMLGenerationClient.getInputXMLString(
                         HDSConstants.DELETE_PAIR_OP, attributeMap,
                         HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
@@ -543,20 +538,22 @@ public class HDSApiProtectionManager {
                     verifyErrorPayload(javaResult);
                     log.info("Successfully Deleted pair");
                     replicationInfo = javaResult.getBean(ReplicationInfo.class);
-                    log.info("replicationInfo :{}",replicationInfo);
-                    /*if (null == replicationInfo) {
-                        throw HDSException.exceptions.notAbleToCreateShadowImagePair();
-                    }*/
+                    log.info("replicationInfo :{}", replicationInfo);
+                    /*
+                     * if (null == replicationInfo) {
+                     * throw HDSException.exceptions.notAbleToCreateShadowImagePair();
+                     * }
+                     */
                 } else {
                     throw HDSException.exceptions
-                    .invalidResponseFromHDS(String
-                            .format("Not able to delete shadow image pair due to invalid response %1$s from server",
-                                    response.getStatus()));
+                            .invalidResponseFromHDS(String
+                                    .format("Not able to delete shadow image pair due to invalid response %1$s from server",
+                                            response.getStatus()));
                 }
-        	}else{
-        		log.info("Replication info is not available on pair management server");
-        	}
-        	
+            } else {
+                log.info("Replication info is not available on pair management server");
+            }
+
         } finally {
             if (null != responseStream) {
                 try {
@@ -566,51 +563,52 @@ public class HDSApiProtectionManager {
                 }
             }
         }
-        
+
         return replicationInfo;
     }
-    
+
     /**
      * Deletes ReplicationInfo instance from SnapshotGroup
+     * 
      * @param snapshotGroupObjId
      * @param replicationInfoObjId
      * @throws Exception
      */
-    public void deleteThinImagePair(String hostObjId, String snapshotGroupObjId, 
-    		String replicationInfoObjId) throws Exception {
-    	
-    	InputStream responseStream = null;
+    public void deleteThinImagePair(String hostObjId, String snapshotGroupObjId,
+            String replicationInfoObjId) throws Exception {
+
+        InputStream responseStream = null;
         ReplicationInfo replicationInfo = null;
         try {
-        	if(hostObjId!=null && snapshotGroupObjId != null && replicationInfoObjId != null) {
-        		Map<String, Object> attributeMap = new HashMap<String, Object>();
-            	Delete deleteOp = new Delete(HDSConstants.REPLICATION, HDSConstants.INBAND2);
-            	
-            	HDSHost host = new HDSHost();
+            if (hostObjId != null && snapshotGroupObjId != null && replicationInfoObjId != null) {
+                Map<String, Object> attributeMap = new HashMap<String, Object>();
+                Delete deleteOp = new Delete(HDSConstants.REPLICATION, HDSConstants.INBAND2);
+
+                HDSHost host = new HDSHost();
                 host.setObjectID(hostObjId);
-            	SnapshotGroup snapshotGroup = new SnapshotGroup();
-            	snapshotGroup.setObjectID(snapshotGroupObjId);
-            	replicationInfo = new ReplicationInfo();
-            	replicationInfo.setObjectID(replicationInfoObjId);
-            	
-            	attributeMap.put(HDSConstants.DELETE, deleteOp);
-            	attributeMap.put(HDSConstants.HOST, host);
+                SnapshotGroup snapshotGroup = new SnapshotGroup();
+                snapshotGroup.setObjectID(snapshotGroupObjId);
+                replicationInfo = new ReplicationInfo();
+                replicationInfo.setObjectID(replicationInfoObjId);
+
+                attributeMap.put(HDSConstants.DELETE, deleteOp);
+                attributeMap.put(HDSConstants.HOST, host);
                 attributeMap.put(HDSConstants.SNAPSHOTGROUP, snapshotGroup);
                 attributeMap.put(HDSConstants.REPLICATION_INFO, replicationInfo);
-                
+
                 String deleteThinImagePairInputXML = InputXMLGenerationClient.getInputXMLString(
                         HDSConstants.DELETE_THIN_IMAGE_PAIR_OP, attributeMap,
                         HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
                         HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-                
+
                 log.info("Query to delete thin image pair : {}", deleteThinImagePairInputXML);
                 URI endpointURI = hdsApiClient.getBaseURI();
                 ClientResponse response = hdsApiClient.post(endpointURI, deleteThinImagePairInputXML);
-                
+
                 if (HttpStatus.SC_OK == response.getStatus()) {
-                	responseStream = response.getEntityInputStream();
-                    JavaResult result = SmooksUtil.getParsedXMLJavaResult(responseStream, 
-                    		HDSConstants.HITACHI_SMOOKS_THINIMAGE_CONFIG_FILE);
+                    responseStream = response.getEntityInputStream();
+                    JavaResult result = SmooksUtil.getParsedXMLJavaResult(responseStream,
+                            HDSConstants.HITACHI_SMOOKS_THINIMAGE_CONFIG_FILE);
                     verifyErrorPayload(result);
                     log.info("Thin Image pair deleted successfully.");
                 } else {
@@ -621,7 +619,7 @@ public class HDSApiProtectionManager {
                                     .format("Thin Image pair deletion failed due to invalid response %1$s from server",
                                             response.getStatus()));
                 }
-        	}
+            }
         } finally {
             if (null != responseStream) {
                 try {
@@ -632,18 +630,19 @@ public class HDSApiProtectionManager {
             }
         }
     }
-    
-/**
+
+    /**
      * Get PairManagement Server for SnapshotGroup
+     * 
      * @param serialNumber
      * @return
      * @throws Exception
      */
-    public HDSHost getSnapshotGroupPairManagementServer(String serialNumber) throws Exception{
+    public HDSHost getSnapshotGroupPairManagementServer(String serialNumber) throws Exception {
 
         InputStream responseStream = null;
         try {
-        	log.info("Started to collect Pair Mgmt Server details");
+            log.info("Started to collect Pair Mgmt Server details");
             Map<String, Object> attributeMap = new HashMap<String, Object>();
             Get getOp = new Get(HDSConstants.HOST);
             attributeMap.put(HDSConstants.GET, getOp);
@@ -651,16 +650,16 @@ public class HDSApiProtectionManager {
             host.setName("*");
             attributeMap.put(HDSConstants.HOST, host);
             SnapshotGroup snapshotGroup = new SnapshotGroup();
-            //snapshotGroup.setArrayType(arrayType);
+            // snapshotGroup.setArrayType(arrayType);
             snapshotGroup.setSerialNumber(serialNumber);
             snapshotGroup.setGroupName(HDSConstants.VIPR_SNAPSHOT_GROUP_NAME);
             attributeMap.put(HDSConstants.SNAPSHOTGROUP, snapshotGroup);
-            
+
             String getSnapshotGroupQuery = InputXMLGenerationClient.getInputXMLString(
                     HDSConstants.GET_SNAPSHOT_GROUP_INFO_OP, attributeMap,
                     HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
                     HDSConstants.HITACHI_SMOOKS_CONFIG_FILE);
-            
+
             log.info("Query to pair management server Host: {}", getSnapshotGroupQuery);
             URI endpointURI = hdsApiClient.getBaseURI();
             ClientResponse response = hdsApiClient.post(endpointURI, getSnapshotGroupQuery);
@@ -670,27 +669,27 @@ public class HDSApiProtectionManager {
                         HDSConstants.HITACHI_SMOOKS_THINIMAGE_CONFIG_FILE);
                 hdsApiClient.verifyErrorPayload(javaResult);
                 List<HDSHost> hostList = (List<HDSHost>) javaResult.getBean(HDSConstants.HOST_LIST_BEAN_NAME);
-                log.info("Host List size :{}",hostList.size());
-                for(HDSHost hdsHost: hostList){
-                	if(hdsHost != null && hdsHost.getSnapshotGroupList() !=null){
-                		log.info("Host Name :{}",hdsHost.getName());
-                		
-                		for(SnapshotGroup snapGroup: hdsHost.getSnapshotGroupList()){
-                			log.info("SnapshotGroup groupName :{}",snapGroup.getGroupName());
-                			if(snapGroup!=null && 
-                					HDSConstants.VIPR_SNAPSHOT_GROUP_NAME.equalsIgnoreCase(snapGroup.getGroupName())
-                					&& serialNumber.equalsIgnoreCase(snapGroup.getSerialNumber())){
-                				log.info("Found ViPR snaphot group on pair mgmt server {}",hdsHost.getName());
-                				return hdsHost;
-                			}
-                		}
-                	}
+                log.info("Host List size :{}", hostList.size());
+                for (HDSHost hdsHost : hostList) {
+                    if (hdsHost != null && hdsHost.getSnapshotGroupList() != null) {
+                        log.info("Host Name :{}", hdsHost.getName());
+
+                        for (SnapshotGroup snapGroup : hdsHost.getSnapshotGroupList()) {
+                            log.info("SnapshotGroup groupName :{}", snapGroup.getGroupName());
+                            if (snapGroup != null &&
+                                    HDSConstants.VIPR_SNAPSHOT_GROUP_NAME.equalsIgnoreCase(snapGroup.getGroupName())
+                                    && serialNumber.equalsIgnoreCase(snapGroup.getSerialNumber())) {
+                                log.info("Found ViPR snaphot group on pair mgmt server {}", hdsHost.getName());
+                                return hdsHost;
+                            }
+                        }
+                    }
                 }
             } else {
                 throw HDSException.exceptions
-                .invalidResponseFromHDS(String
-                        .format("Not able to query HostStorageDomain's due to invalid response %1$s from server",
-                                response.getStatus()));
+                        .invalidResponseFromHDS(String
+                                .format("Not able to query HostStorageDomain's due to invalid response %1$s from server",
+                                        response.getStatus()));
             }
         } finally {
             if (null != responseStream) {
@@ -702,11 +701,12 @@ public class HDSApiProtectionManager {
             }
         }
         // If we are here there is no pair mgmt server available on storage system.
-    	return null;
+        return null;
     }
-    
+
     /**
      * Restore's snapshot to source volume.
+     * 
      * @param pairMgmtServerHostObjId
      * @param snapshotGroupObjId
      * @param replicationInfoObjId
@@ -714,33 +714,32 @@ public class HDSApiProtectionManager {
      * @throws Exception
      */
     public boolean restoreThinImagePair(String pairMgmtServerHostObjId, String snapshotGroupObjId,
-			String replicationInfoObjId) throws Exception{
+            String replicationInfoObjId) throws Exception {
 
         InputStream responseStream = null;
         ReplicationInfo replicationInfo = null;
         boolean status = false;
         try {
-        	if(pairMgmtServerHostObjId!=null && snapshotGroupObjId!=null && replicationInfoObjId!=null){
-        		log.info("Restore thin image pair started");
-        		Map<String, Object> attributeMap = new HashMap<String, Object>();
-        		Modify modifyOp = new Modify(HDSConstants.REPLICATION);
-        		modifyOp.setOption(HDSConstants.RESTORE_INBAND2);
-        		
-        		HDSHost host = new HDSHost();
-        		host.setObjectID(pairMgmtServerHostObjId);
-            	
-            	SnapshotGroup snapshotGroup = new SnapshotGroup();
-            	snapshotGroup.setObjectID(snapshotGroupObjId);
-            	
-            	replicationInfo = new ReplicationInfo();
-            	replicationInfo.setObjectID(replicationInfoObjId);
-            	
-            	attributeMap.put(HDSConstants.MODIFY, modifyOp);
-            	attributeMap.put(HDSConstants.HOST, host);
+            if (pairMgmtServerHostObjId != null && snapshotGroupObjId != null && replicationInfoObjId != null) {
+                log.info("Restore thin image pair started");
+                Map<String, Object> attributeMap = new HashMap<String, Object>();
+                Modify modifyOp = new Modify(HDSConstants.REPLICATION);
+                modifyOp.setOption(HDSConstants.RESTORE_INBAND2);
+
+                HDSHost host = new HDSHost();
+                host.setObjectID(pairMgmtServerHostObjId);
+
+                SnapshotGroup snapshotGroup = new SnapshotGroup();
+                snapshotGroup.setObjectID(snapshotGroupObjId);
+
+                replicationInfo = new ReplicationInfo();
+                replicationInfo.setObjectID(replicationInfoObjId);
+
+                attributeMap.put(HDSConstants.MODIFY, modifyOp);
+                attributeMap.put(HDSConstants.HOST, host);
                 attributeMap.put(HDSConstants.SNAPSHOTGROUP, snapshotGroup);
                 attributeMap.put(HDSConstants.REPLICATION_INFO, replicationInfo);
-            	
-            	
+
                 String restoreThinImagePairQuery = InputXMLGenerationClient.getInputXMLString(
                         HDSConstants.RESTORE_THIN_IMAGE_PAIR_OP, attributeMap,
                         HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
@@ -754,22 +753,24 @@ public class HDSApiProtectionManager {
                             HDSConstants.HITACHI_SMOOKS_THINIMAGE_CONFIG_FILE);
                     verifyErrorPayload(javaResult);
                     log.info("Successfully restored thin image pair");
-                    status=true;
+                    status = true;
                     replicationInfo = javaResult.getBean(ReplicationInfo.class);
-                    log.info("replicationInfo :{}",replicationInfo);
-                    /*if (null == replicationInfo) {
-                        throw HDSException.exceptions.notAbleToCreateShadowImagePair();
-                    }*/
+                    log.info("replicationInfo :{}", replicationInfo);
+                    /*
+                     * if (null == replicationInfo) {
+                     * throw HDSException.exceptions.notAbleToCreateShadowImagePair();
+                     * }
+                     */
                 } else {
                     throw HDSException.exceptions
-                    .invalidResponseFromHDS(String
-                            .format("Not able to delete shadow image pair due to invalid response %1$s from server",
-                                    response.getStatus()));
+                            .invalidResponseFromHDS(String
+                                    .format("Not able to delete shadow image pair due to invalid response %1$s from server",
+                                            response.getStatus()));
                 }
-        	}else{
-        		log.info("Replication info is not available on pair management server");
-        	}
-        	
+            } else {
+                log.info("Replication info is not available on pair management server");
+            }
+
         } finally {
             if (null != responseStream) {
                 try {
@@ -779,26 +780,25 @@ public class HDSApiProtectionManager {
                 }
             }
         }
-        
+
         return status;
     }
 
-	public void refreshPairManagementServer(String pairMgmtServerHostObjId) throws Exception{
-
+    public void refreshPairManagementServer(String pairMgmtServerHostObjId) throws Exception {
 
         InputStream responseStream = null;
         try {
-        	if(pairMgmtServerHostObjId!=null){
-        		log.info("Refreshing Pair Mgmt Server started");
-        		Map<String, Object> attributeMap = new HashMap<String, Object>();
-        		Add addOp = new Add(HDSConstants.HOST_REFRESH);
-        		
-        		HDSHost host = new HDSHost();
-        		host.setObjectID(pairMgmtServerHostObjId);
-            	
-            	attributeMap.put(HDSConstants.ADD, addOp);
-            	attributeMap.put(HDSConstants.HOST, host);
-            	
+            if (pairMgmtServerHostObjId != null) {
+                log.info("Refreshing Pair Mgmt Server started");
+                Map<String, Object> attributeMap = new HashMap<String, Object>();
+                Add addOp = new Add(HDSConstants.HOST_REFRESH);
+
+                HDSHost host = new HDSHost();
+                host.setObjectID(pairMgmtServerHostObjId);
+
+                attributeMap.put(HDSConstants.ADD, addOp);
+                attributeMap.put(HDSConstants.HOST, host);
+
                 String refreshHostQuery = InputXMLGenerationClient.getInputXMLString(
                         HDSConstants.REFRESH_HOST_OP, attributeMap,
                         HDSConstants.HITACHI_INPUT_XML_CONTEXT_FILE,
@@ -814,14 +814,14 @@ public class HDSApiProtectionManager {
                     log.info("Successfully refreshed pair mgmt server");
                 } else {
                     throw HDSException.exceptions
-                    .invalidResponseFromHDS(String
-                            .format("Not able to refresh pair mgmt server due to invalid response %1$s from server",
-                                    response.getStatus()));
+                            .invalidResponseFromHDS(String
+                                    .format("Not able to refresh pair mgmt server due to invalid response %1$s from server",
+                                            response.getStatus()));
                 }
-        	}else{
-        		log.info("Pair Mgmt Server Object id is null");
-        	}
-        	
+            } else {
+                log.info("Pair Mgmt Server Object id is null");
+            }
+
         } finally {
             if (null != responseStream) {
                 try {
@@ -831,6 +831,6 @@ public class HDSApiProtectionManager {
                 }
             }
         }
-	}
-    
+    }
+
 }

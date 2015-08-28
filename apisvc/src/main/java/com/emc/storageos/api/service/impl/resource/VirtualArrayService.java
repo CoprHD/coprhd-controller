@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service.impl.resource;
@@ -134,27 +124,27 @@ import com.google.common.collect.Lists;
  * a VirtualArray.
  */
 @Path("/vdc/varrays")
-@DefaultPermissions( read_roles = {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR},
-        read_acls = {ACL.USE},
-        write_roles = {Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        readAcls = { ACL.USE },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class VirtualArrayService extends TaggedResource {
 
     private static Logger _log = LoggerFactory.getLogger(VirtualArrayService.class);
     private static final String EVENT_SERVICE_TYPE = "VirtualArray";
     private static final String EVENT_SERVICE_SOURCE = "VirtualArrayService";
-    
+
     private static final String SEARCH_INITIATOR_PORT = "initiator_port";
     private static final String SEARCH_HOST = "host";
     private static final String SEARCH_CLUSTER = "cluster";
 
     @Autowired
     private NetworkService _networkService;
-    
+
     @Autowired
     private ComputeSystemService computeSystemService;
 
     @Autowired
-    protected GeoVisibilityHelper _geoHelper;      
+    protected GeoVisibilityHelper _geoHelper;
 
     @Override
     public String getServiceType() {
@@ -162,63 +152,63 @@ public class VirtualArrayService extends TaggedResource {
     }
 
     private RecordableEventManager eventManager;
-    
+
     public void setEventManager(RecordableEventManager eventManager) {
         this.eventManager = eventManager;
     }
 
     private AttributeMatcherFramework _matcherFramework;
 
-
     /**
      * List VirtualArrays in zone the user is authorized to see
+     * 
      * @brief List VirtualArrays in zone
      * @return List of VirtualArrays
      */
     @GET
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public VirtualArrayList getVirtualArrayList(@DefaultValue("") @QueryParam(VDC_ID_QUERY_PARAM) String shortVdcId) {
         _geoHelper.verifyVdcId(shortVdcId);
         VirtualArrayList list = new VirtualArrayList();
         List<VirtualArray> nhObjList = Collections.emptyList();
-        if (_geoHelper.isLocalVdcId(shortVdcId)) {  
+        if (_geoHelper.isLocalVdcId(shortVdcId)) {
             _log.debug("retrieving virtual arrays via dbclient");
             final List<URI> ids = _dbClient.queryByType(VirtualArray.class, true);
-            nhObjList = _dbClient.queryObject(VirtualArray.class, ids);            
+            nhObjList = _dbClient.queryObject(VirtualArray.class, ids);
         } else {
-            _log.debug("retrieving virtual arrays via geoclient");            
+            _log.debug("retrieving virtual arrays via geoclient");
             try {
                 GeoServiceClient geoClient = _geoHelper.getClient(shortVdcId);
                 final List<URI> ids = Lists.newArrayList(geoClient.queryByType(VirtualArray.class, true));
-                    nhObjList = Lists.newArrayList(geoClient.queryObjects(VirtualArray.class, ids));
+                nhObjList = Lists.newArrayList(geoClient.queryObjects(VirtualArray.class, ids));
             } catch (Exception ex) {
                 // TODO: revisit this exception
                 _log.error("error retrieving virtual arrays", ex);
                 throw APIException.internalServerErrors.genericApisvcError("error retrieving virtual arrays", ex);
             }
-        }        
-        
+        }
+
         StorageOSUser user = getUserFromContext();
         // full list if role is {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR}
         if (_permissionsHelper.userHasGivenRole(user,
                 null, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR)) {
-            for (VirtualArray nh: nhObjList) {
+            for (VirtualArray nh : nhObjList) {
                 list.getVirtualArrays().add(toNamedRelatedResource(ResourceTypeEnum.VARRAY,
-                    nh.getId(), nh.getLabel()));
+                        nh.getId(), nh.getLabel()));
             }
         } else {
             // otherwise, filter by only authorized to use
             URI tenant = URI.create(user.getTenantId());
-            for (VirtualArray nh: nhObjList) {
+            for (VirtualArray nh : nhObjList) {
                 if (_permissionsHelper.tenantHasUsageACL(tenant, nh)) {
                     list.getVirtualArrays().add(toNamedRelatedResource(ResourceTypeEnum.VARRAY,
-                        nh.getId(), nh.getLabel()));
+                            nh.getId(), nh.getLabel()));
                 }
             }
         }
         return list;
     }
-    
+
     /**
      * Get all Auto Tier policies associated with given VirtualArray which satisfies
      * poolType.
@@ -230,12 +220,13 @@ public class VirtualArrayService extends TaggedResource {
      * In addition to the above constraints, only policies which satisfy the following conditions gets returned
      * 1. AutoTiering should be enabled on top level StorageSystem, which these policies belong to
      * 2. Policy should be in enabled State.
-     *
+     * 
      * ProvisionType Values :
      * {
-     *   Thin
-     *   Thick
+     * Thin
+     * Thick
      * }
+     * 
      * @params QueryParam , which includes provisionType
      *         provisionType- Thin or Thick
      * @brief List VirtualArray auto tier policies for provision type
@@ -247,16 +238,16 @@ public class VirtualArrayService extends TaggedResource {
     @Path("/{id}/auto-tier-policies")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN })
     public AutoTierPolicyList getAutoTierPolicies(@PathParam("id") URI id,
-            @QueryParam("provisioning_type") String provisionType, 
+            @QueryParam("provisioning_type") String provisionType,
             @QueryParam("unique_auto_tier_policy_names") Boolean uniquePolicyNames) {
-        
+
         if (null == uniquePolicyNames) {
             uniquePolicyNames = false;
         }
         URIQueryResultList poolsInVirtualArray = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getVirtualArrayStoragePoolsConstraint(id.toString()), poolsInVirtualArray);
-        Iterator<StoragePool> poolIter = _dbClient.queryIterativeObjectField(StoragePool.class, "storageDevice",poolsInVirtualArray);
+        Iterator<StoragePool> poolIter = _dbClient.queryIterativeObjectField(StoragePool.class, "storageDevice", poolsInVirtualArray);
         Set<URI> systems = new HashSet<>();
         while (poolIter.hasNext()) {
             systems.add(poolIter.next().getStorageDevice());
@@ -265,7 +256,7 @@ public class VirtualArrayService extends TaggedResource {
         for (URI systemId : systems) {
             URIQueryResultList result = new URIQueryResultList();
             _dbClient.queryByConstraint(ContainmentConstraint.Factory
-                        .getStorageDeviceFASTPolicyConstraint(systemId), result);
+                    .getStorageDeviceFASTPolicyConstraint(systemId), result);
             while (result.iterator().hasNext()) {
                 URI policyURI = result.iterator().next();
                 autoTierPolicyURIs.add(policyURI);
@@ -284,12 +275,13 @@ public class VirtualArrayService extends TaggedResource {
      * In addition to the above constraints, only policies which satisfy the following conditions gets returned
      * 1. AutoTiering should be enabled on top level StorageSystem, which these policies belong to
      * 2. Policy should be in enabled State.
-     *
+     * 
      * ProvisionType Values :
      * {
-     *   Thin
-     *   Thick
+     * Thin
+     * Thick
      * }
+     * 
      * @params QueryParam , which includes provisionType
      *         provisionType- Thin or Thick
      * @brief List VirtualArray auto tier policies for provision type
@@ -301,14 +293,14 @@ public class VirtualArrayService extends TaggedResource {
     @Path("/auto-tier-policies")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN })
     public AutoTierPolicyList getAutoTierPolicies(@QueryParam("provisioning_type") String provisionType,
-                                                  @QueryParam("unique_auto_tier_policy_names") Boolean uniquePolicyNames,
-                                                  BulkIdParam param) {
+            @QueryParam("unique_auto_tier_policy_names") Boolean uniquePolicyNames,
+            BulkIdParam param) {
 
         if (null == uniquePolicyNames) {
             uniquePolicyNames = false;
         }
         Set<URI> systems = new HashSet<>();
-        for( URI id : param.getIds() ) {
+        for (URI id : param.getIds()) {
             URIQueryResultList poolsInVirtualArray = new URIQueryResultList();
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getVirtualArrayStoragePoolsConstraint(id.toString()), poolsInVirtualArray);
@@ -332,33 +324,35 @@ public class VirtualArrayService extends TaggedResource {
     }
 
     /**
-     * get  Policies which satisfy the below
+     * get Policies which satisfy the below
      * 1. if policy is enabled
-     * 2. if  is enabled on associated Storage System.
+     * 2. if is enabled on associated Storage System.
      * 3. Policy's provisioning Type equals given provisioningType
      */
-    private AutoTierPolicyList getAutoTierPolicies( String provisionType,
-            Set<URI> autoTierPolicyUris, boolean uniquePolicyNames ) {
+    private AutoTierPolicyList getAutoTierPolicies(String provisionType,
+            Set<URI> autoTierPolicyUris, boolean uniquePolicyNames) {
         AutoTierPolicyList result = new AutoTierPolicyList();
         List<URI> autoTierPolicyUriList = new ArrayList<>(autoTierPolicyUris);
         Iterator<AutoTieringPolicy> autoTierPolicies = _dbClient.queryIterativeObjects(AutoTieringPolicy.class,
-                                                                     autoTierPolicyUriList,true);
-        Map<URI,StorageSystem> systemCache = new HashMap<>();
+                autoTierPolicyUriList, true);
+        Map<URI, StorageSystem> systemCache = new HashMap<>();
         while (autoTierPolicies.hasNext()) {
             AutoTieringPolicy policy = autoTierPolicies.next();
             // If policy is disabled, skip it
-            if (!policy.getPolicyEnabled())
+            if (!policy.getPolicyEnabled()) {
                 continue;
-            if (!doesGivenProvisionTypeMatchAutoTierPolicy(provisionType, policy))
-                continue;
-            StorageSystem system = systemCache.get(policy.getStorageSystem());
-            if(system == null) {
-                system = _dbClient.queryObject(StorageSystem.class,policy.getStorageSystem());
-                systemCache.put(policy.getStorageSystem(),system);
             }
-            // if  is disabled then skip it too.
+            if (!doesGivenProvisionTypeMatchAutoTierPolicy(provisionType, policy)) {
+                continue;
+            }
+            StorageSystem system = systemCache.get(policy.getStorageSystem());
+            if (system == null) {
+                system = _dbClient.queryObject(StorageSystem.class, policy.getStorageSystem());
+                systemCache.put(policy.getStorageSystem(), system);
+            }
+            // if is disabled then skip it too.
             if (null != system && system.getAutoTieringEnabled()) {
-                addAutoTierPolicy(policy, result,uniquePolicyNames);
+                addAutoTierPolicy(policy, result, uniquePolicyNames);
             }
         }
         return result;
@@ -366,54 +360,58 @@ public class VirtualArrayService extends TaggedResource {
 
     /**
      * Conditions to find out whether given Provision Type matches
-     * discovered  Policy's provisionType
-     *
+     * discovered Policy's provisionType
+     * 
      * @param provisioningType
      * @param policy
      * @return
      */
     private boolean doesGivenProvisionTypeMatchAutoTierPolicy(
             String provisioningType, AutoTieringPolicy policy) {
-        if (null == provisioningType || provisioningType.isEmpty())
+        if (null == provisioningType || provisioningType.isEmpty()) {
             return true;
+        }
         // for vnx case, all Policies will be set to ALL
         if (AutoTieringPolicy.ProvisioningType.All.toString().equalsIgnoreCase(
-                policy.getProvisioningType()))
+                policy.getProvisioningType())) {
             return true;
+        }
         if (provisioningType.equalsIgnoreCase(VirtualPool.ProvisioningType.Thick.toString())
                 && AutoTieringPolicy.ProvisioningType.ThicklyProvisioned.toString()
-                        .equalsIgnoreCase(policy.getProvisioningType()))
+                        .equalsIgnoreCase(policy.getProvisioningType())) {
             return true;
+        }
         if (provisioningType.equalsIgnoreCase(VirtualPool.ProvisioningType.Thin.toString())
                 && AutoTieringPolicy.ProvisioningType.ThinlyProvisioned.toString()
-                        .equalsIgnoreCase(policy.getProvisioningType()))
+                        .equalsIgnoreCase(policy.getProvisioningType())) {
             return true;
+        }
         return false;
     }
 
-
     /**
      * Create VirtualArray
-     * @param  param VirtualArray parameters
+     * 
+     * @param param VirtualArray parameters
      * @brief Create VirtualArray
      * @return VirtualArray details
      */
     @POST
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public VirtualArrayRestRep createVirtualArray(VirtualArrayCreateParam param) {
 
-        //check for active nh with same name
+        // check for active nh with same name
         checkDuplicateLabel(VirtualArray.class, param.getLabel(), "VirtualArray");
 
         VirtualArray varray = new VirtualArray();
         varray.setId(URIUtil.createId(VirtualArray.class));
         varray.setLabel(param.getLabel());
         if (param.getAutoSanZoning() != null) {
-        	varray.setAutoSanZoning(param.getAutoSanZoning());
+            varray.setAutoSanZoning(param.getAutoSanZoning());
         } else {
-        	varray.setAutoSanZoning(true);
+            varray.setAutoSanZoning(true);
         }
 
         if (param.getObjectSettings().getProtectionType() != null) {
@@ -428,14 +426,14 @@ public class VirtualArrayService extends TaggedResource {
         return map(varray);
     }
 
-   /**
-    * @brief Update VirtualArray
-    *
-    */
+    /**
+     * @brief Update VirtualArray
+     * 
+     */
     @PUT
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     @Path("/{id}")
     public VirtualArrayRestRep updateVirtualArray(@PathParam("id") URI id,
             VirtualArrayUpdateParam param) {
@@ -451,7 +449,7 @@ public class VirtualArrayService extends TaggedResource {
         }
 
         if (param.getAutoSanZoning() != null) {
-        	varray.setAutoSanZoning(param.getAutoSanZoning());
+            varray.setAutoSanZoning(param.getAutoSanZoning());
         }
 
         if (param.getObjectSettings().getProtectionType() != null) {
@@ -461,48 +459,48 @@ public class VirtualArrayService extends TaggedResource {
         _dbClient.persistObject(varray);
 
         auditOp(OperationTypeEnum.UPDATE_VARRAY, true, null,
-            id.toString(), param.getLabel(), varray.getAutoSanZoning().toString());
+                id.toString(), param.getLabel(), varray.getAutoSanZoning().toString());
 
         return map(varray);
     }
 
-
     /**
      * Get info for VirtualArray
+     * 
      * @param id the URN of a ViPR VirtualArray
      * @brief Show VirtualArray
      * @return VirtualArray details
      */
     @GET
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR}, acls = {ACL.USE})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, acls = { ACL.USE })
     public VirtualArrayRestRep getVirtualArray(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, VirtualArray.class, "id");
-        VirtualArray varray = null;        
+        VirtualArray varray = null;
         if (_geoHelper.isLocalURI(id)) {
             _log.debug("retrieving varray via dbclient");
-            varray = getVirtualArrayById(id, false);    
+            varray = getVirtualArrayById(id, false);
         } else {
             _log.debug("retrieving varray via geoclient");
             String shortVdcId = VdcUtil.getVdcId(VirtualArray.class, id).toString();
-            //TODO: do we want to leverage caching like the native lookup
+            // TODO: do we want to leverage caching like the native lookup
             GeoServiceClient geoClient = _geoHelper.getClient(shortVdcId);
             try {
                 varray = geoClient.queryObject(VirtualArray.class, id);
             } catch (Exception ex) {
-                //TODO: revisit this exception
+                // TODO: revisit this exception
                 _log.error("error retrieving virtual array from vdc " + shortVdcId, ex);
                 throw APIException.internalServerErrors.genericApisvcError("error retrieving remote array", ex);
-            }                
-        }        
+            }
+        }
         return map(varray);
     }
 
     @Override
     protected VirtualArray queryResource(URI id) {
-    	VirtualArray vArray = getVirtualArrayById(id, false);
-    	ArgValidator.checkEntityNotNull(vArray, id, isIdEmbeddedInURL(id));
+        VirtualArray vArray = getVirtualArrayById(id, false);
+        ArgValidator.checkEntityNotNull(vArray, id, isIdEmbeddedInURL(id));
         return vArray;
     }
 
@@ -518,28 +516,28 @@ public class VirtualArrayService extends TaggedResource {
      * The VirtualArray will be permanently deleted once all references to this VirtualArray
      * of type VirtualPool, BlockSnapshot, FileSystem, Volume, HostingDeviceInfo, StorageSystem,
      * Network are deleted
-     *
+     * 
      * @param id the URN of a ViPR VirtualArray
      * @brief Delete VirtualArray
      * @return No data returned in response body
      */
     @POST
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/deactivate")
-    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response deleteVirtualArray(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, VirtualArray.class, "id");
         VirtualArray varray = _dbClient.queryObject(VirtualArray.class, id);
         ArgValidator.checkEntityNotNull(varray, id, isIdEmbeddedInURL(id));
         ArgValidator.checkReference(VirtualArray.class, id, checkForDelete(varray));
-        if(varray.getDeviceRegistered()) {
-                // registered varray can not be deleted
-                throw APIException.badRequests.resourceCannotBeDeleted("Varray is already registered.");
+        if (varray.getDeviceRegistered()) {
+            // registered varray can not be deleted
+            throw APIException.badRequests.resourceCannotBeDeleted("Varray is already registered.");
         }
         _dbClient.markForDeletion(varray);
 
         auditOp(OperationTypeEnum.DELETE_VARRAY, true, null,
-            id.toString(), varray.getLabel());
+                id.toString(), varray.getLabel());
 
         return Response.ok().build();
     }
@@ -552,34 +550,28 @@ public class VirtualArrayService extends TaggedResource {
      * can be explicitly assigned to storage pools when a storage pool is
      * created or later by modifying the storage pool after it has been created.
      * <p>
-     * Whether or not a VirtualArray has been explicitly assigned to any storage
-     * pools the VirtualArray may still have implicit associations with one or
-     * more storage pools due to the VirtualArray's network connectivity. That
-     * is, a network resides in a VirtualArray and may contain storage ports.
-     * This implies that these storage ports reside in the VirtualArray, which
-     * further implies that the storage system and any storage pools on that 
-     * storage system also reside in the VirtualArray. If the VirtualArray has
-     * no explicit assignments, but does have implicit associations, the API will
-     * instead return those storage pools implicitly associated.
+     * Whether or not a VirtualArray has been explicitly assigned to any storage pools the VirtualArray may still have implicit associations
+     * with one or more storage pools due to the VirtualArray's network connectivity. That is, a network resides in a VirtualArray and may
+     * contain storage ports. This implies that these storage ports reside in the VirtualArray, which further implies that the storage
+     * system and any storage pools on that storage system also reside in the VirtualArray. If the VirtualArray has no explicit assignments,
+     * but does have implicit associations, the API will instead return those storage pools implicitly associated.
      * <p>
-     * The API provides the ability to force the return of the list of storage
-     * pools implicitly associated with the VirtualArray using the request
-     * parameter "network_connectivity". Passing this parameter with a value
-     * of "true" will return the ids of the storage pools implicitly
-     * associated with the VirtualArray as described.
-     *
+     * The API provides the ability to force the return of the list of storage pools implicitly associated with the VirtualArray using the
+     * request parameter "network_connectivity". Passing this parameter with a value of "true" will return the ids of the storage pools
+     * implicitly associated with the VirtualArray as described.
+     * 
      * @param id the URN of a ViPR VirtualArray.
-     * @param useNetworkConnectivity true to use the network connectivity to 
-     *        get the list of storage pools implicitly connected to the
-     *        VirtualArray.
-     *
+     * @param useNetworkConnectivity true to use the network connectivity to
+     *            get the list of storage pools implicitly connected to the
+     *            VirtualArray.
+     * 
      * @brief List VirtualArray storage pools
      * @return The ids of the storage pools associated with the VirtualArray.
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/storage-pools")
-    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR}, acls = {ACL.USE})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, acls = { ACL.USE })
     public StoragePoolList getVirtualArrayStoragePools(@PathParam("id") URI id,
             @QueryParam("network_connectivity") boolean useNetworkConnectivity) {
 
@@ -597,29 +589,29 @@ public class VirtualArrayService extends TaggedResource {
         URIQueryResultList storagePoolURIs = new URIQueryResultList();
         if (useNetworkConnectivity) {
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getImplicitVirtualArrayStoragePoolsConstraint(id.toString()),
-                storagePoolURIs);
+                    .getImplicitVirtualArrayStoragePoolsConstraint(id.toString()),
+                    storagePoolURIs);
         } else {
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getVirtualArrayStoragePoolsConstraint(id.toString()), storagePoolURIs);
+                    .getVirtualArrayStoragePoolsConstraint(id.toString()), storagePoolURIs);
         }
 
         // Create and return the result.
         StoragePoolList storagePools = new StoragePoolList();
-        for (URI uri :  storagePoolURIs){
+        for (URI uri : storagePoolURIs) {
             StoragePool storagePool = _dbClient.queryObject(StoragePool.class, uri);
             if ((storagePool != null)
-            	&& (CompatibilityStatus.COMPATIBLE.toString().equals(storagePool
-                    .getCompatibilityStatus()))
-                && (RegistrationStatus.REGISTERED.toString().equals(storagePool
-                    .getRegistrationStatus()))
-                && DiscoveryStatus.VISIBLE.toString().equals(storagePool.getDiscoveryStatus())) {
+                    && (CompatibilityStatus.COMPATIBLE.toString().equals(storagePool
+                            .getCompatibilityStatus()))
+                    && (RegistrationStatus.REGISTERED.toString().equals(storagePool
+                            .getRegistrationStatus()))
+                    && DiscoveryStatus.VISIBLE.toString().equals(storagePool.getDiscoveryStatus())) {
                 storagePools.getPools().add(toNamedRelatedResource(storagePool, storagePool.getNativeGuid()));
             }
         }
         return storagePools;
     }
-    
+
     /**
      * 
      * Returns the storage ports for the VirtualArray with the passed id. When
@@ -628,33 +620,27 @@ public class VirtualArrayService extends TaggedResource {
      * can be explicitly assigned to storage ports when a storage port is
      * created or later by modifying the storage port after it has been created.
      * <p>
-     * Whether or not a VirtualArray has been explicitly assigned to any storage
-     * ports the VirtualArray may still have implicit associations with one or
-     * more storage port due to the VirtualArray's network connectivity. That is,
-     * a network resides in a VirtualArray and may contain storage ports. This 
-     * implies that these storage ports reside in the VirtualArray. If the 
-     * VirtualArray has no explicit storage port assignments, but does have 
-     * implicit associations, the API will instead return those storage ports 
-     * implicitly associated.
+     * Whether or not a VirtualArray has been explicitly assigned to any storage ports the VirtualArray may still have implicit associations
+     * with one or more storage port due to the VirtualArray's network connectivity. That is, a network resides in a VirtualArray and may
+     * contain storage ports. This implies that these storage ports reside in the VirtualArray. If the VirtualArray has no explicit storage
+     * port assignments, but does have implicit associations, the API will instead return those storage ports implicitly associated.
      * <p>
-     * The API provides the ability to force the return of the list of storage
-     * ports implicitly associated with the VirtualArray using the request
-     * parameter "network_connectivity". Passing this parameter with a
-     * value of "true" will return the ids of the storage ports implicitly
-     * associated with the VirtualArray as described.
-     *
+     * The API provides the ability to force the return of the list of storage ports implicitly associated with the VirtualArray using the
+     * request parameter "network_connectivity". Passing this parameter with a value of "true" will return the ids of the storage ports
+     * implicitly associated with the VirtualArray as described.
+     * 
      * @param id the URN of a ViPR VirtualArray.
      * @param useNetworkConnectivity true to use the network connectivity to
-     *        get the list of storage ports implicitly connected to the
-     *        VirtualArray.
-     *
+     *            get the list of storage ports implicitly connected to the
+     *            VirtualArray.
+     * 
      * @brief List VirtualArray storage ports
      * @return The ids of the storage ports associated with the VirtualArray.
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/storage-ports")
-    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR}, acls = {ACL.USE})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, acls = { ACL.USE })
     public StoragePortList getVirtualArrayStoragePorts(@PathParam("id") URI id,
             @QueryParam("network_connectivity") boolean useNetworkConnectivity) {
 
@@ -672,23 +658,23 @@ public class VirtualArrayService extends TaggedResource {
         URIQueryResultList storagePortURIs = new URIQueryResultList();
         if (useNetworkConnectivity) {
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getImplicitVirtualArrayStoragePortsConstraint(id.toString()),
-                storagePortURIs);
+                    .getImplicitVirtualArrayStoragePortsConstraint(id.toString()),
+                    storagePortURIs);
         } else {
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getVirtualArrayStoragePortsConstraint(id.toString()), storagePortURIs);
+                    .getVirtualArrayStoragePortsConstraint(id.toString()), storagePortURIs);
         }
 
         // Create and return the result.
         StoragePortList storagePorts = new StoragePortList();
-        for (URI uri :  storagePortURIs){
+        for (URI uri : storagePortURIs) {
             StoragePort storagePort = _dbClient.queryObject(StoragePort.class, uri);
             if ((storagePort != null)
-            	&& DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
-                    .equals(storagePort.getCompatibilityStatus())
-                && (RegistrationStatus.REGISTERED.toString().equals(storagePort
-                    .getRegistrationStatus()))
-                && DiscoveryStatus.VISIBLE.toString().equals(storagePort.getDiscoveryStatus())) {
+                    && DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
+                            .equals(storagePort.getCompatibilityStatus())
+                    && (RegistrationStatus.REGISTERED.toString().equals(storagePort
+                            .getRegistrationStatus()))
+                    && DiscoveryStatus.VISIBLE.toString().equals(storagePort.getDiscoveryStatus())) {
                 storagePorts.getPorts().add(toNamedRelatedResource(storagePort, storagePort.getNativeGuid()));
             }
         }
@@ -698,9 +684,9 @@ public class VirtualArrayService extends TaggedResource {
     /**
      * Returns the id and self link for all VirtualPool associated
      * with the VirtualArray.
-     *
+     * 
      * @param id the URN of a ViPR VirtualArray.
-     *
+     * 
      * @brief List VirtualArray VirtualPools
      * @return A reference to a VirtualPoolList specifying the id and self link for the
      *         VirtualPool for the VirtualArray.
@@ -713,8 +699,8 @@ public class VirtualArrayService extends TaggedResource {
         VirtualPoolList cosList = new VirtualPoolList();
         URIQueryResultList resultList = new URIQueryResultList();
         _dbClient.queryByConstraint(
-            ContainmentConstraint.Factory.getVirtualArrayVirtualPoolConstraint(id),
-            resultList);
+                ContainmentConstraint.Factory.getVirtualArrayVirtualPoolConstraint(id),
+                resultList);
 
         Iterator<URI> cosIterator = resultList.iterator();
         while (cosIterator.hasNext()) {
@@ -727,15 +713,15 @@ public class VirtualArrayService extends TaggedResource {
             }
 
             /*
-              An user can see the vpool if:
-                1. be sysadmin or sysmonitor or restricted sysadmin
-                2. mapped to that tenant.
-                3. tenant admin but not mapping to the tenant cannot see it
-            */
+             * An user can see the vpool if:
+             * 1. be sysadmin or sysmonitor or restricted sysadmin
+             * 2. mapped to that tenant.
+             * 3. tenant admin but not mapping to the tenant cannot see it
+             */
             StorageOSUser user = getUserFromContext();
             if (_permissionsHelper.userHasGivenRole(user, null,
                     Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR, Role.RESTRICTED_SYSTEM_ADMIN) ||
-                    userTenantHasPermissionForVirtualPool(cosId.toString()) ) {
+                    userTenantHasPermissionForVirtualPool(cosId.toString())) {
                 _log.debug("Adding VirtualPool");
                 cosList.getVirtualPool().add(toVirtualPoolResource(cos));
             }
@@ -746,9 +732,9 @@ public class VirtualArrayService extends TaggedResource {
     /**
      * Determines if the VirtualPool with the passed id is accessible to
      * the user's tenant organization.
-     *
+     * 
      * @param vpoolId The VirtualPool id.
-     *
+     * 
      * @return true if the VirtualPool is accessible to the user's tenant, false otherwise.
      */
     private boolean userTenantHasPermissionForVirtualPool(String vpoolId) {
@@ -767,7 +753,7 @@ public class VirtualArrayService extends TaggedResource {
         return hasUsageACL;
     }
 
-     /**
+    /**
      * Create a network and assign it to the virtual array.
      * 
      * @param param Network parameters
@@ -778,10 +764,10 @@ public class VirtualArrayService extends TaggedResource {
      * @return Network details
      */
     @POST
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/networks")
-    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public NetworkRestRep createNetwork(@PathParam("id") URI id,
             NetworkCreate param) {
         _log.debug("createNetwork: started for varray {}", id);
@@ -806,32 +792,33 @@ public class VirtualArrayService extends TaggedResource {
      * @return List of Networks
      */
     @GET
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/networks")
-    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR}, acls = {ACL.USE})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, acls = { ACL.USE })
     public NetworkList getNetworkList(@PathParam("id") URI id) {
         NetworkList networkList = new NetworkList();
-        
+
         // Verify the passed virtual array id.
         ArgValidator.checkFieldUriType(id, VirtualArray.class, "id");
         VirtualArray varray = _dbClient.queryObject(VirtualArray.class, id);
         ArgValidator.checkEntity(varray, id, isIdEmbeddedInURL(id));
         // Get the networks assigned to the virtual array.
         List<Network> networks = CustomQueryUtility.queryActiveResourcesByRelation(
-            _dbClient, id, Network.class, "connectedVirtualArrays");
+                _dbClient, id, Network.class, "connectedVirtualArrays");
         for (Network network : networks) {
             if (network == null || network.getInactive() == true) {
                 continue;
             }
             networkList.getNetworks().add(
-                toNamedRelatedResource(ResourceTypeEnum.NETWORK, network.getId(),
-                    network.getLabel()));
+                    toNamedRelatedResource(ResourceTypeEnum.NETWORK, network.getId(),
+                            network.getLabel()));
         }
         return networkList;
     }
 
     /**
      * Get VirtualArray ACL. There is only one privilege, "use", and it is used to determine who can create resources in the VirtualArray.
+     * 
      * @param id the URN of a ViPR VirtualArray
      * @brief Show VirtualArray ACL
      * @return ACL Assignment details
@@ -839,13 +826,14 @@ public class VirtualArrayService extends TaggedResource {
     @GET
     @Path("/{id}/acl")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = {Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR})
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public ACLAssignments getAcls(@PathParam("id") URI id) {
         return getAclsResponse(id);
     }
 
     /**
      * Add or remove individual ACL entry(s). Request body must include at least one add or remove operation
+     * 
      * @param changes ACL assignment changes
      * @param id the URN of a ViPR VirtualArray
      * @brief Add or remove ACL for VirtualArray
@@ -854,7 +842,7 @@ public class VirtualArrayService extends TaggedResource {
     @PUT
     @Path("/{id}/acl")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = {Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN} , block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN }, blockProxies = true)
     public ACLAssignments updateAcls(@PathParam("id") URI id,
             ACLAssignmentChanges changes) {
         VirtualArray varray = getVirtualArrayById(id, true);
@@ -862,7 +850,7 @@ public class VirtualArrayService extends TaggedResource {
         _dbClient.persistObject(varray);
 
         auditOp(OperationTypeEnum.MODIFY_VARRAY_ACL, true, null,
-            id.toString(), varray.getLabel());
+                id.toString(), varray.getLabel());
 
         return getAclsResponse(id);
     }
@@ -877,47 +865,51 @@ public class VirtualArrayService extends TaggedResource {
     /**
      * Get information about the connectivity of the registered VirtualArray
      * with the passed id.
-     *
+     * 
      * @param id the URN of a ViPR VirtualArray
      * @brief List VirtualArray connectivity
      * @return NeighbourhoodConnectivityRestRep object
      */
     @GET
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/connectivity")
-    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR}, acls = {ACL.USE})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, acls = { ACL.USE })
     public VirtualArrayConnectivityList getVirtualArrayConnectivity(@PathParam("id") URI id) {
         return getConnectivity(queryResource(id));
     }
 
     /**
      * Gets information about VirtualArrays that are connected to the passed in VirtualArray that support some kind of protection
+     * 
      * @param varray
      * @return rest response
      */
     private VirtualArrayConnectivityList getConnectivity(VirtualArray varray) {
-    	
-    	Set<VirtualArrayConnectivityRestRep> connections = AbstractBlockServiceApiImpl.getVirtualArrayConnectivity(_dbClient, varray.getId());
-        
+
+        Set<VirtualArrayConnectivityRestRep> connections = AbstractBlockServiceApiImpl.getVirtualArrayConnectivity(_dbClient,
+                varray.getId());
+
         VirtualArrayConnectivityList connectivityList = new VirtualArrayConnectivityList();
         connectivityList.setConnections(new ArrayList<VirtualArrayConnectivityRestRep>());
         connectivityList.getConnections().addAll(connections);
-        
+
         return connectivityList;
     }
 
     /**
      * Get tenant object from id
+     * 
      * @param id the URN of a ViPR tenant object
      * @return
      */
     private VirtualArray getVirtualArrayById(URI id, boolean checkInactive) {
-	    if (id == null)
-	        return null;
-	
+        if (id == null) {
+            return null;
+        }
+
         VirtualArray n = _permissionsHelper.getObjectById(id, VirtualArray.class);
         ArgValidator.checkEntity(n, id, isIdEmbeddedInURL(id), checkInactive);
-        
+
         return n;
     }
 
@@ -925,6 +917,7 @@ public class VirtualArrayService extends TaggedResource {
      * Finds the available attributes & its values in a varray. Ex: In a
      * varray, if a system supports raid_levels such as RAID1, RAID2 then
      * this API call provides the supported information.
+     * 
      * @param id the URN of a ViPR VirtualArray.
      * @brief List available attributes for VirutalArray
      * @return List available attributes for VirutalArray
@@ -936,15 +929,15 @@ public class VirtualArrayService extends TaggedResource {
     public AttributeList getAvailableAttributes(@PathParam("id") URI id) {
         // Get and validate the varray with the passed id.
         ArgValidator.checkFieldUriType(id, VirtualArray.class, "id");
-        
+
         VirtualArray varray = _dbClient.queryObject(VirtualArray.class, id);
         ArgValidator.checkEntityNotNull(varray, id, isIdEmbeddedInURL(id));
-        
+
         _log.info("Finding the available attributes for varray: {}", id);
         AttributeList list = new AttributeList();
         list.setVArrayId(id);
         ObjectLocalCache cache = new ObjectLocalCache(_dbClient);
-        List<StoragePool> pools = getVirtualArrayPools(Arrays.asList(id),cache).get(id);
+        List<StoragePool> pools = getVirtualArrayPools(Arrays.asList(id), cache).get(id);
         Map<String, Set<String>> availableAttrs = _matcherFramework.getAvailableAttributes(id, pools, cache,
                 AttributeMatcher.VPOOL_MATCHERS);
         cache.clearCache();
@@ -958,6 +951,7 @@ public class VirtualArrayService extends TaggedResource {
      * Finds the available attributes & its values in a varray. Ex: In a
      * varray, if a system supports raid_levels such as RAID1, RAID2 then
      * this API call provides the supported information.
+     * 
      * @brief List available attributes for all VirutalArrays
      * @return List available attributes for all VirutalArrays
      */
@@ -969,17 +963,17 @@ public class VirtualArrayService extends TaggedResource {
         _log.info("Finding the available attributes for all varray: {}");
         VArrayAttributeList vArrayAttributes = new VArrayAttributeList();
         ObjectLocalCache cache = new ObjectLocalCache(_dbClient);
-        Map<URI,List<StoragePool>> allPools = getVirtualArrayPools(param.getIds(),cache);
-        for(Map.Entry<URI,List<StoragePool>> varrEntry : allPools.entrySet()){
+        Map<URI, List<StoragePool>> allPools = getVirtualArrayPools(param.getIds(), cache);
+        for (Map.Entry<URI, List<StoragePool>> varrEntry : allPools.entrySet()) {
             Map<String, Set<String>> availableAttrs = _matcherFramework.
-                                      getAvailableAttributes(varrEntry.getKey(), varrEntry.getValue(),
-                                                             cache, AttributeMatcher.VPOOL_MATCHERS);
+                    getAvailableAttributes(varrEntry.getKey(), varrEntry.getValue(),
+                            cache, AttributeMatcher.VPOOL_MATCHERS);
             AttributeList list = new AttributeList();
             list.setVArrayId(varrEntry.getKey());
             for (Map.Entry<String, Set<String>> entry : availableAttrs.entrySet()) {
                 list.getAttributes().add(new VirtualPoolAvailableAttributesResourceRep(entry.getKey(), entry.getValue()));
             }
-            if(!list.getAttributes().isEmpty()){
+            if (!list.getAttributes().isEmpty()) {
                 vArrayAttributes.getAttributes().add(list);
             }
         }
@@ -989,28 +983,28 @@ public class VirtualArrayService extends TaggedResource {
 
     /**
      * Retrieve resource representations based on input ids.
-     *
+     * 
      * @param param POST data containing the id list.
      * @brief List data of varray resources
      * @return list of representations.
      */
     @POST
     @Path("/bulk")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public VirtualArrayBulkRep getBulkResources(BulkIdParam param) {
         return (VirtualArrayBulkRep) super.getBulkResources(param);
     }
 
-    private Map<URI,List<StoragePool>> getVirtualArrayPools(List<URI> varrayIds, ObjectLocalCache cache) {
+    private Map<URI, List<StoragePool>> getVirtualArrayPools(List<URI> varrayIds, ObjectLocalCache cache) {
 
-        Map<URI,List<StoragePool>> poolMap = new HashMap<>();
-        for( URI varr : varrayIds) {
+        Map<URI, List<StoragePool>> poolMap = new HashMap<>();
+        for (URI varr : varrayIds) {
             List<StoragePool> poolList = poolMap.get(varr);
-            if(poolList==null){
+            if (poolList == null) {
                 poolList = new ArrayList<>();
-                poolMap.put(varr,poolList);
+                poolMap.put(varr, poolList);
             }
             URIQueryResultList poolsQueryResult = new URIQueryResultList();
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
@@ -1024,7 +1018,6 @@ public class VirtualArrayService extends TaggedResource {
         return poolMap;
     }
 
-
     public void setMatcherFramework(AttributeMatcherFramework matcherFramework) {
         _matcherFramework = matcherFramework;
     }
@@ -1037,11 +1030,11 @@ public class VirtualArrayService extends TaggedResource {
 
     @Override
     public VirtualArrayBulkRep queryBulkResourceReps(List<URI> ids) {
-        
+
         if (!ids.iterator().hasNext()) {
             return new VirtualArrayBulkRep();
         }
-        
+
         // get vdc id from the first id; assume all id's are from the same vdc
         String shortVdcId = VdcUtil.getVdcId(getResourceClass(), ids.iterator().next()).toString();
 
@@ -1053,205 +1046,203 @@ public class VirtualArrayService extends TaggedResource {
             try {
                 dbIterator = geoClient.queryObjects(getResourceClass(), ids);
             } catch (Exception ex) {
-                //TODO: revisit this exception
+                // TODO: revisit this exception
                 _log.error("error retrieving bulk virtual arrays from vdc " + shortVdcId, ex);
                 throw APIException.internalServerErrors.genericApisvcError("error retrieving remote array", ex);
             }
         }
         return new VirtualArrayBulkRep(BulkList.wrapping(dbIterator, MapVirtualArray.getInstance()));
     }
-    
-	/**
-	 * Fetches all Compute Systems that are visible in the vArray
-	 *
-	 * First determine physical connectivity to any switches in the vArrray.
-	 * 1. From the vArray, determine the networks. (Call this Network Set)
-	 * 2. From the networks, get the physical switches that are attached.
-	 * 3. For each physical switch, iterate through the networks and get the FC endpoints.
-	 * 4. Look for any of the FIC ports in any of the FC endpoints on any of the
-	 * networks on the physical switch. When a FIC port matches, call this FIC
-	 * Port.
-	 * 5. If found, then there is physical connectivity.
-	 *
-	 * With physical connectivity Established:
-	 * 1. Given the FIC Port from step (4), pull the VSAN or VSANs assigned to
-	 * it on UCS.
-	 * 2. If the set contains one of the networks from the Network
-	 * Set in (1), we have connectivity to that vArray.
-	 *
-	 * @param id
-	 *            the URN of a ViPR VirtualArray.
-	 * @brief List all Compute Systems that are visible in the vArray
-	 * @return List of Compute Systems
-	 */
+
+    /**
+     * Fetches all Compute Systems that are visible in the vArray
+     * 
+     * First determine physical connectivity to any switches in the vArrray.
+     * 1. From the vArray, determine the networks. (Call this Network Set)
+     * 2. From the networks, get the physical switches that are attached.
+     * 3. For each physical switch, iterate through the networks and get the FC endpoints.
+     * 4. Look for any of the FIC ports in any of the FC endpoints on any of the
+     * networks on the physical switch. When a FIC port matches, call this FIC
+     * Port.
+     * 5. If found, then there is physical connectivity.
+     * 
+     * With physical connectivity Established:
+     * 1. Given the FIC Port from step (4), pull the VSAN or VSANs assigned to
+     * it on UCS.
+     * 2. If the set contains one of the networks from the Network
+     * Set in (1), we have connectivity to that vArray.
+     * 
+     * @param id
+     *            the URN of a ViPR VirtualArray.
+     * @brief List all Compute Systems that are visible in the vArray
+     * @return List of Compute Systems
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/compute-systems")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },acls = {ACL.USE})
-	public ComputeSystemBulkRep getComputeSystems(@PathParam("id") URI id) {
-		_log.info("get connected CS for vArray: {}", id);
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, acls = { ACL.USE })
+    public ComputeSystemBulkRep getComputeSystems(@PathParam("id") URI id) {
+        _log.info("get connected CS for vArray: {}", id);
 
-		// Get and validate the varray with the passed id.
-		ArgValidator.checkFieldUriType(id, VirtualArray.class, "id");
+        // Get and validate the varray with the passed id.
+        ArgValidator.checkFieldUriType(id, VirtualArray.class, "id");
 
-		VirtualArray varray = _dbClient.queryObject(VirtualArray.class, id);
-		ArgValidator.checkEntityNotNull(varray, id, isIdEmbeddedInURL(id));
+        VirtualArray varray = _dbClient.queryObject(VirtualArray.class, id);
+        ArgValidator.checkEntityNotNull(varray, id, isIdEmbeddedInURL(id));
 
-		BulkIdParam matchingCsIds = new BulkIdParam();
+        BulkIdParam matchingCsIds = new BulkIdParam();
 
-		// get varray networks
-		List<Network> networks = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, id, Network.class,
-				"connectedVirtualArrays");
+        // get varray networks
+        List<Network> networks = CustomQueryUtility.queryActiveResourcesByRelation(_dbClient, id, Network.class,
+                "connectedVirtualArrays");
 
-		// collect network vsanIds and switch ids
-		Set<String> networkVsanIds = new HashSet<>();
-		Set<String> nsIds = new HashSet<>();
-		for (Network network : networks) {
-			if (StorageProtocol.Transport.FC.name().equalsIgnoreCase(network.getTransportType())
-					&& DiscoveredSystemObject.RegistrationStatus.REGISTERED.name().equals(network.getRegistrationStatus())) {
-				networkVsanIds.add(network.getNativeId());
-				if (network.getNetworkSystems() != null) {
-					nsIds.addAll(network.getNetworkSystems());
-				}
-			}
-		}
-		_log.info("vArray has these networks: {}", networkVsanIds);
+        // collect network vsanIds and switch ids
+        Set<String> networkVsanIds = new HashSet<>();
+        Set<String> nsIds = new HashSet<>();
+        for (Network network : networks) {
+            if (StorageProtocol.Transport.FC.name().equalsIgnoreCase(network.getTransportType())
+                    && DiscoveredSystemObject.RegistrationStatus.REGISTERED.name().equals(network.getRegistrationStatus())) {
+                networkVsanIds.add(network.getNativeId());
+                if (network.getNetworkSystems() != null) {
+                    nsIds.addAll(network.getNetworkSystems());
+                }
+            }
+        }
+        _log.info("vArray has these networks: {}", networkVsanIds);
 
-		// use only registered network systems
-		Set<URI> nsUris = new HashSet<>();
-		for (String nsUri : nsIds) {
-			nsUris.add(URI.create(nsUri));
-		}
-		List<NetworkSystem> nsList = _dbClient.queryObject(NetworkSystem.class, nsUris);
-		for (NetworkSystem ns : nsList) {
-			if (!DiscoveredSystemObject.RegistrationStatus.REGISTERED.name().equals(ns.getRegistrationStatus())) {
-				nsIds.remove(ns.getId().toString());
-			}
-		}
-		_log.info("the networks run on these network systems: {}", nsIds);
+        // use only registered network systems
+        Set<URI> nsUris = new HashSet<>();
+        for (String nsUri : nsIds) {
+            nsUris.add(URI.create(nsUri));
+        }
+        List<NetworkSystem> nsList = _dbClient.queryObject(NetworkSystem.class, nsUris);
+        for (NetworkSystem ns : nsList) {
+            if (!DiscoveredSystemObject.RegistrationStatus.REGISTERED.name().equals(ns.getRegistrationStatus())) {
+                nsIds.remove(ns.getId().toString());
+            }
+        }
+        _log.info("the networks run on these network systems: {}", nsIds);
 
-		if (networkVsanIds.isEmpty() || nsIds.isEmpty()) {
-			// no networks in the array - exit early
-			return new ComputeSystemBulkRep();
-		}
-		
-		// for every switch get FCEndpoint.remotePortName(s)
-		Set<String> connectedEndpoints = new HashSet<String>();
-		for (String nsId : nsIds) {
-			URIQueryResultList uriList = new URIQueryResultList();
-			_dbClient.queryByConstraint(
-					ContainmentConstraint.Factory.getNetworkSystemFCPortConnectionConstraint(URI.create(nsId)),
-					uriList);
-			List<URI> epIds = new ArrayList<URI>();
-			Iterator<URI> iter = uriList.iterator();
-			while (iter.hasNext()) {
-				epIds.add(iter.next());
-			}
-			List<FCEndpoint> eps = _dbClient.queryObjectField(FCEndpoint.class, "remotePortName", epIds);
-			for (FCEndpoint ep : eps) {
-				connectedEndpoints.add(ep.getRemotePortName());
-			}
-		}
-		_log.debug("all connected endpoints: {}", connectedEndpoints);
+        if (networkVsanIds.isEmpty() || nsIds.isEmpty()) {
+            // no networks in the array - exit early
+            return new ComputeSystemBulkRep();
+        }
 
-		// get all CS
-		List<URI> csIds = _dbClient.queryByType(ComputeSystem.class, true);
-		List<ComputeSystem> csList = _dbClient.queryObject(ComputeSystem.class, csIds);
-		for (ComputeSystem cs : csList) {
-			if (!DiscoveredSystemObject.RegistrationStatus.REGISTERED.name().equals(cs.getRegistrationStatus())) {
-				// skip not registered CS
-				continue;
-			}
-			boolean connected = false;
-			_log.info("evaluating uplinks of cs: {}", cs.getLabel());
+        // for every switch get FCEndpoint.remotePortName(s)
+        Set<String> connectedEndpoints = new HashSet<String>();
+        for (String nsId : nsIds) {
+            URIQueryResultList uriList = new URIQueryResultList();
+            _dbClient.queryByConstraint(
+                    ContainmentConstraint.Factory.getNetworkSystemFCPortConnectionConstraint(URI.create(nsId)),
+                    uriList);
+            List<URI> epIds = new ArrayList<URI>();
+            Iterator<URI> iter = uriList.iterator();
+            while (iter.hasNext()) {
+                epIds.add(iter.next());
+            }
+            List<FCEndpoint> eps = _dbClient.queryObjectField(FCEndpoint.class, "remotePortName", epIds);
+            for (FCEndpoint ep : eps) {
+                connectedEndpoints.add(ep.getRemotePortName());
+            }
+        }
+        _log.debug("all connected endpoints: {}", connectedEndpoints);
 
-			// loop thru UplinkPorts to find matches
-			URIQueryResultList uris = new URIQueryResultList();
-			_dbClient.queryByConstraint(
-					ContainmentConstraint.Factory.getComputeSystemComputeFabricUplinkPortConstraint(cs.getId()), uris);
+        // get all CS
+        List<URI> csIds = _dbClient.queryByType(ComputeSystem.class, true);
+        List<ComputeSystem> csList = _dbClient.queryObject(ComputeSystem.class, csIds);
+        for (ComputeSystem cs : csList) {
+            if (!DiscoveredSystemObject.RegistrationStatus.REGISTERED.name().equals(cs.getRegistrationStatus())) {
+                // skip not registered CS
+                continue;
+            }
+            boolean connected = false;
+            _log.info("evaluating uplinks of cs: {}", cs.getLabel());
 
-			List<ComputeFabricUplinkPort> uplinkPorts = _dbClient
-					.queryObject(ComputeFabricUplinkPort.class, uris, true);
-			for (ComputeFabricUplinkPort port : uplinkPorts) {
-				if (connectedEndpoints.contains(port.getWwpn())) {
-					_log.info("found matching endpoint: {}", port.getWwpn());
-					if (!Collections.disjoint(port.getVsans(), networkVsanIds)) {
-						_log.info("and networks overlap: {}", port.getVsans());
-						matchingCsIds.getIds().add(cs.getId());
-						connected = true;
-						break;
-					}
-				}
-			}
+            // loop thru UplinkPorts to find matches
+            URIQueryResultList uris = new URIQueryResultList();
+            _dbClient.queryByConstraint(
+                    ContainmentConstraint.Factory.getComputeSystemComputeFabricUplinkPortConstraint(cs.getId()), uris);
 
-			if (connected) {
-				continue; // skip uplink port channel matching as we are already connected
-			}
+            List<ComputeFabricUplinkPort> uplinkPorts = _dbClient
+                    .queryObject(ComputeFabricUplinkPort.class, uris, true);
+            for (ComputeFabricUplinkPort port : uplinkPorts) {
+                if (connectedEndpoints.contains(port.getWwpn())) {
+                    _log.info("found matching endpoint: {}", port.getWwpn());
+                    if (!Collections.disjoint(port.getVsans(), networkVsanIds)) {
+                        _log.info("and networks overlap: {}", port.getVsans());
+                        matchingCsIds.getIds().add(cs.getId());
+                        connected = true;
+                        break;
+                    }
+                }
+            }
 
-			// now loop thru UplinkPortChannels to find matches
-			uris = new URIQueryResultList();
-			_dbClient.queryByConstraint(
-					ContainmentConstraint.Factory.getComputeSystemComputeUplinkPortChannelConstraint(cs.getId()), uris);
+            if (connected) {
+                continue; // skip uplink port channel matching as we are already connected
+            }
 
-			List<ComputeFabricUplinkPortChannel> uplinkPortChannels = _dbClient
-					.queryObject(ComputeFabricUplinkPortChannel.class, uris, true);
-			for (ComputeFabricUplinkPortChannel port : uplinkPortChannels) {
-				if (connectedEndpoints.contains(port.getWwpn())) {
-					_log.info("found matching endpoint: {}", port.getWwpn());
-					if (!Collections.disjoint(port.getVsans(), networkVsanIds)) {
-						_log.info("and networks overlap: {}", port.getVsans());
-						matchingCsIds.getIds().add(cs.getId());
-						connected = true;
-						break;
-					}
-				}
-			}
-		}
-		_log.info("these CS are connected to the vArray: {}", matchingCsIds.getIds());
+            // now loop thru UplinkPortChannels to find matches
+            uris = new URIQueryResultList();
+            _dbClient.queryByConstraint(
+                    ContainmentConstraint.Factory.getComputeSystemComputeUplinkPortChannelConstraint(cs.getId()), uris);
 
-		if (matchingCsIds.getIds().isEmpty()) {
-			return new ComputeSystemBulkRep();
-		}
+            List<ComputeFabricUplinkPortChannel> uplinkPortChannels = _dbClient
+                    .queryObject(ComputeFabricUplinkPortChannel.class, uris, true);
+            for (ComputeFabricUplinkPortChannel port : uplinkPortChannels) {
+                if (connectedEndpoints.contains(port.getWwpn())) {
+                    _log.info("found matching endpoint: {}", port.getWwpn());
+                    if (!Collections.disjoint(port.getVsans(), networkVsanIds)) {
+                        _log.info("and networks overlap: {}", port.getVsans());
+                        matchingCsIds.getIds().add(cs.getId());
+                        connected = true;
+                        break;
+                    }
+                }
+            }
+        }
+        _log.info("these CS are connected to the vArray: {}", matchingCsIds.getIds());
 
-		ComputeSystemBulkRep computeSystemReps = computeSystemService.getBulkResources(matchingCsIds);
-		
-		return  mapValidServiceProfileTemplatesToComputeSystem(computeSystemReps,varray.getId());
-    }
-    
-    
-    private ComputeSystemBulkRep mapValidServiceProfileTemplatesToComputeSystem(ComputeSystemBulkRep bulkRep,URI varrayId) {
-    	_log.debug("mapping Service Profile Templates valid for varray to the Compute Systems");
-    	ComputeSystemBulkRep rep = new ComputeSystemBulkRep();
-    	List<ComputeSystemRestRep> computeSystemList = new ArrayList<ComputeSystemRestRep>();
-    	for (ComputeSystemRestRep computeSystem : bulkRep.getComputeSystems()){
-    		computeSystem.setServiceProfileTemplates(getServiceProfileTemplatesForComputeSystem(computeSystem.getId(), varrayId));
-    		computeSystemList.add(computeSystem);
-    	}
-    	rep.setComputeSystems(computeSystemList);
-		return rep;
-	}
-    	
-    private List<NamedRelatedResourceRep> getServiceProfileTemplatesForComputeSystem(URI computeSystemId,URI varrayId){
-    	List<NamedRelatedResourceRep> templates = new ArrayList<NamedRelatedResourceRep>();
-    	ComputeSystem computeSystem = _dbClient.queryObject(ComputeSystem.class,computeSystemId);
-    	VirtualArray varray = _dbClient.queryObject(VirtualArray.class,varrayId);
-    	_log.debug("Finding SPTs from Compute System:"+computeSystem.getLabel() +" valid for varray:"+varray.getLabel());
-		List<NamedRelatedResourceRep> spts = computeSystemService.getServiceProfileTemplatesForComputeSystem(computeSystem, _dbClient);
-		StringSet varrays = new StringSet();
-		varrays.add(varrayId.toString());
-		//Filter SPTs that are not valid for the varrays for the UCS in this vcp
-		for (NamedRelatedResourceRep spt: spts){
-			if (computeSystemService.isServiceProfileTemplateValidForVarrays(varrays, spt.getId())){
-				templates.add(spt);
-				 _log.debug("SPT "+spt.getName()+ " is valid for the varray:"+ varray.getLabel());
-			}else{
-				_log.debug("SPT "+spt.getName()+ " is not valid for the varray:"+ varray.getLabel());
-				
-			}
-		}
-		return templates;
+        if (matchingCsIds.getIds().isEmpty()) {
+            return new ComputeSystemBulkRep();
+        }
+
+        ComputeSystemBulkRep computeSystemReps = computeSystemService.getBulkResources(matchingCsIds);
+
+        return mapValidServiceProfileTemplatesToComputeSystem(computeSystemReps, varray.getId());
     }
 
+    private ComputeSystemBulkRep mapValidServiceProfileTemplatesToComputeSystem(ComputeSystemBulkRep bulkRep, URI varrayId) {
+        _log.debug("mapping Service Profile Templates valid for varray to the Compute Systems");
+        ComputeSystemBulkRep rep = new ComputeSystemBulkRep();
+        List<ComputeSystemRestRep> computeSystemList = new ArrayList<ComputeSystemRestRep>();
+        for (ComputeSystemRestRep computeSystem : bulkRep.getComputeSystems()) {
+            computeSystem.setServiceProfileTemplates(getServiceProfileTemplatesForComputeSystem(computeSystem.getId(), varrayId));
+            computeSystemList.add(computeSystem);
+        }
+        rep.setComputeSystems(computeSystemList);
+        return rep;
+    }
+
+    private List<NamedRelatedResourceRep> getServiceProfileTemplatesForComputeSystem(URI computeSystemId, URI varrayId) {
+        List<NamedRelatedResourceRep> templates = new ArrayList<NamedRelatedResourceRep>();
+        ComputeSystem computeSystem = _dbClient.queryObject(ComputeSystem.class, computeSystemId);
+        VirtualArray varray = _dbClient.queryObject(VirtualArray.class, varrayId);
+        _log.debug("Finding SPTs from Compute System:" + computeSystem.getLabel() + " valid for varray:" + varray.getLabel());
+        List<NamedRelatedResourceRep> spts = computeSystemService.getServiceProfileTemplatesForComputeSystem(computeSystem, _dbClient);
+        StringSet varrays = new StringSet();
+        varrays.add(varrayId.toString());
+        // Filter SPTs that are not valid for the varrays for the UCS in this vcp
+        for (NamedRelatedResourceRep spt : spts) {
+            if (computeSystemService.isServiceProfileTemplateValidForVarrays(varrays, spt.getId())) {
+                templates.add(spt);
+                _log.debug("SPT " + spt.getName() + " is valid for the varray:" + varray.getLabel());
+            } else {
+                _log.debug("SPT " + spt.getName() + " is not valid for the varray:" + varray.getLabel());
+
+            }
+        }
+        return templates;
+    }
 
     @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
@@ -1261,11 +1252,11 @@ public class VirtualArrayService extends TaggedResource {
         if (isSystemAdmin()) {
             return queryBulkResourceReps(ids);
         }
-        
+
         if (!ids.iterator().hasNext()) {
             return new VirtualArrayBulkRep();
         }
-        
+
         // get vdc id from the first id; assume all id's are from the same vdc
         String shortVdcId = VdcUtil.getVdcId(getResourceClass(), ids.iterator().next()).toString();
 
@@ -1277,28 +1268,28 @@ public class VirtualArrayService extends TaggedResource {
             try {
                 dbIterator = geoClient.queryObjects(getResourceClass(), ids);
             } catch (Exception ex) {
-                //TODO: revisit this exception
+                // TODO: revisit this exception
                 _log.error("error retrieving bulk virtual arrays from vdc " + shortVdcId, ex);
                 throw APIException.internalServerErrors.genericApisvcError("error retrieving remote array", ex);
-            }                
-            
+            }
+
         }
         BulkList.ResourceFilter filter = new BulkList.VirtualArrayACLFilter(getUserFromContext(), _permissionsHelper);
         return new VirtualArrayBulkRep(BulkList.wrapping(dbIterator, MapVirtualArray.getInstance(), filter));
     }
 
     @Override
-    protected ResourceTypeEnum getResourceType(){
+    protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.VARRAY;
     }
 
     public static class VirtualArrayResRepFilter extends
-        ResRepFilter<SearchResultResourceRep> {
+            ResRepFilter<SearchResultResourceRep> {
 
         boolean _authorized = false;
 
         public VirtualArrayResRepFilter(StorageOSUser user,
-            PermissionsHelper permissionsHelper, boolean authorized) {
+                PermissionsHelper permissionsHelper, boolean authorized) {
             super(user, permissionsHelper);
             _authorized = authorized;
         }
@@ -1306,13 +1297,13 @@ public class VirtualArrayService extends TaggedResource {
         @Override
         public boolean isAccessible(SearchResultResourceRep resrep) {
             URI id = resrep.getId();
-            
+
             // check permission on varray
             VirtualArray varray = _permissionsHelper
-                .getObjectById(id, VirtualArray.class);
+                    .getObjectById(id, VirtualArray.class);
             if (varray == null || varray.getInactive()) {
                 _log.error("Could not find varray {} in the database or"
-                    + "the varray is inactive", id);
+                        + "the varray is inactive", id);
                 return false;
             }
 
@@ -1339,7 +1330,7 @@ public class VirtualArrayService extends TaggedResource {
      * network, an empty list is returned.
      * 
      * parameter: 'initiator_port' The identifier of the initiator port.
-     *      
+     * 
      * 
      * @param parameters The search parameters.
      * @param authorized Whether or not the caller is authorized.
@@ -1349,18 +1340,18 @@ public class VirtualArrayService extends TaggedResource {
      */
     @Override
     protected SearchResults getOtherSearchResults(Map<String, List<String>> parameters,
-        boolean authorized) {
-        
+            boolean authorized) {
+
         SearchResults result = new SearchResults();
         String[] searchCriteria = { SEARCH_INITIATOR_PORT, SEARCH_HOST, SEARCH_CLUSTER };
         validateSearchParameters(parameters, searchCriteria);
 
         Set<String> varrayIds = new HashSet<String>();
-        for (Map.Entry<String,List<String>> entry : parameters.entrySet()) {
+        for (Map.Entry<String, List<String>> entry : parameters.entrySet()) {
             if (entry.getKey().equals(SEARCH_INITIATOR_PORT)) {
 
                 String initiatorId = parameters.get(SEARCH_INITIATOR_PORT).get(0);
-                
+
                 // Validate the user passed a value for the initiator port.
                 ArgValidator.checkFieldNotEmpty(initiatorId, SEARCH_INITIATOR_PORT);
 
@@ -1373,7 +1364,7 @@ public class VirtualArrayService extends TaggedResource {
                 varrayIds.addAll(ConnectivityUtil.getInitiatorVarrays(initiatorId, _dbClient));
                 break;
             } else if (entry.getKey().equals(SEARCH_HOST)) {
-                
+
                 // find and validate host
                 String hostId = parameters.get(SEARCH_HOST).get(0);
                 URI hostUri = URI.create(hostId);
@@ -1384,19 +1375,19 @@ public class VirtualArrayService extends TaggedResource {
                 _log.info("looking for virtual arrays connected to host " + host.getHostName());
                 varrayIds.addAll(getVarraysForHost(hostUri));
                 break;
-                
+
             } else if (entry.getKey().equals(SEARCH_CLUSTER)) {
-                
+
                 // find and validate cluster
                 String clusterId = parameters.get(SEARCH_CLUSTER).get(0);
                 URI clusterUri = URI.create(clusterId);
                 ArgValidator.checkFieldNotEmpty(clusterId, SEARCH_CLUSTER);
                 Cluster cluster = queryObject(Cluster.class, clusterUri, false);
                 verifyAuthorizedInTenantOrg(cluster.getTenant(), getUserFromContext());
-                
+
                 _log.info("looking for virtual arrays connected to cluster " + cluster.getLabel());
                 List<Set<String>> hostVarraySets = new ArrayList<Set<String>>();
-                List<NamedElementQueryResultList.NamedElement> dataObjects = 
+                List<NamedElementQueryResultList.NamedElement> dataObjects =
                         listChildren(clusterUri, Host.class, "label", "cluster");
                 for (NamedElementQueryResultList.NamedElement dataObject : dataObjects) {
                     Set<String> hostVarrays = getVarraysForHost(dataObject.getId());
@@ -1423,17 +1414,17 @@ public class VirtualArrayService extends TaggedResource {
             for (String varrayId : varrayIds) {
                 URI varrayURI = URI.create(varrayId);
                 VirtualArray varray = _dbClient.queryObject(VirtualArray.class, varrayURI);
-                
+
                 // Filter out those that are inactive or not accessible to the user.
                 if (varray == null || varray.getInactive()) {
                     _log.info("Could not find virtual array {} in the database, or "
-                        + "the virtual array is inactive", varrayURI);
+                            + "the virtual array is inactive", varrayURI);
                     continue;
                 }
 
                 if (!authorized) {
                     if (!_permissionsHelper.tenantHasUsageACL(
-                        URI.create(getUserFromContext().getTenantId()), varray)) {
+                            URI.create(getUserFromContext().getTenantId()), varray)) {
                         _log.info("Virtual array {} is not accessible.", varrayURI);
                         continue;
                     }
@@ -1444,7 +1435,7 @@ public class VirtualArrayService extends TaggedResource {
                 searchResultList.add(searchResult);
             }
         }
-        
+
         result.setResource(searchResultList);
         return result;
     }
@@ -1456,16 +1447,16 @@ public class VirtualArrayService extends TaggedResource {
      * @param hostUri URI of a Host
      * @return a set of Virtual Array URI strings
      */
-    private Set<String> getVarraysForHost( URI hostUri ) {
+    private Set<String> getVarraysForHost(URI hostUri) {
         _log.info("looking for initiators for host URI: " + hostUri);
         Set<String> varrayIds = new HashSet<String>();
         Set<String> initiatorList = new HashSet<String>();
-        List<NamedElementQueryResultList.NamedElement> dataObjects = 
+        List<NamedElementQueryResultList.NamedElement> dataObjects =
                 listChildren(hostUri, Initiator.class, "iniport", "host");
         for (NamedElementQueryResultList.NamedElement dataObject : dataObjects) {
             initiatorList.add(dataObject.getId().toString());
         }
-        
+
         for (String initUri : initiatorList) {
             Initiator init = _dbClient.queryObject(Initiator.class, URI.create(initUri));
             if (null != init) {
@@ -1475,7 +1466,7 @@ public class VirtualArrayService extends TaggedResource {
                 _log.info("      connected to varrays: " + varrayIds.toString());
             }
         }
-        
+
         return varrayIds;
     }
 
@@ -1486,7 +1477,7 @@ public class VirtualArrayService extends TaggedResource {
      * @param criterias that can be searched for
      * @return true of false
      */
-    private boolean isValidSearch(Map<String, List <String>> params, String[] criterias) {
+    private boolean isValidSearch(Map<String, List<String>> params, String[] criterias) {
         for (String search : criterias) {
             if (params.containsKey(search)) {
                 return true;
@@ -1495,31 +1486,31 @@ public class VirtualArrayService extends TaggedResource {
 
         return false;
     }
-    
+
     /**
      * Validate search params.
      * 
      * @param params to evaluate
      * @param criterias that can be searched for
      */
-    private void validateSearchParameters(Map<String, List <String>> params, String[] criterias) {
-        
+    private void validateSearchParameters(Map<String, List<String>> params, String[] criterias) {
+
         if (!isValidSearch(params, criterias)) {
             throw APIException.badRequests.invalidParameterSearchMissingParameter(
-                getResourceClass().getName(), 
+                    getResourceClass().getName(),
                     Arrays.toString(criterias));
         }
-        
-        // Make sure all parameters are our parameters, otherwise throw an 
+
+        // Make sure all parameters are our parameters, otherwise throw an
         // exception because we don't support other search criteria than our own.
         // Also, make sure only ONE of the acceptable parameters has been given
         List<String> unacceptableKeys = new ArrayList<String>();
         List<String> acceptableKeys = new ArrayList<String>();
-        boolean found = false; 
-        for (Map.Entry<String,List<String>> entry : params.entrySet()) {
+        boolean found = false;
+        for (Map.Entry<String, List<String>> entry : params.entrySet()) {
             found = false;
             for (String search : criterias) {
-                if(entry.getKey().equals(search)) {
+                if (entry.getKey().equals(search)) {
                     found = true;
                     acceptableKeys.add(entry.getKey());
                 }
@@ -1528,31 +1519,31 @@ public class VirtualArrayService extends TaggedResource {
                 unacceptableKeys.add(entry.getKey());
             }
         }
-        
+
         // {1} parameter for {0} search could not be combined with any other parameter but found {2}
         if (acceptableKeys.size() > 1) {
             throw APIException.badRequests.parameterForSearchCouldNotBeCombinedWithAnyOtherParameter(
-                    getResourceClass().getName(), 
-                    Arrays.toString(criterias), 
+                    getResourceClass().getName(),
+                    Arrays.toString(criterias),
                     acceptableKeys.toString());
         }
         if (!unacceptableKeys.isEmpty()) {
             throw APIException.badRequests.parameterForSearchCouldNotBeCombinedWithAnyOtherParameter(
-                    getResourceClass().getName(), 
-                    Arrays.toString(criterias), 
+                    getResourceClass().getName(),
+                    Arrays.toString(criterias),
                     unacceptableKeys.toString());
         }
     }
-    
+
     /**
      * Get object specific permissions filter
      */
-     @Override
-     public ResRepFilter<? extends RelatedResourceRep> getPermissionFilter(StorageOSUser user,
-        PermissionsHelper permissionsHelper) {
+    @Override
+    public ResRepFilter<? extends RelatedResourceRep> getPermissionFilter(StorageOSUser user,
+            PermissionsHelper permissionsHelper) {
         return new VirtualArrayResRepFilter(user, permissionsHelper, false);
     }
-     
+
     /**
      * Validates that each of the passed virtual array ids reference an existing
      * virtual array in the database and throws a bad request exception when
@@ -1562,29 +1553,29 @@ public class VirtualArrayService extends TaggedResource {
      * @param dbClient A reference to a DB client.
      */
     public static void checkVirtualArrayURIs(Set<String> virtualArrayIds,
-        DbClient dbClient) {
+            DbClient dbClient) {
         Set<String> invalidIds = new HashSet<String>();
 
         if ((virtualArrayIds != null) && (!virtualArrayIds.isEmpty())) {
             Iterator<String> virtualArrayIdsIter = virtualArrayIds.iterator();
             while (virtualArrayIdsIter.hasNext()) {
                 URI virtualArrayURI = null;
-                try{
+                try {
                     virtualArrayURI = URI.create(virtualArrayIdsIter.next());
                     VirtualArray virtualArray = dbClient.queryObject(VirtualArray.class,
-                        virtualArrayURI);
+                            virtualArrayURI);
                     if (virtualArray == null) {
                         invalidIds.add(virtualArrayURI.toString());
                     }
                 } catch (DatabaseException e) {
-                    if (virtualArrayURI != null){
+                    if (virtualArrayURI != null) {
                         invalidIds.add(virtualArrayURI.toString());
                     }
                 }
             }
         }
 
-        if (!invalidIds.isEmpty()){
+        if (!invalidIds.isEmpty()) {
             throw APIException.badRequests.theURIsOfParametersAreNotValid("virtual arrays", invalidIds);
         }
     }

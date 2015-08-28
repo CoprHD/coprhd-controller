@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) $today_year. EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -99,17 +89,17 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 import com.google.common.base.Joiner;
 
 public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi {
-    
+
     // A logger reference.
     private static final Logger s_logger = LoggerFactory
-        .getLogger(AbstractBlockServiceApiImpl.class);
+            .getLogger(AbstractBlockServiceApiImpl.class);
 
     @Autowired
     private PermissionsHelper _permissionsHelper;
 
     @Autowired
     protected DependencyChecker _dependencyChecker;
-    
+
     protected T _scheduler;
 
     protected DbClient _dbClient;
@@ -167,22 +157,24 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     }
 
     /**
-     * Map of implementing class instances; used for iterating through them for 
+     * Map of implementing class instances; used for iterating through them for
      * connectivity purposes.
      */
-    static private Map<String, AbstractBlockServiceApiImpl> s_protectionImplementations
-            = new HashMap<String, AbstractBlockServiceApiImpl>();
+    static private Map<String, AbstractBlockServiceApiImpl> s_protectionImplementations = new HashMap<String, AbstractBlockServiceApiImpl>();
 
     /**
      * Constructor used to keep track of the various implementations of this class.
      * In particular, we are interested in "protection" implementations, that we need to
-     * compute connectivity for. 
+     * compute connectivity for.
+     * 
      * @param protectionType -- Should be null for regular Block implementation,
-     * or the DiscoveredDataObject.Type.name() value for "protection" implementations,
-     * so far RP and VPLEX.
+     *            or the DiscoveredDataObject.Type.name() value for "protection" implementations,
+     *            so far RP and VPLEX.
      */
     public AbstractBlockServiceApiImpl(String protectionType) {
-        if (protectionType != null) s_protectionImplementations.put(protectionType, this);
+        if (protectionType != null) {
+            s_protectionImplementations.put(protectionType, this);
+        }
     }
 
     static protected Map<String, AbstractBlockServiceApiImpl> getProtectionImplementations() {
@@ -206,7 +198,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Looks up controller dependency for given hardware
-     *
+     * 
      * @param clazz controller interface
      * @param hw hardware name
      * @param <T>
@@ -220,52 +212,57 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * {@inheritDoc}
+     * 
      * @throws ControllerException
      */
     @Override
     public TaskList startNativeContinuousCopies(StorageSystem storageSystem,
-        Volume sourceVolume, VirtualPool sourceVpool,
-        VirtualPoolCapabilityValuesWrapper capabilities,
-        NativeContinuousCopyCreate param, String task) throws ControllerException {
+            Volume sourceVolume, VirtualPool sourceVpool,
+            VirtualPoolCapabilityValuesWrapper capabilities,
+            NativeContinuousCopyCreate param, String task) throws ControllerException {
         throw APIException.methodNotAllowed.notSupported();
     }
 
     /**
      * {@inheritDoc}
+     * 
      * @throws ControllerException
      */
     @Override
     public TaskList stopNativeContinuousCopies(StorageSystem storageSystem, Volume sourceVolume,
-                                               List<URI> mirrors,
-                                               String taskId) throws ControllerException {
+            List<URI> mirrors,
+            String taskId) throws ControllerException {
         throw APIException.methodNotAllowed.notSupported();
     }
 
     /**
      * {@inheritDoc}
-     * @throws ControllerException 
+     * 
+     * @throws ControllerException
      */
     @Override
     public TaskResourceRep pauseNativeContinuousCopies(StorageSystem storageSystem, Volume sourceVolume,
-                                                       List<BlockMirror> blockMirrors, Boolean sync,
-                                                       String taskId) throws ControllerException {
+            List<BlockMirror> blockMirrors, Boolean sync,
+            String taskId) throws ControllerException {
         throw APIException.methodNotAllowed.notSupported();
     }
 
     /**
      * {@inheritDoc}
+     * 
      * @throws ControllerException
      */
     @Override
     public TaskResourceRep resumeNativeContinuousCopies(StorageSystem storageSystem, Volume sourceVolume,
-                                                        List<BlockMirror> blockMirrors, String taskId)
+            List<BlockMirror> blockMirrors, String taskId)
             throws ControllerException {
         throw APIException.methodNotAllowed.notSupported();
     }
 
     /**
      * {@inheritDoc}
-     * @throws ControllerException 
+     * 
+     * @throws ControllerException
      */
     @Override
     public TaskResourceRep deactivateMirror(StorageSystem storageSystem, URI mirrorURI, String task) throws ControllerException {
@@ -276,19 +273,19 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * {@inheritDoc}
      */
     @Override
-    public TaskResourceRep deleteConsistencyGroup(StorageSystem device, BlockConsistencyGroup consistencyGroup, String task) throws ControllerException {
+    public TaskResourceRep deleteConsistencyGroup(StorageSystem device, BlockConsistencyGroup consistencyGroup, String task)
+            throws ControllerException {
         throw APIException.methodNotAllowed.notSupported();
     }
-
 
     /**
      * {@inheritDoc}
      */
     @Override
     public TaskResourceRep updateConsistencyGroup(StorageSystem cgStorageSystem,
-        List<Volume> cgVolumes, BlockConsistencyGroup consistencyGroup,
-        List<URI> addVolumesList, List<URI> removeVolumesList, String taskId)
-        throws ControllerException {
+            List<Volume> cgVolumes, BlockConsistencyGroup consistencyGroup,
+            List<URI> addVolumesList, List<URI> removeVolumesList, String taskId)
+            throws ControllerException {
         throw APIException.methodNotAllowed.notSupported();
     }
 
@@ -318,37 +315,37 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
         // Get volume descriptor for all volumes to be deleted.
         List<VolumeDescriptor> volumeDescriptors = getDescriptorsForVolumesToBeDeleted(
-            systemURI, volumeURIs);
-        
+                systemURI, volumeURIs);
+
         // Mark the volumes for deletion for a VIPR only delete, otherwise get
         // the controller and delete the volumes.
         if (VolumeDeleteTypeEnum.VIPR_ONLY.name().equals(deletionType)) {
-        	for (URI volumeURI : volumeURIs) {
-        	    BlockObject bo = BlockObject.fetch(_dbClient, volumeURI);
-        	    if ( bo instanceof Volume) {
-        	        Volume volume = (Volume)bo;
-        	        if (volume.isVolumeExported(_dbClient)) {
-        	            throw APIException.badRequests.inventoryDeleteNotSupportedonExportedVolumes(volume.getNativeGuid()); 
-        	        }
-        	    } else if (bo instanceof BlockSnapshot) {
-        	        throw APIException.badRequests.inventoryDeleteNotSupportedOnSnapshots(bo.getNativeGuid()); 
-        	    }
-                
-        	}
+            for (URI volumeURI : volumeURIs) {
+                BlockObject bo = BlockObject.fetch(_dbClient, volumeURI);
+                if (bo instanceof Volume) {
+                    Volume volume = (Volume) bo;
+                    if (volume.isVolumeExported(_dbClient)) {
+                        throw APIException.badRequests.inventoryDeleteNotSupportedonExportedVolumes(volume.getNativeGuid());
+                    }
+                } else if (bo instanceof BlockSnapshot) {
+                    throw APIException.badRequests.inventoryDeleteNotSupportedOnSnapshots(bo.getNativeGuid());
+                }
+
+            }
             // Do any cleanup necessary for the ViPR only delete.
             cleanupForViPROnlyDelete(volumeDescriptors);
-                       
+
             // Mark them inactive. Note that some of the volumes may be mirrors,
             // which have a different database type.
             List<VolumeDescriptor> descriptorsForMirrors = VolumeDescriptor.getDescriptors(
-                volumeDescriptors, VolumeDescriptor.Type.BLOCK_MIRROR);
+                    volumeDescriptors, VolumeDescriptor.Type.BLOCK_MIRROR);
             _dbClient.markForDeletion(_dbClient.queryObject(BlockMirror.class,
-                VolumeDescriptor.getVolumeURIs(descriptorsForMirrors)));
+                    VolumeDescriptor.getVolumeURIs(descriptorsForMirrors)));
             List<VolumeDescriptor> descriptorsForVolumes = VolumeDescriptor.filterByType(
-                volumeDescriptors, null, new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_MIRROR });
+                    volumeDescriptors, null, new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_MIRROR });
             _dbClient.markForDeletion(_dbClient.queryObject(Volume.class,
-                VolumeDescriptor.getVolumeURIs(descriptorsForVolumes)));
-            
+                    VolumeDescriptor.getVolumeURIs(descriptorsForVolumes)));
+
             // Update the task status for each volume
             for (URI volumeURI : volumeURIs) {
                 Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
@@ -356,15 +353,15 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                 op.ready("Volume succesfully deleted from ViPR");
                 volume.getOpStatus().updateTaskStatus(task, op);
                 _dbClient.persistObject(volume);
-            }           
+            }
         } else {
             BlockOrchestrationController controller = getController(
-                BlockOrchestrationController.class,
-                BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
+                    BlockOrchestrationController.class,
+                    BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
             controller.deleteVolumes(volumeDescriptors, task);
         }
     }
-    
+
     /**
      * Get the volume descriptors for all volumes to be deleted given the
      * passed volumes.
@@ -375,18 +372,18 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @return The list of volume descriptors.
      */
     abstract protected List<VolumeDescriptor> getDescriptorsForVolumesToBeDeleted(
-        URI systemURI, List<URI> volumeURIs);
-    
+            URI systemURI, List<URI> volumeURIs);
+
     /**
      * Get the volume descriptors for all volumes to be deleted given the passed
      * volumes.
      * 
      * @param volumeDescriptors The descriptors for all volumes involved in the
-     *        ViPR only delete
+     *            ViPR only delete
      */
     protected void cleanupForViPROnlyDelete(List<VolumeDescriptor> volumeDescriptors) {
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -401,7 +398,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * 
      * @param volume A reference to the volume.
      * 
-     * @return A VirtualPoolChangeList specifying each vpool to which the volume's 
+     * @return A VirtualPoolChangeList specifying each vpool to which the volume's
      *         vpool could potentially be changed and whether or not the change would
      *         be allowed for that vpool.
      */
@@ -412,30 +409,30 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         // allowed for the volume.
         VirtualPoolChangeList vpoolChangeList = new VirtualPoolChangeList();
         VirtualPool currentVpool = _dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
-        
+
         Collection<VirtualPool> allVpools = getVPoolsForVolumeBasedOnSystemConnectivity(volume);
-                
+
         Iterator<VirtualPool> vpoolIter = allVpools.iterator();
         while (vpoolIter.hasNext()) {
             StringBuffer notAllowedReason = new StringBuffer();
             VirtualPool targetVpool = vpoolIter.next();
             List<VirtualPoolChangeOperationEnum> allowedOperations = getVirtualPoolChangeAllowedOperationsForVolume(
-                volume, currentVpool, targetVpool, notAllowedReason);
-            
+                    volume, currentVpool, targetVpool, notAllowedReason);
+
             StringBuffer logMsg = new StringBuffer();
             logMsg.append("Vpool [" + targetVpool.getLabel() + "]");
             logMsg.append((notAllowedReason.length() > 0) ? " not allowed: " + notAllowedReason.toString() : " allowed but only for: ");
-            logMsg.append ((allowedOperations != null && !allowedOperations.isEmpty()) ? Joiner.on("\t").join(allowedOperations) : "" );
+            logMsg.append((allowedOperations != null && !allowedOperations.isEmpty()) ? Joiner.on("\t").join(allowedOperations) : "");
             s_logger.info(logMsg.toString());
-            
+
             vpoolChangeList.getVirtualPools().add(
-                toVirtualPoolChangeRep(targetVpool, allowedOperations,
-                    notAllowedReason.toString()));
+                    toVirtualPoolChangeRep(targetVpool, allowedOperations,
+                            notAllowedReason.toString()));
         }
-        
+
         return vpoolChangeList;
     }
-    
+
     /**
      * Get all potential vpools for the passed volume, based strictly on
      * connectivity of the volume's storage system.
@@ -447,31 +444,31 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     protected Collection<VirtualPool> getVPoolsForVolumeBasedOnSystemConnectivity(Volume volume) {
 
         Map<URI, VirtualPool> vpoolsMap = new HashMap<URI, VirtualPool>();
-        
+
         // Get the volume's project.
         Project project = _permissionsHelper.getObjectById(volume.getProject(),
-            Project.class);
+                Project.class);
 
         // Get the matching vpools for all storage pools on the volume's storage
         // system and all other storage systems to which this storage system
         // is connected.
         URI volumeSystemURI = volume.getStorageController();
         Set<URI> connectedSystemURIs = ConnectivityUtil
-            .getStorageSystemAssociationsByNetwork(_dbClient, volumeSystemURI,
-                    getSystemConnectivityPortType());
+                .getStorageSystemAssociationsByNetwork(_dbClient, volumeSystemURI,
+                        getSystemConnectivityPortType());
         connectedSystemURIs.add(volumeSystemURI);
         Iterator<URI> systemURIsIter = connectedSystemURIs.iterator();
         while (systemURIsIter.hasNext()) {
             URIQueryResultList systemPools = new URIQueryResultList();
             _dbClient.queryByConstraint(ContainmentConstraint.Factory
-                            .getStorageDeviceStoragePoolConstraint(systemURIsIter.next()),
+                    .getStorageDeviceStoragePoolConstraint(systemURIsIter.next()),
                     systemPools);
             Iterator<URI> poolURIsIter = systemPools.iterator();
             while (poolURIsIter.hasNext()) {
                 URIQueryResultList storagePoolMatchedVpoolURIs = new URIQueryResultList();
                 _dbClient.queryByConstraint(ContainmentConstraint.Factory
-                    .getMatchedPoolVirtualPoolConstraint(poolURIsIter.next()),
-                    storagePoolMatchedVpoolURIs);
+                        .getMatchedPoolVirtualPoolConstraint(poolURIsIter.next()),
+                        storagePoolMatchedVpoolURIs);
                 Iterator<URI> vpoolURIsItr = storagePoolMatchedVpoolURIs.iterator();
                 while (vpoolURIsItr.hasNext()) {
                     URI storagePoolMatchedVpoolURI = vpoolURIsItr.next();
@@ -480,11 +477,11 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                     }
 
                     VirtualPool storagePoolMatchedVpool = _permissionsHelper.getObjectById(
-                        storagePoolMatchedVpoolURI, VirtualPool.class);
+                            storagePoolMatchedVpoolURI, VirtualPool.class);
                     String storagePoolMatchedVpoolType = storagePoolMatchedVpool.getType();
                     if ((VirtualPool.Type.block.name().equals(storagePoolMatchedVpoolType))
-                        && (_permissionsHelper.tenantHasUsageACL(project.getTenantOrg()
-                            .getURI(), storagePoolMatchedVpool))) {
+                            && (_permissionsHelper.tenantHasUsageACL(project.getTenantOrg()
+                                    .getURI(), storagePoolMatchedVpool))) {
                         vpoolsMap.put(storagePoolMatchedVpoolURI, storagePoolMatchedVpool);
                     }
                 }
@@ -516,21 +513,21 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @return allowed volume virtual pool change operation
      */
     private List<VirtualPoolChangeOperationEnum> getVirtualPoolChangeAllowedOperationsForVolume(
-        Volume volume, VirtualPool currentVpool, VirtualPool newVpool,
-        StringBuffer notSuppReasonBuff) {
+            Volume volume, VirtualPool currentVpool, VirtualPool newVpool,
+            StringBuffer notSuppReasonBuff) {
 
-        // The base class implementation just determines if the new 
+        // The base class implementation just determines if the new
         // vpool is the current vpool or if this is a path param change.
         List<VirtualPoolChangeOperationEnum> allowedOperations = new ArrayList<VirtualPoolChangeOperationEnum>();
-        
+
         if (!VirtualPoolChangeAnalyzer.isSameVirtualPool(currentVpool, newVpool, notSuppReasonBuff)) {
             allowedOperations.addAll(getVirtualPoolChangeAllowedOperations(volume,
-                currentVpool, newVpool, notSuppReasonBuff));
+                    currentVpool, newVpool, notSuppReasonBuff));
 
             // check if export path operation is allowable
             StringBuffer pathChangeReasonBuff = new StringBuffer();
             if (VirtualPoolChangeAnalyzer.isSupportedPathParamsChange(volume,
-                currentVpool, newVpool, _dbClient, pathChangeReasonBuff)) {
+                    currentVpool, newVpool, _dbClient, pathChangeReasonBuff)) {
                 allowedOperations.add(VirtualPoolChangeOperationEnum.EXPORT_PATH_PARAMS);
             }
 
@@ -545,20 +542,20 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                 notSuppReasonBuff.append(pathChangeReasonBuff.toString());
                 notSuppReasonBuff.append(autoTieringPolicyChangeReasonBuff.toString());
             }
-        }               
-        
+        }
+
         // clear notSuppReasonBuff if there is an allowed vpool operation
         if (!allowedOperations.isEmpty()) {
             notSuppReasonBuff.setLength(0);
         }
-        
+
         return allowedOperations;
     }
-    
+
     /**
-     * Determine virtual pool change operation which allows on volume.  If none,
-     * the disallowed reason should be referenced in <code>notSuppReasonBuff</code>
-     * This method should be implemented in subclass get operation based on specific
+     * Determine virtual pool change operation which allows on volume. If none,
+     * the disallowed reason should be referenced in <code>notSuppReasonBuff</code> This method should be implemented in subclass get
+     * operation based on specific
      * volume type.
      * 
      * @param volume A reference to the Volume.
@@ -569,8 +566,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @return allowed volume virtual pool change operation
      */
     abstract protected List<VirtualPoolChangeOperationEnum> getVirtualPoolChangeAllowedOperations(
-        Volume volume, VirtualPool currentVpool, VirtualPool newVpool,
-        StringBuffer notSuppReasonBuff);
+            Volume volume, VirtualPool currentVpool, VirtualPool newVpool,
+            StringBuffer notSuppReasonBuff);
 
     /**
      * {@inheritDoc}
@@ -598,7 +595,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             VirtualPoolChangeParam vpoolChangeParam, String taskId) throws InternalException {
         /**
          * 'Auto-tiering policy change' operation supports multiple volume processing.
-         *  At present, other operations only support single volume processing.
+         * At present, other operations only support single volume processing.
          */
         if (checkCommonVpoolUpdates(volumes, vpool, taskId)) {
             return;
@@ -617,29 +614,30 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public void changeVirtualArrayForVolumes(List<Volume> volumes,
-        BlockConsistencyGroup cg, List<Volume> cgVolumes, VirtualArray varray,
-        String taskId) throws InternalException {
+            BlockConsistencyGroup cg, List<Volume> cgVolumes, VirtualArray varray,
+            String taskId) throws InternalException {
         throw APIException.methodNotAllowed.notSupported();
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public void verifyVarrayChangeSupportedForVolumeAndVarray(Volume volume,
-        VirtualArray newVarray) throws APIException {
+            VirtualArray newVarray) throws APIException {
         throw APIException.badRequests.changesNotSupportedFor("VirtualArray",
                 String.format("volume %s", volume.getId()));
     }
 
     /**
-     * Given a list of VolumeDescriptors and  a volume, adds the descriptors necessary
+     * Given a list of VolumeDescriptors and a volume, adds the descriptors necessary
      * for any BlockMirrors on the volume.
+     * 
      * @param descriptors List<VolumeDescriptor>
      * @param volume
      */
     protected void addDescriptorsForMirrors(List<VolumeDescriptor> descriptors, Volume volume) {
-        if (volume.getMirrors() != null && volume.getMirrors().isEmpty()==false) {
+        if (volume.getMirrors() != null && volume.getMirrors().isEmpty() == false) {
             for (String mirrorId : volume.getMirrors()) {
                 BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, URI.create(mirrorId));
 
@@ -651,7 +649,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             }
         }
     }
-    
+
     /**
      * Determines the Virtual Storage Array Connectivity of the given Virtual Storage Array
      * 
@@ -661,12 +659,12 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     public static Set<VirtualArrayConnectivityRestRep> getVirtualArrayConnectivity(DbClient dbClient, URI varrayUID) {
         Set<VirtualArrayConnectivityRestRep> varrayConnectivity = new HashSet<VirtualArrayConnectivityRestRep>();
-        
+
         for (String key : getProtectionImplementations().keySet()) {
             Set<URI> varrays = getProtectionImplementations().get(key).getConnectedVarrays(varrayUID);
-            
+
             Iterator<URI> it = varrays.iterator();
-            
+
             while (it.hasNext()) {
                 URI currentVirtualArrayUID = it.next();
                 VirtualArray varray = dbClient.queryObject(VirtualArray.class, currentVirtualArrayUID);
@@ -680,10 +678,10 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                 }
             }
         }
-            
+
         return varrayConnectivity;
     }
-    
+
     protected Set<URI> getConnectedVarrays(URI varrayUID) {
         return new HashSet<URI>();
     }
@@ -705,17 +703,17 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         if (isMetaVolumeWithMirrors(volume)) {
             throw APIException.badRequests.expansionNotSupportedForMetaVolumesWithMirrors();
         }
-        
+
         // Throw exception as HDS Thick volume Expansion is not supported currently
         // @TODO remove this condition when we add full support for thick volume expansion.
         if (isHitachiVolume(volume) && !volume.getThinlyProvisioned()) {
             throw APIException.badRequests.expansionNotSupportedForHitachThickVolumes();
         }
-        
+
         // Verify the passed volume is not exported.
         // Expansion is not supported in this case.
         if (isHitachiVolume(volume) && !isHitachiVolumeExported(volume)
-                      && !volume.getThinlyProvisioned()) {
+                && !volume.getThinlyProvisioned()) {
             throw APIException.badRequests.expansionNotSupportedForHitachiVolumesNotExported();
         }
 
@@ -728,13 +726,16 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         // regular volumes (meta extension is not supported)
         // For VNX Unified pool volumes, check that volume new size is within
         // max volume size limit of its storage pool.
-        
+
         long maxVolumeSize = getMaxVolumeSizeLimit(volume);
-        if (newSizeExceedsMaxVolumeSizeForPool(volume, newSize))
-            throw APIException.badRequests.invalidVolumeSize(newSize,maxVolumeSize);                 
+        if (newSizeExceedsMaxVolumeSizeForPool(volume, newSize)) {
+            throw APIException.badRequests.invalidVolumeSize(newSize, maxVolumeSize);
+        }
     }
+
     /**
      * Determines whether Hitachi volume exported to a host or not.
+     * 
      * @param volume
      * @return
      */
@@ -757,23 +758,23 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public void expandVolume(Volume volume, long newSize, String taskId)
-            throws InternalException {    	    
-    
+            throws InternalException {
+
         BlockOrchestrationController controller = getController(
                 BlockOrchestrationController.class,
-                BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);         
+                BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
 
-        long expandCapacity = newSize-volume.getCapacity();
+        long expandCapacity = newSize - volume.getCapacity();
         StorageScheduler.addVolumeExpansionSizeToReservedCapacityMap(_dbClient, volume, expandCapacity);
 
         VolumeDescriptor descriptor = new VolumeDescriptor(
-                VolumeDescriptor.Type.BLOCK_DATA, 
-                volume.getStorageController(), volume.getId(), volume.getPool(), null,  null, volume.getCapacity());
-		List<VolumeDescriptor>descriptors = new ArrayList<VolumeDescriptor>(Arrays.asList(descriptor));
-		for (VolumeDescriptor volDesc : descriptors) {
-			volDesc.setVolumeSize(newSize);
-		}
-		controller.expandVolume(descriptors, taskId);
+                VolumeDescriptor.Type.BLOCK_DATA,
+                volume.getStorageController(), volume.getId(), volume.getPool(), null, null, volume.getCapacity());
+        List<VolumeDescriptor> descriptors = new ArrayList<VolumeDescriptor>(Arrays.asList(descriptor));
+        for (VolumeDescriptor volDesc : descriptors) {
+            volDesc.setVolumeSize(newSize);
+        }
+        controller.expandVolume(descriptors, taskId);
     }
 
     /**
@@ -800,7 +801,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     protected boolean newSizeExceedsMaxVolumeSizeForPool(Volume volume, Long newSize) {
         StoragePool storagePool = _permissionsHelper.getObjectById(volume.getPool(),
-            StoragePool.class);
+                StoragePool.class);
 
         // Only applicable for Clariion unified storage pools.
 
@@ -823,7 +824,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     private Long getMaxVolumeSizeLimit(Volume volume) {
         StoragePool storagePool = _permissionsHelper.getObjectById(volume.getPool(),
-            StoragePool.class);
+                StoragePool.class);
         Long maxVolumeSizeLimit; // limit in kilobytes
         if (volume.getThinlyProvisioned()) {
             maxVolumeSizeLimit = storagePool.getMaximumThinVolumeSize();
@@ -855,15 +856,17 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Determines whether passed volume is HDS thin volume or not.
+     * 
      * @param volume A reference to a volume
      * @return true if the volume belongs to Hitachi else false.
      */
     protected boolean isHitachiThinVolume(Volume volume) {
         return volume.getThinlyProvisioned() && isHitachiVolume(volume);
     }
-    
+
     /**
      * Determines whether passed volume is HDS or not.
+     * 
      * @param volume
      * @return
      */
@@ -895,11 +898,12 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     private boolean isMeta(Volume volume) {
         return volume.getIsComposite() != null && volume.getIsComposite();
     }
-    
+
     /**
      * Checks for Vpool updates that can be done on any device type.
      * For now, this is just the Export Path Params or Auto-tiering policy change.
      * If the update was processed, return true, else false.
+     * 
      * @param volumes
      * @param newVirtualPool
      * @param taskId
@@ -910,7 +914,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             String taskId) throws InternalException {
         VirtualPool volumeVirtualPool = _dbClient.queryObject(VirtualPool.class, volumes.get(0).getVirtualPool());
         StringBuffer notSuppReasonBuff = new StringBuffer();
-        if (VirtualPoolChangeAnalyzer.isSupportedPathParamsChange(volumes.get(0), 
+        if (VirtualPoolChangeAnalyzer.isSupportedPathParamsChange(volumes.get(0),
                 volumeVirtualPool, newVirtualPool, _dbClient, notSuppReasonBuff)) {
             BlockExportController exportController = getController(BlockExportController.class, BlockExportController.EXPORT);
             for (Volume volume : volumes) {
@@ -936,19 +940,20 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         }
         return false;
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap,
-        String snapshotType, String snapshotName, BlockFullCopyManager fcManager) {
+            String snapshotType, String snapshotName, BlockFullCopyManager fcManager) {
         // Make sure a name was specified.
         ArgValidator.checkFieldNotEmpty(snapshotName, "name");
-        
+
         // Validate there are volumes to snap.
-        if (volumesToSnap == null || volumesToSnap.isEmpty())
+        if (volumesToSnap == null || volumesToSnap.isEmpty()) {
             throw APIException.badRequests.noVolumesToSnap();
+        }
 
         // Verify the vpools of the volumes to be snapped support
         // snapshots and the maximum snapshots has not been reached.
@@ -957,21 +962,23 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             // check if the number of snapshots exceed the limit
             VirtualPool vpool = _dbClient.queryObject(VirtualPool.class, volumeToSnap.getVirtualPool());
             ArgValidator.checkFieldNotNull(vpool, "vpool");
-            if (vpool.getMaxNativeSnapshots() == 0)
+            if (vpool.getMaxNativeSnapshots() == 0) {
                 throw APIException.badRequests.maxNativeSnapshotsIsZero(vpool.getLabel());
-            if (getNumNativeSnapshots(volumeToSnap) >= vpool.getMaxNativeSnapshots()){
+            }
+            if (getNumNativeSnapshots(volumeToSnap) >= vpool.getMaxNativeSnapshots()) {
                 throw APIException.methodNotAllowed.maximumNumberSnapshotsReached();
             }
-            
+
             // Check for duplicate name.
             checkForDuplicatSnapshotName(snapshotName, volumeToSnap);
         }
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, reqVolume.getStorageController());
         Boolean is8xProvider = system.getUsingSmis80();
-        
+
         // We should validate this for 4.x provider as it doesn't support snaps for SRDF meta volumes.
         if (!is8xProvider) {
-            // Check that if the volume is a member of vmax consistency group all volumes in the group are regular volumes, not meta volumes.
+            // Check that if the volume is a member of vmax consistency group all volumes in the group are regular volumes, not meta
+            // volumes.
             URI cgURI = reqVolume.getConsistencyGroup();
             if (!NullColumnValueGetter.isNullURI(cgURI)) {
                 if (system.getSystemType().equals(StorageSystem.Type.vmax.toString())) {
@@ -979,25 +986,26 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                     for (Volume volumeToSnap : getActiveCGVolumes(cg)) {
                         if (volumeToSnap.getIsComposite()) {
                             throw APIException.methodNotAllowed.notSupportedWithReason(
-                                    String.format("Volume %s is a member of vmax consistency group which has meta volumes.", reqVolume.getLabel()));
+                                    String.format("Volume %s is a member of vmax consistency group which has meta volumes.",
+                                            reqVolume.getLabel()));
                         }
                     }
                 }
             }
         }
-        
+
         // Some systems (vmax3) don't support snapshots when there are active full
         // copies and vice versa.
         fcManager.validateSnapshotCreateRequest(reqVolume, volumesToSnap);
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public List<Volume> getVolumesToSnap(Volume reqVolume, String snapshotType) {
         // By default, if the passed volume is in a consistency group
-        // all volumes in the consistency group should  be snapped.
+        // all volumes in the consistency group should be snapped.
         List<Volume> volumesToSnap = new ArrayList<Volume>();
         URI cgURI = reqVolume.getConsistencyGroup();
         if (!NullColumnValueGetter.isNullURI(cgURI)) {
@@ -1008,7 +1016,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         }
         return volumesToSnap;
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -1017,7 +1025,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         List<Volume> volumeList = new ArrayList<Volume>();
         URIQueryResultList uriQueryResultList = new URIQueryResultList();
         _dbClient.queryByConstraint(getVolumesByConsistencyGroup(cg.getId()),
-            uriQueryResultList);
+                uriQueryResultList);
         Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class,
                 uriQueryResultList);
         while (volumeIterator.hasNext()) {
@@ -1036,29 +1044,29 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * 
      * @return The number of snapshots on a volume.
      */
-    protected Integer getNumNativeSnapshots(Volume volume){
+    protected Integer getNumNativeSnapshots(Volume volume) {
         Integer numSnapshots = 0;
         URI volumeURI = volume.getId();
         URIQueryResultList snapshotURIs = new URIQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
-            volumeURI), snapshotURIs);
+                volumeURI), snapshotURIs);
         while (snapshotURIs.iterator().hasNext()) {
             URI snapshotURI = snapshotURIs.iterator().next();
             BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
             if (snapshot != null && !snapshot.getInactive()
-                && snapshot.getTechnologyType().equals(TechnologyType.NATIVE.toString())) {
+                    && snapshot.getTechnologyType().equals(TechnologyType.NATIVE.toString())) {
                 numSnapshots++;
             }
         }
         return numSnapshots;
     }
-    
+
     /**
      * Check if a snapshot with the same name exists for the passed volume.
      * Note that we need to compare the passed name to the snapset label for
      * the volumes snapshots because the actually snapshot names can have
      * an appended suffix when the volumes is in a CG with multiple volumes.
-     * Also, we need to run the name through the generator, which is done 
+     * Also, we need to run the name through the generator, which is done
      * prior to setting the snapset label for a snapshot.
      * 
      * @param requestedName The name to verify.
@@ -1066,17 +1074,17 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     protected void checkForDuplicatSnapshotName(String requestedName, Volume volume) {
         String snapsetLabel = ResourceOnlyNameGenerator.removeSpecialCharsForName(
-            requestedName, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
+                requestedName, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
         List<BlockSnapshot> volumeSnapshots = CustomQueryUtility
-            .queryActiveResourcesByConstraint(_dbClient, BlockSnapshot.class,
-                    ContainmentConstraint.Factory.getVolumeSnapshotConstraint(volume.getId()));
+                .queryActiveResourcesByConstraint(_dbClient, BlockSnapshot.class,
+                        ContainmentConstraint.Factory.getVolumeSnapshotConstraint(volume.getId()));
         for (BlockSnapshot snapshot : volumeSnapshots) {
             if (snapsetLabel.equals(snapshot.getSnapsetLabel())) {
                 throw APIException.badRequests.duplicateLabel(requestedName);
             }
         }
     }
-    
+
     /**
      * Prepares the snapshots for a snapshot request.
      * 
@@ -1090,7 +1098,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public List<BlockSnapshot> prepareSnapshots(List<Volume> volumes, String snapshotType,
-        String snapshotName, List<URI> snapshotURIs, String taskId) {
+            String snapshotName, List<URI> snapshotURIs, String taskId) {
 
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
         int count = 1;
@@ -1110,14 +1118,14 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             snapshots.add(snapshot);
         }
         _dbClient.createObject(snapshots);
-        
+
         return snapshots;
     }
 
     /**
      * Convenience method for when the snapshot label does not have to be unique.
      * In this case, we can use the label as the snapshot label.
-     *
+     * 
      * @param volume The volume for which the snapshot is being created.
      * @param label The label for the new snapshot
      * @return A reference to the new BlockSnapshot instance.
@@ -1125,7 +1133,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     protected BlockSnapshot prepareSnapshotFromVolume(Volume volume, String label) {
         return prepareSnapshotFromVolume(volume, label, label);
     }
-    
+
     /**
      * Creates and returns a new ViPR BlockSnapshot instance with the passed
      * name for the passed volume.
@@ -1151,10 +1159,10 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         snapshot.getProtocol().addAll(volume.getProtocol());
         snapshot.setProject(new NamedURI(volume.getProject().getURI(), volume.getProject().getName()));
         snapshot.setSnapsetLabel(ResourceOnlyNameGenerator.removeSpecialCharsForName(
-            snapsetLabel, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
+                snapsetLabel, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH));
         return snapshot;
     }
-    
+
     /**
      * Uses the appropriate controller to create the snapshots.
      * 
@@ -1162,17 +1170,17 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @param snapshotURIs The URIs of the prepared snapshots
      * @param snapshotType The snapshot technology type.
      * @param createInactive true if the snapshots should be created but not
-     *        activated, false otherwise.
+     *            activated, false otherwise.
      * @param taskId The unique task identifier.
      */
     @Override
     public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
-        String snapshotType, Boolean createInactive, String taskId) {
+            String snapshotType, Boolean createInactive, String taskId) {
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, reqVolume.getStorageController());
         BlockController controller = (BlockController) getController(BlockController.class, storageSystem.getSystemType());
-        controller.createSnapshot(storageSystem.getId(), snapshotURIs, createInactive, taskId);        
+        controller.createSnapshot(storageSystem.getId(), snapshotURIs, createInactive, taskId);
     }
-    
+
     /**
      * Uses the appropriate controller to delete the snapshot.
      * 
@@ -1183,28 +1191,28 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     public void deleteSnapshot(BlockSnapshot snapshot, String taskId) {
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, snapshot.getStorageController());
         BlockController controller = getController(BlockController.class, device.getSystemType());
-        controller.deleteSnapshot(device.getId(), snapshot.getId(), taskId);        
+        controller.deleteSnapshot(device.getId(), snapshot.getId(), taskId);
     }
-    
+
     /**
      * Get the snapshots for the passed volume.
      * 
      * @param volume A reference to a volume.
-     *  
+     * 
      * @return The snapshots for the passed volume.
      */
     @Override
     public List<BlockSnapshot> getSnapshots(Volume volume) {
         URIQueryResultList snapshotURIs = new URIQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
-            volume.getId()), snapshotURIs);
+                volume.getId()), snapshotURIs);
         List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, snapshotURIs);
         return snapshots;
     }
-    
+
     /**
      * Validates a restore snapshot request.
-     *
+     * 
      * @param snapshot The snapshot to restore.
      * @param parent The parent of the snapshot
      */
@@ -1231,11 +1239,12 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapshot.getStorageController());
         BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
         controller.restoreVolume(storageSystem.getId(), parentVolume.getPool(),
-            parentVolume.getId(), snapshot.getId(), Boolean.TRUE, taskId);
+                parentVolume.getId(), snapshot.getId(), Boolean.TRUE, taskId);
     }
-    
+
     /**
-     * validate the given volume label is not a duplicate within given project.  If so, throw exception
+     * validate the given volume label is not a duplicate within given project. If so, throw exception
+     * 
      * @param label - label to validate
      * @param project - project where label is being validate.
      */
@@ -1244,17 +1253,17 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                 ContainmentPrefixConstraint.Factory.getFullMatchConstraint(Volume.class, "project", project.getId(), label));
         if (!volumeList.isEmpty()) {
             throw APIException.badRequests.duplicateLabel(label);
-        }        
+        }
     }
-    
-    
+
     /**
      * Generate a unique volume label based on the given base name and its index for RP or SRDF
+     * 
      * @param baseVolumeLabel - prefix of volume name
      * @param volumeIndex - index to append to prefix for name
      * @param volumeCount - number of volume to generate name for
      * @return generated volume name
-     */   
+     */
     protected String generateDefaultVolumeLabel(String baseVolumeLabel, int volumeIndex, int volumeCount) {
         StringBuilder volumeLabelBuilder = new StringBuilder(baseVolumeLabel);
         if (volumeCount > 1) {
@@ -1262,11 +1271,12 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             volumeLabelBuilder.append(volumeIndex);
         }
         return volumeLabelBuilder.toString();
-    }  
-    
+    }
+
     /**
-     * Convenient method to validate whether default generate volume names for RP and SRDF will result in duplicate.  
+     * Convenient method to validate whether default generate volume names for RP and SRDF will result in duplicate.
      * If there is a duplicate, throw exception
+     * 
      * @param baseVolumeLabel - prefix of volume name
      * @param volumeCount - number of volume to generate name for
      * @param project - project containing the volumes
@@ -1281,10 +1291,10 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             // actual volumes after they are created to match the names
             // given here.
             String newVolumeLabel = generateDefaultVolumeLabel(baseVolumeLabel, i, volumeCount);
-            
+
             // to throw exception if duplicate label found
-            validateVolumeLabel(newVolumeLabel, project);  
-        }        
+            validateVolumeLabel(newVolumeLabel, project);
+        }
     }
 
     /**
@@ -1293,10 +1303,10 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * 
      * @param volumeURI volume to remove from export masks
      * @param addToExistingVolumes When true, adds the volume to the existing volumes
-     * list from the mask.
+     *            list from the mask.
      */
     protected void cleanVolumeFromExports(URI volumeURI, boolean addToExistingVolumes) {
-        
+
         Map<URI, ExportGroup> exportGroupMap = new HashMap<URI, ExportGroup>();
         Map<URI, ExportGroup> updatedExportGroupMap = new HashMap<URI, ExportGroup>();
         Map<String, ExportMask> exportMaskMap = new HashMap<String, ExportMask>();
@@ -1328,7 +1338,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                     exportMask = exportMaskMap.get(exportMaskId);
                 } else {
                     exportMask = _dbClient.queryObject(ExportMask.class, URI.create(exportMaskId));
-                    exportMaskMap.put(exportMaskId, exportMask);                                    
+                    exportMaskMap.put(exportMaskId, exportMask);
                 }
                 if (exportMask.hasVolume(volumeURI)) {
                     StringMap exportMaskVolumeMap = exportMask.getVolumes();
@@ -1359,7 +1369,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             _dbClient.persistObject(updatedExportMasks);
         }
     }
-    
+
     /**
      * Note: This method is also used for VPLEX volume validation during mirror creation.
      * Any Changes to this method should account for VPLEX as well.
@@ -1371,7 +1381,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             }
         }
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -1388,7 +1398,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * Return a list of active BlockMirror URI's that are known to be active (in Synchronized state).
-     *
+     * 
      * @param volume Volume to check for mirrors against
      * @return List of active BlockMirror URI's
      */
@@ -1405,7 +1415,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         }
         return activeMirrorURIs;
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -1420,25 +1430,25 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         URI volumeURI = volume.getId();
         if (!cgVolumeURIs.contains(volumeURI)) {
             throw APIException.badRequests
-                .invalidParameterConsistencyGroupVolumeMismatch(volumeURI);
+                    .invalidParameterConsistencyGroupVolumeMismatch(volumeURI);
         }
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public void verifyAddVolumeToCG(Volume volume, BlockConsistencyGroup cg,
-        List<Volume> cgVolumes, StorageSystem cgStorageSystem) {
+            List<Volume> cgVolumes, StorageSystem cgStorageSystem) {
         // Verify that the Virtual Pool for the volume specifies
         // consistency.
         URI volumeURI = volume.getId();
         VirtualPool vPool = _permissionsHelper.getObjectById(volume.getVirtualPool(),
-            VirtualPool.class);
+                VirtualPool.class);
         if (vPool.getMultivolumeConsistency() == null
-            || !vPool.getMultivolumeConsistency()) {
+                || !vPool.getMultivolumeConsistency()) {
             throw APIException.badRequests
-                .invalidParameterConsistencyGroupVirtualPoolMustSpecifyMultiVolumeConsistency(volumeURI);
+                    .invalidParameterConsistencyGroupVirtualPoolMustSpecifyMultiVolumeConsistency(volumeURI);
         }
 
         // Validate the volume is not in this CG or any other CG.
@@ -1448,29 +1458,29 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         }
         if (cgVolumeURIs.contains(volumeURI)) {
             throw APIException.badRequests
-                .invalidParameterConsistencyGroupAlreadyContainsVolume(volumeURI);
+                    .invalidParameterConsistencyGroupAlreadyContainsVolume(volumeURI);
         } else if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
             throw APIException.badRequests
-                .invalidParameterVolumeAlreadyInAConsistencyGroup(cg.getId(),
-                    volume.getConsistencyGroup());
+                    .invalidParameterVolumeAlreadyInAConsistencyGroup(cg.getId(),
+                            volume.getConsistencyGroup());
         }
 
         // Verify the project for the volumes to be added is the same
         // as the project for the consistency group.
         BlockConsistencyGroupUtils.verifyProjectForVolumeToBeAddedToCG(volume, cg,
-            _dbClient);
+                _dbClient);
 
         // No RP protected volumes can be added to a consistency group.
         if (volume.getProtectionController() != null) {
             throw APIException.badRequests
-                .invalidParameterConsistencyGroupCannotAddProtectedVolume(volumeURI);
+                    .invalidParameterConsistencyGroupCannotAddProtectedVolume(volumeURI);
         }
 
         // For VPLEX volumes the backend storage must be on the same
         // array as the volumes currently in the consistency group.
         verifySystemForVolumeToBeAddedToCG(volume, cg, cgStorageSystem);
     }
-    
+
     /**
      * Verifies the system information for the volume to be added to the CG.
      * 
@@ -1479,19 +1489,19 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @param cgStorageSystem A reference to the CG storage system
      */
     protected void verifySystemForVolumeToBeAddedToCG(Volume volume,
-        BlockConsistencyGroup cg, StorageSystem cgStorageSystem) {
+            BlockConsistencyGroup cg, StorageSystem cgStorageSystem) {
         // Verify that the volume is on the storage system for
         // the consistency group.
         URI volumeSystemURI = volume.getStorageController();
         if (!volumeSystemURI.equals(cgStorageSystem.getId())) {
             throw APIException.badRequests
-                .invalidParameterConsistencyGroupStorageySystemMismatch(volume.getId());
+                    .invalidParameterConsistencyGroupStorageySystemMismatch(volume.getId());
         }
     }
 
     /**
      * Verify if a volume belongs to a VMAX3 Storage array
-     *
+     * 
      * @param volume [in] - Volume object to check
      * @return true iff volume's StorageSystem is VMAX3
      */

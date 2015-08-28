@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.systemservices.impl.logsvc.performance;
@@ -16,14 +16,15 @@ import com.emc.storageos.systemservices.impl.logsvc.LogStatusInfo;
 import com.emc.vipr.model.sys.logging.LogRequest;
 
 public class LogReaderPerfTest {
-	private static final String PATH = "/opt/storageos/logs/testData/coordinatorsvc.log";
-	
+    private static final String PATH = "/opt/storageos/logs/testData/coordinatorsvc.log";
+
     /**
      * Test the performance of regular BufferedReader
      */
     @Test
-//    @Ignore
-    public void testBufferedReaderPerformance() throws Exception{
+    // @Ignore
+            public
+            void testBufferedReaderPerformance() throws Exception {
         String filePath = PATH;
         BufferedReader br = new BufferedReader(new FileReader(filePath));
         File file = new File(filePath);
@@ -42,15 +43,15 @@ public class LogReaderPerfTest {
         System.out
                 .println("Total read " + fileSize + " MB;" + " Average " + speed + " MB/sec.");
     }
-    
+
     @Test
-    public void testPerformance() throws Exception{
+    public void testPerformance() throws Exception {
         LogStatusInfo status = new LogStatusInfo();
         String filePath = PATH;
         File file = new File(filePath);
         double fileSize = (double) file.length() / (1024L * 1024L);
         LogRequest req = new LogRequest.Builder().build();
-        LogReader reader = new LogReader(filePath, req,status,null); // empty service list
+        LogReader reader = new LogReader(filePath, req, status, null); // empty service list
         long startTime = System.nanoTime();
         while (true) {
             LogMessage log = reader.readNextLogMessage();

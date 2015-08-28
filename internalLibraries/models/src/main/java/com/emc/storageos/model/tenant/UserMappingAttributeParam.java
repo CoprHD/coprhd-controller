@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.tenant;
 
@@ -24,8 +14,9 @@ import java.util.List;
 public class UserMappingAttributeParam {
     private String key;
     private List<String> values;
-    
-    public UserMappingAttributeParam() {}
+
+    public UserMappingAttributeParam() {
+    }
 
     public UserMappingAttributeParam(String key, List<String> values) {
         this.key = key;
@@ -38,7 +29,7 @@ public class UserMappingAttributeParam {
      * 
      * @valid none
      */
-    @XmlElement(required=true, name="key")
+    @XmlElement(required = true, name = "key")
     @JsonProperty("key")
     public String getKey() {
         return key;
@@ -54,7 +45,7 @@ public class UserMappingAttributeParam {
      * 
      * @valid none
      */
-    @XmlElement(required=true, name="value")
+    @XmlElement(required = true, name = "value")
     public List<String> getValues() {
         if (values == null) {
             values = new ArrayList<String>();
@@ -69,10 +60,10 @@ public class UserMappingAttributeParam {
     /**
      * Removes the duplicate entries from the collection (List<T>)
      * and returns the list with unique entries.
-     *
+     * 
      * @valid none
      */
-    private <T> List<T> removeDuplicate(List<T> listWithDuplicates){
+    private <T> List<T> removeDuplicate(List<T> listWithDuplicates) {
         List<T> uniqueList = new ArrayList<T>(new LinkedHashSet<T>(listWithDuplicates));
         return uniqueList;
     }
@@ -83,24 +74,24 @@ public class UserMappingAttributeParam {
      * of using the HashSet collection.
      * Compares the individual properties of two objects.
      */
-    public boolean equals(Object obj){
+    public boolean equals(Object obj) {
         boolean isEqual = false;
 
-        if (obj != null && obj instanceof UserMappingAttributeParam){
-            if(this == obj){
+        if (obj != null && obj instanceof UserMappingAttributeParam) {
+            if (this == obj) {
                 isEqual = true;
             }
             else if (key != null &&
                     ((UserMappingAttributeParam) obj).key != null &&
-                    !key.equals(((UserMappingAttributeParam) obj).key)){
+                    !key.equals(((UserMappingAttributeParam) obj).key)) {
                 isEqual = false;
             }
             else if (values != null &&
                     ((UserMappingAttributeParam) obj).values != null &&
-                    values.size() != ((UserMappingAttributeParam) obj).values.size()){
+                    values.size() != ((UserMappingAttributeParam) obj).values.size()) {
                 isEqual = false;
             }
-            else{
+            else {
                 if (values != null && ((UserMappingAttributeParam) obj).values != null) {
                     isEqual = values.equals(((UserMappingAttributeParam) obj).values);
                 } else {
@@ -124,13 +115,15 @@ public class UserMappingAttributeParam {
      *
      * @valid none
      */
-    public int hashCode(){
+    public int hashCode() {
         int hash = 0;
-        if (key != null)
+        if (key != null) {
             hash = key.hashCode();
+        }
 
-        if (values == null)
+        if (values == null) {
             return hash;
+        }
 
         if (values != null) {
             for (String value : values) {

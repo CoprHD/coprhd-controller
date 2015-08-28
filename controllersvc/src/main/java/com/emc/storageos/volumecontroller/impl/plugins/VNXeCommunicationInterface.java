@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.plugins;
@@ -81,31 +71,31 @@ public class VNXeCommunicationInterface extends
         ExtendedCommunicationInterfaceImpl {
     private static final Logger _logger = LoggerFactory
             .getLogger(VNXeCommunicationInterface.class);
-	private static final String NEW = "new";
+    private static final String NEW = "new";
     private static final String EXISTING = "existing";
 
-	// Reference to the Vnxe client factory allows us to get a Vnxe client
+    // Reference to the Vnxe client factory allows us to get a Vnxe client
     // and execute requests to the Vnxe storage system.
     private VNXeApiClientFactory _clientFactory;
     private VNXeUnManagedObjectDiscoverer unManagedObjectDiscoverer;
-    
+
     public VNXeCommunicationInterface() {
     };
-    
-    public VNXeApiClientFactory getVnxeApiClientFactory() {
-		return _clientFactory;
-	}
 
-	public void setVnxeApiClientFactory(VNXeApiClientFactory _clientFactory) {
-		this._clientFactory = _clientFactory;
-	}
-    
+    public VNXeApiClientFactory getVnxeApiClientFactory() {
+        return _clientFactory;
+    }
+
+    public void setVnxeApiClientFactory(VNXeApiClientFactory _clientFactory) {
+        this._clientFactory = _clientFactory;
+    }
+
     public void setUnManagedObjectDiscoverer(
             VNXeUnManagedObjectDiscoverer volumeDiscoverer) {
         this.unManagedObjectDiscoverer = volumeDiscoverer;
     }
 
-	/**
+    /**
      * Implementation for scan for Vnxe storage systems.
      * 
      * @param accessProfile
@@ -135,7 +125,7 @@ public class VNXeCommunicationInterface extends
         try {
             _logger.info(
                     "Access Profile Details :  IpAddress : {}, PortNumber : {}",
-                accessProfile.getIpAddress(), accessProfile.getPortNumber());
+                    accessProfile.getIpAddress(), accessProfile.getPortNumber());
             if (null != accessProfile.getnamespace()
                     && (accessProfile
                             .getnamespace()
@@ -144,11 +134,11 @@ public class VNXeCommunicationInterface extends
                             .getnamespace()
                             .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_FILESYSTEMS
                                     .toString()))) {
-            	discoverUnmanagedObjects(accessProfile);
+                discoverUnmanagedObjects(accessProfile);
             } else {
                 // Get the Vnxe storage system from the database.
                 viprStorageSystem = _dbClient.queryObject(StorageSystem.class,
-                    storageSystemURI);
+                        storageSystemURI);
 
                 _logger.info(String.format(
                         "Discover Vnxe storage system %s at IP:%s, PORT:%s",
@@ -168,20 +158,20 @@ public class VNXeCommunicationInterface extends
                 VNXeStorageSystem system = client.getStorageSystem();
                 boolean isFASTVPEnabled = false;
                 if (system != null) {
-    	            viprStorageSystem.setSerialNumber(system.getSerialNumber());
+                    viprStorageSystem.setSerialNumber(system.getSerialNumber());
                     String guid = NativeGUIDGenerator
                             .generateNativeGuid(viprStorageSystem);
-    	            viprStorageSystem.setNativeGuid(guid);
-    	            viprStorageSystem.setLabel(guid);
+                    viprStorageSystem.setNativeGuid(guid);
+                    viprStorageSystem.setLabel(guid);
                     viprStorageSystem
                             .setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE
                                     .name());
-    	            viprStorageSystem.setReachableStatus(true);
-    	            isFASTVPEnabled = client.isFASTVPEnabled();
-    	            
-    	            viprStorageSystem.setAutoTieringEnabled(isFASTVPEnabled);
-    	           
-    	            StringSet supportedActions = new StringSet();
+                    viprStorageSystem.setReachableStatus(true);
+                    isFASTVPEnabled = client.isFASTVPEnabled();
+
+                    viprStorageSystem.setAutoTieringEnabled(isFASTVPEnabled);
+
+                    StringSet supportedActions = new StringSet();
                     supportedActions
                             .add(StorageSystem.AsyncActions.CreateElementReplica
                                     .name());
@@ -190,29 +180,29 @@ public class VNXeCommunicationInterface extends
                                     .name());
                     viprStorageSystem
                             .setSupportedAsynchronousActions(supportedActions);
-    	            StringSet supportedReplica = new StringSet();
+                    StringSet supportedReplica = new StringSet();
                     supportedReplica
                             .add(StorageSystem.SupportedReplicationTypes.LOCAL
                                     .name());
                     viprStorageSystem
                             .setSupportedReplicationTypes(supportedReplica);
 
-    	            _dbClient.persistObject(viprStorageSystem);
+                    _dbClient.persistObject(viprStorageSystem);
                     _completer.statusPending(_dbClient,
                             "Completed discovery of system properties");
                 } else {
-                  	_logger.error("Failed to retrieve VNXe system info!");
+                    _logger.error("Failed to retrieve VNXe system info!");
                     viprStorageSystem.setReachableStatus(false);
                 }
-                //get version for the storage system
+                // get version for the storage system
                 BasicSystemInfo info = client.getBasicSystemInfo();
                 if (info != null) {
                     viprStorageSystem.setFirmwareVersion(info
                             .getSoftwareVersion());
                 }
                 StringSet arraySupportedProtocols = new StringSet();
-             // Discover the NasServers
-                Map<String, URI> nasServerIdMap = new HashMap<String, URI>(); 
+                // Discover the NasServers
+                Map<String, URI> nasServerIdMap = new HashMap<String, URI>();
                 Map<String, List<StorageHADomain>> nasServers = discoverNasServers(
                         viprStorageSystem, client, nasServerIdMap,
                         arraySupportedProtocols);
@@ -220,62 +210,62 @@ public class VNXeCommunicationInterface extends
                         .get(NEW).size());
                 _logger.info("No of existing discovered NasServers {}",
                         nasServers.get(EXISTING).size());
-                
-                if(!nasServers.get(NEW).isEmpty()) {
+
+                if (!nasServers.get(NEW).isEmpty()) {
                     _dbClient.createObject(nasServers.get(NEW));
                 }
-          
-                if(!nasServers.get(EXISTING).isEmpty()) {
+
+                if (!nasServers.get(EXISTING).isEmpty()) {
                     _dbClient.persistObject(nasServers.get(EXISTING));
                 }
                 _completer.statusPending(_dbClient,
                         "Completed NAS Server discovery");
-             
-                //Discover FileInterfaces
+
+                // Discover FileInterfaces
                 List<StoragePort> allExistingPorts = new ArrayList<StoragePort>();
                 List<StoragePort> allNewPorts = new ArrayList<StoragePort>();
                 Map<String, List<StoragePort>> ports = discoverFileStoragePorts(
                         viprStorageSystem, client, nasServerIdMap);
-                
-                if(ports.get(NEW) != null && !ports.get(NEW).isEmpty()) {
-                	allNewPorts.addAll(ports.get(NEW));
+
+                if (ports.get(NEW) != null && !ports.get(NEW).isEmpty()) {
+                    allNewPorts.addAll(ports.get(NEW));
                     _dbClient.createObject(ports.get(NEW));
                 }
-          
-                if(ports.get(EXISTING) != null && !ports.get(EXISTING).isEmpty()) {
-                	allExistingPorts.addAll(ports.get(EXISTING));
+
+                if (ports.get(EXISTING) != null && !ports.get(EXISTING).isEmpty()) {
+                    allExistingPorts.addAll(ports.get(EXISTING));
                     _dbClient.persistObject(ports.get(EXISTING));
                 }
                 _completer.statusPending(_dbClient,
                         "Completed file ports discovery");
-                
-                //discover storage processors
-                Map<String, URI> spIdMap = new HashMap<String, URI>(); 
+
+                // discover storage processors
+                Map<String, URI> spIdMap = new HashMap<String, URI>();
                 Map<String, List<StorageHADomain>> sps = discoverStorageProcessors(
                         viprStorageSystem, client, spIdMap);
-                
-                if(!sps.get(NEW).isEmpty()) {
+
+                if (!sps.get(NEW).isEmpty()) {
                     _dbClient.createObject(sps.get(NEW));
                 }
-          
-                if(!sps.get(EXISTING).isEmpty()) {
+
+                if (!sps.get(EXISTING).isEmpty()) {
                     _dbClient.persistObject(sps.get(EXISTING));
                 }
                 _completer.statusPending(_dbClient,
                         "Completed storage processor discovery");
-                
-                //discover iscsi ports
+
+                // discover iscsi ports
                 Map<String, List<StoragePort>> iscsiPorts = discoverIscsiPorts(
                         viprStorageSystem, client, spIdMap);
                 boolean hasIscsiPorts = false;
-                if(iscsiPorts.get(NEW)!= null && !iscsiPorts.get(NEW).isEmpty()) {
-                	allNewPorts.addAll(iscsiPorts.get(NEW));
+                if (iscsiPorts.get(NEW) != null && !iscsiPorts.get(NEW).isEmpty()) {
+                    allNewPorts.addAll(iscsiPorts.get(NEW));
                     hasIscsiPorts = true;
                     _dbClient.createObject(iscsiPorts.get(NEW));
                 }
-          
-                if(iscsiPorts.get(EXISTING) != null && !iscsiPorts.get(EXISTING).isEmpty()) {
-                	allExistingPorts.addAll(iscsiPorts.get(EXISTING));
+
+                if (iscsiPorts.get(EXISTING) != null && !iscsiPorts.get(EXISTING).isEmpty()) {
+                    allExistingPorts.addAll(iscsiPorts.get(EXISTING));
                     hasIscsiPorts = true;
                     _dbClient.persistObject(ports.get(EXISTING));
                 }
@@ -285,19 +275,19 @@ public class VNXeCommunicationInterface extends
                 }
                 _completer.statusPending(_dbClient,
                         "Completed iscsi ports discovery");
-                
-              //discover fc ports
+
+                // discover fc ports
                 Map<String, List<StoragePort>> fcPorts = discoverFcPorts(
                         viprStorageSystem, client, spIdMap);
                 boolean hasFcPorts = false;
-                if(fcPorts.get(NEW)!= null && !fcPorts.get(NEW).isEmpty()) {
-                	allNewPorts.addAll(fcPorts.get(NEW));
+                if (fcPorts.get(NEW) != null && !fcPorts.get(NEW).isEmpty()) {
+                    allNewPorts.addAll(fcPorts.get(NEW));
                     hasFcPorts = true;
                     _dbClient.createObject(fcPorts.get(NEW));
                 }
-          
-                if(fcPorts.get(EXISTING) != null && !fcPorts.get(EXISTING).isEmpty()){
-                	allExistingPorts.addAll(fcPorts.get(EXISTING));
+
+                if (fcPorts.get(EXISTING) != null && !fcPorts.get(EXISTING).isEmpty()) {
+                    allExistingPorts.addAll(fcPorts.get(EXISTING));
                     hasFcPorts = true;
                     _dbClient.persistObject(ports.get(EXISTING));
                 }
@@ -307,17 +297,17 @@ public class VNXeCommunicationInterface extends
                 }
                 _completer.statusPending(_dbClient,
                         "Completed FC ports discovery");
-                
+
                 List<StoragePort> allPorts = new ArrayList<StoragePort>(allNewPorts);
                 allPorts.addAll(allExistingPorts);
-                //check if any port not visible in this discovery
+                // check if any port not visible in this discovery
                 List<StoragePort> notVisiblePorts = DiscoveryUtils.checkStoragePortsNotVisible(
                         allPorts, _dbClient, viprStorageSystem.getId());
                 if (notVisiblePorts != null && !notVisiblePorts.isEmpty()) {
                     allExistingPorts.addAll(notVisiblePorts);
                 }
                 /**
-                 *  Discover the VNXe pool information.
+                 * Discover the VNXe pool information.
                  */
                 _logger.info("Discovering storage pools.");
                 List<StoragePool> poolsToMatchWithVpool = new ArrayList<StoragePool>();
@@ -330,7 +320,7 @@ public class VNXeCommunicationInterface extends
                         .size());
                 _logger.info("No of existing discovered pools {}",
                         pools.get(EXISTING).size());
-                if(!pools.get(NEW).isEmpty()){
+                if (!pools.get(NEW).isEmpty()) {
                     allPools.addAll(pools.get(NEW));
                     _dbClient.createObject(pools.get(NEW));
                     StoragePoolAssociationHelper.setStoragePoolVarrays(
@@ -338,60 +328,60 @@ public class VNXeCommunicationInterface extends
                             _dbClient);
                 }
 
-                if(!pools.get(EXISTING).isEmpty()){
+                if (!pools.get(EXISTING).isEmpty()) {
                     allPools.addAll(pools.get(EXISTING));
                     _dbClient.persistObject(pools.get(EXISTING));
                 }
-                
+
                 List<StoragePool> notVisiblePools = DiscoveryUtils.checkStoragePoolsNotVisible(
                         allPools, _dbClient, viprStorageSystem.getId());
                 if (notVisiblePools != null && !notVisiblePools.isEmpty()) {
                     poolsToMatchWithVpool.addAll(notVisiblePools);
                 }
-               
+
                 StoragePortAssociationHelper.runUpdatePortAssociationsProcess(allNewPorts, allExistingPorts, _dbClient, _coordinator,
                         poolsToMatchWithVpool);
-                _completer.statusPending(_dbClient,"Completed pool discovery");
-                
+                _completer.statusPending(_dbClient, "Completed pool discovery");
+
                 /**
                  * Discover AutoTieringPolicies and StorageTiers if FASTVP
                  * enabled.
                  */
-                
+
                 if (isFASTVPEnabled) {
                     _logger.info("FASTVP is enabled");
                     HashMap<String, List<AutoTieringPolicy>> policies = discoverAutoTierPolicies(
                             viprStorageSystem, client);
                     if (!policies.get(NEW).isEmpty()) {
-                        _dbClient.createObject(policies.get(NEW)); 
+                        _dbClient.createObject(policies.get(NEW));
                     }
-                    
+
                     if (!policies.get(EXISTING).isEmpty()) {
-                        _dbClient.persistObject(policies.get(EXISTING)); 
+                        _dbClient.persistObject(policies.get(EXISTING));
                     }
-                    
+
                     HashMap<String, List<StorageTier>> tiers = discoverStorageTier(
                             viprStorageSystem, client);
-                    if(!tiers.get(NEW).isEmpty()){
+                    if (!tiers.get(NEW).isEmpty()) {
                         _dbClient.createObject(tiers.get(NEW));
                     }
 
-                    if(!tiers.get(EXISTING).isEmpty()){
+                    if (!tiers.get(EXISTING).isEmpty()) {
                         _dbClient.persistObject(tiers.get(EXISTING));
                     }
                 }
                 detailedStatusMessage = String
                         .format("Discovery completed successfully for Storage System: %s",
-                        storageSystemURI.toString());
-                
-            } 
-        } catch(Exception e) {
+                                storageSystemURI.toString());
+
+            }
+        } catch (Exception e) {
             detailedStatusMessage = String.format(
                     "Discovery failed for VNXe %s: %s",
                     storageSystemURI.toString(), e.getLocalizedMessage());
-        	_logger.error(detailedStatusMessage, e);
-        	throw VNXeException.exceptions.discoveryError("Discovery error", e);
-        }finally {
+            _logger.error(detailedStatusMessage, e);
+            throw VNXeException.exceptions.discoveryError("Discovery error", e);
+        } finally {
             if (viprStorageSystem != null) {
                 try {
                     // set detailed message
@@ -403,11 +393,11 @@ public class VNXeCommunicationInterface extends
                 }
             }
         }
-            
+
     }
-    
+
     private void discoverUnmanagedObjects(AccessProfile accessProfile) {
-    	StorageSystem storageSystem = null;
+        StorageSystem storageSystem = null;
         String detailedStatusMessage = null;
         try {
             storageSystem = _dbClient.queryObject(StorageSystem.class,
@@ -415,7 +405,7 @@ public class VNXeCommunicationInterface extends
             if (null == storageSystem) {
                 return;
             }
-            
+
             storageSystem
                     .setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.IN_PROGRESS
                             .toString());
@@ -430,8 +420,7 @@ public class VNXeCommunicationInterface extends
                         _dbClient, _partitionManager);
                 unManagedObjectDiscoverer.discoverAllCifsShares(accessProfile,
                         _dbClient, _partitionManager);
-                
-            	
+
             } else if (accessProfile.getnamespace().equals(
                     StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES
                             .toString())) {
@@ -439,11 +428,11 @@ public class VNXeCommunicationInterface extends
                         accessProfile, _dbClient, _coordinator,
                         _partitionManager);
             }
-            
+
             // discovery succeeds
             detailedStatusMessage = String
                     .format("UnManaged Object Discovery completed successfully for VNXe: %s",
-            		storageSystem.getId().toString());
+                            storageSystem.getId().toString());
             _logger.info(detailedStatusMessage);
 
         } catch (Exception e) {
@@ -469,7 +458,7 @@ public class VNXeCommunicationInterface extends
             }
         }
     }
-    
+
     /**
      * Get the Vnxe service client for making requests to the Vnxe based on the
      * passed profile.
@@ -483,14 +472,14 @@ public class VNXeCommunicationInterface extends
         VNXeApiClient client = _clientFactory.getClient(
                 accessProfile.getIpAddress(), accessProfile.getPortNumber(),
                 accessProfile.getUserName(), accessProfile.getPassword());
-    	
-    	return client;
-    	
+
+        return client;
+
     }
-    
+
     /**
      * Returns the list of storage pools for the specified VNXe storage system.
-     *
+     * 
      * @param system
      *            storage system information.
      * @param client
@@ -514,7 +503,7 @@ public class VNXeCommunicationInterface extends
                 system.getId());
         try {
             List<VNXePool> pools = client.getPools();
-            
+
             for (VNXePool vnxePool : pools) {
                 StoragePool pool = null;
 
@@ -539,7 +528,7 @@ public class VNXeCommunicationInterface extends
                 if (pool == null) {
                     pool = new StoragePool();
                     pool.setId(URIUtil.createId(StoragePool.class));
-                   
+
                     pool.setLabel(poolNativeGuid);
                     pool.setNativeGuid(poolNativeGuid);
                     pool.setOperationalStatus(vnxePool.getStatus());
@@ -554,8 +543,8 @@ public class VNXeCommunicationInterface extends
                     StringSet raidLevels = new StringSet();
                     RaidTypeEnum raid = vnxePool.getRaidTypeEnum();
                     if (raid != null) {
-                    	raidLevels.add(vnxePool.getRaidTypeEnum().name());
-                    	pool.setSupportedRaidLevels(raidLevels);
+                        raidLevels.add(vnxePool.getRaidTypeEnum().name());
+                        pool.setSupportedRaidLevels(raidLevels);
                     }
                     // Supported resource type indicates what type of file
                     // systems are supported.
@@ -567,7 +556,7 @@ public class VNXeCommunicationInterface extends
                             .name());
                     pool.setAutoTieringEnabled(getPoolAutoTieringEnabled(
                             vnxePool, system));
-                    
+
                     pool.setRegistrationStatus(RegistrationStatus.REGISTERED
                             .toString());
                     _logger.info(
@@ -575,18 +564,18 @@ public class VNXeCommunicationInterface extends
                             poolNativeGuid);
                     newPools.add(pool);
                 } else {
-                	//update pool attributes
-                	_logger.info("updating the pool: {}", poolNativeGuid);
-                	pool.setOperationalStatus(vnxePool.getStatus());
-                	if(ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getProtocols(), supportedProtocols)) {
-                	    isModified = true;
-                	}
-                	pool.setProtocols(supportedProtocols);
-                	StringSet raidLevels = new StringSet();
+                    // update pool attributes
+                    _logger.info("updating the pool: {}", poolNativeGuid);
+                    pool.setOperationalStatus(vnxePool.getStatus());
+                    if (ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getProtocols(), supportedProtocols)) {
+                        isModified = true;
+                    }
+                    pool.setProtocols(supportedProtocols);
+                    StringSet raidLevels = new StringSet();
                     RaidTypeEnum raid = vnxePool.getRaidTypeEnum();
                     if (raid != null) {
-                    	raidLevels.add(vnxePool.getRaidTypeEnum().name());
-                    	pool.setSupportedRaidLevels(raidLevels);
+                        raidLevels.add(vnxePool.getRaidTypeEnum().name());
+                        pool.setSupportedRaidLevels(raidLevels);
                     }
                     pool.setAutoTieringEnabled(getPoolAutoTieringEnabled(
                             vnxePool, system));
@@ -611,44 +600,45 @@ public class VNXeCommunicationInterface extends
                 pool.setSupportedDriveTypes(diskTypes);
 
                 double size = vnxePool.getSizeTotal();
-                if (size >0) {
-                	pool.setTotalCapacity(VNXeUtils.convertDoubleSizeToViPRLong(size)); //convert to kb
+                if (size > 0) {
+                    pool.setTotalCapacity(VNXeUtils.convertDoubleSizeToViPRLong(size)); // convert to kb
                 }
 
                 long free = VNXeUtils.convertDoubleSizeToViPRLong(vnxePool.getSizeFree());
-                if ( free >0) {
-                	pool.setFreeCapacity(free);
-                	pool.setMaximumThinVolumeSize(free);
-                	pool.setMaximumThickVolumeSize(free);
+                if (free > 0) {
+                    pool.setFreeCapacity(free);
+                    pool.setMaximumThinVolumeSize(free);
+                    pool.setMaximumThickVolumeSize(free);
                 }
                 long subscribed = VNXeUtils.convertDoubleSizeToViPRLong(vnxePool.getSizeSubscribed());
                 pool.setSubscribedCapacity(subscribed);
-                if(isModified 
-                        || ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getCompatibilityStatus(), DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name())
-                        || ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getDiscoveryStatus(), 
-                                DiscoveryStatus.VISIBLE.name())){
+                if (isModified
+                        || ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getCompatibilityStatus(),
+                                DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name())
+                        || ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getDiscoveryStatus(),
+                                DiscoveryStatus.VISIBLE.name())) {
                     poolsToMatchWithVpool.add(pool);
                 }
                 pool.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
                 pool.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
             }
-        }catch (VNXeException e) {
+        } catch (VNXeException e) {
             _logger.error(
                     "Discovery of storage pools failed for storage system {} for {}",
                     system.getId(), e.getMessage());
             throw e;
         }
-        for(StoragePool newPool: newPools){
+        for (StoragePool newPool : newPools) {
             _logger.info("New Storage Pool : " + newPool);
             _logger.info("New Storage Pool : {} : {}", newPool.getNativeGuid(),
                     newPool.getId());
         }
-        for(StoragePool pool: existingPools){
+        for (StoragePool pool : existingPools) {
             _logger.info("Old Storage Pool : " + pool);
             _logger.info("Old Storage Pool : {} : {}", pool.getNativeGuid(),
                     pool.getId());
         }
-        //return storagePools;
+        // return storagePools;
         storagePools.put(NEW, newPools);
         storagePools.put(EXISTING, existingPools);
         _logger.info("Number of pools found {} : ", storagePools.size());
@@ -656,11 +646,11 @@ public class VNXeCommunicationInterface extends
                 system.getId());
         return storagePools;
     }
-    
+
     /**
      * Discover the NasServer (Port Groups) for the specified VNXe storage
      * array.
-     *
+     * 
      * @param system
      *            storage system information
      * @param client
@@ -692,17 +682,17 @@ public class VNXeCommunicationInterface extends
 
         for (VNXeNasServer nasServer : nasServers) {
             StorageHADomain haDomain = null;
-            if ( null == nasServer ) {
+            if (null == nasServer) {
                 _logger.debug("Null data mover in list of port groups.");
                 continue;
             }
-            if ( nasServer.getMode() == VNXeNasServer.NasServerModeEnum.DESTINATION ) {
+            if (nasServer.getMode() == VNXeNasServer.NasServerModeEnum.DESTINATION) {
                 _logger.debug("Found a replication destination NasServer");
                 continue;
             }
 
             if (nasServer.getIsSystem()) {
-                //skip system nasServer
+                // skip system nasServer
                 continue;
             }
             StringSet protocols = new StringSet();
@@ -714,18 +704,18 @@ public class VNXeCommunicationInterface extends
                     .queryByConstraint(
                             AlternateIdConstraint.Factory
                                     .getStorageHADomainByNativeGuidConstraint(adapterNativeGuid),
-                    results);
+                            results);
 
             if (results.iterator().hasNext()) {
                 StorageHADomain tmpDomain = _dbClient.queryObject(
                         StorageHADomain.class, results.iterator().next());
 
-                if (tmpDomain.getStorageDeviceURI() .equals(system.getId())) {
+                if (tmpDomain.getStorageDeviceURI().equals(system.getId())) {
                     haDomain = tmpDomain;
                     _logger.debug("Found duplicate {} ", nasServer.getName());
                 }
             }
-            //get the supported protocol on the nasServer
+            // get the supported protocol on the nasServer
             if (cifsServers != null && !cifsServers.isEmpty()) {
                 for (VNXeCifsServer cifsServer : cifsServers) {
                     if (cifsServer.getNasServer().getId()
@@ -742,14 +732,14 @@ public class VNXeCommunicationInterface extends
                     if (nfsServer.getNasServer().getId()
                             .equals(nasServer.getId())) {
                         protocols.add(StorageProtocol.File.NFS.name());
-                        isNFSSupported=true;
+                        isNFSSupported = true;
                         break;
                     }
                 }
             }
 
             if (protocols.size() == 2) {
-                //this nasServer support both
+                // this nasServer support both
                 isBothSupported = true;
             }
             // If the nasServer was not previously discovered
@@ -772,7 +762,7 @@ public class VNXeCommunicationInterface extends
         if (isBothSupported) {
             arraySupportedProtocols.add(StorageProtocol.File.NFS.name());
             arraySupportedProtocols.add(StorageProtocol.File.CIFS.name());
-        }else if (isNFSSupported && isCIFSSupported) {
+        } else if (isNFSSupported && isCIFSSupported) {
             arraySupportedProtocols
                     .add(StorageProtocol.File.NFS_OR_CIFS.name());
         } else if (isNFSSupported) {
@@ -783,30 +773,30 @@ public class VNXeCommunicationInterface extends
 
         _logger.info("NasServer discovery for storage system {} complete.",
                 system.getId());
-        for(StorageHADomain newDomain : newNasServers){
+        for (StorageHADomain newDomain : newNasServers) {
             _logger.info("New NasServer : {} : {}", newDomain.getNativeGuid(),
                     newDomain.getId());
         }
-        for(StorageHADomain domain : existingNasServers){
+        for (StorageHADomain domain : existingNasServers) {
             _logger.info("Existing NasServer : {} : {}",
                     domain.getNativeGuid(), domain.getId());
         }
-        //return portGroups;
+        // return portGroups;
         allNasServers.put(NEW, newNasServers);
         allNasServers.put(EXISTING, existingNasServers);
         return allNasServers;
     }
-    
+
     /**
      * Discover file interfaces for specified VNXe Storage Array
-     *
+     * 
      * @param system
      *            storage system.
      * @param client
      *            VNXe service client
      * @param nasServerIdSet
      *            all valid NAS Server ids
-     * @return  Map of New and Existing Storage Ports
+     * @return Map of New and Existing Storage Ports
      * @throws VNXeException
      */
     private HashMap<String, List<StoragePort>> discoverFileStoragePorts(
@@ -905,22 +895,22 @@ public class VNXeCommunicationInterface extends
         storagePorts.put(EXISTING, existingStoragePorts);
         return storagePorts;
     }
-   
+
     private HashMap<String, List<StorageHADomain>> discoverStorageProcessors(
             StorageSystem system, VNXeApiClient client, Map<String, URI> spIdMap)
             throws VNXeException {
         HashMap<String, List<StorageHADomain>> result = new HashMap<String, List<StorageHADomain>>();
-    
+
         List<StorageHADomain> newSPs = new ArrayList<StorageHADomain>();
         List<StorageHADomain> existingSPs = new ArrayList<StorageHADomain>();
-    
+
         _logger.info("Start storage processor discovery for storage system {}",
                 system.getId());
         List<VNXeStorageProcessor> sps = client.getStorageProcessors();
 
         for (VNXeStorageProcessor sp : sps) {
             StorageHADomain haDomain = null;
-            if ( null == sp ) {
+            if (null == sp) {
                 _logger.debug("Null sp in the list of storage processors.");
                 continue;
             }
@@ -933,13 +923,13 @@ public class VNXeCommunicationInterface extends
                     .queryByConstraint(
                             AlternateIdConstraint.Factory
                                     .getStorageHADomainByNativeGuidConstraint(adapterNativeGuid),
-                    results);
+                            results);
 
             if (results.iterator().hasNext()) {
                 StorageHADomain tmpDomain = _dbClient.queryObject(
                         StorageHADomain.class, results.iterator().next());
 
-                if (tmpDomain.getStorageDeviceURI() .equals(system.getId())) {
+                if (tmpDomain.getStorageDeviceURI().equals(system.getId())) {
                     haDomain = tmpDomain;
                     _logger.debug("Found existing {} ", sp.getId());
                 }
@@ -964,20 +954,20 @@ public class VNXeCommunicationInterface extends
         _logger.info(
                 "Storage processors discovery for storage system {} complete.",
                 system.getId());
-        for(StorageHADomain newDomain : newSPs){
+        for (StorageHADomain newDomain : newSPs) {
             _logger.info("New NasServer : {} : {}", newDomain.getNativeGuid(),
                     newDomain.getId());
         }
-        for(StorageHADomain domain : existingSPs){
+        for (StorageHADomain domain : existingSPs) {
             _logger.info("Existing NasServer : {} : {}",
                     domain.getNativeGuid(), domain.getId());
         }
-    
+
         result.put(NEW, newSPs);
         result.put(EXISTING, existingSPs);
         return result;
     }
-    
+
     /**
      * Discover iscsiPorts
      * 
@@ -993,10 +983,10 @@ public class VNXeCommunicationInterface extends
             throws VNXeException {
 
         HashMap<String, List<StoragePort>> storagePorts = new HashMap<String, List<StoragePort>>();
-    
+
         List<StoragePort> newStoragePorts = new ArrayList<StoragePort>();
         List<StoragePort> existingStoragePorts = new ArrayList<StoragePort>();
-    
+
         _logger.info(
                 "Start iSCSI storage port discovery for storage system {}",
                 system.getId());
@@ -1104,12 +1094,12 @@ public class VNXeCommunicationInterface extends
 
         _logger.info("iSCSI port discovery for storage system {} complete",
                 system.getId());
-    
+
         storagePorts.put(NEW, newStoragePorts);
         storagePorts.put(EXISTING, existingStoragePorts);
         return storagePorts;
-    } 
-    
+    }
+
     /**
      * Discover fcPorts
      * 
@@ -1125,10 +1115,10 @@ public class VNXeCommunicationInterface extends
             throws VNXeException {
 
         HashMap<String, List<StoragePort>> storagePorts = new HashMap<String, List<StoragePort>>();
-    
+
         List<StoragePort> newStoragePorts = new ArrayList<StoragePort>();
         List<StoragePort> existingStoragePorts = new ArrayList<StoragePort>();
-    
+
         _logger.info("Start FC storage port discovery for storage system {}",
                 system.getId());
 
@@ -1224,37 +1214,37 @@ public class VNXeCommunicationInterface extends
 
         _logger.info("FC port discovery for storage system {} complete",
                 system.getId());
-    
+
         storagePorts.put(NEW, newStoragePorts);
         storagePorts.put(EXISTING, existingStoragePorts);
         return storagePorts;
-    } 
-    
+    }
+
     private HashMap<String, List<StorageTier>> discoverStorageTier(
             StorageSystem system, VNXeApiClient client) throws VNXeException {
-        
+
         HashMap<String, List<StorageTier>> storageTiers = new HashMap<String, List<StorageTier>>();
-        
+
         List<StorageTier> newTiers = new ArrayList<StorageTier>();
         List<StorageTier> existingTiers = new ArrayList<StorageTier>();
-        
+
         List<VNXeStorageTier> tiers = client.getStorageTiers();
         String systemNativeGuid = NativeGUIDGenerator
                 .generateNativeGuid(system);
         for (VNXeStorageTier tier : tiers) {
             String nativeId = tier.getId();
             StorageTier tierObj = null;
-            
+
             String tierNativeGuid = NativeGUIDGenerator
                     .generateStorageTierNativeGuidForVmaxTier(systemNativeGuid,
                             nativeId);
             URIQueryResultList results = new URIQueryResultList();
-            
+
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getStorageTierByIdConstraint(tierNativeGuid), results);
             if (results.iterator().hasNext()) {
                 _logger.info("Getting the storage tier.");
-                
+
                 StorageTier tmpTier = _dbClient.queryObject(StorageTier.class,
                         results.iterator().next());
 
@@ -1262,7 +1252,7 @@ public class VNXeCommunicationInterface extends
                         "Actual StorageDevice %s : storage tier : %s",
                         system.getId(), tmpTier.getNativeGuid()));
 
-               tierObj = tmpTier;
+                tierObj = tmpTier;
             }
             boolean isNewTier = false;
             if (null == tierObj) {
@@ -1282,24 +1272,24 @@ public class VNXeCommunicationInterface extends
         }
         storageTiers.put(NEW, newTiers);
         storageTiers.put(EXISTING, existingTiers);
-        
+
         return storageTiers;
-        
+
     }
-    
+
     private HashMap<String, List<AutoTieringPolicy>> discoverAutoTierPolicies(
             StorageSystem system, VNXeApiClient apiClient) {
         HashMap<String, List<AutoTieringPolicy>> policies = new HashMap<String, List<AutoTieringPolicy>>();
-        
+
         List<AutoTieringPolicy> newPolicies = new ArrayList<AutoTieringPolicy>();
         List<AutoTieringPolicy> updatePolicies = new ArrayList<AutoTieringPolicy>();
         String[] tierPolicies = apiClient.getAutoTierPolicies();
         String systemNativeGuid = NativeGUIDGenerator
                 .generateNativeGuid(system);
-        for (String policyName: tierPolicies) {
+        for (String policyName : tierPolicies) {
             String policyNativeGuid = NativeGUIDGenerator
                     .generateAutoTierPolicyNativeGuid(systemNativeGuid,
-                    policyName, NativeGUIDGenerator.FASTPOLICY);
+                            policyName, NativeGUIDGenerator.FASTPOLICY);
             URIQueryResultList result = new URIQueryResultList();
             _dbClient.queryByConstraint(
                     AlternateIdConstraint.Factory.getAutoTieringPolicyByNativeGuidConstraint(policyNativeGuid),
@@ -1318,7 +1308,7 @@ public class VNXeCommunicationInterface extends
                 policy.setNativeGuid(policyNativeGuid);
                 policy.setSystemType(system.getSystemType());
             }
-            
+
             policy.setLabel(policyName);
             policy.setPolicyName(policyName);
             policy.setPolicyEnabled(true);
@@ -1329,7 +1319,7 @@ public class VNXeCommunicationInterface extends
             } else {
                 updatePolicies.add(policy);
             }
-            
+
         }
         policies.put(NEW, newPolicies);
         policies.put(EXISTING, updatePolicies);
@@ -1339,15 +1329,15 @@ public class VNXeCommunicationInterface extends
     @Override
     public void collectStatisticsInformation(AccessProfile accessProfile)
             throws VNXeException {
-        
-            _logger.info("Start collecting statistics for ip address {}",
-                    accessProfile.getIpAddress());
-            
-            _logger.info("End collecting statistics for ip address {}",
-                    accessProfile.getIpAddress());
-         
+
+        _logger.info("Start collecting statistics for ip address {}",
+                accessProfile.getIpAddress());
+
+        _logger.info("End collecting statistics for ip address {}",
+                accessProfile.getIpAddress());
+
     }
-    
+
     private boolean getPoolAutoTieringEnabled(VNXePool vnxePool,
             StorageSystem system) {
         boolean enabled = false;
@@ -1355,11 +1345,11 @@ public class VNXeCommunicationInterface extends
             List<PoolTier> tiers = vnxePool.getTiers();
             int numOfTiers = 0;
             for (PoolTier tier : tiers) {
-                if (tier.getSizeTotal()>0) {
-                    numOfTiers ++;
+                if (tier.getSizeTotal() > 0) {
+                    numOfTiers++;
                 }
             }
-            if (numOfTiers >1) {
+            if (numOfTiers > 1) {
                 enabled = true;
             } else {
                 enabled = false;

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.server;
@@ -55,20 +45,20 @@ public class PersistingChangesTest extends DbsvcTestBase {
     private ScopedLabel _scopedLabelValue = new ScopedLabel("foo", "bar");
     private ScopedLabelSet _scopedLabelSet = new ScopedLabelSet();
     private Calendar _calValue = Calendar.getInstance();
-    
+
     private DbClient dbClient;
-    
+
     @Before
     public void setupTest() {
         this.dbClient = super.getDbClient(new DbClientTest.DbClientImplUnitTester());
     }
-    
+
     @After
     public void teardown() {
         if (this.dbClient instanceof DbClientTest.DbClientImplUnitTester) {
-            ((DbClientTest.DbClientImplUnitTester)this.dbClient).removeAll();
+            ((DbClientTest.DbClientImplUnitTester) this.dbClient).removeAll();
         }
-    }    
+    }
 
     private void initMapSet() {
         // StoragePool.reservedCapacityMap expects map values can be parsed by Long.parse()
@@ -89,7 +79,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
         _scopedLabelSet.add(new ScopedLabel("abcde", "fghij"));
         _scopedLabelSet.add(new ScopedLabel("klmno", "pqrst"));
     }
-    
+
     private <T extends DataObject> void setAll(Class<T> clazz, DataObject obj) throws Exception {
         BeanInfo bInfo;
         bInfo = Introspector.getBeanInfo(clazz);
@@ -125,7 +115,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
             } else if (type == Date.class) {
                 objValue = _dateValue;
             } else if (type == StringMap.class) {
-                objValue = _mapValue; 
+                objValue = _mapValue;
             } else if (type == StringSet.class) {
                 objValue = _setValue;
             } else if (type == OpStatusMap.class) {
@@ -155,7 +145,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
         BeanInfo bInfo;
         bInfo = Introspector.getBeanInfo(clazz);
         PropertyDescriptor[] pds = bInfo.getPropertyDescriptors();
-        
+
         for (int i = 0; i < pds.length; i++) {
             PropertyDescriptor pd = pds[i];
             Object objValue = pd.getReadMethod().invoke(obj);
@@ -165,11 +155,10 @@ public class PersistingChangesTest extends DbsvcTestBase {
             // StoragePool.getFreeCapacity() := StoragePool.setFreeCapacity() - sum(StoragePool.setReservedCapacityMap())
             // Volume.getWWM() := upper(Volume.setWWM())
             else if (clazz.equals(StoragePool.class) && pd.getName().equals("freeCapacity")
-                    || clazz.equals(Volume.class) && pd.getName().equals("WWN")
-                    ) {
+                    || clazz.equals(Volume.class) && pd.getName().equals("WWN")) {
                 continue;
             }
-            
+
             String errMsg = String.format("Class: %s field: %s value didn't match.", clazz.getName(), pd.getName());
             Class type = pd.getPropertyType();
             if (type == String.class) {
@@ -179,7 +168,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
             } else if (type == Byte.class) {
                 Assert.assertEquals(errMsg, _uriValue, objValue);
             } else if (type == Boolean.class) {
-                Assert.assertTrue (errMsg, (Boolean)objValue);
+                Assert.assertTrue(errMsg, (Boolean) objValue);
             } else if (type == Short.class) {
                 Assert.assertEquals(errMsg, _numValue.shortValue(), objValue);
             } else if (type == Integer.class) {
@@ -213,7 +202,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
             } else if (type == Calendar.class) {
                 Assert.assertEquals(errMsg, _calValue, objValue);
             }
-        }   
+        }
     }
 
     /**
@@ -229,6 +218,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
 
     /**
      * Tests all setters are working as expected
+     * 
      * @throws Exception
      */
     @Test
@@ -238,16 +228,15 @@ public class PersistingChangesTest extends DbsvcTestBase {
         testSet(this.dbClient, VirtualPool.class);
         testSet(this.dbClient, VirtualArray.class);
         testSet(this.dbClient, Network.class);
-        testSet(this.dbClient, ObjectNetwork.class);
         testSet(this.dbClient, FileShare.class);
         testSet(this.dbClient, Project.class);
-        testSet(this.dbClient, Snapshot.class);        
+        testSet(this.dbClient, Snapshot.class);
         testSet(this.dbClient, StorageSystem.class);
         testSet(this.dbClient, StoragePool.class);
         testSet(this.dbClient, TenantOrg.class);
         testSet(this.dbClient, Volume.class);
     }
-    
+
     /**
      * Tests the changes tracking and the logic of persisting only diffs is working as expected
      */
@@ -284,7 +273,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
         // file share creation
         Assert.assertEquals(fsQ.getId(), fs.getId());
         Assert.assertEquals(fsQ.getLabel(), "fileshare");
-        Assert.assertEquals((long)fsQ.getCapacity(), 102400L);
+        Assert.assertEquals((long) fsQ.getCapacity(), 102400L);
         Assert.assertEquals(fsQ.getVirtualPool(), vpool.getId());
         Assert.assertEquals(fsQ.getOpStatus().get("filesharereq").getStatus(),
                 Operation.Status.pending.name());
@@ -300,7 +289,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
         // request to add exports
         Assert.assertEquals(fsE.getId(), fs.getId());
         Assert.assertEquals(fsE.getLabel(), "fileshare");
-        Assert.assertEquals((long)fsE.getCapacity(), 102400L);
+        Assert.assertEquals((long) fsE.getCapacity(), 102400L);
         Assert.assertEquals(fsE.getVirtualPool(), vpool.getId());
         Assert.assertEquals(fsE.getOpStatus().get("filesharereq").getStatus(),
                 Operation.Status.pending.name());
@@ -313,12 +302,12 @@ public class PersistingChangesTest extends DbsvcTestBase {
         // persist - in reverse order
         this.dbClient.persistObject(fsQ);
         this.dbClient.persistObject(fsE);
-        
-        //test create and update status objects
+
+        // test create and update status objects
         FileShare fs_tasks = new FileShare();
         fs_tasks.setId(URIUtil.createId(FileShare.class));
         fs_tasks.setLabel("fileshare1");
-      
+
         fs_tasks.setCapacity(102400L);
         fs_tasks.setVirtualPool(vpool.getId());
         fs_tasks.setOpStatus(new OpStatusMap());
@@ -333,7 +322,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
         Operation opActual = fsBeforeUpdate.getOpStatus().get("filesharereq2");
         Assert.assertNotNull(opActual.getStartTime());
         Assert.assertNull(opActual.getEndTime());
-        
+
         this.dbClient.updateTaskOpStatus(FileShare.class, fs_tasks.getId(), "filesharereq2", new Operation(Operation.Status.ready.name()));
         FileShare fsAfterUpdate = this.dbClient.queryObject(FileShare.class, fs_tasks.getId());
         opActual = fsAfterUpdate.getOpStatus().get("filesharereq2");
@@ -344,15 +333,15 @@ public class PersistingChangesTest extends DbsvcTestBase {
         FileShare fsV = this.dbClient.queryObject(FileShare.class, fs.getId());
         Assert.assertEquals(fsV.getId(), fs.getId());
         Assert.assertEquals(fsV.getLabel(), "changed label");
-        Assert.assertEquals((long)fsV.getCapacity(), 102400L);
+        Assert.assertEquals((long) fsV.getCapacity(), 102400L);
         Assert.assertEquals(fsV.getVirtualPool(), vpool.getId());
         Assert.assertEquals(fsV.getOpStatus().get("filesharereq").getStatus(),
                 Operation.Status.ready.name());
         Assert.assertEquals(fsV.getOpStatus().get("adding export").getStatus(),
                 Operation.Status.pending.name());
-        Assert.assertEquals(fsV.getNativeGuid(),"nativeguid");
+        Assert.assertEquals(fsV.getNativeGuid(), "nativeguid");
         Assert.assertEquals(fsV.getFsExports().get("fsexport1"), fsExport);
-        Assert.assertEquals(fsV.getMountPath(),"test/mount/path");
+        Assert.assertEquals(fsV.getMountPath(), "test/mount/path");
 
         // update from StringMap
         op = new Operation();
@@ -360,12 +349,11 @@ public class PersistingChangesTest extends DbsvcTestBase {
         fsV.getOpStatus().put("filesharereq", op);
         this.dbClient.persistObject(fsV);
 
-        FileShare fs1 =  this.dbClient.queryObject(FileShare.class, fs.getId());
+        FileShare fs1 = this.dbClient.queryObject(FileShare.class, fs.getId());
         Assert.assertEquals(Operation.Status.error.name(),
                 fs1.getOpStatus().get("filesharereq").getStatus());
-        Assert.assertEquals( Operation.Status.pending.name(),
+        Assert.assertEquals(Operation.Status.pending.name(),
                 fs1.getOpStatus().get("adding export").getStatus());
-
 
         // SetMap tests
         StringSetMap expected = new StringSetMap();
@@ -385,6 +373,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
 
         class PermResults extends QueryResultList<URI> {
             StringSetMap permissionsMap = new StringSetMap();
+
             @Override
             public URI createQueryHit(URI uri) {
                 // none
@@ -393,13 +382,13 @@ public class PersistingChangesTest extends DbsvcTestBase {
 
             @Override
             public URI createQueryHit(URI uri, String permission, UUID timestamp) {
-                permissionsMap.put(uri.toString(),  permission);
+                permissionsMap.put(uri.toString(), permission);
                 return uri;
             }
 
             @Override
             public URI createQueryHit(URI uri, Object entry) {
-                return  createQueryHit(uri);
+                return createQueryHit(uri);
             }
 
             public StringSetMap getPermissionsMap() {
@@ -408,12 +397,14 @@ public class PersistingChangesTest extends DbsvcTestBase {
         }
         PermResults results = new PermResults();
         this.dbClient.queryByConstraint(
-            ContainmentPermissionsConstraint.Factory.getTenantsWithPermissionsConstraint(
-                    indexkey1), results);
+                ContainmentPermissionsConstraint.Factory.getTenantsWithPermissionsConstraint(
+                        indexkey1), results);
         expected = new StringSetMap();
         expected.put(tenant.getId().toString(), "role1");
         expected.put(tenant.getId().toString(), "role2");
-        for(Iterator<URI> iterator = results.iterator(); iterator.hasNext(); iterator.next());
+        for (Iterator<URI> iterator = results.iterator(); iterator.hasNext(); iterator.next()) {
+            ;
+        }
         Assert.assertEquals(expected, results.getPermissionsMap());
         // just remove
         expected = new StringSetMap();
@@ -428,7 +419,9 @@ public class PersistingChangesTest extends DbsvcTestBase {
         this.dbClient.queryByConstraint(
                 ContainmentPermissionsConstraint.Factory.getTenantsWithPermissionsConstraint(
                         indexkey1), newResults);
-        for(Iterator<URI> iterator = newResults.iterator(); iterator.hasNext(); iterator.next());
+        for (Iterator<URI> iterator = newResults.iterator(); iterator.hasNext(); iterator.next()) {
+            ;
+        }
         expected = new StringSetMap();
         expected.put(tenant.getId().toString(), "role1");
         Assert.assertEquals(expected, newResults.getPermissionsMap());
@@ -443,7 +436,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
         uris.add(tenant2.getId());
         List<TenantOrg> tenantOrgs = this.dbClient.queryObjectField(TenantOrg.class, "label", uris);
         Assert.assertTrue(tenantOrgs.size() == 2);
-        for (TenantOrg each: tenantOrgs) {
+        for (TenantOrg each : tenantOrgs) {
             Assert.assertTrue((each.getId().equals(tenant.getId()) && each.getLabel().equals("test tenant")) ||
                     (each.getId().equals(tenant2.getId()) && each.getLabel().equals("test tenant2")));
         }
@@ -465,7 +458,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
             t.setId(URIUtil.createId(TenantOrg.class));
             t.setLabel("test tenant " + i);
             t.setRoleAssignments(new StringSetMap());
-            for (int j = 0; j < indexCount ; j++) {
+            for (int j = 0; j < indexCount; j++) {
                 t.addRole(key + j, val + j);
             }
             this.dbClient.persistObject(t);
@@ -475,7 +468,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
             startTime = System.currentTimeMillis();
             TenantOrg t2 = new TenantOrg();
             t2.setId(t.getId());
-            for (int j = 0; j < indexCount ; j++) {
+            for (int j = 0; j < indexCount; j++) {
                 t2.removeRole(key + j, val + j);
                 t2.addRole(key2 + j, val2 + j);
             }
@@ -504,6 +497,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
 
         class CountResults extends QueryResultList<URI> {
             public int got = 0;
+
             @Override
             public URI createQueryHit(URI uri) {
                 // none
@@ -516,10 +510,9 @@ public class PersistingChangesTest extends DbsvcTestBase {
                 return uri;
             }
 
-
             @Override
             public URI createQueryHit(URI uri, Object entry) {
-                return  createQueryHit(uri);
+                return createQueryHit(uri);
             }
 
             public void verify() {
@@ -531,22 +524,24 @@ public class PersistingChangesTest extends DbsvcTestBase {
             this.dbClient.queryByConstraint(
                     ContainmentPermissionsConstraint.Factory.getTenantsWithPermissionsConstraint(
                             key2 + i), countResults);
-            for(Iterator<URI> iterator = countResults.iterator(); iterator.hasNext(); iterator.next());
+            for (Iterator<URI> iterator = countResults.iterator(); iterator.hasNext(); iterator.next()) {
+                ;
+            }
             countResults.verify();
         }
 
         // test decommissioned index
-        tenant =  this.dbClient.queryObject(TenantOrg.class, tenant.getId());
+        tenant = this.dbClient.queryObject(TenantOrg.class, tenant.getId());
         tenant.setInactive(true);
-        tenant2 =  this.dbClient.queryObject(TenantOrg.class, tenant2.getId());
+        tenant2 = this.dbClient.queryObject(TenantOrg.class, tenant2.getId());
         tenant2.setInactive(true);
         this.dbClient.persistObject(tenant, tenant2);
         URIQueryResultList list = new URIQueryResultList();
         this.dbClient.queryByConstraint(
                 DecommissionedConstraint.Factory.getDecommissionedObjectsConstraint(
                         TenantOrg.class, 0), list);
-        List<URI> gotUris = new ArrayList<URI>(); 
-        for(Iterator<URI> iterator = list.iterator(); iterator.hasNext(); ) {
+        List<URI> gotUris = new ArrayList<URI>();
+        for (Iterator<URI> iterator = list.iterator(); iterator.hasNext();) {
             gotUris.add(iterator.next());
         }
         Assert.assertTrue(gotUris.size() >= 2);
@@ -559,7 +554,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
                 DecommissionedConstraint.Factory.getDecommissionedObjectsConstraint(
                         TenantOrg.class, nowTimeUsec), list);
         gotUris = new ArrayList<URI>();
-        for(Iterator<URI> iterator = list.iterator(); iterator.hasNext(); ) {
+        for (Iterator<URI> iterator = list.iterator(); iterator.hasNext();) {
             gotUris.add(iterator.next());
         }
         Assert.assertTrue(gotUris.size() >= 2);
@@ -571,7 +566,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
                 DecommissionedConstraint.Factory.getDecommissionedObjectsConstraint(
                         TenantOrg.class, nowTimeUsec - (60 * 1000 * 1000)), list);
         gotUris = new ArrayList<URI>();
-        for(Iterator<URI> iterator = list.iterator(); iterator.hasNext(); ) {
+        for (Iterator<URI> iterator = list.iterator(); iterator.hasNext();) {
             gotUris.add(iterator.next());
         }
         Assert.assertEquals(0, gotUris.size());
@@ -587,14 +582,18 @@ public class PersistingChangesTest extends DbsvcTestBase {
         this.dbClient.queryByConstraint(
                 ContainmentPermissionsConstraint.Factory.getTenantsWithPermissionsConstraint(
                         indexkey1), newResults);
-        for(Iterator<URI> iterator = newResults.iterator(); iterator.hasNext(); iterator.next());
+        for (Iterator<URI> iterator = newResults.iterator(); iterator.hasNext(); iterator.next()) {
+            ;
+        }
         Assert.assertTrue(newResults.getPermissionsMap().isEmpty());
 
         newResults = new PermResults();
         this.dbClient.queryByConstraint(
                 ContainmentPermissionsConstraint.Factory.getTenantsWithPermissionsConstraint(
                         indexkey1), newResults);
-        for(Iterator<URI> iterator = newResults.iterator(); iterator.hasNext(); iterator.next());
+        for (Iterator<URI> iterator = newResults.iterator(); iterator.hasNext(); iterator.next()) {
+            ;
+        }
         expected = new StringSetMap();
         Assert.assertEquals(expected, newResults.getPermissionsMap());
         for (int i = 0; i < indexCount; i++) {
@@ -602,7 +601,9 @@ public class PersistingChangesTest extends DbsvcTestBase {
             this.dbClient.queryByConstraint(
                     ContainmentPermissionsConstraint.Factory.getTenantsWithPermissionsConstraint(
                             key2 + i), countResults);
-            for(Iterator<URI> iterator = countResults.iterator(); iterator.hasNext(); iterator.next());
+            for (Iterator<URI> iterator = countResults.iterator(); iterator.hasNext(); iterator.next()) {
+                ;
+            }
             countResults.verify();
         }
     }
@@ -613,7 +614,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
     @Test
     public void testConstraintQuery() throws Exception {
         List<StoragePool> pools = new ArrayList<StoragePool>();
-        for(int ii = 0; ii < 3; ii ++ ) {
+        for (int ii = 0; ii < 3; ii++) {
             StoragePool pool = new StoragePool();
             pool.setId(URIUtil.createId(VirtualPool.class));
             pool.setLabel("POOL_" + ii);
@@ -622,7 +623,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
         }
 
         List<VirtualPool> vpools = new ArrayList<VirtualPool>();
-        for( int ii = 0; ii < 2; ii++) {
+        for (int ii = 0; ii < 2; ii++) {
             VirtualPool vpool = new VirtualPool();
             vpool.setId(URIUtil.createId(VirtualPool.class));
             vpool.setLabel(ii == 0 ? "GOLD" : "SILVER");
@@ -642,11 +643,11 @@ public class PersistingChangesTest extends DbsvcTestBase {
         URIQueryResultList cosResultList = new URIQueryResultList();
         this.dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getMatchedPoolVirtualPoolConstraint(pools.get(0).getId()), cosResultList);
-        Iterator<URI> cosIter =  cosResultList.iterator();
+        Iterator<URI> cosIter = cosResultList.iterator();
         int idx = 0;
-        while(cosIter.hasNext()) {
+        while (cosIter.hasNext()) {
             URI cos = cosIter.next();
-            Assert.assertTrue(cos.equals(vpools.get(0).getId())  );
+            Assert.assertTrue(cos.equals(vpools.get(0).getId()));
             idx++;
         }
         Assert.assertTrue(idx == 1);
@@ -654,12 +655,12 @@ public class PersistingChangesTest extends DbsvcTestBase {
         cosResultList = new URIQueryResultList();
         this.dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getMatchedPoolVirtualPoolConstraint(pools.get(1).getId()), cosResultList);
-        cosIter =  cosResultList.iterator();
+        cosIter = cosResultList.iterator();
         idx = 0;
-        while(cosIter.hasNext()) {
+        while (cosIter.hasNext()) {
             URI cos = cosIter.next();
             Assert.assertTrue(cos.equals(vpools.get(0).getId()) ||
-                              cos.equals(vpools.get(1).getId())    );
+                    cos.equals(vpools.get(1).getId()));
             idx++;
         }
         Assert.assertTrue(idx == 2);
@@ -667,11 +668,10 @@ public class PersistingChangesTest extends DbsvcTestBase {
         cosResultList = new URIQueryResultList();
         this.dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getMatchedPoolVirtualPoolConstraint(pools.get(2).getId()), cosResultList);
-        cosIter =  cosResultList.iterator();
+        cosIter = cosResultList.iterator();
         Assert.assertTrue(!cosIter.hasNext());
     }
 
-    
     @Test
     public void testAggregationQuery() throws Exception {
 
@@ -700,7 +700,7 @@ public class PersistingChangesTest extends DbsvcTestBase {
         URI pool3 = URIUtil.createId(StoragePool.class);
         volume3.setId(id3);
         volume3.setLabel("volume3");
-        //volume3.setInactive(false);    // by default it should be treated as active.
+        // volume3.setInactive(false); // by default it should be treated as active.
         volume3.setPool(pool3);
         volume3.setAllocatedCapacity(4000L);
         volume3.setProvisionedCapacity(8000L);
@@ -709,12 +709,12 @@ public class PersistingChangesTest extends DbsvcTestBase {
         URI id4 = URIUtil.createId(Volume.class);
         volume4.setId(id4);
         volume4.setLabel("volume4");
-        //volume4.setInactive(false);    // by default it should be treated as active.
+        // volume4.setInactive(false); // by default it should be treated as active.
         volume4.setPool(pool3);
         volume4.setAllocatedCapacity(4500L);
         volume4.setProvisionedCapacity(9500L);
 
-        List<URI>  allIds = new ArrayList<URI>();
+        List<URI> allIds = new ArrayList<URI>();
         allIds.add(id1);
         allIds.add(id2);
         allIds.add(id3);
@@ -724,42 +724,42 @@ public class PersistingChangesTest extends DbsvcTestBase {
         pools.add(pool2.toString());
         pools.add(pool3.toString());
 
-        this.dbClient.createObject(volume1,volume2,volume3,volume4);
+        this.dbClient.createObject(volume1, volume2, volume3, volume4);
 
-        //count the total number of records
-        List<URI> allVol =  this.dbClient.queryByType(Volume.class, false);
+        // count the total number of records
+        List<URI> allVol = this.dbClient.queryByType(Volume.class, false);
         Assert.assertEquals("# of Volume objects in DB is not as expected", 4, TestDBClientUtils.size(allVol));
 
-        SumPrimitiveFieldAggregator aggregator = CustomQueryUtility.aggregateActiveObject (
-                this.dbClient,Volume.class,new String[] {"allocatedCapacity"} );
-        Assert.assertTrue(aggregator.get_NRecords() == 3);
-        Assert.assertTrue(aggregator.getAggregate("allocatedCapacity") == 9500L);
-        
+        SumPrimitiveFieldAggregator aggregator = CustomQueryUtility.aggregateActiveObject(
+                this.dbClient, Volume.class, new String[] { "allocatedCapacity" });
+        Assert.assertTrue(aggregator.getRecordNum() == 3);
+        Assert.assertTrue((long) aggregator.getAggregate("allocatedCapacity") == 9500L);
+
         aggregator = CustomQueryUtility.aggregateActiveObject(
-                                             this.dbClient,Volume.class,
-                                             new String[]{"allocatedCapacity"} );
-        Assert.assertTrue(aggregator.get_NRecords() == 3);
-        Assert.assertTrue(aggregator.getAggregate("allocatedCapacity") == 9500L);
+                this.dbClient, Volume.class,
+                new String[] { "allocatedCapacity" });
+        Assert.assertTrue(aggregator.getRecordNum() == 3);
+        Assert.assertTrue((long) aggregator.getAggregate("allocatedCapacity") == 9500L);
         aggregator = CustomQueryUtility.aggregateActiveObject(
-                this.dbClient,Volume.class,
-                new String[]{"provisionedCapacity"} );
-        Assert.assertTrue(aggregator.getAggregate("provisionedCapacity") == 19500L);
+                this.dbClient, Volume.class,
+                new String[] { "provisionedCapacity" });
+        Assert.assertTrue((long) aggregator.getAggregate("provisionedCapacity") == 19500L);
 
         Iterator<URI> iter = CustomQueryUtility.filterDataObjectsFieldValueInSet(
-                                                        this.dbClient,Volume.class,
-                                                        "pool",allIds.iterator(),pools);
+                this.dbClient, Volume.class,
+                "pool", allIds.iterator(), pools);
         List<URI> volFromPools = new ArrayList<URI>();
-        while(iter.hasNext()) {
+        while (iter.hasNext()) {
             volFromPools.add(iter.next());
         }
         aggregator = CustomQueryUtility.aggregateActiveObject(
-                this.dbClient,Volume.class,
-                new String[]{"allocatedCapacity"},volFromPools.iterator() );
-        Assert.assertTrue(aggregator.get_NRecords() == 2);
-        Assert.assertTrue(aggregator.getAggregate("allocatedCapacity") == 8500L);
+                this.dbClient, Volume.class,
+                new String[] { "allocatedCapacity" }, volFromPools.iterator());
+        Assert.assertTrue(aggregator.getRecordNum() == 2);
+        Assert.assertTrue((long) aggregator.getAggregate("allocatedCapacity") == 8500L);
         aggregator = CustomQueryUtility.aggregateActiveObject(
-                this.dbClient,Volume.class,
-                new String[]{"provisionedCapacity"},volFromPools.iterator() );
-        Assert.assertTrue(aggregator.getAggregate("provisionedCapacity") == 17500L);
+                this.dbClient, Volume.class,
+                new String[] { "provisionedCapacity" }, volFromPools.iterator());
+        Assert.assertTrue((long) aggregator.getAggregate("provisionedCapacity") == 17500L);
     }
 }

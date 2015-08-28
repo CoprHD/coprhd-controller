@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.placement;
 
@@ -21,7 +11,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -36,8 +25,6 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.networkcontroller.impl.NetworkScheduler;
 import com.emc.storageos.util.NetworkLite;
 
@@ -45,7 +32,7 @@ import com.emc.storageos.util.NetworkLite;
  * This Storage Ports Allocator allocates an arbitrary number of Storage Ports
  * for a Transport Zone, as determined by the num_paths input argument.
  * This code is only applicable for SAN Transport Zones.
- *
+ * 
  */
 public class StoragePortsAllocator {
     protected static final Logger _log = LoggerFactory
@@ -58,21 +45,23 @@ public class StoragePortsAllocator {
      * data needed about a Network that would normally be fetched from
      * Cassandra. This is done up front (outside of the port selection
      * algorithm) so that it can be replaced with simulated data for testing.
-     *
+     * 
      * In actual operation, there will be a context structure created for each
      * Network to be processed. It will contain information on all the
      * Storage Ports for a given Storage Array. This data will be added to the
      * context for each port by calling addPort().
-     *
+     * 
      * The sets _alreadyAllocatedDirectors, _alreadyAllocatedEnginges, etc. are used
      * to pass data between allocation for different networks. This is
      * useful if we are allocating fewer paths per network than
      * directors. In that case, we can ensure that different directors are used
      * for the different networks.
-     *
+     * 
      */
     public static class PortAllocationContext {
-        public PortAllocationContext() { }
+        public PortAllocationContext() {
+        }
+
         public PortAllocationContext(NetworkLite tz, String systemName) {
             _initiatorNetwork = tz;
             _systemName = systemName;
@@ -98,9 +87,9 @@ public class StoragePortsAllocator {
 
         // Network
         public NetworkLite _initiatorNetwork;
-        
+
         public String _systemName;
-        
+
         // The type of the StorageSystem
         public StorageSystem.Type _systemType;
 
@@ -127,7 +116,7 @@ public class StoragePortsAllocator {
         public Map<String, Set<StoragePort>> _directorToStoragePortSet = new HashMap<String, Set<StoragePort>>();
 
         public Map<StoragePort, String> _storagePortToDirector = new HashMap<StoragePort, String>();
-        
+
         // Ports arranged by Vmax Cpu, key is portGroup name (e.g. FA-10E).
         public Map<String, Set<StoragePort>> _cpuToStoragePortSet = new HashMap<String, Set<StoragePort>>();
         public Map<StoragePort, String> _storagePortToCpu = new HashMap<StoragePort, String>();
@@ -139,9 +128,8 @@ public class StoragePortsAllocator {
         public Map<String, Set<StoragePort>> _switchNameToStoragePortSet = new HashMap<String, Set<StoragePort>>();
 
         public Map<StoragePort, String> _storagePortToSwitchName = new HashMap<StoragePort, String>();
-        
-        public Map<StoragePort, Long> _storagePortToUsage = new HashMap<StoragePort, Long>();
 
+        public Map<StoragePort, Long> _storagePortToUsage = new HashMap<StoragePort, Long>();
 
         // For the case where we are only doing one path in this transport
         // zone, we want to avoid
@@ -154,7 +142,7 @@ public class StoragePortsAllocator {
 
         /**
          * Add a StoragePort to the context for this TransportZone
-         *
+         * 
          * @param port -- The StoragePort structure
          * @param haDomain - The StorageHADomain structure
          * @param arrayType - StorageSystem.type enumeration
@@ -176,8 +164,8 @@ public class StoragePortsAllocator {
                 _storagePortToEngine.put(port, engine);
             }
             String directorType = getDirectorType(arrayType, haDomain);
-            if(directorType != null){
-                if(_directorTypeToStoragePortSet.get(directorType)==null){
+            if (directorType != null) {
+                if (_directorTypeToStoragePortSet.get(directorType) == null) {
                     _directorTypeToStoragePortSet.put(directorType,
                             new HashSet<StoragePort>());
                 }
@@ -196,7 +184,7 @@ public class StoragePortsAllocator {
             String cpu = getCpu(port, haDomain, arrayType);
             if (cpu != null) {
                 if (_cpuToStoragePortSet.get(cpu) == null) {
-                    _cpuToStoragePortSet.put(cpu,  new HashSet<StoragePort>());
+                    _cpuToStoragePortSet.put(cpu, new HashSet<StoragePort>());
                 }
                 _cpuToStoragePortSet.get(cpu).add(port);
                 _storagePortToCpu.put(port, cpu);
@@ -211,18 +199,19 @@ public class StoragePortsAllocator {
             }
             _storagePortToUsage.put(port, usage);
         }
-        
+
         /**
          * Allocates existing ports to the already allocated context (only).
          * These ports may be from different Networks and are not necessarily
          * part of the pool of ports we can allocate from.
+         * 
          * @param port
          * @param haDomain
          * @param arrayType
          * @param switchName
          */
-        public void addPortToAlreadyAllocatedContext(StoragePort port, 
-                StorageHADomain haDomain, StorageSystem.Type arrayType, 
+        public void addPortToAlreadyAllocatedContext(StoragePort port,
+                StorageHADomain haDomain, StorageSystem.Type arrayType,
                 String switchName) {
             String engine = getEngine(port, haDomain, arrayType);
             if (engine != null) {
@@ -244,20 +233,22 @@ public class StoragePortsAllocator {
                 _alreadyAllocatedSwitches.add(switchName);
             }
         }
-        
+
         /**
          * Copy the context that should be forwarded from a network that was
          * previously allocated to a network that is now being allocated.
+         * 
          * @param previous
          */
         public void copyPreviousNetworkContext(PortAllocationContext previous) {
             _alreadyAllocatedDirectors = previous._alreadyAllocatedDirectors;
             _alreadyAllocatedCpus = previous._alreadyAllocatedCpus;
-            _alreadyAllocatedDirectorTypes = previous._alreadyAllocatedDirectorTypes;;
+            _alreadyAllocatedDirectorTypes = previous._alreadyAllocatedDirectorTypes;
+            ;
             _alreadyAllocatedEngines = previous._alreadyAllocatedEngines;
             _alreadyAllocatedSwitches = previous._alreadyAllocatedSwitches;
         }
-        
+
         public void reinitialize() {
             _alreadyAllocatedEngines.clear();
             _alreadyAllocatedDirectorTypes.clear();
@@ -266,27 +257,30 @@ public class StoragePortsAllocator {
             _alreadyAllocatedSwitches.clear();
             _previousRule17 = null;
         }
-        
+
         /**
          * Variables related to rule17 state. Not to be set by callers.
          */
         public boolean _disableRule17 = false;        // Set to disable rule17
         public String _previousRule17;              // To be used only by the filterRule17 code code.
-        
+
     }
-    
+
     private static PortAllocationContext contextPrototype = new PortAllocationContext();
+
     /**
      * Allow over-riding of the PortAllocationContext prototype.
+     * 
      * @param contextPrototype
      */
     public static void setContextPrototype(PortAllocationContext contextPrototype) {
         StoragePortsAllocator.contextPrototype = contextPrototype;
     }
-    
+
     /**
      * Get a new PortAllocationContext using the prototype.
      * If this interface is used, the PortAllocationContext can be over-ridden for test purposes.
+     * 
      * @param network -- Network Lite
      * @param systemName -- String systemName for diagnostic messages
      * @return
@@ -306,7 +300,7 @@ public class StoragePortsAllocator {
     /**
      * Returns the Engine index. Use for VMAX/HDS/VPLEX only.
      * For HDS, ViPR treats controllers as engines and provides redundancy at engine level.
-     *
+     * 
      * @param port
      * @param haDomain
      * @param arrayType
@@ -329,9 +323,10 @@ public class StoragePortsAllocator {
             return null;
         }
     }
-    
+
     /**
      * Get the Vmax CPU, which is the same as the portGroupName() or the haDomain.adapterName()
+     * 
      * @param port
      * @param haDomain
      * @param arrayType
@@ -347,7 +342,7 @@ public class StoragePortsAllocator {
 
     /**
      * Returns the index of the director.
-     *
+     * 
      * @param port
      * @return
      */
@@ -360,16 +355,19 @@ public class StoragePortsAllocator {
 
     /**
      * Returns the director type A or B for the storage port.
-     *
+     * 
      * @param arrayType
      * @param haDomain
      * @return
      */
-    static String getDirectorType( StorageSystem.Type arrayType, StorageHADomain haDomain) {
+    static String getDirectorType(StorageSystem.Type arrayType, StorageHADomain haDomain) {
         String directorType = null;
-        if(arrayType == StorageSystem.Type.vplex){
-            if(haDomain.getName().endsWith(DIRECTOR_A)) directorType = DIRECTOR_A;
-            else if (haDomain.getName().endsWith(DIRECTOR_B)) directorType = DIRECTOR_B;
+        if (arrayType == StorageSystem.Type.vplex) {
+            if (haDomain.getName().endsWith(DIRECTOR_A)) {
+                directorType = DIRECTOR_A;
+            } else if (haDomain.getName().endsWith(DIRECTOR_B)) {
+                directorType = DIRECTOR_B;
+            }
         }
         return directorType;
     }
@@ -378,7 +376,7 @@ public class StoragePortsAllocator {
      * Scan the available ports to make sure each has an entry in the
      * _storagePortToSwitchname map, which indicates a switch saw it as
      * connected. If it has no connections, remove it from consideration.
-     *
+     * 
      * @param context
      */
     private void checkForUnconnectedPorts(PortAllocationContext context) {
@@ -386,9 +384,9 @@ public class StoragePortsAllocator {
         for (StoragePort port : context._addressToStoragePort.values()) {
             if (context._storagePortToSwitchName.containsKey(port) == false) {
                 _log.info(String
-                        .format("Port %s address (%s) is not currently connected to SAN switch;" 
-                        + " removed from consideration for allocation",
-                        port.getPortName(), port.getPortNetworkId()));
+                        .format("Port %s address (%s) is not currently connected to SAN switch;"
+                                + " removed from consideration for allocation",
+                                port.getPortName(), port.getPortNetworkId()));
                 removedPorts.add(port.getPortNetworkId());
             }
         }
@@ -400,14 +398,14 @@ public class StoragePortsAllocator {
     /**
      * Allocates one or more Storage Ports for a single Transport Zone. Attempts
      * to maximize redundancy and load balance by choosing the lowest used port.
-     *
+     * 
      * @param portsRequested
      *            -- The number of paths to be allocated for this network
      * @param context
      *            -- The contextual structure, which contains the Storage Ports
      *            for this Storage Array that are in the Transport Zone, as
      *            pre-processed by PortAllocationContext.addPort().
-     *
+     * 
      *            The contextual structure also contains the sets of directors
      *            and switches that have been previously allocated in other
      *            transport zones, as well as any ports that were allocated on
@@ -418,15 +416,15 @@ public class StoragePortsAllocator {
      *            -- If true, don't allocate ports that are not present in our Endpoints
      *            received from the SAN switches
      * @param previouslyAllocatedPorts
-     *     -- A collection of ports that were previously allocated and count towards the
-     *     number of ports requested.
+     *            -- A collection of ports that were previously allocated and count towards the
+     *            number of ports requested.
      * @param allowFewerPorts
-     *     -- If true, do not fail if fewer ports can be allocated than requested.
+     *            -- If true, do not fail if fewer ports can be allocated than requested.
      * @return
      * @throws DeviceControllerException if not enough ports are allocated
      */
     public List<StoragePort> allocatePortsForNetwork(int portsRequested,
-            PortAllocationContext context, boolean checkConnectivity, 
+            PortAllocationContext context, boolean checkConnectivity,
             Collection<StoragePort> previouslyAllocatedPorts, boolean allowFewerPorts)
             throws PlacementException {
         List<StoragePort> allocatedStoragePorts = new ArrayList<StoragePort>();
@@ -435,7 +433,9 @@ public class StoragePortsAllocator {
                 "Attempting to allocate %d storage ports for Initiator Network: %s",
                 new Integer(portsRequested), context._initiatorNetwork.getLabel()));
 
-        if (checkConnectivity) checkForUnconnectedPorts(context);
+        if (checkConnectivity) {
+            checkForUnconnectedPorts(context);
+        }
 
         // This is for adding additional ports to existing allocations.
         // WWPN of ports which have already been allocated
@@ -456,10 +456,10 @@ public class StoragePortsAllocator {
             for (StoragePort port : previouslyAllocatedPorts) {
                 allocatedPort = port;
                 _log.info(String.format(
-                        "Previously allocated port %s (%s) (may be reused)", 
+                        "Previously allocated port %s (%s) (may be reused)",
                         port.getPortName(), port.getPortNetworkId()));
                 allocatePort(port, allocatedPorts, allocatedEngines,
-                        allocatedDirectorTypes, allocatedDirectors, allocatedCpus, 
+                        allocatedDirectorTypes, allocatedDirectors, allocatedCpus,
                         allocatedSwitches, allocatedStoragePorts, context);
             }
             // Set allocatedPort to null so as not to initially trigger rule17
@@ -469,7 +469,7 @@ public class StoragePortsAllocator {
         // then try not to overlap directors with the already allocated
         // transport zones. We do not do this if we've already allocated ports
         // previously, because we match with those ports instead.
-        else if (portsRequested < context._directorToStoragePortSet.size() 
+        else if (portsRequested < context._directorToStoragePortSet.size()
                 && previouslyAllocatedPorts == null) {
             allocatedEngines.addAll(context._alreadyAllocatedEngines);
             _log.info("Already allocated engines: " + context._alreadyAllocatedEngines.toString());
@@ -502,9 +502,10 @@ public class StoragePortsAllocator {
                                 allocatedStoragePorts.size()));
                 if (allocatedStoragePorts.size() < portsRequested && allowFewerPorts == false) {
                     throw PlacementException.exceptions
-                    .cannotAllocateRequestedPorts(context._initiatorNetwork.getLabel(), // [hala] Change exception text to say initiator network
-                            context._systemName, portsRequested, allocatedStoragePorts.size(), 
-                            context._addressToStoragePort.keySet().size());
+                            .cannotAllocateRequestedPorts(context._initiatorNetwork.getLabel(), // [hala] Change exception text to say
+                                                                                                // initiator network
+                                    context._systemName, portsRequested, allocatedStoragePorts.size(),
+                                    context._addressToStoragePort.keySet().size());
                 }
                 break;
             }
@@ -520,7 +521,7 @@ public class StoragePortsAllocator {
              * after using them all will cycle through them again (not
              * necessarily in the same order subsequent passes.)
              */
-            
+
             // Invoke the rule17Filter if desired.
             candidates = filterRule17(candidates, allocatedPort, allocatedPorts,
                     allocatedDirectors, context);
@@ -534,14 +535,14 @@ public class StoragePortsAllocator {
             // engine
             candidates = filterCandidates(candidates, allocatedEngines,
                     context._engineToStoragePortSet);
-            
+
             // See if there are any ports that can be allocated on a different
             // director
             candidates = filterCandidates(candidates, allocatedDirectors,
                     context._directorToStoragePortSet);
-            
+
             // Try to allocate ports on different VMAX cpus.
-            candidates = filterCandidates(candidates, allocatedCpus, 
+            candidates = filterCandidates(candidates, allocatedCpus,
                     context._cpuToStoragePortSet);
 
             // See if there are any ports that can be allocated that are
@@ -553,7 +554,7 @@ public class StoragePortsAllocator {
             // The choice is made based on choosing one of the ports with minimum usage metric.
             allocatedPort = chooseCandidate(candidates, context._storagePortToUsage);
             allocatePort(allocatedPort, allocatedPorts, allocatedEngines, allocatedDirectorTypes,
-                    allocatedDirectors, allocatedCpus, allocatedSwitches, allocatedStoragePorts, 
+                    allocatedDirectors, allocatedCpus, allocatedSwitches, allocatedStoragePorts,
                     context);
             String director = context._storagePortToDirector.get(allocatedPort);
             _log.info(String.format("Allocated port %s WWPN %s director %s",
@@ -563,11 +564,12 @@ public class StoragePortsAllocator {
         }
         return allocatedStoragePorts;
     }
-    
+
     /**
      * Handles the book-keeping of allocating a port.
      * Called in two places - once for ports already allocated, and
      * once for ports that are being allocated.
+     * 
      * @param allocatedPort
      * @param allocatedPorts
      * @param allocatedEngines
@@ -578,13 +580,13 @@ public class StoragePortsAllocator {
      * @param context
      */
     private void allocatePort(StoragePort allocatedPort,
-            Set<String> allocatedPorts, 
-            Set<String> allocatedEngines, 
+            Set<String> allocatedPorts,
+            Set<String> allocatedEngines,
             Set<String> allocatedDirectorTypes,
-            Set<String> allocatedDirectors, 
+            Set<String> allocatedDirectors,
             Set<String> allocatedCpus,
             Set<String> allocatedSwitches,
-            List<StoragePort> allocatedStoragePorts, 
+            List<StoragePort> allocatedStoragePorts,
             PortAllocationContext context) {
         allocatedPorts.add(allocatedPort.getPortNetworkId());
         allocatedStoragePorts.add(allocatedPort);
@@ -625,7 +627,7 @@ public class StoragePortsAllocator {
      * Once a port has been selected that represents each of the available
      * entities, the allocatedEntitySet is cleared, which results in cycling
      * through the entities again.
-     *
+     * 
      * @param candidates
      *            - The candidate StoragePort set which will be updated if after
      *            the filter is applied there are remaining StoragePorts to be
@@ -654,7 +656,7 @@ public class StoragePortsAllocator {
                         reduceStoragePortMap(newEntityMap));
                 if (newEngineSet.isEmpty() == false) {
                     candidates = newEngineSet;
-                } 
+                }
             } else {
                 _log.debug("Used all entities: " + allocatedEntitySet.toString());
                 allocatedEntitySet.clear();
@@ -667,7 +669,7 @@ public class StoragePortsAllocator {
      * Given a map of String keys to Sets of StoragePorts, remove all the
      * entries in the map whoose key matches one of the removal keys. Return a
      * new copy of the revised map.
-     *
+     * 
      * @param removalKeys
      * @param oldMap
      * @return
@@ -685,7 +687,7 @@ public class StoragePortsAllocator {
     /**
      * Reduces a Map containing Sets of StoragePorts to a single Set of Storage
      * Ports by including the ports in all the values of the map.
-     *
+     * 
      * @param map
      * @return Set<StoragePort>
      */
@@ -700,7 +702,7 @@ public class StoragePortsAllocator {
 
     /**
      * Logical AND of a and b
-     *
+     * 
      * @param a
      * @param b
      * @return
@@ -715,9 +717,10 @@ public class StoragePortsAllocator {
         }
         return result;
     }
-    
+
     /**
      * Returns a AND (NOT b)
+     * 
      * @param a Set<StoragePort>
      * @param b Set<String> set of StoragePort network ids
      * @return
@@ -726,24 +729,24 @@ public class StoragePortsAllocator {
             Set<String> b) {
         Set<StoragePort> result = new HashSet<StoragePort>();
         for (StoragePort port : a) {
-            if (! b.contains(port.getPortNetworkId())) {
+            if (!b.contains(port.getPortNetworkId())) {
                 result.add(port);
             }
         }
         return result;
     }
-    
+
     static final Integer i17 = new Integer(17);     // directors sum to 17
-    
+
     /**
      * Filters ports that only belong to directors that are paired to other directors
      * that maintain the "rule of 17". From https://community.emc.com/thread/3627?start=0&tstart=0:
-     * "Best practice is to follow 'rule of 17' and connect your host to two FA's 
-     * that combined are equal to 17. That will ensure that the FA connected to the host, 
+     * "Best practice is to follow 'rule of 17' and connect your host to two FA's
+     * that combined are equal to 17. That will ensure that the FA connected to the host,
      * will reside in two different power zones within the DMX."
      * 
-     * There are three cases -- 
-     * 1. First port to be allocated (i.e. no previously allocated port). 
+     * There are three cases --
+     * 1. First port to be allocated (i.e. no previously allocated port).
      * In this case, we limit ports from directors to those
      * that have a paired director summing to 17 if possible.
      * 2. We have allocated a previous port on the last iteration that
@@ -756,24 +759,30 @@ public class StoragePortsAllocator {
      * @param allocatedPort -- The previously allocated port.
      * @param allocatedPorts -- The set of all allocated ports.
      * @param context The PortAllocationContext containing all the maps
-     * indicating which ports belong to what director, etc.
+     *            indicating which ports belong to what director, etc.
      * @return Set<StoragePort> new candidates
      */
-    private Set<StoragePort> filterRule17(Set<StoragePort> candidates, 
+    private Set<StoragePort> filterRule17(Set<StoragePort> candidates,
             StoragePort allocatedPort, Set<String> allocatedPorts,
             Set<String> allocatedDirectors,
             PortAllocationContext context) {
         // We only use rule 17 for VMAX systems.
-        if (context._systemType != StorageSystem.Type.vmax) return candidates;
+        if (context._systemType != StorageSystem.Type.vmax) {
+            return candidates;
+        }
         // It can be disabled.
-        if (context._disableRule17) return candidates;
+        if (context._disableRule17) {
+            return candidates;
+        }
         // We ensure all directors have a rule17 pair for rule17 to be enabled.
         Set<String> rule17Directors = getRule17Directors(context);
         Set<String> unpairedDirectors = new HashSet<String>();
         for (String directorKey : context._directorToStoragePortSet.keySet()) {
-            if (! rule17Directors.contains(directorKey)) { unpairedDirectors.add(directorKey); }
+            if (!rule17Directors.contains(directorKey)) {
+                unpairedDirectors.add(directorKey);
+            }
         }
-        if (! unpairedDirectors.isEmpty()) {
+        if (!unpairedDirectors.isEmpty()) {
             _log.info("Disabling rule17 because the following directors are unpaired: " + unpairedDirectors.toString());
             context._disableRule17 = true;
             return candidates;
@@ -784,12 +793,12 @@ public class StoragePortsAllocator {
             // If there are any ports remaining, use those.
             if (usedAllRule17Directors(allocatedDirectors, context)) {
                 _log.debug("rule17 clearing all allocated directors");
-                allocatedDirectors.clear();    
+                allocatedDirectors.clear();
             }
             _log.debug("allocated directors: " + allocatedDirectors);
-            
+
             context._previousRule17 = null;  // no previous pair
-            Set<StoragePort> newCandidates = 
+            Set<StoragePort> newCandidates =
                     andNotStoragePorts(getAllRule17Ports(candidates, context), allocatedPorts);
             if (newCandidates.isEmpty() == false) {
                 // If the previous network left used only one director, try to pair with it.
@@ -802,13 +811,13 @@ public class StoragePortsAllocator {
                             candidates = context._directorToStoragePortSet.get(pairDirector.toString());
                             context._previousRule17 = pairDirector.toString();
                             return candidates;
-                        } 
+                        }
                     }
                 }
                 _log.info("returning initial rule17 ports: " + portsToString(newCandidates));
                 return newCandidates;
             }
-            else  {
+            else {
                 _log.info("No pairs of director numbers == 17; ignoring VMAX rule17");
                 context._disableRule17 = true;
             }
@@ -816,13 +825,13 @@ public class StoragePortsAllocator {
             // A port was previously allocated, but not paired.
             // Get the pair director that for the director that was last used.
             // We can tell it was not paired because context._previousRule17 is null.
-            if ( context._previousRule17 == null) {
+            if (context._previousRule17 == null) {
                 String director = context._storagePortToDirector.get(allocatedPort);
                 Integer directorNumber = new Integer(director);
                 Integer pairDirector = i17 - directorNumber;
                 if (context._directorToStoragePortSet.get(pairDirector.toString()) != null) {
                     _log.info("rule 17 pair directors: " + directorNumber + " " + pairDirector);
-                    Set <StoragePort> newCandidates = 
+                    Set<StoragePort> newCandidates =
                             andNotStoragePorts(
                                     context._directorToStoragePortSet.get(pairDirector.toString()),
                                     allocatedPorts);
@@ -830,7 +839,7 @@ public class StoragePortsAllocator {
                         candidates = newCandidates;
                         context._previousRule17 = pairDirector.toString();
                     }
-                } 
+                }
             } else {
                 // The previous port was the completion of a pair.
                 // Start looking for a new port in the rule 17 paired directors.
@@ -843,7 +852,7 @@ public class StoragePortsAllocator {
                     return candidates;
                 }
                 // Now we want to allow all paired ports on unused directors.
-                Set<StoragePort> rule17Ports = 
+                Set<StoragePort> rule17Ports =
                         andNotStoragePorts(getAllRule17Ports(candidates, context), allocatedPorts);
                 if (rule17Ports.isEmpty() == false) {
                     // Now filter out all ports on used directors if possible.
@@ -857,9 +866,10 @@ public class StoragePortsAllocator {
         }
         return candidates;
     }
-    
+
     /**
      * Takes a set of StoragePorts and returns a String containing the port names for printing.
+     * 
      * @param list Set<StoragePort>
      * @return String
      */
@@ -870,9 +880,10 @@ public class StoragePortsAllocator {
         }
         return buf.toString();
     }
-    
+
     /**
      * Returns all the rule-17 paired candidate ports.
+     * 
      * @param candidates Original list of candidates.
      * @param context Port AllocationContext
      * @return Set<StoragePort> new candidates based on pairing
@@ -886,10 +897,11 @@ public class StoragePortsAllocator {
         }
         return newCandidates;
     }
-    
+
     /**
      * Returns all the directors that can be paired with another director to equal 17.
      * This constitutes all the directors usable under rule17.
+     * 
      * @param context
      * @return Set<String> set of rule17 paired directors
      */
@@ -904,9 +916,10 @@ public class StoragePortsAllocator {
         }
         return rule17Directors;
     }
-    
+
     /**
      * Returns true if already used all the Rule17 directors.
+     * 
      * @param allocatedDirectors
      * @param context
      * @return true if all the Rule17 directors have been used.
@@ -918,11 +931,11 @@ public class StoragePortsAllocator {
         }
         return rule17Directors.isEmpty();
     }
-    
+
     /**
      * Get the name of a SAN switch that is connected to this StoragePort.
      * Return null if no SAN switches are connected to this StoragePort.
-     *
+     * 
      * @param port
      * @param dbClient
      * @return
@@ -950,7 +963,7 @@ public class StoragePortsAllocator {
     /**
      * This code is only called in the kernel code path, not in the testing code
      * path.
-     *
+     * 
      * @param dbClient
      *            -- The Cassandra client.
      * @param spList
@@ -962,29 +975,32 @@ public class StoragePortsAllocator {
      * @param numPorts
      *            The number of ports requested to be allocated.
      * @param allowFewerPorts
-     *             If set, allow fewer ports to be allocated than numPorts requested.
+     *            If set, allow fewer ports to be allocated than numPorts requested.
      * @return
      * @throws PlacementException if not enough ports are allocated
      */
     public List<StoragePort> selectStoragePorts(DbClient dbClient,
-        Map<StoragePort, Long> sportMap, NetworkLite net, URI varrayURI, Integer numPorts,
-        Set<StoragePort> previouslyAllocatedPorts, boolean allowFewerPorts) throws PlacementException {
+            Map<StoragePort, Long> sportMap, NetworkLite net, URI varrayURI, Integer numPorts,
+            Set<StoragePort> previouslyAllocatedPorts, boolean allowFewerPorts) throws PlacementException {
 
         if (numPorts == null || numPorts <= 0)
+        {
             numPorts = 2; // Default value if too low
+        }
         // Determine if we should check connectivity from the Network's varray.auto_san_zoning
         boolean checkConnectivity = false;
         VirtualArray varray = dbClient.queryObject(VirtualArray.class, varrayURI);
         if (varray != null && NetworkScheduler.isZoningRequired(dbClient, varray) &&
-                !net.getTransportType().equals(StorageProtocol.Transport.IP.name()))
+                !net.getTransportType().equals(StorageProtocol.Transport.IP.name())) {
             checkConnectivity = true;
+        }
         // Find all the StoragePorts in the StorageArray
         StoragePortsAllocator allocator = new StoragePortsAllocator();
         PortAllocationContext ctx = null;
         for (StoragePort sp : sportMap.keySet()) {
             StorageHADomain haDomain = null;
             if (sp.getStorageHADomain() != null) {
-                haDomain = dbClient.queryObject(StorageHADomain.class, sp.getStorageHADomain());                
+                haDomain = dbClient.queryObject(StorageHADomain.class, sp.getStorageHADomain());
             }
             StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, sp.getStorageDevice());
             String switchName = getSwitchName(sp, dbClient);
@@ -993,7 +1009,7 @@ public class StoragePortsAllocator {
                 ctx = new PortAllocationContext(net, storageSystem.getNativeGuid(), context);
             }
             Long usage = sportMap.get(sp);
-            ctx.addPort(sp, haDomain, StorageSystem.Type.valueOf(storageSystem.getSystemType()), 
+            ctx.addPort(sp, haDomain, StorageSystem.Type.valueOf(storageSystem.getSystemType()),
                     switchName, usage);
         }
         List<StoragePort> portUris = allocator.allocatePortsForNetwork(numPorts,
@@ -1001,36 +1017,40 @@ public class StoragePortsAllocator {
         context = ctx; // save context for next TZ
         return portUris;
     }
-    
+
     /**
      * Adds a list of Storage Ports to the context _alreadyAllocatedXXX sets.
-     * This will carry state from an a previous allocation in one network to 
+     * This will carry state from an a previous allocation in one network to
      * a new allocation for Vpool update in another network.
      * Does nothing if previouslyAllocatedPorts is null or an empty set.
+     * 
      * @param dbClient
      * @param net
      * @param previouslyAllocatedPorts
      */
-    public void addPortsToAlreadyAllocatedContext(DbClient dbClient, NetworkLite net, 
+    public void addPortsToAlreadyAllocatedContext(DbClient dbClient, NetworkLite net,
             Set<StoragePort> previouslyAllocatedPorts) {
-        if (previouslyAllocatedPorts == null || previouslyAllocatedPorts.isEmpty()) return;
+        if (previouslyAllocatedPorts == null || previouslyAllocatedPorts.isEmpty()) {
+            return;
+        }
         for (StoragePort sp : previouslyAllocatedPorts) {
-            StorageHADomain haDomain  = null;
+            StorageHADomain haDomain = null;
             if (null != sp.getStorageHADomain()) {
                 haDomain = dbClient.queryObject(StorageHADomain.class, sp.getStorageHADomain());
-            } 
+            }
             StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, sp.getStorageDevice());
             String switchName = getSwitchName(sp, dbClient);
             if (context == null) {
                 context = new PortAllocationContext(net, storageSystem.getNativeGuid());
             }
-            context.addPortToAlreadyAllocatedContext(sp, haDomain, 
+            context.addPortToAlreadyAllocatedContext(sp, haDomain,
                     StorageSystem.Type.valueOf(storageSystem.getSystemType()), switchName);
         }
     }
-    
+
     /**
      * Choose one of the ports with minimum usage from the candidate list.
+     * 
      * @param candidates - set of candidates for allocation
      * @param usageMap -- Map of port to usage (greater number is higher usage)
      * @return chosen port

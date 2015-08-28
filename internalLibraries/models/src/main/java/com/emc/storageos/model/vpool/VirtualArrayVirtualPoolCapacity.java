@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.vpool;
@@ -11,12 +11,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class VirtualArrayVirtualPoolCapacity {
-    
+
     private URI id;
     private List<VirtualPoolCapacity> vpoolCapacities;
 
-    public VirtualArrayVirtualPoolCapacity() {}
-    
+    public VirtualArrayVirtualPoolCapacity() {
+    }
+
     public VirtualArrayVirtualPoolCapacity(URI id,
             List<VirtualPoolCapacity> vpoolCapacities) {
         this.id = id;
@@ -36,7 +37,7 @@ public class VirtualArrayVirtualPoolCapacity {
      * 
      * @valid none
      */
-    @XmlElement(name="varray_vpool_capacity")
+    @XmlElement(name = "varray_vpool_capacity")
     public List<VirtualPoolCapacity> getVpoolCapacities() {
         if (vpoolCapacities == null) {
             vpoolCapacities = new ArrayList<VirtualPoolCapacity>();

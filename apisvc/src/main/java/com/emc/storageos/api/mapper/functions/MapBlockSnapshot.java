@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.mapper.functions;
@@ -10,7 +10,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.model.block.BlockSnapshotRestRep;
 import com.google.common.base.Function;
 
-public class MapBlockSnapshot implements Function<BlockSnapshot,BlockSnapshotRestRep> {
+public class MapBlockSnapshot implements Function<BlockSnapshot, BlockSnapshotRestRep> {
     public static final MapBlockSnapshot instance = new MapBlockSnapshot();
     private DbClient dbClient;
 
@@ -22,7 +22,7 @@ public class MapBlockSnapshot implements Function<BlockSnapshot,BlockSnapshotRes
     private MapBlockSnapshot() {
     }
 
-    private void setDBClient(DbClient dbClient){
+    private void setDBClient(DbClient dbClient) {
         this.dbClient = dbClient;
     }
 

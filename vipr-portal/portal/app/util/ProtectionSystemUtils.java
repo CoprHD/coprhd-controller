@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -28,8 +28,7 @@ public class ProtectionSystemUtils {
     public static ProtectionSystemRestRep getProtectionSystem(String id) {
         try {
             return getViprClient().protectionSystems().get(uri(id));
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }

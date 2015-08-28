@@ -14,25 +14,25 @@ import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
 
 /**
- * @{inheritDoc}
+ * @{inheritDoc
  */
 public class XtremioVplexVolumeNameFormatter extends
         DefaultVplexVolumeNameFormatter {
 
     /**
-     * @{inheritDoc}
+     * @{inheritDoc
      */
     public XtremioVplexVolumeNameFormatter(VolumeInfo volumeInfo) {
         super(volumeInfo);
     }
 
     /**
-     * @{inheritDoc}
+     * @{inheritDoc
      */
     @Override
-    protected String shortenName( int shortenBy ) throws VPlexApiException {
+    protected String shortenName(int shortenBy) throws VPlexApiException {
 
-        s_logger.info("claimed volume name {} needs to be shortened by {} characters", 
+        s_logger.info("claimed volume name {} needs to be shortened by {} characters",
                 _volumeInfo.getVolumeNativeId(), shortenBy);
 
         // in this case, lets shave off some of the front of the volume native id
@@ -41,11 +41,11 @@ public class XtremioVplexVolumeNameFormatter extends
         } else {
             s_logger.warn("the volume native id {} is not long enough to be "
                     + "used for shortening the volume name by {} characters, so we "
-                    + "are just going to truncate the beginning of the whole name", 
+                    + "are just going to truncate the beginning of the whole name",
                     _volumeNativeId, shortenBy);
             String volumeName = assembleDefaultName(_storageSystemSerialNumber, _volumeNativeId);
             return volumeName.substring(shortenBy);
         }
     }
-    
+
 }

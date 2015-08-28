@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.vpool;
 
@@ -30,13 +20,14 @@ public class ComputeVirtualPoolAssignments {
     /**
      * Default Constructor.
      */
-    public ComputeVirtualPoolAssignments() {}
+    public ComputeVirtualPoolAssignments() {
+    }
 
     public ComputeVirtualPoolAssignments(Set<String> computeElements) {
         this.computeElements = computeElements;
     }
 
-     /**
+    /**
      * The list of compute elements to be added to or removed from the compute virtual pool
      * 
      * @valid none
@@ -53,5 +44,5 @@ public class ComputeVirtualPoolAssignments {
     public void setComputeElements(Set<String> computeElements) {
         this.computeElements = computeElements;
     }
-    
+
 }

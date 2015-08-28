@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.service.utils;
@@ -17,11 +17,11 @@ import javax.ws.rs.core.MultivaluedMap;
 public class DummyHttpHeaders implements HttpHeaders {
 
     private MediaType _acceptable;
-    
+
     public DummyHttpHeaders(MediaType acceptable) {
         _acceptable = acceptable;
     }
-    
+
     @Override
     public List<Locale> getAcceptableLanguages() {
         // TODO Auto-generated method stub

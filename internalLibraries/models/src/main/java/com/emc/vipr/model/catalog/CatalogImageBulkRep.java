@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -14,15 +14,16 @@ import com.emc.storageos.model.BulkRestRep;
 
 @XmlRootElement(name = "bulk_catalog_images")
 public class CatalogImageBulkRep extends BulkRestRep {
-    
+
     private List<CatalogImageRestRep> catalogImages;
-    
+
     public CatalogImageBulkRep() {
-        
+
     }
 
     /**
      * List of catalog images
+     * 
      * @valid none
      * @return
      */
@@ -37,7 +38,7 @@ public class CatalogImageBulkRep extends BulkRestRep {
     public void setProjects(List<CatalogImageRestRep> catalogImages) {
         this.catalogImages = catalogImages;
     }
-    
+
     public CatalogImageBulkRep(List<CatalogImageRestRep> catalogImages) {
         this.catalogImages = catalogImages;
     }

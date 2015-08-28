@@ -1,18 +1,8 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.recoverpoint.requests;
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
- **/
 import java.io.Serializable;
 import java.net.URI;
 import java.util.List;
@@ -20,7 +10,7 @@ import java.util.List;
 /**
  * Parameters necessary to create/update a consistency group, given newly created volumes.
  * Need enough information to be able to export the volumes to the RPAs and to create the CG.
- *
+ * 
  */
 @SuppressWarnings("serial")
 public class CGRequestParams implements Serializable {
@@ -45,69 +35,69 @@ public class CGRequestParams implements Serializable {
     }
 
     public boolean isJunitTest() {
-		return isJunitTest;
-	}
+        return isJunitTest;
+    }
 
-	public void setJunitTest(boolean isJunitTest) {
-		this.isJunitTest = isJunitTest;
-	}
+    public void setJunitTest(boolean isJunitTest) {
+        this.isJunitTest = isJunitTest;
+    }
 
-	public String getCgName() {
-		return cgName;
-	}
+    public String getCgName() {
+        return cgName;
+    }
 
-	public void setCgName(String cgName) {
-		this.cgName = cgName;
-	}
+    public void setCgName(String cgName) {
+        this.cgName = cgName;
+    }
 
-	public URI getCgUri() {
-		return cgUri;
-	}
+    public URI getCgUri() {
+        return cgUri;
+    }
 
-	public void setCgUri(URI cgUri) {
-		this.cgUri = cgUri;
-	}
+    public void setCgUri(URI cgUri) {
+        this.cgUri = cgUri;
+    }
 
-	public URI getProject() {
-		return project;
-	}
+    public URI getProject() {
+        return project;
+    }
 
-	public void setProject(URI project) {
-		this.project = project;
-	}
+    public void setProject(URI project) {
+        this.project = project;
+    }
 
-	public URI getTenant() {
-		return tenant;
-	}
+    public URI getTenant() {
+        return tenant;
+    }
 
-	public void setTenant(URI tenant) {
-		this.tenant = tenant;
-	}
+    public void setTenant(URI tenant) {
+        this.tenant = tenant;
+    }
 
-	public List<CreateCopyParams> getCopies() {
-		return copies;
-	}
+    public List<CreateCopyParams> getCopies() {
+        return copies;
+    }
 
-	public void setCopies(List<CreateCopyParams> copies) {
-		this.copies = copies;
-	}
+    public void setCopies(List<CreateCopyParams> copies) {
+        this.copies = copies;
+    }
 
-	public List<CreateRSetParams> getRsets() {
-		return rsets;
-	}
+    public List<CreateRSetParams> getRsets() {
+        return rsets;
+    }
 
-	public void setRsets(List<CreateRSetParams> rsets) {
-		this.rsets = rsets;
-	}
+    public void setRsets(List<CreateRSetParams> rsets) {
+        this.rsets = rsets;
+    }
 
     // The top-level CG policy objects
     public static class CGPolicyParams implements Serializable {
-    	public String copyMode;
-    	public Long rpoValue;
-    	public String rpoType;
+        public String copyMode;
+        public Long rpoValue;
+        public String rpoType;
     }
 
-	@Override
+    @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
         sb.append("\ncgName: " + cgName);

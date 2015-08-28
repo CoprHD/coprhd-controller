@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.file;
@@ -14,10 +14,10 @@ public class CreateCifsShareService extends ViPRService {
     private CreateCifsShareHelper createCifsShareHelper = new CreateCifsShareHelper();
 
     @Override
-    public void precheck() throws Exception{
+    public void precheck() throws Exception {
         createCifsShareHelper.precheckFileACLs();
     }
-    
+
     @Override
     public void execute() {
         createCifsShareHelper.createCifsShare();

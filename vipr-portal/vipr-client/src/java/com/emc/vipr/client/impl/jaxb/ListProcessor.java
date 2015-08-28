@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.impl.jaxb;
@@ -86,8 +86,7 @@ public class ListProcessor<T> {
             SAXSource source = filter.createSource(in);
             DOMResult result = filter.createResult();
             getTransformer().transform(source, result);
-        }
-        finally {
+        } finally {
             in.close();
         }
     }
@@ -125,8 +124,7 @@ public class ListProcessor<T> {
             super.startDocument();
             try {
                 startItems();
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 throw new SAXException(e);
             }
         }
@@ -136,8 +134,7 @@ public class ListProcessor<T> {
             super.endDocument();
             try {
                 endItems();
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 throw new SAXException(e);
             }
         }
@@ -156,8 +153,7 @@ public class ListProcessor<T> {
                 Element item = getLastChildElement(itemDocument.getDocumentElement());
                 try {
                     processItem(item);
-                }
-                catch (Exception e) {
+                } catch (Exception e) {
                     throw new SAXException(e);
                 }
                 clear(itemDocument.getDocumentElement());
@@ -165,7 +161,7 @@ public class ListProcessor<T> {
         }
 
         /**
-         * Get the last element of the parent.  This will be the most recently added element.
+         * Get the last element of the parent. This will be the most recently added element.
          * 
          * @param parent the parent element.
          * @return the last element.
@@ -182,7 +178,7 @@ public class ListProcessor<T> {
         }
 
         /**
-         * Clears all children of the given element. 
+         * Clears all children of the given element.
          * 
          * @param parent the parent element.
          */

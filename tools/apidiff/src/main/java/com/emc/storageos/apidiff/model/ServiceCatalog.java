@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2013 EMC Corporation 
- * All Rights Reserved 
- *
- * This software contains the intellectual property of EMC Corporation 
- * or is licensed to EMC Corporation from third parties.  Use of this 
- * software and the intellectual property contained therein is expressly 
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.apidiff.model;
@@ -32,15 +22,17 @@ public class ServiceCatalog {
     private final String version;
 
     public ServiceCatalog(Map<ApiIdentifier, ApiDescriptor> apiMap, Map<String, String> elementMap,
-                          String serviceName, String version) {
-        if (apiMap == null)
+            String serviceName, String version) {
+        if (apiMap == null) {
             this.apiMap = new HashMap<ApiIdentifier, ApiDescriptor>();
-        else
+        } else {
             this.apiMap = apiMap;
-        if (elementMap == null)
+        }
+        if (elementMap == null) {
             this.elementMap = new HashMap<String, String>();
-        else
+        } else {
             this.elementMap = elementMap;
+        }
         this.serviceName = serviceName;
         this.version = version;
         filter();
@@ -59,11 +51,11 @@ public class ServiceCatalog {
         while (apiMapIter.hasNext()) {
             Map.Entry<ApiIdentifier, ApiDescriptor> entry = apiMapIter.next();
             String path = entry.getKey().getPath().split(Constants.URL_PATH_SEPARATOR)[1];
-            if (Constants.INTERNAL_API.equals(path))
+            if (Constants.INTERNAL_API.equals(path)) {
                 apiMapIter.remove();
+            }
         }
     }
-
 
     public Map<ApiIdentifier, ApiDescriptor> getApiMap() {
         return apiMap;
@@ -85,8 +77,9 @@ public class ServiceCatalog {
      * Clean useless elements to reduce memory usage and keep consistency
      */
     public void update() {
-        if (elementMap == null)
+        if (elementMap == null) {
             return;
+        }
 
         if (apiMap == null || apiMap.isEmpty()) {
             elementMap.clear();
@@ -101,11 +94,13 @@ public class ServiceCatalog {
                 if ((apiResource.getRequestElement() != null
                         && apiResource.getRequestElement().equals(elementName))
                         || (apiResource.getResponseElement() != null
-                        && apiResource.getResponseElement().equals(elementName)))
+                        && apiResource.getResponseElement().equals(elementName))) {
                     found = true;
+                }
             }
-            if (!found)
+            if (!found) {
                 elementIterator.remove();
+            }
         }
     }
 }

@@ -1,11 +1,10 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core.filters;
 
 import com.emc.storageos.model.block.VolumeRestRep;
-
 
 public class VplexVolumeFilter extends DefaultResourceFilter<VolumeRestRep> {
     @Override

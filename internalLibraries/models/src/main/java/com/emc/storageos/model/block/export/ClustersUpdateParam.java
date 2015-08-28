@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block.export;
@@ -15,14 +15,15 @@ import javax.xml.bind.annotation.XmlElementWrapper;
  * Update parameter for cluster
  */
 public class ClustersUpdateParam extends UpdateParam {
-    
-    public ClustersUpdateParam() {}
-    
+
+    public ClustersUpdateParam() {
+    }
+
     public ClustersUpdateParam(Set<URI> add, Set<URI> remove) {
         this.add = add;
         this.remove = remove;
     }
-    
+
     @XmlElementWrapper(required = false)
     @XmlElement(name = "cluster")
     public Set<URI> getAdd() {
@@ -31,11 +32,11 @@ public class ClustersUpdateParam extends UpdateParam {
         }
         return add;
     }
-    
+
     public void setAdd(Set<URI> add) {
         this.add = add;
     }
-    
+
     @XmlElementWrapper(required = false)
     @XmlElement(name = "cluster")
     public Set<URI> getRemove() {
@@ -44,7 +45,7 @@ public class ClustersUpdateParam extends UpdateParam {
         }
         return remove;
     }
-    
+
     public void setRemove(Set<URI> remove) {
         this.remove = remove;
     }

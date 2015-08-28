@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.linux.tasks;
@@ -23,7 +23,7 @@ public class FindMultiPathEntriesForMountPoint extends LinuxExecutionTask<Void> 
     @Override
     public Void executeTask() throws Exception {
         List<MultiPathEntry> allMultiPathEntries = executeCommand(new ListMultiPathEntriesCommand(), SHORT_TIMEOUT);
-        
+
         for (VolumeSpec volume : volumes) {
             volume.multipathEntries = Lists.newArrayList();
             String device = volume.mountPoint.getDevice();
@@ -41,7 +41,7 @@ public class FindMultiPathEntriesForMountPoint extends LinuxExecutionTask<Void> 
             }
         }
         return null;
-        
+
     }
 
 }

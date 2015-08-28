@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.datatable;
@@ -54,7 +54,7 @@ public class BlockSnapshotsDataTable extends DataTable {
         }
         return results;
     }
-    
+
     private static Map<URI, VolumeRestRep> getParentVolumes(List<BlockSnapshotRestRep> snapshots) {
         // Collect the volume IDs of each block snapshot to query in one shot
         Set<URI> volumeIds = Sets.newHashSet();

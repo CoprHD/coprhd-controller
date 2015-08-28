@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block;
@@ -20,8 +20,9 @@ public class SnapshotExportParam {
     private int lun;
     private String hostid;
 
-    public SnapshotExportParam() {}
-            
+    public SnapshotExportParam() {
+    }
+
     public SnapshotExportParam(String protocol, String initiatorPort,
             String initiatorNode, int lun, String hostid) {
         this.protocol = protocol;
@@ -32,10 +33,11 @@ public class SnapshotExportParam {
     }
 
     /**
-     * Protocol 
+     * Protocol
+     * 
      * @valid FC = Fibre Channel
      * @valid iSCSI
-     */     
+     */
     @XmlElement(required = true)
     public String getProtocol() {
         return protocol;
@@ -47,9 +49,10 @@ public class SnapshotExportParam {
 
     /**
      * Initiator port address (WWPN)
+     * 
      * @valid none
-     */     
-    @XmlElement(required = true,name = "initiator_port")
+     */
+    @XmlElement(required = true, name = "initiator_port")
     public String getInitiatorPort() {
         return initiatorPort;
     }
@@ -60,8 +63,9 @@ public class SnapshotExportParam {
 
     /**
      * Initiator node address (WWNN)
+     * 
      * @valid none
-     */     
+     */
     @XmlElement(name = "initiator_node")
     public String getInitiatorNode() {
         return initiatorNode;
@@ -73,8 +77,9 @@ public class SnapshotExportParam {
 
     /**
      * LUN identifier
+     * 
      * @valid none
-     */     
+     */
     @XmlElement(required = true)
     public int getLun() {
         return lun;
@@ -86,8 +91,9 @@ public class SnapshotExportParam {
 
     /**
      * IP address or Fully Qualified Domain Name of host
+     * 
      * @valid none
-     */     
+     */
     @XmlElement(name = "host_id")
     public String getHostid() {
         return hostid;
@@ -96,5 +102,5 @@ public class SnapshotExportParam {
     public void setHostid(String hostid) {
         this.hostid = hostid;
     }
-    
+
 }

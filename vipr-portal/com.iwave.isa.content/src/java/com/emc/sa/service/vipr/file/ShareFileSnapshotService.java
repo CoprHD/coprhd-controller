@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.file;
@@ -15,11 +15,11 @@ import com.emc.sa.service.vipr.ViPRService;
 
 @Service("ShareFileSnapshot")
 public class ShareFileSnapshotService extends ViPRService {
-	
-	@Param(SNAPSHOT)
+
+    @Param(SNAPSHOT)
     protected String snapshotId;
-	
-	@Param(SHARE_NAME)
+
+    @Param(SHARE_NAME)
     protected String shareName;
 
     @Param(SHARE_COMMENT)
@@ -29,12 +29,12 @@ public class ShareFileSnapshotService extends ViPRService {
     protected FileStorageUtils.FileSystemACLs[] fileSnapshotShareACLs;
 
     @Override
-    public void precheck() throws Exception{
+    public void precheck() throws Exception {
         if (fileSnapshotShareACLs != null && fileSnapshotShareACLs.length > 0) {
             fileSnapshotShareACLs = FileStorageUtils.clearEmptyFileACLs(fileSnapshotShareACLs);
         }
     }
-    
+
     @Override
     public void execute() {
         FileStorageUtils.shareFileSnapshot(uri(snapshotId), shareName, shareComment);

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.security.password.rules;
@@ -20,7 +10,6 @@ import com.emc.storageos.security.password.PasswordUtils;
 import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import java.text.MessageFormat;
 import java.util.List;
 
@@ -35,10 +24,9 @@ public class HistoryRule implements Rule {
         this.passwordUtils = passwordUtils;
     }
 
-
     /**
      * validate the new password is not in history.
-     *
+     * 
      * @param password
      */
     @Override
@@ -54,12 +42,12 @@ public class HistoryRule implements Rule {
 
         String text = password.getPassword();
         List<String> previousPasswords = password.getPreviousPasswords(historySize);
-        if (previousPasswords == null || previousPasswords.size() == 0) {
-            _log.info("pass, no previous password");
+        if (previousPasswords.isEmpty()) {
+            _log.info("Pass since no password in history list.");
             return;
         }
 
-        for (int i=0; i<previousPasswords.size(); i++) {
+        for (int i = 0; i < previousPasswords.size(); i++) {
             if (passwordUtils.match(text, previousPasswords.get(i))) {
                 _log.info(MessageFormat.format("fail, match previous password #{0}", i));
                 throw BadRequestException.badRequests.passwordInvalidHistory(historySize);

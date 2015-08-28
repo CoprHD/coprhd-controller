@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.windows;
@@ -18,12 +18,12 @@ import com.iwave.ext.windows.model.Volume;
 import com.iwave.ext.windows.model.wmi.DiskDrive;
 
 public class UnmountBlockVolumeHelper {
-    
+
     private final WindowsSupport windows;
 
     /** The volumes to unmount. */
     private Collection<? extends BlockObjectRestRep> volumes;
-    
+
     /** Mapping of volume to disk. */
     private Map<? extends BlockObjectRestRep, DiskDrive> volume2disk;
 
@@ -62,10 +62,10 @@ public class UnmountBlockVolumeHelper {
             String resourceName = "";
             if (windows.isGuid(diskDetail.getDiskId())) {
                 resourceName = diskToResourceMap.get(diskDetail.getDiskId());
-            } else {            
+            } else {
                 resourceName = diskToResourceMap.get(diskDrive.getSignature());
             }
-            
+
             windows.offlineClusterResource(resourceName);
             windows.deleteClusterResource(resourceName);
         }
@@ -79,7 +79,7 @@ public class UnmountBlockVolumeHelper {
             if (diskDetail.getVolumes() != null) {
                 for (Volume diskVolume : diskDetail.getVolumes()) {
                     windows.unmountVolume(diskVolume.getNumber(), diskVolume.getMountPoint());
-                    boolean isDriveLetterOnly = WindowsUtils.isMountPointDriveLetterOnly(diskVolume.getMountPoint()) ;
+                    boolean isDriveLetterOnly = WindowsUtils.isMountPointDriveLetterOnly(diskVolume.getMountPoint());
                     if (!isDriveLetterOnly && windows.isDirectoryEmpty(diskVolume.getMountPoint())) {
                         windows.deleteDirectory(diskVolume.getMountPoint());
                     }

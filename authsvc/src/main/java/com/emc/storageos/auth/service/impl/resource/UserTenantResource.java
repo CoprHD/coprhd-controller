@@ -1,20 +1,9 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.auth.service.impl.resource;
 
-import java.io.StringReader;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,14 +17,8 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
-import javax.xml.bind.JAXBContext;
-import javax.xml.bind.JAXBException;
-import javax.xml.bind.Unmarshaller;
-
-import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.security.validator.MarshallUtil;
 import org.apache.commons.lang.StringUtils;
-import org.codehaus.jettison.json.JSONArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,17 +34,17 @@ import com.emc.storageos.security.resource.UserInfoPage.UserTenantList;
 @Path("/internal/userTenant")
 public class UserTenantResource {
 
-    private static final Logger _log = LoggerFactory.getLogger (UserTenantResource.class);
+    private static final Logger _log = LoggerFactory.getLogger(UserTenantResource.class);
     @Autowired
     protected AuthenticationManager _authManager;
-    
+
     @GET
     @Produces(MediaType.APPLICATION_XML)
     public Response getUserTenant(@QueryParam("username") String username,
-                                  @QueryParam("tenantURI") String tenantURI,
-                                  @QueryParam("usermappings") String strUserMappings)
+            @QueryParam("tenantURI") String tenantURI,
+            @QueryParam("usermappings") String strUserMappings)
     {
-        if( username==null || username.isEmpty() ) {
+        if (username == null || username.isEmpty()) {
             Response.status(Status.BAD_REQUEST).entity("Query parameter username is required").build();
         }
 
@@ -78,13 +61,13 @@ public class UserTenantResource {
 
             userTenants = _authManager.peekUserTenants(username, URI.create(tenantURI), userMappings);
         }
-        if( null != userTenants ) {
+        if (null != userTenants) {
             UserTenantList userTenantList = new UserTenantList();
             userTenantList._userTenantList = new ArrayList<UserTenant>();
-            for(Entry<URI, UserMapping> userTenantEntry :userTenants.entrySet() ) {
+            for (Entry<URI, UserMapping> userTenantEntry : userTenants.entrySet()) {
                 UserTenant userTenant = new UserTenant();
                 userTenant._id = userTenantEntry.getKey();
-                userTenant._userMapping = userTenantEntry.getValue();                
+                userTenant._userMapping = userTenantEntry.getValue();
                 userTenantList._userTenantList.add(userTenant);
             }
             return Response.ok(userTenantList).build();

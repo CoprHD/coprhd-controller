@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model;
@@ -15,12 +15,13 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class BulkIdParam {
     private List<URI> ids;
 
-    public BulkIdParam() {}
-    
+    public BulkIdParam() {
+    }
+
     public BulkIdParam(List<URI> ids) {
         this.ids = ids;
     }
-    
+
     @XmlElement(name = "id")
     public List<URI> getIds() {
         if (ids == null) {

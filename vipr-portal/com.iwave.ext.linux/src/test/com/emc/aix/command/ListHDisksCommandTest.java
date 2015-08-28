@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.aix.command;
@@ -19,20 +19,20 @@ import com.iwave.ext.linux.model.PowerPathDevice;
 
 public class ListHDisksCommandTest {
 
-    static String output = "Inquiry utility\n"+
-    			"Copyright (c) [1997-2013] EMC Corporation. All Rights Reserved.\n"+
-    			"For help type inq -h.\n"+
-    			"\n"+
-    			"....\n"+
-    			"\n"+
-    			"----------------------------------------------------------------------------\n"+
-    			"DEVICE           :VEND    :PROD            :WWN \n"+
-    			"----------------------------------------------------------------------------\n"+
-    			"/dev/rhdisk4     :EMC     :SYMMETRIX       :60000000000000000000000000000001\n"+
-    			"/dev/rhdisk5     :EMC     :SYMMETRIX       :60000000000000000000000000000002\n";                     
-    
+    static String output = "Inquiry utility\n" +
+            "Copyright (c) [1997-2013] EMC Corporation. All Rights Reserved.\n" +
+            "For help type inq -h.\n" +
+            "\n" +
+            "....\n" +
+            "\n" +
+            "----------------------------------------------------------------------------\n" +
+            "DEVICE           :VEND    :PROD            :WWN \n" +
+            "----------------------------------------------------------------------------\n" +
+            "/dev/rhdisk4     :EMC     :SYMMETRIX       :60000000000000000000000000000001\n" +
+            "/dev/rhdisk5     :EMC     :SYMMETRIX       :60000000000000000000000000000002\n";
+
     static ListHDisksCommand hdisksCommand = null;
-    
+
     @BeforeClass
     public synchronized static void setup() {
         CommandOutput commandOutput = new CommandOutput(output, null, 0);
@@ -40,7 +40,7 @@ public class ListHDisksCommandTest {
         EasyMock.expect(hdisksCommand.getOutput()).andReturn(commandOutput).anyTimes();
         EasyMock.replay(hdisksCommand);
     }
-    
+
     @Test
     public void testCommand() {
         hdisksCommand.parseOutput();

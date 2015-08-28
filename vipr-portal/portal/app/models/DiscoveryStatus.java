@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models;
@@ -17,7 +17,7 @@ public class DiscoveryStatus {
     public static final String COMPLETE = "COMPLETE";
     public static final String ERROR = "ERROR";
     public static final String NOT_CONNECTED = "NOTCONNECTED";
-    
+
     public static boolean isCreated(String type) {
         return CREATED.equals(type);
     }
@@ -25,8 +25,8 @@ public class DiscoveryStatus {
     public static boolean isInProgress(String type) {
         return IN_PROGRESS.equals(type);
     }
-    
-    public static boolean isScheduled(String type){
+
+    public static boolean isScheduled(String type) {
         return SCHEDULED.equals(type);
     }
 

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.vipr.model.sys.licensing;
@@ -26,7 +16,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class LicenseFeature implements Serializable {
 
     private static final long serialVersionUID = -5873033105809411374L;
-    
+
     private String serial;
     private String version;
     private String dateIssued;
@@ -47,7 +37,8 @@ public class LicenseFeature implements Serializable {
     /**
      * public constructor
      */
-    public LicenseFeature() {}
+    public LicenseFeature() {
+    }
 
     /**
      * 
@@ -57,7 +48,7 @@ public class LicenseFeature implements Serializable {
     public String getSerial() {
         return serial;
     }
-    
+
     /**
      * 
      * @param serial
@@ -74,7 +65,7 @@ public class LicenseFeature implements Serializable {
     public String getVersion() {
         return version;
     }
-    
+
     /**
      * 
      * @param version
@@ -90,8 +81,8 @@ public class LicenseFeature implements Serializable {
     @XmlElement(name = "issued_date")
     public String getDateIssued() {
         return this.dateIssued;
-    }    
-    
+    }
+
     /**
      * 
      * @param dateIssued
@@ -108,7 +99,7 @@ public class LicenseFeature implements Serializable {
     public String getDateExpires() {
         return dateExpires;
     }
-    
+
     /**
      * 
      * @param dateExpires
@@ -125,7 +116,7 @@ public class LicenseFeature implements Serializable {
     public String getModelId() {
         return modelId;
     }
-    
+
     /**
      * 
      * @param modelId
@@ -142,7 +133,7 @@ public class LicenseFeature implements Serializable {
     public String getProductId() {
         return productId;
     }
-    
+
     /**
      * 
      * @param productId
@@ -158,8 +149,8 @@ public class LicenseFeature implements Serializable {
     @XmlElement(name = "site_id")
     public String getSiteId() {
         return siteId;
-    }    
-    
+    }
+
     /**
      * 
      * @param siteId
@@ -176,7 +167,7 @@ public class LicenseFeature implements Serializable {
     public String getIssuer() {
         return issuer;
     }
-    
+
     /**
      * 
      * @param issuer
@@ -212,7 +203,7 @@ public class LicenseFeature implements Serializable {
     public boolean isLicensed() {
         return licensed;
     }
-    
+
     /**
      * 
      * @param licensed
@@ -244,7 +235,7 @@ public class LicenseFeature implements Serializable {
     public String getLicenseIdIndicator() {
         return licenseIdIndicator;
     }
-    
+
     /**
      * 
      * @param licenseIdIndicator
@@ -262,7 +253,7 @@ public class LicenseFeature implements Serializable {
     public String getErrorMessage() {
         return errorMessage;
     }
-    
+
     public void setErrorMessage(String errorMessage) {
         this.errorMessage = errorMessage;
     }
@@ -271,25 +262,25 @@ public class LicenseFeature implements Serializable {
     public String getStorageCapacityUnit() {
         return storageCapacityUnit;
     }
-    
+
     public void setStorageCapacityUnit(String storageCapacityUnit) {
         this.storageCapacity = storageCapacityUnit;
     }
-    
+
     @XmlElement(name = "storage_capacity")
     public String getStorageCapacity() {
         return storageCapacity;
     }
-    
+
     public void setStorageCapacity(String storageCapacity) {
         this.storageCapacity = storageCapacity;
     }
-    
+
     @XmlElement(name = "trial_license_ind")
     public boolean isTrialLicense() {
         return trialLicense;
     }
-    
+
     public void setTrialLicense(boolean trialLicense) {
         this.trialLicense = trialLicense;
     }

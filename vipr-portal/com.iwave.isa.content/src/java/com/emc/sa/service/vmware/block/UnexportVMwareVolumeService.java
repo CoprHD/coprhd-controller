@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vmware.block;
@@ -43,7 +43,7 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
     @Override
     public void precheck() {
         vmware.disconnect();
-        
+
         if (BlockStorageUtils.isCluster(hostId)) {
             clusterInstance = BlockStorageUtils.getCluster(hostId);
             exports = BlockStorageUtils.findExportsContainingCluster(hostId, null, null);
@@ -51,9 +51,9 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
             hostInstance = BlockStorageUtils.getHost(hostId);
             exports = BlockStorageUtils.findExportsContainingHost(hostId, null, null);
         }
-        
+
         filteredExportGroups = BlockStorageUtils.filterExportsByType(exports, hostId);
-        
+
         String hostOrClusterLabel = clusterInstance == null ? hostInstance.getLabel() : clusterInstance.getLabel();
 
         if (filteredExportGroups.isEmpty()) {
@@ -92,7 +92,7 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
             else {
                 logDebug("unexport.host.service.volume.skip", exportName);
             }
-            
+
             String hostOrClusterId = BlockStorageUtils.getHostOrClusterId(hostId);
             if (hostOrClusterId != null) {
                 ExecutionUtils.addAffectedResource(hostOrClusterId.toString());
@@ -101,7 +101,7 @@ public class UnexportVMwareVolumeService extends VMwareHostService {
         for (BlockObjectRestRep volume : volumes) {
             // Keep atleast one datastore tag on this volume so we don't lose association with the datastore name
             if (volume.getTags() != null && VMwareDatastoreTagger.getDatastoreTags(volume).size() > 1) {
-                vmware.removeVmfsDatastoreTag(volume, hostId);            
+                vmware.removeVmfsDatastoreTag(volume, hostId);
             }
         }
         connectAndInitializeHost();

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model;
@@ -26,13 +26,14 @@ public class TagAssignment {
      */
     private Set<String> remove;
 
-    public TagAssignment() {}
-    
+    public TagAssignment() {
+    }
+
     public TagAssignment(Set<String> add, Set<String> remove) {
         this.add = add;
         this.remove = remove;
     }
-    
+
     @Length(min = 2, max = 128)
     public Set<String> getAdd() {
         if (add == null) {

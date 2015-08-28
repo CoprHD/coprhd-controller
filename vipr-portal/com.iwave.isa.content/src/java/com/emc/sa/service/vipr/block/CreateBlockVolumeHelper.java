@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block;
@@ -48,7 +48,7 @@ public class CreateBlockVolumeHelper {
     @Param(value = NUMBER_OF_VOLUMES, required = false)
     protected Integer count;
 
-    @Param(value=CONSISTENCY_GROUP, required = false)
+    @Param(value = CONSISTENCY_GROUP, required = false)
     protected URI consistencyGroup;
 
     @Param(value = HLU, required = false)
@@ -86,7 +86,8 @@ public class CreateBlockVolumeHelper {
         if (export == null) {
             URI exportId = null;
             if (cluster != null) {
-                exportId = BlockStorageUtils.createClusterExport(project, virtualArray, volumeIds, hlu, cluster, new HashMap<URI, Integer>());
+                exportId = BlockStorageUtils.createClusterExport(project, virtualArray, volumeIds, hlu, cluster,
+                        new HashMap<URI, Integer>());
             } else {
                 exportId = BlockStorageUtils.createHostExport(project, virtualArray, volumeIds, hlu, host, new HashMap<URI, Integer>());
             }
@@ -97,7 +98,7 @@ public class CreateBlockVolumeHelper {
             BlockStorageUtils.addVolumesToExport(volumeIds, hlu, export.getId(), new HashMap<URI, Integer>());
             logInfo("create.block.volume.update.export", export.getId());
         }
-        
+
         if (host != null) {
             ExecutionUtils.addAffectedResource(host.getId().toString());
         } else if (cluster != null) {
@@ -112,7 +113,7 @@ public class CreateBlockVolumeHelper {
         List<BlockObjectRestRep> volumes = BlockStorageUtils.getVolumes(volumeIds);
         return volumes;
     }
-    
+
     public Double getSizeInGb() {
         return this.sizeInGb;
     }

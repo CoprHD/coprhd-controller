@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.common;
@@ -43,9 +33,9 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
     @XmlRootElement(name = "dbschemas")
     private static class SchemaUT {
         @XmlElements({
-            @XmlElement(name = "data_object_schema", type = DataObjectSchema.class),
-            @XmlElement(name = "time_series_schema", type = TimeSeriesSchema.class),
-            @XmlElement(name = "data_point_schema", type = DataPointSchema.class)
+                @XmlElement(name = "data_object_schema", type = DataObjectSchema.class),
+                @XmlElement(name = "time_series_schema", type = TimeSeriesSchema.class),
+                @XmlElement(name = "data_point_schema", type = DataPointSchema.class)
         })
         public DbSchema schema;
 
@@ -73,13 +63,14 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
 
             Assert.assertEquals(sw1.getBuffer().toString(), sw2.getBuffer().toString());
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("testSchemaConsistent failed:", e);
             Assert.fail();
         } finally {
             try {
                 sw1.close();
                 sw2.close();
             } catch (IOException e) {
+                log.warn("IO close exception:{}", e);
             }
         }
     }
@@ -89,27 +80,29 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
         BufferedWriter writer = null;
         String schemaFile = FileUtils.getTempDirectoryPath() + "/.schema";
         SchemaUT schemaUT = new SchemaUT(srcSchema);
-        JAXBContext jc; 
+        JAXBContext jc;
         try {
             File output = new File(schemaFile);
             writer = new BufferedWriter(new FileWriter(output));
 
             jc = JAXBContext.newInstance(SchemaUT.class);
             Marshaller m = jc.createMarshaller();
-            m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, new Boolean(true));
+            m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
 
             StringWriter sw = new StringWriter();
             m.marshal(schemaUT, sw);
 
             writer.write(sw.toString());
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("testSchemaCheckRoundTrip failed:{}", e);
             Assert.fail();
         } finally {
             try {
-                if (writer != null)
-                writer.close();
+                if (writer != null) {
+                    writer.close();
+                }
             } catch (IOException e) {
+                log.warn("IO close exception:{}", e);
             }
         }
 
@@ -119,11 +112,11 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
             jc = JAXBContext.newInstance(DbSchemas.class);
             Unmarshaller um = jc.createUnmarshaller();
 
-            DbSchemas schemas = (DbSchemas)um.unmarshal(input);
+            DbSchemas schemas = (DbSchemas) um.unmarshal(input);
 
             Assert.assertEquals(srcSchema, schemas.getSchemas().get(0));
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("testSchemaCheckRoundTrip failed:{}", e);
             Assert.fail();
         }
     }
@@ -132,8 +125,8 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
     public void testNewClassAnnotation() {
         tgtSchema = new DataObjectSchema(NewClassAnnotation.class);
         // a little bit of hack
-        tgtSchema.setType(srcSchema.getType()); 
-        tgtSchemas.addSchema(tgtSchema); 
+        tgtSchema.setType(srcSchema.getType());
+        tgtSchemas.addSchema(tgtSchema);
         DbSchemasDiff diff = new DbSchemasDiff(srcSchemas, tgtSchemas);
 
         // No new class annotation is allowed
@@ -147,12 +140,12 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
         Assert.assertTrue(diff.getNewFieldAnnotations().isEmpty());
         Assert.assertTrue(diff.getNewAnnotationValues().isEmpty());
     }
-    
+
     @Test
     public void testRemovedClassAnnotation() {
         tgtSchema = new DataObjectSchema(RemovedClassAnnotation.class);
-        tgtSchema.setType(srcSchema.getType()); 
-        tgtSchemas.addSchema(tgtSchema); 
+        tgtSchema.setType(srcSchema.getType());
+        tgtSchemas.addSchema(tgtSchema);
         DbSchemasDiff diff = new DbSchemasDiff(srcSchemas, tgtSchemas);
 
         Assert.assertFalse(diff.isUpgradable());
@@ -162,12 +155,12 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
     @Test
     public void testRemovedFieldIndexAnnotation() {
         srcSchema = new DataObjectSchema(WithIndexAnnotation.class);
-        srcSchema.setType(srcSchema.getType()); 
+        srcSchema.setType(srcSchema.getType());
         srcSchemas.addSchema(srcSchema);
-        
+
         tgtSchema = new DataObjectSchema(WithRemovedIndexAnnotation.class);
-        tgtSchema.setType(srcSchema.getType()); 
-        tgtSchemas.addSchema(tgtSchema); 
+        tgtSchema.setType(srcSchema.getType());
+        tgtSchemas.addSchema(tgtSchema);
         DbSchemasDiff diff = new DbSchemasDiff(srcSchemas, tgtSchemas);
 
         Assert.assertFalse(diff.isUpgradable());
@@ -177,7 +170,7 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
     @Test
     public void testNewClassAnnotationValue() {
         tgtSchema = new DataObjectSchema(NewClassAnnotationValue.class);
-        tgtSchema.setType(srcSchema.getType()); 
+        tgtSchema.setType(srcSchema.getType());
         tgtSchemas.addSchema(tgtSchema);
         DbSchemasDiff diff = new DbSchemasDiff(srcSchemas, tgtSchemas);
 
@@ -188,8 +181,8 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
     @Test
     public void testNewField() {
         tgtSchema = new DataObjectSchema(NewField.class);
-        tgtSchema.setType(srcSchema.getType()); 
-        tgtSchemas.addSchema(tgtSchema); 
+        tgtSchema.setType(srcSchema.getType());
+        tgtSchemas.addSchema(tgtSchema);
         DbSchemasDiff diff = new DbSchemasDiff(srcSchemas, tgtSchemas);
 
         Assert.assertTrue(diff.isUpgradable());
@@ -206,8 +199,8 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
     @Test
     public void testRemovedField() {
         tgtSchema = new DataObjectSchema(RemovedField.class);
-        tgtSchema.setType(srcSchema.getType()); 
-        tgtSchemas.addSchema(tgtSchema); 
+        tgtSchema.setType(srcSchema.getType());
+        tgtSchemas.addSchema(tgtSchema);
         DbSchemasDiff diff = new DbSchemasDiff(srcSchemas, tgtSchemas);
 
         Assert.assertFalse(diff.isUpgradable());
@@ -217,8 +210,8 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
     @Test
     public void testNewFieldType() {
         tgtSchema = new DataObjectSchema(NewFieldType.class);
-        tgtSchema.setType(srcSchema.getType()); 
-        tgtSchemas.addSchema(tgtSchema); 
+        tgtSchema.setType(srcSchema.getType());
+        tgtSchemas.addSchema(tgtSchema);
         DbSchemasDiff diff = new DbSchemasDiff(srcSchemas, tgtSchemas);
 
         Assert.assertFalse(diff.isUpgradable());
@@ -228,8 +221,8 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
     @Test
     public void testNewFieldAnnotation() {
         tgtSchema = new DataObjectSchema(NewFieldAnnotation.class);
-        tgtSchema.setType(srcSchema.getType()); 
-        tgtSchemas.addSchema(tgtSchema); 
+        tgtSchema.setType(srcSchema.getType());
+        tgtSchemas.addSchema(tgtSchema);
         DbSchemasDiff diff = new DbSchemasDiff(srcSchemas, tgtSchemas);
 
         Assert.assertTrue(diff.isUpgradable());
@@ -246,8 +239,8 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
     @Test
     public void testRemovedFieldAnnotation() {
         tgtSchema = new DataObjectSchema(RemovedFieldAnnotation.class);
-        tgtSchema.setType(srcSchema.getType()); 
-        tgtSchemas.addSchema(tgtSchema); 
+        tgtSchema.setType(srcSchema.getType());
+        tgtSchemas.addSchema(tgtSchema);
         DbSchemasDiff diff = new DbSchemasDiff(srcSchemas, tgtSchemas);
 
         Assert.assertFalse(diff.isUpgradable());
@@ -257,8 +250,8 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
     @Test
     public void testNewFieldAnnotationValue() {
         tgtSchema = new DataObjectSchema(WithChangedAnnotationValue.class);
-        tgtSchema.setType(srcSchema.getType()); 
-        tgtSchemas.addSchema(tgtSchema); 
+        tgtSchema.setType(srcSchema.getType());
+        tgtSchemas.addSchema(tgtSchema);
         DbSchemasDiff diff = new DbSchemasDiff(srcSchemas, tgtSchemas);
 
         Assert.assertFalse(diff.isUpgradable());
@@ -268,8 +261,8 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
     @Test
     public void testNewPermittedFieldAnnotation() {
         tgtSchema = new DataObjectSchema(NewPermittedFieldAnnotation.class);
-        tgtSchema.setType(srcSchema.getType()); 
-        tgtSchemas.addSchema(tgtSchema); 
+        tgtSchema.setType(srcSchema.getType());
+        tgtSchemas.addSchema(tgtSchema);
         DbSchemasDiff diff = new DbSchemasDiff(srcSchemas, tgtSchemas);
 
         Assert.assertTrue(diff.isUpgradable());
@@ -286,8 +279,8 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
     @Test
     public void testNewNotPermittedFieldAnnotation() {
         tgtSchema = new DataObjectSchema(NewNotPermittedFieldAnnotation.class);
-        tgtSchema.setType(srcSchema.getType()); 
-        tgtSchemas.addSchema(tgtSchema); 
+        tgtSchema.setType(srcSchema.getType());
+        tgtSchemas.addSchema(tgtSchema);
         DbSchemasDiff diff = new DbSchemasDiff(srcSchemas, tgtSchemas);
 
         Assert.assertFalse(diff.isUpgradable());
@@ -297,16 +290,16 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
     @Test
     public void testDuplicateCF() {
         tgtSchema = new DataObjectSchema(DuplicateCF1.class);
-        tgtSchema.setType(srcSchema.getType()); 
-        tgtSchemas.addSchema(tgtSchema); 
+        tgtSchema.setType(srcSchema.getType());
+        tgtSchemas.addSchema(tgtSchema);
 
         srcSchema = new DataObjectSchema(classUT2.class);
         srcSchemas.addSchema(srcSchema);
 
         tgtSchema = new DataObjectSchema(DuplicateCF2.class);
-        tgtSchema.setType(srcSchema.getType()); 
-        tgtSchemas.addSchema(tgtSchema); 
-        
+        tgtSchema.setType(srcSchema.getType());
+        tgtSchemas.addSchema(tgtSchema);
+
         tgtSchemas.addSchema(srcSchema);
 
         DbSchemasDiff diff = new DbSchemasDiff(srcSchemas, tgtSchemas);
@@ -319,33 +312,33 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
     @Test
     public void testMultipleIllegalUpgradeChanges() {
         srcSchema = new DataObjectSchema(WithIndexAnnotation.class);
-        srcSchema.setType(srcSchema.getType()); 
+        srcSchema.setType(srcSchema.getType());
         srcSchemas.addSchema(srcSchema);
-        
+
         srcSchema = new DataObjectSchema(ClassUT7.class);
-        srcSchema.setType(srcSchema.getType()); 
-        srcSchemas.addSchema(srcSchema); 
-        
+        srcSchema.setType(srcSchema.getType());
+        srcSchemas.addSchema(srcSchema);
+
         srcSchema = new DataObjectSchema(ClassUT4.class);
-        srcSchema.setType(srcSchema.getType()); 
-        srcSchemas.addSchema(srcSchema); 
-        
+        srcSchema.setType(srcSchema.getType());
+        srcSchemas.addSchema(srcSchema);
+
         srcSchema = new DataObjectSchema(ClassUT5.class);
-        srcSchema.setType(srcSchema.getType()); 
-        srcSchemas.addSchema(srcSchema); 
-        
+        srcSchema.setType(srcSchema.getType());
+        srcSchemas.addSchema(srcSchema);
+
         tgtSchema = new DataObjectSchema(WithRemovedIndexAnnotation.class);
-        tgtSchema.setType(srcSchema.getType()); 
-        tgtSchemas.addSchema(tgtSchema); 
-        
+        tgtSchema.setType(srcSchema.getType());
+        tgtSchemas.addSchema(tgtSchema);
+
         tgtSchema = new DataObjectSchema(ClassUT3.class);
-        tgtSchema.setType(srcSchema.getType()); 
-        tgtSchemas.addSchema(tgtSchema); 
-        
+        tgtSchema.setType(srcSchema.getType());
+        tgtSchemas.addSchema(tgtSchema);
+
         tgtSchema = new DataObjectSchema(ClassUT6.class);
-        tgtSchema.setType(srcSchema.getType()); 
-        tgtSchemas.addSchema(tgtSchema); 
-        
+        tgtSchema.setType(srcSchema.getType());
+        tgtSchemas.addSchema(tgtSchema);
+
         DbSchemasDiff diff = new DbSchemasDiff(srcSchemas, tgtSchemas);
 
         Assert.assertFalse(diff.isUpgradable());
@@ -355,12 +348,12 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
     @Test
     public void testRemoveNamedRelationIndex() {
         srcSchema = new DataObjectSchema(WithNamedRelationIndex.class);
-        srcSchema.setType(srcSchema.getType()); 
+        srcSchema.setType(srcSchema.getType());
         srcSchemas.addSchema(srcSchema);
-        
+
         tgtSchema = new DataObjectSchema(WithRemovedIndexAnnotation.class);
-        tgtSchema.setType(srcSchema.getType()); 
-        tgtSchemas.addSchema(tgtSchema); 
+        tgtSchema.setType(srcSchema.getType());
+        tgtSchemas.addSchema(tgtSchema);
         DbSchemasDiff diff = new DbSchemasDiff(srcSchemas, tgtSchemas);
 
         Assert.assertFalse(diff.isUpgradable());
@@ -371,19 +364,19 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
     public void testDataObjectWithInvalidDependencyCheck() {
         log.info("testDataObjectWithInvalidDependencyCheck() started...");
         DataObjectScanner scanner = new DataObjectScanner();
-        String[] packages = new String[] {"com.emc.storageos.db.common.model"};
+        String[] packages = new String[] { "com.emc.storageos.db.common.model" };
         scanner.setPackages(packages);
 
         boolean pass = true;
-        try{
+        try {
             scanner.init();
             log.info("testDataObjectWithInvalidDependencyCheck() passed.");
-        }catch(Exception ex) {
-            //do something
+        } catch (Exception ex) {
+            // do something
             log.info("testDataObjectWithInvalidDependencyCheck(), dependency check failed -> " + ex.getMessage());
             pass = false;
         }
-        
+
         Assert.assertFalse(pass);
     }
 
@@ -391,62 +384,62 @@ public class DbSchemaCheckerTest extends BaseDbSchemaCheckerTest {
     public void testDataObjectWithValidDependencyCheck() {
         log.info("testDataObjectWithValidDependencyCheck() started...");
         DataObjectScanner scanner = new DataObjectScanner();
-        String[] packages = new String[] {"com.emc.storageos.db.common.model2"};
+        String[] packages = new String[] { "com.emc.storageos.db.common.model2" };
         scanner.setPackages(packages);
         boolean pass = true;
-        try{
+        try {
             scanner.init();
             log.info("testDataObjectWithValidDependencyCheck() passed.");
-        }catch(Exception ex) {
-            //do something
+        } catch (Exception ex) {
+            // do something
             log.info("testDataObjectWithValidDependencyCheck(), dependency check failed -> " + ex.getMessage());
             pass = false;
         }
-        
+
         Assert.assertTrue(pass);
     }
-    
+
     @Test
     public void testGeoNewAnnotationOnExistingField() {
         DbSchema srcGeoSchema = new DataObjectSchema(GeoClassUT.class);
         srcSchemas.addSchema(srcGeoSchema);
         tgtSchema = new DataObjectSchema(GeoNewAnnotationOnExistingField.class);
-        tgtSchema.setType(srcSchema.getType()); 
-        tgtSchemas.addSchema(tgtSchema); 
+        tgtSchema.setType(srcSchema.getType());
+        tgtSchemas.addSchema(tgtSchema);
         tgtSchemas.addSchema(srcSchema);
         DbSchemasDiff diff = new DbSchemasDiff(srcSchemas, tgtSchemas);
-        
+
         // Adding index on existing field of Geo object is not allowed
         Assert.assertFalse(diff.isUpgradable());
         Assert.assertTrue(diff.isChanged());
     }
-    
+
     @Test
     public void testGeoNewAnnotationOnNewField() {
         DbSchema srcGeoSchema = new DataObjectSchema(GeoClassUT.class);
         srcSchemas.addSchema(srcGeoSchema);
         tgtSchema = new DataObjectSchema(GeoNewField.class);
-        tgtSchema.setType(srcSchema.getType()); 
-        tgtSchemas.addSchema(tgtSchema); 
+        tgtSchema.setType(srcSchema.getType());
+        tgtSchemas.addSchema(tgtSchema);
         tgtSchemas.addSchema(srcSchema);
         DbSchemasDiff diff = new DbSchemasDiff(srcSchemas, tgtSchemas);
-        
+
         // Adding index on new field of Geo object is allowed
         Assert.assertTrue(diff.isUpgradable());
         Assert.assertTrue(diff.isChanged());
     }
-    
+
     @Test
     public void testGeoNewAnnotationOnNewCF() {
         DbSchema srcGeoSchema = new DataObjectSchema(GeoClassUT.class);
         srcSchemas.addSchema(srcGeoSchema);
         tgtSchemas.addSchema(srcGeoSchema);
         tgtSchema = new DataObjectSchema(GeoNewCF.class);
-        tgtSchema.setType(srcSchema.getType()); 
+        tgtSchema.setType(srcSchema.getType());
         tgtSchemas.addSchema(tgtSchema);
         tgtSchemas.addSchema(srcSchema);
         DbSchemasDiff diff = new DbSchemasDiff(srcSchemas, tgtSchemas);
-        
+
         // Adding index of new Geo object is allowed
         Assert.assertTrue(diff.isUpgradable());
         Assert.assertTrue(diff.isChanged());

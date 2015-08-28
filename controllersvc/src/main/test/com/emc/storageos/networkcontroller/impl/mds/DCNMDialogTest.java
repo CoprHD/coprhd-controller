@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.networkcontroller.impl.mds;
@@ -10,7 +10,6 @@ import java.util.List;
 import javax.cim.CIMInstance;
 
 import com.emc.storageos.services.util.EnvConfig;
-
 
 public class DCNMDialogTest {
 

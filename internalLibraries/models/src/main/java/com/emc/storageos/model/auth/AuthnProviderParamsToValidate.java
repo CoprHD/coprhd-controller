@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.auth;
 
@@ -36,8 +26,9 @@ public class AuthnProviderParamsToValidate {
     private List<String> groupObjectClasses;
     private List<String> groupMemberAttributes;
 
-    public AuthnProviderParamsToValidate() {}
-    
+    public AuthnProviderParamsToValidate() {
+    }
+
     public AuthnProviderParamsToValidate(String managerDN, String managerPwd,
             List<String> urls, String searchBase) {
         this.managerDN = managerDN;
@@ -45,7 +36,7 @@ public class AuthnProviderParamsToValidate {
         this.urls = urls;
         this.searchBase = searchBase;
     }
-    
+
     public AuthnProviderParamsToValidate(String managerDN, String managerPwd,
             String searchBase) {
         this.managerDN = managerDN;
@@ -91,7 +82,7 @@ public class AuthnProviderParamsToValidate {
     public void setSearchBase(String searchBase) {
         this.searchBase = searchBase;
     }
-    
+
     @XmlElement(name = "mode_validate")
     public String getMode() {
         return mode;
@@ -109,30 +100,30 @@ public class AuthnProviderParamsToValidate {
     public void setGroupAttr(String groupAttr) {
         this.groupAttr = groupAttr;
     }
-    
+
     @XmlElementWrapper(name = "group_object_classes_validate")
     @XmlElement(name = "group_object_class_validate")
-	public List<String> getGroupObjectClasses() {
-    	if (groupObjectClasses == null) {
-    		groupObjectClasses = new ArrayList<String>();
+    public List<String> getGroupObjectClasses() {
+        if (groupObjectClasses == null) {
+            groupObjectClasses = new ArrayList<String>();
         }
-		return groupObjectClasses;
-	}
+        return groupObjectClasses;
+    }
 
-	public void setGroupObjectClasses(List<String> groupObjectClasses) {
-		this.groupObjectClasses = groupObjectClasses;
-	}
+    public void setGroupObjectClasses(List<String> groupObjectClasses) {
+        this.groupObjectClasses = groupObjectClasses;
+    }
 
-	@XmlElementWrapper(name = "group_member_attributes_validate")
+    @XmlElementWrapper(name = "group_member_attributes_validate")
     @XmlElement(name = "group_member_attribute_validate")
-	public List<String> getGroupMemberAttributes() {
-		if (groupMemberAttributes == null) {
-			groupMemberAttributes = new ArrayList<String>();
+    public List<String> getGroupMemberAttributes() {
+        if (groupMemberAttributes == null) {
+            groupMemberAttributes = new ArrayList<String>();
         }
-		return groupMemberAttributes;
-	}
+        return groupMemberAttributes;
+    }
 
-	public void setGroupMemberAttributes(List<String> groupMemberAttributes) {
-		this.groupMemberAttributes = groupMemberAttributes;
-	}
+    public void setGroupMemberAttributes(List<String> groupMemberAttributes) {
+        this.groupMemberAttributes = groupMemberAttributes;
+    }
 }

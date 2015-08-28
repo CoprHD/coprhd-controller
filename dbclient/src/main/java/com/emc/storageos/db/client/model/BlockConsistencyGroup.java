@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
@@ -10,93 +10,93 @@ import java.util.Iterator;
 
 @Cf("BlockConsistencyGroup")
 public class BlockConsistencyGroup extends DataObject implements ProjectResource {
-    
-	/**
-	 * Storage system where this consistency group is located
-	 */
-	private URI _storageController;
 
-	/**
-	 * Virtual array where this consistency group exists
-	 */
-	private URI _virtualArray;
-
-	/**
-	 * Project within this consistency group exists
-	 */
-	private NamedURI _project;
-
-	/**
-	 * Tenant within this consistency group exists
-	 */
-	private NamedURI _tenant;
-
-	/**
-	 * Unique name created by the NameGenerator Class
-	 */
-	@Deprecated
-	private String _deviceName;
-	
-	/**
-	 * SRDF CGs or Local.
-	 */
-    @Deprecated
-	private String type;
-	
     /**
-     * Types that this BlockConsistencyGroup maps to.  A single
-     * BlockConsistencyGroup can map to multiple different consistency 
+     * Storage system where this consistency group is located
+     */
+    private URI _storageController;
+
+    /**
+     * Virtual array where this consistency group exists
+     */
+    private URI _virtualArray;
+
+    /**
+     * Project within this consistency group exists
+     */
+    private NamedURI _project;
+
+    /**
+     * Tenant within this consistency group exists
+     */
+    private NamedURI _tenant;
+
+    /**
+     * Unique name created by the NameGenerator Class
+     */
+    @Deprecated
+    private String _deviceName;
+
+    /**
+     * SRDF CGs or Local.
+     */
+    @Deprecated
+    private String type;
+
+    /**
+     * Types that this BlockConsistencyGroup maps to. A single
+     * BlockConsistencyGroup can map to multiple different consistency
      * group types. This set is not filled in until the corresponding provisioning
      * for each type has been completed.
      */
-	private StringSet types;
-	
-	/**
-	 * Requested types. This is initialized when we are first creating the CG, and
-	 * then used to determine if the CG creation has completed by comparing it
-	 * with types.
-	 */
-	private StringSet requestedTypes;
-	
-	/**
-	 * Alternate label used in SRDF.
-	 */
-	private String alternateLabel;
+    private StringSet types;
 
-	/**
-	 * Maps the StorageSystem (for VPlex, VNX, VMAX) and/or ProtectionSystem (for RP) 
-	 * to the corresponding consistency groups that have been created.
-	 * 
-	 * Here are the different permutations that can exist based on types:
-	 * RP: [protectionSystem->cg1]
-	 * LOCAL: [storageSystem->cg1]
-	 * SRDF: [storageSystem->cg1]
-	 * VPLEX: [storageSystem->[cluster-1:cg1,cluster-2:cg1]]
-	 * RP,VPLEX: [protectionSystem->cg1,storageSystem->[cluster-1:cg1,cluster-2:cg1]]
-	 */
-	private StringSetMap systemConsistencyGroups;
-	
-	public static enum Types {
-	    /* RecoverPoint consistency group type. */
-	    RP,
-	    /* SRDF consistency group type. */
-		SRDF,
-		/* VPlex consistency group type. */
-		VPLEX,
-		/* Array-based consistency group type. */
-	    LOCAL
-	}	
-    
+    /**
+     * Requested types. This is initialized when we are first creating the CG, and
+     * then used to determine if the CG creation has completed by comparing it
+     * with types.
+     */
+    private StringSet requestedTypes;
+
+    /**
+     * Alternate label used in SRDF.
+     */
+    private String alternateLabel;
+
+    /**
+     * Maps the StorageSystem (for VPlex, VNX, VMAX) and/or ProtectionSystem (for RP)
+     * to the corresponding consistency groups that have been created.
+     * 
+     * Here are the different permutations that can exist based on types:
+     * RP: [protectionSystem->cg1]
+     * LOCAL: [storageSystem->cg1]
+     * SRDF: [storageSystem->cg1]
+     * VPLEX: [storageSystem->[cluster-1:cg1,cluster-2:cg1]]
+     * RP,VPLEX: [protectionSystem->cg1,storageSystem->[cluster-1:cg1,cluster-2:cg1]]
+     */
+    private StringSetMap systemConsistencyGroups;
+
+    public static enum Types {
+        /* RecoverPoint consistency group type. */
+        RP,
+        /* SRDF consistency group type. */
+        SRDF,
+        /* VPlex consistency group type. */
+        VPLEX,
+        /* Array-based consistency group type. */
+        LOCAL
+    }
+
     @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
-	@Name("storageDevice")
-	public URI getStorageController() {
-		return _storageController;
-	}
+    @Name("storageDevice")
+    public URI getStorageController() {
+        return _storageController;
+    }
 
-	public void setStorageController(URI storageController) {
-		_storageController = storageController;
-		setChanged("storageDevice");
-	}
+    public void setStorageController(URI storageController) {
+        _storageController = storageController;
+        setChanged("storageDevice");
+    }
 
     @Name("varray")
     @RelationIndex(cf = "RelationIndex", type = VirtualArray.class)
@@ -109,40 +109,40 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         setChanged("varray");
     }
 
-	@Name("project")
-	@NamedRelationIndex(cf = "NamedRelation", type = Project.class)
-	public NamedURI getProject() {
-		return _project;
-	}
+    @Name("project")
+    @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
+    public NamedURI getProject() {
+        return _project;
+    }
 
-	public void setProject(NamedURI project) {
-		_project = project;
-		setChanged("project");
-	}
+    public void setProject(NamedURI project) {
+        _project = project;
+        setChanged("project");
+    }
 
-	@NamedRelationIndex(cf = "NamedRelation")
-	@Name("tenant")
-	public NamedURI getTenant() {
-		return _tenant;
-	}
+    @NamedRelationIndex(cf = "NamedRelation")
+    @Name("tenant")
+    public NamedURI getTenant() {
+        return _tenant;
+    }
 
-	public void setTenant(NamedURI tenant) {
-		_tenant = tenant;
-		setChanged("tenant");
-	}
-	
-	@Name("deviceName")
-	@Deprecated
-	public String getDeviceName() {
-		return _deviceName;
-	}
+    public void setTenant(NamedURI tenant) {
+        _tenant = tenant;
+        setChanged("tenant");
+    }
 
-	@Deprecated
-	public void setDeviceName(String deviceName) {
-		_deviceName = deviceName;
-		setChanged("deviceName");
-	}
-	
+    @Name("deviceName")
+    @Deprecated
+    public String getDeviceName() {
+        return _deviceName;
+    }
+
+    @Deprecated
+    public void setDeviceName(String deviceName) {
+        _deviceName = deviceName;
+        setChanged("deviceName");
+    }
+
     @AlternateId("AltIdIndex")
     @Name("alternateLabel")
     public String getAlternateLabel() {
@@ -153,7 +153,7 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         this.alternateLabel = alternateLabel;
         setChanged("alternateLabel");
     }
-    
+
     // alternate label set only for target SRDF Groups
     public boolean srdfTarget() {
         return null != alternateLabel;
@@ -170,7 +170,7 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         this.type = type;
         setChanged("type");
     }
-    
+
     @Name("types")
     public StringSet getTypes() {
         if (types == null) {
@@ -183,50 +183,51 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         this.types = types;
         setChanged("types");
     }
-    
+
     @Name("requestedTypes")
     public StringSet getRequestedTypes() {
-    	// Handle migration case where we did not record requestedTypes by initializing it to Types
-    	if (this.requestedTypes == null && this.types != null && !this.types.isEmpty()) {
-    		requestedTypes = new StringSet();
-    		requestedTypes.addAll(getTypes());
-    		setRequestedTypes(requestedTypes);
-    		return requestedTypes;
-    	}
-    	if (this.requestedTypes == null) {
-    		requestedTypes = new StringSet();
-    	}
-    	return requestedTypes;
+        // Handle migration case where we did not record requestedTypes by initializing it to Types
+        if (this.requestedTypes == null && this.types != null && !this.types.isEmpty()) {
+            requestedTypes = new StringSet();
+            requestedTypes.addAll(getTypes());
+            setRequestedTypes(requestedTypes);
+            return requestedTypes;
+        }
+        if (this.requestedTypes == null) {
+            requestedTypes = new StringSet();
+        }
+        return requestedTypes;
     }
-    
+
     public void setRequestedTypes(StringSet requestedTypes) {
-    	this.requestedTypes = requestedTypes;
-    	setChanged("requestedTypes");
+        this.requestedTypes = requestedTypes;
+        setChanged("requestedTypes");
     }
-    
+
     public void addRequestedTypes(Collection<String> addedTypes) {
-    	if (this.requestedTypes == null) {
-    		setRequestedTypes(new StringSet());;
-    	}
-    	for (String type : addedTypes) {
-    		getRequestedTypes().add(type);
-    	}
+        if (this.requestedTypes == null) {
+            setRequestedTypes(new StringSet());
+            ;
+        }
+        for (String type : addedTypes) {
+            getRequestedTypes().add(type);
+        }
     }
-    
+
     @Name("systemConsistencyGroups")
     public StringSetMap getSystemConsistencyGroups() {
         return systemConsistencyGroups;
     }
-                   
+
     public void setSystemConsistencyGroups(
             StringSetMap systemConsistencyGroups) {
         this.systemConsistencyGroups = systemConsistencyGroups;
         setChanged("systemConsistencyGroups");
     }
-    
+
     /**
-     * Check whether this Consistency Group has been created.  For each
-     * of the requested BlockConsistencyGroup types, we must have  
+     * Check whether this Consistency Group has been created. For each
+     * of the requested BlockConsistencyGroup types, we must have
      * associated consistency groups that have been created,
      * which is indicated by the presence in types. If nothing has been
      * requested yet, we haven't created the consistencyGroup.
@@ -236,16 +237,17 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
     public boolean created() {
         return !getRequestedTypes().isEmpty() && getTypes().containsAll(getRequestedTypes());
     }
-    
+
     /**
      * Returns true if CG creation has been initiated or even completed
      * as given by something was recorded in requestedTypes().
+     * 
      * @return true if CG creation has been initiated.
      */
     public boolean creationInitiated() {
-    	return !getRequestedTypes().isEmpty();
+        return !getRequestedTypes().isEmpty();
     }
-    
+
     /**
      * Check to see if the consistency group has been created for the given
      * storage system.
@@ -254,19 +256,20 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
      * @return true if the consistency group has been created, false otherwise.
      */
     public boolean created(URI storageSystemUri) {
-        if (storageSystemUri != null && 
+        if (storageSystemUri != null &&
                 systemConsistencyGroups != null && !systemConsistencyGroups.isEmpty()) {
             StringSet cgNames = systemConsistencyGroups.get(storageSystemUri.toString());
             if (cgNames != null && !cgNames.isEmpty()) {
                 return true;
             }
         }
-        
+
         return false;
     }
-    
+
     /**
      * Convenience method to add a consistency group type.
+     * 
      * @param types The types to add to this consistency group.
      */
     public void addConsistencyGroupTypes(String... cgTypes) {
@@ -278,7 +281,7 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
             types.add(type);
         }
     }
-    
+
     /**
      * Determines if the consistency group has the passed type.
      * 
@@ -293,7 +296,7 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
             return types.contains(type.toString());
         }
     }
-    
+
     /**
      * Add a mapping of storage systems to consistency group names.
      * 
@@ -304,21 +307,21 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         if (systemConsistencyGroups == null) {
             setSystemConsistencyGroups(new StringSetMap());
         }
-        
+
         if (!systemConsistencyGroups.containsKey(systemUri)) {
             systemConsistencyGroups.put(systemUri, new StringSet());
         }
-        
+
         StringSet systemCgNames = systemConsistencyGroups.get(systemUri);
         systemCgNames.add(cgName);
-    } 
-    
+    }
+
     /**
      * Remove a mapping of storage system to consistency group name.
      * 
      * @param systemUri The StorageSystem or ProtectionSystem URI string.
      * @param cgName The consistency group name.
-     */               
+     */
     public void removeSystemConsistencyGroup(String systemUri, String cgName) {
         if ((systemConsistencyGroups != null) && (systemConsistencyGroups.containsKey(systemUri))) {
             StringSet systemCgNames = systemConsistencyGroups.get(systemUri);
@@ -327,8 +330,8 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
                 systemConsistencyGroups.remove(systemUri);
             }
         }
-    }     
-    
+    }
+
     /**
      * Gets the first CG name that corresponds to the provided storage system URI.
      * A BlockConsistencyGroup can only map to a single consistency group on a single
@@ -341,19 +344,20 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         if (storageSystemUri == null) {
             return null;
         }
-        
+
         if (systemConsistencyGroups != null && !systemConsistencyGroups.isEmpty()) {
             StringSet cgNames = systemConsistencyGroups.get(storageSystemUri.toString());
             if (cgNames != null && cgNames.iterator().hasNext()) {
-            	return cgNames.iterator().next();
+                return cgNames.iterator().next();
             }
         }
-        
+
         return null;
     }
-    
+
     /**
      * checks to see if the CG name matches the name ViPR has stored for the storage system
+     * 
      * @param cgId id of the CG in the DB
      * @param storageSystemId storage system to check the CG name
      * @param cgParams cg params with CG name
@@ -363,9 +367,10 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         return cgName != null ? cgName.equals(getNameOnStorageSystem(storageSystemId))
                 : false;
     }
-    
+
     /**
      * returns the name of the CG on the storage system if ViPR has created this CG on the storage system in the past
+     * 
      * @param cgId id of the CG in the ViPR db
      * @param storageSystemId storage system to get the name for
      * @return the CG name or null if ViPR has not created the CG on the storage system
@@ -385,5 +390,5 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         }
         return cgName;
     }
-    
+
 }

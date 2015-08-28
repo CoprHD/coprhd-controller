@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.vipr.model.sys.logging;
 
@@ -38,66 +28,71 @@ public class LogMessage {
     // The log message
     @JsonProperty("message")
     private String message = "";
-    
+
     // The Bourne node identifier.
     @JsonProperty("node")
     private String nodeId;
+
+    // The Bourne node identifier.
+    @JsonProperty("node_name")
+    private String nodeName;
     
     // The line number in the class. 
     @JsonProperty("line")
     private String lineNumber;
-    
+
     // The class generating the log message.
     @JsonProperty("class")
     private String className;
-    
+
     // The name of the Bourne service.
     @JsonProperty("service")
     private String svcName;
-    
-    // The thread in which the message was logged.  
+
+    // The thread in which the message was logged.
     @JsonProperty("thread")
     private String thread;
-    
+
     // The severity of the message.
     @JsonProperty("severity")
     private LogSeverity severity;
-    
+
     // Message time in MS
     @JsonProperty("time_ms")
     private long timeMS;
-    
+
     // Message formatted time
     @JsonProperty("time")
     private String time;
-    
+
     @JsonProperty("_facility")
     private String facility;
 
     // length of original log message read, for measuring purpose
     @JsonIgnore
     private int length;
-	
+
     private static ThreadLocal<SimpleDateFormat> dateFormat = new ThreadLocal
-            <SimpleDateFormat>() {            
-                @Override 
+            <SimpleDateFormat>() {
+                @Override
                 protected SimpleDateFormat initialValue() {
                     SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
                     dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
                     return dateFormat;
                 }
             };
-            
+
     public LogMessage() {
 
     }
 
     //Constructor for Service logs
-    public LogMessage(String nodeId, String svcName, long timeMS, String thread,
+    public LogMessage(String nodeId, String nodeName, String svcName, long timeMS, String thread,
                       String severity, String className, String lineNumber, String message) {
 
         this.message = message;
         this.nodeId = nodeId;
+        this.nodeName = nodeName;
         this.lineNumber = lineNumber;
         this.className = className;
         this.svcName = svcName;
@@ -108,18 +103,19 @@ public class LogMessage {
     }
 
     //Constructor for Sys logs
-    public LogMessage(String nodeId, long timeMS, String facility,
+    public LogMessage(String nodeId, String nodeName, long timeMS, String facility,
                       String severity, String svcName, String message) {
         this.message = message;
         this.nodeId = nodeId;
+        this.nodeName = nodeName;
         this.svcName = svcName;
         this.severity = LogSeverity.find(severity.toUpperCase());
         this.timeMS = timeMS;
         setTimeStr();
         this.facility = facility;
     }
-    
-    //Constructor for error logs
+
+    // Constructor for error logs
     public LogMessage(String errMsg, Throwable t) {
         this.message = errMsg;
         this.svcName = LogConstants.INTERNAL_ERROR;
@@ -137,7 +133,7 @@ public class LogMessage {
 
     /**
      * Getter for the Bourne node identifier on which the message was logged.
-     *
+     * 
      * @return The Bourne node identifier on which the message was logged.
      */
     @XmlElement(name = "node")
@@ -147,7 +143,7 @@ public class LogMessage {
 
     /**
      * Setter for the Bourne node identifier on which the message was logged.
-     *
+     * 
      * @param nodeId The Bourne node identifier on which the message was logged.
      */
     public void setNodeId(String nodeId) {
@@ -155,8 +151,27 @@ public class LogMessage {
     }
 
     /**
-     * Getter for the name of the service that logged the message.
+     * Getter for the ViPR node name on which the message was logged.
      *
+     * @return The ViPR node name on which the message was logged.
+     */
+    @XmlElement(name = "node_name")
+    public String getNodeName() {
+        return nodeName;
+    }
+
+    /**
+     * Setter for the ViPR node name on which the message was logged.
+     *
+     * @param nodeName The ViPR node name on which the message was logged.
+     */
+    public void setNodeName(String nodeName) {
+        this.nodeName = nodeName;
+    }
+
+    /**
+     * Getter for the name of the service that logged the message.
+     * 
      * @return The name of the service that logged the message.
      */
     @XmlElement(name = "service")
@@ -166,7 +181,7 @@ public class LogMessage {
 
     /**
      * Setter for the name of the service that logged the message.
-     *
+     * 
      * @param svcName The name of the service that logged the message.
      */
     public void setSvcName(String svcName) {
@@ -175,7 +190,7 @@ public class LogMessage {
 
     /**
      * Getter for the log message timestamp.
-     *
+     * 
      * @return The log message timestamp.
      */
     @XmlElement(name = "time")
@@ -187,17 +202,17 @@ public class LogMessage {
     }
 
     /**
-     * Setter for the time string.  
-     *
+     * Setter for the time string.
+     * 
      * @param time The log message time string.
      */
     public void setTime(String time) {
         this.time = time;
     }
-    
+
     /**
      * Getter for the log message thread.
-     *
+     * 
      * @return The log message thread.
      */
     @XmlElement(name = "thread")
@@ -207,7 +222,7 @@ public class LogMessage {
 
     /**
      * Setter for the log message thread.
-     *
+     * 
      * @param thread The log message thread.
      */
     public void setThread(String thread) {
@@ -216,7 +231,7 @@ public class LogMessage {
 
     /**
      * Getter for the severity level of the message.
-     *
+     * 
      * @return The severity level of the message.
      */
     @XmlElement(name = "severity")
@@ -226,7 +241,7 @@ public class LogMessage {
 
     /**
      * Setter for the severity level of the message.
-     *
+     * 
      * @param severity The severity level of the message.
      */
     public void setSeverity(LogSeverity severity) {
@@ -235,7 +250,7 @@ public class LogMessage {
 
     /**
      * Getter for the log message class name.
-     *
+     * 
      * @return The log message class name.
      */
     @XmlElement(name = "class")
@@ -245,7 +260,7 @@ public class LogMessage {
 
     /**
      * Setter for the log message class name.
-     *
+     * 
      * @param className The log message class name.
      */
     public void setClassName(String className) {
@@ -254,7 +269,7 @@ public class LogMessage {
 
     /**
      * Getter for the log message class line number
-     *
+     * 
      * @return The log message class line number.
      */
     @XmlElement(name = "line")
@@ -264,7 +279,7 @@ public class LogMessage {
 
     /**
      * Setter for the log message class line number.
-     *
+     * 
      * @param lineNumber The log message class lineNumber.
      */
     public void setLineNumber(String lineNumber) {
@@ -273,7 +288,7 @@ public class LogMessage {
 
     /**
      * Getter for the log message text.
-     *
+     * 
      * @return The log message text.
      */
     @XmlElement(name = "message")
@@ -283,7 +298,7 @@ public class LogMessage {
 
     /**
      * Setter for the log message text.
-     *
+     * 
      * @param message The log message text.
      */
     public void setMessage(String message) {
@@ -307,7 +322,7 @@ public class LogMessage {
     public void setFacility(String facility) {
         this.facility = facility;
     }
-    
+
     public int getLength() {
         return length;
     }
@@ -315,15 +330,17 @@ public class LogMessage {
     public void setLength(int length) {
         this.length = length;
     }
-	
+
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
         if (className != null && !className.isEmpty()) {
-            //service logs
+            // service logs
             sb.append(getTime());
             sb.append(LogConstants.GAP);
             sb.append(nodeId);
+            sb.append(LogConstants.GAP);
+            sb.append(nodeName);
             sb.append(LogConstants.GAP);
             sb.append(svcName);
             sb.append(LogConstants.GAP);
@@ -343,10 +360,12 @@ public class LogMessage {
             sb.append(LogConstants.GAP);
             sb.append(message);
         } else {
-            //system logs
+            // system logs
             sb.append(getTime());
             sb.append(LogConstants.GAP);
             sb.append(nodeId);
+            sb.append(LogConstants.GAP);
+            sb.append(nodeName);
             sb.append(LogConstants.GAP);
             sb.append(LogConstants.OPEN_SQUARE);
             sb.append(facility);

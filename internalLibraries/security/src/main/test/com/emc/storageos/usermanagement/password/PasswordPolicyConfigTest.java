@@ -1,28 +1,22 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.usermanagement.password;
 
-import com.emc.storageos.coordinator.service.impl.Main;
 import com.emc.storageos.model.property.PropertyInfoUpdate;
 import com.emc.storageos.model.property.PropertyList;
 import com.emc.storageos.security.password.Constants;
-import com.emc.storageos.security.password.PasswordUtils;
-import com.emc.storageos.security.password.ValidatorFactory;
 import com.emc.storageos.usermanagement.setup.LocalUserMode;
 import com.emc.vipr.client.exceptions.ServiceErrorException;
-import com.emc.vipr.model.sys.ClusterInfo;
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-
 
 public class PasswordPolicyConfigTest extends LocalUserMode {
     private static Logger logger = LoggerFactory.getLogger(PasswordPolicyConfigTest.class);
@@ -39,7 +33,6 @@ public class PasswordPolicyConfigTest extends LocalUserMode {
         String lenghth = getViprProperty(Constants.PASSWORD_MIN_LENGTH);
         logger.info(Constants.PASSWORD_MIN_LENGTH + ": " + lenghth);
         Assert.assertTrue(lenghth.equalsIgnoreCase(new_min_length));
-
 
         new_min_length = "";
         logger.info("set to empty space:");
@@ -115,7 +108,6 @@ public class PasswordPolicyConfigTest extends LocalUserMode {
             Assert.assertTrue(see.getMessage().contains("Expire days is invalid, it has to be in range"));
         }
 
-
         // test normal value
         waitForClusterStable();
         setViprProperty(Constants.PASSWORD_EXPIRE_DAYS, nomal);
@@ -153,12 +145,11 @@ public class PasswordPolicyConfigTest extends LocalUserMode {
         logger.info(property + ": " + getViprProperty(property));
     }
 
-
     private String getViprProperty(String name) {
         return systemClient.config().getProperties().getProperty(name);
     }
 
-    private void setViprProperty(String name, String value) throws Exception{
+    private void setViprProperty(String name, String value) throws Exception {
         waitForClusterStable();
         Map<String, String> properties = new HashMap<String, String>();
         properties.put(name, value);
@@ -167,7 +158,7 @@ public class PasswordPolicyConfigTest extends LocalUserMode {
         systemClient.config().setProperties(propertyInfoUpdate);
     }
 
-    private void resetViprProperty(String name) throws Exception{
+    private void resetViprProperty(String name) throws Exception {
         waitForClusterStable();
         PropertyList properties = new PropertyList();
         ArrayList<String> names = new ArrayList<String>();

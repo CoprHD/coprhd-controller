@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -11,6 +11,8 @@ import java.net.URI;
 import java.util.List;
 import java.util.Set;
 import java.util.TreeSet;
+
+import models.StorageProviderTypes;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -34,8 +36,7 @@ public class StorageProviderUtils {
     public static StorageProviderRestRep getStorageProvider(URI id) {
         try {
             return getViprClient().storageProviders().get(id);
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }
@@ -75,13 +76,19 @@ public class StorageProviderUtils {
         update.setName(name);
         update.setIpAddress(ipAddress);
         update.setPortNumber(portNumber);
-        update.setUserName(userName);
-        update.setPassword(password);
+        update.setUserName(userName);        
+        update.setPassword(password);        
         update.setUseSSL(useSSL == null ? false : useSSL);
         update.setInterfaceType(interfaceType);
         update.setSecondaryUsername(StringUtils.defaultIfEmpty(secondaryUsername, null));
         update.setSecondaryPassword(StringUtils.defaultIfEmpty(secondaryPassword, null));
         update.setElementManagerURL(StringUtils.defaultIfEmpty(elementManagerURL, null));
+        if (StorageProviderTypes.isScaleIOApi(interfaceType)) {
+        	update.setUserName(secondaryUsername);
+        	update.setPassword(secondaryPassword);
+        	update.setSecondaryUsername(null);
+        	update.setSecondaryPassword(null);
+        }
         return getViprClient().storageProviders().create(update);
     }
 
@@ -99,6 +106,12 @@ public class StorageProviderUtils {
         update.setSecondaryUsername(StringUtils.defaultIfEmpty(secondaryUsername, null));
         update.setSecondaryPassword(StringUtils.defaultIfEmpty(secondaryPassword, null));
         update.setElementManagerURL(StringUtils.defaultIfEmpty(elementManagerURL, null));
+        if (StorageProviderTypes.isScaleIOApi(interfaceType)) {
+        	update.setUserName(secondaryUsername);
+        	update.setPassword(secondaryPassword);
+        	update.setSecondaryUsername(null);
+        	update.setSecondaryPassword(null);
+        }
         return getViprClient().storageProviders().update(id, update);
     }
 

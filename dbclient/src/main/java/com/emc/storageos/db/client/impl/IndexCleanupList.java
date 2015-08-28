@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.impl;
@@ -30,7 +20,7 @@ import com.netflix.astyanax.model.Column;
 /**
  * Utility class for accumulating obsolete columns during deserialization
  */
-public class IndexCleanupList  implements IndexColumnList{
+public class IndexCleanupList implements IndexColumnList {
 
     private static final Logger _log = LoggerFactory.getLogger(IndexCleanupList.class);
 
@@ -38,7 +28,7 @@ public class IndexCleanupList  implements IndexColumnList{
 
     private Map<String, List<Column<CompositeColumnName>>> _cleanupList;
     private Map<String, Map<CompositeColumnName, Column>> _currentMap;
-    //_allColMap is a union of _cleanupList and _currentMap. It might be a redundant structure
+    // _allColMap is a union of _cleanupList and _currentMap. It might be a redundant structure
     // but it easier to operate.
     private Map<String, Map<String, List<Column<CompositeColumnName>>>> _allColMap;
     private Map<String, DataObject> _cleanedObjects;
@@ -58,7 +48,7 @@ public class IndexCleanupList  implements IndexColumnList{
             colMap = new HashMap<>();
             _currentMap.put(key, colMap);
             keyColumns = new HashMap<>();
-            _allColMap.put(key,keyColumns);
+            _allColMap.put(key, keyColumns);
         }
         Column previousCol = colMap.put(column.getName(), column);
         if (previousCol != null) {
@@ -66,11 +56,13 @@ public class IndexCleanupList  implements IndexColumnList{
             if (column.getName().getOne().equals(INACTIVE_COLUMN.getOne())) {
                 if (previousCol.getBooleanValue() && !column.getBooleanValue()) {
                     // Switching from true (inactive) to false (active), which is not allowed.
-                    //throw new IllegalStateException(String.format("Row with ID \"%s\" contains a change to \"inactive\" field from true to false, which is not supported", key));
+                    // throw new
+                    // IllegalStateException(String.format("Row with ID \"%s\" contains a change to \"inactive\" field from true to false, which is not supported",
+                    // key));
                     _log.error(String.format("Row with ID '%s' is changed from inactive to active.", key), new RuntimeException());
                 }
             }
-            
+
             List<Column<CompositeColumnName>> cleanList = _cleanupList.get(key);
             if (cleanList == null) {
                 cleanList = new ArrayList<>();
@@ -83,15 +75,15 @@ public class IndexCleanupList  implements IndexColumnList{
         }
         String colName = column.getName().getOne();
         List<Column<CompositeColumnName>> columns = keyColumns.get(colName);
-        if( columns == null) {
+        if (columns == null) {
             columns = new ArrayList<>();
-            keyColumns.put(colName,columns);
+            keyColumns.put(colName, columns);
         }
         columns.add(column);
     }
 
     @Override
-    public Map<String,List<Column<CompositeColumnName>>> getColumnsToClean() {
+    public Map<String, List<Column<CompositeColumnName>>> getColumnsToClean() {
         return Collections.unmodifiableMap(_cleanupList);
     }
 
@@ -116,11 +108,11 @@ public class IndexCleanupList  implements IndexColumnList{
         for (Map.Entry<String, Map<CompositeColumnName, Column>> entry : _currentMap.entrySet()) {
             String rowKey = entry.getKey();
             Map<CompositeColumnName, Column> colMap = entry.getValue();
-            
+
             if (changedOnly && !_cleanupList.containsKey(rowKey)) {
                 continue;
             }
-            
+
             // Check if this row's final "inactive" column is "true"
             Column inactiveColumn = colMap.get(INACTIVE_COLUMN);
             if (inactiveColumn != null && inactiveColumn.getBooleanValue()) {
@@ -128,9 +120,9 @@ public class IndexCleanupList  implements IndexColumnList{
 
                 for (Column<CompositeColumnName> col : colMap.values()) {
                     // All indexed fields except "inactive" itself need to be removed
-                    if (    !col.getName().getOne().equals("inactive")
-                         &&  col.getName().getTimeUUID() != null
-                         && !ColumnField.isDeletionMark(col)) {
+                    if (!col.getName().getOne().equals("inactive")
+                            && col.getName().getTimeUUID() != null
+                            && !ColumnField.isDeletionMark(col)) {
                         cols.add(col);
                     }
                 }
@@ -140,15 +132,15 @@ public class IndexCleanupList  implements IndexColumnList{
                 }
             }
         }
-        
+
         return mapIndexes;
     }
 
-    public void addObject(String key, DataObject object){
-        _cleanedObjects.put(key,object);
+    public void addObject(String key, DataObject object) {
+        _cleanedObjects.put(key, object);
     }
 
-    public DataObject getObject(String key){
+    public DataObject getObject(String key) {
         return _cleanedObjects.get(key);
     }
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.vipr.model.sys;
@@ -29,10 +19,12 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class DownloadProgress {
     Map<String, NodeProgress> progress;
     long imageSize;
-    public DownloadProgress(){
+
+    public DownloadProgress() {
         progress = new TreeMap<String, NodeProgress>();
     }
-    @XmlElement (name = "imageSize")
+
+    @XmlElement(name = "imageSize")
     public long getImageSize() {
         return imageSize;
     }
@@ -40,7 +32,7 @@ public class DownloadProgress {
     public void setImageSize(long size) {
         this.imageSize = size;
     }
-    
+
     @XmlElementWrapper(name = "progress")
     public Map<String, NodeProgress> getProgress() {
         return progress;
@@ -49,8 +41,8 @@ public class DownloadProgress {
     public void setProgress(Map<String, NodeProgress> progress) {
         this.progress = progress;
     }
-    
-    public void addNodeProgress(String nodeId, NodeProgress nodeProgress){
+
+    public void addNodeProgress(String nodeId, NodeProgress nodeProgress) {
         progress.put(nodeId, nodeProgress);
     }
 }

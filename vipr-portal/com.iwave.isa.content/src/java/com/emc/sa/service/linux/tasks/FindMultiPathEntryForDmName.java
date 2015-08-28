@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.linux.tasks;
@@ -42,13 +42,13 @@ public class FindMultiPathEntryForDmName extends LinuxExecutionTask<MultiPathEnt
 
     protected MultiPathEntry findMultiPathEntry(String dmName, List<MultiPathEntry> multipathEntries) {
         for (MultiPathEntry entry : multipathEntries) {
-            String entryDmName= entry.getDmName();
-			logDebug("FindMultiPathEntryForDmName.log.checking", entry.getName(), entry.getDmName(), dmName);
+            String entryDmName = entry.getDmName();
+            logDebug("FindMultiPathEntryForDmName.log.checking", entry.getName(), entry.getDmName(), dmName);
             if (StringUtils.equalsIgnoreCase(entryDmName, dmName)) {
                 return entry;
             }
         }
         return null;
     }
-    
+
 }

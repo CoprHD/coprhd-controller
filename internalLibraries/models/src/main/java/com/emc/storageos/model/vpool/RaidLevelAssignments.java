@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.vpool;
 
@@ -29,7 +19,8 @@ public class RaidLevelAssignments {
     /**
      * Default Constructor.
      */
-    public RaidLevelAssignments() {}
+    public RaidLevelAssignments() {
+    }
 
     public RaidLevelAssignments(Set<String> raidLevels) {
         this.raidLevels = raidLevels;
@@ -46,7 +37,7 @@ public class RaidLevelAssignments {
      * RAID 3 is a byte level striping with a dedicated parity disk.
      * RAID 4 is block level striping with a dedicated parity disk.
      * RAID 5 is block level striping with the parity data distributed across all disks.
-     * RAID 6 extends RAID 5 by adding an additional parity block; 
+     * RAID 6 extends RAID 5 by adding an additional parity block;
      * thus it uses block level striping with two parity blocks.
      * RAID 10 is a stripe of mirrors, i.e. a RAID 0 combination of RAID 1 drives.
      * 
@@ -71,5 +62,5 @@ public class RaidLevelAssignments {
     public void setRaidLevels(Set<String> raidLevels) {
         this.raidLevels = raidLevels;
     }
-    
+
 }

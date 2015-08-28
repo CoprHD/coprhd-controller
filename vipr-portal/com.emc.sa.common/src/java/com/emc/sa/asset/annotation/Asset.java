@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.asset.annotation;
@@ -17,5 +17,5 @@ import java.lang.annotation.Target;
 public @interface Asset {
 
     public String value();
-    //public String[] dependsOn() default {};
+    // public String[] dependsOn() default {};
 }

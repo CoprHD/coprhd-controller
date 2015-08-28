@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.protection;
@@ -17,6 +17,7 @@ public class ProtectionSystemBulkRep extends BulkRestRep {
 
     /**
      * List of Protection Systems.
+     * 
      * @valid 0 or more Protection System IDs
      * @valid example: urn:storageos:ProtectionSystem:4379693c-c2f9-4e8e-ac4f-c67789cf1934:
      */

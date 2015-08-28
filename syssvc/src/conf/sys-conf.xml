@@ -95,14 +95,7 @@
                     </property>
                 </bean>
                 <ref bean="logService"/>
-                <bean class="com.emc.storageos.systemservices.impl.resource.ConfigService">
-                    <property name="proxy" ref="coordinatorclientext" />
-                    <property name="propsMetadata" ref="metadata"/>
-                    <property name="propertiesConfigurationValidator" ref="propertiesConfigurationValidator" />
-                    <property name="defaultProperties" ref="defaultProperties"/>
-                    <property name="ovfProperties" ref="ovfProperties"/>
-                    <property name="propertyHandlers" ref="propertyHandlers"/>
-                </bean>
+                <ref bean="configService"/>
                 <bean class="com.emc.storageos.systemservices.impl.resource.ControlService">
                     <property name="proxy" ref="coordinatorclientext" />
                 </bean>
@@ -123,6 +116,7 @@
                     <property name="coordinatorExt" ref="coordinatorclientext" />
                 </bean>
                 <ref bean="backupService" />
+                <bean class="org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider"/>
             </set>
         </property>
     </bean>
@@ -130,15 +124,17 @@
     <bean id="localPasswordHandler" class="com.emc.storageos.systemservices.impl.util.LocalPasswordHandler">
         <property name="passwordUtils" ref="passwordUtils" />
         <property name="localUsers" ref="localUserMap"/>
-        <property name="configService" ref="passwordConfigService"/>
+        <property name="configService" ref="configService"/>
         <property name="encryptionProvider" ref="encryptionProvider"/>
         <property name="dbClient" ref="dbclient"/>
     </bean>
-    
-    <bean id="passwordConfigService" class="com.emc.storageos.systemservices.impl.resource.ConfigService">
+
+    <bean id="configService" class="com.emc.storageos.systemservices.impl.resource.ConfigService">
         <property name="proxy" ref="coordinatorclientext" />
-        <property name="propsMetadata" ref="metadata"/> 
+        <property name="propsMetadata" ref="metadata"/>
         <property name="propertiesConfigurationValidator" ref="propertiesConfigurationValidator" />
+        <property name="defaultProperties" ref="defaultProperties"/>
+        <property name="ovfProperties" ref="ovfProperties"/>
         <property name="propertyHandlers" ref="propertyHandlers"/>
     </bean>
                         
@@ -248,13 +244,28 @@
         <property name="handlers">
             <list>
                 <ref bean="passwordExpireRuleHandler" />
+                <ref bean="uniqueNodeNameHandler" />
                 <bean class="com.emc.storageos.systemservices.impl.propertyhandler.PasswordChangeIntervalRuleHandler" />
+                <ref bean="authLoginAttemptsHandler" />
+                <ref bean="authLockoutTimeHandler" />
                 <bean class="com.emc.storageos.systemservices.impl.propertyhandler.UpgradeCheckFrequencyRuleHandler" />
             </list>
         </property>
     </bean>
     <bean id="passwordExpireRuleHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.PasswordExpireRuleHandler">
         <property name="passwordHandler" ref="localPasswordHandler"/>
+    </bean>
+    <bean id="authLoginAttemptsHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.AuthLoginAttemptsHandler">
+        <property name="invalidLoginManager" ref="invalidLoginManager"/>
+        <property name="apiNotifier" ref="apiNotifier"/>
+    </bean>
+    <bean id="authLockoutTimeHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.AuthLockoutTimeHandler">
+        <property name="invalidLoginManager" ref="invalidLoginManager"/>
+        <property name="apiNotifier" ref="apiNotifier"/>
+    </bean>
+
+    <bean id="uniqueNodeNameHandler" class="com.emc.storageos.systemservices.impl.propertyhandler.UniqueNodeNameHandler">
+        <property name="coordinator" ref="coordinatorclientext"/>
     </bean>
 
     <bean id="notificationManager" class="com.emc.storageos.security.password.NotificationManager" init-method="init">
@@ -348,9 +359,6 @@
 
     <bean id="invalidLoginManager" class="com.emc.storageos.security.password.InvalidLoginManager">
         <property name="coordinator" ref="coordinator"/>
-        <property name="maxAuthnLoginAttemtsCount" value="10"/>
-        <property name="maxAuthnLoginAttemtsLifeTimeInMins" value="10"/>
-        <property name="cleanupThreadInitialDelay" value="10"/>
     </bean>
 
     <bean id="backupScheduler" class="com.emc.storageos.systemservices.impl.jobs.backupscheduler.BackupScheduler" init-method="startLeaderSelector">
@@ -366,5 +374,9 @@
 
     <bean id="IpReconfigManager" class="com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager" init-method="init">
         <property name="ovfProperties" ref="ovfProperties"/>
+    </bean>
+
+    <bean id="apiNotifier" class="com.emc.storageos.systemservices.impl.property.APINotifier">
+        <property name="coordinator" ref="coordinator"/>
     </bean>
 </beans>

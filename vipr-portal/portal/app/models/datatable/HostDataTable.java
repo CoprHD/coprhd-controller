@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.datatable;
@@ -21,7 +21,7 @@ import com.google.common.collect.Lists;
 import controllers.compute.Hosts;
 
 public class HostDataTable extends DataTable {
-   
+
     private static List<String> stripFromVersion = Lists.newArrayList("Microsoft Windows ", "Server ", " Enterprise");
 
     public HostDataTable() {
@@ -37,10 +37,10 @@ public class HostDataTable extends DataTable {
     }
 
     public static class HostInfo extends DiscoveredSystemInfo {
-        
+
         public static final String ESX_HOST_LABEL_FORMAT = "%2$s [%1$s]";
         public static final String ESX_CLUSTER_LABEL_FORMAT = "%2$s [%1$s]";
-        
+
         public String id;
         public String rowLink;
         public String name;
@@ -53,11 +53,11 @@ public class HostDataTable extends DataTable {
         public HostInfo() {
         }
 
-        public HostInfo(HostRestRep host, Map<URI,String> clusterMap, Map<URI, VcenterDataCenterRestRep> vcenterDataCenters) {
+        public HostInfo(HostRestRep host, Map<URI, String> clusterMap, Map<URI, VcenterDataCenterRestRep> vcenterDataCenters) {
             this(host, clusterMap, getVcenterDataCenterName(host, vcenterDataCenters));
-        }                        
+        }
 
-        public HostInfo(HostRestRep host, Map<URI,String> clusterMap, String vcenterDataCenterName) {
+        public HostInfo(HostRestRep host, Map<URI, String> clusterMap, String vcenterDataCenterName) {
             super(host);
             this.id = host.getId().toString();
             this.rowLink = createLink(Hosts.class, "edit", "id", id);
@@ -79,7 +79,7 @@ public class HostDataTable extends DataTable {
                 this.cluster = "";
             }
             if (host.getProvisioningJobStatus() != null) {
-                //substitute status for display
+                // substitute status for display
                 this.discoveryStatus = host.getProvisioningJobStatus();
             }
         }
@@ -90,11 +90,11 @@ public class HostDataTable extends DataTable {
             }
             return host.getName();
         }
-        
+
         public boolean isVcenterHost(HostRestRep host) {
             return host.getvCenterDataCenter() != null;
         }
-        
+
         private static String getVcenterDataCenterName(HostRestRep host, Map<URI, VcenterDataCenterRestRep> vcenterDataCenters) {
             if (host != null && vcenterDataCenters != null && host.getvCenterDataCenter() != null) {
                 VcenterDataCenterRestRep vcenterDataCenter = vcenterDataCenters.get(host.getvCenterDataCenter().getId());

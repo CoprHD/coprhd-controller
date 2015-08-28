@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service.impl.resource;
@@ -61,7 +51,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
-import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList.NamedElement;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -103,7 +92,6 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.TypedRelatedResourceRep;
 import com.emc.storageos.model.block.export.ExportCreateParam;
 import com.emc.storageos.model.block.export.ExportGroupBulkRep;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
@@ -135,12 +123,11 @@ import com.google.common.collect.Collections2;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
-
 @Path("/block/exports")
-@DefaultPermissions( read_roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        read_acls = {ACL.OWN, ACL.ALL},
-        write_roles = { Role.TENANT_ADMIN },
-        write_acls = {ACL.OWN, ACL.ALL})
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
+        readAcls = { ACL.OWN, ACL.ALL },
+        writeRoles = { Role.TENANT_ADMIN },
+        writeAcls = { ACL.OWN, ACL.ALL })
 public class ExportGroupService extends TaskResourceService {
     private static final String SEARCH_HOST = "host";
     private static final String SEARCH_CLUSTER = "cluster";
@@ -152,15 +139,16 @@ public class ExportGroupService extends TaskResourceService {
     private static final String EVENT_SERVICE_TYPE = "export";
     private static final int MAX_VOLUME_COUNT = 100;
     private static final String OLD_INITIATOR_TYPE_NAME = "Exclusive";
-    
+
     private static volatile BlockStorageScheduler _blockStorageScheduler;
-    public void setBlockStorageScheduler( BlockStorageScheduler blockStorageScheduler) {
-        if ( _blockStorageScheduler == null) {
+
+    public void setBlockStorageScheduler(BlockStorageScheduler blockStorageScheduler) {
+        if (_blockStorageScheduler == null) {
             _blockStorageScheduler = blockStorageScheduler;
         }
-        
+
     }
-    
+
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
@@ -175,10 +163,10 @@ public class ExportGroupService extends TaskResourceService {
     public void setNameGenerator(NameGenerator nameGenerator) {
         _nameGenerator = nameGenerator;
     }
-    
+
     @Autowired
     private ModelClient modelClient;
-    
+
     public ModelClient getModelClient() {
         return modelClient;
     }
@@ -202,71 +190,49 @@ public class ExportGroupService extends TaskResourceService {
     /**
      * Create block export.
      * <p>
-     * Block export method is use to export one or more volumes to one or more
-     * hosts. This is a required step for a host to be able to access a block
-     * volume, although in some scenarios, additional configurations may be
-     * required. There are three main types of export group to meet the common
-     * use cases:
+     * Block export method is use to export one or more volumes to one or more hosts. This is a required step for a host to be able to
+     * access a block volume, although in some scenarios, additional configurations may be required. There are three main types of export
+     * group to meet the common use cases:
      * <ol>
      * 
-     * <li>Create an initiator type export group so that a single host can see one or
-     * more volumes. An example would be an export group for a host boot lun or a
-     * private volume that is meant to be used by only one host. The assumption is,
-     * in this case the user wants the boot or private volume to be accessed
-     * via known initiators. For this type of export, the request object is
-     * expected to have only initiators (i.e. no hosts or clusters). Further,
-     * the initiators are expected to belong to the same host. While an initiator type
-     * export group can belong to only one host, this does not mean the host can 
-     * only have the initiator type export group. A hosts can be part of many export
-     * groups of any type. The export group type {@link ExportGroupType#Initiator} 
-     * should be specified in the request for this type of export.</li>
-     * 
-     * <li>Create an export group so that one or more hosts, which are not part
-     * of a cluster, can access one or more volumes. This is the use case of a 
-     * shared data lun. In this case, it is assumed that the user wants all the
-     * hosts initiators that are connected to the storage array (up to the maximum
-     * specified by the virtual pool) to be able to access the volume. The export 
-     * group type {@link ExportGroupType#Host} should be specified in the request
+     * <li>Create an initiator type export group so that a single host can see one or more volumes. An example would be an export group for
+     * a host boot lun or a private volume that is meant to be used by only one host. The assumption is, in this case the user wants the
+     * boot or private volume to be accessed via known initiators. For this type of export, the request object is expected to have only
+     * initiators (i.e. no hosts or clusters). Further, the initiators are expected to belong to the same host. While an initiator type
+     * export group can belong to only one host, this does not mean the host can only have the initiator type export group. A hosts can be
+     * part of many export groups of any type. The export group type {@link ExportGroupType#Initiator} should be specified in the request
      * for this type of export.</li>
      * 
-     * <li>Create an export group so that one or more clusters of hosts can
-     * access one or more volumes. This is the same use case of shared data lun
-     * as the {@link ExportGroupType#Host} use case with the exception that the 
-     * user is managing a cluster of hosts as opposed to individual hosts. In
-     * this case, the same assumption about the initiators as in the previous
-     * case is made. The export group type {@link ExportGroupType#Cluster}
-     * should be specified in the request for this type of export.</li>
+     * <li>Create an export group so that one or more hosts, which are not part of a cluster, can access one or more volumes. This is the
+     * use case of a shared data lun. In this case, it is assumed that the user wants all the hosts initiators that are connected to the
+     * storage array (up to the maximum specified by the virtual pool) to be able to access the volume. The export group type
+     * {@link ExportGroupType#Host} should be specified in the request for this type of export.</li>
+     * 
+     * <li>Create an export group so that one or more clusters of hosts can access one or more volumes. This is the same use case of shared
+     * data lun as the {@link ExportGroupType#Host} use case with the exception that the user is managing a cluster of hosts as opposed to
+     * individual hosts. In this case, the same assumption about the initiators as in the previous case is made. The export group type
+     * {@link ExportGroupType#Cluster} should be specified in the request for this type of export.</li>
      * </ol>
      * 
-     * Note that the above discussion only mentions volumes but mirrors and
-     * snapshots can also be used in export groups.
+     * Note that the above discussion only mentions volumes but mirrors and snapshots can also be used in export groups.
      * 
      * <p>
-     * Once a block export is created, following incremental changes can be
-     * applied to it: - add volume or volume snapshot to the shared storage pool
-     * - remove volume or volume snapshot from the shared storage pool - add new
-     * server to the cluster by adding initiator from that server to the block
-     * export - remove visibility of shared storage to a server by removing
-     * initiators from the block export
+     * Once a block export is created, following incremental changes can be applied to it: - add volume or volume snapshot to the shared
+     * storage pool - remove volume or volume snapshot from the shared storage pool - add new server to the cluster by adding initiator from
+     * that server to the block export - remove visibility of shared storage to a server by removing initiators from the block export
      * 
      * <p>
-     * Similar to block storage provisioning, block export is also created
-     * within the scope of a varray. Hence, volumes and snapshots being added to
-     * a block export must belong to the same varray. Fibre Channel and iSCSI
-     * initiators must be part of SANs belonging to the same varray as block
-     * export.
+     * Similar to block storage provisioning, block export is also created within the scope of a varray. Hence, volumes and snapshots being
+     * added to a block export must belong to the same varray. Fibre Channel and iSCSI initiators must be part of SANs belonging to the same
+     * varray as block export.
      * <p>
-     * For Fibre Channel initiators, SAN zones will also be created when the export
-     * group is created if the networks are discovered and:
+     * For Fibre Channel initiators, SAN zones will also be created when the export group is created if the networks are discovered and:
      * <ol>
-     * <li>at least one of the Network Systems can provision the Vsan or Fabric
-     * in which the each endpoint exists, and</li>
+     * <li>at least one of the Network Systems can provision the Vsan or Fabric in which the each endpoint exists, and</li>
      * <li>the VirtualArray has "auto_san_zoning" set to true.</li>
      * </ol>
-     * The SAN zones each consists of an initiator (from the arguments) and a
-     * storage port that is selected. The number of zones created will be
-     * determined from the number of required initiator/storage-port
-     * communication paths.
+     * The SAN zones each consists of an initiator (from the arguments) and a storage port that is selected. The number of zones created
+     * will be determined from the number of required initiator/storage-port communication paths.
      * <p>
      * NOTE: This is an asynchronous operation.
      * 
@@ -276,18 +242,18 @@ public class ExportGroupService extends TaskResourceService {
      * @throws ControllerException
      */
     @POST
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public TaskResourceRep createExportGroup(ExportCreateParam param) throws ControllerException {
-    	
-        //Validate count of number of volumes to export
+
+        // Validate count of number of volumes to export
         if (param.getVolumes() != null && param.getVolumes().size() > MAX_VOLUME_COUNT) {
             throw APIException.badRequests.exceedingLimit("count", MAX_VOLUME_COUNT);
         }
-    	
-        //validate input for the type of export
+
+        // validate input for the type of export
         validateCreateInputForExportType(param);
-        
+
         // Validate that the create is not attempting to add VPLEX
         // backend volumes to a group.
         if (param.getVolumes() != null && !param.getVolumes().isEmpty()) {
@@ -297,12 +263,12 @@ public class ExportGroupService extends TaskResourceService {
             }
             BlockService.validateNoInternalBlockObjects(_dbClient, addVolumeURIs, false);
         }
-        
+
         // Validate the project and check its permissions
         Project project = queryObject(Project.class, param.getProject(), true);
         StorageOSUser user = getUserFromContext();
-        if (!(_permissionsHelper.userHasGivenRole(user, project.getTenantOrg().getURI(), Role.TENANT_ADMIN) ||
-                _permissionsHelper.userHasGivenACL(user, project.getId(), ACL.OWN, ACL.ALL))) {
+        if (!(_permissionsHelper.userHasGivenRole(user, project.getTenantOrg().getURI(), Role.TENANT_ADMIN) || _permissionsHelper
+                .userHasGivenACL(user, project.getId(), ACL.OWN, ACL.ALL))) {
             throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
         }
 
@@ -313,25 +279,25 @@ public class ExportGroupService extends TaskResourceService {
         // prepare the export group object
         ExportGroup exportGroup = prepareExportGroup(project, param);
 
-        // validate block objects input and package them  
+        // validate block objects input and package them
         Map<URI, Map<URI, Integer>> storageMap = new HashMap<URI, Map<URI, Integer>>();
         Map<URI, Integer> volumeMap = validateBlockObjectsAndGetMap(param.getVolumes(), exportGroup, storageMap);
-        _log.info("Computed storage map: {} volumes in {} storage systems: {}", 
-                new Object[] {volumeMap.size(), storageMap.size(), storageMap.keySet().toArray()});
+        _log.info("Computed storage map: {} volumes in {} storage systems: {}",
+                new Object[] { volumeMap.size(), storageMap.size(), storageMap.keySet().toArray() });
 
-        // validate clients (initiators, hosts clusters) input and package them 
-        List<URI> initiators = validateClientsAndPopulate(exportGroup, 
+        // validate clients (initiators, hosts clusters) input and package them
+        List<URI> initiators = validateClientsAndPopulate(exportGroup,
                 project, neighborhood, storageMap.keySet(),
-                param.getClusters(), param.getHosts(), param.getInitiators(), 
+                param.getClusters(), param.getHosts(), param.getInitiators(),
                 volumeMap.keySet());
         _log.info("Initiators {} will be used.", initiators);
-        
-        // create export groups in the array but only when the export  
+
+        // create export groups in the array but only when the export
         // group has both block objects and initiators.
         String task = UUID.randomUUID().toString();
-        Operation.Status status = storageMap.isEmpty() || initiators.isEmpty() ? 
-                Operation.Status.ready :  Operation.Status.pending;
-        
+        Operation.Status status = storageMap.isEmpty() || initiators.isEmpty() ?
+                Operation.Status.ready : Operation.Status.pending;
+
         // Validate that there is not already an ExportGroup of the same name, project, and varray.
         // If so, this is like because concurrent operations were in the API at the same time and another created
         // the ExportGroup.
@@ -351,116 +317,120 @@ public class ExportGroupService extends TaskResourceService {
         }
         return toTask(exportGroup, task, op);
     }
-    
+
     /**
-     * When creating an export group the  input request should be restricted based on the the 
+     * When creating an export group the input request should be restricted based on the the
      * export type as follows:
      * <ol>
      * <li>{@link ExportGroup.ExportGroupType#Initiator}: only initiators can be supplied.</li>
      * <li>{@link ExportGroup.ExportGroupType#Host}: only hosts can be supplied.</li>
      * <li>{@link ExportGroup.ExportGroupType#Cluster}: only clusters can be supplied.</li>
      * </ol>
+     * 
      * @param param
      */
     private void validateCreateInputForExportType(ExportCreateParam param) {
-    	String type = param.getType();
-    	// check null and OLD_INITIATOR_TYPE_NAME for backward compatibility
-    	// TODO - remove the checking in 2.0
+        String type = param.getType();
+        // check null and OLD_INITIATOR_TYPE_NAME for backward compatibility
+        // TODO - remove the checking in 2.0
         if (type == null || type.equals(OLD_INITIATOR_TYPE_NAME) || type.equals(ExportGroupType.Initiator.name())) {
-            if(hasItems(param.getHosts()) || hasItems(param.getClusters())) {
+            if (hasItems(param.getHosts()) || hasItems(param.getClusters())) {
                 throw APIException.badRequests.invalidParameterOnlyInitiatorsForExportType(type);
             }
         } else if (type.equals(ExportGroupType.Host.name())) {
-            if(hasItems(param.getInitiators()) || hasItems(param.getClusters())) {
+            if (hasItems(param.getInitiators()) || hasItems(param.getClusters())) {
                 throw APIException.badRequests.invalidParameterOnlyHostsForExportType(type);
             }
         } else if (type.equals(ExportGroupType.Cluster.name())) {
-            if(hasItems(param.getInitiators()) || hasItems(param.getHosts())) {
+            if (hasItems(param.getInitiators()) || hasItems(param.getHosts())) {
                 throw APIException.badRequests.invalidParameterOnlyClustersForExportType(type);
             }
         } else {
             throw APIException.badRequests.invalidParameterValueWithExpected("type", type,
-                    EnumSet.allOf(ExportGroupType.class).toArray()); 	
+                    EnumSet.allOf(ExportGroupType.class).toArray());
         }
     }
-    
-    /** 
-     * A simple util to to check for null and empty on a collection 
+
+    /**
+     * A simple util to to check for null and empty on a collection
+     * 
      * @param col the collection
      * @return
      */
-    private boolean hasItems (Collection<? extends Object> col) {
-        return col !=null && !col.isEmpty();
+    private boolean hasItems(Collection<? extends Object> col) {
+        return col != null && !col.isEmpty();
     }
-    
+
     /**
-     * When updating an export group the input request should be validated to 
+     * When updating an export group the input request should be validated to
      * ensure any initiators that are requested to be removed are initiators that
      * we are allowed to remove.
-     *  
+     * 
      * @param param
      * @param exportGroup
      */
     private void validateUpdateRemoveInitiators(ExportUpdateParam param, ExportGroup exportGroup) {
-    	if (param != null && param.getInitiators() != null && param.getInitiators().hasRemoved() && exportGroup.getExportMasks() != null) {
-    		for (URI initiatorId : param.getInitiators().getRemove()) {
-    			// Check all export masks associated with this export group
-    			if (exportGroup.getExportMasks() != null && !exportGroup.getExportMasks().isEmpty()) {
-        			boolean okToRemove = false;
-        			ExportMask mask = null;
-    				for (String maskIdStr : exportGroup.getExportMasks()) {
-    					mask = _dbClient.queryObject(ExportMask.class, URI.create(maskIdStr));
-    					if (mask.hasInitiator(initiatorId.toString()) && mask.hasUserInitiator(initiatorId)) {
-    						okToRemove = true;
-    					}
-    				}
-        			if (!okToRemove) {
-        				Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorId);
-        				throw APIException.badRequests.invalidParameterRemovePreexistingInitiator(mask.getMaskName(), initiator.getInitiatorPort());
-        			}
-    			}
-    		}
-    	}
+        if (param != null && param.getInitiators() != null && param.getInitiators().hasRemoved() && exportGroup.getExportMasks() != null) {
+            for (URI initiatorId : param.getInitiators().getRemove()) {
+                // Check all export masks associated with this export group
+                if (exportGroup.getExportMasks() != null && !exportGroup.getExportMasks().isEmpty()) {
+                    boolean okToRemove = false;
+                    ExportMask mask = null;
+                    for (String maskIdStr : exportGroup.getExportMasks()) {
+                        mask = _dbClient.queryObject(ExportMask.class, URI.create(maskIdStr));
+                        if (mask.hasInitiator(initiatorId.toString()) && mask.hasUserInitiator(initiatorId)) {
+                            okToRemove = true;
+                        }
+                    }
+                    if (!okToRemove) {
+                        Initiator initiator = _dbClient.queryObject(Initiator.class, initiatorId);
+                        throw APIException.badRequests.invalidParameterRemovePreexistingInitiator(mask.getMaskName(),
+                                initiator.getInitiatorPort());
+                    }
+                }
+            }
+        }
     }
 
     /**
-     * When updating an export group the  input request should be restricted based on the the 
+     * When updating an export group the input request should be restricted based on the the
      * export type as follows:
      * <ol>
-     * <li>{@link ExportGroup.ExportGroupType#Initiator}: only initiators that belong
-     * to the same host as existing initiators can be supplied.</li>
-     * <li>{@link ExportGroup.ExportGroupType#Host}: only hosts and initiators that belong
-     * to already existing hosts can be supplied.</li>
-     * <li>{@link ExportGroup.ExportGroupType#Cluster}: clusters, hosts in already existing
-     * clusters and initiators in already existing hosts can be supplied.</li>
+     * <li>{@link ExportGroup.ExportGroupType#Initiator}: only initiators that belong to the same host as existing initiators can be
+     * supplied.</li>
+     * <li>{@link ExportGroup.ExportGroupType#Host}: only hosts and initiators that belong to already existing hosts can be supplied.</li>
+     * <li>{@link ExportGroup.ExportGroupType#Cluster}: clusters, hosts in already existing clusters and initiators in already existing
+     * hosts can be supplied.</li>
      * </ol>
+     * 
      * @param param
      */
     private void validateUpdateInputForExportType(ExportUpdateParam param, ExportGroup exportGroup) {
         String type = exportGroup.getType();
         if (exportGroup.forInitiator()) {
-            if((param.getHosts() != null && param.getHosts().hasUpdates())
+            if ((param.getHosts() != null && param.getHosts().hasUpdates())
                     || (param.getClusters() != null && param.getClusters().hasUpdates())) {
                 throw APIException.badRequests.invalidParameterOnlyInitiatorsForExportType(type);
             }
         } else if (exportGroup.forHost()) {
-            if(param.getClusters() != null && param.getClusters().hasUpdates()) {
+            if (param.getClusters() != null && param.getClusters().hasUpdates()) {
                 throw APIException.badRequests.invalidParameterOnlyHostsOrInitiatorsForExportType(type);
             }
         }
     }
-    
+
     /**
-     * This is a helper function to perform the input validation for an export group 
+     * This is a helper function to perform the input validation for an export group
      * volumes and snapshots and return the map to be sent to the controller.
+     * 
      * @param volumes the input parameter
      * @param exportGroup the export group
      * @param storageMap an empty map that will be filled in by the function with the
-     *        the block objects to export mapped by storage system 
-     *        
+     *            the block objects to export mapped by storage system
+     * 
      * @return a map of block object URI to LUN Id for the objects to be exported.
      */
-    private Map<URI, Integer> validateBlockObjectsAndGetMap (List<VolumeParam> volumes, 
+    private Map<URI, Integer> validateBlockObjectsAndGetMap(List<VolumeParam> volumes,
             ExportGroup exportGroup, Map<URI, Map<URI, Integer>> storageMap) {
         if (volumes != null) {
             // validate volumes Lun Ids
@@ -494,7 +464,7 @@ public class ExportGroupService extends TaskResourceService {
 
         // get volumes
         Map<URI, Integer> volumeMap = new HashMap<URI, Integer>();
-        for (URI storage: storageMap.keySet()) {
+        for (URI storage : storageMap.keySet()) {
             volumeMap.putAll(storageMap.get(storage));
         }
         return volumeMap;
@@ -502,7 +472,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Checks if the given volume is cinder volume.
-     *
+     * 
      * @param volume the volume
      * @param systemURIToSystemTypeMap the system uri to system type map
      * @return true, if it is cinder volume
@@ -521,7 +491,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Check if OpenStack snapshot and throw error
-     *  since snapshot export is not supported for OpenStack systems.
+     * since snapshot export is not supported for OpenStack systems.
      * 
      * @param block the block snapshot
      */
@@ -536,12 +506,12 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Validate the blocksnapshot is active for export, if one is being exported
-     *
+     * 
      * @param block - BlockSnapshot object to export
      */
     private void checkForActiveBlockSnapshot(BlockSnapshot snapshot) {
         if (!TechnologyType.RP.toString().equalsIgnoreCase(snapshot.getTechnologyType())) {
-            if(!snapshot.getIsSyncActive()) {
+            if (!snapshot.getIsSyncActive()) {
                 throw APIException.badRequests
                         .invalidParameterBlockSnapshotCannotBeExportedWhenInactive(
                                 snapshot.getLabel(), snapshot.getId());
@@ -552,17 +522,18 @@ public class ExportGroupService extends TaskResourceService {
     /**
      * This helper function is used by {@link #updateExportGroup(URI, ExportUpdateParam)} to
      * validate the user input and compute the updated lists of initiators, hosts and clusters.
+     * 
      * @param exportGroup the export group being updated.
      * @param project the export group project
      * @param storageSystems the storage systems where the export group volumes exist
      * @param param the input parameter
      * @param newClusters a list to be populated with the updated list of clusters
-     * @param newHosts  a list to be populated with the updated list of hosts
-     * @param newInitiators  a list to be populated with the updated list of initiators
+     * @param newHosts a list to be populated with the updated list of hosts
+     * @param newInitiators a list to be populated with the updated list of initiators
      */
-    private void validateClientsAndUpdate(ExportGroup exportGroup, 
-            Project project, Collection<URI> storageSystems, 
-            ExportUpdateParam param, List<URI> newClusters, 
+    private void validateClientsAndUpdate(ExportGroup exportGroup,
+            Project project, Collection<URI> storageSystems,
+            ExportUpdateParam param, List<URI> newClusters,
             List<URI> newHosts, List<URI> newInitiators) {
         if (param.getClusters() != null) {
             if (param.getClusters().getRemove() != null) {
@@ -575,7 +546,9 @@ public class ExportGroupService extends TaskResourceService {
                 for (URI uri : param.getClusters().getAdd()) {
                     Cluster cluster = queryObject(Cluster.class, uri, true);
                     validateClusterData(cluster, exportGroup, storageSystems, project, newHosts, newInitiators);
-                    if (!newClusters.contains(uri)) newClusters.add(uri);
+                    if (!newClusters.contains(uri)) {
+                        newClusters.add(uri);
+                    }
                 }
             }
         }
@@ -593,12 +566,14 @@ public class ExportGroupService extends TaskResourceService {
                     // If the export type is cluster
                     if (exportGroup.forCluster()) {
                         // make sure the host belongs to one of the group's clusters
-                        if(!hasItems(newClusters) || !newClusters.contains(host.getCluster())) {
+                        if (!hasItems(newClusters) || !newClusters.contains(host.getCluster())) {
                             throw APIException.badRequests.invalidParameterHostNotInCluster(host.getHostName());
                         }
                     }
                     validateHostData(host, exportGroup, storageSystems, project, newInitiators);
-                    if (!newHosts.contains(uri)) newHosts.add(uri);
+                    if (!newHosts.contains(uri)) {
+                        newHosts.add(uri);
+                    }
                 }
             }
         }
@@ -618,20 +593,23 @@ public class ExportGroupService extends TaskResourceService {
                         if (initiatorHostUri == null) {
                             initiatorHostUri = initiator.getHost();
                         } else {
-                            if (!initiatorHostUri.equals(initiator.getHost()))
-                                throw APIException.badRequests.initiatorExportGroupInitiatorsBelongToSameHost(); 
+                            if (!initiatorHostUri.equals(initiator.getHost())) {
+                                throw APIException.badRequests.initiatorExportGroupInitiatorsBelongToSameHost();
+                            }
                         }
                     }
                     validateInitiatorRegistered(initiator);
                     validateInitiatorNetworkRegistered(initiator, exportGroup.getVirtualArray());
                     validateInitiatorData(initiator, exportGroup);
                     if (exportGroup.forCluster() || exportGroup.forHost()) {
-                        if(!newHosts.isEmpty() &&
-                           !newHosts.contains(initiator.getHost())) {
+                        if (!newHosts.isEmpty() &&
+                                !newHosts.contains(initiator.getHost())) {
                             throw APIException.badRequests.invalidParameterExportGroupInitiatorNotInHost(initiator.getId());
                         }
                     }
-                    if (!newInitiators.contains(uri)) newInitiators.add(uri);
+                    if (!newInitiators.contains(uri)) {
+                        newInitiators.add(uri);
+                    }
                 }
             }
         }
@@ -657,7 +635,9 @@ public class ExportGroupService extends TaskResourceService {
             List<String> storageSystemNames = new ArrayList<>();
             for (URI storageSystemURI : uniqueStorageSystemSet) {
                 // Check if it's in the list of connected StorageSystems. If so, then skip it.
-                if (connectStorageSystems.contains(storageSystemURI)) continue;
+                if (connectStorageSystems.contains(storageSystemURI)) {
+                    continue;
+                }
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
                 if (storageSystem != null) {
                     storageSystemNames.add(storageSystem.getNativeGuid());
@@ -672,17 +652,17 @@ public class ExportGroupService extends TaskResourceService {
     /**
      * Validate if the initiator is linked to the VirtualArray through some Network
      * Routine will examine the 'newInitiators' list and remove any that do not have any association
-     * to the VirtualArrays associated with the StorageSystems. 
+     * to the VirtualArrays associated with the StorageSystems.
      * 
-     * @param exportGroup    [in] - ExportGroup object
+     * @param exportGroup [in] - ExportGroup object
      * @param storageSystems [in] - Collection of StorageSystem URIs associated with this VArray
      * @param connectedStorageSystems [in/out] - Optional parameter that will contain a list of
-     *                                StorageSystem URIs that have connections to the initiators
-     * @param newInitiators   [in/out] - List of initiator URIs to examine.
+     *            StorageSystem URIs that have connections to the initiators
+     * @param newInitiators [in/out] - List of initiator URIs to examine.
      */
     private void filterOutInitiatorsNotAssociatedWithVArray(ExportGroup exportGroup, Collection<URI> storageSystems,
-                                                            List<URI> connectedStorageSystems,
-                                                            List<URI> newInitiators) {
+            List<URI> connectedStorageSystems,
+            List<URI> newInitiators) {
         Iterator<URI> it = newInitiators.iterator();
         BlockStorageScheduler blockScheduler = new BlockStorageScheduler();
         blockScheduler.setDbClient(_dbClient);
@@ -697,10 +677,10 @@ public class ExportGroupService extends TaskResourceService {
             }
             Set<String> varraysConsidered = new HashSet<String>();
             if (!hasConnectivityToAllSystems(initiator, storageSystems, connectedStorageSystems, exportGroup) ||
-                !isInitiatorInStorageSystemsNetwork(exportGroup, initiator, storageSystems, varraysConsidered)   ) {
+                    !isInitiatorInStorageSystemsNetwork(exportGroup, initiator, storageSystems, varraysConsidered)) {
                 _log.info(String.format("Initiator %s (%s) will be eliminated from the payload. " +
-                                "It was either not found to be connected to any of these StorageSystems [%s] that are " +
-                                "associated with VirtualArray(s) %s or not connected to any of its networks.",
+                        "It was either not found to be connected to any of these StorageSystems [%s] that are " +
+                        "associated with VirtualArray(s) %s or not connected to any of its networks.",
                         initiator.getInitiatorPort(), initiator.getId().toString(), Joiner.on(',').join(storageSystems),
                         varraysConsidered.toString()));
                 // CTRL-9694: Only remove the initiator if doesn't already belong to the ExportGroup and it is
@@ -719,13 +699,14 @@ public class ExportGroupService extends TaskResourceService {
     /**
      * Determines is an initiator is in one of the StorageSystems networks.
      * This is changed to accomodate VPlex, which uses two Varrays per ExportGroup for distributed export.
+     * 
      * @param exportGroup -- the ExportGroup
      * @param initiator [in] - the initiator
      * @param system [in] - collection of StorageSystems
      * @param varrays [out] - the varrays considered for the export
      * @return true iff the initiator belongs to a Network and that Network has the VirtualArray
      */
-    private boolean isInitiatorInStorageSystemsNetwork(ExportGroup exportGroup, Initiator initiator, 
+    private boolean isInitiatorInStorageSystemsNetwork(ExportGroup exportGroup, Initiator initiator,
             Collection<URI> systems, Set<String> outVarrays) {
         boolean foundAnAssociatedNetwork = false;
         Set<String> exportGroupVarrays = new HashSet<String>();
@@ -756,7 +737,8 @@ public class ExportGroupService extends TaskResourceService {
                     Set<String> intersection = Sets.intersection(varraySet, exportGroupVarrays);
                     if (!intersection.isEmpty()) {
                         _log.info(String.format("Initiator %s (%s) was found to be associated to VirtualArrays %s through network %s.",
-                                initiator.getInitiatorPort(), initiator.getId().toString(), intersection.toString(), networkLite.getNativeGuid()));
+                                initiator.getInitiatorPort(), initiator.getId().toString(), intersection.toString(),
+                                networkLite.getNativeGuid()));
                         foundAnAssociatedNetwork = true;
                         // Though we could break this loop here, let's continue the loop so that
                         // we can log what other networks that the initiator is seen in
@@ -768,7 +750,8 @@ public class ExportGroupService extends TaskResourceService {
     }
 
     /**
-     * For Initiator type export groups, find the host to which the initiators belong. 
+     * For Initiator type export groups, find the host to which the initiators belong.
+     * 
      * @param exportGroup the export group
      * @return the URI of the initiators host
      */
@@ -787,46 +770,49 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Updates the lists of hosts and initiator when a cluster is removed.
-     * @param cluster the cluster being removed 
+     * 
+     * @param cluster the cluster being removed
      * @param newHosts the list of hosts to update
      * @param newInitiators the list of initiators to update
      */
-    private void removeClusterData (URI cluster, List<URI> newHosts, List<URI> newInitiators) {
+    private void removeClusterData(URI cluster, List<URI> newHosts, List<URI> newInitiators) {
         List<URI> hostUris = ComputeSystemHelper.getChildrenUris(_dbClient, cluster, Host.class, "cluster");
         for (URI hosturi : hostUris) {
             newHosts.remove(hosturi);
-            newInitiators.removeAll( ComputeSystemHelper.getChildrenUris(_dbClient, hosturi, Initiator.class, "host"));
+            newInitiators.removeAll(ComputeSystemHelper.getChildrenUris(_dbClient, hosturi, Initiator.class, "host"));
         }
     }
-    
+
     /**
      * Updates the list of initiator when a host is removed.
-     * @param hosturi the host being removed 
+     * 
+     * @param hosturi the host being removed
      * @param newInitiators the list of initiators to update
      */
-    private void removeHostData (URI hosturi, List<URI> newInitiators) {
-        newInitiators.removeAll( ComputeSystemHelper.getChildrenUris(_dbClient, hosturi, Initiator.class, "host"));
+    private void removeHostData(URI hosturi, List<URI> newInitiators) {
+        newInitiators.removeAll(ComputeSystemHelper.getChildrenUris(_dbClient, hosturi, Initiator.class, "host"));
     }
-    
+
     /**
      * Validate that all the initiators to be added to the export group belong to the same host type
+     * 
      * @param initiators the list of initiators to validate
      */
     private void validateInitiatorHostOS(List<URI> initiators) {
         Set<String> hostTypes = new HashSet<String>();
         List<URI> hostList = new ArrayList<URI>();
-        
-        // Dummy URI used in case we encounter null values 
+
+        // Dummy URI used in case we encounter null values
         URI fillerHostURI = NullColumnValueGetter.getNullURI();
-        
+
         if (initiators != null && !initiators.isEmpty()) {
 
             for (URI initiatorUri : initiators) {
                 Initiator ini = queryObject(Initiator.class, initiatorUri, true);
-                
+
                 // If ini.getHost() returns a null value, set hostURI to fillerHostURI
                 URI hostURI = (ini.getHost() == null) ? fillerHostURI : ini.getHost();
-                
+
                 // If we have already come across this URI implies
                 // that we have checked its host type, so there is
                 // no need to go to the DB again..
@@ -837,24 +823,25 @@ public class ExportGroupService extends TaskResourceService {
                     // help in the next iteration.
                     hostList.add(hostURI);
                 }
-                
+
                 if (hostURI == fillerHostURI) {
-                	hostTypes.add(String.valueOf(fillerHostURI));
+                    hostTypes.add(String.valueOf(fillerHostURI));
                 } else {
-                	Host host = queryObject(Host.class, hostURI, true);
-                	hostTypes.add(host.getType());
+                    Host host = queryObject(Host.class, hostURI, true);
+                    hostTypes.add(host.getType());
                 }
             }
 
-        	if (hostTypes.size() != 1) {
+            if (hostTypes.size() != 1) {
                 throw APIException.badRequests.initiatorHostsInSameOS();
             }
         }
     }
-    
+
     /**
      * Validate the data of an initiator. This validation is required when the user
      * has explicitly requested for the initiator to be added.
+     * 
      * @param initiator the initiator being validated.
      * @param exportGroup the export group where the initiator is to be added
      */
@@ -864,6 +851,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Validate the input data for clusters, hosts and initiators for {@link #createExportGroup(ExportCreateParam)}
+     * 
      * @param exportGroup the export group to populate
      * @param project the export group project
      * @param varray the export group varray
@@ -874,19 +862,19 @@ public class ExportGroupService extends TaskResourceService {
      * @param volumes The list of volumes being exported (used to calculate numPaths)
      * @return the aggregate list of initiators needed to export all the hosts and clusters and initiators
      */
-    private List<URI> validateClientsAndPopulate (ExportGroup exportGroup, 
+    private List<URI> validateClientsAndPopulate(ExportGroup exportGroup,
             Project project, VirtualArray varray, Collection<URI> storageSystems,
-            List<URI> clusters, List<URI> hosts, 
+            List<URI> clusters, List<URI> hosts,
             List<URI> initiators, Collection<URI> volumes) {
         List<URI> allInitiators = new ArrayList<URI>();
-        List<URI> allHosts = new ArrayList<URI>();        
+        List<URI> allHosts = new ArrayList<URI>();
         if (initiators != null && !initiators.isEmpty()) {
             List<Initiator> temp = new ArrayList<Initiator>();
             Set<URI> initiatorsHost = new HashSet<URI>(1);
             for (URI initiatorUri : initiators) {
                 Initiator initiator = queryObject(Initiator.class, initiatorUri, true);
                 if (initiator.getHost() == null || NullColumnValueGetter.isNullURI(initiator.getHost())) {
-                	throw APIException.badRequests.cannotExportInitiatorWithNoCompute(exportGroup.getLabel(), initiator.getInitiatorPort());
+                    throw APIException.badRequests.cannotExportInitiatorWithNoCompute(exportGroup.getLabel(), initiator.getInitiatorPort());
                 }
                 validateInitiatorRegistered(initiator);
                 validateInitiatorNetworkRegistered(initiator, varray.getId());
@@ -898,16 +886,16 @@ public class ExportGroupService extends TaskResourceService {
         }
         if (hosts != null && !hosts.isEmpty()) {
             for (URI hostUri : hosts) {
-                //validate the host
+                // validate the host
                 Host host = queryObject(Host.class, hostUri, true);
-                validateHostData (host, exportGroup, storageSystems,
+                validateHostData(host, exportGroup, storageSystems,
                         project, allInitiators);
                 allHosts.add(host.getId());
             }
         }
         if (clusters != null && !clusters.isEmpty()) {
             for (URI clusterUri : clusters) {
-                //validate the cluster
+                // validate the cluster
                 Cluster cluster = queryObject(Cluster.class, clusterUri, true);
                 validateClusterData(cluster, exportGroup, storageSystems,
                         project, allHosts, allInitiators);
@@ -928,15 +916,16 @@ public class ExportGroupService extends TaskResourceService {
 
         // Validate the Host Operating Systems
         validateInitiatorHostOS(allInitiators);
-        _log.info("All clients were found to be valid.");        
-        // now set the initiators to the export group before saving it 
-        exportGroup.setInitiators(StringSetUtil.uriListToStringSet(allInitiators));        
+        _log.info("All clients were found to be valid.");
+        // now set the initiators to the export group before saving it
+        exportGroup.setInitiators(StringSetUtil.uriListToStringSet(allInitiators));
         exportGroup.setHosts(StringSetUtil.uriListToStringSet(allHosts));
         return allInitiators;
     }
-    
+
     /**
      * Validates that the initiator doesn't belong to a deregistered Network
+     * 
      * @param initiator the initiator to validate
      * @param virtualArray the virtual array
      */
@@ -946,46 +935,50 @@ public class ExportGroupService extends TaskResourceService {
             throw APIException.badRequests.invalidParameterInitiatorBelongsToDeregisteredNetwork(initiator, network.getId());
         }
     }
-    
+
     /**
      * Validates that the initiator is registered
+     * 
      * @param initiator the initiator to validate
      */
 
     private void validateInitiatorRegistered(Initiator initiator) {
-    	if (initiator != null && !RegistrationStatus.REGISTERED.name().equalsIgnoreCase(initiator.getRegistrationStatus())) {
+        if (initiator != null && !RegistrationStatus.REGISTERED.name().equalsIgnoreCase(initiator.getRegistrationStatus())) {
             throw APIException.badRequests.invalidParameterInitiatorIsDeregistered(initiator);
         }
     }
 
-
     /**
      * Validates that the host belongs to same tenant org and/or project as the export group.
-     * Also validates that the host has connectivity to all the storage systems that the 
+     * Also validates that the host has connectivity to all the storage systems that the
      * export group has block objects in.
+     * 
      * @param host the host being validated
      * @param exportGroup the export group where the host will be added
      * @param storageSystems the storage systems the export group has block objects in.
      * @param project the export group project
      * @param initiators the list of initiators to be updated with the host initiators.
      */
-    private void validateInitiatorsData(List<Initiator> initiators, Set<URI> initiatorsHosts, 
+    private void validateInitiatorsData(List<Initiator> initiators, Set<URI> initiatorsHosts,
             ExportGroup exportGroup) {
-        if (initiatorsHosts.size() != 1)
+        if (initiatorsHosts.size() != 1) {
             throw APIException.badRequests.initiatorExportGroupInitiatorsBelongToSameHost();
-        
+        }
+
         Host host = queryObject(Host.class, initiatorsHosts.iterator().next(), true);
         // if the host is in a project
         if (!NullColumnValueGetter.isNullURI(host.getProject())) {
-            // validate it is in the same project as the  as the export group,
-            if(!host.getProject().equals(exportGroup.getProject().getURI())) {
-                throw APIException.badRequests.invalidParameterExportGroupHostAssignedToDifferentProject(host.getHostName(),exportGroup.getProject().getName());
+            // validate it is in the same project as the as the export group,
+            if (!host.getProject().equals(exportGroup.getProject().getURI())) {
+                throw APIException.badRequests.invalidParameterExportGroupHostAssignedToDifferentProject(host.getHostName(), exportGroup
+                        .getProject().getName());
             }
-        } else { 
-            // validate the host is in the same tenant Org as the  as the export group,
+        } else {
+            // validate the host is in the same tenant Org as the as the export group,
             Project project = queryObject(Project.class, exportGroup.getProject().getURI(), true);
-            if(!host.getTenant().equals(project.getTenantOrg().getURI())) {
-                throw APIException.badRequests.invalidParameterExportGroupHostAssignedToDifferentTenant(host.getHostName(), project.getLabel());
+            if (!host.getTenant().equals(project.getTenantOrg().getURI())) {
+                throw APIException.badRequests.invalidParameterExportGroupHostAssignedToDifferentTenant(host.getHostName(),
+                        project.getLabel());
             }
         }
 
@@ -995,36 +988,42 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Validates that the host belongs to same tenant org and/or project as the export group.
-     * Also validates that the host has connectivity to all the storage systems that the 
+     * Also validates that the host has connectivity to all the storage systems that the
      * export group has block objects in.
+     * 
      * @param host the host being validated
      * @param exportGroup the export group where the host will be added
      * @param storageSystems the storage systems the export group has block objects in.
      * @param project the export group project
      * @param initiators the list of initiators to be updated with the host initiators.
      */
-    private void validateHostData(Host host, ExportGroup exportGroup, 
+    private void validateHostData(Host host, ExportGroup exportGroup,
             Collection<URI> storageSystems, Project project,
             List<URI> initiators) {
         // if the host is in a project
         if (!NullColumnValueGetter.isNullURI(host.getProject())) {
-            // validate it is in the same project as the  as the export group,
-            if(!host.getProject().equals(project.getId())) {
-                throw APIException.badRequests.invalidParameterExportGroupHostAssignedToDifferentProject(host.getHostName(), project.getLabel());
+            // validate it is in the same project as the as the export group,
+            if (!host.getProject().equals(project.getId())) {
+                throw APIException.badRequests.invalidParameterExportGroupHostAssignedToDifferentProject(host.getHostName(),
+                        project.getLabel());
             }
-        } else { 
-            // validate the host is in the same tenant Org as the  as the export group,
-            if(!host.getTenant().equals(project.getTenantOrg().getURI())) {
-                throw APIException.badRequests.invalidParameterExportGroupHostAssignedToDifferentTenant(host.getHostName(), project.getLabel());
+        } else {
+            // validate the host is in the same tenant Org as the as the export group,
+            if (!host.getTenant().equals(project.getTenantOrg().getURI())) {
+                throw APIException.badRequests.invalidParameterExportGroupHostAssignedToDifferentTenant(host.getHostName(),
+                        project.getLabel());
             }
         }
         // get host connected initiators
         List<URI> hostInitiators = getHostConnectedInitiators(host, storageSystems, exportGroup);
-        if (hostInitiators.isEmpty())
+        if (hostInitiators.isEmpty()) {
             throw APIException.badRequests.noIntiatorsConnectedToVolumes();
-        
+        }
+
         for (URI uri : hostInitiators) {
-            if (!initiators.contains(uri)) initiators.add(uri);
+            if (!initiators.contains(uri)) {
+                initiators.add(uri);
+            }
         }
         _log.info("Host {} was validated successfully.", host.getId().toString());
     }
@@ -1033,28 +1032,29 @@ public class ExportGroupService extends TaskResourceService {
      * Validates that a cluster is in the same tenant org and/or project as the export group.
      * Also makes sure that all hosts in the cluster have connectivity to all storage systems
      * the export group has block objects in.
+     * 
      * @param cluster the cluster being validated
-     * @param exportGroup the export where the cluster will be added 
+     * @param exportGroup the export where the cluster will be added
      * @param storageSystems the storage systems the export group has block objects in.
      * @param project the export group project
      * @param allHosts the list of hosts to be updated with the cluster hosts
      * @param allInitiators the list of initiators to be updated with the cluster initiators.
      */
-    private void validateClusterData(Cluster cluster, ExportGroup exportGroup, 
+    private void validateClusterData(Cluster cluster, ExportGroup exportGroup,
             Collection<URI> storageSystems, Project project,
             List<URI> allHosts, List<URI> allInitiators) {
 
-        boolean newCluster = exportGroup.getClusters() == null || 
+        boolean newCluster = exportGroup.getClusters() == null ||
                 !exportGroup.getClusters().contains(cluster.getId().toString());
         // if the host is in a project
         if (!NullColumnValueGetter.isNullURI(cluster.getProject())) {
-            // validate it is in the same project as the  as the export group,
-            if(!(cluster.getProject().equals(project.getId()) || !newCluster)) {
-                throw APIException.badRequests.invalidParameterClusterAssignedToDifferentProject(cluster.getLabel(),project.getLabel());
+            // validate it is in the same project as the as the export group,
+            if (!(cluster.getProject().equals(project.getId()) || !newCluster)) {
+                throw APIException.badRequests.invalidParameterClusterAssignedToDifferentProject(cluster.getLabel(), project.getLabel());
             }
-        } else { 
+        } else {
             // validate it is in the same tenant Org as the as the export group,
-            if(!cluster.getTenant().equals(project.getTenantOrg().getURI()) && newCluster) {
+            if (!cluster.getTenant().equals(project.getTenantOrg().getURI()) && newCluster) {
                 throw APIException.badRequests.invalidParameterClusterInDifferentTenantToProject(cluster.getLabel(), project.getLabel());
             }
         }
@@ -1065,24 +1065,25 @@ public class ExportGroupService extends TaskResourceService {
         }
         _log.info("Cluster {} was validated successfully", cluster.getId().toString());
     }
-    
+
     /**
      * For a given set of storage arrays, find the registered initiators on a host that
      * can connect to all the storage arrays given the possible varrays.
+     * 
      * @param host the host
      * @param storageSystems the set of arrays
      * @exportGroup - ExportGroup used to determine the Varrays
      * @return the list of initiators that have connectivity to all the storage
-     * systems via the varray.
+     *         systems via the varray.
      */
-    private List<URI> getHostConnectedInitiators( Host host, 
+    private List<URI> getHostConnectedInitiators(Host host,
             Collection<URI> storageSystems, ExportGroup exportGroup) {
         List<URI> initiators = new ArrayList<URI>();
         List<Initiator> hostInitiators = getChildren(host.getId(), Initiator.class, "host");
         for (Initiator initiator : hostInitiators) {
-            if (initiator.getRegistrationStatus().equals(RegistrationStatus.REGISTERED.toString()) 
-            		&& hasConnectivityToAllSystems(initiator, storageSystems, 
-                    exportGroup)) {
+            if (initiator.getRegistrationStatus().equals(RegistrationStatus.REGISTERED.toString())
+                    && hasConnectivityToAllSystems(initiator, storageSystems,
+                            exportGroup)) {
                 initiators.add(initiator.getId());
             }
         }
@@ -1091,13 +1092,14 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * This function is to retrieve the children of a given class.
+     * 
      * @param id the URN of the parent
      * @param clzz the child class
      * @param linkField the name of the field in the child class that stored the parent id
      * @return a list of children of tenant for the given class
      */
-    protected <T extends DataObject> List<T> getChildren(URI id, Class<T> clzz, String linkField) { 
-        List<URI> uris=  _dbClient.queryByConstraint(
+    protected <T extends DataObject> List<T> getChildren(URI id, Class<T> clzz, String linkField) {
+        List<URI> uris = _dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getContainedObjectsConstraint(id, clzz, linkField));
         List<T> retDataObjects = new ArrayList<T>();
         if (uris != null && !uris.isEmpty()) {
@@ -1110,7 +1112,7 @@ public class ExportGroupService extends TaskResourceService {
         }
         return retDataObjects;
     }
-    
+
     /**
      * Update an export group which includes:
      * <ol>
@@ -1120,19 +1122,15 @@ public class ExportGroupService extends TaskResourceService {
      * <li>Add/remove initiators</li>
      * </ol>
      * Depending on the export group type (Initiator, Host or Cluster), the
-     * request is restricted to enforce the same rules as
-     * {@link #createExportGroup(ExportCreateParam)}:
+     * request is restricted to enforce the same rules as {@link #createExportGroup(ExportCreateParam)}:
      * <ol>
-     * <li>For initiator type groups, only initiators are accepted in the request.
-     * Further the initiators must be in the same host as the existing
-     * initiators.</li>
-     * <li>For host type groups, only hosts and initiators that belong to
-     * existing hosts will be accepted.</li>
-     * <li>For cluster type groups, only clusters, hosts and initiators will be
-     * accepted. Hosts and initiators must belong to existing clusters and
-     * hosts.</li>
+     * <li>For initiator type groups, only initiators are accepted in the request. Further the initiators must be in the same host as the
+     * existing initiators.</li>
+     * <li>For host type groups, only hosts and initiators that belong to existing hosts will be accepted.</li>
+     * <li>For cluster type groups, only clusters, hosts and initiators will be accepted. Hosts and initiators must belong to existing
+     * clusters and hosts.</li>
      * </ol>
-     * <b>Note:</b> The export group name, project and varray can not be modified.  
+     * <b>Note:</b> The export group name, project and varray can not be modified.
      * 
      * @param id the URN of a ViPR export group to be updated
      * @param param the request parameter
@@ -1141,23 +1139,23 @@ public class ExportGroupService extends TaskResourceService {
      * @throws ControllerException
      */
     @PUT
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.OWN, ACL.ALL})
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskResourceRep updateExportGroup(@PathParam("id") URI id, ExportUpdateParam param)
             throws ControllerException {
-        
-        //validate the export groups
+
+        // validate the export groups
         ExportGroup exportGroup = queryObject(ExportGroup.class, id, true);
         validateUpdateInputForExportType(param, exportGroup);
         validateUpdateRemoveInitiators(param, exportGroup);
-        
+
         // Validate that the update is not attempting to add/remove VPLEX
         // backend volumes to/from a group.
         if (param.getVolumes() != null) {
             if (param.getVolumes().getAdd() != null) {
-                if(param.getVolumes().getAdd().size() > MAX_VOLUME_COUNT){
+                if (param.getVolumes().getAdd().size() > MAX_VOLUME_COUNT) {
                     throw APIException.badRequests.exceedingLimit("count",
                             MAX_VOLUME_COUNT);
                 }
@@ -1168,12 +1166,12 @@ public class ExportGroupService extends TaskResourceService {
                 BlockService.validateNoInternalBlockObjects(_dbClient, addVolumeURIs, false);
             }
 
-            if (param.getVolumes().getRemove() != null && param.getVolumes().getRemove().size() > MAX_VOLUME_COUNT){
+            if (param.getVolumes().getRemove() != null && param.getVolumes().getRemove().size() > MAX_VOLUME_COUNT) {
                 throw APIException.badRequests.exceedingLimit("count", MAX_VOLUME_COUNT);
             }
             BlockService.validateNoInternalBlockObjects(_dbClient, param.getVolumes().getRemove(), false);
         }
-        
+
         Map<URI, Integer> newVolumesMap = getUpdatedVolumesMap(param, exportGroup);
         Map<URI, Map<URI, Integer>> storageMap = computeAndValidateVolumes(newVolumesMap, exportGroup, param);
         _log.info("Updated volumes belong to storage systems: {}", storageMap.keySet().toArray());
@@ -1195,7 +1193,7 @@ public class ExportGroupService extends TaskResourceService {
         auditOp(OperationTypeEnum.UPDATE_EXPORT_GROUP, true, AuditLogManager.AUDITOP_BEGIN,
                 exportGroup.getLabel(), exportGroup.getId().toString(),
                 exportGroup.getVirtualArray().toString(), exportGroup.getProject().toString());
-        
+
         // push it to storage devices
         BlockExportController exportController = getExportController();
         _log.info("Submitting export group update request.");
@@ -1205,23 +1203,24 @@ public class ExportGroupService extends TaskResourceService {
     }
 
     /**
-     * This function starts with the existing volumes and computes the final volumes 
-     * map. This is needed to check the validity of the lun values and for finding 
+     * This function starts with the existing volumes and computes the final volumes
+     * map. This is needed to check the validity of the lun values and for finding
      * the list of storage system against which the clients should be validated
+     * 
      * @param param
      * @param exportGroup the export group
-     * @return the 
+     * @return the
      */
     private Map<URI, Integer> getUpdatedVolumesMap(ExportUpdateParam param,
             ExportGroup exportGroup) {
         Map<URI, Integer> newVolumes = StringMapUtil.stringMapToVolumeMap(exportGroup.getVolumes());
-        //get the new block objects map
+        // get the new block objects map
         Map<URI, Integer> addedVolumesMap = getChangedVolumes(param, true);
         _log.info("Added volumes list: {}", Joiner.on(',').join(addedVolumesMap.keySet()));
         Map<URI, Integer> removedVolumesMap = getChangedVolumes(param, false);
         _log.info("Removed volumes list: {}", Joiner.on(',').join(removedVolumesMap.keySet()));
         // remove old volumes - Do not check if the volume existed indeed or not
-        // we should allow re-entry and account for the possibility that the db is 
+        // we should allow re-entry and account for the possibility that the db is
         // out of sync with the storage system
         for (URI uri : removedVolumesMap.keySet()) {
             newVolumes.remove(uri);
@@ -1229,25 +1228,26 @@ public class ExportGroupService extends TaskResourceService {
         newVolumes.putAll(addedVolumesMap);
         return newVolumes;
     }
-    
+
     /**
      * Given the requested changes, return a map of volume-lun.
+     * 
      * @param param the export group update request object
-     * @param added a boolean that indicates if the map should be computed for 
-     * the added or removed volumes in the request object.
+     * @param added a boolean that indicates if the map should be computed for
+     *            the added or removed volumes in the request object.
      * @return a map of volume-lun as specified in the update export group request
      */
     private Map<URI, Integer> getChangedVolumes(ExportUpdateParam param, boolean added) {
         Map<URI, Integer> newVolumes = new HashMap<URI, Integer>();
-        if (param.getVolumes() != null ) {
+        if (param.getVolumes() != null) {
             if (added && param.getVolumes().getAdd() != null) {
                 for (VolumeParam objParam : param.getVolumes().getAdd()) {
                     newVolumes.put(objParam.getId(), objParam.getLun());
                 }
             } else if (!added && param.getVolumes().getRemove() != null) {
-            	_log.info("getChangedVolumes, amount of volumes to remove: " + param.getVolumes().getRemove().size());
+                _log.info("getChangedVolumes, amount of volumes to remove: " + param.getVolumes().getRemove().size());
                 for (URI uri : param.getVolumes().getRemove()) {
-                	_log.info("getChangedVolumes, removing volume: " + uri);
+                    _log.info("getChangedVolumes, removing volume: " + uri);
                     newVolumes.put(uri, -1);
                 }
             }
@@ -1256,13 +1256,14 @@ public class ExportGroupService extends TaskResourceService {
     }
 
     /**
-     * Validates the block object input for {@link #updateExportGroup(URI, ExportUpdateParam)}. It 
-     * checks that<ol>
+     * Validates the block object input for {@link #updateExportGroup(URI, ExportUpdateParam)}. It
+     * checks that
+     * <ol>
      * <li>the block objects exists and that it is in the same project as the export group.</li>
-     * <li>All block object are assigned a unique and valid lun Id, or that 
-     * all of the block objects are NOT assigned a lun id. In this case the system will
-     * assign a lun id.</li>
-     * @param blockObjectsMap a map of block object to lun id 
+     * <li>All block object are assigned a unique and valid lun Id, or that all of the block objects are NOT assigned a lun id. In this case
+     * the system will assign a lun id.</li>
+     * 
+     * @param blockObjectsMap a map of block object to lun id
      * @param exportGroup the export group to be updated
      * @return a map of storage systems to volume/lun maps
      */
@@ -1277,22 +1278,22 @@ public class ExportGroupService extends TaskResourceService {
             Integer lun = blockObjectsMap.get(uri);
             // make sure the luns are either unique or all unassigned
             if (!existingVols.containsKey(uri)) {
-                validateBlockObjectLun(luns,lun, existingVols.values());
+                validateBlockObjectLun(luns, lun, existingVols.values());
             }
-            
+
             /*
-             * cq612014 - add null sanity check for blockobject.  If null, throw details exception for
+             * cq612014 - add null sanity check for blockobject. If null, throw details exception for
              * ease of debug
-             */            
+             */
             BlockObject object = getAndValidateVolume(exportGroup, uri, existingVols.keySet());
             if (object != null) {
                 if (object instanceof BlockSnapshot) {
                     BlockSnapshot snapshot = (BlockSnapshot) object;
                     checkIfOpenStackSnapshot(snapshot);
                     // We should validate syncactive check only for the current volumes to remove.
-                    if (null != param.getVolumes() && null != param.getVolumes().getRemove() 
+                    if (null != param.getVolumes() && null != param.getVolumes().getRemove()
                             && param.getVolumes().getRemove().contains(object.getId())) {
-                    	checkForActiveBlockSnapshot(snapshot);
+                        checkForActiveBlockSnapshot(snapshot);
                     }
                 } else if (object instanceof Volume) {
                     // ignore user specified HLU for cinder volume
@@ -1313,52 +1314,54 @@ public class ExportGroupService extends TaskResourceService {
                 }
                 temp.put(uri, lun);
             } else {
-                throw APIException.badRequests.invalidParameterVolumeExportMismatch(uri,exportGroup.getId());
+                throw APIException.badRequests.invalidParameterVolumeExportMismatch(uri, exportGroup.getId());
             }
         }
         return storageMap;
     }
-    
+
     /**
      * checks that either all lun ids are unique or all {@link ExportGroup#LUN_UNASSIGNED}
+     * 
      * @param luns the list of all luns
      * @param lun the lun to be validated
      */
     private void validateBlockObjectLun(List<Integer> luns, Integer lun, Collection<Integer> existingLuns) {
-        if (luns.contains(ExportGroup.LUN_UNASSIGNED))  {
+        if (luns.contains(ExportGroup.LUN_UNASSIGNED)) {
             // if the previous ones were unassigned, this one should be unassigned
-            if (!lun.equals(ExportGroup.LUN_UNASSIGNED))
-                throw APIException.badRequests.uniqueLunsOrNoLunValue();           
-        } else  {
+            if (!lun.equals(ExportGroup.LUN_UNASSIGNED)) {
+                throw APIException.badRequests.uniqueLunsOrNoLunValue();
+            }
+        } else {
             // luns is either empty or have something that is assigned
             if (!luns.isEmpty()) {
                 // if the previous ones were assigned, this one should be assigned
                 // and have a different lun id from the others
-                if (luns.contains(lun) || lun.equals(ExportGroup.LUN_UNASSIGNED))
-                    throw APIException.badRequests.uniqueLunsOrNoLunValue();                
+                if (luns.contains(lun) || lun.equals(ExportGroup.LUN_UNASSIGNED)) {
+                    throw APIException.badRequests.uniqueLunsOrNoLunValue();
+                }
             }
-            // we also need to check that it is not in the existing luns 
+            // we also need to check that it is not in the existing luns
             // unless it is unassigned then it can match previous luns
-            if(existingLuns.contains(lun) && !lun.equals(ExportGroup.LUN_UNASSIGNED)) {
+            if (existingLuns.contains(lun) && !lun.equals(ExportGroup.LUN_UNASSIGNED)) {
                 throw APIException.badRequests.invalidParameterExportGroupAlreadyHasLun(lun);
             }
             luns.add(lun);
-        } 
+        }
     }
 
-    
     /**
      * Get block export details - the list of volumes and snapshots and the list of SCSI initiators
      * that the shared storage is exported to.
-     *     
+     * 
      * @param groupId Export group Identifier
      * @brief Show block export
      * @return Block export details
      */
     @GET
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public ExportGroupRestRep getExportGroup(@PathParam("id") URI groupId) {
         ExportGroup exportGroup = queryResource(groupId);
         return toExportResponse(exportGroup);
@@ -1366,7 +1369,7 @@ public class ExportGroupService extends TaskResourceService {
 
     private ExportGroupRestRep toExportResponse(ExportGroup export) {
         // getInitiators() getVolumes()
-        return map(export, getInitiators(export), getVolumes(export), 
+        return map(export, getInitiators(export), getVolumes(export),
                 getHosts(export), getClusters(export));
     }
 
@@ -1404,10 +1407,10 @@ public class ExportGroupService extends TaskResourceService {
                             if (!volumesMap.containsKey(entry.getKey()) && (entry.getValue() != null)) {
                                 // ensure that this volume is referenced by this export group
                                 if (volumes != null && volumes.containsKey(entry.getKey())) {
-                                volumesMap.put(entry.getKey(), Integer.valueOf(entry.getValue()));
+                                    volumesMap.put(entry.getKey(), Integer.valueOf(entry.getValue()));
+                                }
                             }
                         }
-                    }
                     }
                 } catch (Exception e) {
                     _log.error("Error getting volumes for export group {}", export.getId(), e);
@@ -1425,7 +1428,7 @@ public class ExportGroupService extends TaskResourceService {
                 }
             }
         }
-        
+
         return volumesMap;
     }
 
@@ -1451,12 +1454,10 @@ public class ExportGroupService extends TaskResourceService {
      * Deactivate block export. It will be deleted by the garbage collector on a
      * subsequent iteration
      * <p>
-     * This removes visibility of shared storage in the block export to servers
-     * through initiators in the block export.
+     * This removes visibility of shared storage in the block export to servers through initiators in the block export.
      * <p>
-     * If SAN Zones were created as a result of this Export Group (see Export
-     * Group Create), they will be removed if they are not in use by other
-     * Export Groups.
+     * If SAN Zones were created as a result of this Export Group (see Export Group Create), they will be removed if they are not in use by
+     * other Export Groups.
      * <p>
      * 
      * NOTE: This is an asynchronous operation.
@@ -1467,9 +1468,9 @@ public class ExportGroupService extends TaskResourceService {
      * @throws ControllerException
      */
     @POST
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/deactivate")
-    @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.OWN, ACL.ALL})
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskResourceRep deactivateExportGroup(@PathParam("id") URI groupId)
             throws ControllerException {
         String task = UUID.randomUUID().toString();
@@ -1496,25 +1497,24 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Retrieve resource representations based on input ids.
-     *     
+     * 
      * @param param POST data containing the id list.
      * @brief List data of export group resources
      * @return list of representations.
      */
     @POST
     @Path("/bulk")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public ExportGroupBulkRep getBulkResources(BulkIdParam param) {
         return (ExportGroupBulkRep) super.getBulkResources(param);
     }
 
-
     @Override
     protected URI getTenantOwner(URI id) {
         ExportGroup exportGroup = queryResource(id);
-        return exportGroup.getTenant().getURI();        
+        return exportGroup.getTenant().getURI();
     }
 
     @Override
@@ -1525,7 +1525,7 @@ public class ExportGroupService extends TaskResourceService {
     /**
      * Convenience method for initializing a task object with a status
      * 
-     * @param exportGroup export group 
+     * @param exportGroup export group
      * @param task task ID
      * @param status status to initialize with
      * @param opType operation type
@@ -1538,14 +1538,14 @@ public class ExportGroupService extends TaskResourceService {
         Operation op = new Operation();
         op.setResourceType(opType);
         if (status == Operation.Status.ready) {
-        	op.ready();
-        } 
+            op.ready();
+        }
         _dbClient.createTaskOpStatus(ExportGroup.class, exportGroup.getId(), task, op);
         return op;
     }
 
     /**
-     *
+     * 
      * @param project
      * @param param
      * @return
@@ -1572,6 +1572,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Return project of volume storage (volume/snapshot)
+     * 
      * @param block
      * @return
      */
@@ -1583,20 +1584,21 @@ public class ExportGroupService extends TaskResourceService {
         } else if (block.getClass() == BlockMirror.class) {
             return ((BlockMirror) block).getProject().getURI();
         } else {
-            throw APIException.badRequests.invalidBlockObjectToExport(block.getLabel(),block.getClass().getSimpleName());
+            throw APIException.badRequests.invalidBlockObjectToExport(block.getLabel(), block.getClass().getSimpleName());
         }
     }
 
     /**
-     * Validate the the input volume uri to ensure: <ol>
+     * Validate the the input volume uri to ensure:
+     * <ol>
      * <li>An active volume or snapshot exists for the uri</li>
-     * <li>The export group varray is valid for the volume as determined by
-     * {@link #getBlockObjectVirtualArrays(BlockObject)}.</li>
+     * <li>The export group varray is valid for the volume as determined by {@link #getBlockObjectVirtualArrays(BlockObject)}.</li>
      * <li>The volume is in the same project as the export group.</li>
      * </ol>
+     * 
      * @param exportGroup the export group where the volume is being added
      * @param volUri the uri of the volume of snapshot being added
-     * @param currentVolumes the volumes that are already in the export group. 
+     * @param currentVolumes the volumes that are already in the export group.
      * @return BlockObject the volume or snapshot being added to the export group.
      */
     private BlockObject getAndValidateVolume(ExportGroup exportGroup, URI volUri, Collection<URI> currentVolumes) {
@@ -1605,29 +1607,32 @@ public class ExportGroupService extends TaskResourceService {
         // to avoid getting the user stuck if something is wrong with the current
         // volumes states
         if (currentVolumes == null || !currentVolumes.contains(volUri)) {
-            if(block == null || block.getInactive()) {
-                throw APIException.badRequests.invalidParameterVolumeExportMismatch(volUri,exportGroup.getId());
+            if (block == null || block.getInactive()) {
+                throw APIException.badRequests.invalidParameterVolumeExportMismatch(volUri, exportGroup.getId());
             }
-            if(!exportGroup.getProject().getURI().equals(getBlockProject(block))) {
-                throw APIException.badRequests.invalidParameterVolumeExportProjectsMismatch(getBlockProject(block), exportGroup.getProject().getURI());
+            if (!exportGroup.getProject().getURI().equals(getBlockProject(block))) {
+                throw APIException.badRequests.invalidParameterVolumeExportProjectsMismatch(getBlockProject(block), exportGroup
+                        .getProject().getURI());
             }
             // Validate that the ExportGroup varray == the Volume varray, except when
             // it's a VPlex, the ExportGroup varray can be any Varray on the StorageSystem.
             Set<URI> blockObjectVarrays = ExportUtils.getBlockObjectVarrays(block, _dbClient);
-            if(!blockObjectVarrays.contains(exportGroup.getVirtualArray())) {
+            if (!blockObjectVarrays.contains(exportGroup.getVirtualArray())) {
                 VirtualPool vpool = ExportUtils.getBlockObjectVirtualPool(block, _dbClient);
-                if (vpool != null && vpool.getHighAvailability() != null 
+                if (vpool != null && vpool.getHighAvailability() != null
                         && vpool.getHighAvailability().equals(VirtualPool.HighAvailabilityType.vplex_local.name())) {
                     // Don't fail for a local VPLEX volume; it might be on the HA side
-                    _log.info(String.format("Local VPLEX volume %s not in Export Group Varray %s", block.getLabel(), exportGroup.getVirtualArray()));
+                    _log.info(String.format("Local VPLEX volume %s not in Export Group Varray %s", block.getLabel(),
+                            exportGroup.getVirtualArray()));
                 } else {
-                    throw APIException.badRequests.invalidParameterVolumeExportVirtualArrayMismatch(block.getId(),block.getVirtualArray(),exportGroup.getVirtualArray());
+                    throw APIException.badRequests.invalidParameterVolumeExportVirtualArrayMismatch(block.getId(), block.getVirtualArray(),
+                            exportGroup.getVirtualArray());
                 }
             }
         }
         return block;
     }
-    
+
     /**
      * Gets the volume for the given id and if the volume is being added to the
      * export group, then also validate it.
@@ -1643,10 +1648,10 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Given the export name and a project URI, get the applicable export object.
-     *
-     *
+     * 
+     * 
      * @param groupId@return - null, if not found, otherwise the EXPORT associated
-     *         with the project with name as 'groupName'.
+     *            with the project with name as 'groupName'.
      */
     private ExportGroup lookupExportGroup(URI groupId) {
         ArgValidator.checkUri(groupId);
@@ -1655,8 +1660,6 @@ public class ExportGroupService extends TaskResourceService {
         return group;
     }
 
-    
-
     /**
      * Check if initiators have connectivity to a storage port.
      * 
@@ -1664,29 +1667,30 @@ public class ExportGroupService extends TaskResourceService {
      * @param initiators
      */
     private void validatePortConnectivity(ExportGroup exportGroup,
-    		List<Initiator> initiators) {
-    	Map<URI, Map<URI, Integer>> storageMap = ExportUtils.getStorageToVolumeMap(
-    			exportGroup, false, _dbClient);
-    	// we want to make sure the initiator can access each storage
-    	for (URI storage : storageMap.keySet()) {
-    		StorageSystem storageSystem = _dbClient.queryObject(
-    				StorageSystem.class, storage);
-    		List<URI> varrays = ExportUtils.getVarraysForStorageSystemVolumes(exportGroup, storage, _dbClient);
-    		for (Initiator initiator : initiators) {
-    			// check the initiator has connectivity
-    			if (!hasConnectivityToSystem(storageSystem, varrays, initiator)) {
-    				throw APIException.badRequests.initiatorNotConnectedToStorage(initiator.toString(),storageSystem.getNativeGuid());
-    			}
-    		}
-    	}
+            List<Initiator> initiators) {
+        Map<URI, Map<URI, Integer>> storageMap = ExportUtils.getStorageToVolumeMap(
+                exportGroup, false, _dbClient);
+        // we want to make sure the initiator can access each storage
+        for (URI storage : storageMap.keySet()) {
+            StorageSystem storageSystem = _dbClient.queryObject(
+                    StorageSystem.class, storage);
+            List<URI> varrays = ExportUtils.getVarraysForStorageSystemVolumes(exportGroup, storage, _dbClient);
+            for (Initiator initiator : initiators) {
+                // check the initiator has connectivity
+                if (!hasConnectivityToSystem(storageSystem, varrays, initiator)) {
+                    throw APIException.badRequests.initiatorNotConnectedToStorage(initiator.toString(), storageSystem.getNativeGuid());
+                }
+            }
+        }
     }
 
     /**
      * Checks if an initiator has connectivity to a storage system in a varray.
+     * 
      * @param storageSystem the storage system where connectivity is needed
      * @param varrays - A list of varrays to check for matches in (multiple varrays for VPLEX clusters)
      * @param initiator the initiator
-     * @return true if at least one port is found 
+     * @return true if at least one port is found
      */
     private boolean hasConnectivityToSystem(StorageSystem storageSystem,
             List<URI> varrays,
@@ -1694,20 +1698,21 @@ public class ExportGroupService extends TaskResourceService {
         try {
             return ConnectivityUtil.isInitiatorConnectedToStorageSystem(initiator, storageSystem, varrays, _dbClient);
         } catch (PlacementException ex) {
-            _log.info(String.format("Initiator %s (%s) has no connectivity to StorageSystem %s (%s) in varrays %s", 
-                    initiator.getInitiatorPort(), initiator.getId(), storageSystem.getNativeGuid(), 
+            _log.info(String.format("Initiator %s (%s) has no connectivity to StorageSystem %s (%s) in varrays %s",
+                    initiator.getInitiatorPort(), initiator.getId(), storageSystem.getNativeGuid(),
                     storageSystem.getId(), varrays.toString()));
             return false;
         } catch (Exception ex) {
             _log.error("An error occurred while verifying Initiator connectivity: ", ex);
             throw APIException.badRequests.errorVerifyingInitiatorConnectivity(
-            		initiator.toString(),storageSystem.getNativeGuid(), ex.getMessage());
+                    initiator.toString(), storageSystem.getNativeGuid(), ex.getMessage());
         }
     }
-    
+
     /**
      * Validate that we can assign the required number of ports for the varray(s)
      * required to complete the export. Multiple varrays could be used if VPLEX.
+     * 
      * @param storageSystemURIs
      * @param exportGroup
      * @param initiatorURIs
@@ -1716,8 +1721,10 @@ public class ExportGroupService extends TaskResourceService {
     private void validatePortAssignmentOnStorageSystems(Collection<URI> storageSystemURIs,
             ExportGroup exportGroup, List<URI> initiatorURIs, Collection<URI> volumes) {
         // Do not validate ExportGroup Initiator type exports
-        if (exportGroup.forInitiator()) return;
-        
+        if (exportGroup.forInitiator()) {
+            return;
+        }
+
         for (URI storageSystemURI : storageSystemURIs) {
             StorageSystem storageSystem = _dbClient.queryObject(
                     StorageSystem.class, storageSystemURI);
@@ -1725,64 +1732,69 @@ public class ExportGroupService extends TaskResourceService {
             // Validate the initiators in their respective varrays.
             if (storageSystem.getSystemType().equals(DiscoveredDataObject.Type.vplex.name())) {
                 List<URI> varrays = new ArrayList<URI>();
-                Map<URI, Set<URI>> varrayToVolumes = VPlexUtil.mapBlockObjectsToVarrays(_dbClient, 
-                                                    volumes, storageSystemURI, exportGroup);
+                Map<URI, Set<URI>> varrayToVolumes = VPlexUtil.mapBlockObjectsToVarrays(_dbClient,
+                        volumes, storageSystemURI, exportGroup);
                 varrays.addAll(varrayToVolumes.keySet());
-                Map<URI, List<URI>> varrayToInitiatorsMap = 
-                        VPlexUtil.partitionInitiatorsByVarray(_dbClient, _blockStorageScheduler, 
-                        initiatorURIs, varrays, storageSystem);
+                Map<URI, List<URI>> varrayToInitiatorsMap =
+                        VPlexUtil.partitionInitiatorsByVarray(_dbClient, _blockStorageScheduler,
+                                initiatorURIs, varrays, storageSystem);
                 int nValidations = 0;
                 for (URI varrayKey : varrays) {
-                    if (varrayToInitiatorsMap.get(varrayKey) == null 
-                            || varrayToInitiatorsMap.get(varrayKey).isEmpty()) continue;
+                    if (varrayToInitiatorsMap.get(varrayKey) == null
+                            || varrayToInitiatorsMap.get(varrayKey).isEmpty()) {
+                        continue;
+                    }
                     List<Initiator> initiators = _dbClient.queryObject(Initiator.class, varrayToInitiatorsMap.get(varrayKey));
                     if (varrayToVolumes.get(varrayKey) != null) {
                         nValidations++;
-                        Collection<String> initiatorAddresses = Collections2.transform(initiators, 
+                        Collection<String> initiatorAddresses = Collections2.transform(initiators,
                                 CommonTransformerFunctions.fctnInitiatorToPortName());
-                        _log.info(String.format("Validating port assignments varray %s initiators %s", 
+                        _log.info(String.format("Validating port assignments varray %s initiators %s",
                                 varrayKey.toString(), initiatorAddresses));
-                        validatePortAssignment(storageSystem, varrayKey, _blockStorageScheduler, 
+                        validatePortAssignment(storageSystem, varrayKey, _blockStorageScheduler,
                                 initiators, varrayToVolumes.get(varrayKey));
                     }
                 }
-                if (nValidations == 0) { _log.info("No validations made for VPlex port assignment"); }
+                if (nValidations == 0) {
+                    _log.info("No validations made for VPlex port assignment");
+                }
             } else {
                 List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initiatorURIs);
                 URI varray = exportGroup.getVirtualArray();
-                Collection<String> initiatorAddresses = Collections2.transform(initiators, 
+                Collection<String> initiatorAddresses = Collections2.transform(initiators,
                         CommonTransformerFunctions.fctnInitiatorToPortName());
-                _log.info(String.format("Validating port assignments varray %s initiators %s", 
+                _log.info(String.format("Validating port assignments varray %s initiators %s",
                         varray.toString(), initiatorAddresses));
                 validatePortAssignment(storageSystem, varray, _blockStorageScheduler, initiators, volumes);
             }
         }
     }
-    
+
     /**
      * Verifies that StoragePorts can be assigned for a StorageSystem given a set of Initiators.
      * This will verify that the numPaths variable is not too low or too high to allow assignment.
-     * @param storageSystem 
+     * 
+     * @param storageSystem
      * @param varray VirtualArray of ExportGroup
      * @param blockScheduler
      * @param initiators List<Initiators>
      * @param numPaths
      */
-    private void validatePortAssignment(StorageSystem storageSystem, URI varray, 
+    private void validatePortAssignment(StorageSystem storageSystem, URI varray,
             BlockStorageScheduler blockScheduler, List<Initiator> initiators, Collection<URI> volumes) {
         try {
             ExportPathParams pathParams = blockScheduler.calculateExportPathParamForVolumes(
                     volumes, 0, storageSystem.getId());
-            blockScheduler.assignStoragePorts(storageSystem, 
-            		varray, initiators, pathParams, null, volumes);
+            blockScheduler.assignStoragePorts(storageSystem,
+                    varray, initiators, pathParams, null, volumes);
         } catch (ControllerException ex) {
             _log.error(ex.getLocalizedMessage());
-            throw(ex);
+            throw (ex);
         }
     }
-    
+
     /**
-     * Checks if any of the volume is vplex volume if yes diverts it to VpelxImpl 
+     * Checks if any of the volume is vplex volume if yes diverts it to VpelxImpl
      * to validate vplex storage ports in varray.
      * Default impl does nothing for now for this check.
      * 
@@ -1798,8 +1810,9 @@ public class ExportGroupService extends TaskResourceService {
         if (!allHosts.isEmpty()) {
             for (URI uri : volumes) {
                 BlockObject blockObject = BlockObject.fetch(_dbClient, uri);
-                if (blockObject == null)
+                if (blockObject == null) {
                     continue;
+                }
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class,
                         blockObject.getStorageController());
                 if (storageSystemURIs.contains(storageSystem.getId())
@@ -1822,6 +1835,7 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Checks if an initiator has connectivity to a storage system in a varray.
+     * 
      * @param storageSystems the storage systems where connectivity is needed
      * @param initiator the initiator
      * @return true if at least one port is found
@@ -1834,11 +1848,12 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Checks if an initiator has connectivity to a storage system in a varray.
+     * 
      * @param storageSystems the storage systems where connectivity is needed
      * @param neighborhoodUri the varray of the storage volume
      * @param blockScheduler an instance of {@link BlockStorageScheduler}
      * @param initiator the initiator
-     * @return true if at least one port is found 
+     * @return true if at least one port is found
      */
     private boolean hasConnectivityToAllSystems(
             Initiator initiator, Collection<URI> storageSystems, List<URI> connectedStorageSystems,
@@ -1848,13 +1863,13 @@ public class ExportGroupService extends TaskResourceService {
             connectedStorageSystems.addAll(storageSystems);
         }
         // we want to make sure the initiator can access each storage
-        for (URI storage : storageSystems ){
+        for (URI storage : storageSystems) {
             StorageSystem storageSystem = _dbClient.queryObject(
                     StorageSystem.class, storage);
-            List<URI> varrays = ExportUtils.getVarraysForStorageSystemVolumes(exportGroup, 
+            List<URI> varrays = ExportUtils.getVarraysForStorageSystemVolumes(exportGroup,
                     storage, _dbClient);
             // check the initiator has connectivity
-            if (!hasConnectivityToSystem(storageSystem, 
+            if (!hasConnectivityToSystem(storageSystem,
                     varrays, initiator)) {
                 hasConnectivity = false;
                 if (connectedStorageSystems != null) {
@@ -1866,11 +1881,11 @@ public class ExportGroupService extends TaskResourceService {
     }
 
     /**
-     *  While creating an export group, a user has the choice of supplying
-     *  Host Lun Units corresponding to the volumes being added to the export
-     *  group.  This function makes sure that either the user has not supplied any
-     *  HLUs (in which case the underlying storage device assigns them) or if the
-     *  user has supplied them, then (s)he has supplied HLUs for ALL volumes.     *
+     * While creating an export group, a user has the choice of supplying
+     * Host Lun Units corresponding to the volumes being added to the export
+     * group. This function makes sure that either the user has not supplied any
+     * HLUs (in which case the underlying storage device assigns them) or if the
+     * user has supplied them, then (s)he has supplied HLUs for ALL volumes. *
      */
     private void validateVolumeLunIdParam(List<VolumeParam> volumes) {
         int numDeviceNumbers = 0;
@@ -1883,32 +1898,31 @@ public class ExportGroupService extends TaskResourceService {
                 }
             }
         }
-        if(numDeviceNumbers != 0 && numDeviceNumbers != volumeListSize) {
+        if (numDeviceNumbers != 0 && numDeviceNumbers != volumeListSize) {
             throw APIException.badRequests.invalidVolumeParamsAllOrNoneShouldSpecifyLun(volumes);
         }
     }
-    
+
     /**
      * Gets a list of ITLs for all the volumes and snapshots that are exported to a
-     * list of initiators. 
+     * list of initiators.
      * <p>
-     * This function is not designed for a very large number of initiators and 
-     * performance is likely to be unsatisfactory if thousands of initiators are
-     * requested.  
+     * This function is not designed for a very large number of initiators and performance is likely to be unsatisfactory if thousands of
+     * initiators are requested.
      * 
      * @param initiatorPorts a comma-delimited list of initiators wwn or iqn.
      * @brief List ITLs of volumes and snapshots exported to a list of initiators
      * @return an object containing all ITLs for the initiators
      */
     @GET
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public ITLRestRepList getInitiatorsExports(@QueryParam("initiators") String initiatorPorts) {
         // make sure we have some initiators
         ArgValidator.checkFieldNotEmpty(initiatorPorts, "initiators");
 
         return com.emc.storageos.api.service.impl.resource.utils.ExportUtils
-                .getInitiatorsItls(Arrays.asList(initiatorPorts.split(",")), _dbClient, 
-                _permissionsHelper, getUserFromContext());
+                .getInitiatorsItls(Arrays.asList(initiatorPorts.split(",")), _dbClient,
+                        _permissionsHelper, getUserFromContext());
     }
 
     @SuppressWarnings("unchecked")
@@ -1919,14 +1933,14 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Retrieve ExportGroup representations based on input ids.
-     *
+     * 
      * @return list of ExportGroup representations.
      */
     @Override
     public ExportGroupBulkRep queryBulkResourceReps(List<URI> ids) {
 
         Iterator<ExportGroup> _dbIterator =
-            _dbClient.queryIterativeObjects(getResourceClass(), ids);
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
 
         BulkList<ExportGroupRestRep> list = new BulkList<ExportGroupRestRep>();
         list.setIterator(new ExportGroupRepIterator(
@@ -1939,7 +1953,7 @@ public class ExportGroupService extends TaskResourceService {
             List<URI> ids) {
 
         Iterator<ExportGroup> _dbIterator =
-            _dbClient.queryIterativeObjects(getResourceClass(), ids);
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
 
         BulkList<ExportGroupRestRep> filtered = new BulkList<ExportGroupRestRep>();
         filtered.setIterator(
@@ -1948,20 +1962,20 @@ public class ExportGroupService extends TaskResourceService {
                         new BulkList.ProjectResourceFilter<ExportGroup>(
                                 getUserFromContext(),
                                 _permissionsHelper)));
-       
+
         return new ExportGroupBulkRep(filtered);
     }
 
     /**
-     * A special iterator to create ExportGroupRestRep elements from 
+     * A special iterator to create ExportGroupRestRep elements from
      * an ExportGroup iterator
      * 
      * ExportGroupRestRep can not use the generic iterator because it has
-     * a different constructor which requires a ExportGroup object AND a dbclient. 
-     *
+     * a different constructor which requires a ExportGroup object AND a dbclient.
+     * 
      */
     private class ExportGroupRepIterator
-    implements Iterator<ExportGroupRestRep> {
+            implements Iterator<ExportGroupRestRep> {
         private final Iterator<ExportGroup> _dbIterator;
         private final ResourceFilter<ExportGroup> _filter;
 
@@ -1973,13 +1987,14 @@ public class ExportGroupService extends TaskResourceService {
             _dbClient = dbClient;
             _filter = new BulkList.ResourceFilter<ExportGroup>();
         }
-        
+
         public ExportGroupRepIterator(Iterator<ExportGroup> dbIterator,
                 DbClient dbClient, BulkList.ResourceFilter<ExportGroup> filter) {
             _dbIterator = dbIterator;
             _dbClient = dbClient;
             _filter = filter;
         }
+
         @Override
         public boolean hasNext() {
             if (null == _next) {
@@ -1990,15 +2005,15 @@ public class ExportGroupService extends TaskResourceService {
                         break;
                     }
                 }
-            }            
-            return _next!=null; 
+            }
+            return _next != null;
         }
-        
+
         @Override
         public ExportGroupRestRep next() {
             ExportGroup next = null;
             ExportGroupRestRep ret = null;
-            
+
             if (_next != null) {
                 next = _next;
             } else {
@@ -2006,14 +2021,14 @@ public class ExportGroupService extends TaskResourceService {
                     next = _next;
                 }
             }
-            
+
             if (next != null) {
                 ret = toExportResponse(next);
                 _next = null;
             }
             return ret;
         }
-        
+
         @Override
         public void remove() {
             throw new UnsupportedOperationException();
@@ -2023,15 +2038,15 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Simple wrapper that returns the BlockExportController proxy
-     *
+     * 
      * @return
      */
     private BlockExportController getExportController() {
         return getController(BlockExportController.class, BlockExportController.EXPORT);
     }
-    
+
     /**
-     * Export group is not a zone level resource 
+     * Export group is not a zone level resource
      */
     @Override
     protected boolean isZoneLevelResource() {
@@ -2039,38 +2054,37 @@ public class ExportGroupService extends TaskResourceService {
     }
 
     @Override
-    protected ResourceTypeEnum getResourceType(){
+    protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.EXPORT_GROUP;
     }
 
     /**
      * Get search results by name in zone or project.
-     *
+     * 
      * @return SearchedResRepList
      */
     @Override
-    protected SearchedResRepList getNamedSearchResults(String name,URI projectId){
+    protected SearchedResRepList getNamedSearchResults(String name, URI projectId) {
         SearchedResRepList resRepList = new SearchedResRepList(getResourceType());
         if (projectId == null) {
             _dbClient.queryByConstraint(
-                    PrefixConstraint.Factory.getLabelPrefixConstraint(getResourceClass(),name),
+                    PrefixConstraint.Factory.getLabelPrefixConstraint(getResourceClass(), name),
                     resRepList);
         } else {
             _dbClient.queryByConstraint(
                     ContainmentPrefixConstraint.Factory.getExportGroupUnderProjectConstraint(
-                    projectId, name), resRepList);
+                            projectId, name), resRepList);
         }
         return resRepList;
     }
 
-
     /**
-     * Get search results by project alone.  
-     *
+     * Get search results by project alone.
+     * 
      * @return SearchedResRepList
      */
     @Override
-    protected SearchedResRepList getProjectSearchResults(URI projectId){
+    protected SearchedResRepList getProjectSearchResults(URI projectId) {
         SearchedResRepList resRepList = new SearchedResRepList(getResourceType());
         _dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getProjectExportGroupConstraint(projectId),
@@ -2080,26 +2094,26 @@ public class ExportGroupService extends TaskResourceService {
 
     /**
      * Additional search criteria for a export group.
-     *
+     * 
      * If a matching export group is not found, an empty list is returned.
-     *
+     * 
      * Parameters - host String - URI of the host
-     *            - cluster String - URI of the cluster
-     *            - initiator String - URI of the initiator
-     *            - self_only - Optional parameter to allow for specific type search, [true or false]
+     * - cluster String - URI of the cluster
+     * - initiator String - URI of the initiator
+     * - self_only - Optional parameter to allow for specific type search, [true or false]
      */
     @Override
-    protected SearchResults getOtherSearchResults(Map<String, List <String>> parameters, boolean authorized) {
+    protected SearchResults getOtherSearchResults(Map<String, List<String>> parameters, boolean authorized) {
         SearchResults result = new SearchResults();
 
         String[] searchCriteria = { SEARCH_HOST, SEARCH_CLUSTER, SEARCH_INITIATOR, SEARCH_LEVEL };
 
         validateSearchParameters(parameters, searchCriteria);
-        
+
         boolean selfOnly = isSelfOnly(parameters, SEARCH_LEVEL);
 
         List<SearchResultResourceRep> resRepLists = new ArrayList<SearchResultResourceRep>();
-        for (Map.Entry<String,List<String>> entry : parameters.entrySet()) {
+        for (Map.Entry<String, List<String>> entry : parameters.entrySet()) {
             for (String searchValue : entry.getValue()) {
                 if (entry.getKey().equals(SEARCH_HOST)) {
                     // Search for host export
@@ -2122,31 +2136,33 @@ public class ExportGroupService extends TaskResourceService {
 
         return result;
     }
-    
+
     /**
      * Determine if string is a valid initiator id or wwn
+     * 
      * @param value to evaluate
      * @return true or false
      */
     private boolean isInitiatorId(String value) {
         URI initiatorUri = null;
-        
+
         try {
             initiatorUri = URI.create(value);
         } catch (IllegalArgumentException e) {
             return false;
         }
-        
+
         return URIUtil.isValid(initiatorUri);
     }
 
     /**
      * Validate if one param passed is valid
+     * 
      * @param params to evaluate
      * @param criterias that can be searched for
      * @return true of false
      */
-    private boolean isValidSearch(Map<String, List <String>> params, String[] criterias) {
+    private boolean isValidSearch(Map<String, List<String>> params, String[] criterias) {
         for (String search : criterias) {
             if (params.containsKey(search)) {
                 return true;
@@ -2155,25 +2171,27 @@ public class ExportGroupService extends TaskResourceService {
 
         return false;
     }
-    
+
     /**
      * Validate params
+     * 
      * @param params to evaluate
      * @param criterias that can be searched for
      */
-    private void validateSearchParameters(Map<String, List <String>> params, String[] criterias) {
+    private void validateSearchParameters(Map<String, List<String>> params, String[] criterias) {
         String nonVolumeKey = null;
-        boolean found = false; 
-        
+        boolean found = false;
+
         if (!isValidSearch(params, criterias)) {
             throw APIException.badRequests.invalidParameterSearchMissingParameter(getResourceClass().getName(), Arrays.toString(criterias));
         }
-        
-        // Make sure all parameters are our parameters, otherwise post an exception because we don't support other search criteria than our own. 
-        for (Map.Entry<String,List<String>> entry : params.entrySet()) {
+
+        // Make sure all parameters are our parameters, otherwise post an exception because we don't support other search criteria than our
+        // own.
+        for (Map.Entry<String, List<String>> entry : params.entrySet()) {
             found = false;
             for (String search : criterias) {
-                if(entry.getKey().equals(search)) {
+                if (entry.getKey().equals(search)) {
                     found = true;
                 }
             }
@@ -2183,19 +2201,21 @@ public class ExportGroupService extends TaskResourceService {
         }
 
         if (nonVolumeKey != null) {
-            throw APIException.badRequests.parameterForSearchCouldNotBeCombinedWithAnyOtherParameter(getResourceClass().getName(), Arrays.toString(criterias), nonVolumeKey);
+            throw APIException.badRequests.parameterForSearchCouldNotBeCombinedWithAnyOtherParameter(getResourceClass().getName(),
+                    Arrays.toString(criterias), nonVolumeKey);
         }
     }
-    
+
     /**
      * Determine if searching for type specific or not
+     * 
      * @param params to evaluate
      * @param criteria the valid criteria
      * @return true of false
      */
-    private boolean isSelfOnly(Map<String, List <String>> params, String criteria) {
-        for (Map.Entry<String,List<String>> entry : params.entrySet()) {
-            if(entry.getKey().equals(SEARCH_LEVEL)) {
+    private boolean isSelfOnly(Map<String, List<String>> params, String criteria) {
+        for (Map.Entry<String, List<String>> entry : params.entrySet()) {
+            if (entry.getKey().equals(SEARCH_LEVEL)) {
                 for (String searchValue : entry.getValue()) {
                     if (searchValue.equals("true")) {
                         return true;
@@ -2207,12 +2227,13 @@ public class ExportGroupService extends TaskResourceService {
                 }
             }
         }
-        
+
         return false;
     }
 
     /**
      * Performs the search query based on the host Id.
+     * 
      * @param hostId the host Id to search
      * @param resRepLists search result are placed in this param
      * @param selfOnly true or false
@@ -2221,7 +2242,7 @@ public class ExportGroupService extends TaskResourceService {
         URIQueryResultList egUris = new URIQueryResultList();
         Set<URI> resultUris = new HashSet<URI>();
         List<ExportGroup> exportGroups = new ArrayList<ExportGroup>();
-        
+
         if (selfOnly) {
             exportGroups = CustomQueryUtility.queryActiveResourcesByConstraint(
                     _dbClient, ExportGroup.class, AlternateIdConstraint.Factory
@@ -2242,12 +2263,13 @@ public class ExportGroupService extends TaskResourceService {
 
             exportGroups = _dbClient.queryObject(ExportGroup.class, resultUris, true);
         }
-        
+
         buildExportGroupSearchResponse(exportGroups, resRepLists, selfOnly, ExportGroupType.Host.name(), authorized);
     }
 
     /**
      * Performs the search query based on the cluster Id.
+     * 
      * @param clusterId search param
      * @param resRepLists result
      * @param selfOnly true or false
@@ -2256,10 +2278,10 @@ public class ExportGroupService extends TaskResourceService {
         URIQueryResultList egUris = new URIQueryResultList();
         Set<URI> resultUris = new HashSet<URI>();
         List<ExportGroup> exportGroups = new ArrayList<ExportGroup>();
-        
+
         if (selfOnly) {
             exportGroups = CustomQueryUtility.queryActiveResourcesByConstraint(
-                    _dbClient, ExportGroup.class, 
+                    _dbClient, ExportGroup.class,
                     AlternateIdConstraint.Factory.getConstraint(
                             ExportGroup.class, "clusters", clusterId));
         } else {
@@ -2271,30 +2293,32 @@ public class ExportGroupService extends TaskResourceService {
                 for (URI iUri : initiators) {
                     _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
                             getExportGroupInitiatorConstraint(iUri.toString()), egUris);
-                    
+
                     for (URI eUri : egUris) {
                         resultUris.add(eUri);
                     }
                 }
-            } 
-            
+            }
+
             exportGroups = _dbClient.queryObject(ExportGroup.class, resultUris, true);
         }
-        
+
         buildExportGroupSearchResponse(exportGroups, resRepLists, selfOnly, ExportGroupType.Cluster.name(), authorized);
     }
 
     /**
      * Performs the search query based on the initiator Id.
+     * 
      * @param initiatorId search param
      * @param resRepLists result
      * @param selfOnly true or false
      */
-    private void searchforInitiatorExport(String initiatorId, List<SearchResultResourceRep> resRepLists, boolean selfOnly, boolean authorized) {
+    private void searchforInitiatorExport(String initiatorId, List<SearchResultResourceRep> resRepLists, boolean selfOnly,
+            boolean authorized) {
         URIQueryResultList egUris = new URIQueryResultList();
         Set<URI> resultUris = new HashSet<URI>();
         List<ExportGroup> exportGroups = new ArrayList<ExportGroup>();
-        
+
         if (selfOnly) {
             exportGroups = CustomQueryUtility.queryActiveResourcesByConstraint(
                     _dbClient, ExportGroup.class, AlternateIdConstraint.Factory
@@ -2302,20 +2326,21 @@ public class ExportGroupService extends TaskResourceService {
         } else {
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
                     getExportGroupInitiatorConstraint(initiatorId.toString()), egUris);
-            
+
             for (URI eUri : egUris) {
                 resultUris.add(eUri);
             }
-            
+
             exportGroups = _dbClient.queryObject(ExportGroup.class, resultUris, true);
         }
-        
+
         buildExportGroupSearchResponse(exportGroups, resRepLists, selfOnly, ExportGroupType.Initiator.name(), authorized);
     }
-    
+
     /**
      * Performs the search query based on the initiator wwn. Will find the initiator associated with the passed
      * wwn in order to do the a search by initiator id.
+     * 
      * @param wwn search param
      * @param resRepLists result
      * @param selfOnly true or false
@@ -2326,14 +2351,15 @@ public class ExportGroupService extends TaskResourceService {
         // find the initiator
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(
                 wwn), initiatorList);
-        
+
         for (URI iUri : initiatorList) {
             searchforInitiatorExport(iUri.toString(), resRepLists, selfOnly, authorized);
         }
     }
-    
+
     /**
      * Change elements to URI
+     * 
      * @param namedElements to change to URI
      * @return list of URI
      */
@@ -2345,54 +2371,57 @@ public class ExportGroupService extends TaskResourceService {
             }
         }
         return out;
-    }  
-    
+    }
+
     /**
      * Build search response based on query result.
+     * 
      * @param exportGroups from query
      * @param resRepLists result
      * @param selfOnly true or false
      * @param type Cluster, Host or Initiator
      */
-    private void buildExportGroupSearchResponse(List<ExportGroup> exportGroups, List<SearchResultResourceRep> resRepLists, boolean selfOnly, String type, boolean authorized) {
+    private void buildExportGroupSearchResponse(List<ExportGroup> exportGroups, List<SearchResultResourceRep> resRepLists,
+            boolean selfOnly, String type, boolean authorized) {
         PermissionsEnforcingResourceFilter<ExportGroup> filter =
                 new ExportGroupSearchFilter(getUserFromContext(), _permissionsHelper);
-        
+
         for (ExportGroup eg : exportGroups) {
             if (!authorized && !filter.isExposed(eg)) {
-                    continue; // authorization failed, don't add to search result
+                continue; // authorization failed, don't add to search result
             }
-        
+
             if (selfOnly) {
                 if (!eg.getType().equals(type)) {
                     continue; // match invalid, only return matching types, process next
                 }
             }
-            
+
             RestLinkRep selfLink = new RestLinkRep("self", RestLinkFactory.newLink(getResourceType(), eg.getId()));
             SearchResultResourceRep searchResult = new SearchResultResourceRep(eg.getId(), selfLink, eg.getLabel());
             resRepLists.add(searchResult);
         }
     }
-    
+
     public static class ExportGroupSearchFilter extends PermissionsEnforcingResourceFilter<ExportGroup> {
 
         public ExportGroupSearchFilter(StorageOSUser user,
                 PermissionsHelper permissionsHelper) {
             super(user, permissionsHelper);
         }
-        
+
         @Override
         public boolean isAccessible(ExportGroup resource) {
             boolean ret = false;
-    
-            if (resource == null)
+
+            if (resource == null) {
                 return false;
+            }
             ret = isTenantAccessible(resource.getTenant().getURI());
             if (!ret) {
                 NamedURI proj = resource.getProject();
                 if (proj != null) {
-                    ret = isProjectAccessible(proj.getURI()); 
+                    ret = isProjectAccessible(proj.getURI());
                 }
             }
             return ret;
@@ -2400,8 +2429,8 @@ public class ExportGroupService extends TaskResourceService {
     }
 
     /**
-     * Get object specific permissions filter  
-     *
+     * Get object specific permissions filter
+     * 
      */
     @Override
     public ResRepFilter<? extends RelatedResourceRep> getPermissionFilter(StorageOSUser user,
@@ -2409,23 +2438,24 @@ public class ExportGroupService extends TaskResourceService {
     {
         return new ProjOwnedResRepFilter(user, permissionsHelper, ExportGroup.class);
     }
-    
+
     /**
      * Validates that we are not creating an ExportGroup of with a duplicate name
      * in the same project and varray. This is used to detect collisions where doing
      * concurrent exports from the UI.
+     * 
      * @param param
      */
     private void validateNotSameNameProjectAndVarray(ExportCreateParam param) {
-    	URIQueryResultList exportGroupURIList = new URIQueryResultList();
+        URIQueryResultList exportGroupURIList = new URIQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getProjectExportGroupConstraint(param.getProject()), exportGroupURIList);
         Iterator<URI> exportGroupURIIterator = exportGroupURIList.iterator();
-        while(exportGroupURIIterator.hasNext()) {
-        	ExportGroup eg = _dbClient.queryObject(ExportGroup.class, exportGroupURIIterator.next());
-        	if ((null != eg) && eg.getLabel().equals(param.getName()) && eg.getVirtualArray().equals(param.getVarray())) {
-        		throw APIException.badRequests.duplicateExportGroupProjectAndVarray(param.getName());
-        	}
+        while (exportGroupURIIterator.hasNext()) {
+            ExportGroup eg = _dbClient.queryObject(ExportGroup.class, exportGroupURIIterator.next());
+            if ((null != eg) && eg.getLabel().equals(param.getName()) && eg.getVirtualArray().equals(param.getVarray())) {
+                throw APIException.badRequests.duplicateExportGroupProjectAndVarray(param.getName());
+            }
         }
     }
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.auth;
 
@@ -22,7 +12,8 @@ import javax.xml.bind.annotation.XmlElement;
 public class ACLEntry {
 
     /**
-     * List of privileges that make up this entry.  Some privileges will apply to different APIs.
+     * List of privileges that make up this entry. Some privileges will apply to different APIs.
+     * 
      * @valid ALL: allows all provisioning operations, everything under a project (fs, volume, snapshots etc)
      * @valid BACKUP: allows all snapshot related operations (create/delete/export snapshots)
      * @valid USE: can use a virtual array or virtual pool
@@ -32,6 +23,7 @@ public class ACLEntry {
     /**
      * The username to which the privilege is assigned or being assigned/revoked
      * If subject_id is specified, group may not be specified.
+     * 
      * @valid One of subject_id, group or tenant must be specified.
      * @valid example: username@company.com
      */
@@ -40,6 +32,7 @@ public class ACLEntry {
     /**
      * The group to which the privilege is assigned or being assigned/revoked.
      * If group is specified, subject_id may not be specified.
+     * 
      * @valid One of subject_id, group or tenant must be specified.
      * @valid example: group@company.com
      */
@@ -47,12 +40,14 @@ public class ACLEntry {
 
     /**
      * Tenant id inside of which this entry applies
+     * 
      * @valid One of subject_id, group or tenant must be specified.
-     * @valid example:  urn:storageos:TenantOrg:346e95bd-3d66-4980-b87a-84b997c0ab20:
+     * @valid example: urn:storageos:TenantOrg:346e95bd-3d66-4980-b87a-84b997c0ab20:
      */
     private String tenant;
 
-    public ACLEntry() {}
+    public ACLEntry() {
+    }
 
     public ACLEntry(List<String> aces, String subjectId, String group, String tenant) {
         this.aces = aces;

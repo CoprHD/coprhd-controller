@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.catalog;
@@ -36,7 +36,6 @@ import play.data.validation.Validation;
 import play.exceptions.UnexpectedException;
 import play.i18n.Messages;
 import play.mvc.Catch;
-import play.mvc.Router;
 import play.mvc.Util;
 import play.mvc.With;
 import play.vfs.VirtualFile;
@@ -83,7 +82,7 @@ import controllers.util.AbstractRestRepForm;
 import controllers.util.Models;
 
 @With(Common.class)
-@Restrictions({ @Restrict("TENANT_ADMIN")})
+@Restrictions({ @Restrict("TENANT_ADMIN") })
 public class EditCatalog extends ServiceCatalog {
 
     protected static final String CATEGORY_MODEL_NAME = "CatalogCategory";
@@ -108,7 +107,7 @@ public class EditCatalog extends ServiceCatalog {
      * URL fragment.
      * 
      * @param categoryId
-     *        the ID of the category.
+     *            the ID of the category.
      * @return the URL for accessing the category in the catalog.
      */
     private static String getCategoryUrl(String tenantId, String categoryId) {
@@ -122,11 +121,11 @@ public class EditCatalog extends ServiceCatalog {
      * Sends the user back to the catalog at the given category with a success message.
      * 
      * @param categoryId
-     *        the ID of the category to show the user.
+     *            the ID of the category to show the user.
      * @param message
-     *        the success message.
+     *            the success message.
      * @param args
-     *        the success message arguments.
+     *            the success message arguments.
      */
     private static void catalogUpdated(String categoryId, String messageKey, Object... args) {
         String tenantId = Models.currentAdminTenant();
@@ -138,12 +137,12 @@ public class EditCatalog extends ServiceCatalog {
     @Util
     private static void addACLsToRenderArgs() {
         renderArgs.put("acls", ACLs.options(ACLs.USE));
-        
+
         Set<EnumOption> aclTypes = new TreeSet<EnumOption>();
         aclTypes.addAll(Arrays.asList(EnumOption.options(RoleAssignmentType.values(), "RoleAssignmentType")));
         renderArgs.put("aclTypes", aclTypes);
-    }       
-    
+    }
+
     private static void addImagesToRenderArgs() {
         renderArgs.put("images", loadImageOptions());
     }
@@ -166,7 +165,7 @@ public class EditCatalog extends ServiceCatalog {
     public static void imagesJson() {
         renderJSON(loadImageOptions());
     }
-    
+
     private static void addExecutionWindowsToRenderArgs() {
         List<ExecutionWindowRestRep> executionWindows = ExecutionWindowUtils.getExecutionWindows();
         renderArgs.put("executionWindows", executionWindows);
@@ -183,7 +182,7 @@ public class EditCatalog extends ServiceCatalog {
             }
             values.add(descriptor);
         }
-        for (List<ServiceDescriptorRestRep> values : descriptors.values()){
+        for (List<ServiceDescriptorRestRep> values : descriptors.values()) {
             Collections.sort(values, new ServiceDescriptorComparator());
         }
         renderArgs.put("baseServices", descriptors);
@@ -249,11 +248,11 @@ public class EditCatalog extends ServiceCatalog {
      * Determines if one category is a descendant of another, or the same.
      * 
      * @param category
-     *        the category that is being tested as a descendant.
+     *            the category that is being tested as a descendant.
      * @param ancestorId
-     *        the ID of the ancestor category.
+     *            the ID of the ancestor category.
      * @param catalog
-     *        the entire catalog.
+     *            the entire catalog.
      * @return true if the category is a descendant of the ancestor category specified.
      */
     private static boolean isDescendantOrSelf(CategoryDef category, String ancestorId, Map<String, CategoryDef> catalog) {
@@ -279,8 +278,7 @@ public class EditCatalog extends ServiceCatalog {
                     try {
                         List<AssetOption> options = AssetOptionUtils.getAssetOptions(field.getAssetType());
                         request.current().args.put(field.getType() + "-options", options);
-                    }
-                    catch (RuntimeException e) {
+                    } catch (RuntimeException e) {
                         request.current().args.put(field.getType() + "-error", e.getMessage());
                     }
                 }
@@ -305,7 +303,7 @@ public class EditCatalog extends ServiceCatalog {
         addCategoriesToRenderArgs(Models.currentAdminTenant(), category.id);
         addBreadCrumbToRenderArgs(Models.currentAdminTenant(), category);
         addACLsToRenderArgs();
-        
+
         render("@editCategory", category);
     }
 
@@ -352,12 +350,12 @@ public class EditCatalog extends ServiceCatalog {
         CatalogCategoryRestRep category = CatalogCategoryUtils.getCatalogCategory(uri(categoryId));
         String title = category.getTitle();
         String parentId = getParentId(category.getCatalogCategory());
-        
+
         CatalogCategoryUtils.deleteCatalogCategory(category.getId());
 
         catalogUpdated(parentId, "Category deleted: %s", title);
     }
-    
+
     public static void restoreCatalog() {
         String tenantId = Models.currentAdminTenant();
         try {
@@ -365,8 +363,7 @@ public class EditCatalog extends ServiceCatalog {
             catalogModified(tenantId);
             flash.success(Messages.get("EditCatalog.restored"));
             edit();
-        }
-        catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             Logger.error(e, "Failed to restore catalog");
             flash.error(Messages.get("EditCatalog.failed"));
             edit();
@@ -390,7 +387,7 @@ public class EditCatalog extends ServiceCatalog {
 
         render("@editService", service, serviceDescriptor);
     }
-    
+
     protected static ServiceDescriptorRestRep getServiceDescriptorForEditing(String name) {
         ServiceDescriptorRestRep serviceDescriptor = ServiceDescriptorUtils.getDescriptor(name);
         if (serviceDescriptor == null) {
@@ -425,20 +422,20 @@ public class EditCatalog extends ServiceCatalog {
         service.fromId = StringUtils.defaultIfBlank(fromId, service.owningCategoryId);
         edit(service);
     }
-    
+
     public static void deleteService(String serviceId) {
         CatalogServiceRestRep catalogService = CatalogServiceUtils.getCatalogService(uri(serviceId));
         deleteService(catalogService);
     }
-    
+
     private static void deleteService(CatalogServiceRestRep catalogService) {
         String title = catalogService.getTitle();
         String parentId = getParentId(catalogService.getCatalogCategory());
-        
+
         CatalogServiceUtils.deleteCatalogService(catalogService.getId());
 
         catalogUpdated(parentId, "EditCatalog.deletedService", title);
-    }    
+    }
 
     public static void saveService(ServiceForm service) {
         // Set name before validation
@@ -501,7 +498,7 @@ public class EditCatalog extends ServiceCatalog {
 
     public static void moveUpService(String id) {
         CatalogServiceRestRep catalogService = CatalogServiceUtils.getCatalogService(uri(id));
-        
+
         CatalogServiceUtils.moveUpService(catalogService.getId());
 
         services(catalogService.getCatalogCategory().getId().toString());
@@ -509,25 +506,25 @@ public class EditCatalog extends ServiceCatalog {
 
     public static void moveDownService(String id) {
         CatalogServiceRestRep catalogService = CatalogServiceUtils.getCatalogService(uri(id));
-        
+
         CatalogServiceUtils.moveDownService(catalogService.getId());
-        
+
         services(catalogService.getCatalogCategory().getId().toString());
     }
 
     public static void moveUpCategory(String id) {
         CatalogCategoryRestRep catalogCategory = CatalogCategoryUtils.getCatalogCategory(uri(id));
-        
+
         CatalogCategoryUtils.moveUpCategory(catalogCategory.getId());
-        
+
         categories(catalogCategory.getCatalogCategory().getId().toString());
     }
 
     public static void moveDownCategory(String id) {
         CatalogCategoryRestRep catalogCategory = CatalogCategoryUtils.getCatalogCategory(uri(id));
-        
+
         CatalogCategoryUtils.moveDownCategory(catalogCategory.getId());
-        
+
         categories(catalogCategory.getCatalogCategory().getId().toString());
     }
 
@@ -535,15 +532,13 @@ public class EditCatalog extends ServiceCatalog {
      * Gets the ID from a model, or null if the model is null.
      * 
      * @param model
-     *        the model.
+     *            the model.
      * @return the ID.
      */
     public static String getId(DataObjectRestRep model) {
         return model != null && model.getId() != null ? model.getId().toString() : null;
     }
 
-
-    
     /**
      * Represents the service edited in the forms.
      * 
@@ -552,7 +547,7 @@ public class EditCatalog extends ServiceCatalog {
     public static class ServiceForm extends AbstractRestRepForm<CatalogServiceRestRep> {
         /** The category that this edit was launched from. */
         public String fromId;
-        
+
         @Required
         public String name;
 
@@ -561,11 +556,11 @@ public class EditCatalog extends ServiceCatalog {
         @MaxSize(128)
         @MinSize(2)
         public String title;
-        
+
         @Required
         @MaxSize(255)
         public String description;
-        
+
         @Required
         @MaxSize(255)
         public String image;
@@ -575,7 +570,7 @@ public class EditCatalog extends ServiceCatalog {
         public String baseService;
 
         public String owningCategoryId;
-        
+
         @Min(1)
         public Integer maxSize;
 
@@ -584,7 +579,7 @@ public class EditCatalog extends ServiceCatalog {
         public Boolean executionWindowRequired;
 
         public String defaultExecutionWindowId;
-        
+
         public List<AclEntryForm> aclEntries = Lists.newArrayList();
 
         @CheckWith(ServiceFieldsCheck.class)
@@ -628,13 +623,13 @@ public class EditCatalog extends ServiceCatalog {
             }
 
             this.aclEntries.clear();
-            this.aclEntries.addAll(ACLUtils.convertToAclEntryForms(CatalogServiceUtils.getACLs(id)));            
+            this.aclEntries.addAll(ACLUtils.convertToAclEntryForms(CatalogServiceUtils.getACLs(id)));
         }
 
         @Override
         protected void doValidation(String fieldName) {
             ACLUtils.validateAclEntries(fieldName + ".aclEntries", this.aclEntries);
-            
+
             // ensure the service descriptor is valid
             ServiceDescriptorRestRep descriptor = ServiceDescriptorUtils.getDescriptor(this.baseService);
             if (descriptor == null) {
@@ -645,19 +640,19 @@ public class EditCatalog extends ServiceCatalog {
 
         @Override
         protected CatalogServiceRestRep doCreate() {
-            
+
             CatalogServiceRestRep catalogService = null;
-                    
+
             try {
                 CatalogServiceCreateParam createParam = new CatalogServiceCreateParam();
-                
+
                 writeCommon(createParam);
-    
+
                 catalogService = CatalogServiceUtils.createCatalogService(createParam);
-                
+
                 ACLUtils.updateACLs(getCatalogClient().services(), catalogService.getId(), this.aclEntries);
-                
-            } catch(Exception e) {
+
+            } catch (Exception e) {
                 Common.flashException(e);
                 Common.handleError();
             }
@@ -666,26 +661,26 @@ public class EditCatalog extends ServiceCatalog {
 
         @Override
         protected CatalogServiceRestRep doUpdate() {
-            
+
             CatalogServiceRestRep catalogService = null;
-            
+
             try {
                 CatalogServiceUpdateParam updateParam = new CatalogServiceUpdateParam();
-                
+
                 writeCommon(updateParam);
-                
+
                 catalogService = CatalogServiceUtils.updateCatalogService(uri(this.id), updateParam);
-                
+
                 ACLUtils.updateACLs(getCatalogClient().services(), catalogService.getId(), this.aclEntries);
-                
-            } catch(Exception e) {
+
+            } catch (Exception e) {
                 Common.flashException(e);
                 Common.handleError();
             }
-            
+
             return catalogService;
         }
-        
+
         private void writeCommon(CatalogServiceCommonParam commonParam) {
             commonParam.setName(title.replaceAll(" ", ""));
             commonParam.setTitle(title);
@@ -712,15 +707,15 @@ public class EditCatalog extends ServiceCatalog {
             }
             else {
                 commonParam.setDefaultExecutionWindow(null);
-            }            
-            
+            }
+
             for (ServiceFieldForm serviceFieldForm : this.serviceFields) {
                 CatalogServiceFieldParam fieldParam = new CatalogServiceFieldParam();
                 serviceFieldForm.writeTo(fieldParam);
                 commonParam.getCatalogServiceFields().add(fieldParam);
-            }            
+            }
         }
-        
+
         /*
          * Used by validation
          */
@@ -730,35 +725,35 @@ public class EditCatalog extends ServiceCatalog {
             service.setDescription(description);
             service.setImage(image);
             service.setBaseService(baseService);
-//            if (StringUtils.isNotBlank(owningCategoryId)) {
-//                CatalogCategoryRestRep parent = CatalogCategoryUtils.getCatalogCategory(uri(this.owningCategoryId));
-//                if (parent != null) {
-//                    service.setCatalogCategoryId(uri(owningCategoryId));
-//                }
-//            }
+            // if (StringUtils.isNotBlank(owningCategoryId)) {
+            // CatalogCategoryRestRep parent = CatalogCategoryUtils.getCatalogCategory(uri(this.owningCategoryId));
+            // if (parent != null) {
+            // service.setCatalogCategoryId(uri(owningCategoryId));
+            // }
+            // }
             service.setApprovalRequired(this.approvalRequired);
             service.setExecutionWindowRequired(this.executionWindowRequired);
             service.setMaxSize(this.maxSize != null ? this.maxSize : 0);
-//            if (this.defaultExecutionWindowId != null) {
-//                ExecutionWindowRestRep executionWindow = ExecutionWindowUtils.getExecutionWindow(uri(this.defaultExecutionWindowId));
-//                if (executionWindow != null) {
-//                    commonParam.setDefaultExecutionWindow(uri(this.defaultExecutionWindowId));
-//                }
-//                else {
-//                    commonParam.setDefaultExecutionWindow(null);
-//                }
-//            }
-//            else {
-//                commonParam.setDefaultExecutionWindow(null);
-//            }            
-//            
-//            for (ServiceFieldForm serviceFieldForm : this.serviceFields) {
-//                CatalogServiceFieldParam fieldParam = new CatalogServiceFieldParam();
-//                serviceFieldForm.writeTo(fieldParam);
-//                commonParam.getCatalogServiceFields().add(fieldParam);
-//            }                    
+            // if (this.defaultExecutionWindowId != null) {
+            // ExecutionWindowRestRep executionWindow = ExecutionWindowUtils.getExecutionWindow(uri(this.defaultExecutionWindowId));
+            // if (executionWindow != null) {
+            // commonParam.setDefaultExecutionWindow(uri(this.defaultExecutionWindowId));
+            // }
+            // else {
+            // commonParam.setDefaultExecutionWindow(null);
+            // }
+            // }
+            // else {
+            // commonParam.setDefaultExecutionWindow(null);
+            // }
+            //
+            // for (ServiceFieldForm serviceFieldForm : this.serviceFields) {
+            // CatalogServiceFieldParam fieldParam = new CatalogServiceFieldParam();
+            // serviceFieldForm.writeTo(fieldParam);
+            // commonParam.getCatalogServiceFields().add(fieldParam);
+            // }
         }
-  
+
     }
 
     public static boolean isSameCategory(URI categoryId, String id) {
@@ -787,7 +782,7 @@ public class EditCatalog extends ServiceCatalog {
             this.override = catalogServiceField.getOverride();
             this.value = catalogServiceField.getValue();
         }
-        
+
         public void writeTo(CatalogServiceFieldParam fieldParam) {
             fieldParam.setName(this.name);
             fieldParam.setOverride(this.override);
@@ -804,16 +799,16 @@ public class EditCatalog extends ServiceCatalog {
     public static class CategoryForm extends AbstractRestRepForm<CatalogCategoryRestRep> {
         /** The category that this edit was launched from. */
         public String fromId;
-        
+
         @Required
         public String name;
-        
+
         @Required
         @MaxSize(128)
         @MinSize(2)
         @CheckWith(CatalogCategoryNameUniqueCheck.class)
         public String title;
-        
+
         @Required
         @MaxSize(255)
         public String description;
@@ -823,7 +818,7 @@ public class EditCatalog extends ServiceCatalog {
         public String image;
 
         public String parentId;
-        
+
         public List<AclEntryForm> aclEntries = Lists.newArrayList();
 
         public CategoryForm() {
@@ -847,11 +842,11 @@ public class EditCatalog extends ServiceCatalog {
             if (category.getCatalogCategory() != null) {
                 this.parentId = category.getCatalogCategory().getId().toString();
             }
-            
+
             this.aclEntries.clear();
-            this.aclEntries.addAll(ACLUtils.convertToAclEntryForms(CatalogCategoryUtils.getACLs(this.id)));                
+            this.aclEntries.addAll(ACLUtils.convertToAclEntryForms(CatalogCategoryUtils.getACLs(this.id)));
         }
-        
+
         @Override
         protected void doValidation(String fieldName) {
             ACLUtils.validateAclEntries(fieldName + ".aclEntries", this.aclEntries);
@@ -860,46 +855,45 @@ public class EditCatalog extends ServiceCatalog {
         @Override
         protected CatalogCategoryRestRep doCreate() {
             CatalogCategoryRestRep catalogCategory = null;
-                    
-            try{
+
+            try {
                 CatalogCategoryCreateParam createParam = new CatalogCategoryCreateParam();
                 createParam.setTenantId(getCategoryTenant());
                 writeCommon(createParam);
-                
+
                 catalogCategory = CatalogCategoryUtils.createCatalogCategory(createParam);
-                
+
                 ACLUtils.updateACLs(getCatalogClient().categories(), catalogCategory.getId(), this.aclEntries);
-                
-                
-            } catch(Exception e) {
+
+            } catch (Exception e) {
                 Common.flashException(e);
                 Common.handleError();
             }
-            
+
             return catalogCategory;
         }
 
         @Override
         protected CatalogCategoryRestRep doUpdate() {
-            
+
             CatalogCategoryRestRep catalogCategory = null;
-                    
+
             try {
                 CatalogCategoryUpdateParam updateParam = new CatalogCategoryUpdateParam();
-                
+
                 writeCommon(updateParam);
-                
+
                 catalogCategory = CatalogCategoryUtils.updateCatalogCategory(uri(this.id), updateParam);
-                
+
                 ACLUtils.updateACLs(getCatalogClient().categories(), catalogCategory.getId(), this.aclEntries);
-            } catch(Exception e) {
+            } catch (Exception e) {
                 Common.flashException(e);
                 Common.handleError();
             }
-            
+
             return catalogCategory;
-        }    
-        
+        }
+
         private void writeCommon(CatalogCategoryCommonParam commonParam) {
             commonParam.setName(title.replaceAll(" ", ""));
             commonParam.setTitle(title);
@@ -907,7 +901,7 @@ public class EditCatalog extends ServiceCatalog {
             commonParam.setImage(image);
             if (!isCatalogRoot()) {
                 commonParam.setCatalogCategoryId(uri(parentId));
-            }      
+            }
         }
 
         private String getCategoryTenant() {
@@ -949,11 +943,11 @@ public class EditCatalog extends ServiceCatalog {
      * Determines if the service name is unique within a parent category.
      * 
      * @param id
-     *        the service ID, if editing a service.
+     *            the service ID, if editing a service.
      * @param name
-     *        the service name.
+     *            the service name.
      * @param parentId
-     *        the parent category ID.
+     *            the parent category ID.
      * @return true if the service name is unique.
      */
     private static boolean isUniqueServiceName(String id, String name, String parentId) {
@@ -975,11 +969,11 @@ public class EditCatalog extends ServiceCatalog {
      * Determines if the category name is unique within a parent category.
      * 
      * @param id
-     *        the category ID.
+     *            the category ID.
      * @param name
-     *        the category name.
+     *            the category name.
      * @param parentId
-     *        the parent category ID.
+     *            the parent category ID.
      * @return true if the category name is unique.
      */
     private static boolean isUniqueCategoryName(String id, String name, String parentId) {
@@ -1023,9 +1017,9 @@ public class EditCatalog extends ServiceCatalog {
          * Determines if the service name is unique within the parent category.
          * 
          * @param service
-         *        the service form input.
+         *            the service form input.
          * @param name
-         *        the service name.
+         *            the service name.
          * @return true if the name is unique.
          */
         private boolean isUniqueName(ServiceForm service, String name) {
@@ -1057,7 +1051,7 @@ public class EditCatalog extends ServiceCatalog {
                         }
                         String fieldName = field.name;
                         String fieldValue = field.value;
-                        
+
                         ServiceFieldRestRep descriptorField = ServiceDescriptorUtils.getField(serviceDescriptor, fieldName);
                         if (descriptorField != null) {
                             ServiceFieldValidator.validateField(catalogServiceTemp, descriptorField, fieldValue);
@@ -1095,7 +1089,7 @@ public class EditCatalog extends ServiceCatalog {
          * Determines if the category name is unique within the parent category.
          * 
          * @param category
-         *        the category form input.
+         *            the category form input.
          * @return true if the name is unique.
          */
         private boolean isUniqueName(CategoryForm category, String name) {
@@ -1103,7 +1097,7 @@ public class EditCatalog extends ServiceCatalog {
             return isUniqueCategoryName(category.id, name, parentId) && isUniqueServiceName(null, name, parentId);
         }
     }
-    
+
     public static class ServiceDescriptorComparator implements Comparator<ServiceDescriptorRestRep> {
         @Override
         public int compare(ServiceDescriptorRestRep a, ServiceDescriptorRestRep b) {
@@ -1124,11 +1118,11 @@ public class EditCatalog extends ServiceCatalog {
             return result;
         }
     }
-    
+
     public static class CorruptedServiceDescriptor extends ServiceDescriptorRestRep {
 
         private static final String UNKNOWN_VALUE = "UNKNOWN";
-        
+
         public CorruptedServiceDescriptor() {
             setServiceId(UNKNOWN_VALUE);
             setCategory(UNKNOWN_VALUE);
@@ -1143,7 +1137,7 @@ public class EditCatalog extends ServiceCatalog {
         flash.success(Messages.get("EditCatalog.updated"));
         edit();
     }
-    
+
     /**
      * Handles errors that might arise during JSON requests and returns the error message.
      * 

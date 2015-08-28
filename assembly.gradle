@@ -54,8 +54,7 @@ def eachExternalProject(Closure closure) {
     subprojects.each {project ->
         // Configure target after evaluate, so subproject configurations are created, including internal flag
         project.afterEvaluate {
-            def skipForOss = buildType == "oss" && ( project.name == "vasa" || project.name == "installer" )
-            if ( !skipForOss && (!project.ext.has('internalLibrary') || !project.internalLibrary)) {
+            if (!project.ext.has('internalLibrary') || !project.internalLibrary) {
                 closure(project)
             }
         }
@@ -111,7 +110,6 @@ task assembleScripts(type: Copy) {
 task assembleConfs(type: Copy) {
     eachExternalProject {
         from "${it.projectDir}/src/conf"
-        from "${it.projectDir}/src/${buildType}/conf"
         from "${it.projectDir}/src/main/resources"
     }
     def platformDir = project(":com.iwave.platform").projectDir
@@ -131,6 +129,7 @@ task assemblePortal(type: Copy, dependsOn: ":portal:assemble") {
         exclude "documentation/"
         exclude "samples-and-tests/"
         exclude "support/"
+		exclude "python/"
         exclude "**/junit-*.jar"
     }
     into("conf") {

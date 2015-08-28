@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.client.model;
 
@@ -22,22 +12,21 @@ import com.emc.storageos.db.client.util.WWNUtility;
  */
 @Cf("Initiator")
 public class Initiator extends HostInterface {
-    
+
     private String _port;
     private String _node;
-    //  to do - This is temporary until initiator service is remove
+    // to do - This is temporary until initiator service is remove
     private String _hostName;
-    //  to do - This is temporary until initiator service is remove
+    // to do - This is temporary until initiator service is remove
     private String _clusterName;
-    
-    
+
     /**
      * Default Constructor. This is the constructor used by the API.
      */
     public Initiator() {
         setIsManualCreation(true);
     }
-    
+
     /**
      * Constructor.
      * 
@@ -66,15 +55,15 @@ public class Initiator extends HostInterface {
      * @param isManualCreation the flag that indicates if the initiator is user or system created
      */
     public Initiator(String protocol, String port, String node, String hostName,
-        String clusterName, boolean isManualCreation) {
+            String clusterName, boolean isManualCreation) {
         super(null, protocol);
         setInitiatorPort(port);
         setInitiatorNode(node == null ? "" : node);
         setHostName(hostName == null ? "" : hostName);
         setClusterName(clusterName == null ? "" : clusterName);
         setIsManualCreation(isManualCreation);
-     }
-    
+    }
+
     /**
      * Getter for the initiator port identifier. For FC, this is the port WWN.
      * For iSCSI, this is port name in IQN or EUI format.
@@ -96,7 +85,6 @@ public class Initiator extends HostInterface {
         _port = EndpointUtility.changeCase(port);
         setChanged("iniport");
     }
-
 
     /**
      * Getter for the initiator node identifier. For FC, this is the node WWN.
@@ -122,9 +110,10 @@ public class Initiator extends HostInterface {
     /**
      * Getter for the FQDN of the initiator host.
      * to do - This is temporary until initiator service is remove
+     * 
      * @return The FQDN of the initiator host.
      */
-    @AlternateId("AltIdIndex")    
+    @AlternateId("AltIdIndex")
     @Name("hostname")
     public String getHostName() {
         return _hostName;
@@ -140,10 +129,11 @@ public class Initiator extends HostInterface {
         _hostName = hostName;
         setChanged("hostname");
     }
-    
+
     /**
      * Getter for the FQDN of the initiator cluster.
      * to do - This is temporary until initiator service is remove
+     * 
      * @return The FQDN of the initiator cluster or null if not applicable.
      */
     @Name("clustername")
@@ -154,19 +144,20 @@ public class Initiator extends HostInterface {
     /**
      * Setter for the FQDN of the initiator cluster.
      * to do - This is temporary until initiator service is remove
+     * 
      * @param clusterName The FQDN of the initiator cluster.
      */
     public void setClusterName(String clusterName) {
         _clusterName = clusterName;
         setChanged("clustername");
     }
-    
+
     @Override
     public final String toString() {
         return String.format(
-            "Initiator(Protocol:%s, Node:%s, Port:%s, Host Name: %s, Cluster Name: %s)",
-            getProtocol(), getInitiatorNode(), getInitiatorPort(), getHostName(),
-            getClusterName());
+                "Initiator(Protocol:%s, Node:%s, Port:%s, Host Name: %s, Cluster Name: %s)",
+                getProtocol(), getInitiatorNode(), getInitiatorPort(), getHostName(),
+                getClusterName());
     }
 
     static public String normalizePort(String port) {
@@ -196,8 +187,7 @@ public class Initiator extends HostInterface {
 
     @Override
     public Object[] auditParameters() {
-        return new Object[] {getInitiatorPort(), getInitiatorNode(),
-                 getHost(), getId()};
+        return new Object[] { getInitiatorPort(), getInitiatorNode(),
+                getHost(), getId() };
     }
 }
-

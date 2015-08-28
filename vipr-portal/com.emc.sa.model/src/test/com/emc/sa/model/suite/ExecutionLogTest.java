@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.model.suite;
@@ -19,11 +19,11 @@ import com.emc.storageos.db.client.URIUtil;
 public class ExecutionLogTest extends BaseModelTest<ExecutionLog> {
 
     private static final Logger _logger = Logger.getLogger(ExecutionLogTest.class);
-    
+
     public ExecutionLogTest() {
         super(ExecutionLog.class);
     }
-    
+
     @Test
     public void testPersistObject() throws Exception {
         _logger.info("Starting persist ExecutionLog test");
@@ -37,10 +37,10 @@ public class ExecutionLogTest extends BaseModelTest<ExecutionLog> {
         model.setMessage("my message");
         model.setStackTrace("my stack trace");
         model.setPhase(ExecutionPhase.ROLLBACK.name());
-        
+
         save(model);
         model = findById(model.getId());
-        
+
         Assert.assertNotNull(model);
         Assert.assertEquals("foo", model.getLabel());
         Assert.assertEquals(d, model.getDate());
@@ -49,7 +49,7 @@ public class ExecutionLogTest extends BaseModelTest<ExecutionLog> {
         Assert.assertEquals("my stack trace", model.getStackTrace());
         Assert.assertEquals(ExecutionPhase.ROLLBACK.name(), model.getPhase());
     }
-    
+
     protected static ExecutionLog create(String label, String message, LogLevel level) {
         ExecutionLog model = new ExecutionLog();
         model.setLabel(label);

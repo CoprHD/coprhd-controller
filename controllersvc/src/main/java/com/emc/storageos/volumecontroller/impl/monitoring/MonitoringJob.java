@@ -1,21 +1,10 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.monitoring;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
 
@@ -25,11 +14,8 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
-import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionJob;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.DataCollectionTaskCompleter;
@@ -61,11 +47,13 @@ public class MonitoringJob extends DataCollectionJob implements Serializable {
     }
 
     @Override
-    public DataCollectionTaskCompleter getCompleter(){
+    public DataCollectionTaskCompleter getCompleter() {
         return _completer;
     }
+
     /**
      * Gives SMIS provider's URI
+     * 
      * @return {@link URI} SMIS provider's URI
      */
     public URI getId() {
@@ -73,33 +61,33 @@ public class MonitoringJob extends DataCollectionJob implements Serializable {
     }
 
     @Override
-    public void ready(DbClient dbClient) throws DeviceControllerException{
+    public void ready(DbClient dbClient) throws DeviceControllerException {
         _completer.ready(dbClient);
     }
 
     @Override
-    public void schedule(DbClient dbClient){
+    public void schedule(DbClient dbClient) {
         _completer.schedule(dbClient);
     }
 
     @Override
-    public void error(DbClient dbClient, ServiceCoded serviceCoded) throws DeviceControllerException{
+    public void error(DbClient dbClient, ServiceCoded serviceCoded) throws DeviceControllerException {
         _completer.error(dbClient, serviceCoded);
     }
 
     @Override
-    final public void setTaskError(DbClient dbClient,ServiceCoded code) {
-        _completer.statusError(dbClient,code);
+    final public void setTaskError(DbClient dbClient, ServiceCoded code) {
+        _completer.statusError(dbClient, code);
     }
 
     @Override
-    final public void setTaskReady(DbClient dbClient,String message){
-        _completer.statusReady(dbClient,message);
+    final public void setTaskReady(DbClient dbClient, String message) {
+        _completer.statusReady(dbClient, message);
     }
 
     @Override
-    final public void updateTask(DbClient dbClient, String message){
-        _completer.statusPending(dbClient,message);
+    final public void updateTask(DbClient dbClient, String message) {
+        _completer.statusPending(dbClient, message);
     }
 
     /**
@@ -113,7 +101,7 @@ public class MonitoringJob extends DataCollectionJob implements Serializable {
         this._deviceType = deviceType;
     }
 
-    public Type getDeviceType(){
+    public Type getDeviceType() {
         return this._deviceType;
     }
 
@@ -129,8 +117,8 @@ public class MonitoringJob extends DataCollectionJob implements Serializable {
         return null;
     }
 
-    public boolean isActiveJob(DbClient dbClient){
-        DataObject dbObject = dbClient.queryObject(_completer.getType(),_completer.getId());
+    public boolean isActiveJob(DbClient dbClient) {
+        DataObject dbObject = dbClient.queryObject(_completer.getType(), _completer.getId());
         return (dbObject != null && !dbObject.getInactive()) ? true : false;
     }
 

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
@@ -43,7 +33,7 @@ public class VNXUserAccountsProcessor extends VNXFileProcessor {
 
     @Override
     public void processResult(Operation operation, Object resultObj,
-                              Map<String, Object> keyMap) throws BaseCollectionException {
+            Map<String, Object> keyMap) throws BaseCollectionException {
         final PostMethod result = (PostMethod) resultObj;
         try {
             ResponsePacket responsePacket = (ResponsePacket) _unmarshaller.unmarshal(result
@@ -76,10 +66,10 @@ public class VNXUserAccountsProcessor extends VNXFileProcessor {
 
     }
 
-    private void processUserAccountList( List<Object> userList, Map<String, Object> keyMap ) throws VNXFilePluginException {
+    private void processUserAccountList(List<Object> userList, Map<String, Object> keyMap) throws VNXFilePluginException {
 
         Iterator<Object> iterator = userList.iterator();
-        Map<String,String> userInfo = new HashMap<String,String>();
+        Map<String, String> userInfo = new HashMap<String, String>();
 
         if (iterator.hasNext()) {
             Status status = (Status) iterator.next();
@@ -89,8 +79,8 @@ public class VNXUserAccountsProcessor extends VNXFileProcessor {
                     UserAccount user = (UserAccount) iterator.next();
                     userInfo.put(user.getUser(), user.getUid());
                     _logger.debug("user name: {} ", user.getUser());
-                    }
-                
+                }
+
                 keyMap.put(VNXFileConstants.USER_INFO, userInfo);
             } else {
                 throw new VNXFilePluginException(
@@ -107,4 +97,3 @@ public class VNXUserAccountsProcessor extends VNXFileProcessor {
     }
 
 }
-

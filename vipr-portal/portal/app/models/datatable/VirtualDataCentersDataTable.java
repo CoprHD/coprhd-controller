@@ -1,11 +1,8 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.datatable;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import org.apache.commons.lang.StringUtils;
 
@@ -14,7 +11,7 @@ import util.datatable.DataTable;
 import com.emc.storageos.model.vdc.VirtualDataCenterRestRep;
 
 public class VirtualDataCentersDataTable extends DataTable {
-   
+
     public VirtualDataCentersDataTable() {
         addColumn("name").setRenderFunction("renderLink");
         addColumn("apiEndpoint");
@@ -56,7 +53,7 @@ public class VirtualDataCentersDataTable extends DataTable {
             if (vdc.getLastSeenTimeInMillis() != null) {
                 lastSeen = vdc.getLastSeenTimeInMillis();
             }
-            
+
             canReconnect = vdc.canReconnect();
             canDisconnect = vdc.canDisconnect();
             canDelete = vdc.canDelete();

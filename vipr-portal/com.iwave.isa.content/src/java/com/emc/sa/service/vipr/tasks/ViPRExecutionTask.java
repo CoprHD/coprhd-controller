@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.tasks;
@@ -23,8 +23,8 @@ import com.emc.vipr.client.ViPRCoreClient;
 public abstract class ViPRExecutionTask<T> extends ExecutionTask<T> {
     @Inject
     private ViPRCoreClient client;
-    
-    @Inject 
+
+    @Inject
     private EncryptionProvider encryption;
 
     public ViPRCoreClient getClient() {
@@ -47,8 +47,7 @@ public abstract class ViPRExecutionTask<T> extends ExecutionTask<T> {
         if (StringUtils.isNotBlank(value)) {
             try {
                 return encryption.decrypt(Base64.decodeBase64(value));
-            }
-            catch (RuntimeException e) {
+            } catch (RuntimeException e) {
                 throw new IllegalStateException(String.format("Failed to decrypt value: %s", e.getMessage()), e);
             }
         }

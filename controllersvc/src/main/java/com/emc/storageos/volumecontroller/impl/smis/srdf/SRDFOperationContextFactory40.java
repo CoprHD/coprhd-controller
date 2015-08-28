@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.smis.srdf;
@@ -55,14 +55,14 @@ public class SRDFOperationContextFactory40 extends AbstractSRDFOperationContextF
 
         // Determine how to build the SMI-S arguments
         ExecutorStrategy executorStrategy = null;
-        switch(operation) {
-        	case FAIL_MECHANISM:
-        	    if (target.hasConsistencyGroup()) {
+        switch (operation) {
+            case FAIL_MECHANISM:
+                if (target.hasConsistencyGroup()) {
                     executorStrategy = new FailMechanismGroupSyncStrategy(helper);
                 } else {
                     executorStrategy = new FailMechanismStorageSyncsStrategy(helper);
                 }
-        		break;
+                break;
             case SUSPEND:
                 executorStrategy = new SuspendStorageSyncsStrategy(helper);
                 break;

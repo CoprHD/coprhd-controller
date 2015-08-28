@@ -88,7 +88,7 @@ public class ScaleIOHandleFactory {
                 client.setPassword(provider.getPassword());
             }
         } else {
-            log.info("The storage provider interface type is not supported: %s ", provider.getInterfaceType());
+            log.info("The storage provider interface type is not supported: {} ", provider.getInterfaceType());
             // not supported
             handle = null;
         }

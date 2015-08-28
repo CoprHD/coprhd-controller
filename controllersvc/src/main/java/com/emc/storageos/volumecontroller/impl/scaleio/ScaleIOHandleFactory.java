@@ -8,6 +8,7 @@ package com.emc.storageos.volumecontroller.impl.scaleio;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.scaleio.ScaleIOException;
 import com.emc.storageos.scaleio.ScaleIOExceptions;
 import com.emc.storageos.scaleio.api.ScaleIOConstants;
@@ -46,7 +47,7 @@ public class ScaleIOHandleFactory {
         ScaleIORestClient handle = null;
         synchronized (syncObject) {
             URI activeProviderURI = storageSystem.getActiveProviderURI();
-            if (activeProviderURI == null) {
+            if (NullColumnValueGetter.isNullURI(activeProviderURI)) {
                 throw ScaleIOException.exceptions.noActiveStorageProvider(storageSystem.getNativeGuid());
             }
             StorageProvider provider = dbClient.queryObject(StorageProvider.class, activeProviderURI);

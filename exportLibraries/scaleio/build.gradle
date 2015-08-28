@@ -1,7 +1,8 @@
 dependencies {
     compile project(":errorhandling"), 
             project(":com.iwave.ext.linux"),
-            project(":serviceutils")
+            project(":serviceutils") ,
+            library(httpclient4)
 }
 
 test {

@@ -8083,7 +8083,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             URI haVarray = URI.create(exportGroup.getAltVirtualArrays().get(vplexURI.toString()));
             ExportMask haSharedExportMask = VPlexUtil.getSharedExportMasksInViPR(exportGroup, vplexURI, _dbClient, haVarray,
                     null, null);
-            sharedExportMaskURIs.add(haSharedExportMask.getId());
+            if (haSharedExportMask != null) {
+                sharedExportMaskURIs.add(haSharedExportMask.getId());
+            }
         }
         List<ExportMask> exportMasks =
                 ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplexURI);

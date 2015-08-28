@@ -485,7 +485,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
         StringSet tempSet = new StringSet();
         tempSet.add(vdm.getProtocol());
-        // vNas.setProtocols(tempSet);
+        vNas.setProtocols(tempSet);
         vNas.setId(URIUtil.createId(VirtualNAS.class));
         String vnasState = this.virtualNasState.get(vdm.getId().toString());
 

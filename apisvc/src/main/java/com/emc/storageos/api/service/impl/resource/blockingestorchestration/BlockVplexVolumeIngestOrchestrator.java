@@ -479,15 +479,11 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             Volume bvolSource = (Volume) 
                     context.getCreatedObjectMap().get(unBvolSource.getNativeGuid().replace(
                             VolumeIngestionUtil.UNMANAGEDVOLUME, VolumeIngestionUtil.VOLUME));
-            /**
-            if (null != vvolSource.getAssociatedVolumes() && 
-                    !vvolSource.getAssociatedVolumes().isEmpty()) {
-                String targetVvolUri = vvolSource.getAssociatedVolumes().iterator().next();
-                bvolSource = _dbClient.queryObject(Volume.class, URI.create(targetVvolUri));
-            }
-            **/
             if (null == bvolSource) {
                 throw IngestionException.exceptions.generalException("could not determine source backend volume for clone (full copy)");
+            }
+            if (null == bvolSource.getId()) {
+                bvolSource.setId(URIUtil.createId(Volume.class));
             }
 
             // a full clone vvol is not an internal object, so make external
@@ -507,6 +503,8 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             }
             bvolTarget.setAssociatedSourceVolume(bvolSource.getId());
             bvolTarget.setReplicaState(ReplicationState.SYNCHRONIZED.name());
+            bvolTarget.setSyncActive(true);
+            _dbClient.updateAndReindexObject(bvolTarget);
             
             NamedURI namedUri = new NamedURI(
                     context.getFrontendProject().getId(), vvolTarget.getLabel());
@@ -516,14 +514,17 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             vvolTarget.clearInternalFlags(Flag.INTERNAL_OBJECT);
             vvolTarget.setAssociatedSourceVolume(vvolSource.getId());
             vvolTarget.setReplicaState(ReplicationState.SYNCHRONIZED.name());
+            vvolTarget.setSyncActive(true);
             
             StringSet bFullCopies = new StringSet();
             bFullCopies.add(bvolTarget.getId().toString());
             bvolSource.setFullCopies(bFullCopies);
+            bvolSource.setSyncActive(true);
             
             StringSet fFullCopies = new StringSet();
             fFullCopies.add(vvolTarget.getId().toString());
             vvolSource.setFullCopies(fFullCopies);
+            vvolSource.setSyncActive(true);
         }
         
 

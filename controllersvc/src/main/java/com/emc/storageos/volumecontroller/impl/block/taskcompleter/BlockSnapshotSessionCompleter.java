@@ -89,6 +89,9 @@ public abstract class BlockSnapshotSessionCompleter extends TaskCompleter {
                     break;
                 case RESTORE_SNAPSHOT_SESSION:
                 case DELETE_SNAPSHOT_SESSION:
+                case LINK_SNAPSHOT_SESSION_TARGET:
+                case UNLINK_SNAPSHOT_SESSION_TARGET:
+                case RELINK_SNAPSHOT_SESSION_TARGET:
                     AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, snapSessionId, snapSessionLabel, sourceObjId);
                     break;
                 default:

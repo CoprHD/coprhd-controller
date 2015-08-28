@@ -152,17 +152,11 @@ public class UpgradeService {
                 AuditLogManager.AUDITLOG_SUCCESS,
                 null, targetVersion.toString());
 
-        /* wake up all */
-        _upgradeManager.wakeupOtherNodes();
         ClusterInfo clusterInfo = _coordinator.getClusterInfo();
         if (clusterInfo == null) {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Cluster info");
         }
-        try {
-            return toClusterResponse(clusterInfo);
-        } finally {
-            _upgradeManager.wakeup();
-        }
+        return toClusterResponse(clusterInfo);
     }
 
     /**
@@ -287,8 +281,6 @@ public class UpgradeService {
                 AuditLogManager.AUDITLOG_SUCCESS,
                 null, versionStr);
 
-        /* wakeup all nodes */
-        _upgradeManager.wakeupAllNodes();
         ClusterInfo clusterInfo = _coordinator.getClusterInfo();
         if (clusterInfo == null) {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Cluster info");

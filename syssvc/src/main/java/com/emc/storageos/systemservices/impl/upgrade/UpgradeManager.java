@@ -16,6 +16,10 @@ import java.util.*;
 import java.util.Map.Entry;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.coordinator.client.service.NodeListener;
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.state.ConnectionState;
+import org.apache.curator.framework.state.ConnectionStateListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -64,6 +68,8 @@ public class UpgradeManager extends AbstractManager {
     // timer expire time
     private long expireTime = 0;
 
+    private RepositoryInfoListener repositoryInfoListener;
+
     public LocalRepository getLocalRepository() {
         return localRepository;
     }
@@ -77,6 +83,36 @@ public class UpgradeManager extends AbstractManager {
         return SysClientFactory.URI_WAKEUP_UPGRADE_MANAGER;
     }
 
+    /**
+     * Responds to connection drops / reconnects.
+     */
+    private final ConnectionStateListener _connectionListener = new ConnectionStateListener() {
+        @Override
+        public void stateChanged(final CuratorFramework client, final ConnectionState newState) {
+            log.info("Entering stateChanged method : {}", newState);
+            if (newState == ConnectionState.CONNECTED || newState == ConnectionState.RECONNECTED) {
+                addRepositoryInfoListener();
+            }
+        }
+    };
+
+    /**
+     * Register repository info listener to monitor repository version changes
+     */
+    private void addRepositoryInfoListener() {
+        try {
+            if (repositoryInfoListener != null) {
+                coordinator.getCoordinatorClient().removeNodeListener(repositoryInfoListener);
+            }
+            repositoryInfoListener = new RepositoryInfoListener();
+            coordinator.getCoordinatorClient().addNodeListener(repositoryInfoListener);
+        } catch (Exception e) {
+            log.error("Fail to add node listener for repository info target znode", e);
+            throw APIException.internalServerErrors.addListenerFailed();
+        }
+        log.info("Successfully added node listener for repository info target znode");
+    }
+
     @Override
     protected void innerRun() {
         final String svcId = coordinator.getMySvcId();
@@ -84,6 +120,9 @@ public class UpgradeManager extends AbstractManager {
         boolean dbCurrentVersionEncrypted = false;
         boolean isDBMigrationDone = false;
         isValidRepo = localRepository.isValidRepository();
+
+        addRepositoryInfoListener();
+        coordinator.getZkConnection().curator().getConnectionStateListenable().addListener(_connectionListener);
 
         while (doRun) {
             log.debug("Main loop: Start");
@@ -724,5 +763,36 @@ public class UpgradeManager extends AbstractManager {
     public void stop() {
         super.stop();
         UpgradeImageDownloader.getInstance(this).shutdownNow();
+    }
+
+
+    /**
+     * the listener class to listen the repository target node change.
+     */
+    class RepositoryInfoListener implements NodeListener {
+        public String getPath() {
+            return String.format("/config/%s/%s", RepositoryInfo.CONFIG_KIND, RepositoryInfo.CONFIG_ID);
+        }
+
+        /**
+         * called when user update the target version
+         */
+        @Override
+        public void nodeChanged() {
+            log.info("Repository info changed. Waking up the upgrade manager...");
+            wakeup();
+        }
+
+        /**
+         * called when connection state changed.
+         */
+        @Override
+        public void connectionStateChanged(State state) {
+            log.info("Repository info connection state changed to {}", state);
+            if (state.equals(State.CONNECTED)) {
+                log.info("Curator (re)connected. Waking up the upgrade manager...");
+                wakeup();
+            }
+        }
     }
 }

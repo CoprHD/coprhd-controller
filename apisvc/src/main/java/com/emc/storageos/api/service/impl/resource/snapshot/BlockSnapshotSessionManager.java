@@ -218,7 +218,8 @@ public class BlockSnapshotSessionManager {
         snapSessionApiImpl.createSnapshotSession(snapSessionSourceObj, snapSessionURIs, snapSessionSnapshotMap, newTargetsCopyMode, taskId);
 
         // Record a message in the audit log.
-        auditOp(OperationTypeEnum.CREATE_SNAPSHOT_SESSION, true, AuditLogManager.AUDITOP_BEGIN, snapSessionLabel, sourceURI.toString());
+        auditOp(OperationTypeEnum.CREATE_SNAPSHOT_SESSION, true, AuditLogManager.AUDITOP_BEGIN,
+                snapSessionLabel, sourceURI.toString(), snapSessionSourceObj.getStorageController().toString());
 
         s_logger.info("FINISH create snapshot session for source {}", sourceURI);
         return response;
@@ -276,6 +277,10 @@ public class BlockSnapshotSessionManager {
         snapSessionApiImpl.linkNewTargetVolumesToSnapshotSession(snapSessionSourceObj, snapSession, snapshotURIs,
                 newLinkedTargetsCount, newTargetsCopyMode, taskId);
 
+        // Create the audit log entry.
+        auditOp(OperationTypeEnum.LINK_SNAPSHOT_SESSION_TARGET, true, AuditLogManager.AUDITOP_BEGIN,
+                snapSessionURI.toString(), snapSessionSourceObj.getId().toString(), snapSessionSourceObj.getStorageController().toString());
+
         s_logger.info("FINISH link new targets for snapshot session {}", snapSessionURI);
         return response;
     }
@@ -322,6 +327,10 @@ public class BlockSnapshotSessionManager {
 
         // Re-link the targets to the snapshot session.
         snapSessionApiImpl.relinkTargetVolumesToSnapshotSession(snapSessionSourceObj, snapSession, linkedTargetURIs, taskId);
+
+        // Create the audit log entry.
+        auditOp(OperationTypeEnum.RELINK_SNAPSHOT_SESSION_TARGET, true, AuditLogManager.AUDITOP_BEGIN,
+                snapSessionURI.toString(), snapSessionSourceObj.getId().toString(), snapSessionSourceObj.getStorageController().toString());
 
         s_logger.info("FINISH relink targets to snapshot session {}", snapSessionURI);
         return response;
@@ -377,6 +386,10 @@ public class BlockSnapshotSessionManager {
 
         // Unlink the targets from the snapshot session.
         snapSessionApiImpl.unlinkTargetVolumesFromSnapshotSession(snapSessionSourceObj, snapSession, targetMap, taskId);
+
+        // Create the audit log entry.
+        auditOp(OperationTypeEnum.UNLINK_SNAPSHOT_SESSION_TARGET, true, AuditLogManager.AUDITOP_BEGIN,
+                snapSessionURI.toString(), snapSessionSourceObj.getId().toString(), snapSessionSourceObj.getStorageController().toString());
 
         s_logger.info("FINISH unlink targets from snapshot session {}", snapSessionURI);
         return response;

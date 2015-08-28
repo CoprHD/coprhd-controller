@@ -384,6 +384,12 @@ public enum OperationTypeEnum {
     CREATE_SNAPSHOT_SESSION("BlockSnapshotSessionCreated", "BlockSnapshotSessionCreateFailed", "BlockSnapshotSession Create"),
     RESTORE_SNAPSHOT_SESSION("BlockSnapshotSessionRestored", "BlockSnapshotSessionRestoreFailed", "BlockSnapshotSession Restore"),
     DELETE_SNAPSHOT_SESSION("BlockSnapshotSessionDeleted", "BlockSnapshotSessionDeleteFailed", "BlockSnapshotSession Delete"),
+    LINK_SNAPSHOT_SESSION_TARGET("LinkBlockSnapshotSessionTargets", "LinkBlockSnapshotSessionTargetsFailed",
+            "Link targets to BlockSnapshotSession"),
+    RELINK_SNAPSHOT_SESSION_TARGET("RelinkBlockSnapshotSessionTargets", "RelinkBlockSnapshotSessionTargetsFailed",
+            "Re-link targets to BlockSnapshotSession"),
+    UNLINK_SNAPSHOT_SESSION_TARGET("UnlinkBlockSnapshotSessionTargets", "UnlinkBlockSnapshotSessionTargetsFailed",
+            "Unlink targets from BlockSnapshotSession"),
 
     ArrayGeneric("", "", "");
 

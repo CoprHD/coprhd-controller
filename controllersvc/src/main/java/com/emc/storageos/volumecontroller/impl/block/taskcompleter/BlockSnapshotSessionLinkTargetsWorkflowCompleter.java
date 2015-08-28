@@ -11,20 +11,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.emc.storageos.volumecontroller.TaskCompleter;
 
 /**
  * Task completer invoked when a workflow linking target volumes to a
  * BlockSnapshotSession completes.
  */
 @SuppressWarnings("serial")
-public class BlockSnapshotSessionLinkTargetsWorkflowCompleter extends TaskCompleter {
+public class BlockSnapshotSessionLinkTargetsWorkflowCompleter extends BlockSnapshotSessionCompleter {
+
+    // Message constants.
+    public static final String SNAPSHOT_SESSION_LINK_TARGETS_SUCCESS_MSG = "Linked targets for Block Snapshot Session %s for source %s";
+    public static final String SNAPSHOT_SESSION_LINK_TARGETS_FAIL_MSG = "Failed to link targets for Block Snapshot Session %s for source %s";
 
     // The URIs of the BlockSnapshot instances representing the target volumes
     // to be linked to the session
@@ -42,7 +47,7 @@ public class BlockSnapshotSessionLinkTargetsWorkflowCompleter extends TaskComple
      * @param taskId The unique task identifier.
      */
     public BlockSnapshotSessionLinkTargetsWorkflowCompleter(URI snapSessionURI, List<URI> snapshotURIs, String taskId) {
-        super(BlockSnapshotSession.class, snapSessionURI, taskId);
+        super(snapSessionURI, taskId);
         _snapshotURIs = snapshotURIs;
     }
 
@@ -55,6 +60,12 @@ public class BlockSnapshotSessionLinkTargetsWorkflowCompleter extends TaskComple
         try {
             // Update the status map of the snapshot session.
             BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
+            BlockObject sourceObj = BlockObject.fetch(dbClient, snapSession.getParent().getURI());
+
+            // Record the results.
+            recordBlockSnapshotSessionOperation(dbClient, OperationTypeEnum.LINK_SNAPSHOT_SESSION_TARGET,
+                    status, snapSession, sourceObj);
+
             switch (status) {
                 case error:
                     setErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI, coded);
@@ -90,5 +101,15 @@ public class BlockSnapshotSessionLinkTargetsWorkflowCompleter extends TaskComple
         } catch (Exception e) {
             s_logger.error("Failed updating status for create and link new target volumes task {}", getOpId(), e);
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected String getDescriptionOfResults(Operation.Status status, BlockObject sourceObj, BlockSnapshotSession snapSession) {
+        return (status == Operation.Status.ready) ?
+                String.format(SNAPSHOT_SESSION_LINK_TARGETS_SUCCESS_MSG, snapSession.getLabel(), sourceObj.getLabel()) :
+                String.format(SNAPSHOT_SESSION_LINK_TARGETS_FAIL_MSG, snapSession.getLabel(), sourceObj.getLabel());
     }
 }

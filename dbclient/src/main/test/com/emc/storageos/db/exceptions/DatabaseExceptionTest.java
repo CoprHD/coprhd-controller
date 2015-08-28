@@ -18,7 +18,6 @@ import java.net.URI;
 import org.junit.Test;
 
 import com.emc.storageos.svcs.errorhandling.mappers.BaseServiceCodeExceptionTest;
-import com.netflix.astyanax.connectionpool.Host;
 import com.netflix.astyanax.connectionpool.exceptions.UnknownException;
 
 public class DatabaseExceptionTest extends BaseServiceCodeExceptionTest {

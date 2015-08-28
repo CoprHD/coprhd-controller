@@ -644,8 +644,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                             String rsetName, Volume sourceVolume, TaskList taskList, String task,
                                             String copyName,
                                             List<VolumeDescriptor> descriptors, Volume journalVolume, Volume standbyJournalVolume) {
-            Volume rpVolume = null;
-            
+            Volume rpVolume = sourceVolume;
             VirtualArray varray = _dbClient.queryObject(VirtualArray.class, rpRec.getVirtualArray());
             VirtualPool vpool = rpRec.getVirtualPool();                          
             String rpInternalSiteName = rpRec.getInternalSiteName();
@@ -1147,7 +1146,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         boolean isNewVolume = (volume == null);
         if (isNewVolume) {
             volume = new Volume();
-            volume = new Volume();
             volume.setId(URIUtil.createId(Volume.class));
             volume.setOpStatus(new OpStatusMap());
         } else {
@@ -1304,7 +1302,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 logDescriptors(volumeDescriptors);
                 
                 // Only needed for internal testing
-                if (true) {                    
+                if (false) {                    
                     _log.error("STOP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
                     throw new WebApplicationException(Response
                             .status(Response.Status.INTERNAL_SERVER_ERROR).entity(taskList).build());

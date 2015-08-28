@@ -313,6 +313,7 @@ public class XtremIOCommunicationInterface extends
                 List<XtremIOPort> scPorts = storageControllerPortMap.get(scName);
                 if (scPorts == null) {
                     scPorts = new ArrayList<XtremIOPort>();
+                    storageControllerPortMap.put(scName, scPorts);
                 }
                 scPorts.add(targetPort);
             }

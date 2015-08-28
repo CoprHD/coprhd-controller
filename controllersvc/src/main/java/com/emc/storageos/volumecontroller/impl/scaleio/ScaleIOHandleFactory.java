@@ -8,6 +8,8 @@ package com.emc.storageos.volumecontroller.impl.scaleio;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.scaleio.ScaleIOException;
+import com.emc.storageos.scaleio.ScaleIOExceptions;
 import com.emc.storageos.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
 import com.emc.storageos.scaleio.api.restapi.ScaleIORestClientFactory;
@@ -44,7 +46,13 @@ public class ScaleIOHandleFactory {
         ScaleIORestClient handle = null;
         synchronized (syncObject) {
             URI activeProviderURI = storageSystem.getActiveProviderURI();
+            if (activeProviderURI == null) {
+                throw ScaleIOException.exceptions.noActiveStorageProvider(storageSystem.getNativeGuid());
+            }
             StorageProvider provider = dbClient.queryObject(StorageProvider.class, activeProviderURI);
+            if (provider == null) {
+                throw ScaleIOException.exceptions.noActiveStorageProvider(storageSystem.getNativeGuid());
+            }
             String providerId = provider.getProviderID();
             handle = ScaleIORestClientMap.get(providerId);
             handle = getHandle(handle, provider);

@@ -15,17 +15,17 @@ import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 
 /**
- * ViPR Job created when an underlying CIM job is created to delete
+ * ViPR Job created when an underlying CIM job is created to restore
  * an array snapshot associated with a BlockSnapshotSession instance.
  */
 @SuppressWarnings("serial")
-public class SmisBlockDeleteSnapshotSessionJob extends SmisJob {
+public class SmisBlockSnapshotSessionRestoreJob extends SmisJob {
 
     // The unique job name.
-    private static final String JOB_NAME = "SmisBlockDeleteSnapshotSessionJob";
+    private static final String JOB_NAME = "SmisBlockSnapshotSessionRestoreJob";
 
     // Reference to a logger.
-    private static final Logger s_logger = LoggerFactory.getLogger(SmisBlockDeleteSnapshotSessionJob.class);
+    private static final Logger s_logger = LoggerFactory.getLogger(SmisBlockSnapshotSessionRestoreJob.class);
 
     /**
      * Constructor.
@@ -34,7 +34,7 @@ public class SmisBlockDeleteSnapshotSessionJob extends SmisJob {
      * @param systemURI The URI of the storage system.
      * @param taskCompleter A reference to the task completer.
      */
-    public SmisBlockDeleteSnapshotSessionJob(CIMObjectPath cimJob, URI systemURI, TaskCompleter taskCompleter) {
+    public SmisBlockSnapshotSessionRestoreJob(CIMObjectPath cimJob, URI systemURI, TaskCompleter taskCompleter) {
         super(cimJob, systemURI, taskCompleter, JOB_NAME);
     }
 
@@ -49,14 +49,14 @@ public class SmisBlockDeleteSnapshotSessionJob extends SmisJob {
                 return;
             }
             if (jobStatus == JobStatus.SUCCESS) {
-                s_logger.info("Post-processing successful for delete snapshot session for task ", getTaskCompleter().getOpId());
+                s_logger.info("Post-processing successful for restore snapshot session for task ", getTaskCompleter().getOpId());
             } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
-                s_logger.info("Failed to delete snapshot session for task ", getTaskCompleter().getOpId());
+                s_logger.info("Failed to restore snapshot session for task ", getTaskCompleter().getOpId());
             }
         } catch (Exception e) {
-            setPostProcessingErrorStatus("Encountered an internal error in delete snapshot session job status processing: "
+            setPostProcessingErrorStatus("Encountered an internal error in restore snapshot session job status processing: "
                     + e.getMessage());
-            s_logger.error("Encountered an internal error in delete snapshot session job status processing", e);
+            s_logger.error("Encountered an internal error in restore snapshot session job status processing", e);
         } finally {
             super.updateStatus(jobContext);
         }

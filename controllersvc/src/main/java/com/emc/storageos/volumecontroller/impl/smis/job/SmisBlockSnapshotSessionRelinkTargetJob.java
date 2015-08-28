@@ -15,17 +15,17 @@ import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 
 /**
- * ViPR Job created when an underlying CIM job is created to restore
- * an array snapshot associated with a BlockSnapshotSession instance.
+ * ViPR Job created when an underlying CIM job is created relink
+ * a target device to a new array snapshot.
  */
 @SuppressWarnings("serial")
-public class SmisBlockRestoreSnapshotSessionJob extends SmisJob {
+public class SmisBlockSnapshotSessionRelinkTargetJob extends SmisJob {
 
     // The unique job name.
-    private static final String JOB_NAME = "SmisBlockRestoreSnapshotSessionJob";
+    private static final String JOB_NAME = "SmisBlockSnapshotSessionRelinkTargetJob";
 
     // Reference to a logger.
-    private static final Logger s_logger = LoggerFactory.getLogger(SmisBlockRestoreSnapshotSessionJob.class);
+    private static final Logger s_logger = LoggerFactory.getLogger(SmisBlockSnapshotSessionRelinkTargetJob.class);
 
     /**
      * Constructor.
@@ -34,7 +34,7 @@ public class SmisBlockRestoreSnapshotSessionJob extends SmisJob {
      * @param systemURI The URI of the storage system.
      * @param taskCompleter A reference to the task completer.
      */
-    public SmisBlockRestoreSnapshotSessionJob(CIMObjectPath cimJob, URI systemURI, TaskCompleter taskCompleter) {
+    public SmisBlockSnapshotSessionRelinkTargetJob(CIMObjectPath cimJob, URI systemURI, TaskCompleter taskCompleter) {
         super(cimJob, systemURI, taskCompleter, JOB_NAME);
     }
 
@@ -49,14 +49,14 @@ public class SmisBlockRestoreSnapshotSessionJob extends SmisJob {
                 return;
             }
             if (jobStatus == JobStatus.SUCCESS) {
-                s_logger.info("Post-processing successful for restore snapshot session for task ", getTaskCompleter().getOpId());
+                s_logger.info("Post-processing successful for re-link snapshot session target for task ", getTaskCompleter().getOpId());
             } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
-                s_logger.info("Failed to restore snapshot session for task ", getTaskCompleter().getOpId());
+                s_logger.info("Failed to re-link snapshot session target for task ", getTaskCompleter().getOpId());
             }
         } catch (Exception e) {
-            setPostProcessingErrorStatus("Encountered an internal error in restore snapshot session job status processing: "
+            setPostProcessingErrorStatus("Encountered an internal error in re-link snapshot session target job status processing: "
                     + e.getMessage());
-            s_logger.error("Encountered an internal error in restore snapshot session job status processing", e);
+            s_logger.error("Encountered an internal error in re-link snapshot session target job status processing", e);
         } finally {
             super.updateStatus(jobContext);
         }

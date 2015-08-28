@@ -26,13 +26,13 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
  * BlockSnapshotSession instance.
  */
 @SuppressWarnings("serial")
-public class SmisBlockCreateSnapshotSessionJob extends SmisJob {
+public class SmisBlockSnapshotSessionCreateJob extends SmisJob {
 
     // The unique job name.
-    private static final String JOB_NAME = "SmisBlockCreateSnapshotSessionJob";
+    private static final String JOB_NAME = "SmisBlockSnapshotSessionCreateJob";
 
     // Reference to a logger.
-    private static final Logger s_logger = LoggerFactory.getLogger(SmisBlockCreateSnapshotSessionJob.class);
+    private static final Logger s_logger = LoggerFactory.getLogger(SmisBlockSnapshotSessionCreateJob.class);
 
     /**
      * Constructor.
@@ -41,7 +41,7 @@ public class SmisBlockCreateSnapshotSessionJob extends SmisJob {
      * @param systemURI The URI of the storage system.
      * @param taskCompleter A reference to the task completer.
      */
-    public SmisBlockCreateSnapshotSessionJob(CIMObjectPath cimJob, URI systemURI, TaskCompleter taskCompleter) {
+    public SmisBlockSnapshotSessionCreateJob(CIMObjectPath cimJob, URI systemURI, TaskCompleter taskCompleter) {
         super(cimJob, systemURI, taskCompleter, JOB_NAME);
     }
 

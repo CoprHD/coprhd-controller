@@ -73,14 +73,14 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYNC_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateCGSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateSnapshotJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateSnapshotSessionJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockDeleteSnapshotSessionJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockLinkSnapshotSessionTargetJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockRelinkSnapshotSessionTargetJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionCreateJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionDeleteJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionLinkTargetJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionRelinkTargetJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockRestoreSnapshotJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockRestoreSnapshotSessionJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionRestoreJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResumeSnapshotJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockUnlinkSnapshotSessionTargetJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionUnlinkTargetJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVmaxCGTargetVolumesJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisDeleteVmaxCGTargetVolumesJob;
 import com.google.common.base.Predicate;
@@ -1220,7 +1220,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     _helper.invokeMethod(system, replicationSvcPath, SmisConstants.CREATE_SYNCHRONIZATION_ASPECT, inArgs, outArgs);
                     CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
                     ControllerServiceImpl
-                            .enqueueJob(new QueueJob(new SmisBlockCreateSnapshotSessionJob(jobPath, system.getId(), completer)));
+                            .enqueueJob(new QueueJob(new SmisBlockSnapshotSessionCreateJob(jobPath, system.getId(), completer)));
                 } else {
                     throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
                 }
@@ -1284,7 +1284,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                             targetDevicePath, copyMode);
                     _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
                     CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
-                    ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockLinkSnapshotSessionTargetJob(jobPath,
+                    ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionLinkTargetJob(jobPath,
                             system.getId(), copyMode, completer)));
                 } else {
                     throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
@@ -1321,7 +1321,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 inArgs = _helper.getModifySettingsDefinedStateForRelinkTargets(settingsStatePath, targetDevicePath);
                 _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
                 CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
-                ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockRelinkSnapshotSessionTargetJob(jobPath,
+                ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionRelinkTargetJob(jobPath,
                         system.getId(), completer)));
             } catch (Exception e) {
                 _log.info("Exception restoring snapshot session", e);
@@ -1353,7 +1353,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 CIMArgument[] outArgs = new CIMArgument[5];
                 _helper.callModifyReplica(system, inArgs, outArgs);
                 CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
-                ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockUnlinkSnapshotSessionTargetJob(jobPath,
+                ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionUnlinkTargetJob(jobPath,
                         system.getId(), deleteTarget, completer)));
             } catch (Exception e) {
                 _log.info("Exception unlinking snapshot session target", e);
@@ -1386,7 +1386,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 inArgs = _helper.getRestoreFromSettingsStateInputArguments(settingsStatePath);
                 _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
                 CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
-                ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockRestoreSnapshotSessionJob(jobPath,
+                ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionRestoreJob(jobPath,
                         system.getId(), completer)));
             } catch (Exception e) {
                 _log.info("Exception restoring snapshot session", e);
@@ -1418,7 +1418,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 inArgs = _helper.getDeleteSettingsForSnapshotInputArguments(settingsStatePath, false);
                 _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
                 CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
-                ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockDeleteSnapshotSessionJob(jobPath,
+                ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionDeleteJob(jobPath,
                         system.getId(), completer)));
             } catch (Exception e) {
                 _log.info("Exception restoring snapshot session", e);

@@ -19,17 +19,17 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
  * a target volume from an array snapshot.
  */
 @SuppressWarnings("serial")
-public class SmisBlockUnlinkSnapshotSessionTargetJob extends SmisJob {
+public class SmisBlockSnapshotSessionUnlinkTargetJob extends SmisJob {
 
     // The unique job name.
-    private static final String JOB_NAME = "SmisBlockUnlinkSnapshotSessionTargetJob";
+    private static final String JOB_NAME = "SmisBlockSnapshotSessionUnlinkTargetJob";
 
     // Whether or not the target was deleted when it was unlinked.
     @SuppressWarnings("unused")
     private final Boolean _deleteTarget;
 
     // Reference to a logger.
-    private static final Logger s_logger = LoggerFactory.getLogger(SmisBlockUnlinkSnapshotSessionTargetJob.class);
+    private static final Logger s_logger = LoggerFactory.getLogger(SmisBlockSnapshotSessionUnlinkTargetJob.class);
 
     /**
      * Constructor.
@@ -39,7 +39,7 @@ public class SmisBlockUnlinkSnapshotSessionTargetJob extends SmisJob {
      * @param deleteTarget Whether or not the target was deleted when it was unlinked.
      * @param taskCompleter A reference to the task completer.
      */
-    public SmisBlockUnlinkSnapshotSessionTargetJob(CIMObjectPath cimJob, URI systemURI, Boolean deleteTarget,
+    public SmisBlockSnapshotSessionUnlinkTargetJob(CIMObjectPath cimJob, URI systemURI, Boolean deleteTarget,
             TaskCompleter taskCompleter) {
         super(cimJob, systemURI, taskCompleter, JOB_NAME);
         _deleteTarget = deleteTarget;

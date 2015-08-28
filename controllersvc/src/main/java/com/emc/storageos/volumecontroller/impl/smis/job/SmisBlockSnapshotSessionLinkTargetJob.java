@@ -36,17 +36,17 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
  * - Different completer.
  */
 @SuppressWarnings("serial")
-public class SmisBlockLinkSnapshotSessionTargetJob extends SmisSnapShotJob {
+public class SmisBlockSnapshotSessionLinkTargetJob extends SmisSnapShotJob {
 
     // The unique job name.
-    private static final String JOB_NAME = "SmisBlockLinkSnapshotSessionTargetJob";
+    private static final String JOB_NAME = "SmisBlockSnapshotSessionLinkTargetJob";
 
     // The copy mode in which the target is linked to the snapshot.
     @SuppressWarnings("unused")
     private final String _copyMode;
 
     // Reference to a logger.
-    private static final Logger s_logger = LoggerFactory.getLogger(SmisBlockLinkSnapshotSessionTargetJob.class);
+    private static final Logger s_logger = LoggerFactory.getLogger(SmisBlockSnapshotSessionLinkTargetJob.class);
 
     /**
      * Constructor.
@@ -56,7 +56,7 @@ public class SmisBlockLinkSnapshotSessionTargetJob extends SmisSnapShotJob {
      * @param copyMode The copy mode in which the target is linked to the snapshot.
      * @param taskCompleter A reference to the task completer.
      */
-    public SmisBlockLinkSnapshotSessionTargetJob(CIMObjectPath cimJob, URI systemURI, String copyMode,
+    public SmisBlockSnapshotSessionLinkTargetJob(CIMObjectPath cimJob, URI systemURI, String copyMode,
             TaskCompleter taskCompleter) {
         super(cimJob, systemURI, taskCompleter, JOB_NAME);
         _copyMode = copyMode;

@@ -39,7 +39,7 @@ public class VirtualNAS extends NASServer {
         setChanged("project");
     }
 
-    @Name("String")
+    @Name("baseDirPath")
     public String getBaseDirPath() {
         return baseDirPath;
     }

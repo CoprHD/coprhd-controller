@@ -11,7 +11,9 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
@@ -120,28 +122,50 @@ public class SystemsMapper {
         mapDiscoveredDataObjectFields(from, to);
         to.setAssignedVirtualArrays(from.getAssignedVirtualArrays());
         to.setBaseDirPath(from.getBaseDirPath());
-        to.setCifsServers(from.getCifsServers());
+        //to.setCifsServers(from.getCifsServers());
         to.setCompatibilityStatus(from.getCompatibilityStatus());
         to.setConnectedVirtualArrays(from.getConnectedVirtualArrays());
         to.setDiscoveryStatus(from.getDiscoveryStatus());
 
-        to.setMaxExports(from.getMaxExports());
-        to.setMaxFSID(from.getMaxExports());
-        to.setMaxProvisionedCapacity(from.getMaxProvisionedCapacity());
+       // to.setMaxExports(from.getMaxExports());
+       // to.setMaxFSID(from.getMaxExports());
+       // to.setMaxProvisionedCapacity(from.getMaxProvisionedCapacity());
         
         to.setNasName(from.getNasName());
+        to.setName(from.getNasName());
         to.setNasState(from.getNasState());
         to.setNasTag(from.getNAStag());
         
-        to.setParentNASURI(toRelatedResource(ResourceTypeEnum.VIRTUAL_NAS,from.getParentPhysicalNAS()));
-        
+        to.setParentNASURI(from.getParentPhysicalNAS().toString());
+       
         to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT,from.getProject()));
        
         to.setProtocols(from.getProtocols());
         to.setRegistrationStatus(from.getRegistrationStatus());
         
+        Set<String> cifsServers = new HashSet<String>();
+        if(from.getCifsServersMap() != null && !from.getCifsServersMap().isEmpty()){
+        	for(String serverName: from.getCifsServersMap().keySet() ){
+        		String serverDomain = serverName;
+        		// TODO - CIFS server domain needs to be added. 
+        		
+        		cifsServers.add(serverDomain);
+        	}
+        	if(cifsServers != null && !cifsServers.isEmpty()){
+        		to.setCifsServers(cifsServers);
+        	}
+        }
+        
+        for (String port : from.getStoragePorts()) {
+            to.getStoragePorts().add(toRelatedResource(
+                    ResourceTypeEnum.STORAGE_PORT, URI.create(port)));
+        }
+        
+        to.setAssignedVirtualArrays(from.getAssignedVirtualArrays());
+        to.setTaggedVirtualArrays(from.getTaggedVirtualArrays());
+        
         to.setStorageDeviceURI(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM,from.getStorageDeviceURI()));
-        to.setvNasType(from.getvNasType());
+        //to.setvNasType(from.getvNasType());
                 
         return to;
     }

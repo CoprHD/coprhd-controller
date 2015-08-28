@@ -6,6 +6,8 @@
 package com.emc.storageos.model.vnas;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -33,7 +35,7 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
     private Set<String> cifsServers;
     
     // List of Storage Ports associated with this Nas Server
-    private Set<RelatedResourceRep> storagePorts;
+    private List<RelatedResourceRep> storagePorts;
     
     // State of the NAS server
     private String nasState;
@@ -56,7 +58,7 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
     private String baseDirPath;
 
     // place holder for the Parent NAS server the Data Mover
-    private RelatedResourceRep parentNASURI;
+    private String parentNASURI;
     
     // Limits on vNAS
     private String maxStorageObjects;
@@ -123,12 +125,15 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
 
     @XmlElementWrapper(name = "storage_ports")
     @XmlElement(name="storage_port")
-    public Set<RelatedResourceRep> getStoragePorts() {
+    public List<RelatedResourceRep> getStoragePorts() {
+    	if(storagePorts == null){
+    		storagePorts = new ArrayList<RelatedResourceRep>();
+    	}
         return storagePorts;
     }
 
 
-    public void setStoragePorts(Set<RelatedResourceRep> storagePorts) {
+    public void setStoragePorts(List<RelatedResourceRep> storagePorts) {
         this.storagePorts = storagePorts;
     }
 
@@ -222,12 +227,12 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
 
 
     @XmlElement(name="parent_nas")
-    public RelatedResourceRep getParentNASURI() {
+    public String getParentNASURI() {
         return parentNASURI;
     }
 
 
-    public void setParentNASURI(RelatedResourceRep parentNASURI) {
+    public void setParentNASURI(String parentNASURI) {
         this.parentNASURI = parentNASURI;
     }
     

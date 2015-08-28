@@ -277,8 +277,9 @@ public class FileService extends TaskResourceService {
         // Randomly select a recommended pool
         Collections.shuffle(placement);
         FileRecommendation recommendation = placement.get(0);
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceDevice());
-
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceStorageSystem());
+        
+        
         // List the FileSystesm with the label received.
         List<FileShare> objectList = (List<FileShare>) listFileSystemsWithLabelName(param.getLabel(), FileShare.class, null, null);
         _log.debug("No of FileSystems found {} with the label {}", objectList.size(), param.getLabel());
@@ -299,9 +300,9 @@ public class FileService extends TaskResourceService {
 
         _log.info(String.format(
                 "createFileSystem --- FileShare: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
-                fs.getId(), recommendation.getSourcePool(), recommendation.getSourceDevice()));
+                fs.getId(), recommendation.getSourceStoragePool(),  recommendation.getSourceStorageSystem()));
         try {
-            controller.createFS(recommendation.getSourceDevice(), recommendation.getSourcePool(), fs.getId(),
+            controller.createFS(recommendation.getSourceStorageSystem(), recommendation.getSourceStoragePool(), fs.getId(),
                     suggestedNativeFsId, task);
         } catch (InternalException e) {
             fs.setInactive(true);
@@ -1400,17 +1401,18 @@ public class FileService extends TaskResourceService {
         }
         fs.setTenant(new NamedURI(tenantOrg.getId(), param.getLabel()));
         fs.setVirtualArray(neighborhood.getId());
-
-        if (null != placement.getSourcePool()) {
-            pool = _dbClient.queryObject(StoragePool.class, placement.getSourcePool());
+        
+        
+        if (null != placement.getSourceStoragePool()) {
+            pool = _dbClient.queryObject(StoragePool.class, placement.getSourceStoragePool());
             if (null != pool) {
                 fs.setProtocol(new StringSet());
                 fs.getProtocol().addAll(VirtualPoolUtil.getMatchingProtocols(vpool.getProtocols(), pool.getProtocols()));
             }
         }
-
-        fs.setStorageDevice(placement.getSourceDevice());
-        fs.setPool(placement.getSourcePool());
+        
+        fs.setStorageDevice(placement.getSourceStorageSystem());
+        fs.setPool(placement.getSourceStoragePool());
         if (placement.getStoragePorts() != null && !placement.getStoragePorts().isEmpty()) {
             fs.setStoragePort(placement.getStoragePorts().get(0));
         }

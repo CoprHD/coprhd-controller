@@ -1,245 +1,136 @@
-/*
- * Copyright (c) 2013 EMC Corporation
+/**
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller;
 
 import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ProtectionSystem;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.VirtualPool.MetroPointType;
+import com.emc.storageos.volumecontroller.RPRecommendation.ProtectionType;
 
 /**
  * Recommendation for a placement is a storage pool and its storage device.
  */
 @SuppressWarnings("serial")
 public class RPProtectionRecommendation extends Recommendation {
+	private URI protectionDevice;
 
-    // Source
-    private String _sourceInternalSiteName;
-    private Map<URI, Protection> _varrayProtectionMap;
-    private URI _vpoolChangeVolume;
-    private URI _vpoolChangeVpool;
+	//RP source recommendation
+    List<RPRecommendation> sourceRecommendations;
+    
+    //Journal recommendations
+    private RPRecommendation sourceJournalRecommendation;   
+	private RPRecommendation standbyJournalRecommendation;  
+    private List<RPRecommendation> targetJournalRecommendations;
+          
+    private URI vpoolChangeVolume;
+    private URI vpoolChangeVpool;          
     private boolean vpoolChangeProtectionAlreadyExists;
-    private URI _sourceJournalStoragePool;
-    private URI _sourceJournalVarray;
-    private URI _sourceJournalVpool;
-    private URI _standbySourceJournalVarray;
-    private URI _standbySourceJournalVpool;
 
-    // Protection/Replication mover (RP, for instance)
-    private URI _protectionDevice;
-    private PlacementProgress _placementStepsCompleted;
-    private String _protectionSystemCriteriaError;
-    // This is needed for MetroPoint. The concatenated string containing
-    // both the RP internal site name + associated storage system.
-    private String rpSiteAssociateStorageSystem;
-    // This is the Storage System that was chosen by placement for connectivity/visibility to the RP Cluster
-    private URI sourceInternalSiteStorageSystem;
+    //Placement status
+    private PlacementProgress placementStepsCompleted;
+    private String protectionSystemCriteriaError;   
+        
+	public static enum PlacementProgress {
+		NONE, IDENTIFIED_SOLUTION_FOR_SOURCE, IDENTIFIED_SOLUTION_FOR_SUBSET_OF_TARGETS, 
+		IDENTIFIED_SOLUTION_FOR_ALL_TARGETS, PROTECTION_SYSTEM_CANNOT_FULFILL_REQUEST
+	}
 
-    public static enum PlacementProgress {
-        NONE, IDENTIFIED_SOLUTION_FOR_SOURCE, IDENTIFIED_SOLUTION_FOR_SUBSET_OF_TARGETS,
-        IDENTIFIED_SOLUTION_FOR_ALL_TARGETS, PROTECTION_SYSTEM_CANNOT_FULFILL_REQUEST
+    public RPProtectionRecommendation() {    	
+    	this.sourceRecommendations = new ArrayList<RPRecommendation>();
+    	this.targetJournalRecommendations = new ArrayList<RPRecommendation>();    	
+    	placementStepsCompleted = PlacementProgress.NONE;    	
     }
-
-    public RPProtectionRecommendation() {
-        _varrayProtectionMap = new HashMap<URI, Protection>();
-        _placementStepsCompleted = PlacementProgress.NONE;
-    }
-
+    
     public RPProtectionRecommendation(RPProtectionRecommendation copy) {
-        // properties of Recommendation
-        this.setSourcePool(copy.getSourcePool());
-        this.setSourceDevice(copy.getSourceDevice());
-        this.setDeviceType(copy.getDeviceType());
-        this.setResourceCount(copy.getResourceCount());
-        // properties of RPProtectionRecommendation
-        this._placementStepsCompleted = copy.getPlacementStepsCompleted();
-        this._protectionDevice = copy.getProtectionDevice();
-        this._sourceInternalSiteName = copy.getSourceInternalSiteName();
-        this._sourceJournalStoragePool = copy.getSourceJournalStoragePool();
-        this._sourceJournalVarray = copy.getSourceJournalVarray();
-        this._sourceJournalVpool = copy.getSourceJournalVpool();
-        this._standbySourceJournalVarray = copy.getStandbySourceJournalVarray();
-        this._standbySourceJournalVpool = copy.getStandbySourceJournalVpool();
-        this._vpoolChangeVolume = copy.getVpoolChangeVolume();
-        this._vpoolChangeVpool = copy.getVpoolChangeVpool();
-        // map
-        this._varrayProtectionMap = new HashMap<URI, Protection>();
-        this._varrayProtectionMap.putAll(copy.getVirtualArrayProtectionMap());
-    }
+    	// properties of Recommendation
+    	this.setSourceStoragePool(copy.getSourceStoragePool());
+    	this.setSourceStorageSystem(copy.getSourceStorageSystem());
+    	this.setDeviceType(copy.getDeviceType());
+    	this.setResourceCount(copy.getResourceCount());
+    	// properties of RPProtectionRecommendation
+    	this.placementStepsCompleted = copy.getPlacementStepsCompleted();
+    	this.protectionDevice = copy.getProtectionDevice();
+    	this.sourceJournalRecommendation = copy.getSourceJournalRecommendation();
+    	this.setStandbyJournalRecommendation(copy.getStandbyJournalRecommendation());
+    	this.vpoolChangeVolume = copy.getVpoolChangeVolume();
+    	this.vpoolChangeVpool = copy.getVpoolChangeVpool();    	
+    	
+    	this.sourceRecommendations = new ArrayList<RPRecommendation>();
+    	this.sourceRecommendations = copy.getSourceRecommendations();    	
+    	this.targetJournalRecommendations = new ArrayList<RPRecommendation>();
+    	this.getTargetJournalRecommendations().addAll(copy.getTargetJournalRecommendations());
+   	}
+    
+    public RPRecommendation getSourceJournalRecommendation() {
+		return sourceJournalRecommendation;
+	}
 
-    public void setSourceJournalStoragePool(URI sourceJournalStoragePool) {
-        _sourceJournalStoragePool = sourceJournalStoragePool;
-    }
+	public void setSourceJournalRecommendation(
+			RPRecommendation sourceJournalRecommendation) {
+		this.sourceJournalRecommendation = sourceJournalRecommendation;
+	}
 
-    public URI getSourceJournalStoragePool() {
-        return _sourceJournalStoragePool;
-    }
+	public List<RPRecommendation> getSourceRecommendations() {
+		return sourceRecommendations;
+	}
 
-    public String getSourceInternalSiteName() {
-        return _sourceInternalSiteName;
-    }
+	public void setSourceRecommendations(List<RPRecommendation> sourceRecommendations) {
+		this.sourceRecommendations = sourceRecommendations;
+	}
+    
+    public List<RPRecommendation> getTargetJournalRecommendations() {
+		return targetJournalRecommendations;
+	}
 
+	public void setTargetJournalRecommendations(
+			List<RPRecommendation> targetJournalRecommendations) {
+		this.targetJournalRecommendations = targetJournalRecommendations;
+	}
+
+	public RPRecommendation getStandbyJournalRecommendation() {
+		return standbyJournalRecommendation;
+	}
+
+	public void setStandbyJournalRecommendation(
+			RPRecommendation standbyJournalRecommendation) {
+		this.standbyJournalRecommendation = standbyJournalRecommendation;
+	}
+	
     public URI getProtectionDevice() {
-        return _protectionDevice;
-    }
-
-    public boolean containsTargetInternalSiteName(String destInternalSiteName) {
-        if (getVirtualArrayProtectionMap() != null) {
-            for (Protection protection : getVirtualArrayProtectionMap().values()) {
-                if (protection.getTargetInternalSiteName().equals(destInternalSiteName)) {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    public Map<URI, Protection> getVirtualArrayProtectionMap() {
-        return _varrayProtectionMap;
-    }
-
-    public void setVirtualArrayProtectionMap(
-            Map<URI, Protection> varrayProtectionMap) {
-        this._varrayProtectionMap = varrayProtectionMap;
-    }
-
-    public void setSourceInternalSiteName(String sourceInternalSiteName) {
-        this._sourceInternalSiteName = sourceInternalSiteName;
-    }
-
+        return protectionDevice;
+    }    
+    
     public void setProtectionDevice(URI protectionDevice) {
-        this._protectionDevice = protectionDevice;
+        this.protectionDevice = protectionDevice;
     }
 
     public void setVpoolChangeVolume(URI id) {
-        _vpoolChangeVolume = id;
+        vpoolChangeVolume = id;
     }
 
     public URI getVpoolChangeVolume() {
-        return _vpoolChangeVolume;
-    }
-
-    public PlacementProgress getPlacementStepsCompleted() {
-        return _placementStepsCompleted;
-    }
-
-    public void setPlacementStepsCompleted(PlacementProgress identifiedProtectionSolution) {
-        this._placementStepsCompleted = identifiedProtectionSolution;
-    }
-
-    public String getProtectionSystemCriteriaError() {
-        return _protectionSystemCriteriaError;
-    }
-
-    public void setProtectionSystemCriteriaError(String protectionSystemCriteriaError) {
-        this._protectionSystemCriteriaError = protectionSystemCriteriaError;
-    }
-
-    public int getNumberOfVolumes(String internalSiteName) {
-        int count = 0;
-
-        if (this.getSourceInternalSiteName().equals(internalSiteName)) {
-            count += this.getResourceCount();
-        }
-
-        if (getVirtualArrayProtectionMap() != null) {
-            for (Protection protection : getVirtualArrayProtectionMap().values()) {
-                if (protection.getTargetInternalSiteName().equals(internalSiteName)) {
-                    if (protection.getTargetJournalStoragePool() != null) {
-                        count++; // Journal Volume
-                    }
-                    count += this.getResourceCount();
-                }
-            }
-        }
-
-        return count;
-    }
-
-    @Override
-    public String toString() {
-        return "RPProtectionRecommendation [_sourceInternalSiteName="
-                + _sourceInternalSiteName + ", _varrayProtectionMap="
-                + _varrayProtectionMap + ", _vpoolChangeVolume="
-                + _vpoolChangeVolume + ", _sourceJournalPool="
-                + _sourceJournalStoragePool + ", _vpoolChangeVpool="
-                + _sourceJournalVarray + ", _sourceJournalVarray="
-                + _sourceJournalVpool + ", _sourceJournalVpool="
-                + _vpoolChangeVpool + ", _protectionDevice="
-                + _protectionDevice + "]";
-    }
-
-    public String toString(DbClient dbClient) {
-        StringBuffer buff = new StringBuffer("\nRecoverPoint-Protected Placement Results\n");
-        StoragePool pool = (StoragePool) dbClient.queryObject(StoragePool.class, this.getSourcePool());
-        StoragePool journalStoragePool = (StoragePool) dbClient.queryObject(StoragePool.class, this._sourceJournalStoragePool);
-        StorageSystem system = (StorageSystem) dbClient.queryObject(StorageSystem.class, this.getSourceDevice());
-        ProtectionSystem ps = dbClient.queryObject(ProtectionSystem.class, _protectionDevice);
-        VirtualArray journalVarray = dbClient.queryObject(VirtualArray.class, getSourceJournalVarray());
-        VirtualPool journalVpool = dbClient.queryObject(VirtualPool.class, getSourceJournalVpool());
-        String sourceRPSiteName = (ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(_sourceInternalSiteName)
-                : _sourceInternalSiteName;
-        buff.append("--------------------------------------\n");
-        buff.append("--------------------------------------\n");
-        buff.append("Number of volumes placed in this result: " + this.getResourceCount() + "\n");
-        buff.append("Protection System Allocated : " + ps.getLabel() + "\n");
-        buff.append("Source RP Site Allocated : " + sourceRPSiteName + "\n");
-        buff.append("Source Storage System : " + system.getLabel() + "\n");
-        buff.append("Source Storage Pool : " + pool.getLabel() + "\n");
-        buff.append("Source Journal Virtual Array :" + journalVarray.getLabel() + " \n");
-        buff.append("Source Journal Virtual Pool : " + journalVpool.getLabel() + " \n");
-        buff.append("Source Journal Storage Pool : " + journalStoragePool.getLabel() + "\n");
-        for (URI varrayId : this.getVirtualArrayProtectionMap().keySet()) {
-            VirtualArray varray = (VirtualArray) dbClient.queryObject(VirtualArray.class, varrayId);
-            StoragePool targetPool = (StoragePool) dbClient.queryObject(StoragePool.class, this.getVirtualArrayProtectionMap()
-                    .get(varrayId).getTargetStoragePool());
-            StoragePool targetJournalStoragePool = (StoragePool) dbClient.queryObject(StoragePool.class, this
-                    .getVirtualArrayProtectionMap().get(varrayId).getTargetJournalStoragePool());
-            VirtualArray targetJournalVarray = dbClient.queryObject(VirtualArray.class, this.getVirtualArrayProtectionMap().get(varrayId)
-                    .getTargetJournalVarray());
-            VirtualPool targetJournalVpool = dbClient.queryObject(VirtualPool.class, this.getVirtualArrayProtectionMap().get(varrayId)
-                    .getTargetJournalVpool());
-            StorageSystem targetSystem = (StorageSystem) dbClient.queryObject(StorageSystem.class,
-                    this.getVirtualArrayProtectionMap().get(varrayId).getTargetDevice());
-            String targetInternalSiteName = this.getVirtualArrayProtectionMap().get(varrayId).getTargetInternalSiteName();
-            String targetRPSiteName = (ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(targetInternalSiteName)
-                    : targetInternalSiteName;
-            buff.append("\n-----------------------------\n");
-            buff.append("Protecting to Virtual Array : " + varray.getLabel() + "\n");
-            buff.append("Protection to RP Site : " + targetRPSiteName + "\n");
-            buff.append("Protection to Storage System : " + targetSystem.getLabel() + "\n");
-            buff.append("Protection to Storage Pool : " + targetPool.getLabel() + "\n");
-            buff.append("Protection Journal Virtual Array : " + targetJournalVarray.getLabel() + " \n");
-            buff.append("Protection Journal Virtual Pool : " + targetJournalVpool.getLabel() + " \n");
-            buff.append("Protection Journal Storage Pool : " + targetJournalStoragePool.getLabel() + "\n");
-        }
-        buff.append("\n--------------------------------------\n");
-        buff.append("--------------------------------------");
-        return buff.toString();
+        return vpoolChangeVolume;
     }
 
     public void setVpoolChangeVpool(URI id) {
-        _vpoolChangeVpool = id;
+        vpoolChangeVpool = id;
     }
 
     public URI getVpoolChangeVpool() {
-        return _vpoolChangeVpool;
-    }
-
-    public String getRpSiteAssociateStorageSystem() {
-        return rpSiteAssociateStorageSystem;
-    }
-
-    public void setRpSiteAssociateStorageSystem(String rpSiteAssociateStorageSystem) {
-        this.rpSiteAssociateStorageSystem = rpSiteAssociateStorageSystem;
+        return vpoolChangeVpool;
     }
 
     public boolean isVpoolChangeProtectionAlreadyExists() {
@@ -249,47 +140,210 @@ public class RPProtectionRecommendation extends Recommendation {
     public void setVpoolChangeProtectionAlreadyExists(
             boolean vpoolChangeProtectionAlreadyExists) {
         this.vpoolChangeProtectionAlreadyExists = vpoolChangeProtectionAlreadyExists;
-    }
+    }     
+	
+    public PlacementProgress getPlacementStepsCompleted() {
+		return placementStepsCompleted;
+	}
 
-    public URI getSourceJournalVarray() {
-        return _sourceJournalVarray;
-    }
+	public void setPlacementStepsCompleted(PlacementProgress identifiedProtectionSolution) {
+		this.placementStepsCompleted = identifiedProtectionSolution;
+	}
 
-    public void setSourceJournalVarray(URI _sourceJournalVarray) {
-        this._sourceJournalVarray = _sourceJournalVarray;
-    }
+	public String getProtectionSystemCriteriaError() {
+		return protectionSystemCriteriaError;
+	}
 
-    public URI getSourceJournalVpool() {
-        return _sourceJournalVpool;
-    }
+	public void setProtectionSystemCriteriaError(String protectionSystemCriteriaError) {
+		this.protectionSystemCriteriaError = protectionSystemCriteriaError;
+	}
+	
+	/**
+	 * @param internalSiteName
+	 * @return
+	 */
+	public int getNumberOfVolumes(String internalSiteName) {
+    	int count=0;    	
+    	for (RPRecommendation rpSourceRecommendation: getSourceRecommendations()) {    		
+    		if (rpSourceRecommendation.getInternalSiteName().equals(internalSiteName)) {
+    			count += rpSourceRecommendation.getResourceCount();
+    			continue;
+    		}
+    		
+    		for(RPRecommendation targetRec : rpSourceRecommendation.getTargetRecommendations()) {
+    			if (targetRec.getInternalSiteName().equals(internalSiteName)) {
+    				count += targetRec.getResourceCount();
+    			}
+    		}    		
+    	}
+    	
+    	if (getSourceJournalRecommendation() != null && getSourceJournalRecommendation().getInternalSiteName().equals(internalSiteName)) {
+    		count += getSourceJournalRecommendation().getResourceCount();
+    	}
+    	
+    	if (getStandbyJournalRecommendation() != null && getStandbyJournalRecommendation().getInternalSiteName().equals(internalSiteName)) {
+    		count += getStandbyJournalRecommendation().getResourceCount();
+    	}
+    	
+    	for(RPRecommendation targetJournalRecommendation : getTargetJournalRecommendations())
+    	if ( targetJournalRecommendation != null && targetJournalRecommendation.getInternalSiteName().equals(internalSiteName)) {
+    		count += targetJournalRecommendation.getResourceCount();
+    	}
 
-    public void setSourceJournalVpool(URI _sourceJournalVpool) {
-        this._sourceJournalVpool = _sourceJournalVpool;
+    	return count;
     }
+    
+    /**
+     * @param dbClient
+     * @return
+     */
+    public String toString(DbClient dbClient) {
+    	    	
+    	StringBuffer buff = new StringBuffer("\nRecoverPoint Placement Results : \n"); 
+    	buff.append("--------------------------------------\n");
 
-    public URI getStandbySourceJournalVarray() {
-        return _standbySourceJournalVarray;
-    }
-
-    public void setStandbySourceJournalVarray(
-            URI _standbySourceJournalVarray) {
-        this._standbySourceJournalVarray = _standbySourceJournalVarray;
-    }
-
-    public URI getStandbySourceJournalVpool() {
-        return _standbySourceJournalVpool;
-    }
-
-    public void setStandbySourceJournalVpool(URI _standbySourceJournalVpool) {
-        this._standbySourceJournalVpool = _standbySourceJournalVpool;
-    }
-
-    public URI getSourceInternalSiteStorageSystem() {
-        return sourceInternalSiteStorageSystem;
-    }
-
-    public void setSourceInternalSiteStorageSystem(
-            URI sourceInternalSiteStorageSystem) {
-        this.sourceInternalSiteStorageSystem = sourceInternalSiteStorageSystem;
-    }
+    	RPRecommendation rpRecommendation = this.getSourceRecommendations().get(0);    	
+    	String protectionType = "Regular RP recommendation";
+    	if (VirtualPool.vPoolSpecifiesMetroPoint(rpRecommendation.getVirtualPool())) {
+    		protectionType = "Metropoint RP recommendation";
+    	} else if(VirtualPool.vPoolSpecifiesRPVPlex(rpRecommendation.getVirtualPool())) {
+    		protectionType = "RP/VPLEX recommendation";
+    	}
+    	
+    	buff.append(protectionType + "\n");
+    	ProtectionSystem ps = dbClient.queryObject(ProtectionSystem.class, getProtectionDevice());
+    	buff.append("Total volumes placed : " + this.getResourceCount() + "\n");
+    	buff.append("Protection System Allocated : " + ps.getLabel() + "\n\n");
+   
+    	for (RPRecommendation sourceRecommendation : this.getSourceRecommendations()) {	    	
+    		buff.append("Source Recommendation : " + "\n");    		    		
+    		buff.append(sourceRecommendation.toString(dbClient, ps) + "\n");
+    		for (RPRecommendation targetRecommendation : sourceRecommendation.getTargetRecommendations()) {
+    			buff.append("Target Recommendation : " + "\n");
+    			buff.append(targetRecommendation.toString(dbClient, ps) + "\n");
+    		}
+    	}    
+    	buff.append("Journal Recommendation : ");
+    	String sourceJournalString = "Source";
+    	if (standbyJournalRecommendation != null) {
+    		sourceJournalString = "Metropoint Active Source";
+    	}
+    	buff.append(sourceJournalString + " : "+ "\n");
+    	buff.append(sourceJournalRecommendation.toString(dbClient, ps) + "\n");
+	
+    	if (standbyJournalRecommendation != null) {
+    		buff.append("\nJournal Recommendation	: Metropoint Standby Source" + "\n");
+    		buff.append(standbyJournalRecommendation.toString(dbClient, ps) + "\n");
+    	}
+    	
+    	buff.append("\n");
+    	buff.append("Journal Recommendation : Target" + "\n");
+    	if (this.getTargetJournalRecommendations() != null) {
+    		buff.append("Journals : " + "\n");
+    		for (RPRecommendation targetJournalRecommendation : getTargetJournalRecommendations()) {
+    	    	buff.append(targetJournalRecommendation.toString(dbClient, ps) + "\n");    	    	
+    		}
+    	}
+    	
+    	buff.append("--------------------------------------\n");
+    	return buff.toString();
+    } 
+	
+	/**
+	 * Gets the MetroPoint configuration type for the recommendation.  Looks specifically
+	 * at the protection copy types to figure out the configuration.  If any of the
+	 * protection copy types is not set, we cannot properly determine the configuration
+	 * so we must return null;
+	 * 
+	 * @return the MetroPoint configuration type
+	 */
+	public MetroPointType getMetroPointType() {		
+		MetroPointType metroPointType = null;
+		
+    	int primaryLocalCopyCount 	= 0;
+    	int primaryRemoteCopyCount 	= 0;
+    	int secondaryLocalCopyCount = 0;
+    	int secondaryRemoteCopyCount = 0;
+    	    	    	
+    	// Return invalid configuration if there is no primary protection specified.
+    	if (getSourceRecommendations().get(0).getTargetRecommendations() == null  || getSourceRecommendations().get(0).getTargetRecommendations().isEmpty()) {
+    		return MetroPointType.INVALID;
+    	}
+    	    
+	    for (RPRecommendation protection : getSourceRecommendations().get(0).getTargetRecommendations()) {
+    		if (protection.getProtectionType() == null) {
+    			// If even one protection type is missing, this is not a valid MetroPoint
+    			// recommendation.  The protection type is only ever set in 
+    			// MetroPoint specific code.
+    			return MetroPointType.INVALID;
+    		}
+    		if (protection.getProtectionType() == ProtectionType.LOCAL) {
+    			primaryLocalCopyCount++;
+    		} else if (protection.getProtectionType() == ProtectionType.REMOTE) {
+    			primaryRemoteCopyCount++;
+    		}
+	    }    	
+    	    
+    	RPRecommendation secondaryRecommendation = null;;    	
+    	if (getSourceRecommendations().get(0).getHaRecommendation() != null) {
+    		// There will only ever be 1 secondary recommendation in a MetroPoint case.
+        	secondaryRecommendation = getSourceRecommendations().get(0).getHaRecommendation();
+        } else {
+        	// There must be a secondary recommendation to satisfy a valid MetroPoint
+        	// configuration.
+        	return MetroPointType.INVALID;
+        }    	
+    	
+        // Return invalid configuration if there is no secondary protection specified.
+        if (secondaryRecommendation.getTargetRecommendations() == null || secondaryRecommendation.getTargetRecommendations().isEmpty()) {
+            return MetroPointType.INVALID;
+        }
+              
+        for (RPRecommendation protection : secondaryRecommendation.getTargetRecommendations()) {
+    		if (protection.getProtectionType() == null) {
+    			// If even one protection type is missing, this is not a valid MetroPoint
+    			// recommendation.  The protection type is only ever set in 
+    			// MetroPoint specific code.
+    			return MetroPointType.INVALID;
+    		}
+    		if (protection.getProtectionType() == ProtectionType.LOCAL) {
+    			secondaryLocalCopyCount++;
+    		} else if (protection.getProtectionType() == ProtectionType.REMOTE) {
+    			secondaryRemoteCopyCount++;
+    		}
+        }    	
+    	
+    	boolean singleRemoteCopy = false;
+    	boolean primaryLocalCopy = false;
+    	boolean secondaryLocalCopy = false;
+    	
+    	if (primaryRemoteCopyCount == 1 && secondaryRemoteCopyCount == 1) {
+    		singleRemoteCopy = true;
+    	}
+    	
+    	if (primaryLocalCopyCount == 1) {
+    		primaryLocalCopy = true;
+    	}
+    	
+    	if (secondaryLocalCopyCount == 1) {
+    		secondaryLocalCopy = true;
+    	}
+    	
+    	if (singleRemoteCopy && primaryLocalCopy && secondaryLocalCopy) {
+    		metroPointType = MetroPointType.TWO_LOCAL_REMOTE;
+    	} else if (singleRemoteCopy && 
+    			((!primaryLocalCopy && secondaryLocalCopy) || (primaryLocalCopy && !secondaryLocalCopy))) {
+    		metroPointType = MetroPointType.ONE_LOCAL_REMOTE;
+    	} else if (singleRemoteCopy && !primaryLocalCopy && !secondaryLocalCopy) {
+    		metroPointType = MetroPointType.SINGLE_REMOTE;
+    	} else if (!singleRemoteCopy && primaryLocalCopy && secondaryLocalCopy) {
+    		metroPointType = MetroPointType.LOCAL_ONLY;
+    	} else {
+    		metroPointType = MetroPointType.INVALID;
+    	}
+    	
+    	return metroPointType;    	
+	}
 }
+
+

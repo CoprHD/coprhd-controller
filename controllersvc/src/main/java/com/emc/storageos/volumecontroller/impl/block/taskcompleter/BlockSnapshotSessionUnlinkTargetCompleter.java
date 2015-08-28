@@ -13,11 +13,11 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 /**
- * Task completer invoked when SMI-S request to create and link a new target
- * volume to an array snapshot completes.
+ * Task completer invoked when SMI-S request to unlink a target from
+ * an array snapshot completes.
  */
 @SuppressWarnings("serial")
-public class LinkBlockSnapshotSessionTargetCompleter extends TaskLockingCompleter {
+public class BlockSnapshotSessionUnlinkTargetCompleter extends TaskLockingCompleter {
 
     // The URI of the BlockSnapshotSession representing the array snapshot.
     @SuppressWarnings("unused")
@@ -28,9 +28,9 @@ public class LinkBlockSnapshotSessionTargetCompleter extends TaskLockingComplete
      * 
      * @param snapSessionURI The id of the BlockSnapshotSession instance in the database.
      * @param snapshotURI The id of the BlockSnapshot instance representing the target.
-     * @param stepId The id of the WF step in which the target is being created and linked.
+     * @param stepId The id of the WF step in which the target is being unlinked.
      */
-    public LinkBlockSnapshotSessionTargetCompleter(URI snapSessionURI, URI snapshotURI, String stepId) {
+    public BlockSnapshotSessionUnlinkTargetCompleter(URI snapSessionURI, URI snapshotURI, String stepId) {
         super(BlockSnapshot.class, snapshotURI, stepId);
         _snapSessionURI = snapSessionURI;
     }

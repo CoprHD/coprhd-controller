@@ -33,7 +33,7 @@ public class UnlinkBlockSnapshotSessionTargetsWorkflowCompleter extends TaskComp
     private final Map<URI, Boolean> _snapshotDeletionMap;
 
     // A logger.
-    private static final Logger s_logger = LoggerFactory.getLogger(LinkBlockSnapshotSessionTargetsWorkflowCompleter.class);
+    private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionLinkTargetsWorkflowCompleter.class);
 
     /**
      * Constructor

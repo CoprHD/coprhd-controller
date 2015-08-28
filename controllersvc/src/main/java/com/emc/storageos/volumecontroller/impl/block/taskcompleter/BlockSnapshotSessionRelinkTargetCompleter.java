@@ -17,7 +17,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
  * volume to an array snapshot completes.
  */
 @SuppressWarnings("serial")
-public class RelinkBlockSnapshotSessionTargetCompleter extends TaskLockingCompleter {
+public class BlockSnapshotSessionRelinkTargetCompleter extends TaskLockingCompleter {
 
     // The URI of the BlockSnapshotSession representing the target array snapshot.
     @SuppressWarnings("unused")
@@ -30,7 +30,7 @@ public class RelinkBlockSnapshotSessionTargetCompleter extends TaskLockingComple
      * @param snapshotURI The id of the BlockSnapshot instance representing the target.
      * @param stepId The id of the WF step in which the target is being re-linked.
      */
-    public RelinkBlockSnapshotSessionTargetCompleter(URI snapSessionURI, URI snapshotURI, String stepId) {
+    public BlockSnapshotSessionRelinkTargetCompleter(URI snapSessionURI, URI snapshotURI, String stepId) {
         super(BlockSnapshot.class, snapshotURI, stepId);
         _snapSessionURI = snapSessionURI;
     }

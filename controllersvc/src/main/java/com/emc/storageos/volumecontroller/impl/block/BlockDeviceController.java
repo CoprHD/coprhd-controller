@@ -104,17 +104,17 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneCreateWo
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneFractureCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneResyncCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CreateBlockSnapshotSessionCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.DeleteBlockSnapshotSessionCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.DeleteBlockSnapshotSessionWorkflowCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.LinkBlockSnapshotSessionTargetCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.LinkBlockSnapshotSessionTargetsWorkflowCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionCreateCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionDeleteCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionDeleteWorkflowCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionLinkTargetCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionLinkTargetsWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MultiVolumeTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.RelinkBlockSnapshotSessionTargetCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.RelinkBlockSnapshotSessionTargetsWorkflowCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.RestoreBlockSnapshotSessionCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionRelinkTargetCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionRelinkTargetsWorkflowCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SimpleTaskCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.UnlinkBlockSnapshotSessionTargetCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionUnlinkTargetCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.UnlinkBlockSnapshotSessionTargetsWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeDeleteCompleter;
@@ -3606,7 +3606,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         TaskCompleter completer = null;
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
-            completer = new CreateBlockSnapshotSessionCompleter(snapSessionURIs, stepId);
+            completer = new BlockSnapshotSessionCreateCompleter(snapSessionURIs, stepId);
             getDevice(system.getSystemType()).doCreateSnapshotSession(system, snapSessionURIs, completer);
         } catch (Exception e) {
             if (completer != null) {
@@ -3651,7 +3651,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         TaskCompleter completer = null;
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
-            completer = new LinkBlockSnapshotSessionTargetCompleter(snapSessionURI, snapshotURI, stepId);
+            completer = new BlockSnapshotSessionLinkTargetCompleter(snapSessionURI, snapshotURI, stepId);
             getDevice(system.getSystemType()).doLinkBlockSnapshotSessionTarget(system, snapSessionURI,
                     snapshotURI, copyMode, completer);
         } catch (Exception e) {
@@ -3697,7 +3697,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     @Override
     public void linkNewTargetVolumesToSnapshotSession(URI systemURI, URI snapSessionURI, List<URI> snapshotURIs,
             String copyMode, String opId) throws InternalException {
-        TaskCompleter completer = new LinkBlockSnapshotSessionTargetsWorkflowCompleter(snapSessionURI, snapshotURIs, opId);
+        TaskCompleter completer = new BlockSnapshotSessionLinkTargetsWorkflowCompleter(snapSessionURI, snapshotURIs, opId);
         try {
             // Get a new workflow to execute the linking of the target volumes
             // to the new session.
@@ -3727,7 +3727,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     @Override
     public void relinkTargetsToSnapshotSession(URI systemURI, URI tgtSnapSessionURI, List<URI> snapshotURIs,
             String opId) throws InternalException {
-        TaskCompleter completer = new RelinkBlockSnapshotSessionTargetsWorkflowCompleter(tgtSnapSessionURI, snapshotURIs, opId);
+        TaskCompleter completer = new BlockSnapshotSessionRelinkTargetsWorkflowCompleter(tgtSnapSessionURI, snapshotURIs, opId);
         try {
             // Get a new workflow to execute the linking of the target volumes
             // to the new session.
@@ -3780,7 +3780,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         TaskCompleter completer = null;
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
-            completer = new RelinkBlockSnapshotSessionTargetCompleter(tgtSnapSessionURI, snapshotURI, stepId);
+            completer = new BlockSnapshotSessionRelinkTargetCompleter(tgtSnapSessionURI, snapshotURI, stepId);
             getDevice(system.getSystemType()).doRelinkBlockSnapshotSessionTarget(system, tgtSnapSessionURI,
                     snapshotURI, completer);
         } catch (Exception e) {
@@ -3856,7 +3856,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         TaskCompleter completer = null;
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
-            completer = new UnlinkBlockSnapshotSessionTargetCompleter(snapSessionURI, snapshotURI, stepId);
+            completer = new BlockSnapshotSessionUnlinkTargetCompleter(snapSessionURI, snapshotURI, stepId);
             getDevice(system.getSystemType()).doUnlinkBlockSnapshotSessionTarget(system, snapSessionURI,
                     snapshotURI, deleteTarget, completer);
         } catch (Exception e) {
@@ -3927,7 +3927,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         TaskCompleter completer = null;
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
-            completer = new RestoreBlockSnapshotSessionCompleter(snapSessionURI, stepId);
+            completer = new BlockSnapshotSessionRestoreCompleter(snapSessionURI, stepId);
             getDevice(system.getSystemType()).doRestoreBlockSnapshotSession(system, snapSessionURI, completer);
         } catch (Exception e) {
             if (completer != null) {
@@ -3944,7 +3944,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      */
     @Override
     public void deleteSnapshotSession(URI systemURI, URI snapSessionURI, String opId) {
-        TaskCompleter completer = new DeleteBlockSnapshotSessionWorkflowCompleter(snapSessionURI, opId);
+        TaskCompleter completer = new BlockSnapshotSessionDeleteWorkflowCompleter(snapSessionURI, opId);
         try {
             // Get a new workflow delete the snapshot session.
             Workflow workflow = _workflowService.getNewWorkflow(this, DELETE_SNAPSHOT_SESSION_WF_NAME, false, opId);
@@ -3993,7 +3993,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         TaskCompleter completer = null;
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
-            completer = new DeleteBlockSnapshotSessionCompleter(snapSessionURI, stepId);
+            completer = new BlockSnapshotSessionDeleteCompleter(snapSessionURI, stepId);
             getDevice(system.getSystemType()).doDeleteBlockSnapshotSession(system, snapSessionURI, completer);
         } catch (Exception e) {
             if (completer != null) {

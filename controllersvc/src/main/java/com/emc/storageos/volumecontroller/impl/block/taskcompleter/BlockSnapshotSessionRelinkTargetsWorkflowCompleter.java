@@ -25,14 +25,14 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
  * BlockSnapshotSession completes.
  */
 @SuppressWarnings("serial")
-public class RelinkBlockSnapshotSessionTargetsWorkflowCompleter extends TaskCompleter {
+public class BlockSnapshotSessionRelinkTargetsWorkflowCompleter extends TaskCompleter {
 
     // The URIs of the BlockSnapshot instances representing the target volumes
     // to be re-linked to the session
     private final List<URI> _snapshotURIs;
 
     // A logger.
-    private static final Logger s_logger = LoggerFactory.getLogger(RelinkBlockSnapshotSessionTargetsWorkflowCompleter.class);
+    private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionRelinkTargetsWorkflowCompleter.class);
 
     /**
      * Constructor
@@ -42,7 +42,7 @@ public class RelinkBlockSnapshotSessionTargetsWorkflowCompleter extends TaskComp
      *            targets volume to be re-linked to the target session.
      * @param taskId The unique task identifier.
      */
-    public RelinkBlockSnapshotSessionTargetsWorkflowCompleter(URI snapSessionURI, List<URI> snapshotURIs, String taskId) {
+    public BlockSnapshotSessionRelinkTargetsWorkflowCompleter(URI snapSessionURI, List<URI> snapshotURIs, String taskId) {
         super(BlockSnapshotSession.class, snapSessionURI, taskId);
         _snapshotURIs = snapshotURIs;
     }

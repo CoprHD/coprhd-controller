@@ -20,10 +20,10 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
  * Task completer invoked when a workflow deleting a BlockSnapshotSession completes.
  */
 @SuppressWarnings("serial")
-public class DeleteBlockSnapshotSessionWorkflowCompleter extends TaskCompleter {
+public class BlockSnapshotSessionDeleteWorkflowCompleter extends TaskCompleter {
 
     // A logger.
-    private static final Logger s_logger = LoggerFactory.getLogger(DeleteBlockSnapshotSessionWorkflowCompleter.class);
+    private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionDeleteWorkflowCompleter.class);
 
     /**
      * Constructor
@@ -31,7 +31,7 @@ public class DeleteBlockSnapshotSessionWorkflowCompleter extends TaskCompleter {
      * @param snapSessionURI The URI of the BlockSnapshotSession instance.
      * @param taskId The unique task identifier.
      */
-    public DeleteBlockSnapshotSessionWorkflowCompleter(URI snapSessionURI, String taskId) {
+    public BlockSnapshotSessionDeleteWorkflowCompleter(URI snapSessionURI, String taskId) {
         super(BlockSnapshotSession.class, snapSessionURI, taskId);
     }
 

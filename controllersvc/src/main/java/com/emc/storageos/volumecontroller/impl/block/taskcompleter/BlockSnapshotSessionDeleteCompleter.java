@@ -17,7 +17,7 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
  * Task completer invoked when SMI-S request to delete a snapshot session completes.
  */
 @SuppressWarnings("serial")
-public class DeleteBlockSnapshotSessionCompleter extends TaskCompleter {
+public class BlockSnapshotSessionDeleteCompleter extends TaskCompleter {
 
     /**
      * Constructor
@@ -25,7 +25,7 @@ public class DeleteBlockSnapshotSessionCompleter extends TaskCompleter {
      * @param snapSessionURI The id of the BlockSnapshotSession instance in the database.
      * @param stepId The id of the WF step in which the session is being deleted.
      */
-    public DeleteBlockSnapshotSessionCompleter(URI snapSessionURI, String stepId) {
+    public BlockSnapshotSessionDeleteCompleter(URI snapSessionURI, String stepId) {
         super(BlockSnapshotSession.class, snapSessionURI, stepId);
     }
 

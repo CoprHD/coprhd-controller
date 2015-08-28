@@ -97,7 +97,7 @@ public class UnlinkBlockSnapshotSessionTargetsWorkflowCompleter extends TaskComp
             }
             s_logger.info("Done unlink targets from snapshot session task {} with status: {}", getOpId(), status.name());
         } catch (Exception e) {
-            s_logger.error("Failed updating status for cunlink targets from snapshot session task {}", getOpId(), e);
+            s_logger.error("Failed updating status for unlink targets from snapshot session task {}", getOpId(), e);
         }
     }
 }

@@ -106,6 +106,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneRestoreC
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneResyncCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CreateBlockSnapshotSessionCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.DeleteBlockSnapshotSessionCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.DeleteBlockSnapshotSessionWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.LinkBlockSnapshotSessionTargetCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.LinkBlockSnapshotSessionTargetsWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.MultiVolumeTaskCompleter;
@@ -3943,7 +3944,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      */
     @Override
     public void deleteSnapshotSession(URI systemURI, URI snapSessionURI, String opId) {
-        TaskCompleter completer = new SimpleTaskCompleter(BlockSnapshotSession.class, snapSessionURI, opId);
+        TaskCompleter completer = new DeleteBlockSnapshotSessionWorkflowCompleter(snapSessionURI, opId);
         try {
             // Get a new workflow delete the snapshot session.
             Workflow workflow = _workflowService.getNewWorkflow(this, DELETE_SNAPSHOT_SESSION_WF_NAME, false, opId);

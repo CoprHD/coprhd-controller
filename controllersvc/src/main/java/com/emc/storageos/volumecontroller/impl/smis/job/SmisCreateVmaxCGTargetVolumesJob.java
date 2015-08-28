@@ -6,8 +6,8 @@
 package com.emc.storageos.volumecontroller.impl.smis.job;
 
 import java.net.URI;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.cim.CIMObjectPath;
 import javax.cim.CIMProperty;
@@ -31,7 +31,7 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 public class SmisCreateVmaxCGTargetVolumesJob extends SmisJob {
     private static final Logger _log = LoggerFactory.getLogger(SmisCreateVmaxCGTargetVolumesJob.class);
 
-    private Map<String, String> _deviceMap;
+    private List<String> _deviceIds;
 
     public SmisCreateVmaxCGTargetVolumesJob(CIMObjectPath cimJob, URI storageSystem,
             String sourceGroupName,
@@ -47,7 +47,7 @@ public class SmisCreateVmaxCGTargetVolumesJob extends SmisJob {
         JobStatus jobStatus = getJobStatus();
         try {
             if (jobStatus == JobStatus.SUCCESS) {
-                _deviceMap = new HashMap<String, String>();
+                _deviceIds = new ArrayList<String>();
                 CIMConnectionFactory cimConnectionFactory = jobContext.getCimConnectionFactory();
                 WBEMClient client = getWBEMClient(dbClient, cimConnectionFactory);
                 iterator = client.associatorNames(getCimJob(), null, SmisConstants.CIM_STORAGE_VOLUME, null, null);
@@ -58,8 +58,7 @@ public class SmisCreateVmaxCGTargetVolumesJob extends SmisJob {
                     if (nativeID == null || nativeID.isEmpty()) {
                         throw new IllegalStateException("Could not determine volume native ID from the SMI-S provider");
                     }
-                    String instanceID = volumePath.toString();
-                    _deviceMap.put(instanceID, nativeID);
+                    _deviceIds.add(nativeID);
                 }
             } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
                 _log.info("Failed to create volume: {}", getTaskCompleter().getId());
@@ -76,7 +75,7 @@ public class SmisCreateVmaxCGTargetVolumesJob extends SmisJob {
         }
     }
 
-    public Map<String, String> getTargetDeviceMap() {
-        return _deviceMap;
+    public List<String> getTargetDeviceIds() {
+        return _deviceIds;
     }
 }

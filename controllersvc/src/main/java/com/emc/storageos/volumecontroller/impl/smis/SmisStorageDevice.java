@@ -1332,7 +1332,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 CIMObjectPath settingsPath = settingsIterator.next();
                 CIMArgument[] outArgs = new CIMArgument[5];
                 _helper.callModifySettingsDefineState(storage,
-                        _helper.getDeleteSettingsForSnapshotInputArguments(settingsPath), outArgs);
+                        _helper.getDeleteSettingsForSnapshotInputArguments(settingsPath, true), outArgs);
             }
         } finally {
             if (settingsIterator != null) {
@@ -1367,7 +1367,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                             groupName, (String) aspectPath.getKey(SmisConstants.CP_INSTANCE_ID)
                                     .getValue());
                     CIMArgument[] deleteSettingsInput = _helper
-                            .getDeleteSettingsForSnapshotInputArguments(settingsPath);
+                            .getDeleteSettingsForSnapshotInputArguments(settingsPath, true);
                     _helper.callModifySettingsDefineState(storage, deleteSettingsInput, outArgs);
                 }
             }
@@ -1397,7 +1397,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     SmisConstants.CLAR_SETTINGS_DEFINE_STATE_RG_SAFS, null);
             while (settings.hasNext()) {
                 CIMObjectPath path = settings.next();
-                CIMArgument[] inArgs = _helper.getDeleteSettingsForSnapshotInputArguments(path);
+                CIMArgument[] inArgs = _helper.getDeleteSettingsForSnapshotInputArguments(path, true);
                 CIMArgument[] outArgs = new CIMArgument[5];
                 _helper.callModifySettingsDefineState(storage, inArgs, outArgs);
             }

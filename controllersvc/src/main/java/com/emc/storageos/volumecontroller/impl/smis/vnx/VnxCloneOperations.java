@@ -12,7 +12,6 @@ import static java.text.MessageFormat.format;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 import javax.cim.CIMArgument;
 import javax.cim.CIMInstance;
@@ -93,11 +92,11 @@ public class VnxCloneOperations extends AbstractCloneOperations {
                 final URI poolId = clone.getPool();
                 Volume source = _dbClient.queryObject(Volume.class, clone.getAssociatedSourceVolume());
                 // Create target devices
-                final Map<String, String> newDeviceMap = ReplicationUtils.createTargetDevices(storage, sourceGroupName, clone.getLabel(),
+                final List<String> newDeviceIds = ReplicationUtils.createTargetDevices(storage, sourceGroupName, clone.getLabel(),
                         createInactive,
-                        1, poolId, clone.getCapacity(), source.getThinlyProvisioned(), null, taskCompleter, _dbClient, _helper, _cimPath);
+                        1, poolId, clone.getCapacity(), source.getThinlyProvisioned(), source, taskCompleter, _dbClient, _helper,
+                        _cimPath);
 
-                List<String> newDeviceIds = new ArrayList<String>(newDeviceMap.values());
                 targetDeviceIds.addAll(newDeviceIds);
             }
 

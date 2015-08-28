@@ -77,7 +77,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
             _log.info("activateSingleVolumeSnapshot operation START");
             CIMObjectPath blockObjectPath = _cimPath.getBlockObjectPath(storage, bo);
             CIMArgument[] inArgs =
-                    _helper.getCreateSynchronizationAspectInput(blockObjectPath);
+                    _helper.getCreateSynchronizationAspectInput(blockObjectPath, true, null, null);
             CIMArgument[] outArgs = new CIMArgument[5];
             CIMObjectPath replicationSvcPath =
                     _cimPath.getControllerReplicationSvcPath(storage);

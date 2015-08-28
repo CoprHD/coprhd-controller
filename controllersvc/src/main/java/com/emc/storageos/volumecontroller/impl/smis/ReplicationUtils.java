@@ -23,7 +23,6 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import javax.cim.CIMArgument;
@@ -321,7 +320,7 @@ public class ReplicationUtils {
      * 
      * @returns - List of native Ids
      */
-    public static Map<String, String> createTargetDevices(StorageSystem storageSystem, String sourceGroupName,
+    public static List<String> createTargetDevices(StorageSystem storageSystem, String sourceGroupName,
             String label, Boolean createInactive, int count,
             URI storagePoolUri, long capacity, boolean isThinlyProvisioned,
             Volume sourceVolume, TaskCompleter taskCompleter,
@@ -351,7 +350,7 @@ public class ReplicationUtils {
 
             helper.invokeMethodSynchronously(storageSystem, configSvcPath, CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL, inArgs, outArgs, job);
 
-            return job.getTargetDeviceMap();
+            return job.getTargetDeviceIds();
         } catch (Exception e) {
             final String errMsg = format("An error occurred when creating target devices VMAX system {0}", storageSystem.getId());
             _log.error(errMsg, e);

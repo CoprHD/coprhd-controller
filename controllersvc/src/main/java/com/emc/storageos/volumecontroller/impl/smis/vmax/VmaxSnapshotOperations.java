@@ -274,10 +274,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             if (storage.checkIfVmax3()) {
                 CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(storage, volume, null);
                 CIMObjectPath poolPath = findSnapStoragePoolOrNull(storage);
-                Map<String, String> targetDeviceMap = createTargetDevices(storage, poolPath, volumeGroupPath, null, "SingleSnapshot",
-                        snapLabelToUse,
+                targetDeviceIds = createTargetDevices(storage, poolPath, volumeGroupPath, null, "SingleSnapshot", snapLabelToUse,
                         createInactive, 1, volume.getCapacity(), taskCompleter);
-                targetDeviceIds = new ArrayList<String>(targetDeviceMap.values());
                 CIMInstance replicaSettingData = _helper.getReplicationSettingData(storage, targetDeviceIds.get(0), false);
                 inArgs = _helper.getCreateElementReplicaSnapInputArgumentsWithTargetAndSetting(storage, volume, targetDeviceIds.get(0),
                         replicaSettingData, createInactive, snapLabelToUse);
@@ -396,10 +394,10 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     final URI poolId = volume.getPool();
 
                     // Create target devices based on the array model
-                    final Map<String, String> newDeviceMap = kickOffTargetDevicesCreation(storage, volumeGroupPath,
+                    final List<String> newDeviceIds = kickOffTargetDevicesCreation(storage, volumeGroupPath,
                             sourceGroupName, snapLabelToUse, createInactive, thinProvisioning, volumes.size(), poolId,
                             volume.getCapacity(), taskCompleter);
-                    final List<String> newDeviceIds = new ArrayList<String>(newDeviceMap.values());
+
                     targetDeviceIds.addAll(newDeviceIds);
                 }
 
@@ -670,7 +668,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      * @param taskCompleter - Completer object used for task status update @return
      * @throws DeviceControllerException
      */
-    private Map<String, String> kickOffTargetDevicesCreation(StorageSystem storage, CIMObjectPath volumeGroupPath, String sourceGroupName,
+    private List<String> kickOffTargetDevicesCreation(StorageSystem storage, CIMObjectPath volumeGroupPath, String sourceGroupName,
             String label, Boolean createInactive, boolean thinlyProvisioned, int count,
             URI storagePoolUri, long capacity,
             TaskCompleter taskCompleter) throws Exception {
@@ -839,7 +837,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      * 
      * @return - List of native Ids
      */
-    private Map<String, String> createTargetDevices(StorageSystem storage, CIMObjectPath poolPath, CIMObjectPath volumeGroupPath,
+    private List<String> createTargetDevices(StorageSystem storage, CIMObjectPath poolPath, CIMObjectPath volumeGroupPath,
             CIMInstance storageSetting, String sourceGroupName,
             String label, Boolean createInactive, int count, long capacity,
             TaskCompleter taskCompleter) throws DeviceControllerException {
@@ -866,7 +864,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 
             _helper.invokeMethodSynchronously(storage, configSvcPath, CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL, inArgs, outArgs, job);
 
-            return job.getTargetDeviceMap();
+            return job.getTargetDeviceIds();
         } catch (Exception e) {
             final String errMsg = format("An error occurred when creating target devices on storage system {0}", storage.getId());
             _log.error(errMsg, e);
@@ -1217,7 +1215,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     CIMObjectPath sourceVolumePath = _cimPath.getBlockObjectPath(system, sourceVolume);
                     CIMArgument[] inArgs = null;
                     CIMArgument[] outArgs = new CIMArgument[5];
-                    inArgs = _helper.getCreateSynchronizationAspectInput(sourceVolumePath, snapSessionLabelToUse);
+                    inArgs = _helper.getCreateSynchronizationAspectInput(sourceVolumePath, false, snapSessionLabelToUse, new Integer(
+                            SmisConstants.MODE_SYNCHRONOUS));
                     _helper.invokeMethod(system, replicationSvcPath, SmisConstants.CREATE_SYNCHRONIZATION_ASPECT, inArgs, outArgs);
                     CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
                     ControllerServiceImpl
@@ -1273,15 +1272,14 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     String tenantName = tenant.getLabel();
                     String label = _nameGenerator.generate(tenantName, snapshot.getLabel(), snapshotURI.toString(), '-',
                             SmisConstants.MAX_SMI80_SNAPSHOT_NAME_LENGTH);
-                    Map<String, String> targetDeviceMap = createTargetDevices(system, poolPath, volumeGroupPath, null, "SingleSnapshot",
+                    List<String> targetDeviceIds = createTargetDevices(system, poolPath, volumeGroupPath, null, "SingleSnapshot",
                             label, Boolean.FALSE, 1, sourceVolume.getCapacity(), completer);
-                    String targetDeviceInstanceId = targetDeviceMap.keySet().iterator().next();
 
                     CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
                     BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
                     String settingsStateInstanceId = snapSession.getSessionInstance();
                     CIMObjectPath settingsStatePath = _cimPath.objectPath(settingsStateInstanceId);
-                    CIMObjectPath targetDevicePath = _cimPath.objectPath(targetDeviceInstanceId);
+                    CIMObjectPath targetDevicePath = _cimPath.getVolumePath(system, targetDeviceIds.get(0));
                     CIMArgument[] inArgs = null;
                     CIMArgument[] outArgs = new CIMArgument[5];
                     inArgs = _helper.getModifySettingsDefinedStateForLinkTargets(settingsStatePath,
@@ -1388,7 +1386,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 CIMObjectPath settingsStatePath = _cimPath.objectPath(settingsStateInstanceId);
                 CIMArgument[] inArgs = null;
                 CIMArgument[] outArgs = new CIMArgument[5];
-                inArgs = _helper.getModifySettingsDefinedStateForRestoreSession(settingsStatePath);
+                inArgs = _helper.getRestoreFromSettingsStateInputArguments(settingsStatePath);
                 _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
                 CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
                 ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockRestoreSnapshotSessionJob(jobPath,
@@ -1420,7 +1418,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 CIMObjectPath settingsStatePath = _cimPath.objectPath(settingsStateInstanceId);
                 CIMArgument[] inArgs = null;
                 CIMArgument[] outArgs = new CIMArgument[5];
-                inArgs = _helper.getModifySettingsDefinedStateForDeleteSession(settingsStatePath);
+                inArgs = _helper.getDeleteSettingsForSnapshotInputArguments(settingsStatePath, false);
                 _helper.invokeMethod(system, replicationSvcPath, SmisConstants.MODIFY_SETTINGS_DEFINE_STATE, inArgs, outArgs);
                 CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
                 ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockDeleteSnapshotSessionJob(jobPath,

@@ -65,8 +65,6 @@ public class SmisBlockCreateSnapshotSessionJob extends SmisJob {
                 BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, getTaskCompleter().getId());
 
                 // Update Settings instance for the session.
-                // TBD - Need to resolve how parameter is used in snapshot session and block snapshot,
-                // which keeps the instance Id of the SettingsData of the SettingsState.
                 CIMConnectionFactory cimConnectionFactory = jobContext.getCimConnectionFactory();
                 WBEMClient client = getWBEMClient(dbClient, cimConnectionFactory);
                 syncAspectIter = client

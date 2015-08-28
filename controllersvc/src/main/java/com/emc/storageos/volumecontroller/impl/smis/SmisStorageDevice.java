@@ -2167,7 +2167,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     public void doRestoreBlockSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
             throws DeviceControllerException {
         try {
-            // TBD - Determine group operation.
             _snapshotOperations.restoreSnapshotSession(system, snapSessionURI, completer);
         } catch (Exception e) {
             _log.error(String.format("Exception trying to restore block snapshot session %s on array %s",
@@ -2184,7 +2183,6 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     public void doDeleteBlockSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
             throws DeviceControllerException {
         try {
-            // TBD - Determine group operation.
             _snapshotOperations.deleteSnapshotSession(system, snapSessionURI, completer);
         } catch (Exception e) {
             _log.error(String.format("Exception trying to delete block snapshot session %s on array %s",

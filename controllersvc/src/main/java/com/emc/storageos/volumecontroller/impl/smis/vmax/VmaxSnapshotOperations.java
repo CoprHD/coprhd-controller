@@ -1222,7 +1222,6 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     ControllerServiceImpl
                             .enqueueJob(new QueueJob(new SmisBlockCreateSnapshotSessionJob(jobPath, system.getId(), completer)));
                 } else {
-                    // TBD - Not currently supported when the source is a BlockSnapshot.
                     throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
                 }
             } catch (Exception e) {
@@ -1242,7 +1241,6 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
     public void createGroupSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer)
             throws DeviceControllerException {
         if (system.checkIfVmax3()) {
-            // TBD - Need to support group operation.
             ServiceCoded sc = DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
             completer.error(_dbClient, sc);
         } else {
@@ -1289,7 +1287,6 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockLinkSnapshotSessionTargetJob(jobPath,
                             system.getId(), copyMode, completer)));
                 } else {
-                    // TBD - Not currently supported when the source is a BlockSnapshot.
                     throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
                 }
             } catch (Exception e) {

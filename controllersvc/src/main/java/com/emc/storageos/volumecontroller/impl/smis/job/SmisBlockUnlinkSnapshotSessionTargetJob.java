@@ -56,6 +56,9 @@ public class SmisBlockUnlinkSnapshotSessionTargetJob extends SmisJob {
                 return;
             }
             if (jobStatus == JobStatus.SUCCESS) {
+                // TBD - Update capacity of storage pools when deleted?
+                // SmisUtils.updateStoragePoolCapacity(dbClient, client, poolURI);
+
                 s_logger.info("Post-processing successful for unlink snapshot session target for task ", getTaskCompleter().getOpId());
             } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
                 s_logger.info("Failed to unlink snapshot session target for task ", getTaskCompleter().getOpId());

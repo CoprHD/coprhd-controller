@@ -427,8 +427,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                                                     (metroPointEnabled ? activeSourceCopyName : srcCopyName), 
                                                                     descriptors, sourceJournal, 
                                                                     (metroPointEnabled ? standbyJournal : null));     
-                        volumeURIs.add(sourceVolume.getId());
-                        volumeInfoBuffer.append(logVolumeInfo(sourceVolume));
+                        volumeURIs.add(sourceVolume.getId());                        
                     } else {                                                                                        
                         // Check to see if the source volume doesn't already have Protection
                         if (!isChangeVpoolForProtectedVolume) {
@@ -493,7 +492,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                             }
                             
                             volumeURIs.add(sourceVolume.getId());
-                            volumeInfoBuffer.append(logVolumeInfo(sourceVolume));
                         } else {
                             _log.info("Change vpool on already protected Volume...");
                             // Get one of the existing protected source volumes from the CG that we loaded earlier, doesn't matter which. 
@@ -595,8 +593,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                             volumeInfoBuffer.append(logVolumeInfo(standbyTargetVolume));                                    
                             volumeURIs.add(standbyTargetVolume.getId());                                                      
                         }                        
-                    }                                 
+                    }
+                    
+                    // Hold off on logging the source volume until we're done creating the targets
+                    volumeInfoBuffer.append(logVolumeInfo(sourceVolume));
                 }
+                                
                 // Reset the capabilities object
                 if (consistencyGroup != null) {
                     capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, consistencyGroup.getId());
@@ -1298,12 +1300,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 volumeDescriptors.addAll(createVolumeDescriptors(recommendation, volumeURIs, capabilities));                
                 logDescriptors(volumeDescriptors);
                 
-//                // Only needed for internal testing
-//                if (true) {                    
-//                    _log.error("STOP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-//                    throw new WebApplicationException(Response
-//                            .status(Response.Status.INTERNAL_SERVER_ERROR).entity(taskList).build());
-//                }
+                // Only needed for internal testing
+                if (true) {                    
+                    _log.error("STOP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                    throw new WebApplicationException(Response
+                            .status(Response.Status.INTERNAL_SERVER_ERROR).entity(taskList).build());
+                }
                 
                 BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
                         BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
@@ -2565,6 +2567,17 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             if (!NullColumnValueGetter.isNullURI(volume.getSecondaryRpJournalVolume())) { 
                 Volume standbyJournalVolume = _dbClient.queryObject(Volume.class, volume.getSecondaryRpJournalVolume());
                 buf.append(String.format("\t RP Standby Journal Volume : [%s]%n", standbyJournalVolume.getLabel()));
+            }
+            
+            if (volume.getRpTargets() != null && !volume.getRpTargets().isEmpty()) {
+                buf.append(String.format("\t RP Target Volume(s) for Source : ["));
+                for (String targetVolumeId : volume.getRpTargets()) {
+                    Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(targetVolumeId));
+                    buf.append(String.format("%s, ", targetVolume.getLabel()));
+                }
+                int endIndex = buf.length() - 1;
+                buf.delete(endIndex - 2, endIndex);
+                buf.append(String.format("]%n"));
             }
         }
         

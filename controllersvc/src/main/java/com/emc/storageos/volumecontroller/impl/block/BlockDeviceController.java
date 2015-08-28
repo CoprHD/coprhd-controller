@@ -115,7 +115,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshot
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SimpleTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionUnlinkTargetCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.UnlinkBlockSnapshotSessionTargetsWorkflowCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotSessionUnlinkTargetsWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeDetachCloneCompleter;
@@ -3799,7 +3799,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     @Override
     public void unlinkTargetsFromSnapshotSession(URI systemURI, URI snapSessionURI,
             Map<URI, Boolean> snapshotDeletionMap, String opId) {
-        TaskCompleter completer = new UnlinkBlockSnapshotSessionTargetsWorkflowCompleter(snapSessionURI, snapshotDeletionMap, opId);
+        TaskCompleter completer = new BlockSnapshotSessionUnlinkTargetsWorkflowCompleter(snapSessionURI, snapshotDeletionMap, opId);
         try {
             // Get a new workflow to unlinking of the targets from session.
             Workflow workflow = _workflowService.getNewWorkflow(this, UNLINK_SNAPSHOT_SESSION_TARGETS_WF_NAME, false, opId);

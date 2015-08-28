@@ -25,7 +25,7 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
  * BlockSnapshotSession completes.
  */
 @SuppressWarnings("serial")
-public class UnlinkBlockSnapshotSessionTargetsWorkflowCompleter extends TaskCompleter {
+public class BlockSnapshotSessionUnlinkTargetsWorkflowCompleter extends TaskCompleter {
 
     // A map where the keys are the URIs of the BlockSnapshot instances
     // representing the targets to be unlinked and the values specify
@@ -44,7 +44,7 @@ public class UnlinkBlockSnapshotSessionTargetsWorkflowCompleter extends TaskComp
      *            whether or not a given snapshot should be deleted.
      * @param taskId The unique task identifier.
      */
-    public UnlinkBlockSnapshotSessionTargetsWorkflowCompleter(URI snapSessionURI, Map<URI, Boolean> snapshotDeletionMap, String taskId) {
+    public BlockSnapshotSessionUnlinkTargetsWorkflowCompleter(URI snapSessionURI, Map<URI, Boolean> snapshotDeletionMap, String taskId) {
         super(BlockSnapshotSession.class, snapSessionURI, taskId);
         _snapshotDeletionMap = snapshotDeletionMap;
     }

@@ -67,7 +67,6 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             AtomicReference<BlockStorageDevice>();
     public static final String VMAX_SMIS_DEVICE = "vmaxSmisDevice";
     public static final HashSet<String> INITIATOR_FIELDS = new HashSet<String>();
-    private static final int MAX_VOLUME_COUNT_FOR_EXPORT = 4096;
 
     static {
         INITIATOR_FIELDS.add("clustername");
@@ -1860,7 +1859,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         for (Map.Entry<URI, ExportMask> entry : matchingMasks.entrySet()) {
             URI exportMaskURI = entry.getKey();
             ExportMask exportMask = entry.getValue();
-            // Get the ExportMaskPolicy, thereby saving it to the policyCache
+            // Get the ExportMaskPolicy, thereby saving it to the policyCache. The policyCache is a mapping of the ExportMask URI to
+            // its ExportMaskPolicy object. The ExportMaskPolicy is a transient object that is used to hold meta data about the ExportMask.
+            // This meta data is mostly there to describe the AutoTieringPolicy, Host IO parameters, and InitiatorGroup usage.
+            // There could be other information, as well. It suffices to understand that this data is relevant for the rules applicator
+            // that we're invoking below. The rules applicator will use this as a way to determine which ExportMask is best
+            // suited to hold the volumes.
             getExportMaskPolicy(policyCache, device, storage, exportMask);
             // Populate the mapping of Initiator portname (WWN/IQN) to the ExportMask URI
             for (String portName : portNames) {
@@ -1887,7 +1891,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         // Mapping of ExportMask URI to Volume-HLU: the basic output that we're expecting to be filled in by the rules applicator
         Map<URI, Map<URI, Integer>> maskToUpdateWithNewVolumes = new HashMap<>();
 
-        // All data structures should have been filled in at this point; call the rules applicator
+        // All data structures should have been filled in at this point; create the context and ruleApplicator for it
         VmaxVolumeToExportMaskApplicatorContext context = createVPlexBackendApplicatorContext(dummyExportGroup, storage, policyCache,
                 initiatorHelper, initiatorToExportMaskMap, partialMasks, volumeMap, maskToUpdateWithNewVolumes);
         VplexBackendVolumeToExportMaskRuleApplicator rulesApplicator =
@@ -1904,6 +1908,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 for (Map.Entry<URI, Map<URI, Integer>> entry : maskToUpdateWithNewVolumes.entrySet()) {
                     URI exportMaskURI = entry.getKey();
                     Set<URI> volumeURIs = entry.getValue().keySet();
+                    // The ExportMaskPolicy is a transient object that is used to hold meta data about the ExportMask.
+                    // This meta data is mostly there to describe the AutoTieringPolicy, Host IO parameters, and InitiatorGroup usage.
+                    // There could be other information, as well.
+                    ExportMaskPolicy policy = policyCache.get(exportMaskURI);
                     // Translate the Volume URI to Volume HLU map to a Volume URI to Volume object map:
                     Map<URI, Volume> volumes = new HashMap<>();
                     List<Volume> queriedVols = cache.queryObject(Volume.class, volumeURIs);
@@ -1917,7 +1925,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     // to take care of this case by creating another ExportMask to contain these volumes.
                     ExportMask exportMask = matchingMasks.get(exportMaskURI);
                     int totalVolumesWhenAddedToExportMask = exportMask.returnTotalVolumeCount() + volumes.size();
-                    if (totalVolumesWhenAddedToExportMask > MAX_VOLUME_COUNT_FOR_EXPORT) {
+                    if (totalVolumesWhenAddedToExportMask > policy.getMaxVolumesAllowed()) {
                         _log.info(String.format(
                                 "ExportMask %s (%s) is matching, but has %d volumes. " +
                                         "Adding %d volumes to it will make it go over its limit, hence it will not be used for placement",

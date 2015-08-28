@@ -34,8 +34,30 @@ public abstract class VmaxVolumeToExportMaskRuleApplicator {
         this.dbClient = dbClient;
     }
 
+    /**
+     * This method will be invoked after successful 'applyRules' calls. Any post processing that needs to run after the rules have been
+     * applies should be done here. It is up to the implementer of this method to determine what, if any, processing needs to be done.
+     *
+     * @param initiatorsForResource [IN] - List of Initiator URIs that we are trying to export to
+     * @param initiatorsToVolumes [IN] - Mapping of Initiator URIs to Volumes (Map of Volume URI to its HLU value)
+     * @throws Exception
+     */
     abstract public void postApply(List<URI> initiatorsForResource, Map<URI, Map<URI, Integer>> initiatorsToVolumes) throws Exception;
 
+    /**
+     * The 'initiatorsToVolumes' parameter encapsulates the export for a particular compute resource. The 'run()' method determines,
+     * based on the VmaxVolumeToExportMaskApplicatorContext, what the compute resources are and calls this method against each. If
+     * applyRules is successful, it should return true and update the context with results. Successful applyRules calls will result
+     * in a call to postApply.
+     *
+     * If the applyRules fails, it should return false. In the case of a failure, the 'run()' method will not process any more
+     * compute resources. It will set context.resultSuccess to false and return. So, the client of the
+     * VmaxVolumeToExportMaskRuleApplicator implementation needs to check context.resultSuccess before looking at any results
+     * that the context may contain.
+     *
+     * @param initiatorsToVolumes [IN] - Mapping of Initiator URIs to Volumes (Map of Volume URI to its HLU value)
+     * @return true IFF rules were successfully applied
+     */
     abstract public boolean applyRules(Map<URI, Map<URI, Integer>> initiatorsToVolumes);
 
     /**

@@ -80,7 +80,7 @@ import com.google.common.collect.SetMultimap;
 import com.google.common.collect.TreeMultimap;
 
 /**
- * This class a two roles:
+ * This class has two roles:
  * <li>Provide a place for code that has workflow step generation</li>
  * <li>Provide a place for common code to be used across the MaskingOrchestrators</li>
  */

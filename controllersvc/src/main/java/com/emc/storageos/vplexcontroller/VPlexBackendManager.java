@@ -262,8 +262,8 @@ public class VPlexBackendManager {
             // Check to see if there are any available ExportMasks that can be used.
             // If not, we will attempt to generate some.
             if (!placementDescriptor.hasMasks()) {
-                // When the system has to create the ExportMask, we should try to place the volumes all within a single mask
-                placementDescriptor.setPlacementHint(ExportMaskPlacementDescriptor.PlacementHint.VOLUMES_TO_SINGLE_MASK);
+                // Did not find any reusable ExportMasks. Either there were some that matched initiators, but did not meeting the
+                // VPlex criteria, or there were no existing masks for the backend at all.
                 Map<URI, Volume> volumesToPlace = placementDescriptor.getVolumesToPlace();
                 createVPlexBackendExportMasksForVolumes(vplex, array, varrayURI, placementDescriptor, invalidMasks, volumesToPlace);
             } else if (placementDescriptor.hasUnPlacedVolumes()) {

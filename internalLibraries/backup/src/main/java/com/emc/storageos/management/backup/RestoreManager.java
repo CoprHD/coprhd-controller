@@ -26,7 +26,6 @@ public class RestoreManager {
     private static final Logger log = LoggerFactory.getLogger(RestoreManager.class);
 
     private static final String OUTPUT_FORMAT = "  %-40s - %s";
-    private static final String PRODUCT_PATH = "/opt/storageos/etc/product";
     private String[] serviceNames = new String[] {"dbsvc", "geodbsvc", "coordinatorsvc"};
 
     private RestoreHandler dbRestoreHandler;
@@ -243,10 +242,7 @@ public class RestoreManager {
 
     private void checkVersion(Properties properties) throws IOException {
         String backupVersion = properties.getProperty(BackupConstants.BACKUP_INFO_VERSION);
-        String currentVersion;
-        try (Scanner scanner = new Scanner(new File(PRODUCT_PATH))) {
-            currentVersion = scanner.nextLine();
-        }
+        String currentVersion = PlatformUtils.getProductIdent();
         log.info("Backup Version:  {}\nCurrent Version:  {}", backupVersion, currentVersion);
         if (!enableChangeVersion && !backupVersion.equals(currentVersion)) {
             throw new IllegalArgumentException("version is not allowed to be changed");

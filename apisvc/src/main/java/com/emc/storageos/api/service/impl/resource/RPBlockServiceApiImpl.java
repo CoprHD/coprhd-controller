@@ -2502,13 +2502,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             ProtectionSystem ps = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
             BlockConsistencyGroup consistencyGroup =  _dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
             
-            buf.append(String.format("%n%nPreparing RP Volume:%n"));
+            buf.append(String.format("%nPreparing RP %s Volume:%n", volume.getPersonality()));
             buf.append(String.format("\t Name : [%s] (%s)%n", volume.getLabel(), volume.getId()));
             buf.append(String.format("\t Personality : [%s]%n", volume.getPersonality()));
             
             if (RPHelper.isVPlexVolume(volume)) {
                 buf.append(String.format("\t VPLEX : [%s] %n", ((volume.getAssociatedVolumes().size() > 1) ? "Distributed" : "Local")));
-                buf.append(String.format("%n=====%n"));
+                buf.append(String.format("\t\t====="));
                 for (String uriString : volume.getAssociatedVolumes()) {
                     Volume backingVolume = _dbClient.queryObject(Volume.class, URI.create(uriString));
                     VirtualArray backingVolumeVarray = _dbClient.queryObject(VirtualArray.class, backingVolume.getVirtualArray());
@@ -2516,16 +2516,15 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     StorageSystem backingVolumeStorageSystem = _dbClient.queryObject(StorageSystem.class, backingVolume.getStorageController());
                     StoragePool backingVolumePool = _dbClient.queryObject(StoragePool.class, backingVolume.getPool());
                     
-                    buf.append(String.format("\t\t Backing Volume Name : [%s] %n", backingVolume.getLabel()));
-                    buf.append(String.format("\t\t Backing Volume URI : [%s] %n", backingVolume.getId()));                    
+                    buf.append(String.format("%n\t\t Backing Volume Name : [%s] (%s)%n", backingVolume.getLabel(), backingVolume.getId())); 
                     buf.append(String.format("\t\t Backing Volume Virtual Array : [%s] %n", backingVolumeVarray.getLabel()));
                     buf.append(String.format("\t\t Backing Volume Virtual Pool : [%s] %n", backingVolumeVpool.getLabel()));
                     String internalSiteName = ((ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(backingVolume.getInternalSiteName()) : backingVolume.getInternalSiteName());
-                    buf.append(String.format("\t\t Backing Volume Internal Site : [%s] %n", internalSiteName));
+                    buf.append(String.format("\t\t Backing Volume RP Internal Site : [%s %s] %n", internalSiteName, backingVolume.getInternalSiteName()));
                     buf.append(String.format("\t\t Backing Volume Storage System : [%s] %n", backingVolumeStorageSystem.getLabel()));
-                    buf.append(String.format("\t\t Backing Volume Storage Pool : [%s] %n", backingVolumePool.getLabel()));
-                    buf.append(String.format("%n=====%n"));
+                    buf.append(String.format("\t\t Backing Volume Storage Pool : [%s] %n", backingVolumePool.getLabel()));                    
                 }
+                buf.append(String.format("\t\t=====%n"));
             }
             
             buf.append(String.format("\t Consistency Group : [%s]%n", consistencyGroup.getLabel()));                                    
@@ -2549,9 +2548,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             }
             
             buf.append(String.format("\t RP Protection System : [%s]%n", ps.getLabel()));
-            String internalSiteName = ((ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(volume.getInternalSiteName()) : volume.getInternalSiteName());
-            buf.append(String.format("\t RP Internal Site : [%s]%n", internalSiteName));
             buf.append(String.format("\t RP Replication Set : [%s]%n", volume.getRSetName()));
+            String internalSiteName = ((ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(volume.getInternalSiteName()) : volume.getInternalSiteName());
+            buf.append(String.format("\t RP Internal Site : [%s %]%n", internalSiteName, volume.getInternalSiteName()));            
             buf.append(String.format("\t RP Copy Name : [%s]%n", volume.getRpCopyName()));
             
             if (!NullColumnValueGetter.isNullURI(volume.getRpJournalVolume())) { 

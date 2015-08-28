@@ -571,7 +571,7 @@ public class RecoverPointScheduler implements Scheduler {
         // Determine if the source vpool specifies VPlex Protection
         if (VirtualPool.vPoolSpecifiesHighAvailability(srcVpool)) {        	
         	 candidateStoragePools = 
-                     this.getMatchingPools(srcVarray,srcVpool, haVarray, haVpool, 
+                     this.getMatchingPools(srcVarray, srcVpool, haVarray, haVpool, 
                      		capabilities);        	         	
         } else {                       
             candidateStoragePools = blockScheduler.getMatchingPools(srcVarray, srcVpool, capabilities);              
@@ -2495,8 +2495,8 @@ public class RecoverPointScheduler implements Scheduler {
     	    	    
     	//Get all the pools that can satisy the size constraint of (size * resourceCount)
     	//TreeMap<Integer, StoragePool> resourceCountStoragePoolMap = new TreeMap<Integer, StoragePool>(Collections.reverseOrder());
-    	for(StoragePool storagePool : candidatePools) {    		
-    		int count = Math.abs((int) (storagePool.getFreeCapacity()/ (sizeInKB)));
+    	for (StoragePool storagePool : candidatePools) {    		
+    		int count = Math.abs((int) (storagePool.getFreeCapacity() / (sizeInKB)));
     		_log.info(String.format("\nRP Placement : # of resources of size %sGB that pool %s can accomodate: %s\n", SizeUtil.translateSize(sizeInBytes, SizeUtil.SIZE_GB).toString(), storagePool.getLabel(), count));
     		if (count > 0 && !isPoolInRecommendation(poolsInAllRecommendations, storagePool)) {
     			Recommendation recommendation = new Recommendation();
@@ -2555,7 +2555,7 @@ public class RecoverPointScheduler implements Scheduler {
     
     boolean isPoolInRecommendation(List<Recommendation> recommendedPools, StoragePool pool) {
     	if (recommendedPools != null) {
-    		for(Recommendation poolRec : recommendedPools) {
+    		for (Recommendation poolRec : recommendedPools) {
     			if (poolRec.getSourceStoragePool().equals(pool.getId())) {
     				return true;
     			}

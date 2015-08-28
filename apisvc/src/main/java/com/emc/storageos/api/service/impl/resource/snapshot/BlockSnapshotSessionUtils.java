@@ -5,7 +5,9 @@
 package com.emc.storageos.api.service.impl.resource.snapshot;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Set;
 
 import javax.ws.rs.core.UriInfo;
@@ -146,8 +148,11 @@ public class BlockSnapshotSessionUtils {
      * @param snapshotURIs The URIs of the BlockSnapshot instances to verify.
      * @param uriInfo A reference to the URI information.
      * @param dbClient A reference to a database client.
+     * 
+     * @return A list of BlockSnapshot instances representing the session targets.
      */
-    public static void validateSnapshotSessionTargets(BlockSnapshotSession snapSession, Set<URI> snapshotURIs, UriInfo uriInfo,
+    public static List<BlockSnapshot> validateSnapshotSessionTargets(BlockSnapshotSession snapSession, Set<URI> snapshotURIs,
+            UriInfo uriInfo,
             DbClient dbClient) {
         StringSet sessionTargets = snapSession.getLinkedTargets();
         if ((sessionTargets == null) || (sessionTargets.isEmpty())) {
@@ -155,17 +160,21 @@ public class BlockSnapshotSessionUtils {
             throw APIException.badRequests.snapshotSessionDoesNotHaveAnyTargets(snapSession.getId().toString());
         }
 
+        List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
         Iterator<URI> snapshotURIsIter = snapshotURIs.iterator();
         while (snapshotURIsIter.hasNext()) {
             // Snapshot session targets are represented by BlockSnapshot instances in ViPR.
             URI snapshotURI = snapshotURIsIter.next();
-            validateSnapshot(snapshotURI, uriInfo, dbClient);
+            BlockSnapshot snapshot = validateSnapshot(snapshotURI, uriInfo, dbClient);
             String snapshotId = snapshotURI.toString();
             if (!sessionTargets.contains(snapshotId)) {
                 // The target is not linked to the snapshot session.
                 throw APIException.badRequests.targetIsNotLinkedToSnapshotSession(snapshotId, snapSession.getId().toString());
             }
+            snapshots.add(snapshot);
         }
+
+        return snapshots;
     }
 
     /**

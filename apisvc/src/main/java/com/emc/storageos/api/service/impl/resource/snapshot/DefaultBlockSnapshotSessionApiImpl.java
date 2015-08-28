@@ -27,6 +27,7 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
@@ -468,6 +469,16 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
 
         // Validate targets are for the passed session.
         BlockSnapshotSessionUtils.validateSnapshotSessionTargets(snapSession, snapshotURIs, uriInfo, _dbClient);
+
+        // Targets cannot be unlinked if they are exported as this
+        // would make the data unavailable to the export host(s).
+        for (URI snapshotURI : snapshotURIs) {
+            URIQueryResultList queryResults = new URIQueryResultList();
+            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getSnapshotExportGroupConstraint(snapshotURI), queryResults);
+            if (queryResults.iterator().hasNext()) {
+                throw APIException.badRequests.cantUnlinkExportedSnapshotSessionTarget(snapshotURI.toString());
+            }
+        }
     }
 
     /**

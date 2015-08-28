@@ -651,5 +651,11 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField("associatedSourceVolume");
             return new ContainmentConstraintImpl(sourceURI, Volume.class, field);
         }
+
+        public static ContainmentConstraint getSnapshotExportGroupConstraint(URI id) {
+            DataObjectType doType = TypeMap.getDoType(ExportGroup.class);
+            ColumnField field = doType.getColumnField("snapshots");
+            return new ContainmentConstraintImpl(id, ExportGroup.class, field);
+        }
     }
 }

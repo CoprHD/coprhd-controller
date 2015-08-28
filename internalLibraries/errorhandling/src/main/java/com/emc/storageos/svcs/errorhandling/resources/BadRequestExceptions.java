@@ -2370,4 +2370,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException canDeactivateSnapshotSessionWithLinkedTargets();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cantUnlinkExportedSnapshotSessionTarget(final String snapshotId);
 }

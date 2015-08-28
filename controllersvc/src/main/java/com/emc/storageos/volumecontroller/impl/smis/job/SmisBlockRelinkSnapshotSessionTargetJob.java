@@ -19,7 +19,7 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
  * a target device to a new array snapshot.
  */
 @SuppressWarnings("serial")
-public class SmisBlockRelinkSnapshotSessionTargetJob extends SmisSnapShotJob {
+public class SmisBlockRelinkSnapshotSessionTargetJob extends SmisJob {
 
     // The unique job name.
     private static final String JOB_NAME = "SmisBlockRelinkSnapshotSessionTargetJob";

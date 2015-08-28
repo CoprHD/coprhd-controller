@@ -11,12 +11,12 @@ import javax.cim.CIMArgument;
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.cim.CIMProperty;
-import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.volumecontroller.SnapshotOperations;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -26,6 +26,7 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
@@ -65,10 +66,14 @@ public abstract class AbstractSnapshotOperations implements SnapshotOperations {
      * @param storage [required] - StorageSystem object representing the array
      * @param snapshot [required] - BlockSnapshot URI representing the previously created
      *            snap for the volume
+     * @param createInactive - Indicates if the snapshots should be created but not
+     *            activated
+     * @param readOnly - Indicates if the snapshot should be read only.
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      */
     @Override
-    public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot, Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
+    public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot, Boolean createInactive, Boolean readOnly,
+            TaskCompleter taskCompleter)
             throws DeviceControllerException {
         try {
             BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
@@ -223,8 +228,9 @@ public abstract class AbstractSnapshotOperations implements SnapshotOperations {
         // Default: no implementation because not every array needs to support this
         // functionality
     }
+
     @Override
-    public void resyncSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter){
+    public void resyncSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 

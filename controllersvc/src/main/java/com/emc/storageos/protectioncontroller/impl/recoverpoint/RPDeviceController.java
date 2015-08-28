@@ -3670,7 +3670,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * (non-Javadoc)
      * 
      * @see com.emc.storageos.protectioncontroller.RPController#createSnapshot(java.net.URI, java.net.URI, java.util.List,
-     * java.lang.Boolean, java.lang.String)
+     * java.lang.Boolean, java.lang.Boolean, java.lang.String)
      */
     @Override
     public void createSnapshot(URI protectionDevice, URI storageURI, List<URI> snapshotList,

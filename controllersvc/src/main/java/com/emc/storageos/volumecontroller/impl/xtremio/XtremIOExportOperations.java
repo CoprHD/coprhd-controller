@@ -187,7 +187,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             // lun map
             for (Initiator initiator : initiators) {
                 try {
-                    client.deleteInitiator(initiator.getLabel(), null);
+                    client.deleteInitiator(initiator.getLabel(), xioClusterName);
                     exportMask.removeFromExistingInitiators(initiator);
                     exportMask.removeFromUserCreatedInitiators(initiator);
                 } catch (Exception e) {

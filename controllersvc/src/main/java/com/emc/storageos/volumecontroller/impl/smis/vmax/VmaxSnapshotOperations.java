@@ -4,6 +4,45 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis.vmax;
 
+import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefreshIfRequired;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_STATE_MIXED_INT_VALUE;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_STATE_RESTORED_INT_VALUE;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_EMC_UNIQUE_ID;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_STORAGE_EXTENT_INITIAL_USAGE;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_SETTING;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DELETE_GROUP;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DELTA_REPLICA_TARGET_VALUE;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.NEW_SETTING;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.PS_COPY_STATE_AND_DESC;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.RETURN_ELEMENTS_TO_STORAGE_POOL;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SE_GROUP_SYNCHRONIZED_RG_RG;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SE_REPLICATION_GROUP;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYMM_SNAP_STORAGE_POOL;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYMM_STORAGE_POOL_CAPABILITIES;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYMM_STORAGE_POOL_SETTING;
+import static com.google.common.collect.Collections2.filter;
+import static java.text.MessageFormat.format;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+
+import javax.cim.CIMArgument;
+import javax.cim.CIMInstance;
+import javax.cim.CIMObjectPath;
+import javax.wbem.CloseableIterator;
+import javax.wbem.WBEMException;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
@@ -28,6 +67,7 @@ import com.emc.storageos.volumecontroller.impl.smis.AbstractSnapshotOperations;
 import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYNC_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateCGSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateSnapshotJob;
@@ -37,28 +77,6 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResyncSnapshotJ
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVmaxCGTargetVolumesJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisDeleteVmaxCGTargetVolumesJob;
 import com.google.common.base.Predicate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.cim.CIMArgument;
-import javax.cim.CIMInstance;
-import javax.cim.CIMObjectPath;
-import javax.wbem.CloseableIterator;
-import javax.wbem.WBEMException;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefreshIfRequired;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.*;
-import static com.google.common.collect.Collections2.filter;
-import static java.text.MessageFormat.format;
 
 public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
     private static final Logger _log = LoggerFactory.getLogger(VmaxSnapshotOperations.class);
@@ -223,10 +241,13 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      * @param storage [required] - StorageSystem object representing the array
      * @param snapshot [required] - BlockSnapshot URI representing the previously created
      *            snap for the volume
+     * @param createInactive - whether the snapshot needs to to be created with sync_active=true/false
+     * @param readOnly - Indicates if the snapshot should be read only.
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      */
     @Override
-    public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot, Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
+    public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot, Boolean createInactive, Boolean readOnly,
+            TaskCompleter taskCompleter)
             throws DeviceControllerException {
         // List of target device ids
         List<String> targetDeviceIds = null;
@@ -298,6 +319,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      * @param snapshotList [required] - BlockSnapshot URI list representing the previously created
      *            snap for the volume
      * @param createInactive whether the snapshot needs to to be created with sync_active=true/false
+     * @param readOnly - Indicates if the snapshot should be read only.
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      * @throws DeviceControllerException
      */
@@ -1163,9 +1185,10 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             }
         }
     }
-    
+
     /**
-     * Implementation for a single volume snapshot resynchronization. 
+     * Implementation for a single volume snapshot resynchronization.
+     * 
      * @param storage [required] - StorageSystem object representing the array
      * @param volume [required] - Volume URI for the volume to be restored
      * @param snapshot [required] - BlockSnapshot URI representing the previously created
@@ -1176,12 +1199,12 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
     public void resyncSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         try {
-            if(storage.checkIfVmax3()) {
+            if (storage.checkIfVmax3()) {
                 throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
             }
             callEMCRefreshIfRequired(_dbClient, _helper, storage, Arrays.asList(snapshot));
             BlockSnapshot from = _dbClient.queryObject(BlockSnapshot.class, snapshot);
-            CIMObjectPath syncObjectPath = _cimPath.getSyncObject(storage, from);    
+            CIMObjectPath syncObjectPath = _cimPath.getSyncObject(storage, from);
             CIMObjectPath cimJob = _helper.callModifyReplica(storage, _helper.getResyncSnapshotWithWaitInputArguments(syncObjectPath));
             ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockResyncSnapshotJob(cimJob, storage.getId(), taskCompleter)));
         } catch (WBEMException e) {
@@ -1198,12 +1221,13 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             taskCompleter.error(_dbClient, error);
         }
     }
-    
+
     @Override
-    public void resyncGroupSnapshots(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void resyncGroupSnapshots(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         try {
             callEMCRefreshIfRequired(_dbClient, _helper, storage, Arrays.asList(snapshot));
-            if(storage.checkIfVmax3()) {
+            if (storage.checkIfVmax3()) {
                 throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
             }
             BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
@@ -1220,10 +1244,10 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, snapshotGroupName);
             if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
                 CIMObjectPath cimJob = null;
-                
+
                 CIMArgument[] restoreCGSnapInput = _helper.getResyncSnapshotWithWaitInputArguments(groupSynchronized);
                 cimJob = _helper.callModifyReplica(storage, restoreCGSnapInput);
-                
+
                 ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockRestoreSnapshotJob(cimJob, storage.getId(), taskCompleter)));
             } else {
                 ServiceError error = DeviceControllerErrors.smis.unableToFindSynchPath(consistencyGroupName);

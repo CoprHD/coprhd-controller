@@ -1886,6 +1886,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param snapshotType The snapshot technology type.
      * @param createInactive true if the snapshots should be created but not
      *            activated, false otherwise.
+     * @param readOnly true if the snapshot should be read only, false otherwise
      * @param taskId The unique task identifier.
      */
     @Override

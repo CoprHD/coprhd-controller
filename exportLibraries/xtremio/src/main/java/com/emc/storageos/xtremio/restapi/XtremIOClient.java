@@ -16,7 +16,6 @@ import com.emc.storageos.services.restutil.StandardRestClient;
 import com.emc.storageos.xtremio.restapi.errorhandling.XtremIOApiException;
 import com.emc.storageos.xtremio.restapi.model.XtremIOAuthInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
-import com.emc.storageos.xtremio.restapi.model.response.XtremIOResponse;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOXMSsInfo;
 import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
@@ -43,20 +42,26 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
         _password = password;
         _authToken = "";
     }
-    
+
+    @Override
     protected WebResource.Builder setResourceHeaders(WebResource resource) {
         return resource.header(XtremIOConstants.AUTH_TOKEN, _authToken);
     }
-    
+
+    /**
+     * Check whether the given XMS is running a version 2 REST API
+     * 
+     * @return
+     */
     public boolean isVersion2() {
         boolean isV2 = false;
         try {
             ClientResponse response = get(XtremIOConstants.XTREMIO_V2_XMS_URI);
             XtremIOXMSsInfo xmssInfo = getResponseObject(XtremIOXMSsInfo.class, response);
-            for(XtremIOObjectInfo xmsInfo : xmssInfo.getXmssInfo()) {
+            for (XtremIOObjectInfo xmsInfo : xmssInfo.getXmssInfo()) {
                 URI xmsURI = URI.create(xmsInfo.getHref().concat(XtremIOConstants.XTREMIO_XMS_FILTER_STR));
                 response = get(xmsURI);
-                if(response.getClientResponseStatus() != ClientResponse.Status.OK) {
+                if (response.getClientResponseStatus() != ClientResponse.Status.OK) {
                     isV2 = false;
                 } else {
                     isV2 = true;
@@ -66,10 +71,11 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
             log.error("Error retrieving xms version info", ex);
             isV2 = false;
         }
-        
+
         return isV2;
     }
-    
+
+    @Override
     protected int checkResponse(URI uri, ClientResponse response) throws XtremIOApiException {
         ClientResponse.Status status = response.getClientResponseStatus();
         int errorCode = status.getStatusCode();
@@ -95,6 +101,7 @@ public abstract class XtremIOClient extends StandardRestClient implements XtremI
         }
     }
 
+    @Override
     protected void authenticate() throws XtremIOApiException {
         try {
             XtremIOAuthInfo authInfo = new XtremIOAuthInfo();

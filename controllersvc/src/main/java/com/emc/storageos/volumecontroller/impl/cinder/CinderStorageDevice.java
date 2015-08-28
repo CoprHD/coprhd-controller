@@ -4,6 +4,17 @@
  */
 package com.emc.storageos.volumecontroller.impl.cinder;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.cinder.CinderEndPointInfo;
 import com.emc.storageos.cinder.api.CinderApi;
@@ -42,16 +53,6 @@ import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * OpenStack Cinder specific provisioning implementation class.
@@ -637,6 +638,7 @@ public class CinderStorageDevice extends DefaultBlockStorageDevice {
      * @see com.emc.storageos.volumecontroller.BlockStorageDevice#doCreateSnapshot
      * (com.emc.storageos.db.client.model.StorageSystem,
      * java.util.List,
+     * java.lang.Boolean,
      * java.lang.Boolean,
      * com.emc.storageos.volumecontroller.TaskCompleter)
      */

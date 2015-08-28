@@ -40,5 +40,5 @@ public interface ScaleIOExceptions {
     public ScaleIOException internalError(String uri, String error);
     
     @DeclareServiceCode(ServiceCode.SCALEIO_API_FAILURE)
-    public ScaleIOException noActiveStorageProvider(String uri);
+    public ScaleIOException noActiveStorageProvider(String systemName);
 }

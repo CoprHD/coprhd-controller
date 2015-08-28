@@ -15,6 +15,15 @@ public class NasCifsServer extends AbstractSerializableNestedObject {
     private String _type;
     private boolean _moverIdIsVdm;
     private List<String> _interfaces = new ArrayList();
+    private String _domain;
+
+    public String getDomain() {
+		return _domain;
+	}
+
+	public void setDomain(String domain) {
+		this._domain = domain;
+	}
 
     public NasCifsServer() {
     }

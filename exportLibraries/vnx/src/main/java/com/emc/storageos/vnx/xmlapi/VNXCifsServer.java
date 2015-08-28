@@ -14,9 +14,18 @@ public class VNXCifsServer extends VNXBaseClass {
     private int _id;
     private String _type;
     private boolean _moverIdIsVdm;
-    private List<String> _interfaces = new ArrayList();
+    private List<String> _interfaces = new ArrayList<String>();
+    private String _domain;
 
-    public void setName(String name) {
+    public String getDomain() {
+		return _domain;
+	}
+
+	public void setDomain(String domain) {
+		this._domain = domain;
+	}
+
+	public void setName(String name) {
         _name = name;
     }
 
@@ -52,7 +61,7 @@ public class VNXCifsServer extends VNXBaseClass {
         return _interfaces;
     }
 
-    public void setInterfaces(List interfaces) {
+    public void setInterfaces(List<String> interfaces) {
         _interfaces = interfaces;
     }
 
@@ -63,12 +72,13 @@ public class VNXCifsServer extends VNXBaseClass {
         _name = name;
     }
 
-    public VNXCifsServer(String name, String id, String type, boolean isMoverIsVdm, List<String> interfaces) {
+    public VNXCifsServer(String name, String id, String type, boolean isMoverIsVdm, List<String> interfaces, String domain) {
         _name = name;
         _interfaces = interfaces;
         _type = type;
         _id = Integer.valueOf(id);
         _moverIdIsVdm = isMoverIsVdm;
+        _domain = domain;
     }
 
     @Override

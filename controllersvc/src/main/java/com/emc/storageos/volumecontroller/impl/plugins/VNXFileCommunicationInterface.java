@@ -478,10 +478,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     system, vdm.getVdmId(), NativeGUIDGenerator.VIRTUAL_NAS);
         	vNas.setNativeGuid(nasNativeGuid);
 
-        	String physicalNasNativeGuid = NativeGUIDGenerator.generateNativeGuid(
-        			system, vdm.getMoverId(), NativeGUIDGenerator.PHYSICAL_NAS);
-
-        	PhysicalNAS parentNas = findPhysicalNasByNativeId(system, physicalNasNativeGuid);
+        	PhysicalNAS parentNas = findPhysicalNasByNativeId(system, vdm.getMoverId());
         	if(parentNas != null){
         		vNas.setParentNAS(parentNas.getId());
         	}
@@ -760,6 +757,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             	nasCifsServer.setMoverIdIsVdm(cifsServer.getMoverIdIsVdm());
             	nasCifsServer.setName(cifsServer.getName());
             	nasCifsServer.setType(cifsServer.getType());
+            	nasCifsServer.setDomain(cifsServer.getDomain());
             	cifsServersMap.put(cifsServer.getName(), nasCifsServer);
 
             }
@@ -1167,8 +1165,11 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             if(existingNas != null){
             	existingNas.setProtocols(protocols);
             	existingNas.setCifsServersMap(cifsServersMap);
+            	PhysicalNAS parentNas = findPhysicalNasByNativeId(system, vdm.getMoverId());
+            	if(parentNas != null){
+            		existingNas.setParentNAS(parentNas.getId());
+            	}
             	existingNasServers.add(existingNas);
-            	
             }else{
             	VirtualNAS vNas = createVirtualNas(system, vdm); 
                 if(vNas != null){
@@ -1302,6 +1303,9 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         	_logger.info("Modified VirtualNAS servers size {}",  modifiedServers.size());
         	_dbClient.persistObject(modifiedServers);
         }
+        
+        // Remove the vNas which does not have any logical interfaces attached to it.
+     
 
         _logger.info("Storage port discovery for storage system {} complete", system.getId());
         for (StoragePort newPort : newStoragePorts) {

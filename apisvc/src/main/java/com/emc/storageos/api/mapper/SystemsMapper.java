@@ -136,7 +136,10 @@ public class SystemsMapper {
         to.setNasState(from.getNasState());
         to.setNasTag(from.getNAStag());
         
-        to.setParentNASURI(from.getParentPhysicalNAS().toString());
+        if(from.getParentPhysicalNAS() != null){
+        	to.setParentNASURI(from.getParentPhysicalNAS().toString());
+        }
+        
        
         to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT,from.getProject()));
        
@@ -148,7 +151,10 @@ public class SystemsMapper {
         	for(String serverName: from.getCifsServersMap().keySet() ){
         		String serverDomain = serverName;
         		// TODO - CIFS server domain needs to be added. 
-        		
+        		if(from.getCifsServersMap().get(serverName).getDomain() != null){
+        			serverDomain = serverDomain + "=" + from.getCifsServersMap().get(serverName).getDomain();
+        		}
+        			
         		cifsServers.add(serverDomain);
         	}
         	if(cifsServers != null && !cifsServers.isEmpty()){

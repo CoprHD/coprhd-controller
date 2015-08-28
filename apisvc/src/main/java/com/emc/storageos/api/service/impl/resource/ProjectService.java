@@ -817,6 +817,8 @@ public class ProjectService extends TaggedResource {
             project.setAssignedVNasServers(validVNasServers);
             _dbClient.persistObject(project);
             _log.info("Successfully assigned the virtual NAS Servers to project : {} ", project.getLabel());
+        } else {
+            _log.info("None of the VNAS servers are eligible for association to project {} ", project.getLabel());
         }
         return Response.ok().build();
     }
@@ -866,11 +868,9 @@ public class ProjectService extends TaggedResource {
                     Iterator<URI> fsItr = fsList.iterator();
                     while (fsItr.hasNext()) {
                         FileShare fileShare = _dbClient.queryObject(FileShare.class, fsItr.next());
-                        if (!fileShare.getInactive()) {
-                            if (!fileShare.getProject().equals(project)) {
-                                projectMatched = false;
-                                break;
-                            }
+                        if (fileShare != null && !fileShare.getInactive() && !fileShare.getProject().equals(project)) {
+                            projectMatched = false;
+                            break;
                         }
                     }
 

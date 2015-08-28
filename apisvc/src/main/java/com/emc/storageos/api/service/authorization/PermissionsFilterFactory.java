@@ -208,7 +208,7 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                     } else if (_resourceClazz.isAssignableFrom(ExportGroupService.class)) {
                         return getProjectIdFromResourceId(uriStr, ExportGroup.class);
                     } else if (_resourceClazz.isAssignableFrom(BlockService.class)) {
-                        return getProjectIdFromResourceId(uriStr, getBlockServiceResourceClass(uriStr));
+                        return getProjectIdFromResourceId(uriStr, BlockService.getBlockServiceResourceClass(uriStr));
                     } else if (_resourceClazz.isAssignableFrom(BlockConsistencyGroupService.class)) {
                         return getProjectIdFromResourceId(uriStr, BlockConsistencyGroup.class);
                     }
@@ -348,25 +348,5 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
     @Override
     protected AbstractLicenseFilter getLicenseFilter() {
         return new ApisvcLicenseFilter();
-    }
-
-    /**
-     * Determines the class of the Block resources based on its URI.
-     * This is because, BlockService implements Volume and
-     * Mirror (BlockMirror and VplexMirror) resources. To query the
-     * respective objects from DB, we should use the right class type.
-     *
-     * @param uriStr the uri to determine the right resource class type.
-     *
-     * @return returns the correct resource type of the resource.
-     */
-    private Class<? extends DataObject> getBlockServiceResourceClass(String uriStr) {
-        Class<? extends DataObject> blockResourceClass = Volume.class;
-        if (URIUtil.isType(URI.create(uriStr), BlockMirror.class)) {
-            blockResourceClass = BlockMirror.class;
-        } else if (URIUtil.isType(URI.create(uriStr), VplexMirror.class)) {
-            blockResourceClass = VplexMirror.class;
-        }
-        return blockResourceClass;
     }
 }

@@ -58,7 +58,11 @@ angular.module("services", []).directive({
                         item.loading = true;
                         $http.get("/api/options/" + fieldDescriptor.assetType, {params: params }).success(function(data) {
                             item.disabled = false;
-                            item.options = data;
+                            if (item.select == 'field') {
+                            	item.value = data[0].value
+                            } else {
+                                item.options = data;
+                            }
                             if (item.select != 'many') {
                             	addBlankOptionIfRequired(item);
                             }
@@ -111,7 +115,6 @@ angular.module("services", []).directive({
                 } else if (item.type.match(/^assetType\./)) {
                 	if (item.select == 'field') {
                 		type = '<input-text>';
-                		item.value = scope.$root[scope.item.type + "-options"][0].key;
                 	}
                 	else {
 	                    item.options = scope.$root[scope.item.type + "-options"];

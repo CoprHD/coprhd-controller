@@ -322,8 +322,8 @@ public class PlacementTests extends DbsvcTestBase {
             assertTrue(!recommendations.isEmpty());
             assertNotNull(recommendations.get(0));
             VPlexRecommendation rec = (VPlexRecommendation) recommendations.get(0);
-            assertNotNull(rec.getSourcePool());
-            assertNotNull(rec.getSourceDevice());
+            assertNotNull(rec.getSourceStoragePool());
+            assertNotNull(rec.getSourceStorageSystem());
             assertNotNull(rec.getVPlexStorageSystem());
             assertTrue("vmax1".equals(rec.getSourceStorageSystem().toString()));
             assertTrue("vplex1".equals(rec.getVPlexStorageSystem().toString()));
@@ -650,8 +650,8 @@ public class PlacementTests extends DbsvcTestBase {
             assertTrue(!recommendations.isEmpty());
             assertNotNull(recommendations.get(0));
             VPlexRecommendation rec = (VPlexRecommendation) recommendations.get(0);
-            assertNotNull(rec.getSourcePool());
-            assertNotNull(rec.getSourceDevice());
+            assertNotNull(rec.getSourceStoragePool());
+            assertNotNull(rec.getSourceStorageSystem());
             assertNotNull(rec.getVPlexStorageSystem());
             assertTrue(("xtremio3".equals(rec.getSourceStorageSystem().toString())) || ("xtremio1".equals(rec.getSourceStorageSystem().toString())));
             assertTrue("vplex1".equals(rec.getVPlexStorageSystem().toString()));

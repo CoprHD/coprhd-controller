@@ -187,13 +187,6 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                 SRDFRecommendation recommendation = (SRDFRecommendation) recommendationsIter.next();
                 StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceDevice());
 
-                // Grab the existing volume and task object from the incoming task list
-                Volume srcVolume = StorageScheduler.getPrecreatedVolume(_dbClient, taskList, volumeLabel, volumeCounter);
-                boolean volumePrecreated = false;
-                if (srcVolume != null) {
-                    volumePrecreated = true;
-                }
-                
                 // Prepare the Bourne Volumes to be created and associated
                 // with the actual storage system volumes created. Also create
                 // a BlockTaskList containing the list of task resources to be
@@ -201,8 +194,15 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                 // operation for each volume to be created.
                 for (int i = 0; i < volumeCount; i++) {
                     // get generated volume name
-                    String newVolumeLabel = generateDefaultVolumeLabel(param.getName(), i);
+                    String newVolumeLabel = generateDefaultVolumeLabel(param.getName(), i, volumeCount);
 
+                    // Grab the existing volume and task object from the incoming task list
+                    Volume srcVolume = StorageScheduler.getPrecreatedVolume(_dbClient, taskList, newVolumeLabel);
+                    boolean volumePrecreated = false;
+                    if (srcVolume != null) {
+                        volumePrecreated = true;
+                    }
+                    
                     // Assemble a Replication Set; A Collection of volumes. One production, and any
                     // number of targets.
                     if (recommendation.getVpoolChangeVolume() == null) {

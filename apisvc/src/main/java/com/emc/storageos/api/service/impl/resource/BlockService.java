@@ -920,7 +920,7 @@ public class BlockService extends TaskResourceService {
 
         // call thread that does the work.
         CreateVolumeSchedulingThread cvst = new CreateVolumeSchedulingThread(varray, project, vpool, capabilities, taskList, task, 
-                consistencyGroup, requestedTypes, param, volumeCount, actualId, blockServiceImpl);
+                consistencyGroup, requestedTypes, param, blockServiceImpl);
         new Thread(cvst).start();
         
         _log.info("Kicked off thread to perform placement and scheduling.  Returning " + taskList.getTaskList().size() + " tasks");
@@ -944,8 +944,8 @@ public class BlockService extends TaskResourceService {
         
         // For each volume requested, pre-create a volume object/task object
         long lsize = SizeUtil.translateSize(size);
-        for (int i = 1 ; i <= volumeCount ; i++) {
-            Volume volume = StorageScheduler.prepareEmptyVolume(_dbClient, lsize, project, varray, vpool, label, i);
+        for (int i = 0; i < volumeCount ; i++) {
+            Volume volume = StorageScheduler.prepareEmptyVolume(_dbClient, lsize, project, varray, vpool, label, i, volumeCount);
             Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(),
                     task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
             volume.getOpStatus().put(task, op);
@@ -970,13 +970,11 @@ public class BlockService extends TaskResourceService {
         private BlockConsistencyGroup consistencyGroup;
         private ArrayList<String> requestedTypes;
         private VolumeCreate param;
-        private Integer volumeCount;
-        private URI actualId;
         private BlockServiceApi blockServiceImpl;
         
         public CreateVolumeSchedulingThread(VirtualArray varray, Project project, VirtualPool vpool, VirtualPoolCapabilityValuesWrapper capabilities,
-                TaskList taskList, String task, BlockConsistencyGroup consistencyGroup, ArrayList<String> requestedTypes, VolumeCreate param, 
-                Integer volumeCount, URI actualId, BlockServiceApi blockServiceImpl) {
+                TaskList taskList, String task, BlockConsistencyGroup consistencyGroup, ArrayList<String> requestedTypes, VolumeCreate param,
+                BlockServiceApi blockServiceImpl) {
             this.varray = varray;
             this.project = project;
             this.vpool = vpool;
@@ -986,8 +984,6 @@ public class BlockService extends TaskResourceService {
             this.consistencyGroup = consistencyGroup;
             this.requestedTypes = requestedTypes;
             this.param = param;
-            this.volumeCount = volumeCount;
-            this.actualId = actualId;
             this.blockServiceImpl = blockServiceImpl;
         }
         

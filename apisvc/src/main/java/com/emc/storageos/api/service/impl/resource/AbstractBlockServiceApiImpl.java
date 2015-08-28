@@ -1261,13 +1261,14 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * 
      * @param baseVolumeLabel - prefix of volume name
      * @param volumeIndex - index to append to prefix for name
+     * @param volumeCount - number of volume to generate name for
      * @return generated volume name
      */
-    public static String generateDefaultVolumeLabel(String baseVolumeLabel, int volumeIndex) {
+    public static String generateDefaultVolumeLabel(String baseVolumeLabel, int volumeIndex, int volumeCount) {
         StringBuilder volumeLabelBuilder = new StringBuilder(baseVolumeLabel);
-        if (volumeIndex > 0) {
+        if (volumeCount > 1) {
             volumeLabelBuilder.append("-");
-            volumeLabelBuilder.append(volumeIndex+1);
+            volumeLabelBuilder.append(volumeIndex + 1);
         }
         return volumeLabelBuilder.toString();
     }
@@ -1289,7 +1290,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             // by the storage system. As such we will need to update the
             // actual volumes after they are created to match the names
             // given here.
-            String newVolumeLabel = generateDefaultVolumeLabel(baseVolumeLabel, i);
+            String newVolumeLabel = generateDefaultVolumeLabel(baseVolumeLabel, i, volumeCount);
 
             // to throw exception if duplicate label found
             validateVolumeLabel(newVolumeLabel, project);

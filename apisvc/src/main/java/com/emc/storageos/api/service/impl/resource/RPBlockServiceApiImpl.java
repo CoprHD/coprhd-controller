@@ -234,9 +234,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // returned for the purpose of monitoring the volume creation
             // operation for each volume to be created.
             for (int volumeCount = 0; volumeCount < numberOfVolumesInRequest; volumeCount++) {
-                String newVolumeLabel = generateDefaultVolumeLabel(param.getName(), volumeCount);
+                String newVolumeLabel = generateDefaultVolumeLabel(param.getName(), volumeCount, numberOfVolumesInRequest);
 
-                Volume srcVolume = StorageScheduler.getPrecreatedVolume(_dbClient, taskList, volumeLabel, volumeCount);
+                Volume srcVolume = StorageScheduler.getPrecreatedVolume(_dbClient, taskList, volumeLabel);
                 boolean volumePrecreated = false;
                 if (srcVolume != null) {
                     volumePrecreated = true;

@@ -408,10 +408,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         poolVolumeMap.put(nullPoolURI, virtualVolumeURIs);
         vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, null);
         for (int i = 0; i < vPoolCapabilities.getResourceCount(); i++) {
-            String volumeLabelBuilt = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(volumeLabel, i);
+            String volumeLabelBuilt = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(volumeLabel, i, vPoolCapabilities.getResourceCount());
             s_logger.info("Volume label is {}", volumeLabelBuilt);
 
-            Volume volume = StorageScheduler.getPrecreatedVolume(_dbClient, taskList, volumeLabelBuilt, 0);
+            Volume volume = StorageScheduler.getPrecreatedVolume(_dbClient, taskList, volumeLabelBuilt);
             boolean volumePrecreated = false;
             if (volume != null) {
                 volumePrecreated = true;

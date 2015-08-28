@@ -885,10 +885,10 @@ public class StorageScheduler implements Scheduler {
             }
             // prepare block volume
             if (recommendation.getType().toString().equals(VolumeRecommendation.VolumeType.BLOCK_VOLUME.toString())) {
-                String newVolumeLabel = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(volumeLabel, volumeCounter);
+                String newVolumeLabel = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(volumeLabel, volumeCounter++, volumeCount);
 
                 // Grab the existing volume and task object from the incoming task list
-                Volume volume = getPrecreatedVolume(_dbClient, taskList, newVolumeLabel, volumeCounter);
+                Volume volume = getPrecreatedVolume(_dbClient, taskList, newVolumeLabel);
                 boolean volumePrecreated = false;
                 if (volume != null) {
                     volumePrecreated = true;
@@ -950,12 +950,11 @@ public class StorageScheduler implements Scheduler {
      * @param dbClient dbclient 
      * @param taskList task list
      * @param label base label
-     * @param volumeCounter number of volume
-     * 
      * @return Volume object
      */
-    public static Volume getPrecreatedVolume(DbClient dbClient, TaskList taskList, String label, int volumeCounter) {
-        String volumeLabel = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(label, volumeCounter);
+    public static Volume getPrecreatedVolume(DbClient dbClient, TaskList taskList, String label) {
+        // The label we've been given has already been appended with the appropriate volume number
+        String volumeLabel = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(label, 0, 1);
         for (TaskResourceRep task : taskList.getTaskList()) {
             Volume volume = dbClient.queryObject(Volume.class, task.getResource().getId());
             if (volume.getLabel().equalsIgnoreCase(volumeLabel)) {
@@ -1084,13 +1083,14 @@ public class StorageScheduler implements Scheduler {
      * @param vpool virtual pool
      * @param label base volume label
      * @param volNumber a temporary label for this volume to mark which one it is
+     * @param volumesRequested how many volumes were requested overall
      * @return a Volume object
      */
-    public static Volume prepareEmptyVolume(DbClient dbClient, long size, Project project, VirtualArray varray, VirtualPool vpool, String label, int volNumber) {
+    public static Volume prepareEmptyVolume(DbClient dbClient, long size, Project project, VirtualArray varray, VirtualPool vpool, String label, int volNumber, int volumesRequested) {
 
         Volume volume = new Volume();
         volume.setId(URIUtil.createId(Volume.class));
-        String volumeLabel = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(label, volNumber);
+        String volumeLabel = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(label, volNumber, volumesRequested);
 
         List<Volume> volumeList = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Volume.class,
                 ContainmentPrefixConstraint.Factory.getFullMatchConstraint(Volume.class, "project",

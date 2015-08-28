@@ -208,6 +208,10 @@ public class UnManagedVolumeService extends TaskResourceService {
         if (param.getUnManagedVolumes().size() > getMaxBulkSize()) {
             throw APIException.badRequests.exceedingLimit("unmanaged volumes", getMaxBulkSize());
         }
+        
+        // TODO: temporary for UI testing
+        _logger.info("VPLEX ingestion method is " + param.getVplexIngestionMethod());
+        
         TaskList taskList = new TaskList();
         List<UnManagedVolume> unManagedVolumes = new ArrayList<UnManagedVolume>();
         Map<String, String> taskMap = new HashMap<String, String>();
@@ -271,7 +275,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                     BlockObject blockObject = ingestStrategy.ingestBlockObjects(full_systems, full_pools, system, unManagedVolume, vpool,
                             varray,
                             project, tenant, unManagedVolumes, createdObjectMap, updatedObjectMap, false,
-                            getBlockObjectClass(unManagedVolume), taskStatusMap);
+                            getBlockObjectClass(unManagedVolume), taskStatusMap, param.getVplexIngestionMethod());
                     _logger.info("Ingestion ended for unmanagedvolume {}", unManagedVolume.getNativeGuid());
                     if (null == blockObject) {
                         throw IngestionException.exceptions.generalVolumeException(
@@ -381,7 +385,7 @@ public class UnManagedVolumeService extends TaskResourceService {
             List<UnManagedVolume> unManagedVolumesToBeDeleted, Map<String, BlockObject> createdObjectMap,
             Map<String, List<DataObject>> updatedObjectMap,
             Map<String, UnManagedVolume> processedUnManagedVolumeMap, Map<String, TaskResourceRep> taskMap,
-            Map<String, StringBuffer> taskStatusMap) {
+            Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) {
 
         for (URI unManagedVolumeUri : unManagedVolumeUris) {
             UnManagedVolume unManagedVolume = _dbClient.queryObject(UnManagedVolume.class,
@@ -407,7 +411,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                 BlockObject blockObject = ingestStrategy.ingestBlockObjects(systemCache, poolCache, system, unManagedVolume, vPool,
                         virtualArray,
                         project, tenant, unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap, true,
-                        getBlockObjectClass(unManagedVolume), taskStatusMap);
+                        getBlockObjectClass(unManagedVolume), taskStatusMap, vplexIngestionMethod);
 
                 _logger.info("Ingestion ended for exported unmanagedvolume {}", unManagedVolume.getNativeGuid());
                 if (null == blockObject) {
@@ -539,6 +543,10 @@ public class UnManagedVolumeService extends TaskResourceService {
     @Path("/volumes/ingest-exported")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskList ingestExportedVolumes(VolumeExportIngestParam exportIngestParam) throws InternalException {
+        
+        // TODO: temporary for UI testing
+        _logger.info("VPLEX ingestion method is " + exportIngestParam.getVplexIngestionMethod());
+        
         TaskList taskList = new TaskList();
         Map<String, TaskResourceRep> taskMap = new HashMap<String, TaskResourceRep>();
         Map<String, StringBuffer> taskStatusMap = new HashMap<String, StringBuffer>();
@@ -619,7 +627,8 @@ public class UnManagedVolumeService extends TaskResourceService {
             // First ingest the block objects
             ingestBlockObjects(systemCache, full_systems, full_pools, exportIngestParam.getUnManagedVolumes(), vpool, varray, project,
                     tenant,
-                    unManagedVolumes, createdObjectMap, updatedObjectMap, processedUnManagedVolumeMap, taskMap, taskStatusMap);
+                    unManagedVolumes, createdObjectMap, updatedObjectMap, processedUnManagedVolumeMap, taskMap, taskStatusMap, 
+                    exportIngestParam.getVplexIngestionMethod());
             _logger.info("Ingestion of unmanaged volumes ended....");
             // next ingest the export masks for the unmanaged volumes which have been fully ingested
             _logger.info("Ingestion of unmanaged exportmasks started....");

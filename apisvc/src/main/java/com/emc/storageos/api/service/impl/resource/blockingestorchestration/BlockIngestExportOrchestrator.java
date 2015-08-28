@@ -129,8 +129,10 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     itr.remove();
                     continue;
                 }
+                _logger.info("looking for an existing export mask for " + unManagedExportMask.getMaskName());
                 ExportMask exportMask = getExportsMaskAlreadyIngested(unManagedExportMask, _dbClient);
                 if (null == exportMask) {
+                    _logger.info("\tno mask found");
                     continue;
                 }
                 _logger.info("Export Mask {} already available", exportMask.getMaskName());

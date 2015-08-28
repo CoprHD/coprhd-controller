@@ -5,14 +5,14 @@
     <File ovf:href="${vmdk_dir}/${disk1}" ovf:id="file1" ovf:size="${disk1_size}" />
     <File ovf:href="${vmdk_dir}/${disk2}" ovf:id="file2" ovf:size="${disk2_size}" />
     <File ovf:href="${vmdk_dir}/${disk3}" ovf:id="file3" ovf:size="${disk3_size}" />
-	<File ovf:href="${2}" ovf:id="file4" ovf:size="1017344" />
+	<File ovf:href="${2}" ovf:id="file4" ovf:size="2053120" />
   </References>
   <DiskSection>
     <Info>Virtual disk information</Info>
     <Disk ovf:capacity="${disk1_capacity}" ovf:capacityAllocationUnits="byte * 2^30" ovf:diskId="vmdisk1" ovf:fileRef="file1" ovf:format="http://www.vmware.com/interfaces/specifications/vmdk.html#streamOptimized" ovf:populatedSize="${disk1_populated_size}" />
     <Disk ovf:capacity="${disk2_capacity}" ovf:capacityAllocationUnits="byte * 2^30" ovf:diskId="vmdisk2" ovf:fileRef="file2" ovf:format="http://www.vmware.com/interfaces/specifications/vmdk.html#streamOptimized" ovf:populatedSize="${disk2_populated_size}" />
     <Disk ovf:capacity="${disk3_capacity}" ovf:capacityAllocationUnits="byte * 2^30" ovf:diskId="vmdisk3" ovf:fileRef="file3" ovf:format="http://www.vmware.com/interfaces/specifications/vmdk.html#streamOptimized" ovf:populatedSize="${disk3_populated_size}" />
-    <Disk ovf:capacity="1069056" ovf:capacityAllocationUnits="byte" ovf:diskId="vmdisk4" ovf:fileRef="file4" ovf:format="http://www.vmware.com/interfaces/specifications/vmdk.html#streamOptimized" ovf:populatedSize="1003520"/>
+    <Disk ovf:capacity="2" ovf:capacityAllocationUnits="byte * 2^20" ovf:diskId="vmdisk4" ovf:fileRef="file4" ovf:format="http://www.vmware.com/interfaces/specifications/vmdk.html#streamOptimized" ovf:populatedSize="2031616"/>
   </DiskSection>
   <NetworkSection>
     <Info>The list of logical networks</Info>

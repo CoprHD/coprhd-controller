@@ -50,7 +50,12 @@ public class MultipleMaskPerHostIngestOrchestrator extends BlockIngestExportOrch
         List<URI> maskUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportMaskByNameConstraint(mask
                 .getMaskName()));
         if (null != maskUris && !maskUris.isEmpty()) {
-            return dbClient.queryObject(ExportMask.class, maskUris.get(0));
+            for (URI maskUri : maskUris) {
+                exportMask = dbClient.queryObject(ExportMask.class, maskUri);
+                if (null != exportMask) {
+                    return exportMask;
+                }
+            }
         }
 
         return exportMask;

@@ -288,6 +288,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                                                                             numberOfVolumesInRequest, Volume.PersonalityTypes.SOURCE.toString(), 
                                                                                             cgSourceVolumes.get(0).getInternalSiteName());
                 if (!isAdditionalSourceJournalRequired) {
+                    _log.info(String.format("Re-use existing Source Journals"));
                     // If the CG contains volumes already and no new additional journals are provisioned, 
                     // then we simply update the reference on the source for the journal volume.                                                
                     sourceJournal = _rpHelper.selectExistingJournalForSourceVolume(cgSourceVolumes, false);
@@ -330,7 +331,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             ///////// TARGET JOURNAL(s) /////////// 
             for (RPRecommendation targetJournalRec : rpProtectionRec.getTargetJournalRecommendations()) {                
                 VirtualArray targetJournalVarray = _dbClient.queryObject(VirtualArray.class, targetJournalRec.getVirtualArray());
-                _log.info(String.format("Create Target Journal (%s)..", targetJournalVarray.getLabel()));
                 
                 VpoolProtectionVarraySettings protectionSettings = _rpHelper.getProtectionSettings(originalVpool, targetJournalVarray);
                 
@@ -340,13 +340,16 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                                                                                           targetJournalRec.getInternalSiteName());
                     if (!isAdditionalTargetJournalRequired) {
                         // If the CG contains volumes already and no new additional journals are provisioned, 
-                        // then we simply update the reference on the source for the journal volume.                                                
-                        Volume targetJournal = _rpHelper.selectExistingJournalForSourceVolume(cgSourceVolumes, false);
-                        targetJournals.put(targetJournalVarray.getId(), targetJournal);                        
-                        logVolumeInfo(targetJournal);
+                        // then we simply update the reference on the source for the journal volume.
+                        _log.info(String.format("Re-use existing Target Journal (%s)", targetJournalVarray.getLabel()));
+                        Volume existingTargetJournalVolume = _rpHelper.selectExistingJournalForSourceVolume(cgSourceVolumes, false);
+                        targetJournals.put(targetJournalVarray.getId(), existingTargetJournalVolume);                        
+                        volumeInfoBuffer.append(logVolumeInfo(existingTargetJournalVolume));
                         continue;
                     }
                 }
+                
+                _log.info(String.format("Create Target Journal (%s)...", targetJournalVarray.getLabel()));                
                 
                 Volume targetJournalVolume = createRecoverPointVolume(targetJournalRec, 
                                                                         new StringBuilder(newVolumeLabel).append(VOLUME_TYPE_TARGET_JOURNAL + targetJournalVarray.getLabel()).toString(),
@@ -355,6 +358,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                                                         "RSET_NAME", null, taskList, task, null, descriptors,
                                                                         null, null);
                 volumeURIs.add(targetJournalVolume.getId());    
+                targetJournals.put(targetJournalVarray.getId(), targetJournalVolume);
                 volumeInfoBuffer.append(logVolumeInfo(targetJournalVolume));
             }
                               
@@ -633,7 +637,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                             URI protectionSystemURI, Volume.PersonalityTypes personalityType,
                                             String rsetName, Volume sourceVolume, TaskList taskList, String task,
                                             String copyName,
-                                            List<VolumeDescriptor> descriptors, Volume journalVolume, Volume standbyJournal) {
+                                            List<VolumeDescriptor> descriptors, Volume journalVolume, Volume standbyJournalVolume) {
             Volume rpVolume = null;
             
             VirtualArray varray = _dbClient.queryObject(VirtualArray.class, rpRec.getVirtualArray());
@@ -677,7 +681,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                          protectionSystemURI, 
                                          personalityType,
                                          rsetName, rpInternalSiteName, copyName, 
-                                         sourceVolume, journalVolume, standbyJournal, vplex);
+                                         sourceVolume, journalVolume, standbyJournalVolume, vplex);
 
             return rpVolume;
     }
@@ -1133,18 +1137,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 			                    VirtualPool vpool, String size, RPRecommendation recommendation, String label, 
 			                    BlockConsistencyGroup consistencyGroup, String token, boolean remote, URI protectionSystemURI,
 			                    Volume.PersonalityTypes personality, String rsetName, String internalSiteName, String rpCopyName, 
-			                    Volume sourceVolume, Volume journalVolume, Volume standbyJournal, boolean vplex) {
+			                    Volume sourceVolume, Volume journalVolume, Volume standbyJournalVolume, boolean vplex) {
         boolean isNewVolume = (volume == null);
         if (isNewVolume) {
             volume = new Volume();
-            
-            if (journalVolume != null) {                
-                volume.setRpJournalVolume(journalVolume.getId());
-            } 
-            
-            if (standbyJournal != null) {
-                volume.setSecondaryRpJournalVolume(journalVolume.getId());
-            }
                         
             volume.setId(URIUtil.createId(Volume.class));
             volume.setLabel(label);
@@ -1181,6 +1177,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             op.setResourceType(ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
             op.setStartTime(Calendar.getInstance());
             volume.getOpStatus().put(token, op);
+        }
+        
+        if (journalVolume != null) {                
+            volume.setRpJournalVolume(journalVolume.getId());
+        } 
+        
+        if (standbyJournalVolume != null) {
+            volume.setSecondaryRpJournalVolume(journalVolume.getId());
         }
                 
         // Set all Journal Volumes to have the INTERNAL_OBJECT flag.
@@ -1296,12 +1300,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 volumeDescriptors.addAll(createVolumeDescriptors(recommendation, volumeURIs, capabilities));                
                 logDescriptors(volumeDescriptors);
                 
-                if (true) {
-                    //TODO BBB remove
-                    _log.error("STOP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-                    throw new WebApplicationException(Response
-                            .status(Response.Status.INTERNAL_SERVER_ERROR).entity(taskList).build());
-                }
+//                // Only needed for internal testing
+//                if (true) {                    
+//                    _log.error("STOP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+//                    throw new WebApplicationException(Response
+//                            .status(Response.Status.INTERNAL_SERVER_ERROR).entity(taskList).build());
+//                }
                 
                 BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
                         BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
@@ -2518,11 +2522,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     
                     buf.append(String.format("%n\t\t Backing Volume Name : [%s] (%s)%n", backingVolume.getLabel(), backingVolume.getId())); 
                     buf.append(String.format("\t\t Backing Volume Virtual Array : [%s] %n", backingVolumeVarray.getLabel()));
-                    buf.append(String.format("\t\t Backing Volume Virtual Pool : [%s] %n", backingVolumeVpool.getLabel()));
-                    String internalSiteName = ((ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(backingVolume.getInternalSiteName()) : backingVolume.getInternalSiteName());
-                    buf.append(String.format("\t\t Backing Volume RP Internal Site : [%s %s] %n", internalSiteName, backingVolume.getInternalSiteName()));
+                    buf.append(String.format("\t\t Backing Volume Virtual Pool : [%s] %n", backingVolumeVpool.getLabel()));                    
                     buf.append(String.format("\t\t Backing Volume Storage System : [%s] %n", backingVolumeStorageSystem.getLabel()));
-                    buf.append(String.format("\t\t Backing Volume Storage Pool : [%s] %n", backingVolumePool.getLabel()));                    
+                    buf.append(String.format("\t\t Backing Volume Storage Pool : [%s] %n", backingVolumePool.getLabel())); 
+                    if (NullColumnValueGetter.isNotNullValue(backingVolume.getInternalSiteName())) {
+                        String internalSiteName = ((ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(backingVolume.getInternalSiteName()) : backingVolume.getInternalSiteName());
+                        buf.append(String.format("\t\t Backing Volume RP Internal Site : [%s %s] %n", internalSiteName, backingVolume.getInternalSiteName()));
+                    }
                 }
                 buf.append(String.format("\t\t=====%n"));
             }
@@ -2543,19 +2549,19 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             }
             
             if (!NullColumnValueGetter.isNullURI(volume.getAutoTieringPolicyUri())) { 
-                AutoTieringPolicy policy =  _dbClient.queryObject(AutoTieringPolicy.class, volume.getAutoTieringPolicyUri());
+                AutoTieringPolicy policy = _dbClient.queryObject(AutoTieringPolicy.class, volume.getAutoTieringPolicyUri());
                 buf.append(String.format("\t Auto Tier Policy : [%s]%n", policy.getPolicyName()));
             }
             
             buf.append(String.format("\t RP Protection System : [%s]%n", ps.getLabel()));
             buf.append(String.format("\t RP Replication Set : [%s]%n", volume.getRSetName()));
-            String internalSiteName = ((ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(volume.getInternalSiteName()) : volume.getInternalSiteName());
-            buf.append(String.format("\t RP Internal Site : [%s %]%n", internalSiteName, volume.getInternalSiteName()));            
+            String internalSiteName = ((ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(volume.getInternalSiteName()) : volume.getInternalSiteName());            
+            buf.append(String.format("\t RP Internal Site : [%s %s]%n", internalSiteName, volume.getInternalSiteName()));            
             buf.append(String.format("\t RP Copy Name : [%s]%n", volume.getRpCopyName()));
             
             if (!NullColumnValueGetter.isNullURI(volume.getRpJournalVolume())) { 
-                Volume sourceJournalVolume = _dbClient.queryObject(Volume.class, volume.getRpJournalVolume());
-                buf.append(String.format("\t RP Source Journal Volume : [%s]%n", sourceJournalVolume.getLabel()));
+                Volume journalVolume = _dbClient.queryObject(Volume.class, volume.getRpJournalVolume());
+                buf.append(String.format("\t RP Journal Volume : [%s]%n", journalVolume.getLabel()));
             }
             
             if (!NullColumnValueGetter.isNullURI(volume.getSecondaryRpJournalVolume())) { 

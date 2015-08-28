@@ -40,6 +40,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VplexMirror;
+import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.db.client.util.WWNUtility;
@@ -49,6 +50,7 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.vplex.api.VPlexApiException;
+import com.google.common.collect.Collections2;
 
 public class VPlexUtil {
     private static Logger _log = LoggerFactory.getLogger(VPlexUtil.class);
@@ -495,7 +497,7 @@ public class VPlexUtil {
         if (maskIds == null) {
             return null;
         }
-        ExportMask sharedExportMask = VPlexUtil.getSharedExportMasksInViPR(exportGroup, vplexURI, dbClient, varrayURI, null, null);
+        ExportMask sharedExportMask = VPlexUtil.getSharedExportMaskInDb(exportGroup, vplexURI, dbClient, varrayURI, null, null);
 
         List<ExportMask> exportMasks =
                 ExportMaskUtils.getExportMasks(dbClient, exportGroup, vplexURI);
@@ -859,13 +861,16 @@ public class VPlexUtil {
      * corresponding to the single storage view on VPLEX with multiple hosts.
      * Note : This is applicable from Darth release onwards.
      * 
-     * @param exportGroup - ExportGroup object
-     * @param vplexURI - URI of the VPLEX system
-     * @param dbClient - database client instance
+     * @param exportGroup ExportGroup object
+     * @param vplexURI URI of the VPLEX system
+     * @param dbClient database client instance
+     * @param varrayUri Varray we want the Export Mask in
+     * @param vplexCluster Vplex Cluster we want ExportMask for
+     * @param hostInitiatorMap Map of host to initiators
      * @return shared ExportMask for a exportGroup
      * @throws Exception
      */
-    public static ExportMask getSharedExportMasksInViPR(ExportGroup exportGroup, URI vplexURI, DbClient dbClient,
+    public static ExportMask getSharedExportMaskInDb(ExportGroup exportGroup, URI vplexURI, DbClient dbClient,
             URI varrayUri, String vplexCluster, Map<URI, List<Initiator>> hostInitiatorMap) throws Exception {
         ExportMask sharedExportMask = null;
         StringSet maskIds = exportGroup.getExportMasks();
@@ -916,7 +921,8 @@ public class VPlexUtil {
     public static ExportMask getExportMasksWithExistingInitiators(URI vplexURI, DbClient dbClient, List<Initiator> inits,
             URI varrayURI, String vplexCluster) throws Exception {
         ExportMask sharedVplexExportMask = null;
-        List<String> initiatorNames = getInitiatorNames(inits);
+        // Get initiators WWN in upper case without colons
+        Collection<String> initiatorNames = Collections2.transform(inits, CommonTransformerFunctions.fctnInitiatorToPortName());
         // J1 joiner to fetch all the exportMasks for the VPLEX where existingInitiators list match one or all inits.
         Joiner j1 = new Joiner(dbClient);
         j1.join(ExportMask.class, "exportmask").match("existingInitiators", initiatorNames).match("storageDevice", vplexURI).go()
@@ -928,26 +934,10 @@ public class VPlexUtil {
                 exportMasks);
         if (!exportMasksForVplexCluster.isEmpty()) {
             sharedVplexExportMask = exportMasksForVplexCluster.get(0);
+            _log.info(String.format("Found ExportMask %s %s with some or all initiators %s in the existing initiators.",
+                    sharedVplexExportMask.getMaskName(), sharedVplexExportMask.getId(), initiatorNames));
         }
         return sharedVplexExportMask;
     }
 
-    /**
-     * Return the initiators WWN in upper case with out colons
-     * 
-     * @param inits List of initiators
-     * @return initiators WWN in upper case with out colons
-     */
-    private static List<String> getInitiatorNames(List<Initiator> inits) {
-        List<String> initiatorNames = new ArrayList<String>();
-        for (Initiator init : inits) {
-            String port = init.getInitiatorPort();
-            String normalizedName = port;
-            if (WWNUtility.isValidWWN(port)) {
-                normalizedName = WWNUtility.getUpperWWNWithNoColons(port);
-                initiatorNames.add(normalizedName);
-            }
-        }
-        return initiatorNames;
-    }
 }

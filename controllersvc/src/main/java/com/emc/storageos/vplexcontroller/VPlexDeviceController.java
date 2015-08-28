@@ -1621,7 +1621,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 ExportMask sharedVplexExportMask = null;
                 switch (vplexExportMasks.size()) {
                     case 0:
-                        // Check if there is export mask in ViPR with initiators in the existing initiators list
+                        // Check if there is export mask in CorpHD with initiators in the existing initiators list
                         // If yes there is already storage view on VPLEX with some or all the initiators and CorpHD
                         // will reuse export mask and storage view.
                         sharedVplexExportMask = VPlexUtil.getExportMasksWithExistingInitiators(vplexURI, _dbClient, inits,
@@ -1706,7 +1706,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         // If we reached here means there isn't existing storage view on VPLEX with the host
                         // thats needs to be added. In that case we will try to find if there is shared export mask
                         // for the exortGroup in CorpHD database.
-                        sharedVplexExportMask = VPlexUtil.getSharedExportMasksInViPR(exportGroup, vplexURI, _dbClient,
+                        sharedVplexExportMask = VPlexUtil.getSharedExportMaskInDb(exportGroup, vplexURI, _dbClient,
                                 varrayUri, vplexCluster, hostInitiatorMap);
                     }
 
@@ -2124,8 +2124,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // add all the the initiators the user has requested to add
             // to the exportMask initiators list
             sharedVplexExportMask.addInitiator(init);
-            String normalInit = Initiator.normalizePort(init.getInitiatorPort());
-            if (!sharedVplexExportMask.getExistingInitiators().contains(normalInit)) {
+            if (!sharedVplexExportMask.hasExistingInitiator(init)) {
                 initsToAdd.add(init);
                 // add only those initiator to the user added list
                 // which do not exist on the the storage view.
@@ -2149,7 +2148,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         // add the initiators to the map for the exportMask that do not exist
         // already in the storage view as to create steps to add those initiators
-        if (initsToAdd.size() != 0) {
+        if (!initsToAdd.isEmpty()) {
             if (exportMasksToUpdateOnDeviceWithInitiators.get(sharedVplexExportMask.getId()) == null) {
                 exportMasksToUpdateOnDeviceWithInitiators.put(sharedVplexExportMask.getId(), new ArrayList<Initiator>());
             }
@@ -2823,7 +2822,6 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem vplex = getDataObject(StorageSystem.class, vplexURI, _dbClient);
             ExportMask exportMask = getDataObject(ExportMask.class, exportMaskURI, _dbClient);
-            StringMap volumesInExportMask = exportMask.getVolumes();
 
             // TODO: Bharath/RPTEAM - I dont think the below call to zoneExportAddVolumes is necessary here(i have just commented it for
             // now, because i am no expert in this
@@ -2845,7 +2843,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             boolean duplicateHLU = false;
 
             for (Map.Entry<URI, Integer> entry : volumeMap.entrySet()) {
-                if (null != volumesInExportMask && volumesInExportMask.containsKey(entry.getKey().toString())) {
+                if (exportMask.hasVolume(entry.getKey())) {
                     _log.info(String
                             .format(
                                     "Volume %s is already in Exportmask %s %s hence skipping adding volume again. This must be shared exportmask. ",
@@ -3405,7 +3403,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String message =
                     String.format("initiators %s to StorageView %s", initListStr,
                             exportGroup.getGeneratedName());
-            ExportMask sharedExportMask = VPlexUtil.getSharedExportMasksInViPR(exportGroup, vplexURI, _dbClient, varrayURI, null, null);
+            ExportMask sharedExportMask = VPlexUtil.getSharedExportMaskInDb(exportGroup, vplexURI, _dbClient, varrayURI, null, null);
             boolean shared = false;
             if (null != sharedExportMask && sharedExportMask.getId().equals(exportMask.getId())) {
                 shared = true;
@@ -3441,7 +3439,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             List<ExportMask> exportMasks =
                     ExportMaskUtils.getExportMasks(_dbClient, exportGroup, vplexURI);
             Map<URI, List<URI>> maskToInitiatorsMap = new HashMap<URI, List<URI>>();
-            ExportMask sharedExportMask = VPlexUtil.getSharedExportMasksInViPR(exportGroup, vplexURI, _dbClient, varrayURI, null, null);
+            ExportMask sharedExportMask = VPlexUtil.getSharedExportMaskInDb(exportGroup, vplexURI, _dbClient, varrayURI, null, null);
             for (ExportMask exportMask : exportMasks) {
                 boolean shared = false;
                 if (sharedExportMask != null) {
@@ -7738,7 +7736,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     String.format("adding initiators %s to StorageView %s", storageViewInitiators.toString(),
                             exportGroup.getGeneratedName());
             ExportMask sharedExportMask = VPlexUtil
-                    .getSharedExportMasksInViPR(exportGroup, vplex.getId(), _dbClient, varrayURI, null, null);
+                    .getSharedExportMaskInDb(exportGroup, vplex.getId(), _dbClient, varrayURI, null, null);
             boolean shared = false;
             if (null != sharedExportMask && sharedExportMask.getId().equals(exportMask.getId())) {
                 shared = true;
@@ -8074,14 +8072,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         // Create a list of sharedExportMask URIs for the src varray and ha varray if its set in the altVirtualArray
         // in the exportGroup
         List<URI> sharedExportMaskURIs = new ArrayList<URI>();
-        ExportMask sharedExportMask = VPlexUtil.getSharedExportMasksInViPR(exportGroup, vplexURI, _dbClient, exportGroup.getVirtualArray(),
+        ExportMask sharedExportMask = VPlexUtil.getSharedExportMaskInDb(exportGroup, vplexURI, _dbClient, exportGroup.getVirtualArray(),
                 null, null);
         if (sharedExportMask != null) {
             sharedExportMaskURIs.add(sharedExportMask.getId());
         }
         if (exportGroup.hasAltVirtualArray(vplexURI.toString())) {
             URI haVarray = URI.create(exportGroup.getAltVirtualArrays().get(vplexURI.toString()));
-            ExportMask haSharedExportMask = VPlexUtil.getSharedExportMasksInViPR(exportGroup, vplexURI, _dbClient, haVarray,
+            ExportMask haSharedExportMask = VPlexUtil.getSharedExportMaskInDb(exportGroup, vplexURI, _dbClient, haVarray,
                     null, null);
             if (haSharedExportMask != null) {
                 sharedExportMaskURIs.add(haSharedExportMask.getId());

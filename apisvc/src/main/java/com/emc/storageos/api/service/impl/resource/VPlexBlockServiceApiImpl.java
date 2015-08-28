@@ -1229,9 +1229,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     private void verifyVolumesInCG(List<Volume> volumes, BlockConsistencyGroup cg) {
         List<Volume> cgVolumes = getActiveCGVolumes(cg);
-        if (volumes.size() < cgVolumes.size()) {
+        /*if (volumes.size() < cgVolumes.size()) {
             throw APIException.badRequests.cantChangeVpoolNotAllCGVolumes();
-        }
+        }*/
 
         // Make sure only the CG volumes are selected.
         for (Volume volume : volumes) {

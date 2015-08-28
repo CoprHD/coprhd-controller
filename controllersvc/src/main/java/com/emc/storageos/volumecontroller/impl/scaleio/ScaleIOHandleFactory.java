@@ -10,7 +10,6 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.scaleio.ScaleIOException;
-import com.emc.storageos.scaleio.ScaleIOExceptions;
 import com.emc.storageos.scaleio.api.ScaleIOConstants;
 import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
 import com.emc.storageos.scaleio.api.restapi.ScaleIORestClientFactory;

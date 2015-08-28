@@ -1014,9 +1014,8 @@ public class VPlexBackendManager {
             URI varrayURI,
             StorageSystem vplex, StorageSystem array) {
 
-        // Determine if VNX so can order VNX zoning after masking
-        boolean isVNX = (array.getSystemType().equals(DiscoveredDataObject.Type.vnxblock.name())
-                || array.getSystemType().equals(DiscoveredDataObject.Type.vnxe.name()));
+        // Determine if VNX or OpenStack so can order VNX zoning after masking
+        boolean isMaskingFirst = isMaskingFirst(array);
 
         Map<URI, Integer> volumeLunIdMap = createVolumeMap(array.getId(),
                 exportGroup, volumeMap);
@@ -1044,10 +1043,10 @@ public class VPlexBackendManager {
                     .zoneExportRemoveVolumesMethod(exportGroup.getId(), maskURIs, volumes);
             zoningStep = workflow.createStep(ZONING_STEP,
                     String.format("Adding zones for ExportMask %s", exportMask.getMaskName()),
-                    (isVNX ? maskStepId : previousStepId), nullURI, "network-system",
+                    (isMaskingFirst ? maskStepId : previousStepId), nullURI, "network-system",
                     _networkDeviceController.getClass(),
                     zoneCreateMethod, zoneDeleteMethod, null);
-            if (!isVNX) {
+            if (!isMaskingFirst) {
                 previousStepId = zoningStep;
             }
         }
@@ -1064,7 +1063,22 @@ public class VPlexBackendManager {
                 "VPLEX ExportGroup %s (%s) vplex %s varray %s",
                 exportGroup.getLabel(), exportGroup.getId(), vplex.getId(),
                 exportGroup.getVirtualArray()));
-        return (isVNX && zoningStep != null) ? zoningStep : maskStepId;
+        return (isMaskingFirst && zoningStep != null) ? zoningStep : maskStepId;
+    }
+
+    /**
+     * For storage system types = [vnxblock, vnxe, openstack]
+     * Masking should be done first and zoning step
+     * has to be performed after the masking.
+     * 
+     * @param array
+     * @return
+     */
+    private boolean isMaskingFirst(StorageSystem array) {
+        return (array.getSystemType().equals(DiscoveredDataObject.Type.vnxblock.name())
+                || array.getSystemType().equals(DiscoveredDataObject.Type.vnxe.name())
+                || array.getSystemType().equals(DiscoveredDataObject.Type.openstack.name()));
+        
     }
 
     /**

@@ -18,7 +18,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.MetroPointType;
-import com.emc.storageos.volumecontroller.Protection.ProtectionType;
+import com.emc.storageos.volumecontroller.RPRecommendation.ProtectionType;
 
 /**
  * Recommendation for a placement is a storage pool and its storage device.

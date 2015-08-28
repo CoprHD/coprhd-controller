@@ -21,10 +21,14 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.MetroPointType;
-import com.emc.storageos.volumecontroller.Protection.ProtectionType;
 
 @SuppressWarnings("serial")
-public class RPRecommendation extends Recommendation { 
+public class RPRecommendation extends Recommendation {
+    public static enum ProtectionType {
+        REMOTE,
+        LOCAL
+    }
+    
 	private VPlexRecommendation virtualVolumeRecommendation;
 	private RPRecommendation haRecommendation;	
 	private List<RPRecommendation> targetRecommendations;
@@ -35,8 +39,7 @@ public class RPRecommendation extends Recommendation {
 	// This is the Storage System that was chosen by placement for connectivity/visibility to the RP Cluster
 	private URI internalSiteStorageSystem;	
 	private ProtectionType protectionType;
-	 
-	 
+		 	 
 	public VPlexRecommendation getVirtualVolumeRecommendation() {
 		return virtualVolumeRecommendation;
 	}

@@ -1260,7 +1260,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * Generate a unique volume label based on the given base name and index.
      * 
      * @param baseVolumeLabel - prefix of volume name
-     * @param volumeIndex - index to append to prefix for name
+     * @param volumeIndex - index to append to prefix for name (The first volume should send down zero)
      * @param volumeCount - number of volume to generate name for
      * @return generated volume name
      */
@@ -1268,7 +1268,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         StringBuilder volumeLabelBuilder = new StringBuilder(baseVolumeLabel);
         if (volumeCount > 1) {
             volumeLabelBuilder.append("-");
-            volumeLabelBuilder.append(volumeIndex);
+            volumeLabelBuilder.append(volumeIndex+1);
         }
         return volumeLabelBuilder.toString();
     }
@@ -1512,5 +1512,34 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             isVMAX3 = (storage != null && storage.checkIfVmax3());
         }
         return isVMAX3;
+    }
+
+    /**
+     * Debug logging method to help assure that pre-created volumes during volume creation are honored/used
+     * when the placement thread assembles recommendation objects and prepares volumes during APISVC volume
+     * creation steps.
+     * 
+     * @param volumesDescriptors volume descriptors
+     * @param task task id
+     */
+    protected void logVolumeDescriptorPrecreateInfo(List<VolumeDescriptor> volumesDescriptors, String task) {
+        // Filter any BLOCK_DATAs that need to be created.
+        List<VolumeDescriptor> volumes = VolumeDescriptor.filterByType(volumesDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, 
+                                                VolumeDescriptor.Type.RP_SOURCE,
+                                                VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE,
+                                                VolumeDescriptor.Type.SRDF_SOURCE,
+                                                VolumeDescriptor.Type.VPLEX_VIRT_VOLUME },
+                new VolumeDescriptor.Type[] {});
+
+        // If no volumes to be created, just return.
+        if (volumes.isEmpty()) {
+            return;
+        }
+
+        for (VolumeDescriptor desc : volumes) {
+            s_logger.info(String.format("Volume and Task Pre-creation Objects [Exec]--  Source Volume: %s, Op: %s",
+                    desc.getVolumeURI(), task));
+        }
     }
 }

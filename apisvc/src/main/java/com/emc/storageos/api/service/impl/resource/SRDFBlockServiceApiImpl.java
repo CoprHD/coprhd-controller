@@ -616,6 +616,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             try {
                 List<VolumeDescriptor> volumeDescriptors = createVolumeDescriptors(
                         (SRDFRecommendation) recommendation, volumeURIs, capabilities);
+                // Log volume descriptor information
+                logVolumeDescriptorPrecreateInfo(volumeDescriptors, task);
                 BlockOrchestrationController controller = getController(
                         BlockOrchestrationController.class,
                         BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);

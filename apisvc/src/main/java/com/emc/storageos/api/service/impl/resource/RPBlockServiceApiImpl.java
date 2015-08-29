@@ -393,9 +393,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }
     
                 for (int volumeCount = 0; volumeCount < volumeCountInRec; volumeCount++) {                                          
-                    // Increment total volume count
-                    totalVolumeCount++;
-                    
                     // Let's not get into multiple of multiples, this class will handle multi volume creates. 
                     // So force the incoming VolumeCreate param to be set to 1 always from here on.
                     sourceRec.setResourceCount(1);
@@ -407,19 +404,18 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
                     // Grab the existing volume and task object from the incoming task list
                     Volume sourceVolume = StorageScheduler.getPrecreatedVolume(_dbClient, taskList, newVolumeLabel);
-                    boolean volumePrecreated = false;
-                    if (sourceVolume != null) {
-                        volumePrecreated = true;
-                    }
                     
                     // Assemble a Replication Set; A Collection of volumes.  One production, and any number of targets.
                     String rsetName = null;
                     if (numberOfVolumesInRequest > 1) {
-                        rsetName = "RSet-" + newVolumeLabel + "-" + totalVolumeCount;
+                        rsetName = "RSet-" + newVolumeLabel + "-" + totalVolumeCount+1;
                     } else {
                         rsetName = "RSet-" + newVolumeLabel;
                     }
     
+                    // Increment total volume count
+                    totalVolumeCount++;
+                    
                     // This name has to remain unique, especially when the number of volumes requested to be created is more than 1.
                     param.setName(newVolumeLabel);
                                                             
@@ -644,8 +640,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                             String rsetName, Volume sourceVolume, TaskList taskList, String task,
                                             String copyName,
                                             List<VolumeDescriptor> descriptors, Volume journalVolume, Volume standbyJournalVolume) {
-            Volume rpVolume = null;
-            
+            Volume rpVolume = sourceVolume;
             VirtualArray varray = _dbClient.queryObject(VirtualArray.class, rpRec.getVirtualArray());
             VirtualPool vpool = rpRec.getVirtualPool();                          
             String rpInternalSiteName = rpRec.getInternalSiteName();
@@ -1147,7 +1142,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         boolean isNewVolume = (volume == null);
         if (isNewVolume) {
             volume = new Volume();
-            volume = new Volume();
             volume.setId(URIUtil.createId(Volume.class));
             volume.setOpStatus(new OpStatusMap());
         } else {
@@ -1304,11 +1298,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 logDescriptors(volumeDescriptors);
                 
                 // Only needed for internal testing
-                if (true) {                    
+                if (false) {                    
                     _log.error("STOP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
                     throw new WebApplicationException(Response
                             .status(Response.Status.INTERNAL_SERVER_ERROR).entity(taskList).build());
                 }
+                
+                // Log volume descriptor information
+                logVolumeDescriptorPrecreateInfo(volumeDescriptors, task);
                 
                 BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
                         BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);

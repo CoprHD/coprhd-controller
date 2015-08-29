@@ -951,7 +951,10 @@ public class BlockService extends TaskResourceService {
             volume.getOpStatus().put(task, op);
             TaskResourceRep volumeTask = toTask(volume, task, op);
             taskList.getTaskList().add(volumeTask);
+            _log.info(String.format("Volume and Task Pre-creation Objects [Init]--  Source Volume: %s, Task: %s, Op: %s",
+                    volume.getId(), volumeTask.getId(), task));
         }
+        
         return taskList;
     }
 
@@ -1025,6 +1028,7 @@ public class BlockService extends TaskResourceService {
                     _dbClient.updateAndReindexObject(volume);
                 }
             }
+            _log.info("Ending scheduling/placement thread...");
         }
     }
             

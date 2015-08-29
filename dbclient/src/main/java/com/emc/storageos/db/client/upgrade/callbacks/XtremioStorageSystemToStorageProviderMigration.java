@@ -15,17 +15,17 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 
-public class XtremioStorageSystemToStorageProviderMigration 
-    extends BaseCustomMigrationCallback {
-    
+public class XtremioStorageSystemToStorageProviderMigration
+        extends BaseCustomMigrationCallback {
+
     private static final Logger log = LoggerFactory.getLogger(XtremioStorageSystemToStorageProviderMigration.class);
-    
+
     /**
      * 1. Iterate each storage systems.
-     *      a) Create new StorageProvider instance per xtremio storage system instance available in db.
-     *      b) Update the newly created storage provider Id reference with the xtremio storage system using provider.setStorageSystems().
-     *      c) Need to change storageSystem.activeProviderURI and storageSystem.getProviders() with the newly created
-     *          StorageProvider id.
+     * a) Create new StorageProvider instance per xtremio storage system instance available in db.
+     * b) Update the newly created storage provider Id reference with the xtremio storage system using provider.setStorageSystems().
+     * c) Need to change storageSystem.activeProviderURI and storageSystem.getProviders() with the newly created
+     * StorageProvider id.
      */
     @Override
     public void process() {
@@ -49,9 +49,9 @@ public class XtremioStorageSystemToStorageProviderMigration
             log.error("Exception occured while updating xtremio storagesystem to storage provider model");
             log.error(e.getMessage(), e);
         }
-        
+
     }
-    
+
     /**
      * Creates new StorageProvider instance for the given storage system while doing db upgrade.
      * 
@@ -59,6 +59,7 @@ public class XtremioStorageSystemToStorageProviderMigration
      * @return {@link StorageProvider} newly created StorageProvider instance
      */
     private StorageProvider createNewStorageProviderInstance(StorageSystem xioSystem) {
+        log.info("Creating a new storage provider for storage system {}", xioSystem.getLabel());
         StorageProvider storageProvider = new StorageProvider();
         storageProvider.setId(URIUtil.createId(StorageProvider.class));
 
@@ -79,7 +80,7 @@ public class XtremioStorageSystemToStorageProviderMigration
         storageProvider.setTag(xioSystem.getTag());
         storageProvider.setUserName(xioSystem.getUsername());
         storageProvider.setVersionString(xioSystem.getFirmwareVersion());
-        
+        log.info("Adding the storage system to the storage provider");
         storageProvider.addStorageSystem(dbClient, xioSystem, true);
 
         return storageProvider;

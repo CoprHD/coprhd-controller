@@ -1,19 +1,41 @@
 package com.emc.storageos.db.server.upgrade.impl.callback;
 
+import java.io.IOException;
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
 import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
+import com.emc.storageos.db.client.upgrade.callbacks.XtremioStorageSystemToStorageProviderMigration;
+import com.emc.storageos.db.server.DbsvcTestBase;
 import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
 
 public class XioStorageSystemToStorageProviderMigrationTest extends
         DbSimpleMigrationTestBase {
+
+    private static final Logger log = LoggerFactory.getLogger(XioStorageSystemToStorageProviderMigrationTest.class);
+
+    @BeforeClass
+    public static void setup() throws IOException {
+        customMigrationCallbacks.put("2.3", new ArrayList<BaseCustomMigrationCallback>() {
+            {
+                add(new XtremioStorageSystemToStorageProviderMigration());
+            }
+        });
+
+        DbsvcTestBase.setup();
+        log.info("completed setup");
+    }
 
     @Override
     protected String getSourceVersion() {

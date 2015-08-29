@@ -1523,20 +1523,32 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @param task task id
      */
     protected void logVolumeDescriptorPrecreateInfo(List<VolumeDescriptor> volumesDescriptors, String task) {
-        // Filter any BLOCK_DATAs that need to be created.
+        // Look for high-order source device first, which would be RP_VPLEX_VIRT_SOURCE or RP_SOURCE
         List<VolumeDescriptor> volumes = VolumeDescriptor.filterByType(volumesDescriptors,
-                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, 
-                                                VolumeDescriptor.Type.RP_SOURCE,
-                                                VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE,
-                                                VolumeDescriptor.Type.SRDF_SOURCE,
-                                                VolumeDescriptor.Type.VPLEX_VIRT_VOLUME },
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_SOURCE,
+                                              VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE },
                 new VolumeDescriptor.Type[] {});
+
+        // If there are none of those, look for VPLEX_VIRT_VOLUME
+        if (volumes.isEmpty()) {
+            volumes = VolumeDescriptor.filterByType(volumesDescriptors,
+                    new VolumeDescriptor.Type[] { VolumeDescriptor.Type.VPLEX_VIRT_VOLUME },
+                    new VolumeDescriptor.Type[] {});
+        }
+
+        // Finally look for SRDF or regular block volumes
+        if (volumes.isEmpty()) {
+            volumes = VolumeDescriptor.filterByType(volumesDescriptors,
+                    new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, 
+                                                  VolumeDescriptor.Type.SRDF_SOURCE },
+                    new VolumeDescriptor.Type[] {});
+        }
 
         // If no volumes to be created, just return.
         if (volumes.isEmpty()) {
             return;
         }
-
+        
         for (VolumeDescriptor desc : volumes) {
             s_logger.info(String.format("Volume and Task Pre-creation Objects [Exec]--  Source Volume: %s, Op: %s",
                     desc.getVolumeURI(), task));

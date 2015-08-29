@@ -538,7 +538,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
 
         // Target volume in a varray
         volume = prepareVolume(
-                srcVolume,
+                null,
                 param,
                 project,
                 targetVirtualArray,

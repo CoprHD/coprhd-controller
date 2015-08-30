@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller.impl.plugins;
 
 import java.net.URI;
+import java.net.URISyntaxException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,6 +14,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.ecs.api.ECSApi;
 import com.emc.storageos.ecs.api.ECSApiFactory;
+import com.emc.storageos.ecs.api.ECSException;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.metering.smis.SMIPluginException;
@@ -62,8 +64,9 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             storageSystemId = accessProfile.getSystemId();
             storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemId);
 
-            // try to connect to the ECS 
+            // try to connect to the ECS
             ECSApi ecsApi = getECSDevice(storageSystem);
+            ecsApi.getAuthToken(storageSystem);
 
             _logger.info("ECSCommunicationInterface ECS discover Access Profile Details :" + accessProfile.toString());
             
@@ -90,17 +93,17 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
 	}
 	
     /**
-     * Get isilon device represented by the StorageDevice
+     * Get ecs device represented by the StorageDevice
      *
-     * @param isilonCluster  StorageDevice object
-     * @return IsilonApi object
-     * @throws IsilonException
+     * @param ecsCluster  StorageDevice object
+     * @return ECSApi object
+     * @throws ECSException
      * @throws URISyntaxException
      */
-    private ECSApi getECSDevice(StorageSystem ecsSystem) throws IsilonException, URISyntaxException {
+    private ECSApi getECSDevice(StorageSystem ecsSystem) throws ECSException, URISyntaxException {
     	URI deviceURI = new URI("https", null, ecsSystem.getIpAddress(), ecsSystem.getPortNumber(), "/", null, null);
 
-        return _factory
+        return ecsApiFactory
                 .getRESTClient(deviceURI, ecsSystem.getUsername(), ecsSystem.getPassword());
     }
 

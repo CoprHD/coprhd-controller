@@ -525,6 +525,9 @@ public enum ServiceCode {
 
     // Unmanaged Volume Errors (64000 - 64999)
     UNMANAGED_VOLUME_INGESTION_EXCEPTION(64000),
+    
+    //ECS erros (65000 - 65999)
+    ECS_CONNECTION_ERROR(65000),
 
     // ****************************
     // Old style of Service codes

@@ -99,7 +99,7 @@ public class ECSApiFactory {
         });
         _clientHandler = new ApacheHttpClientHandler(client);
 
-        Protocol.registerProtocol("https", new Protocol("https", new NonValidatingSocketFactory(), 443));
+        Protocol.registerProtocol("https", new Protocol("https", new NonValidatingSocketFactory(), 4443));
     }
     
     /**
@@ -136,7 +136,7 @@ public class ECSApiFactory {
         ECSApi ecsApi = _clientMap.get(endpoint.toString() +":"+ username +":"+ password);
         if (ecsApi == null) {
             Client jerseyClient = new ApacheHttpClient(_clientHandler);
-            jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
+            //jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
             RESTClient restClient = new RESTClient(jerseyClient);
             ecsApi = new ECSApi(endpoint, restClient);
             _clientMap.putIfAbsent(endpoint.toString()+":"+username+":"+password, ecsApi);

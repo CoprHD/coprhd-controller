@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.exceptions.DatabaseException;
+import com.emc.storageos.ecs.api.ECSApi;
 import com.emc.storageos.ecs.api.ECSApiFactory;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
@@ -52,12 +53,18 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
 	@Override
 	public void discover(AccessProfile accessProfile)
 			throws BaseCollectionException {
-        URI storageSystemURI = null;
+        URI storageSystemId = null;
         StorageSystem storageSystem = null;
         String detailedStatusMessage = "Unknown Status";
         long startTime = System.currentTimeMillis();
 
 		try {
+            storageSystemId = accessProfile.getSystemId();
+            storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemId);
+
+            // try to connect to the ECS 
+            ECSApi ecsApi = getECSDevice(storageSystem);
+
             _logger.info("ECSCommunicationInterface ECS discover Access Profile Details :" + accessProfile.toString());
             
 		}  catch (Exception e) {
@@ -77,9 +84,24 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             }
             //releaseResources();
             long totalTime = System.currentTimeMillis() - startTime;
-            _logger.info(String.format("Discovery of Storage System %s took %f seconds", storageSystemURI.toString(), (double) totalTime
+            _logger.info(String.format("Discovery of Storage System %s took %f seconds", "ECS Test", (double) totalTime
                     / (double) 1000));
         }
 	}
+	
+    /**
+     * Get isilon device represented by the StorageDevice
+     *
+     * @param isilonCluster  StorageDevice object
+     * @return IsilonApi object
+     * @throws IsilonException
+     * @throws URISyntaxException
+     */
+    private ECSApi getECSDevice(StorageSystem ecsSystem) throws IsilonException, URISyntaxException {
+    	URI deviceURI = new URI("https", null, ecsSystem.getIpAddress(), ecsSystem.getPortNumber(), "/", null, null);
+
+        return _factory
+                .getRESTClient(deviceURI, ecsSystem.getUsername(), ecsSystem.getPassword());
+    }
 
 }

@@ -31,6 +31,7 @@ import com.emc.storageos.util.NetworkLite;
  * @author watsot3
  */
 public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
+
     protected static final Logger _log = LoggerFactory
             .getLogger(DefaultStoragePortsAssigner.class);
 
@@ -183,7 +184,7 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
      * @param storagePorts INPUT the ports that can be used for assignment
      * @param pathsPerInitiator INPUT the desired number of paths per initiator
      * @param hostInitiatorsMap INPUT a map of Host URI to the Initiators in that host
-     * @param initiatorNetwork INPUT the initiators network 
+     * @param initiatorNetwork INPUT the initiators network
      */
     protected void assignPortsToHosts(
             Map<Initiator, List<StoragePort>> assignments,
@@ -217,7 +218,8 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
                     // Allocate contiguously the ports for one initiator
                     for (int i = 0; i < pathsPerInitiator; i++) {
                         StoragePort port = storagePorts.get(portIndex);
-                        if (!assignments.get(initiator).contains(port)) {
+                        if (!assignments.get(initiator).contains(port) &&
+                                isPortAssignableToInitiator(initiatorNetwork, initiator, port)) {
                             assignments.get(initiator).add(port);
                             _log.info(String.format("Port %s assigned to initiator %s host %s",
                                     BlockStorageScheduler.portName(port), initiator.getInitiatorPort(), host));
@@ -451,5 +453,10 @@ public class DefaultStoragePortsAssigner implements StoragePortsAssigner {
             _log.info(String.format("Network %s max initiators per host %d", net.toString(), max));
         }
         return net2MaxHostInitiators;
+    }
+
+    @Override
+    public boolean isPortAssignableToInitiator(NetworkLite initiatorNetwork, Initiator initiator, StoragePort port) {
+        return true;
     }
 }

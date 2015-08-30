@@ -1321,16 +1321,4 @@ public class NetworkScheduler {
                 CustomConfigConstants.ZONE_USE_PREZONED_PORT_FRONTEND,
                 CustomConfigConstants.DEFAULT_KEY, null);
     }
-
-    /**
-     * Returns the flag settable by the user in the custom config that indicates if port allocation should
-     * consider existing zones in port allocation logic or if it should proceed with allocations using
-     * port metrics and hard redundancy only as criteria.
-     * 
-     * @return true/false
-     */
-    public boolean backendPortAllocationUseExistingZones(String systemType) {
-        return customConfigHandler.getComputedCustomConfigBooleanValue(
-                CustomConfigConstants.ZONE_USE_PREZONED_PORT_BACKEND, systemType, null);
-    }
 }

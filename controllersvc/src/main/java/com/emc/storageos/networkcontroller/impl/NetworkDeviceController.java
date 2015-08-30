@@ -268,7 +268,7 @@ public class NetworkDeviceController implements NetworkController {
 
     @Override
     public List<Zoneset> getZonesets(URI uri, String fabricId, String fabricWwn, String zoneName, boolean excludeMembers,
-    		 boolean excludeAliases) throws ControllerException {
+            boolean excludeAliases) throws ControllerException {
         NetworkSystem device = getDeviceObject(uri);
         // Get the file device reference for the type of file device managed
         // by the controller.
@@ -1035,7 +1035,7 @@ public class NetworkDeviceController implements NetworkController {
                     ex.getMessage(), ex);
             WorkflowStepCompleter.stepFailed(token, svcError);
         }
-        return doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token);
+        return doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token, true);
     }
 
     /**
@@ -1045,11 +1045,12 @@ public class NetworkDeviceController implements NetworkController {
      * @param exportMaskURIs
      * @param volumeURIs
      * @param token
+     * @param checkZones TODO
      * @return
      */
     private boolean doZoneExportMasksCreate(ExportGroup exportGroup,
-            List<URI> exportMaskURIs, Collection<URI> volumeURIs, String token) {
-        boolean status = false;
+            List<URI> exportMaskURIs, Collection<URI> volumeURIs, String token, boolean checkZones) {
+        BiosCommandResult result = null;
         NetworkFCContext context = new NetworkFCContext();
         try {
             if (!checkZoningRequired(token, exportGroup.getVirtualArray())) {
@@ -1067,24 +1068,31 @@ public class NetworkDeviceController implements NetworkController {
 
             // Compute the zones for the ExportGroup
             // [hala] make sure we do not rollback existing zones
-            List<Initiator> exportInitiators = ExportUtils.getExportMasksInitiators(exportMaskURIs, _dbClient);
-            Map<String, List<Zone>> zonesMap = getInitiatorsZones(exportInitiators);
-            List<NetworkFCZoneInfo> zones = _networkScheduler.
-                    getZoningTargetsForExportMasks(exportGroup, exportMaskURIs, volumeURIs, zonesMap);
+            Map<String, List<Zone>> zonesMap = new HashMap<String, List<Zone>>();
+            if (checkZones) {
+                List<Initiator> exportInitiators = ExportUtils.getExportMasksInitiators(exportMaskURIs, _dbClient);
+                zonesMap.putAll(getInitiatorsZones(exportInitiators));
+            }
 
+            List<NetworkFCZoneInfo> zones = _networkScheduler.
+                    getZoningTargetsForExportMasks(exportGroup, exportMaskURIs, volumeURIs, zonesMap, checkZones);
             context.getZoneInfos().addAll(zones);
             logZones(zones);
 
             // If there are no zones to do, we were successful.
-            if (context.getZoneInfos().isEmpty()) {
-                WorkflowStepCompleter.stepSucceded(token);
-                return true;
+            if (!checkZones) {
+                if (!context.getZoneInfos().isEmpty()) {
+                    String[] newOrExisting = new String[1];
+                    for (NetworkFCZoneInfo zoneInfo : context.getZoneInfos()) {
+                        addZoneReference(exportGroup.getId(), zoneInfo, newOrExisting);
+                    }
+                }
+                result = BiosCommandResult.createSuccessfulResult();
+            } else {
+                // Now call addZones to add all the required zones.
+                result = addRemoveZones(exportGroup.getId(),
+                        context.getZoneInfos(), false);
             }
-
-            // Now call addZones to add all the required zones.
-            BiosCommandResult result = addRemoveZones(exportGroup.getId(),
-                    context.getZoneInfos(), false);
-            status = result.isCommandSuccess();
 
             // Save our zone infos in case we want to rollback.
             WorkflowService.getInstance().storeStepData(token, context);
@@ -1100,7 +1108,7 @@ public class NetworkDeviceController implements NetworkController {
                     ex.getMessage(), ex);
             WorkflowStepCompleter.stepFailed(token, svcError);
         }
-        return status;
+        return (result != null && result.isCommandSuccess());
     }
 
     /**
@@ -1138,7 +1146,7 @@ public class NetworkDeviceController implements NetworkController {
         _log.info(String.format
                 ("Entering zoneExportAddVolumes for ExportGroup: %s (%s) Volumes: %s",
                         exportGroup.getLabel(), exportGroup.getId(), volumeURIs.toString()));
-        return doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token);
+        return doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token, false);
     }
 
     /**

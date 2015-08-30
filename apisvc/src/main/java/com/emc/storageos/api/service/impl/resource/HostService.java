@@ -284,7 +284,7 @@ public class HostService extends TaskResourceService {
             if (!NullColumnValueGetter.isNullURI(oldClusterURI)
                     && NullColumnValueGetter.isNullURI(host.getCluster())
                     && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
-                    && (oldCluster != null && !oldCluster.isAutoUnexportEnabled())) {
+                    && (oldCluster != null && oldCluster.isAutoUnexportEnabled())) {
                 // Remove host from shared export
                 controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, taskId);
             } else if (NullColumnValueGetter.isNullURI(oldClusterURI)

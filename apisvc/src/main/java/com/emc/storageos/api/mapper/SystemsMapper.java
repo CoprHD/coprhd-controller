@@ -122,15 +122,9 @@ public class SystemsMapper {
         mapDiscoveredDataObjectFields(from, to);
         to.setAssignedVirtualArrays(from.getAssignedVirtualArrays());
         to.setBaseDirPath(from.getBaseDirPath());
-        //to.setCifsServers(from.getCifsServers());
         to.setCompatibilityStatus(from.getCompatibilityStatus());
         to.setConnectedVirtualArrays(from.getConnectedVirtualArrays());
-        to.setDiscoveryStatus(from.getDiscoveryStatus());
-
-       // to.setMaxExports(from.getMaxExports());
-       // to.setMaxFSID(from.getMaxExports());
-       // to.setMaxProvisionedCapacity(from.getMaxProvisionedCapacity());
-        
+        to.setDiscoveryStatus(from.getDiscoveryStatus());    
         to.setNasName(from.getNasName());
         to.setName(from.getNasName());
         to.setNasState(from.getNasState());
@@ -150,7 +144,6 @@ public class SystemsMapper {
         if(from.getCifsServersMap() != null && !from.getCifsServersMap().isEmpty()){
         	for(String serverName: from.getCifsServersMap().keySet() ){
         		String serverDomain = serverName;
-        		// TODO - CIFS server domain needs to be added. 
         		if(from.getCifsServersMap().get(serverName).getDomain() != null){
         			serverDomain = serverDomain + "=" + from.getCifsServersMap().get(serverName).getDomain();
         		}
@@ -171,8 +164,25 @@ public class SystemsMapper {
         to.setTaggedVirtualArrays(from.getTaggedVirtualArrays());
         
         to.setStorageDeviceURI(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM,from.getStorageDeviceURI()));
-        //to.setvNasType(from.getvNasType());
-                
+        
+               
+        // Set the metrics!!!
+        to.setMaxStorageCapacity(MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, from.getMetrics()).toString());
+        to.setMaxStorageObjects(MetricsKeys.getLong(MetricsKeys.maxStorageObjects, from.getMetrics()).toString());
+        
+        to.setStorageObjects(MetricsKeys.getLong(MetricsKeys.storageObjects, from.getMetrics()).toString());
+        to.setStorageCapacity(MetricsKeys.getLong(MetricsKeys.storageCapacity, from.getMetrics()).toString());
+        to.setIsOverloaded(MetricsKeys.getBoolean(MetricsKeys.overLoaded, from.getMetrics()));
+        
+        Double percentBusy = MetricsKeys.getDoubleOrNull(MetricsKeys.emaPercentBusy, from.getMetrics());
+        if (percentBusy != null) {
+        	to.setAvgEmaPercentagebusy(percentBusy.toString());
+        }
+        percentBusy = MetricsKeys.getDoubleOrNull(MetricsKeys.avgPercentBusy, from.getMetrics());
+        if (percentBusy != null) {
+            to.setAvgPercentagebusy(percentBusy.toString());
+        }
+                       
         return to;
     }
 

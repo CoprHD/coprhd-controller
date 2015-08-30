@@ -61,7 +61,9 @@ public class VNXCifsConfigProcessor extends VNXFileProcessor {
 
                         CifsServer config = (CifsServer) responseObj;
                         _logger.info("CIFS Interfaces: {}, for VDM: {}", config.getInterfaces(), config.getMover());
-
+                        
+                        enabled = true;
+                        // Get the domain of cifs server!!!
                         String domain = new String();
                         if(config.getNT40ServerData() != null )
                         {
@@ -71,6 +73,10 @@ public class VNXCifsConfigProcessor extends VNXFileProcessor {
                         }else if(config.getStandaloneServerData() != null){
                         	domain = config.getStandaloneServerData().getWorkgroup();
                         }
+                        if(!domain.isEmpty()){
+                        	_logger.info("domain cofigured for cifs : {}", domain);
+                        }
+                        
                         VNXCifsServer server = new VNXCifsServer(config.getName(), config.getMover(),
                                 config.getType().toString(), config.isMoverIdIsVdm(), config.getInterfaces(), domain);
                         cifsServers.add(server);

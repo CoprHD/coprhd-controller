@@ -300,9 +300,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             for (StorageHADomain activeDM : allExistingDataMovers.values()) {
                 _logger.info("Existing DataMovers in database {}", activeDM.getName());
             }
-
-            Map<String, List<PhysicalNAS>> physicalNasList = new HashMap<String, List<PhysicalNAS>>();
-            Map<String, List<VirtualNAS>> virtualNasList = new HashMap<String, List<VirtualNAS>>();
             
             // Discover port groups (data movers)
             StringSet fileSharingProtocols = new StringSet();

@@ -284,13 +284,13 @@ public class HostService extends TaskResourceService {
             if (!NullColumnValueGetter.isNullURI(oldClusterURI)
                     && NullColumnValueGetter.isNullURI(host.getCluster())
                     && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
-                    && (oldCluster != null && !oldCluster.getAutoUnexportEnabled())) {
+                    && (oldCluster != null && !oldCluster.isAutoUnexportEnabled())) {
                 // Remove host from shared export
                 controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, taskId);
             } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
                     && !NullColumnValueGetter.isNullURI(host.getCluster())
                     && ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())
-                    && (newCluster != null && newCluster.getAutoExportEnabled())) {
+                    && (newCluster != null && newCluster.isAutoExportEnabled())) {
                 // Non-clustered host being added to a cluster
                 controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI);
             } else if (!NullColumnValueGetter.isNullURI(oldClusterURI)
@@ -299,7 +299,7 @@ public class HostService extends TaskResourceService {
                     && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
                     || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))) {
                 // Clustered host being moved to another cluster
-                if (oldCluster != null && !oldCluster.getAutoUnexportEnabled()) {
+                if (oldCluster != null && !oldCluster.isAutoUnexportEnabled()) {
                     // Don't unexport from the old cluster
                     controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, null);
                 } else {

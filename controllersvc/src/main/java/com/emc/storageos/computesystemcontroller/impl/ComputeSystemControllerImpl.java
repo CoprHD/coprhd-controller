@@ -844,7 +844,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 Host host = _dbClient.queryObject(Host.class, deletedHost);
                 if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
                     Cluster cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
-                    if (cluster.getAutoUnexportEnabled() != null && !cluster.getAutoUnexportEnabled()) {
+                    if (cluster.isAutoUnexportEnabled()) {
                         _log.info(String.format("Unable to delete host %s. Belongs to cluster %s which has auto unexport disabled.",
                                 host.getId(),
                                 cluster.getId()));

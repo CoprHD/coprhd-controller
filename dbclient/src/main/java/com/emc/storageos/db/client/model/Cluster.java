@@ -101,6 +101,10 @@ public class Cluster extends AbstractTenantResource {
         setChanged("autoExportEnabled");
     }
 
+    public boolean isAutoExportEnabled() {
+        return this.autoExportEnabled == null || this.autoExportEnabled;
+    }
+
     /**
      * If discovery will automatically unexport from this cluster.
      * 
@@ -114,5 +118,9 @@ public class Cluster extends AbstractTenantResource {
     public void setAutoUnexportEnabled(Boolean autoUnexportEnabled) {
         this.autoUnexportEnabled = autoUnexportEnabled;
         setChanged("autoUnexportEnabled");
+    }
+
+    public boolean isAutoUnexportEnabled() {
+        return this.autoUnexportEnabled == null || this.autoUnexportEnabled;
     }
 }

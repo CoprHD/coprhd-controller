@@ -568,12 +568,12 @@ public class WorkflowService {
                 String dataPath = getZKStepDataPath(step.stepId);
                 Stat stat = _dataManager.checkExists(dataPath);
                 if (stat != null) {
-                    _dataManager.removeNode(dataPath, true);
+                    _dataManager.removeNode(dataPath);
                 }
             }
             // Destroy workflow data under /workflow/stepdata/{workflowId} directory
             String workflowDataPath = String.format(_zkStepDataPath, workflow.getWorkflowURI().toString());
-            _dataManager.removeNode(workflowDataPath);
+            _dataManager.removeNode(workflowDataPath, true);
 
             // Destroy the workflow under /workflow/workflows
             String path = getZKWorkflowPath(workflow);

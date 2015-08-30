@@ -110,21 +110,19 @@ public class SystemsMapper {
         to.setElementManagerURL(from.getElementManagerURL());
         return to;
     }
-    
-    
-    
-    public static VirtualNASRestRep map(VirtualNAS from){
-        if(from == null){
+
+    public static VirtualNASRestRep map(VirtualNAS from) {
+        if (from == null) {
             return null;
         }
-        
-        VirtualNASRestRep to= new VirtualNASRestRep();
+
+        VirtualNASRestRep to = new VirtualNASRestRep();
         mapDiscoveredDataObjectFields(from, to);
         to.setAssignedVirtualArrays(from.getAssignedVirtualArrays());
         to.setBaseDirPath(from.getBaseDirPath());
         to.setCompatibilityStatus(from.getCompatibilityStatus());
         to.setConnectedVirtualArrays(from.getConnectedVirtualArrays());
-        to.setDiscoveryStatus(from.getDiscoveryStatus());    
+        to.setDiscoveryStatus(from.getDiscoveryStatus());
         to.setNasName(from.getNasName());
         to.setName(from.getNasName());
         to.setNasState(from.getNasState());

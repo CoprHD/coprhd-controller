@@ -461,7 +461,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     }
     
     private VirtualNAS createVirtualNas(StorageSystem system, VNXVdm vdm) throws VNXFileCollectionException {
-
+    	
     	VirtualNAS vNas = new VirtualNAS();
     	
         if(vNas != null){
@@ -474,7 +474,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         	String nasNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                     system, vdm.getVdmId(), NativeGUIDGenerator.VIRTUAL_NAS);
         	vNas.setNativeGuid(nasNativeGuid);
-
+        	
         	PhysicalNAS parentNas = findPhysicalNasByNativeId(system, vdm.getMoverId());
         	if(parentNas != null){
         		vNas.setParentNAS(parentNas.getId());
@@ -502,7 +502,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     		String physicalNasNativeGuid = NativeGUIDGenerator.generateNativeGuid(
     				system, String.valueOf(dm.getId()), NativeGUIDGenerator.PHYSICAL_NAS);
     		phyNas.setNativeGuid(physicalNasNativeGuid);
-
     		_logger.info("Physical NAS created with guid {} ", phyNas.getNativeGuid());
 
     	}

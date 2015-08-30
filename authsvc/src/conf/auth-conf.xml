@@ -40,6 +40,7 @@
                 <bean class="com.emc.storageos.auth.service.impl.resource.AuthenticationResource" />
                 <bean class="com.emc.storageos.auth.service.impl.resource.PrincipalValidatorResource" />
                 <bean class="com.emc.storageos.auth.service.impl.resource.ReloadProviderResource" />
+                <bean class="com.emc.storageos.auth.service.impl.resource.ReloadAuthsvcPropertyResource" />
                 <bean class="com.emc.storageos.auth.service.impl.resource.UserTenantResource" />
                 <bean class="com.emc.storageos.svcs.errorhandling.mappers.ServiceCodeExceptionMapper"/>
                 <bean class="com.emc.storageos.auth.service.impl.resource.AuthnProviderValidatorResource">
@@ -69,9 +70,6 @@
     </bean>    
     <bean id="invalidLoginManager" class="com.emc.storageos.security.password.InvalidLoginManager">
         <property name="coordinator" ref="coordinator"/>
-        <property name="maxAuthnLoginAttemtsCount" value="10"/>
-        <property name="maxAuthnLoginAttemtsLifeTimeInMins" value="10"/>
-        <property name="cleanupThreadInitialDelay" value="10"/>
     </bean>
        
     <bean id="tokenManager" class="com.emc.storageos.auth.impl.CassandraTokenManager"/>

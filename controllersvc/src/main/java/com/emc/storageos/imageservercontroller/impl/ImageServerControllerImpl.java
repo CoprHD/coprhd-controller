@@ -749,7 +749,7 @@ public class ImageServerControllerImpl implements ImageServerController {
             log.info("connected to image server");
 
             log.info("putting pxe conf file");
-            pxeIntegrationService.createSession(d, job, img);
+            pxeIntegrationService.createSession(d, job, img, imageServer);
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException e) {

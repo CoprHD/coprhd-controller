@@ -4,6 +4,9 @@
  */
 package com.emc.storageos.db.client.model;
 
+import com.emc.storageos.db.client.upgrade.CustomMigrationCallback;
+import com.emc.storageos.db.client.upgrade.callbacks.ComputeImageServerMigration;
+
 /**
  * Model/ColumnFamily to represent ComputeImageServer
  * 
@@ -28,6 +31,7 @@ public class ComputeImageServer extends DataObject {
 
     private StringSet computeImage;
 
+    @CustomMigrationCallback(callback = ComputeImageServerMigration.class)
     @Name("imageServerIp")
     public String getImageServerIp() {
         return imageServerIp;

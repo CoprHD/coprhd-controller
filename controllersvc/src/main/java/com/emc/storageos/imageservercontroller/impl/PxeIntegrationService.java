@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.model.ComputeImage;
 import com.emc.storageos.db.client.model.ComputeImageJob;
-import com.emc.storageos.imageservercontroller.ImageServerConf;
+import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.imageservercontroller.exceptions.ImageServerControllerException;
 
 public class PxeIntegrationService {
@@ -33,15 +33,11 @@ public class PxeIntegrationService {
     private static final String RHEL_FIRSTBOOT_SH = "imageserver/rhel-firstboot.sh";
     private static final String ESXI_FIRSTBOOT_SH = "imageserver/esxi-firstboot.sh";
 
-    private ImageServerConf imageServerConf;
+   
 
-    public void setImageServerConf(ImageServerConf imgServConf) {
-        this.imageServerConf = imgServConf;
-    }
-
-    public void createSession(ImageServerDialog d, ComputeImageJob job, ComputeImage ci) {
+    public void createSession(ImageServerDialog d, ComputeImageJob job, ComputeImage ci, ComputeImageServer imageServer) {
         if (ci._isEsxi5x()) {
-            createEsxi5xSession(d, job, ci);
+            createEsxi5xSession(d, job, ci, imageServer);
         } /*
            * else if (os._isEsx4x()) {
            * createEsx4xUuidConfigFile(session, os);
@@ -61,7 +57,7 @@ public class PxeIntegrationService {
      * @param session
      * @param os
      */
-    private void createEsxi5xSession(ImageServerDialog d, ComputeImageJob job, ComputeImage ci) {
+    private void createEsxi5xSession(ImageServerDialog d, ComputeImageJob job, ComputeImage ci, ComputeImageServer imageServer) {
         // create uuid file
         String s = ImageServerUtils.getResourceAsString(ESXI5X_UUID_TEMPLATE);
         StringBuilder sb = new StringBuilder(s);
@@ -70,45 +66,45 @@ public class PxeIntegrationService {
         ImageServerUtils.replaceAll(sb, "${pxe_identifier}", job.getPxeBootIdentifier());
         String content = sb.toString();
         log.trace(content);
-        d.writeFile(imageServerConf.getTftpbootDir() + PXELINUX_CFG_DIR + job.getPxeBootIdentifier(), content);
+        d.writeFile(imageServer.getTftpbootDir() + PXELINUX_CFG_DIR + job.getPxeBootIdentifier(), content);
 
         // create uuid.boot.cfg - only for esxi 5
-        s = d.readFile(imageServerConf.getTftpbootDir() + ci.getPathToDirectory() + "/boot.cfg");
+        s = d.readFile(imageServer.getTftpbootDir() + ci.getPathToDirectory() + "/boot.cfg");
         sb = new StringBuilder(s.trim());
         ImageServerUtils.replaceAll(sb, "/", "/" + ci.getPathToDirectory());
         ImageServerUtils.replaceAll(sb, "runweasel", "runweasel vmkopts=debugLogToSerial:1 mem=512M ks=http://"
-                + imageServerConf.getImageServerSecondIp() + ":" + imageServerConf.getImageServerHttpPort() + "/ks/"
+                + imageServer.getImageServerSecondIp() + ":" + imageServer.getImageServerHttpPort() + "/ks/"
                 + job.getPxeBootIdentifier() + " kssendmac");
 
         content = sb.toString();
         log.trace(content);
-        d.writeFile(imageServerConf.getTftpbootDir() + PXELINUX_CFG_DIR + job.getPxeBootIdentifier() + ".boot.cfg", content);
+        d.writeFile(imageServer.getTftpbootDir() + PXELINUX_CFG_DIR + job.getPxeBootIdentifier() + ".boot.cfg", content);
 
         // create kick-start
-        content = generateKickstart(job, ci);
-        d.writeFile(imageServerConf.getTftpbootDir() + HTTP_KICKSTART_DIR + job.getPxeBootIdentifier(), content);
+        content = generateKickstart(job, ci, imageServer);
+        d.writeFile(imageServer.getTftpbootDir() + HTTP_KICKSTART_DIR + job.getPxeBootIdentifier(), content);
 
         // create first boot
         content = generateFirstboot(job, ci);
-        d.writeFile(imageServerConf.getTftpbootDir() + HTTP_FIRSTBOOT_DIR + job.getPxeBootIdentifier(), content);
+        d.writeFile(imageServer.getTftpbootDir() + HTTP_FIRSTBOOT_DIR + job.getPxeBootIdentifier(), content);
 
         // remove these in case there was previous installation that succeeded or failed after we timed out
-        d.rm(imageServerConf.getTftpbootDir() + HTTP_SUCCESS_DIR + job.getPxeBootIdentifier());
-        d.rm(imageServerConf.getTftpbootDir() + HTTP_FAILURE_DIR + job.getPxeBootIdentifier());
+        d.rm(imageServer.getTftpbootDir() + HTTP_SUCCESS_DIR + job.getPxeBootIdentifier());
+        d.rm(imageServer.getTftpbootDir() + HTTP_FAILURE_DIR + job.getPxeBootIdentifier());
     }
 
-    private String generateKickstart(ComputeImageJob job, ComputeImage ci) {
+    private String generateKickstart(ComputeImageJob job, ComputeImage ci, ComputeImageServer imageServer) {
         log.info("generateKickstart for sess: " + job.getId());
         String content = null;
         if (ci._isLinux()) {
             // content = generateKickstartLinux(session, os);
         } else {
-            content = generateKickstartEsxEsxi(job, ci);
+            content = generateKickstartEsxEsxi(job, ci, imageServer);
         }
         return content;
     }
 
-    private String generateKickstartEsxEsxi(ComputeImageJob job, ComputeImage ci) {
+    private String generateKickstartEsxEsxi(ComputeImageJob job, ComputeImage ci, ComputeImageServer imageServer) {
         log.info("generateKickstartEsxEsxi");
         String clearDevice = "--firstdisk";
         String installDevice = "--firstdisk";
@@ -145,8 +141,8 @@ public class PxeIntegrationService {
         // common parameters for all versions
         ImageServerUtils.replaceAll(sb, "${clear.device}", clearDevice);
         ImageServerUtils.replaceAll(sb, "${install.device}", installDevice);
-        ImageServerUtils.replaceAll(sb, "${http.ip}", imageServerConf.getImageServerSecondIp());
-        ImageServerUtils.replaceAll(sb, "${http.port}", imageServerConf.getImageServerHttpPort());
+        ImageServerUtils.replaceAll(sb, "${http.ip}", imageServer.getImageServerSecondIp());
+        ImageServerUtils.replaceAll(sb, "${http.port}", imageServer.getImageServerHttpPort());
         ImageServerUtils.replaceAll(sb, "${session.id}", job.getPxeBootIdentifier());
         str = sb.toString();
         log.trace(str);
@@ -185,12 +181,12 @@ public class PxeIntegrationService {
      * StringBuilder sb = new StringBuilder(s);
      * ImageServerUtils.replaceAll(sb, "${os_full_name}", os.getLabel());
      * ImageServerUtils.replaceAll(sb, "${os_path}", os.getLabel());
-     * ImageServerUtils.replaceAll(sb, "${http.ip}", imageServerConf.getTftpServerIp());
-     * ImageServerUtils.replaceAll(sb, "${http.port}", imageServerConf.getImageServerHttpPort());
+     * ImageServerUtils.replaceAll(sb, "${http.ip}", imageServer.getTftpServerIp());
+     * ImageServerUtils.replaceAll(sb, "${http.port}", imageServer.getImageServerHttpPort());
      * ImageServerUtils.replaceAll(sb, "${session.id}", session.getId().toString());
      * String content = sb.toString();
      * log.trace(content);
-     * ImageServerUtils.writeFile(imageServerConf.getTftpBootDir() + "/pxelinux.cfg/" + session.getPxeBootIdentifier(), content);
+     * ImageServerUtils.writeFile(imageServer.getTftpBootDir() + "/pxelinux.cfg/" + session.getPxeBootIdentifier(), content);
      * }
      */
 
@@ -219,10 +215,10 @@ public class PxeIntegrationService {
      * ImageServerUtils.replaceAll(sb, "${boot.device.uuid}", "");
      * }
      * ImageServerUtils.replaceAll(sb, "${os_path}", os.getLabel());
-     * ImageServerUtils.replaceAll(sb, "${root.password}", imageServerConf.getDefaultPasswordHas());
-     * ImageServerUtils.replaceAll(sb, "${http.ip}", imageServerConf.getTftpServerIp());
-     * ImageServerUtils.replaceAll(sb, "${http.port}", imageServerConf.getImageServerHttpPort());
-     * ImageServerUtils.replaceAll(sb, "${http.files.port}", imageServerConf.getHttpFileServerPort());
+     * ImageServerUtils.replaceAll(sb, "${root.password}", imageServer.getDefaultPasswordHas());
+     * ImageServerUtils.replaceAll(sb, "${http.ip}", imageServer.getTftpServerIp());
+     * ImageServerUtils.replaceAll(sb, "${http.port}", imageServer.getImageServerHttpPort());
+     * ImageServerUtils.replaceAll(sb, "${http.files.port}", imageServer.getHttpFileServerPort());
      * ImageServerUtils.replaceAll(sb, "${session.id}", session.getId().toString());
      * String str = sb.toString();
      * log.trace(str);

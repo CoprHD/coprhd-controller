@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.commons.httpclient.Header;
 import org.apache.commons.httpclient.methods.PostMethod;
@@ -17,6 +18,9 @@ import com.emc.nas.vnxfile.xmlapi.ResponsePacket;
 import com.emc.nas.vnxfile.xmlapi.Severity;
 import com.emc.nas.vnxfile.xmlapi.Status;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.PhysicalNAS;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.plugins.metering.vnxfile.VNXFileConstants;
@@ -80,6 +84,7 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
         Map<String, List<String>> fsMountvNASMap = new HashMap<String, List<String>>();
         Map<String, List<String>> fsMountPhyNASMap = new HashMap<String, List<String>>();
         List<String> fsList = null;
+
         
         Iterator<Object> iterator = mountList.iterator();
         if (iterator.hasNext()) {
@@ -112,13 +117,29 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
                     _logger.info("mount fs object fssize: {} and Mover: {}", String.valueOf(fsList.size()), mount.getMover());
                 }
                 
-                //process virtual nas 
+               
+                
                 if(!fsMountvNASMap.isEmpty()) {
                     _logger.info("virtual mover size: {} ", String.valueOf(fsMountvNASMap.size()));
+                    for (Entry<String, List<String>> entry : fsMountvNASMap.entrySet()) {
+                        VirtualNAS virtualNAS = null;
+                        String moverId = entry.getKey();
+                        //prepareDBMetrics(fsList, fsCapList, snapCapFsMap, virtualNAS.getMetrics());
+                    
+                    }
+                    
                     
                 }
                 //physical nas
                 if(!fsMountPhyNASMap.isEmpty()) {
+                    PhysicalNAS physicalNAS = null;
+                    _logger.info("virtual mover size: {} ", String.valueOf(fsMountPhyNASMap.size()));
+                    for (Entry<String, List<String>> entry : fsMountPhyNASMap.entrySet()) {
+                        PhysicalNAS phyNAS = null;
+                        String moverId = entry.getKey();
+                        //prepareDBMetrics(fsList, fsCapList, snapCapFsMap, virtualNAS.getMetrics());
+                    
+                    }
                     
                 }
                 
@@ -130,5 +151,41 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
         }
 
     }
+    
+    private void prepareDBMetrics(List<String> fsList, 
+            final Map<String, Long> fsCapList, 
+            final Map<String, Map<String, Long>> snapCapFsMap, StringMap dbMetrics) {
+        
+        //process virtual nas
+        Long totalFSCap = 0L;
+        Long totalSnapCap = 0L;
+        long fsCount = 0;
+        long snapCount = 0;
+        
+        Map<String, Long> snapCapMap = null;
+        if(fsList != null && !fsList.isEmpty()) {
+            for(String fsId: fsList) {
+                //no of snapshot
+                snapCapMap = (Map<String, Long>)snapCapFsMap.get(fsId);
+                if(snapCapMap  != null && !snapCapMap.isEmpty()) {
+                    snapCount = snapCount + snapCapMap.size();
+                    for (Entry<String, Long> snapCapacity : snapCapMap.entrySet()) {
+                        totalSnapCap = totalSnapCap + snapCapacity.getValue();
+                    }
+                }
+                totalFSCap = totalFSCap + (Long)fsCapList.get(fsId);
+            }
+        }
+        //total fs capacity
+        fsCount = fsCount + fsList.size();
+        
+        // set the values dbMetrics
+        long totalObjects = fsCount + snapCount;
+        long totalCap = totalFSCap + totalSnapCap;
+        
+    
+        return;
+    }
+  
 
 }

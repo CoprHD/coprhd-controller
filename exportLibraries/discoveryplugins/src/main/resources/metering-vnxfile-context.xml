@@ -25,7 +25,7 @@
 		<property name="nsList">
 			<map>
 				<entry key="metering-file" value-ref="vnxfilenamespace" />
-				<entry key="vnx-file-static-load-metrics" value-ref="vnxfilestaticloadnamespace" />
+				
             </map>
 		</property>
 	</bean>

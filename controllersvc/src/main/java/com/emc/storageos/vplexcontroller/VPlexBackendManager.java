@@ -995,10 +995,9 @@ public class VPlexBackendManager {
         // This is required as the export mask gets updated by reading the cinder response.
         if(isOpenStack) {
             
-            // START - validateExportMask Step
-            Set<URI> invalidMasks = new HashSet<URI>();
+            // START - validateExportMask Step            
             Workflow.Method validateMaskMethod = ((VplexCinderMaskingOrchestrator) orca).validateExportMaskMethod(varrayURI,
-                    _initiatorPortMap, exportMask, invalidMasks, _directorToInitiatorIds, _idToInitiatorMap, _portWwnToClusterMap);
+                    _initiatorPortMap, exportMask.getId(), _directorToInitiatorIds, _idToInitiatorMap, _portWwnToClusterMap);
             workflow.createStep(REVALIDATE_MASK, "revalidateExportMask: " + exportMask.getMaskName(),
                     maskStepId, array.getId(), array.getSystemType(), orca.getClass(), validateMaskMethod, null, reValidateExportMaskStep);
             // END - validateExportMask Step

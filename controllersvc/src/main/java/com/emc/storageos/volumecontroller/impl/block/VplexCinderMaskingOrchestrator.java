@@ -182,14 +182,13 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
      * @return
      */
     public Method validateExportMaskMethod(URI varrayURI,
-            Map<URI, List<StoragePort>> initiatorPortMap, ExportMask mask, Set<URI> invalidMasks,
+            Map<URI, List<StoragePort>> initiatorPortMap, URI exportMaskURI,
             Map<String, Set<String>> directorToInitiatorIds, Map<String, Initiator> idToInitiatorMap,
             Map<String, String> portWwnToClusterMap) {
         return new Workflow.Method("validateExportMask",
                 varrayURI,
                 initiatorPortMap,
-                mask,
-                invalidMasks,
+                exportMaskURI,
                 directorToInitiatorIds,
                 idToInitiatorMap,
                 portWwnToClusterMap);
@@ -213,12 +212,25 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
      * @param portWwnToClusterMap
      */
     public void validateExportMask(URI varrayURI,
-            Map<URI, List<StoragePort>> initiatorPortMap, ExportMask mask, Set<URI> invalidMasks,
+            Map<URI, List<StoragePort>> initiatorPortMap, URI exportMaskURI,
             Map<String, Set<String>> directorToInitiatorIds, Map<String, Initiator> idToInitiatorMap,
-            Map<String, String> portWwnToClusterMap) {
+            Map<String, String> portWwnToClusterMap, String stepId) {
         
-        VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI, initiatorPortMap, mask, invalidMasks, directorToInitiatorIds,
-                idToInitiatorMap, _dbClient, portWwnToClusterMap);
+        try {
+            WorkflowStepCompleter.stepExecuting(stepId);
+            
+            // Export Mask is updated, read it from DB
+            ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI, initiatorPortMap, exportMask, null, directorToInitiatorIds,
+                    idToInitiatorMap, _dbClient, portWwnToClusterMap);
+            
+            WorkflowStepCompleter.stepSucceded(stepId);
+            
+        } catch (Exception ex) {
+            _log.error("Failed to validate export mask for cinder: ", ex);
+            VPlexApiException vplexex = DeviceControllerExceptions.vplex.addStepsForCreateVolumesFailed(ex);
+            WorkflowStepCompleter.stepFailed(stepId, vplexex);
+        }
         
     }
 
@@ -314,7 +326,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             }
 
         } catch (Exception ex) {
-            _log.error("Failed to create or add volumes to export mask for vmax: ", ex);
+            _log.error("Failed to create or add volumes to export mask for cinder: ", ex);
             VPlexApiException vplexex = DeviceControllerExceptions.vplex.addStepsForCreateVolumesFailed(ex);
             WorkflowStepCompleter.stepFailed(stepId, vplexex);
         }

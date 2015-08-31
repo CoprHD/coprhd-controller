@@ -130,7 +130,10 @@ public class VPlexBackEndOrchestratorUtil {
                     _log.info(String.format(
                             "ExportMask %s disqualified because it only has %d back-end ports from %s (requires two)",
                             mask.getMaskName(), portsInDirector, director));
-                    invalidMasks.add(mask.getId());
+                    if(null!=invalidMasks) {
+                        invalidMasks.add(mask.getId());
+                    }
+                    
                     passed = false;
                 } else {    // non ViPR created
                     _log.info(String.format(
@@ -197,7 +200,9 @@ public class VPlexBackEndOrchestratorUtil {
             _log.info(String.format("Validation of ExportMask %s passed; it has %d volumes",
                     mask.getMaskName(), volumeCount));
         } else {
-            invalidMasks.add(mask.getId());
+            if(null!=invalidMasks) {
+                invalidMasks.add(mask.getId());
+            }
         }
         return passed;
     }

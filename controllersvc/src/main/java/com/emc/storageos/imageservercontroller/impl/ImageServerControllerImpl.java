@@ -435,90 +435,10 @@ public class ImageServerControllerImpl implements ImageServerController {
         ImageServerDialog d = null;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
-
             ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class,imageServerId);
 
             ComputeImage ci = dbClient.queryObject(ComputeImage.class, ciId);
-
-            sanitizeUrl(ci.getImageUrl());
-
-            String ts = String.valueOf(System.currentTimeMillis());
-            String[] tokens = ci.getImageUrl().split("/");
-            String imageName = tokens[tokens.length - 1];
-            String imagePath = TMP + "/" + imageName;
-            String tempDir = TMP + "/os" + ts + "/";
-
-            SSHSession session = new SSHSession();
-            session.connect(imageServer.getImageServerIp(), imageServer.getSshPort(),
-                    imageServer.getImageServerUser(), imageServer.getImageServerPassword());
-            d = new ImageServerDialog(session, imageServer.getSshTimeoutMs());
-            d.init();
-            log.info("connected to image server");
-
-            log.info("cd to {}", TMP);
-            d.cd(TMP);
-
-            log.info("download image");
-            // CTRL-12030: special characters in URL's password cause issues on Image Server. Adding quotes.
-            boolean res = d.wget("'" + ci.getImageUrl() + "'", imageName, imageServer.getImageImportTimeoutMs());
-
-            if (res) {
-                log.info("downloaded image successfully");
-            } else {
-                throw ImageServerControllerException.exceptions.fileDownloadFailed(ci.getImageUrl());
-            }
-
-            log.info("create temp dir {}", tempDir);
-            d.mkdir(tempDir);
-
-            log.info("mount image onto temp dir");
-            d.mount(imageName, tempDir);
-
-            log.info("Analyze metadata");
-            ComputeImage osMetadata = getOsMetadata(d, imagePath, tempDir);
-
-            isSupportedImage(osMetadata);
-
-            // make sure it is not already loaded
-            List<URI> ids = dbClient.queryByType(ComputeImage.class, true);
-            Iterator<ComputeImage> iter = dbClient.queryIterativeObjects(ComputeImage.class, ids);
-            while (iter.hasNext()) {
-                ComputeImage existingImage = iter.next();
-                if (osMetadata.fullName().equals(existingImage.getImageName())) {
-                    log.error("This image is already imported, id: {}", existingImage.getId());
-                    cleanupTemp(d, tempDir, imagePath);
-                    throw ImageServerControllerException.exceptions.duplicateImage(osMetadata.fullName());
-                }
-            }
-            log.info("Compute image '" + osMetadata.fullName() + "' will be loaded.");
-
-            // copy OS into TFTP boot directory
-            String targetDir = imageServer.getTftpbootDir() + imageServer.getImageDir() + osMetadata.fullName();
-
-            d.rm(targetDir);
-
-            log.info("Saving image into target directory " + targetDir);
-            d.cpDir(tempDir, targetDir);
-            log.info("Saved");
-
-            log.info("Change target directory permissions to 755");
-            d.chmodDir("755", targetDir);
-
-            // save in DB
-            ci.setOsName(osMetadata.getOsName());
-            ci.setOsVersion(osMetadata.getOsVersion());
-            ci.setOsUpdate(osMetadata.getOsUpdate());
-            ci.setOsBuild(osMetadata.getOsBuild());
-            ci.setOsArchitecture(osMetadata.getOsArchitecture());
-            ci.setCustomName(osMetadata.getCustomName());
-            ci.setPathToDirectory(imageServer.getImageDir() + osMetadata.fullName() + "/");
-            ci.setImageName(osMetadata.fullName());
-            ci.setImageType(osMetadata.getImageType());
-
-            dbClient.persistObject(ci);
-
-            // clean up
-            cleanupTemp(d, tempDir, imagePath);
+            importImage(imageServer, ci, d);
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException e) {
@@ -537,6 +457,96 @@ public class ImageServerControllerImpl implements ImageServerController {
                 log.error("failed to close image server dialog", e);
             }
         }
+    }
+
+    /**
+     * Utility method to import an image to the given computeimage server
+     * @param imageServer {@link ComputeImageServer} instance.
+     * @param ci {@link ComputeImage} instance
+     * @param imageserverDialog {@link ImageServerDialog} instance
+     * @throws Exception
+     */
+    private void importImage(ComputeImageServer imageServer, ComputeImage ci, ImageServerDialog imageserverDialog) throws Exception
+    {
+        sanitizeUrl(ci.getImageUrl());
+
+        String ts = String.valueOf(System.currentTimeMillis());
+        String[] tokens = ci.getImageUrl().split("/");
+        String imageName = tokens[tokens.length - 1];
+        String imagePath = TMP + "/" + imageName;
+        String tempDir = TMP + "/os" + ts + "/";
+
+        SSHSession session = new SSHSession();
+        session.connect(imageServer.getImageServerIp(), imageServer.getSshPort(),
+                imageServer.getImageServerUser(), imageServer.getImageServerPassword());
+        imageserverDialog = new ImageServerDialog(session, imageServer.getSshTimeoutMs());
+        imageserverDialog.init();
+        log.info("connected to image server");
+
+        log.info("cd to {}", TMP);
+        imageserverDialog.cd(TMP);
+
+        log.info("download image");
+        // CTRL-12030: special characters in URL's password cause issues on Image Server. Adding quotes.
+        boolean res = imageserverDialog.wget("'" + ci.getImageUrl() + "'", imageName, imageServer.getImageImportTimeoutMs());
+
+        if (res) {
+            log.info("downloaded image successfully");
+        } else {
+            throw ImageServerControllerException.exceptions.fileDownloadFailed(ci.getImageUrl());
+        }
+
+        log.info("create temp dir {}", tempDir);
+        imageserverDialog.mkdir(tempDir);
+
+        log.info("mount image onto temp dir");
+        imageserverDialog.mount(imageName, tempDir);
+
+        log.info("Analyze metadata");
+        ComputeImage osMetadata = getOsMetadata(imageserverDialog, imagePath, tempDir);
+
+        isSupportedImage(osMetadata);
+
+        // make sure it is not already loaded
+        List<URI> ids = dbClient.queryByType(ComputeImage.class, true);
+        Iterator<ComputeImage> iter = dbClient.queryIterativeObjects(ComputeImage.class, ids);
+        while (iter.hasNext()) {
+            ComputeImage existingImage = iter.next();
+            if (osMetadata.fullName().equals(existingImage.getImageName())) {
+                log.error("This image is already imported, id: {}", existingImage.getId());
+                cleanupTemp(imageserverDialog, tempDir, imagePath);
+                throw ImageServerControllerException.exceptions.duplicateImage(osMetadata.fullName());
+            }
+        }
+        log.info("Compute image '" + osMetadata.fullName() + "' will be loaded.");
+
+        // copy OS into TFTP boot directory
+        String targetDir = imageServer.getTftpbootDir() + imageServer.getImageDir() + osMetadata.fullName();
+
+        imageserverDialog.rm(targetDir);
+
+        log.info("Saving image into target directory " + targetDir);
+        imageserverDialog.cpDir(tempDir, targetDir);
+        log.info("Saved");
+
+        log.info("Change target directory permissions to 755");
+        imageserverDialog.chmodDir("755", targetDir);
+
+        // save in DB
+        ci.setOsName(osMetadata.getOsName());
+        ci.setOsVersion(osMetadata.getOsVersion());
+        ci.setOsUpdate(osMetadata.getOsUpdate());
+        ci.setOsBuild(osMetadata.getOsBuild());
+        ci.setOsArchitecture(osMetadata.getOsArchitecture());
+        ci.setCustomName(osMetadata.getCustomName());
+        ci.setPathToDirectory(imageServer.getImageDir() + osMetadata.fullName() + "/");
+        ci.setImageName(osMetadata.fullName());
+        ci.setImageType(osMetadata.getImageType());
+
+        dbClient.persistObject(ci);
+
+        // clean up
+        cleanupTemp(imageserverDialog, tempDir, imagePath);
     }
 
     @Override
@@ -877,6 +887,12 @@ public class ImageServerControllerImpl implements ImageServerController {
         WorkflowStepCompleter.stepSucceded(stepId);
     }
 
+    /**
+     * Method to verify and impport images on the imageserver
+     *
+     * @param task {@link AsyncTask} instance
+     *
+     */
     @Override
     public void verifyImageServerAndImportImages(AsyncTask task) {
         TaskCompleter completer = null;
@@ -907,6 +923,11 @@ public class ImageServerControllerImpl implements ImageServerController {
         }
     }
 
+    /**
+     * This method imports all exisiting images to the given Image server
+     * @param imageServerID {@link URI} imageServer URI
+     * @param stepId workflow step id
+     */
     public void importImagesToServer(URI imageServerID, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);
         log.info("Executing method importImagesToServer");
@@ -915,12 +936,10 @@ public class ImageServerControllerImpl implements ImageServerController {
         List<URI> imageURIList = dbClient.queryByType(ComputeImage.class, true);
         if (imageURIList == null || !imageURIList.iterator().hasNext()) {
             log.info("There are no images to be imported.");
-            //WorkflowStepCompleter.stepSucceded(stepId);
         }else {
             List<ComputeImage> imageList = dbClient.queryObject(ComputeImage.class, imageURIList);
             if (CollectionUtils.isEmpty(imageList)) {
                 log.error("Could not find the ComputeImage's for the Ids {}", imageList.toString());
-                //WorkflowStepCompleter.stepSucceded(stepId);
             } else {
                 String taskId = UUID.randomUUID().toString();
                 Operation op = new Operation();
@@ -935,38 +954,74 @@ public class ImageServerControllerImpl implements ImageServerController {
                                 "Importing image for %s", imageServerID), null,
                                 imageServerID, imageServerID.toString(), this
                                         .getClass(), new Workflow.Method(
-                                        "arunImportImage", imageServer,
+                                        "performImportImage", imageServer,
                                         computeImage), null, null);
                     }
                 }
                 workflow.executePlan(completer, "Success");
             }
         }
-
-        //StringSet computeImagesSet = imageServer.getComputeImage();
-
-        /*for (String computeImageURI : computeImagesSet) {
-
-        }*/
         WorkflowStepCompleter.stepSucceded(stepId);
         log.info("exiting method importImagesToServer");
     }
 
-    public void arunImportImage(ComputeImageServer imageServer, ComputeImage image, String stepId)
+    /**
+     * Method to perform an image import to the specified imagegserver
+     * @param imageServer {@link ComputeImageServer} instance
+     * @param image {@link ComputeImage} instance
+     * @param stepId workflow stepid being executed.
+     */
+    public void performImportImage(ComputeImageServer imageServer, ComputeImage image, String stepId)
     {
         WorkflowStepCompleter.stepExecuting(stepId);
-        log.info("Executing method importImagesToServer");
-        WorkflowStepCompleter.stepSucceded(stepId);
+        log.info("Executing method performImportImage");
+        ImageServerDialog d = null;
+        try {
+            importImage(imageServer, image, d);
+            WorkflowStepCompleter.stepSucceded(stepId);
+        } catch (InternalException e) {
+            log.error("Exception importing image: " + e.getMessage(), e);
+            WorkflowStepCompleter.stepFailed(stepId, e);
+        } catch (Exception e) {
+            log.error("Unexpected exception importing image: " + e.getMessage(), e);
+            String opName = ResourceOperationTypeEnum.IMPORT_IMAGE.getName();
+            WorkflowStepCompleter.stepFailed(stepId, ImageServerControllerException.exceptions.unexpectedException(opName, e));
+        } finally {
+            try {
+                if (d != null && d.isConnected()) {
+                    d.close();
+                }
+            } catch (Exception e) {
+                log.error("failed to close image server dialog", e);
+            }
+        }
     }
 
+    /**
+     * This method verifies if the given image Server is a valid imageServer.
+     * @param imageServerId {@link URI} of ComputeImageServer
+     * @param stepId workflow stepid being executed.
+     */
     public void verifyComputeImageServer(URI imageServerId, String stepId) {
         log.info("entering method verifyComputeImageServer");
         WorkflowStepCompleter.stepExecuting(stepId);
-        //URI computeImageServerID = imageServerId;
-        WorkflowStepCompleter.stepSucceded(stepId);
 
         ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class, imageServerId);
 
-        verifyImageServer(imageServer);
+        if(verifyImageServer(imageServer))
+        {
+            WorkflowStepCompleter.stepSucceded(stepId);
+        }else
+        {
+            log.error("Unable to verify imageserver");
+            WorkflowStepCompleter
+                    .stepFailed(
+                            stepId,
+                            ImageServerControllerException.exceptions
+                                    .unexpectedException(
+                                            OperationTypeEnum.CREATE_COMPUTE_IMAGESERVER.name(),
+                                            new Exception(
+                                                    "Unable to verify imageserver")));
+        }
     }
 }

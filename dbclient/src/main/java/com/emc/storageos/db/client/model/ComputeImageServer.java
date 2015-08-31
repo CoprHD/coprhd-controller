@@ -4,9 +4,9 @@
  */
 package com.emc.storageos.db.client.model;
 
-import com.emc.storageos.model.valid.EnumType;
 import com.emc.storageos.db.client.upgrade.CustomMigrationCallback;
 import com.emc.storageos.db.client.upgrade.callbacks.ComputeImageServerMigration;
+import com.emc.storageos.model.valid.EnumType;
 /**
  * Model/ColumnFamily to represent ComputeImageServer
  *
@@ -22,7 +22,7 @@ public class ComputeImageServer extends DataObject {
     private String tftpbootDir;
     private String imageDir;
     private String imageServerSecondIp;
-    private String imageServerHttpPort;
+    private String imageServerHttpPort="44491";
     private Integer sshPort = 22;
     private Integer sshTimeoutMs = 10000;
     private Integer imageImportTimeoutMs = 1800000;

@@ -85,6 +85,7 @@ public class StorageSystems extends ViprResourceController {
     protected static final String REGISTER_ERROR = "PhysicalAssets.registration.error";
     protected static final String UNKNOWN_PORT = "storageArrayPort.unknown";
     protected static final String NOT_REGISTERED = "StorageSystems.not.registered";
+    protected static final String SCALEIO = "scaleio";
 
     private static void addReferenceData() {
         renderArgs.put("storageArrayTypeList", Arrays.asList(StorageSystemTypes.OPTIONS));
@@ -146,7 +147,7 @@ public class StorageSystems extends ViprResourceController {
         StorageSystemRestRep storageSystem = StorageSystemUtils.getStorageSystem(id);
         if (storageSystem != null) {
             StorageSystemForm storageArray = new StorageSystemForm(storageSystem);
-            if (storageArray.type.equals("scaleio")) {
+            if (storageArray.type.equals(SCALEIO)) {
             	renderArgs.put("storageArrayTypeList", Arrays.asList(StorageSystemTypes.SMIS_OPTIONS));
             }
             if (storageArray.unregistered) {

@@ -155,7 +155,7 @@ public class DBClient {
      * @param clazz
      * @param <T>
      */
-    private <T extends DataObject> int queryAndPrintRecords(List<URI> ids, Class<T> clazz)
+    private <T extends DataObject> int queryAndPrintRecords(List<URI> ids, Class<T> clazz, Map<String, String> criterias)
             throws Exception {
 
         Iterator<T> objects;
@@ -166,12 +166,15 @@ public class DBClient {
 
         try {
             objects = _dbClient.queryIterativeObjects(clazz, ids);
+            boolean isPrint = true;
             while (objects.hasNext()) {
                 T object = (T) objects.next();
-                printBeanProperties(clazz, object);
+                isPrint = printBeanProperties(clazz, object, criterias);
+                if (isPrint) {
+                    countLimit++;
+                    countAll++;
+                }
                 
-                countLimit++;
-                countAll++;
                 if (!turnOnLimit || countLimit != listLimit) {
                     continue;
                 }
@@ -215,19 +218,25 @@ public class DBClient {
             return;
         }
 
-        printBeanProperties(clazz, object);
+        printBeanProperties(clazz, object, null);
     }
 
     /**
-     * Print the contents in human readable format
      * 
-     * @param pds
+     * @param clazz
      * @param object
+     * @param criterias
+     *            Filter with some verify simple criteria
+     * @return Whether this record is print out
      * @throws Exception
      */
-    private <T extends DataObject> void printBeanProperties(Class<T> clazz, T object)
+    private <T extends DataObject> boolean printBeanProperties(Class<T> clazz, T object, Map<String, String> criterias)
             throws Exception {
-        System.out.println("id: " + object.getId().toString());
+        Map<String, String> localCriterias = new HashMap<>(criterias);
+        StringBuffer record = new StringBuffer();
+        record.append("id: " + object.getId().toString() + "\n");
+        boolean isPrint = true;
+        
         BeanInfo bInfo;
         try {
             bInfo = Introspector.getBeanInfo(clazz);
@@ -255,6 +264,19 @@ public class DBClient {
             }
 
             objValue = pd.getReadMethod().invoke(object);
+            
+            if(localCriterias !=null && !localCriterias.isEmpty()) {
+                if(localCriterias.containsKey(objKey)) {
+                    if(!localCriterias.get(objKey).equalsIgnoreCase(String.valueOf(objValue))) {
+                        isPrint = false;
+                        break;
+                    }
+                    else {
+                        localCriterias.remove(objKey);
+                    }
+                }
+            }
+            
             if (objValue == null) {
                 ignoreList.add(objKey);
                 continue;
@@ -265,25 +287,25 @@ public class DBClient {
                 continue;
             }
             
-            System.out.print("\t" + objKey + " = ");
+            record.append("\t" + objKey + " = ");
 
             Encrypt encryptAnnotation = pd.getReadMethod().getAnnotation(Encrypt.class);
             if (encryptAnnotation != null) {
-                System.out.println("*** ENCRYPTED CONTENT ***");
+                record.append("*** ENCRYPTED CONTENT ***\n");
                 continue;
             }
 
             type = pd.getPropertyType();
             if (type == URI.class) {
-                System.out.println("URI: " + objValue);
+                record.append("URI: " + objValue + "\n");
             } else if (type == StringMap.class) {
-                System.out.println("StringMap " + objValue);
+                record.append("StringMap " + objValue + "\n");
             } else if (type == StringSet.class) {
-                System.out.println("StringSet " + objValue);
+                record.append("StringSet " + objValue + "\n");
             } else if (type == OpStatusMap.class) {
-                System.out.println("OpStatusMap " + objValue);
+                record.append("OpStatusMap " + objValue + "\n");
             } else {
-                System.out.println(objValue);
+                record.append(objValue + "\n");
             }
         }
         
@@ -291,11 +313,24 @@ public class DBClient {
             Column<CompositeColumnName> latestField = _dbClient.getLatestModifiedField(
                     TypeMap.getDoType(clazz), object.getId(), ignoreList);
             if (latestField != null)
-                System.out.println(String.format(
+                record.append(String.format(
                         "The latest modified time is %s on Field(%s).\n", new Date(
                                 latestField.getTimestamp() / 1000), latestField.getName()
                                 .getOne()));
         }
+        
+        if (isPrint) {
+            if (localCriterias != null && !localCriterias.isEmpty()) {
+                String errMsg = String.format(
+                        "The filters %s are not available for the CF %s",
+                        localCriterias.keySet(), clazz);
+                throw new IllegalArgumentException(errMsg);
+            } else {
+                System.out.println(record.toString());
+            }
+        }
+        
+        return isPrint;
     }
 
     private boolean isEmptyStr(Object objValue) {
@@ -333,7 +368,7 @@ public class DBClient {
      * @throws Exception
      */
     @SuppressWarnings("unchecked")
-    public void listRecords(String cfName) throws Exception {
+    public void listRecords(String cfName, Map<String, String> criterias) throws Exception {
         final Class clazz = _cfMap.get(cfName); // fill in type from cfName
         if (clazz == null) {
             System.err.println("Unknown Column Family: " + cfName);
@@ -349,7 +384,7 @@ public class DBClient {
             System.out.println("No records found");
             return;
         }
-        int count = queryAndPrintRecords(uris, clazz);
+        int count = queryAndPrintRecords(uris, clazz, criterias);
         System.out.println("Number of All Records is: " + count);
     }
 

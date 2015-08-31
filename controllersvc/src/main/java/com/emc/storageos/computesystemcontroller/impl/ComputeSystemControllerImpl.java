@@ -539,7 +539,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 Iterator<URI> updatedHostsIterator = updatedHosts.iterator();
                 while (updatedHostsIterator.hasNext()) {
                     URI hostId = updatedHostsIterator.next();
-                    if (autoExportEnabled && !updatedHosts.contains(hostId))
+                    if (!clusterHostIds.contains(hostId))
                         if (!clusterHostIds.contains(hostId)) {
                             updatedHostsIterator.remove();
                             List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);

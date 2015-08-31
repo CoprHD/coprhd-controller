@@ -184,7 +184,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
     public Method validateExportMaskMethod(URI varrayURI,
             Map<URI, List<StoragePort>> initiatorPortMap, ExportMask mask, Set<URI> invalidMasks,
             Map<String, Set<String>> directorToInitiatorIds, Map<String, Initiator> idToInitiatorMap,
-            DbClient dbClient, Map<String, String> portWwnToClusterMap) {
+            Map<String, String> portWwnToClusterMap) {
         return new Workflow.Method("validateExportMask",
                 varrayURI,
                 initiatorPortMap,
@@ -192,7 +192,6 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
                 invalidMasks,
                 directorToInitiatorIds,
                 idToInitiatorMap,
-                dbClient,
                 portWwnToClusterMap);
     }
     
@@ -216,10 +215,10 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
     public void validateExportMask(URI varrayURI,
             Map<URI, List<StoragePort>> initiatorPortMap, ExportMask mask, Set<URI> invalidMasks,
             Map<String, Set<String>> directorToInitiatorIds, Map<String, Initiator> idToInitiatorMap,
-            DbClient dbClient, Map<String, String> portWwnToClusterMap) {
+            Map<String, String> portWwnToClusterMap) {
         
         VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI, initiatorPortMap, mask, invalidMasks, directorToInitiatorIds,
-                idToInitiatorMap, dbClient, portWwnToClusterMap);
+                idToInitiatorMap, _dbClient, portWwnToClusterMap);
         
     }
 

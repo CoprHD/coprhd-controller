@@ -51,6 +51,7 @@
                 <ref bean="hdsHostModeOption" />
                 <ref bean="vplexStorageViewName"/>
                 <ref bean="vplexMigrationSpeed"/>
+                <ref bean="vmaxMaskingViewMaximumVolumes"/>
             </list>
         </property>
     </bean>
@@ -811,8 +812,29 @@
             </list>
         </property>
     </bean>
-    
-    
+
+    <bean id="vmaxMaskingViewMaximumVolumes" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="VMAXMaskingViewMaximumVolumes"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Integer"/>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vmax"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="4096"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="minVolumeCountForMaskingView"/>
+                <ref bean="maxVolumeCountForMaskingView"/>
+            </list>
+        </property>
+    </bean>
+
     <bean id="xtremIOVolumeFolderName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
     	<property name="name" value="XtremIOVolumeFolderName"/>
         <property name="configType" value="CustomName"/>
@@ -1216,7 +1238,27 @@
         <property name="defaultValue" value="Lowest"/>
         <property name="description" value="The predefined value set"/>
     </bean>
-    
+
+    <bean id="minVolumeCountForMaskingView" class="com.emc.storageos.customconfigcontroller.MinConstraint">
+        <property name="minVals">
+            <map>
+                <entry key="default" value="1000"/>
+            </map>
+        </property>
+        <property name="description" value="The maximum number of volumes that a MaskingView should be 1000 or more"/>
+        <property name="name" value="minVolumeCountForMaskingView"/>
+    </bean>
+
+    <bean id="maxVolumeCountForMaskingView" class="com.emc.storageos.customconfigcontroller.MaxConstraint">
+        <property name="maxVals">
+            <map>
+                <entry key="default" value="4096"/>
+            </map>
+        </property>
+        <property name="description" value="The maximum number of volumes that a MaskingView can have is 4096"/>
+        <property name="name" value="maxVolumeCountForMaskingView"/>
+    </bean>
+
     <bean id="nameResolver" class="com.emc.storageos.customconfigcontroller.CustomNameResolver">
     	<property name="stringManipulationMethods">
             <list>

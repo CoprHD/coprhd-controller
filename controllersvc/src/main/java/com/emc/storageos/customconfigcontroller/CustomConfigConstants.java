@@ -46,6 +46,8 @@ public interface CustomConfigConstants {
     public String VMAX_HOST_PORT_GROUP_MASK_NAME = "VMAXHostPortGroupName";
     public String VMAX_CLUSTER_PORT_GROUP_MASK_NAME = "VMAXClusterPortGroupName";
 
+    public String VMAX_MASKING_VIEW_MAXIMUM_VOLUMES = "VMAXMaskingViewMaximumVolumes";
+
     public String XTREMIO_VOLUME_FOLDER_NAME = "XtremIOVolumeFolderName";
     public String XTREMIO_INITIATOR_GROUP_NAME = "XtremIOInitiatorGroupName";
     public String XTREMIO_HOST_INITIATOR_GROUP_FOLDER_NAME = "XtremIOHostInitiatorGroupFolderName";

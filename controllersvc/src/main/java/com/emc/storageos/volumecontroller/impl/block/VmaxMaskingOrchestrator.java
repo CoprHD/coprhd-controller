@@ -1899,6 +1899,13 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         try {
             rulesApplicator.run();
             if (context.resultSuccess) {
+                // Get configuration value for how many volumes are allowed in MaskingView. If the number
+                // of volumes exceeds this amount for a particular ExportMask, then it cannot be a candidate
+                // for reuse.
+                int maxVolumesAllowedByConfig = Integer.valueOf(customConfigHandler
+                        .getComputedCustomConfigValue(CustomConfigConstants.VMAX_MASKING_VIEW_MAXIMUM_VOLUMES, storage.getSystemType(),
+                                null));
+
                 // Use a local cache in case the same volumes are selected
                 // to be placed into different ExportMasks
                 ObjectLocalCache cache = new ObjectLocalCache(_dbClient);
@@ -1925,12 +1932,16 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     // to take care of this case by creating another ExportMask to contain these volumes.
                     ExportMask exportMask = matchingMasks.get(exportMaskURI);
                     int totalVolumesWhenAddedToExportMask = exportMask.returnTotalVolumeCount() + volumes.size();
-                    if (totalVolumesWhenAddedToExportMask > policy.getMaxVolumesAllowed()) {
+                    boolean moreVolumesThanAllowedByConfig = totalVolumesWhenAddedToExportMask > maxVolumesAllowedByConfig;
+                    boolean moreVolumesThanAllowedByArray = totalVolumesWhenAddedToExportMask > policy.getMaxVolumesAllowed();
+                    if (moreVolumesThanAllowedByArray || moreVolumesThanAllowedByConfig) {
                         _log.info(String.format(
-                                "ExportMask %s (%s) is matching, but has %d volumes. " +
-                                        "Adding %d volumes to it will make it go over its limit, hence it will not be used for placement",
+                                "ExportMask %s (%s) is matching, but already %d volumes associated with it. " +
+                                "Adding %d volumes to it will make it go over its limit, hence it will not be used for placement.%n" +
+                                "The configuration allows %d volumes and the array allows %d as the max number of volumes to a MaskingView",
                                 exportMask.getMaskName(), exportMask.getId(),
-                                exportMask.returnTotalVolumeCount(), volumes.size()));
+                                exportMask.returnTotalVolumeCount(), volumes.size(), maxVolumesAllowedByConfig,
+                                policy.getMaxVolumesAllowed()));
                         continue;
                     }
 

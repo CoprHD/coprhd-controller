@@ -102,7 +102,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
     @Autowired
     private DataSourceFactory dataSourceFactory;
     @Autowired
-    private CustomConfigHandler customConfigHandler;
+    protected CustomConfigHandler customConfigHandler;
     @Autowired
     protected DbModelClient dbModelClient;
 

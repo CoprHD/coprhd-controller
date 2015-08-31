@@ -669,6 +669,7 @@ CustomConfigs.configType.HDSHostStorageDomainNickName=Host Group Nick Name
 CustomConfigs.configType.HDSHostModeOption=Host Mode Option
 CustomConfigs.configType.VPlexStorageViewName=Storage View Name
 CustomConfigs.configType.VPlexMigrationSpeed=Data Migration Speed
+CustomConfigs.configType.VMAXMaskingViewMaximumVolumes=Maximum Number of Volumes In MaskingView
 CustomConfigs.scopeType.global=Global
 CustomConfigs.scopeType.systemType=System Type
 CustomConfigs.scopeType.hostType=Host Type

@@ -312,11 +312,12 @@ public class DBClient {
         if (this.showModificationTime) {
             Column<CompositeColumnName> latestField = _dbClient.getLatestModifiedField(
                     TypeMap.getDoType(clazz), object.getId(), ignoreList);
-            if (latestField != null)
+            if (latestField != null) {
                 record.append(String.format(
                         "The latest modified time is %s on Field(%s).\n", new Date(
                                 latestField.getTimestamp() / 1000), latestField.getName()
                                 .getOne()));
+            }
         }
         
         if (isPrint) {

@@ -177,7 +177,7 @@ public abstract class CommandHandler {
         private static final String TYPE_AUDITS = "audits";
         private static final String REGEX_NUMBERS = "\\d+";
         private static final String CRITERIAS_DELIMITER = "=";
-        private static Map<String, String> criterias;
+        private Map<String, String> criterias;
 
         public ListHandler(String[] args, DBClient client) {
             if (args.length < 2) {

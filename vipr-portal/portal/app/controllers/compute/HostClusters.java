@@ -295,6 +295,9 @@ public class HostClusters extends Controller {
 
         protected String createCluster() {
             ClusterCreateParam clusterCreateParam = new ClusterCreateParam(name);
+            clusterCreateParam.setAutoExportEnabled(autoExportEnabled);
+            clusterCreateParam.setAutoUnexportEnabled(autoUnexportEnabled);
+
             return ClusterUtils.createCluster(tenantId, clusterCreateParam).toString();
         }
 

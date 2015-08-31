@@ -336,6 +336,37 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
+    @Override
+    public void synchronizeSharedExports(URI clusterId, boolean enablingAutoExports, boolean enablingAutoUnexports, String taskId)
+            throws ControllerException {
+        TaskCompleter completer = null;
+        try {
+            completer = new ClusterCompleter(clusterId, false, taskId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_HOST_STORAGE_WF_NAME, true, taskId);
+            String waitFor = null;
+
+            List<URI> clusterHostIds = ComputeSystemHelper.getChildrenUris(_dbClient, clusterId, Host.class, "cluster");
+
+            if (enablingAutoExports) {
+                // Add all hosts from the cluster to this cluster's export groups
+                waitFor = addStepForUpdatingInitiatorClusterName(workflow, waitFor, clusterHostIds, clusterId);
+                waitFor = addStepsForAddHost(workflow, waitFor, clusterHostIds, clusterId);
+            }
+
+            if (enablingAutoUnexports) {
+                // Remove all hosts from the cluster export group that are not in the cluster
+                waitFor = addStepsForSynchronizeClusterExport(workflow, waitFor, clusterHostIds, clusterId);
+            }
+
+            workflow.executePlan(completer, "Success", null, null, null, null);
+        } catch (Exception ex) {
+            String message = "synchronizeSharedExports caught an exception.";
+            _log.error(message, ex);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);
+            completer.error(_dbClient, serviceError);
+        }
+    }
+
     public void addHostsToExport(List<URI> hostIds, URI clusterId, String taskId, URI oldCluster) throws ControllerException {
         TaskCompleter completer = null;
         try {
@@ -475,6 +506,36 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
                 for (Initiator initiator : hostInitiators) {
                     updatedInitiators.remove(initiator.getId());
+                }
+            }
+
+            waitFor = workflow.createStep(UPDATE_EXPORT_GROUP_STEP,
+                    String.format("Updating export group %s", export.getId()), waitFor,
+                    export.getId(), export.getId().toString(),
+                    this.getClass(),
+                    updateExportGroupMethod(export.getId(), updatedInitiators.isEmpty() ? new HashMap<URI, Integer>() : updatedVolumesMap,
+                            updatedClusters, updatedHosts, updatedInitiators),
+                    null, null);
+        }
+        return waitFor;
+    }
+
+    public String addStepsForSynchronizeClusterExport(Workflow workflow, String waitFor, List<URI> clusterHostIds, URI clusterId) {
+
+        for (ExportGroup export : getSharedExports(clusterId)) {
+            List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
+            List<URI> updatedHosts = StringSetUtil.stringSetToUriList(export.getHosts());
+            List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
+            Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
+
+            for (URI hostId : updatedHosts) {
+                if (!clusterHostIds.contains(hostId)) {
+                    updatedHosts.remove(hostId);
+
+                    List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
+                    for (Initiator initiator : hostInitiators) {
+                        updatedInitiators.remove(initiator.getId());
+                    }
                 }
             }
 

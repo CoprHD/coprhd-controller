@@ -3448,7 +3448,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     }
                 }
                 maskToInitiatorsMap.put(exportMask.getId(), new ArrayList<URI>());
-                Set<URI> exportMaskHosts = VPlexUtil.getExportMaskHost(_dbClient, exportMask, shared);
+                Set<URI> exportMaskHosts = VPlexUtil.getExportMaskHosts(_dbClient, exportMask, shared);
                 // Only add initiators to this ExportMask that are on the host of the Export Mask
                 for (Initiator initiator : initiators) {
                     if (exportMaskHosts.contains(VPlexUtil.getInitiatorHost(initiator))) {
@@ -3532,7 +3532,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 }
 
                 // Determine host of ExportMask
-                Set<URI> exportMaskHosts = VPlexUtil.getExportMaskHost(_dbClient, exportMask, sharedExportMask);
+                Set<URI> exportMaskHosts = VPlexUtil.getExportMaskHosts(_dbClient, exportMask, sharedExportMask);
 
                 // Add new targets if specified
                 if (targetURIs != null && targetURIs.isEmpty() == false) {
@@ -8094,7 +8094,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     shared = true;
                 }
             }
-            if (VPlexUtil.getExportMaskHost(_dbClient, exportMask, shared).contains(hostURI)) {
+            if (VPlexUtil.getExportMaskHosts(_dbClient, exportMask, shared).contains(hostURI)) {
                 results.add(exportMask);
             }
         }

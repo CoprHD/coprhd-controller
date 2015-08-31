@@ -43,7 +43,6 @@ import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.StringSetUtil;
-import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.db.joiner.Joiner;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
@@ -508,7 +507,7 @@ public class VPlexUtil {
                     shared = true;
                 }
             }
-            if (getExportMaskHost(dbClient, exportMask, shared).contains(hostURI)
+            if (getExportMaskHosts(dbClient, exportMask, shared).contains(hostURI)
                     && ExportMaskUtils.exportMaskInVarray(dbClient, exportMask, varrayURI)) {
                 return exportMask;
             }
@@ -524,10 +523,12 @@ public class VPlexUtil {
      * 3. Otherwise, if any Initiator has a hostName, return URI(hostName) (first one).
      * 4. Otherwise, return NULL URI.
      * 
-     * @param exportMask
+     * @param dbClient a database client instance
+     * @param exportMask reference to ExportMask object
+     * @param sharedExportMask boolean that indicates whether passed exportMask is shared or not.
      * @return URI of host, or Null URI if host undeterminable or multiple host URI if ExportMask is shared.
      */
-    public static Set<URI> getExportMaskHost(DbClient dbClient, ExportMask exportMask, boolean sharedExportMask) {
+    public static Set<URI> getExportMaskHosts(DbClient dbClient, ExportMask exportMask, boolean sharedExportMask) {
         Set<URI> hostURIs = new HashSet<URI>();
         if (exportMask.getInitiators() == null || exportMask.getInitiators().isEmpty()) {
             return hostURIs;
@@ -859,6 +860,10 @@ public class VPlexUtil {
     /**
      * Returns the shared export mask in the export group i:e single ExportMask in database for multiple hosts
      * corresponding to the single storage view on VPLEX with multiple hosts.
+     * 
+     * At-least there should be two host in the exportMask to be called as sharedExportMask. Also there shouldn't be more than one
+     * exportMask for the exportGroup for a VPLEX cluster.
+     * 
      * Note : This is applicable from Darth release onwards.
      * 
      * @param exportGroup ExportGroup object
@@ -866,7 +871,7 @@ public class VPlexUtil {
      * @param dbClient database client instance
      * @param varrayUri Varray we want the Export Mask in
      * @param vplexCluster Vplex Cluster we want ExportMask for
-     * @param hostInitiatorMap Map of host to initiators
+     * @param hostInitiatorMap Map of host to initiators that are not yet added to the storage view on VPLEX
      * @return shared ExportMask for a exportGroup
      * @throws Exception
      */
@@ -893,6 +898,7 @@ public class VPlexUtil {
             ExportMask exportMask = exportMasksForVplexCluster.get(0);
             ArrayList<String> exportMaskInitiators = new ArrayList<String>(exportMask.getInitiators());
             Map<URI, List<Initiator>> exportMaskHostInitiatorsMap = makeHostInitiatorsMap(URIUtil.toURIList(exportMaskInitiators), dbClient);
+            // Remove the host which is not yet added by CorpHD
             if (hostInitiatorMap != null) {
                 for (Entry<URI, List<Initiator>> entry : hostInitiatorMap.entrySet()) {
                     exportMaskHostInitiatorsMap.remove(entry.getKey());

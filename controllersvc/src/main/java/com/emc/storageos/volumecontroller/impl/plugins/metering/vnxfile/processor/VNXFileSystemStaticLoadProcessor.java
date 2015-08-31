@@ -120,24 +120,39 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
                 
                
                 //process the filesystems of VDM or DM
+                StringMap mStringMap = null;
+                
                 if(!fsMountvNASMap.isEmpty()) {
+                    VirtualNAS virtualNAS = null;
                     _logger.info("virtual mover size: {} ", String.valueOf(fsMountvNASMap.size()));
                     for (Entry<String, List<String>> entry : fsMountvNASMap.entrySet()) {
-                        VirtualNAS virtualNAS = null;
+                        
                         String moverId = entry.getKey();
-                        //prepareDBMetrics(fsList, fsCapList, snapCapFsMap, virtualNAS.getMetrics());
-                    
+                        
+//                        mStringMap = virtualNAS.getMetrics();
+//                        if(null == mStringMap) {
+//                            mStringMap = new StringMap();
+//                        }
+//                        prepareDBMetrics(fsList, fsCapList, snapCapFsMap, mStringMap);
+//                        dbClient.persistObject(virtualNAS);
+                        
                     }
                 }
                 //physical nas
                 if(!fsMountPhyNASMap.isEmpty()) {
                     PhysicalNAS physicalNAS = null;
                     _logger.info("virtual mover size: {} ", String.valueOf(fsMountPhyNASMap.size()));
+                    PhysicalNAS phyNAS = null;
                     for (Entry<String, List<String>> entry : fsMountPhyNASMap.entrySet()) {
-                        PhysicalNAS phyNAS = null;
+                        
                         String moverId = entry.getKey();
-                        //prepareDBMetrics(fsList, fsCapList, snapCapFsMap, virtualNAS.getMetrics());
-                    
+                        
+//                        mStringMap = physicalNAS.getMetrics();
+//                        if(null == mStringMap) {
+//                            mStringMap = new StringMap();
+//                        }
+//                        prepareDBMetrics(fsList, fsCapList, snapCapFsMap, mStringMap);
+//                        dbClient.persistObject(physicalNAS);
                     }
                 }
                 

@@ -49,7 +49,7 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor {
             AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
             List<Stat> statsList = (List<Stat>) keyMap.get(VNXFileConstants.STATS);
             final DbClient dbClient = (DbClient) keyMap.get(VNXFileConstants.DBCLIENT);
-
+            //get the interface map contain values as storageports
             Map<String, Map<String, List<String>>> moverInterMap = (Map<String, Map<String, List<String>>>) keyMap
                     .get(VNXFileConstants.INTREFACE_PORT_MAP);
 
@@ -57,6 +57,7 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor {
                     .unmarshal(result.getResponseBodyAsStream());
             List<Object> moversStats = getQueryStatsResponse(responsePacket);
             Iterator<Object> iterator = moversStats.iterator();
+            //get the storagesystem from db
             StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, profile.getSystemId());
 
             while (iterator.hasNext()) {
@@ -141,7 +142,7 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor {
     private Map<String, BigInteger> getPortIOTraffic(List<MoverNetStats.Sample> sampleList,
             Map<String, BigInteger> stringMapPortIOs)
     {
-        // Mover stats
+        // process Mover stats sample 
         for (MoverNetStats.Sample sample : sampleList) {
 
             // get device traffic stats

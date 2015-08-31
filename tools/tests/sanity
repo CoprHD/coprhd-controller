@@ -2184,9 +2184,9 @@ rp_isolate_rpa_clusters()
     if [ "$RP_USE_RPA_ISOLATION" = "1" ]; then
         echo '*** Recoverpoint isolate RPA clusters ***'
 
-        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER1_IP --addvarrays $RECOVERPOINT_VARRAY1
-        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER3_IP --addvarrays $RECOVERPOINT_VARRAY2
-        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER4_IP --addvarrays $RECOVERPOINT_VARRAY3
+        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER1 --addvarrays $RECOVERPOINT_VARRAY1
+        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER3 --addvarrays $RECOVERPOINT_VARRAY2
+        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER4 --addvarrays $RECOVERPOINT_VARRAY3
     fi
 }
 
@@ -2572,7 +2572,7 @@ recoverpoint_tests()
 
         # MP
         mp_src_vpool='mp_'$rp_type
-        mpvolume=${MP_VOLUME}
+        mpvolume=${RP_METROPOINT_VOLUME}
         mpvolumetarget=${mpvolume}'-target-'${mp_tgt_varray}
 
         # Setup test volumes...

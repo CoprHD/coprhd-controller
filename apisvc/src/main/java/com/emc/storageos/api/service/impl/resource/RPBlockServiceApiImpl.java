@@ -2675,6 +2675,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             String internalSiteName = ((ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(volume.getInternalSiteName()) : volume.getInternalSiteName());            
             buf.append(String.format("\t RP Internal Site : [%s %s]%n", internalSiteName, volume.getInternalSiteName()));            
             buf.append(String.format("\t RP Copy Name : [%s]%n", volume.getRpCopyName()));
+            buf.append(String.format("\t RP MetroPoint enabled : [%s]%n", (VirtualPool.vPoolSpecifiesMetroPoint(vpool) ? "true" : "false")));
             
             if (!NullColumnValueGetter.isNullURI(volume.getRpJournalVolume())) { 
                 Volume journalVolume = _dbClient.queryObject(Volume.class, volume.getRpJournalVolume());
@@ -2692,7 +2693,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     Volume targetVolume = _dbClient.queryObject(Volume.class, URI.create(targetVolumeId));
                     buf.append(String.format("%s, ", targetVolume.getLabel()));
                 }
-                int endIndex = buf.length() - 1;
+                int endIndex = buf.length();
                 buf.delete(endIndex - 2, endIndex);
                 buf.append(String.format("]%n"));
             }

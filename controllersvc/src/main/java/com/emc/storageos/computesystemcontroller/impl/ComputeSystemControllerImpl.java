@@ -79,6 +79,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     private static final String REMOVE_HOST_STORAGE_WF_NAME = "REMOVE_HOST_STORAGE_WORKFLOW";
     private static final String REMOVE_IPINTERFACE_STORAGE_WF_NAME = "REMOVE_IPINTERFACE_STORAGE_WORKFLOW";
     private static final String HOST_CHANGES_WF_NAME = "HOST_CHANGES_WORKFLOW";
+    private static final String SYNCHRONIZE_SHARED_EXPORTS_WF_NAME = "SYNCHRONIZE_SHARED_EXPORTS_WORKFLOW";
 
     private static final String DETACH_HOST_STORAGE_WF_NAME = "DETACH_HOST_STORAGE_WORKFLOW";
     private static final String DETACH_CLUSTER_STORAGE_WF_NAME = "DETACH_CLUSTER_STORAGE_WORKFLOW";
@@ -342,22 +343,13 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         TaskCompleter completer = null;
         try {
             completer = new ClusterCompleter(clusterId, false, taskId);
-            Workflow workflow = _workflowService.getNewWorkflow(this, REMOVE_HOST_STORAGE_WF_NAME, true, taskId);
+            Workflow workflow = _workflowService.getNewWorkflow(this, SYNCHRONIZE_SHARED_EXPORTS_WF_NAME, true, taskId);
             String waitFor = null;
-
-            List<URI> clusterHostIds = ComputeSystemHelper.getChildrenUris(_dbClient, clusterId, Host.class, "cluster");
-
-            if (enablingAutoExports) {
-                // Add all hosts from the cluster to this cluster's export groups
-                waitFor = addStepForUpdatingInitiatorClusterName(workflow, waitFor, clusterHostIds, clusterId);
-                waitFor = addStepsForAddHost(workflow, waitFor, clusterHostIds, clusterId);
+            if (enablingAutoExports || enablingAutoUnexports) {
+                List<URI> clusterHostIds = ComputeSystemHelper.getChildrenUris(_dbClient, clusterId, Host.class, "cluster");
+                waitFor = addStepsForSynchronizeClusterExport(workflow, waitFor, clusterHostIds, clusterId, enablingAutoExports,
+                        enablingAutoUnexports);
             }
-
-            if (enablingAutoUnexports) {
-                // Remove all hosts from the cluster export group that are not in the cluster
-                waitFor = addStepsForSynchronizeClusterExport(workflow, waitFor, clusterHostIds, clusterId);
-            }
-
             workflow.executePlan(completer, "Success", null, null, null, null);
         } catch (Exception ex) {
             String message = "synchronizeSharedExports caught an exception.";
@@ -520,7 +512,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
-    public String addStepsForSynchronizeClusterExport(Workflow workflow, String waitFor, List<URI> clusterHostIds, URI clusterId) {
+    public String addStepsForSynchronizeClusterExport(Workflow workflow, String waitFor, List<URI> clusterHostIds, URI clusterId,
+            boolean autoExportEnabled, boolean autoUnexportEnabled) {
 
         for (ExportGroup export : getSharedExports(clusterId)) {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
@@ -528,16 +521,32 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 
-            Iterator<URI> updatedHostsIterator = updatedHosts.iterator();
-            while (updatedHostsIterator.hasNext()) {
-                URI hostId = updatedHostsIterator.next();
-                if (!clusterHostIds.contains(hostId)) {
-                    updatedHosts.remove(hostId);
-
-                    List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
-                    for (Initiator initiator : hostInitiators) {
-                        updatedInitiators.remove(initiator.getId());
+            // Add all hosts in clusters that are not in the cluster's export groups
+            if (autoExportEnabled) {
+                for (URI clusterHost : clusterHostIds) {
+                    if (!updatedHosts.contains(clusterHost)) {
+                        updatedHosts.add(clusterHost);
+                        List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, clusterHost);
+                        for (Initiator initiator : hostInitiators) {
+                            updatedInitiators.add(initiator.getId());
+                        }
                     }
+                }
+            }
+
+            // Remove all hosts in cluster's export group that don't belong to the cluster
+            if (autoUnexportEnabled) {
+                Iterator<URI> updatedHostsIterator = updatedHosts.iterator();
+                while (updatedHostsIterator.hasNext()) {
+                    URI hostId = updatedHostsIterator.next();
+                    if (autoExportEnabled && !updatedHosts.contains(hostId))
+                        if (!clusterHostIds.contains(hostId)) {
+                            updatedHostsIterator.remove();
+                            List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
+                            for (Initiator initiator : hostInitiators) {
+                                updatedInitiators.remove(initiator.getId());
+                            }
+                        }
                 }
             }
 

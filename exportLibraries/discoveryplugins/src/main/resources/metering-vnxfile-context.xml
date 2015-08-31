@@ -39,10 +39,11 @@
 				<ref bean="fsusageoperation" />
 				<ref bean="snapshotoperation" />
 				<ref bean="volumestatsoperation" />
+				<ref bean="vnxstaticloadoperation" />
 				<!-- collecting ip port metrics -->
 				<ref bean="vnxdatamoverquery"/>
 				<ref bean="vnxdminterfacesquery" />
-				<ref bean="vnxstaticloadoperation" />
+				
 				<ref bean="vnxstorageportstatsquery" />
 				<ref bean="sessioncleanoperation" />
 			</list>

@@ -106,13 +106,21 @@ _gen_hosts() {
     fi
     for i in ${_GENCONFIG_node_indexes} ; do
         local var="_GENCONFIG_network_${i}_ipaddr_effective"
-        local name=$(_genconfig_node_id ${i}) && echo "${!var}	${name}"
+        local id=$(_genconfig_node_id ${i})
+        local name="_GENCONFIG_node_${i}_name"
+        local useShortNodeName="_GENCONFIG_use_short_node_name"
+        if [ "${!useShortNodeName}" = "false" ]
+        then
+            echo "${!var}	${!name}	${id}"
+        else
+            echo "${!var}	${!name}	${!name/.*/}	${id}"
+        fi
     done
 }
 
 _gen_hostname() {
-    echo "${_GENCONFIG_node_id}"
-    hostname "${_GENCONFIG_node_id}"
+    echo "${_GENCONFIG_node_name}"
+    hostname "${_GENCONFIG_node_name}"
 }
 
 _genconfig_exec _gen_ifcfg               /etc/sysconfig/network/ifcfg-${NIC_NAME}

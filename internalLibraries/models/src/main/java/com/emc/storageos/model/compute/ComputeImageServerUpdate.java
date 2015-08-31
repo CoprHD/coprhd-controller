@@ -122,7 +122,7 @@ public class ComputeImageServerUpdate {
      * @return the osInstallTimeoutMs
      */
     @XmlElement(required = true, name = "osInstallTimeoutMs")
-    public long getOsInstallTimeoutMs() {
+    public Integer getOsInstallTimeoutMs() {
         return osInstallTimeoutMs;
     }
 

@@ -64,6 +64,10 @@ _gen_prop2() {
     #'node_index')
     export _GENCONFIG_node_index=$(_genconfig_node_index ${_GENCONFIG_node_id})
 
+    #'node_name')
+    local var2="_GENCONFIG_node_${_GENCONFIG_node_index}_name"
+    export _GENCONFIG_node_name=${!var2}
+
     #'node_suffix')
     export _GENCONFIG_node_suffix=$(_genconfig_node_suffix ${_GENCONFIG_node_id})
 
@@ -73,6 +77,9 @@ _gen_prop2() {
     else
         export _GENCONFIG_node_indexes='standalone'
     fi
+
+    #'node_names')
+    export _GENCONFIG_node_names=$(echo $(for i in ${_GENCONFIG_node_indexes}; do local var="_GENCONFIG_node_${i}_name"; echo "${var}" ; done))
 
     #'network_ipaddr')
     local var="_GENCONFIG_network_${_GENCONFIG_node_index}_ipaddr"
@@ -323,9 +330,11 @@ done
 if [ -n "${_GENCONFIG_TEST}" ] ; then
     echo "node_count=${_GENCONFIG_node_count}"
     echo "node_id=${_GENCONFIG_node_id}"
+    echo "node_name=${_GENCONFIG_node_name}"
     echo "node_index=${_GENCONFIG_node_index}"
     echo "node_suffix=${_GENCONFIG_node_suffix}"
     echo "node_indexes=${_GENCONFIG_node_indexes}"
+    echo "node_names=${_GENCONFIG_node_names}"
     echo "network_ipaddr=${_GENCONFIG_network_ipaddr}"
     echo "network_1_ipaddr=${_GENCONFIG_network_1_ipaddr}"
     echo "network_ipaddr6=${_GENCONFIG_network_ipaddr6}"

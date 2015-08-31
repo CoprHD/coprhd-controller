@@ -8,19 +8,30 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFields;
 import static com.emc.storageos.api.mapper.DbObjectMapper.mapDiscoveredSystemObjectFields;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeImage;
+import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.compute.ComputeElementRestRep;
 import com.emc.storageos.model.compute.ComputeImageRestRep;
+import com.emc.storageos.model.compute.ComputeImageServerRestRep;
 import com.emc.storageos.model.compute.ComputeSystemRestRep;
 
 public class ComputeMapper {
+    private static final Logger LOG = LoggerFactory.getLogger(ComputeMapper.class);
+
     public static ComputeSystemRestRep map(ComputeSystem from) {
         if (from == null) {
             return null;
@@ -92,6 +103,30 @@ public class ComputeMapper {
         to.setImageType(from.getImageType());
         to.setComputeImageStatus(from.getComputeImageStatus());
         to.setLastImportStatusMessage(from.getLastImportStatusMessage());
+        return to;
+    }
+
+    public static ComputeImageServerRestRep map(ComputeImageServer from) {
+        if (from == null) {
+            return null;
+        }
+        ComputeImageServerRestRep to = new ComputeImageServerRestRep();
+        mapDataObjectFields(from, to);
+
+        try {
+            to.setLink(new RestLinkRep("self", RestLinkFactory.simpleServiceLink(ResourceTypeEnum.COMPUTE_IMAGESERVER, from.getId())));
+        } catch (URISyntaxException e) {
+            LOG.warn("URI syntax Excetption while trying to created self link.", e);
+        }
+        to.setImageServerIp(from.getImageServerIp());
+        to.setImageServerSecondIp(from.getImageServerSecondIp());
+        to.setTftpbootDir(from.getTftpbootDir());
+        to.setComputeImageServerStatus(from.getComputeImageServerStatus());
+        if (from.getComputeImage() != null) {
+            for (String computeimage : from.getComputeImage()) {
+                to.getComputeImage().add(toRelatedResource(ResourceTypeEnum.COMPUTE_IMAGE, URI.create(computeimage)));
+            }
+        }
         return to;
     }
 

@@ -4,9 +4,12 @@
  */
 package com.emc.storageos.db.client.model;
 
+import com.emc.storageos.db.client.upgrade.CustomMigrationCallback;
+import com.emc.storageos.db.client.upgrade.callbacks.ComputeImageServerMigration;
+import com.emc.storageos.model.valid.EnumType;
 /**
  * Model/ColumnFamily to represent ComputeImageServer
- * 
+ *
  * @author kumara4
  *
  */
@@ -19,7 +22,7 @@ public class ComputeImageServer extends DataObject {
     private String tftpbootDir;
     private String imageDir;
     private String imageServerSecondIp;
-    private String imageServerHttpPort;
+    private String imageServerHttpPort="44491";
     private Integer sshPort = 22;
     private Integer sshTimeoutMs = 10000;
     private Integer imageImportTimeoutMs = 1800000;
@@ -28,6 +31,12 @@ public class ComputeImageServer extends DataObject {
 
     private StringSet computeImage;
 
+    private String computeImageServerStatus = ComputeImageServerStatus.NOT_AVAILABLE.name();
+
+    public static enum ComputeImageServerStatus {
+        AVAILABLE, NOT_AVAILABLE
+    }
+	@CustomMigrationCallback(callback = ComputeImageServerMigration.class)
     @Name("imageServerIp")
     public String getImageServerIp() {
         return imageServerIp;
@@ -35,7 +44,7 @@ public class ComputeImageServer extends DataObject {
 
     public void setImageServerIp(String imageServerIp) {
         this.imageServerIp = imageServerIp;
-        setChanged("ImageServerIp");
+        setChanged("imageServerIp");
     }
 
     @Name("imageServerUser")
@@ -45,7 +54,7 @@ public class ComputeImageServer extends DataObject {
 
     public void setImageServerUser(String imageServerUser) {
         this.imageServerUser = imageServerUser;
-        setChanged("ImageServerUser");
+        setChanged("imageServerUser");
     }
 
     @Name("imageServerPassword")
@@ -176,4 +185,14 @@ public class ComputeImageServer extends DataObject {
         this.computeImage = computeImageUri;
     }
 
+    @EnumType(ComputeImageServerStatus.class)
+    @Name("computeImageServerStatus")
+    public String getComputeImageServerStatus() {
+        return computeImageServerStatus;
+    }
+
+    public void setComputeImageServerStatus(String computeImageServerStatus) {
+        this.computeImageServerStatus = computeImageServerStatus;
+        setChanged("computeImageServerStatus");
+    }
 }

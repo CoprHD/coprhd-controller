@@ -28,6 +28,8 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
 
     private List<RelatedResourceRep> computeImage;
 
+    private String computeImageServerStatus;
+
     public ComputeImageServerRestRep() {
 
     }
@@ -98,5 +100,15 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
      */
     public void setTftpbootDir(String tftpbootDir) {
         this.tftpbootDir = tftpbootDir;
+    }
+
+    @XmlElement(name = "computeImageServerStatus")
+    public String getComputeImageServerStatus() {
+        return computeImageServerStatus;
+
+    }
+
+    public void setComputeImageServerStatus(String computeImageServerStatus) {
+        this.computeImageServerStatus = computeImageServerStatus;
     }
 }

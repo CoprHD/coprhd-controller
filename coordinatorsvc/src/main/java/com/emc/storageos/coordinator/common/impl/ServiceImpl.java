@@ -31,6 +31,7 @@ public class ServiceImpl implements Service {
     // EX: vipr1, vipr2, dataservice-10_247_100_15
     // key must remain "_nodeName" for upgrade compatibility
     private static final String NODE_ID_KEY= "_nodeName";
+    private static final String NODE_NAME_KEY= "_hostName";
     private static final String ENDPOINT_KEY = "_endpoint";
 
     private Properties _map = new Properties();
@@ -80,6 +81,15 @@ public class ServiceImpl implements Service {
 
     public void setNodeId(String nodeId) {
         _map.put(NODE_ID_KEY, nodeId);
+    }
+
+    @Override
+    public String getNodeName() {
+        return (String) _map.get(NODE_NAME_KEY);
+    }
+
+    public void setNodeName(String nodeName) {
+        _map.put(NODE_NAME_KEY, nodeName);
     }
 
     @Override

@@ -954,26 +954,24 @@
     	<property name="blockExportController" ref="blockExportController"></property>
     </bean>
 
-	<bean id="imageServerConf" class="com.emc.storageos.imageservercontroller.ImageServerConf" init-method="init">
+	<!--bean id="imageServerConf" class="com.emc.storageos.imageservercontroller.ImageServerConf" init-method="init">
 		<property name="coordinator" ref="coordinator"/>
 		<property name="encryptionProvider" ref="encryptionProvider"/>
-	</bean>
+	</bean-->
 	
     <bean id="pxeIntegrationService" class="com.emc.storageos.imageservercontroller.impl.PxeIntegrationService">
-        <property name="imageServerConf" ref="imageServerConf" />
     </bean>
 
     <bean id="osInstallStatusPoller" class="com.emc.storageos.imageservercontroller.impl.OsInstallStatusPoller" init-method="startPolling">
-        <property name="imageServerConf" ref="imageServerConf" />
+        <property name="dbClient" ref="dbclient"/>
     </bean>
 
-    <bean id="imageservercontroller" class="com.emc.storageos.imageservercontroller.impl.ImageServerControllerImpl" init-method="init">
+    <bean id="imageservercontroller" class="com.emc.storageos.imageservercontroller.impl.ImageServerControllerImpl" >
         <property name="dbClient" ref="dbclient"/>
         <property name="workflowService" ref="workflowService" />
         <property name="computeDeviceController" ref="computeDeviceController" />
         <property name="pxeIntegrationService" ref="pxeIntegrationService" />
         <property name="osInstallStatusPoller" ref="osInstallStatusPoller" />
-        <property name="imageServerConf" ref="imageServerConf" />
     </bean>
 
     <bean id="vcenterController" class="com.emc.storageos.vcentercontroller.impl.VcenterControllerImpl">

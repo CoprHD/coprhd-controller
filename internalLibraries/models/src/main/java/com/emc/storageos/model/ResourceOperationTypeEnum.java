@@ -270,7 +270,9 @@ public enum ResourceOperationTypeEnum {
     UPLOAD_BACKUP("UPLOAD BACKUP", "upload ViPR backup to external location"),
     CREATE_VCENTER_CLUSTER("CREATE VCENTER CLUSTER", "create a cluster in vCenter server"),
     UPDATE_VCENTER_CLUSTER("UPDATE VCENTER CLUSTER", "update a cluster in vCenter server"),
-    SYS_EVENT("SYSTEM EVENT", "System Event");
+    SYS_EVENT("SYSTEM EVENT", "System Event"),
+    CREATE_COMPUTE_IMAGE_SERVER("CREATE COMPUTE IMAGE SERVER","create a compute image server"),
+    UPDATE_COMPUTE_IMAGE_SERVER("UPDATE COMPUTE IMAGE SERVER","Update a compute image server");
 
     private final String name;
     private final String description;
@@ -282,7 +284,7 @@ public enum ResourceOperationTypeEnum {
 
     /**
      * The name of the resource operation
-     * 
+     *
      * @valid none
      */
     @XmlElement

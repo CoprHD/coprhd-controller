@@ -49,7 +49,7 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor {
             AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
             List<Stat> statsList = (List<Stat>) keyMap.get(VNXFileConstants.STATS);
             final DbClient dbClient = (DbClient) keyMap.get(VNXFileConstants.DBCLIENT);
-
+            //get the interface map contain values as storageports
             Map<String, Map<String, List<String>>> moverInterMap = (Map<String, Map<String, List<String>>>) keyMap
                     .get(VNXFileConstants.INTREFACE_PORT_MAP);
 
@@ -57,6 +57,7 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor {
                     .unmarshal(result.getResponseBodyAsStream());
             List<Object> moversStats = getQueryStatsResponse(responsePacket);
             Iterator<Object> iterator = moversStats.iterator();
+            //get the storagesystem from db
             StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, profile.getSystemId());
 
             while (iterator.hasNext()) {
@@ -132,10 +133,16 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor {
     }
 
     /* get IO traffic(in + out) from sample list */
+    /**
+     * 
+     * @param sampleList
+     * @param stringMapPortIOs
+     * @return
+     */
     private Map<String, BigInteger> getPortIOTraffic(List<MoverNetStats.Sample> sampleList,
             Map<String, BigInteger> stringMapPortIOs)
     {
-        // Mover stats
+        // process Mover stats sample 
         for (MoverNetStats.Sample sample : sampleList) {
 
             // get device traffic stats
@@ -153,10 +160,16 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor {
     }
 
     /* find the port for given portGuid */
+    /**
+     * 
+     * @param portGuid
+     * @param dbClient
+     * @return
+     */
     private StoragePort findExistingPort(String portGuid, DbClient dbClient) {
         URIQueryResultList results = new URIQueryResultList();
         StoragePort port = null;
-
+        
         dbClient.queryByConstraint(
                 AlternateIdConstraint.Factory.getStoragePortByNativeGuidConstraint(portGuid),
                 results);
@@ -174,6 +187,14 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor {
     }
 
     /* prepare the port stat info */
+    /**
+     * 
+     * @param nativeId
+     * @param resourceId
+     * @param iops
+     * @param timeSample
+     * @return
+     */
     private Stat preparePortStatInfo(String nativeId, URI resourceId, long iops, long timeSample) {
         Stat ipPortStat = new Stat();
         ipPortStat.setServiceType(Constants._File);

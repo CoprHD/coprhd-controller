@@ -25,7 +25,6 @@
 		<property name="nsList">
 			<map>
 				<entry key="metering-file" value-ref="vnxfilenamespace" />
-				
             </map>
 		</property>
 	</bean>
@@ -39,10 +38,11 @@
 				<ref bean="fsusageoperation" />
 				<ref bean="snapshotoperation" />
 				<ref bean="volumestatsoperation" />
+				<!-- collecting static load metrics -->
+				<ref bean="vnxstaticloadoperation" />
 				<!-- collecting ip port metrics -->
 				<ref bean="vnxdatamoverquery"/>
 				<ref bean="vnxdminterfacesquery" />
-				<ref bean="vnxstaticloadoperation" />
 				<ref bean="vnxstorageportstatsquery" />
 				<ref bean="sessioncleanoperation" />
 			</list>
@@ -376,7 +376,7 @@
 	</bean>
 	
 	<bean id="vnxstaticloadprocessor"
-		class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXStaticLoadProcessor">
+		class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXFileSystemStaticLoadProcessor">
 	    <property name="unmarshaller" ref="unmarshaller"/>
 	</bean>
 	

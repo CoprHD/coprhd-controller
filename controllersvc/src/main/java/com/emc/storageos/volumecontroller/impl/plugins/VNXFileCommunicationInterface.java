@@ -225,7 +225,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             // construct the map and use the request attributes
             // to execute operations & process the result.
             populateMap(accessProfile);
-            //computeVNXStaticLoadMetrics(accessProfile);
+            
             // Read the operations and execute them.
             executor.execute((Namespace) namespaces.getNsList().get(METERINGFILE));
 

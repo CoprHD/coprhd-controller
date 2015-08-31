@@ -114,6 +114,8 @@ public class VNXFileSystemUsageProcessor extends VNXFileProcessor {
         final String serialId = keyMap.get(Constants._serialID).toString();
         Iterator iterator = fsUsageList.iterator();
         keyMap.put(Constants._TimeCollected, System.currentTimeMillis());
+        
+        FileSystemSetUsageStats fsSetUsageStats = (FileSystemSetUsageStats) iterator.next();
         while (iterator.hasNext()) {
             FileSystemSetUsageStats fsSetUsageStats = (FileSystemSetUsageStats) iterator.next();
             List<Item> fsUsageItems = fsSetUsageStats.getItem();
@@ -146,7 +148,16 @@ public class VNXFileSystemUsageProcessor extends VNXFileProcessor {
                         }
                     }
                 }
+               //new code
+                long totalSpace =item.getSpaceTotal();
+                String fsNativeId = item.getFileSystem();
+                fsCapacityMap.put(fsNativeId, totalSpace);
+                _logger.info("processFileShareInfo - FileSystem native id  {}  and file system total size{}", 
+                        fsNativeId, String.valueOf(totalSpace));
             }
+            //new code
+            _logger.info("Filesystems found - {} ", fsCapacityMap.size());
+            keyMap.put(VNXFileConstants.FILE_CAPACITY_MAP, fsCapacityMap);
         }
         _logger.info("No. of stat objects: {}", statList.size());
     }

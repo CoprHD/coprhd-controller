@@ -49,6 +49,9 @@ public class VNXSnapshotProcessor extends VNXFileProcessor {
                 processErrorStatus(status, keyMap);
             } else {
                 List<Object> snapshotList = getQueryResponse(responsePacket);
+                //fs check point info
+                getSnapTotalCapacityOfFSs(snapshotList, keyMap);
+                
                 Iterator<Object> snapshotItr = snapshotList.iterator();
                 if (snapshotItr.hasNext()) {
                     status = (Status) snapshotItr.next();
@@ -108,5 +111,37 @@ public class VNXSnapshotProcessor extends VNXFileProcessor {
         stat.setSnapshotCount(snapCount);
         stat.setSnapshotCapacity(snapCapacity);
     }
+    
+
+    private void getSnapTotalCapacityOfFSs(final List<Object> snapshotList, 
+                                               Map<String, Object> keyMap) {
+        Map<String, Map<String, Long>> snapCapFSMap 
+                                = new HashMap<String, Map<String, Long>>();
+        int snapCount = 0;
+        long snapCapacity = 0;
+        Checkpoint checkPoint = null;
+        Map <String, Long> snapCapMap = null;
+        // first element is stat object and remaining elem are snapshot's
+        Iterator<Object> snapshotItr = snapshotList.iterator();
+        snapshotItr.next();
+        // processing snapshot list
+        while (snapshotItr.hasNext()) {
+            checkPoint = (Checkpoint) snapshotItr.next();
+            snapCapacity = checkPoint.getFileSystemSize();
+            
+            snapCapMap = snapCapFSMap.get(checkPoint.getCheckpointOf());
+            if (snapCapMap == null) {
+                snapCapMap = new HashMap<String, Long>();
+            }
+            snapCapMap.put(checkPoint.getCheckpoint(), Long.valueOf(snapCapacity));
+            snapCount++;
+            snapCapFSMap.put(checkPoint.getCheckpointOf(), snapCapMap);
+            _logger.info("filesystem id {} and no. of snapshot : {} ", 
+                    checkPoint.getCheckpointOf(), String.valueOf(snapCount));
+        }
+        keyMap.put(VNXFileConstants.SNAP_CAPACITY_MAP, snapCapFSMap);
+        return;
+    }    
+    
 
 }

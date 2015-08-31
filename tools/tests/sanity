@@ -2184,9 +2184,9 @@ rp_isolate_rpa_clusters()
     if [ "$RP_USE_RPA_ISOLATION" = "1" ]; then
         echo '*** Recoverpoint isolate RPA clusters ***'
 
-        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER1_IP --addvarrays $RECOVERPOINT_VARRAY1
-        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER3_IP --addvarrays $RECOVERPOINT_VARRAY2
-        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER4_IP --addvarrays $RECOVERPOINT_VARRAY3
+        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER1 --addvarrays $RECOVERPOINT_VARRAY1
+        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER3 --addvarrays $RECOVERPOINT_VARRAY2
+        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER4 --addvarrays $RECOVERPOINT_VARRAY3
     fi
 }
 
@@ -2502,20 +2502,17 @@ recoverpoint_tests()
             rp_type='cdp'
 
             # RP
-            rp_src_vpool='rp_'$rp_type
             rp_tgt_varray=$RECOVERPOINT_VARRAY1
             rp_tgt_vpool='rp_targets'
             rp_base_cvp='rp_regular'
 
             # RP+VPLEX
-            rpvplex_src_vpool='rpvplex_'$rp_type
             rpvplex_tgt_varray=$RECOVERPOINT_VARRAY1
             rpvplex_tgt_vpool='rpvplex_targets'
             rpvplex_base_cvp1='rpvplex_local_regular'
             rpvplex_base_cvp2='rpvplex_dist_regular'
 
             # MP
-            mp_src_vpool='mp_'$rp_type
             mp_active_tgt_varray=$RECOVERPOINT_VARRAY1
             mp_standby_tgt_varray=$RECOVERPOINT_VARRAY2
             mp_tgt_vpool='rp_targets'
@@ -2524,23 +2521,58 @@ recoverpoint_tests()
         if [ "$RP_CRR" = "1" ]; then
             echo 'RP CRR Tests'
             rp_type='crr'
+
+            # RP
+            rp_tgt_varray=$RECOVERPOINT_VARRAY3
+            rp_tgt_vpool='rp_targets'
+            rp_base_cvp='rp_regular'
+
+            # RP+VPLEX
+            rpvplex_tgt_varray=$RECOVERPOINT_VARRAY1
+            rpvplex_tgt_vpool='rpvplex_targets'
+            rpvplex_base_cvp1='rpvplex_local_regular'
+            rpvplex_base_cvp2='rpvplex_dist_regular'
+
+            # MP
+            mp_active_tgt_varray=$RECOVERPOINT_VARRAY3
+            mp_standby_tgt_varray=''
+            mp_tgt_vpool='rp_targets'
         fi
 
         if [ "$RP_CLR" = "1" ]; then
             echo 'RP CLR Tests'
             rp_type='clr'
+
+            # RP
+            rp_tgt_varray=$RECOVERPOINT_VARRAY3
+            rp_tgt_vpool='rp_targets'
+            rp_base_cvp='rp_regular'
+
+            # RP+VPLEX
+            rpvplex_tgt_varray=$RECOVERPOINT_VARRAY1
+            rpvplex_tgt_vpool='rpvplex_targets'
+            rpvplex_base_cvp1='rpvplex_local_regular'
+            rpvplex_base_cvp2='rpvplex_dist_regular'
+
+            # MP
+            mp_active_tgt_varray=$RECOVERPOINT_VARRAY3
+            mp_standby_tgt_varray=''
+            mp_tgt_vpool='rp_targets'
         fi
 
         # RP
+        rp_src_vpool='rp_'$rp_type
         rpvolume=${RP_VOLUME}
         rpvolumetarget=${rpvolume}'-target-'${rp_tgt_varray}
 
         # RP+VPLEX
+        rpvplex_src_vpool='rpvplex_'$rp_type
         rpvplexvolume=${RP_VPLEX_VOLUME}
         rpvplexvolumetarget=${rpvplexvolume}'-target-'${rpvplex_tgt_varray}
 
         # MP
-        mpvolume=${MP_VOLUME}
+        mp_src_vpool='mp_'$rp_type
+        mpvolume=${RP_METROPOINT_VOLUME}
         mpvolumetarget=${mpvolume}'-target-'${mp_tgt_varray}
 
         # Setup test volumes...

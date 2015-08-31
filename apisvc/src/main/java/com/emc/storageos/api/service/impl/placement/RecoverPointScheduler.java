@@ -742,7 +742,7 @@ public class RecoverPointScheduler implements Scheduler {
         container.setHaVpool(haVpool);          
 
         // Potentially will swap src and ha, returns the container.
-        container = setActiveProtectionAtHAVarray(container, dbClient);
+        container = initializeSwapContainer(container, dbClient);
         return container;
     }
     
@@ -1306,20 +1306,24 @@ public class RecoverPointScheduler implements Scheduler {
     * @param haVpool
     * @param dbClient
     */
-   public static SwapContainer setActiveProtectionAtHAVarray(SwapContainer varrayVpool, DbClient dbClient) {                
+   public static SwapContainer initializeSwapContainer(SwapContainer container, DbClient dbClient) {                
        // Refresh vpools in case previous activities have changed their temporal representation.
-       VirtualArray srcVarray = varrayVpool.getSrcVarray();
-       VirtualPool srcVpool = dbClient.queryObject(VirtualPool.class, varrayVpool.getSrcVpool().getId());
-       VirtualArray haVarray = varrayVpool.getHaVarray(); 
-       VirtualPool haVpool = varrayVpool.getHaVpool();
+       VirtualArray srcVarray = container.getSrcVarray();
+       VirtualPool srcVpool = dbClient.queryObject(VirtualPool.class, container.getSrcVpool().getId());
+       VirtualArray haVarray = container.getHaVarray(); 
+       VirtualPool haVpool = container.getHaVpool();
+       
+       // Set the haVarray if it's passed in as null and we are able to get the info from the srcVpool
+       // from the getHaVarrayConnectedToRp() field.
+       if (haVarray == null && NullColumnValueGetter.isNotNullValue(srcVpool.getHaVarrayConnectedToRp())) {
+           haVarray = dbClient.queryObject(VirtualArray.class, 
+                   URI.create(srcVpool.getHaVarrayConnectedToRp()));
+           container.setHaVarray(haVarray);
+       }
                
        // Check to see if the user has selected that the HA Varray should be used
        // as the RP Source.               
-       if (VirtualPool.isRPVPlexProtectHASide(srcVpool)) {                                  
-           
-           haVarray = dbClient.queryObject(VirtualArray.class, 
-                               URI.create(srcVpool.getHaVarrayConnectedToRp()));
-           
+       if (VirtualPool.isRPVPlexProtectHASide(srcVpool)) {                                             
            _log.info("Source Vpool[{}] indicates that we should use HA Varray[{}] as RP Source.", srcVpool.getLabel(), haVarray.getLabel());   
                            
            String haVpoolId = srcVpool.getHaVarrayVpoolMap().get(srcVpool.getHaVarrayConnectedToRp());
@@ -1365,14 +1369,14 @@ public class RecoverPointScheduler implements Scheduler {
            VirtualArray tempVarray = srcVarray;
            VirtualPool tempVpool = srcVpool;
            
-           varrayVpool.setSrcVarray(haVarray);
-           varrayVpool.setSrcVpool(haVpool);
+           container.setSrcVarray(haVarray);
+           container.setSrcVpool(haVpool);
            
-           varrayVpool.setHaVarray(tempVarray);
-           varrayVpool.setHaVpool(tempVpool);          
+           container.setHaVarray(tempVarray);
+           container.setHaVpool(tempVpool);          
        }
        
-       return varrayVpool;
+       return container;
    }
    
   

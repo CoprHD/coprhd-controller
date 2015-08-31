@@ -3288,7 +3288,7 @@ public class PlacementTests extends DbsvcTestBase {
 	    _dbClient.createObject(cg);
 	
 	    // Create capabilities
-	    VirtualPoolCapabilityValuesWrapper capabilities = PlacementTestUtils.createCapabilities("20GB", 10, cg);
+	    VirtualPoolCapabilityValuesWrapper capabilities = PlacementTestUtils.createCapabilities("20GB", 13, cg);
 	
 	    // Run single volume placement: Run 10 times to make sure pool6 never comes up for source and pool9 for target.
 	    for (int i = 0; i < 10; i++) {

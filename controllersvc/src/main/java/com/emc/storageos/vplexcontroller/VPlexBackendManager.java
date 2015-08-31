@@ -50,6 +50,7 @@ import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.block.AbstractDefaultMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
+import com.emc.storageos.volumecontroller.impl.block.VPlexBackEndOrchestratorUtil;
 import com.emc.storageos.volumecontroller.impl.block.VPlexHDSMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VPlexVmaxMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VPlexVnxMaskingOrchestrator;
@@ -276,7 +277,9 @@ public class VPlexBackendManager {
             for (ExportMask mask : maskSet.values()) {
                 _log.info(String.format("Validating ExportMask %s (%s) %s", mask.getMaskName(), mask.getId(),
                         (mask.getCreatedBySystem() ? "ViPR created" : "Externally created")));
-                if (validateExportMask(varrayURI, _initiatorPortMap, mask, invalidMasks)) {
+                // No necessary to skip here for Openstack, as cinder backend orchestrator returns the empty set
+                if (VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI,_initiatorPortMap, mask, invalidMasks,
+                        _directorToInitiatorIds, _idToInitiatorMap, _dbClient, _portWwnToClusterMap)) {
                     if (mask.getCreatedBySystem()) {
                         viprCreatedMasks = true;
                     }
@@ -298,11 +301,10 @@ public class VPlexBackendManager {
                         searchDbForExportMasks(array, _initiators, false);
                 // Add these into contention for lowest volume count.
                 for (ExportMask mask : uninitializedMasks.keySet()) {
-                    _log.info(String.format("Validating uninitialized ViPR ExportMask %s (%s)",
-                            mask.getMaskName(), mask.getId()));
-                    if (validateExportMask(varrayURI, _initiatorPortMap, mask, invalidMasks)) {
-                        maskSet.put(mask.getId(), mask);
-                    }
+                    
+                    validateMaskForNonOpenStackSystems(array, varrayURI, maskSet, invalidMasks, mask,
+                            String.format("Validating uninitialized ViPR ExportMask %s (%s)",
+                                    mask.getMaskName(), mask.getId()));
                 }
             }
 
@@ -324,11 +326,11 @@ public class VPlexBackendManager {
                 }
                 // Validate the generated masks too.
                 for (ExportMask mask : generatedMasks.keySet()) {
-                    _log.info(String.format("Validating generated ViPR Export Mask %s (%s)",
-                            mask.getMaskName(), mask.getId()));
-                    if (validateExportMask(varrayURI, _initiatorPortMap, mask, invalidMasks)) {
-                        maskSet.put(mask.getId(), mask);
-                    }
+                    
+                    validateMaskForNonOpenStackSystems(array, varrayURI, maskSet, invalidMasks, mask,
+                            String.format("Validating generated ViPR Export Mask %s (%s)",
+                                    mask.getMaskName(), mask.getId()));
+                    
                 }
             }
 
@@ -371,109 +373,35 @@ public class VPlexBackendManager {
     }
 
     /**
-     * Validates that an ExportMask can be used.
-     * There are comments for each rule that is validated below.
-     * 
-     * @param map of Network to Vplex StoragePort list.
+     * Validate the mask for only non OpenStack storage systems now.
+     * For OpenStack, Export Mask will get validated later before the zoning step 
+     * @param array
+     * @param varrayURI
+     * @param maskSet
+     * @param invalidMasks
      * @param mask
-     * @param invalidMaskscontains
-     * @param returns true if passed validation
      */
-    public boolean validateExportMask(URI varrayURI,
-            Map<URI, List<StoragePort>> initiatorPortMap, ExportMask mask, Set<URI> invalidMasks) {
-
-        boolean passed = true;
-
-        // Rule 1. An Export Mask must have at least two initiators from each director.
-        // This is a warning if the ExportMask is non-ViPR.
-        for (String director : _directorToInitiatorIds.keySet()) {
-            int portsInDirector = 0;
-            for (String initiatorId : _directorToInitiatorIds.get(director)) {
-                Initiator initiator = _idToInitiatorMap.get(initiatorId);
-                String initiatorPortWwn = Initiator.normalizePort(initiator.getInitiatorPort());
-                if (mask.hasExistingInitiator(initiatorPortWwn)) {
-                    portsInDirector++;
-                } else if (mask.hasUserInitiator(initiatorPortWwn)) {
-                    portsInDirector++;
-                }
+    private void validateMaskForNonOpenStackSystems(StorageSystem array, URI varrayURI,
+            Map<URI, ExportMask> maskSet, Set<URI> invalidMasks,
+            ExportMask mask, String logMsg) {
+        
+        if (!isOpenStack(array)) {
+            
+            _log.info(logMsg);            
+            if (VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI,
+                    _initiatorPortMap, mask, invalidMasks,
+                    _directorToInitiatorIds, _idToInitiatorMap, _dbClient, _portWwnToClusterMap)) {
+                maskSet.put(mask.getId(), mask);
             }
-            if (portsInDirector < 2) {
-                if (mask.getCreatedBySystem()) {    // ViPR created
-                    _log.info(String.format(
-                            "ExportMask %s disqualified because it only has %d back-end ports from %s (requires two)",
-                            mask.getMaskName(), portsInDirector, director));
-                    invalidMasks.add(mask.getId());
-                    passed = false;
-                } else {    // non ViPR created
-                    _log.info(String.format(
-                            "Warning: ExportMask %s only has %d back-end ports from %s (should have at least two)",
-                            mask.getMaskName(), portsInDirector, director));
-                }
-            }
-        }
 
-        // Rule 2. The Export Mask should have at least two ports. Four are recommended.
-        Set<String> usablePorts = new StringSet();
-        if (mask.getStoragePorts() != null) {
-            for (String portId : mask.getStoragePorts()) {
-                StoragePort port = _dbClient.queryObject(StoragePort.class, URI.create(portId));
-                if (port == null || port.getInactive()
-                        || NullColumnValueGetter.isNullURI(port.getNetwork())) {
-                    continue;
-                }
-                // Validate port network overlaps Initiators and port is tagged for Varray
-                StringSet taggedVarrays = port.getTaggedVirtualArrays();
-                if (ConnectivityUtil.checkNetworkConnectedToAtLeastOneNetwork(port.getNetwork(), initiatorPortMap.keySet(), _dbClient)
-                        && taggedVarrays != null && taggedVarrays.contains(varrayURI.toString())) {
-                    usablePorts.add(port.getLabel());
-                }
-            }
-        }
-
-        if (usablePorts.size() < 2) {
-            _log.info(String.format("ExportMask %s disqualified because it has less than two usable target ports;"
-                    + " usable ports: %s", mask.getMaskName(), usablePorts.toString()));
-            passed = false;
-        }
-        else if (usablePorts.size() < 4) {  // This is a warning
-            _log.info(String.format("Warning: ExportMask %s has only %d usable target ports (best practice is at least four);"
-                    + " usable ports: %s", mask.getMaskName(), usablePorts.size(), usablePorts.toString()));
-        }
-
-        // Rule 3. No mixing of WWNs from both VPLEX clusters.
-        // Add the clusters for all existingInitiators to the sets computed from initiators above.
-        Set<String> clusters = new HashSet<String>();
-        for (String portWwn : _portWwnToClusterMap.keySet()) {
-            if (mask.hasExistingInitiator(portWwn) || mask.hasUserInitiator(portWwn)) {
-                clusters.add(_portWwnToClusterMap.get(portWwn));
-            }
-        }
-        if (clusters.size() > 1) {
-            _log.info(String.format("ExportMask %s disqualified because it contains wwns from both Vplex clusters",
-                    mask.getMaskName()));
-            passed = false;
-        }
-
-        // Rule 4. The ExportMask name should not have NO_VIPR in it.
-        if (mask.getMaskName().toUpperCase().contains(ExportUtils.NO_VIPR)) {
-            _log.info(String.format("ExportMask %s disqualified because the name contains %s (in upper or lower case) to exclude it",
-                    mask.getMaskName(), ExportUtils.NO_VIPR));
-            passed = false;
-        }
-
-        int volumeCount = (mask.getVolumes() != null) ? mask.getVolumes().size() : 0;
-        if (mask.getExistingVolumes() != null) {
-            volumeCount += mask.getExistingVolumes().keySet().size();
-        }
-        if (passed) {
-            _log.info(String.format("Validation of ExportMask %s passed; it has %d volumes",
-                    mask.getMaskName(), volumeCount));
         } else {
-            invalidMasks.add(mask.getId());
+            // For OpenStack systems, we do the validation later
+            // after back-end volume has been exported and received the response
+            maskSet.put(mask.getId(), mask);
         }
-        return passed;
     }
 
+    
     /**
      * Returns the Storage Ports on a VPlex that should be used for a particular
      * storage array. This is done by finding ports in the VPlex and array that have
@@ -1011,7 +939,7 @@ public class VPlexBackendManager {
 
         // Determine if VNX or OpenStack so can order VNX zoning after masking
         boolean isMaskingFirst = isMaskingFirst(array);
-        boolean isOpenStack = array.getSystemType().equals(DiscoveredDataObject.Type.openstack.name());
+        boolean isOpenStack = isOpenStack(array);
 
         Map<URI, Integer> volumeLunIdMap = createVolumeMap(array.getId(), exportGroup, volumeMap);
         _dbClient.persistObject(exportGroup);
@@ -1063,11 +991,14 @@ public class VPlexBackendManager {
                 previousStepId, array.getId(), array.getSystemType(), orca.getClass(),
                 updateMaskMethod, rollbackMaskMethod, maskStepId);
         
+        // For OpenStack - Additional step of validating the export mask is needed
+        // This is required as the export mask gets updated by reading the cinder response.
         if(isOpenStack) {
             
             // START - validateExportMask Step
             Set<URI> invalidMasks = new HashSet<URI>();
-            Workflow.Method validateMaskMethod = new Workflow.Method("validateExportMask", varrayURI, _initiatorPortMap, exportMask, invalidMasks);
+            Workflow.Method validateMaskMethod = ((VplexCinderMaskingOrchestrator) orca).validateExportMaskMethod(varrayURI,
+                    _initiatorPortMap, exportMask, invalidMasks, _directorToInitiatorIds, _idToInitiatorMap, _dbClient, _portWwnToClusterMap);
             workflow.createStep(REVALIDATE_MASK, "revalidateExportMask: " + exportMask.getMaskName(),
                     maskStepId, array.getId(), array.getSystemType(), VPlexBackendManager.class, validateMaskMethod, null, reValidateExportMaskStep);
             // END - validateExportMask Step
@@ -1079,6 +1010,10 @@ public class VPlexBackendManager {
                 exportGroup.getLabel(), exportGroup.getId(), vplex.getId(),
                 exportGroup.getVirtualArray()));
         return (isMaskingFirst && zoningStep != null) ? zoningStep : maskStepId;
+    }
+
+    private boolean isOpenStack(StorageSystem array) {
+        return array.getSystemType().equals(DiscoveredDataObject.Type.openstack.name());
     }
 
     /**

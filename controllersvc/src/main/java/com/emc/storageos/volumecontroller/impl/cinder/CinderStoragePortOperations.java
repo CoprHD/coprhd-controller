@@ -454,7 +454,7 @@ public class CinderStoragePortOperations
             count++;
         }
 
-        return buf.toString();
+        return buf.toString().toUpperCase();
     }
 
 }

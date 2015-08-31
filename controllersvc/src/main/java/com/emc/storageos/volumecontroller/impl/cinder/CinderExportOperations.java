@@ -604,19 +604,27 @@ public class CinderExportOperations implements ExportMaskOperations {
                 log.info(String.format(
                         "For initiator %s accessible storage ports are %s ",
                         initiatorKey, filteredTargetList.toString()));
+                
+                List<String> tmpTargetList = null;
+                if(!isVplex(volumeRes)) {
+                    //For VPLEX - no path validations
+                    //Path validations are required only for the Host Exports
+                    tmpTargetList = checkPathsPerInitiator(pathsPerInitiator, filteredTargetList);
 
-                List<String> tmpTargetList = checkPathsPerInitiator(pathsPerInitiator, filteredTargetList);
-
-                if (null == tmpTargetList) {
-                    // Rollback case - throw the exception
-                    throw new Exception(
-                            String.format(
-                                    "Paths per initiator criteria is not met for the initiator : %s "
-                                            + " Target counts is: %s Expected paths per initiator is: %s",
-                                    initiatorKey,
-                                    String.valueOf(filteredTargetList.size()),
-                                    String.valueOf(pathsPerInitiator)));
-                }
+                    if (null == tmpTargetList) {
+                        // Rollback case - throw the exception
+                        throw new Exception(
+                                String.format(
+                                        "Paths per initiator criteria is not met for the initiator : %s "
+                                                + " Target counts is: %s Expected paths per initiator is: %s",
+                                        initiatorKey,
+                                        String.valueOf(filteredTargetList.size()),
+                                        String.valueOf(pathsPerInitiator)));
+                    }
+                    
+                } else {
+                    tmpTargetList = filteredTargetList;
+                }                
 
                 // Now populate URIs for the map to be returned - convert WWNs
                 // to URIs
@@ -659,6 +667,19 @@ public class CinderExportOperations implements ExportMaskOperations {
 
         log.debug("END - updateTargetsInExportMask");
 
+    }
+    
+    /***
+     * Check if the request is for vplex.
+     * @param volume
+     * @return
+     */
+    private boolean isVplex(Volume volume)
+    {
+        boolean isVplex = false;
+        VirtualPool vpool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
+        isVplex = VirtualPool.vPoolSpecifiesHighAvailability(vpool);
+        return isVplex;
     }
 
     private Map<String, URI> getWWNvsURIFCInitiatorsMap(

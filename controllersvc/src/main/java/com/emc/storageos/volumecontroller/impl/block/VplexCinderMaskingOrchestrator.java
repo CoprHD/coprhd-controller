@@ -166,6 +166,62 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             Map<URI, NetworkLite> networkMap) {
         return VPlexBackEndOrchestratorUtil.configureZoning(portGroup, initiatorGroup, networkMap);
     }
+    
+    
+    /**
+     * Method to re-validate the Export Mask
+     * 
+     * @param varrayURI
+     * @param initiatorPortMap
+     * @param mask
+     * @param invalidMasks
+     * @param directorToInitiatorIds
+     * @param idToInitiatorMap
+     * @param dbClient
+     * @param portWwnToClusterMap
+     * @return
+     */
+    public Method validateExportMaskMethod(URI varrayURI,
+            Map<URI, List<StoragePort>> initiatorPortMap, ExportMask mask, Set<URI> invalidMasks,
+            Map<String, Set<String>> directorToInitiatorIds, Map<String, Initiator> idToInitiatorMap,
+            DbClient dbClient, Map<String, String> portWwnToClusterMap) {
+        return new Workflow.Method("validateExportMask",
+                varrayURI,
+                initiatorPortMap,
+                mask,
+                invalidMasks,
+                directorToInitiatorIds,
+                idToInitiatorMap,
+                dbClient,
+                portWwnToClusterMap);
+    }
+    
+    /**
+     * Re-validate the ExportMask
+     * 
+     *  This is required to be done as the ExportMask
+     *  gets updated by reading the cinder export volume
+     *  response.
+     *
+     * 
+     * @param varrayURI
+     * @param initiatorPortMap
+     * @param mask
+     * @param invalidMasks
+     * @param directorToInitiatorIds
+     * @param idToInitiatorMap
+     * @param dbClient
+     * @param portWwnToClusterMap
+     */
+    public void validateExportMask(URI varrayURI,
+            Map<URI, List<StoragePort>> initiatorPortMap, ExportMask mask, Set<URI> invalidMasks,
+            Map<String, Set<String>> directorToInitiatorIds, Map<String, Initiator> idToInitiatorMap,
+            DbClient dbClient, Map<String, String> portWwnToClusterMap) {
+        
+        VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI, initiatorPortMap, mask, invalidMasks, directorToInitiatorIds,
+                idToInitiatorMap, dbClient, portWwnToClusterMap);
+        
+    }
 
     @Override
     public Method createOrAddVolumesToExportMaskMethod(URI arrayURI,

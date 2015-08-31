@@ -1,7 +1,9 @@
 package com.emc.storageos.ecs.api;
 
 import java.io.IOException;
+import java.io.StringWriter;
 import java.net.URI;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
@@ -12,10 +14,12 @@ import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
 import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
 import org.apache.commons.httpclient.params.HttpMethodParams;
 import org.apache.commons.httpclient.protocol.Protocol;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 import com.sun.jersey.client.apache.ApacheHttpClient;
 import com.sun.jersey.client.apache.ApacheHttpClientHandler;
@@ -136,12 +140,24 @@ public class ECSApiFactory {
         ECSApi ecsApi = _clientMap.get(endpoint.toString() +":"+ username +":"+ password);
         if (ecsApi == null) {
             Client jerseyClient = new ApacheHttpClient(_clientHandler);
-            //jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
+            jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
             RESTClient restClient = new RESTClient(jerseyClient);
             ecsApi = new ECSApi(endpoint, restClient);
             _clientMap.putIfAbsent(endpoint.toString()+":"+username+":"+password, ecsApi);
         }
         return ecsApi;
     }
+    
+    public static void main(String[] args) {
+    	System.out.println("starting ecs main");
+    	URI uri = URI.create(String.format("https://10.247.78.171:4443/login"));
+    	ECSApiFactory factory = new ECSApiFactory();
+    	factory.init();
+    	ECSApi ecsApi = factory.getRESTClient(uri, "root", "ChangeMe");
+    	
+    	String authToken = ecsApi.getAuthToken();
+    	System.out.println(authToken);
+    	
+    	ecsApi.getStoragePools();
+    }
 }
-

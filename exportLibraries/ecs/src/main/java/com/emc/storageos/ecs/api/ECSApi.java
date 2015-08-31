@@ -1,24 +1,37 @@
 package com.emc.storageos.ecs.api;
 
+import java.io.IOException;
+import java.io.StringWriter;
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 
+import javax.ws.rs.core.MultivaluedMap;
+
+import org.apache.commons.io.IOUtils;
+import org.codehaus.jettison.json.JSONArray;
+import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
+import org.json.simple.parser.JSONParser;
 
+import com.google.gson.Gson;
 import com.sun.jersey.api.client.ClientResponse;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.*;
-
 
 public class ECSApi {
     private final URI _baseUrl;
     private final RESTClient _client;
+    private String authToken;
 
-    private static final URI URI_LOGIN = URI.create("login");
-    
+    private static final URI URI_LOGIN = URI.create("/login");
+    private static final URI URI_STORAGE_POOL = URI.create("/vdc/data-service/vpools.json");
+       
     /**
      * Constructor for using http connections
      * 
-     * @throws IsilonException
+     * @throws ECSException
      */
     public ECSApi(URI endpoint, RESTClient client) {
         _baseUrl = endpoint;
@@ -32,23 +45,52 @@ public class ECSApi {
         _client.close();
     }
     
-    public String getAuthToken(StorageSystem storageSystem) throws ECSException {
-    	String authToken = null;
- 
+    public String getAuthToken() throws ECSException {
+    	List<String> authTokenList = null;
+
     	ClientResponse clientResp = null;
     	clientResp = _client.get(_baseUrl.resolve(URI_LOGIN));
     	if (clientResp.getStatus() != 200) {
     		throw ECSException.exceptions.unableToConnect(_baseUrl);
     	}
+
+    	MultivaluedMap<String,String> headers=clientResp.getHeaders();
+    	authTokenList = headers.get("X-SDS-AUTH-TOKEN");
+
+    	authToken = authTokenList.get(0);
+    	return authToken;
+    }
+    
+    public List<ECSStoragePool> getStoragePools() throws ECSException {
+    	ClientResponse clientResp = null;
+    	clientResp = _client.get(_baseUrl.resolve(URI_STORAGE_POOL), authToken);
+    	if (clientResp.getStatus() != 200) {
+    		throw ECSException.exceptions.unableToConnect(_baseUrl);
+    	}
+    	
+    	JSONObject object = null;
+    	JSONArray array = null;
+		List<ECSStoragePool> pools = new ArrayList<ECSStoragePool>();
     	
     	try {
-    		JSONObject resp = clientResp.getEntity(JSONObject.class);
-    	}finally {
-    		if (clientResp != null) {
-    			clientResp.close();
+    		object = clientResp.getEntity(JSONObject.class);
+    		array = object.getJSONArray("data_service_vpool");
+
+    		int total = array.length();
+    		JSONObject ob = null;
+    		
+    		for(int i=0; i<total; i++) {
+    			ECSStoragePool ecsPool = new ECSStoragePool();
+    			ob = array.getJSONObject(i);
+    			ecsPool.setName(ob.getString("name"));
+    			pools.add(ecsPool);
     		}
 
-    		return authToken;
-    	}
+    	} catch(Exception e) {
+    		int a = 0;
+    		//throws JSONException;
+    	} 	
+
+        return pools;
     }
 }

@@ -6,18 +6,26 @@ package com.emc.storageos.volumecontroller.impl.plugins;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.ecs.api.ECSApi;
 import com.emc.storageos.ecs.api.ECSApiFactory;
 import com.emc.storageos.ecs.api.ECSException;
+import com.emc.storageos.ecs.api.ECSStoragePool;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.metering.smis.SMIPluginException;
+import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 
 /**
  * Class for ECS discovery object storage device
@@ -59,16 +67,33 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
         StorageSystem storageSystem = null;
         String detailedStatusMessage = "Unknown Status";
         long startTime = System.currentTimeMillis();
+        StoragePool storagePool;
 
+        _logger.info("ECSCommunicationInterface ECS discover Access Profile Details :" + accessProfile.toString());
 		try {
             storageSystemId = accessProfile.getSystemId();
             storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemId);
 
             // try to connect to the ECS
             ECSApi ecsApi = getECSDevice(storageSystem);
-            ecsApi.getAuthToken(storageSystem);
-
-            _logger.info("ECSCommunicationInterface ECS discover Access Profile Details :" + accessProfile.toString());
+            String authToken = ecsApi.getAuthToken();
+            
+            String nativeGuid = NativeGUIDGenerator.generateNativeGuid(DiscoveredDataObject.Type.ecs.toString(),
+            		authToken);
+            storageSystem.setNativeGuid(nativeGuid);
+            storageSystem.setReachableStatus(true);
+            _dbClient.persistObject(storageSystem);
+            
+            //Get storage pools
+            List<StoragePool> pools = new ArrayList<StoragePool>();
+            List<ECSStoragePool> ecsStoragePools = ecsApi.getStoragePools();
+            for (ECSStoragePool ecsPool : ecsStoragePools)  {
+            	storagePool = new StoragePool();
+            	storagePool.setPoolName(ecsPool.getName());
+            	pools.add(storagePool);
+            }
+            
+            _dbClient.createObject(pools);
             
 		}  catch (Exception e) {
             detailedStatusMessage = String.format("Discovery failed for Storage System: %s because %s",

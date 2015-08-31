@@ -32,6 +32,12 @@ public class RESTClient {
 	public ClientResponse get(URI url) {
 		return _client.resource(url).get(ClientResponse.class);
 	}
+	
+	public ClientResponse get(URI url, String authToken) {
+		WebResource r = _client.resource(url);
+		return r.header("Content-Type", "application/json").header("X-SDS-AUTH-TOKEN", authToken).get(ClientResponse.class);
+	}
+
 	/**
 	 * Close the client
 	 */

@@ -5,7 +5,7 @@
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
 
 import java.io.IOException;
-
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -114,8 +114,9 @@ public class VNXFileSystemUsageProcessor extends VNXFileProcessor {
         final String serialId = keyMap.get(Constants._serialID).toString();
         Iterator iterator = fsUsageList.iterator();
         keyMap.put(Constants._TimeCollected, System.currentTimeMillis());
+        
         Map<String, Long> fsCapacityMap = new HashMap<String, Long>();        
-        FileSystemSetUsageStats fsSetUsageStats = (FileSystemSetUsageStats) iterator.next();
+        
         while (iterator.hasNext()) {
             FileSystemSetUsageStats fsSetUsageStats = (FileSystemSetUsageStats) iterator.next();
             List<Item> fsUsageItems = fsSetUsageStats.getItem();

@@ -42,6 +42,7 @@
 				<!-- collecting ip port metrics -->
 				<ref bean="vnxdatamoverquery"/>
 				<ref bean="vnxdminterfacesquery" />
+				<ref bean="vnxstaticloadoperation" />
 				<ref bean="vnxstorageportstatsquery" />
 				<ref bean="sessioncleanoperation" />
 			</list>
@@ -197,6 +198,22 @@
 			</list>
 		</property>
 	</bean>
+	
+	<bean id="vnxstaticloadoperation"
+		class="com.emc.storageos.plugins.common.domainmodel.Operation">
+		<property name="processor" ref="vnxstaticloadprocessor" />
+		<property name="instance" ref="retriever" />
+		<property name="method" value="execute" />
+		<property name="arguments">
+			<list>
+				<ref bean="uri" />
+				<ref bean="cookie" />
+				<ref bean="session" />
+				<ref bean="mountquery" />
+			</list>
+		</property>
+	</bean>
+	
 
 	<bean id="fsusageoperation"
 		class="com.emc.storageos.plugins.common.domainmodel.Operation">
@@ -289,6 +306,14 @@
 		<property name="method" value="fetchCheckpointInfo" />
 		<property name="value" value="" />
 	</bean>
+	
+	<bean id="mountquery"
+		class="com.emc.storageos.plugins.common.domainmodel.Argument">
+		<property name="creator" ref="argscreator" />
+		<property name="method" value="fetchMoverInfo" />
+		<property name="value" value="" />
+	</bean>
+	
 
 	<bean id="uri"
 		class="com.emc.storageos.plugins.common.domainmodel.Argument">
@@ -347,6 +372,11 @@
     
 	<bean id="snapshotprocessor"
 		class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXSnapshotProcessor">
+	    <property name="unmarshaller" ref="unmarshaller"/>
+	</bean>
+	
+	<bean id="vnxstaticloadoperation"
+		class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXStaticLoadProcessor">
 	    <property name="unmarshaller" ref="unmarshaller"/>
 	</bean>
 	

@@ -222,6 +222,34 @@ public class VNXFileArgsCreator extends ArgsCreator {
         return iStream;
 
     }
+    
+    /**
+     * create Mount query and returns its stream after marshalling.
+     * 
+     * @param argument
+     * @param keyMap
+     * @param index
+     * @return
+     * @throws VNXFilePluginException
+     */
+    public InputStream fetchMoverInfo(final Argument argument,
+            final Map<String, Object> keyMap, int index)
+            throws VNXFilePluginException {
+        _logger.info("VNX File System Mount info query");
+        InputStream iStream = null;
+        try {
+            Query query = new Query();
+            MountQueryParams mountQueryParams = new MountQueryParams();
+            query.getQueryRequestChoice().add(mountQueryParams);
+            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(mountQueryParams, false);
+        } catch (JAXBException jaxbException) {
+            throw new VNXFilePluginException(
+                    "Exception occurred while generating input xml for celerra system info",
+                    jaxbException.getCause());
+        }
+        return iStream;
+
+    }
 
     /**
      * Create Filesystem information input XML request and returns stream after marshalling.

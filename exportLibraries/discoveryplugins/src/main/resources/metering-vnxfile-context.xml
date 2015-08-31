@@ -43,7 +43,6 @@
 				<!-- collecting ip port metrics -->
 				<ref bean="vnxdatamoverquery"/>
 				<ref bean="vnxdminterfacesquery" />
-				
 				<ref bean="vnxstorageportstatsquery" />
 				<ref bean="sessioncleanoperation" />
 			</list>

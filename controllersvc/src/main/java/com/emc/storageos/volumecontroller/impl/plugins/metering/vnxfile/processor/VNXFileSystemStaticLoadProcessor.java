@@ -50,6 +50,7 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
                 processErrorStatus(status, keyMap);
             } else {
                 List<Object> mountList = getQueryResponse(responsePacket);
+                //process the mount list
                 processMountList(mountList, keyMap);
                 keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
             }

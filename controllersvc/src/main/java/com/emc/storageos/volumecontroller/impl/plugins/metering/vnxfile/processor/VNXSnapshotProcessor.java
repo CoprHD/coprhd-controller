@@ -120,7 +120,7 @@ public class VNXSnapshotProcessor extends VNXFileProcessor {
 
     private void getSnapTotalCapacityOfFSs(final List<Object> snapshotList, 
                                                Map<String, Object> keyMap) {
-        //snapshot map with fsid's
+        //snapshot map with fsId's
         Map<String, Map<String, Long>> snapCapFSMap 
                                 = new HashMap<String, Map<String, Long>>();
         int snapCount = 0;
@@ -144,9 +144,12 @@ public class VNXSnapshotProcessor extends VNXFileProcessor {
             snapCapMap.put(checkPoint.getCheckpoint(), Long.valueOf(snapCapacity));
             snapCount++;
             snapCapFSMap.put(checkPoint.getCheckpointOf(), snapCapMap);
-            _logger.info("filesystem id {} and no. of snapshot : {} ", 
-                    checkPoint.getCheckpointOf(), String.valueOf(snapCount));
+            _logger.info("filesystem id {} and snapshot id : {} ", 
+                    checkPoint.getCheckpointOf(), checkPoint.getCheckpoint());
         }
+        
+        _logger.info("total filesystems- {} and total snapshots- : {} ", 
+                snapCapFSMap.size(), String.valueOf(snapCount));
         //add to keymap for further process data
         keyMap.put(VNXFileConstants.SNAP_CAPACITY_MAP, snapCapFSMap);
         return;

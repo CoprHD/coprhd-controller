@@ -267,6 +267,7 @@ StorageSystemType.hds=Hitachi
 StorageSystemType.ibmxiv=IBM XIV
 StorageSystemType.openstack=Third-party block
 StorageSystemType.scaleio=Block Storage Powered by ScaleIO
+StorageSystemType.scaleioapi=ScaleIO Gateway
 StorageSystemType.xtremio=EMC XtremIO
 StorageSystemType.vnxe=EMC VNXe
 StorageSystemType.datadomain=Data Domain

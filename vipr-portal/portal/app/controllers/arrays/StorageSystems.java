@@ -146,7 +146,9 @@ public class StorageSystems extends ViprResourceController {
         StorageSystemRestRep storageSystem = StorageSystemUtils.getStorageSystem(id);
         if (storageSystem != null) {
             StorageSystemForm storageArray = new StorageSystemForm(storageSystem);
-
+            if (storageArray.type.equals("scaleio")) {
+            	renderArgs.put("storageArrayTypeList", Arrays.asList(StorageSystemTypes.SMIS_OPTIONS));
+            }
             if (storageArray.unregistered) {
                 flash.put("warning", MessagesUtils.get(NOT_REGISTERED, storageArray.name));
             }

@@ -101,7 +101,7 @@ public class Cluster extends AbstractTenantResource {
         setChanged("autoExportEnabled");
     }
 
-    public boolean isAutoExportEnabled() {
+    public Boolean isAutoExportEnabled() {
         return this.autoExportEnabled == null || this.autoExportEnabled;
     }
 
@@ -120,7 +120,7 @@ public class Cluster extends AbstractTenantResource {
         setChanged("autoUnexportEnabled");
     }
 
-    public boolean isAutoUnexportEnabled() {
+    public Boolean isAutoUnexportEnabled() {
         return this.autoUnexportEnabled == null || this.autoUnexportEnabled;
     }
 }

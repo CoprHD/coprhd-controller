@@ -30,7 +30,7 @@ validate_parameters() {
 init_variables() {
     RESTORE_DIR="/data/restore-`date +%s`"
     NODE_COUNT=`/etc/systool --getprops | awk -F '=' '/\<node_count\>/ {print $2}'`
-    LOCAL_NODE=`hostname`
+    LOCAL_NODE=`/etc/systool --getprops | awk -F '=' '/\<node_id\>/ {print $2}'`
 }
 
 upload_backup() {
@@ -154,11 +154,8 @@ restore_data() {
     RESTORE_RESULT="successful"
     for i in $(seq 1 $NODE_COUNT)
     do
-        local viprNode="vipr$i"
-        if [ "$LOCAL_NODE" == "standalone" ]; then
-            viprNode="$LOCAL_NODE"
-        fi
-        ls $RESTORE_DIR/*_$viprNode.* &>/dev/null
+        local viprNode=$(get_nodeid)
+        ls $RESTORE_DIR/*_$viprNode_* &>/dev/null
         if [ $? == 0 ]; then
             restore_node "$viprNode"
         else
@@ -185,6 +182,7 @@ purge_node() {
 }
 
 restore_node() {
+    local viprNode=${1}
     cd $RESTORE_DIR
     local backupTag=`ls *_info.properties | awk '{split($0,a,"_"); print a[1]}'`
     local command="/opt/storageos/bin/bkutils -r $RESTORE_DIR $backupTag"
@@ -242,13 +240,7 @@ loop_execute() {
 
     for i in $(seq 1 $NODE_COUNT)
     do
-        if [ "$LOCAL_NODE" == "standalone" ]; then
-            if [ "$includeLocal" == "true" ]; then
-                ssh_execute "$LOCAL_NODE" "$command" &
-            fi
-            break
-        fi
-        local viprNode="vipr$i"
+        local viprNode=$(get_nodeid)
         if [ "$viprNode" != "$LOCAL_NODE" -o "$includeLocal" == "true" ]; then
             ssh_execute "$viprNode" "$command" &
         fi
@@ -261,6 +253,16 @@ ssh_execute() {
     local viprNode=${1}
     local command=${2}
     ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null svcuser@$viprNode "echo '$ROOT_PASSWORD' | sudo -S $command" &>/dev/null
+}
+
+get_nodeid() {
+    local nodeId
+    if [ $NODE_COUNT -eq 1 ]; then
+        nodeId="$LOCAL_NODE"
+    else
+        nodeId="vipr$i"
+    fi
+    echo "$nodeId"
 }
 
 if [ $# -eq 1 ]; then

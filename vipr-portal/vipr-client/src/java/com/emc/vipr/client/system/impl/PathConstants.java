@@ -46,6 +46,8 @@ public class PathConstants {
     public static final String CONFIG_CONNECT_EMC_FTPS_URL = CONFIG_URL + "/connectemc/ftps";
     public static final String CONFIG_CONNECT_EMC_EMAIL_URL = CONFIG_URL + "/connectemc/email";
     public static final String CONFIG_PROP_RESET_URL = CONFIG_URL + "/properties/reset";
+    public static final String CONFIG_DELETE_BLOCK_IP = CONFIG_URL + "/login-failed-ips/{ip}";
+    public static final String CONFIG_LIST_BLOCK_IPS = CONFIG_URL + "/login-failed-ips";
 
     public static final String CALLHOME_URL = "/callhome";
     public static final String CALLHOME_REGISTRATION_URL = CALLHOME_URL + "/registration";

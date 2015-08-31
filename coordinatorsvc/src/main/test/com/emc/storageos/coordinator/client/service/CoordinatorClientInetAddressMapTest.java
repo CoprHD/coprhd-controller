@@ -53,7 +53,7 @@ public class CoordinatorClientInetAddressMapTest extends CoordinatorTestBase {
 
         // set to node map
         // *** assume this node[0]
-        nodeMap.setNodeName(nodes[0]);
+        nodeMap.setNodeId(nodes[0]);
         nodeMap.setDualInetAddress(DualInetAddress.fromAddresses(ip4[0], ip6[0]));
 
         nodeMap.setControllerNodeIPLookupMap(controllerNodeMap);
@@ -106,7 +106,7 @@ public class CoordinatorClientInetAddressMapTest extends CoordinatorTestBase {
     @Test
     public void testGetConnectableAddressWithId() throws Exception {
         // *** assume this node[0]
-        nodeMap.setNodeName(nodes[0]);
+        nodeMap.setNodeId(nodes[0]);
         nodeMap.setDualInetAddress(DualInetAddress.fromAddresses(ip4[0], ip6[0]));
 
         // 1. test controller nodes, this should pass lookup
@@ -161,7 +161,7 @@ public class CoordinatorClientInetAddressMapTest extends CoordinatorTestBase {
     @Test
     public void testExpandURI() throws Exception {
         // *** assume this node[0], dual stack
-        nodeMap.setNodeName(nodes[0]);
+        nodeMap.setNodeId(nodes[0]);
         nodeMap.setDualInetAddress(DualInetAddress.fromAddresses(ip4[0], ip6[0]));
 
         // 1. controller nodes should resolve/expand
@@ -228,7 +228,7 @@ public class CoordinatorClientInetAddressMapTest extends CoordinatorTestBase {
      */
     @Test
     public void testGetExternalConnectableAddress() throws UnknownHostException {
-        nodeMap.setNodeName(nodes[0]);
+        nodeMap.setNodeId(nodes[0]);
         nodeMap.setDualInetAddress(DualInetAddress.fromAddresses(ip4[0], ip6[0]));
 
         String external_ip = "10.10.10.200";// remote node
@@ -281,7 +281,7 @@ public class CoordinatorClientInetAddressMapTest extends CoordinatorTestBase {
      */
     @Test
     public void testGetLocalConnectableAddress() throws UnknownHostException {
-        nodeMap.setNodeName(nodes[0]);
+        nodeMap.setNodeId(nodes[0]);
         nodeMap.setDualInetAddress(DualInetAddress.fromAddresses(ip4[0], ip6[0]));
 
         String external_ip = "10.10.10.200";// remote node

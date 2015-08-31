@@ -212,6 +212,8 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
                            cookiefile + " : Cookie file not found")
 
         headers[SEC_AUTHTOKEN_HEADER] = token
+
+
         if (http_method == 'GET'):
             '''when the GET request is specified with a filename, we write
                the contents of the GET request to the filename. This option
@@ -256,6 +258,7 @@ def service_json_request(ip_addr, port, http_method, uri, body, token=None,
             response = requests.put(url, data=body, headers=headers,
                                     verify=False, cookies=cookiejar)
         elif (http_method == 'DELETE'):
+
             response = requests.delete(url, headers=headers, verify=False,
                                        cookies=cookiejar)
         else:

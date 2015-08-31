@@ -33,10 +33,12 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.ComputeImage;
 import com.emc.storageos.db.client.model.ComputeImage.ComputeImageStatus;
 import com.emc.storageos.db.client.model.ComputeImageJob;
+import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.compute.ComputeImageBulkRep;
 import com.emc.storageos.model.compute.ComputeImageCreate;
@@ -127,9 +129,9 @@ public class ComputeImageService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskResourceRep createComputeImage(ComputeImageCreate param) {
+    public TaskList createComputeImage(ComputeImageCreate param) {
         log.info("createComputeImage");
-
+        TaskList taskList = new TaskList();
         // unique name required
         ArgValidator.checkFieldNotEmpty(param.getName(), "name");
         checkDuplicateLabel(ComputeImage.class, param.getName(), param.getName());
@@ -151,7 +153,14 @@ public class ComputeImageService extends TaskResourceService {
         auditOp(OperationTypeEnum.CREATE_COMPUTE_IMAGE, true, AuditLogManager.AUDITOP_BEGIN, ci.getId().toString(),
                 ci.getImageUrl(), ci.getComputeImageStatus());
         try {
-            return doImportImage(ci);
+        	List<URI> ids = _dbClient.queryByType(ComputeImageServer.class, true);
+            for (URI imageServerId : ids){
+            	ComputeImageServer imageServer = _dbClient.queryObject(ComputeImageServer.class,imageServerId);
+            	if (!imageServer.getComputeImage().contains(ci.getId().toString())){
+            		taskList.addTask(doImportImage(ci,imageServer));
+            	}
+            }
+            return taskList;
         } catch (Exception e) {
             ci.setComputeImageStatus(ComputeImageStatus.NOT_AVAILABLE.name());
             _dbClient.persistObject(ci);
@@ -177,14 +186,15 @@ public class ComputeImageService extends TaskResourceService {
     /*
      * Schedules the import task.
      */
-    private TaskResourceRep doImportImage(ComputeImage ci) {
+    private TaskResourceRep doImportImage(ComputeImage ci, ComputeImageServer imageServer) {
         log.info("doImportImage");
         ImageServerController controller = getController(ImageServerController.class, null);
         AsyncTask task = new AsyncTask(ComputeImage.class, ci.getId(), UUID.randomUUID().toString());
+     
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.IMPORT_IMAGE);
         _dbClient.createTaskOpStatus(ComputeImage.class, ci.getId(), task._opId, op);
-        controller.importImage(task);
+        controller.importImage(task,imageServer.getId());
         return TaskMapper.toTask(ci, task._opId, op);
     }
 
@@ -203,8 +213,9 @@ public class ComputeImageService extends TaskResourceService {
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskResourceRep updateComputeImage(@PathParam("id") URI id, ComputeImageUpdate param) {
+    public TaskList updateComputeImage(@PathParam("id") URI id, ComputeImageUpdate param) {
         log.info("updateComputeImage: {}, new name: {}", id, param.getName());
+        TaskList taskList = new TaskList();
         ArgValidator.checkFieldUriType(id, ComputeImage.class, "id");
         ArgValidator.checkFieldNotEmpty(param.getName(), "name");
 
@@ -237,18 +248,30 @@ public class ComputeImageService extends TaskResourceService {
 
         auditOp(OperationTypeEnum.UPDATE_COMPUTE_IMAGE, true, null,
                 ci.getId().toString(), ci.getImageUrl());
-
-        if (!reImport) {
-            return getReadyOp(ci, ResourceOperationTypeEnum.UPDATE_IMAGE);
-        }
-
-        try {
-            return doImportImage(ci);
+        
+        
+        boolean hasImportTask = false;
+        try {         
+            
+            List<URI> ids = _dbClient.queryByType(ComputeImageServer.class, true);
+            for (URI imageServerId : ids){
+            	
+            	ComputeImageServer imageServer = _dbClient.queryObject(ComputeImageServer.class,imageServerId);
+           
+            	if (reImport || !imageServer.getComputeImage().contains(ci.getId().toString())){
+            		taskList.addTask(doImportImage(ci,imageServer));
+            		hasImportTask = true;
+            	}
+            }
         } catch (Exception e) {
             ci.setComputeImageStatus(ComputeImageStatus.NOT_AVAILABLE.name());
             _dbClient.persistObject(ci);
             throw e;
         }
+        if (!hasImportTask) {
+            taskList.addTask(getReadyOp(ci, ResourceOperationTypeEnum.UPDATE_IMAGE));
+        }
+        return taskList;
     }
 
     /**
@@ -257,15 +280,16 @@ public class ComputeImageService extends TaskResourceService {
      * @param id
      *            compute image URN.
      * @brief Delete compute image
-     * @return No data returned in response body
+     * @return List of Asycn tasks to remove the image from multiple image serevers returned in response body
      */
     @POST
     @Path("/{id}/deactivate")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskResourceRep deleteComputeImage(@PathParam("id") URI id, @QueryParam("force") String force) {
+    public TaskList deleteComputeImage(@PathParam("id") URI id, @QueryParam("force") String force) {
         log.info("deleteComputeImage: {}", id);
+        TaskList taskList = new TaskList();
         ComputeImage ci = queryObject(ComputeImage.class, id, true);
         ArgValidator.checkEntity(ci, id, isIdEmbeddedInURL(id));
 
@@ -287,7 +311,14 @@ public class ComputeImageService extends TaskResourceService {
 
             auditOp(OperationTypeEnum.DELETE_COMPUTE_IMAGE, true, AuditLogManager.AUDITOP_BEGIN, ci.getId().toString(),
                     ci.getImageUrl());
-            return doRemoveImage(ci);
+            List<URI> ids = _dbClient.queryByType(ComputeImageServer.class, true);
+            for (URI imageServerId : ids){
+            	ComputeImageServer imageServer = _dbClient.queryObject(ComputeImageServer.class,imageServerId);
+            	if (imageServer.getComputeImage().contains(ci.getId().toString())){
+            		taskList.addTask(doRemoveImage(ci,imageServer));
+            	}
+            }
+            
         } else if (ComputeImage.ComputeImageStatus.IN_PROGRESS.name().equals(ci.getComputeImageStatus())) {
             if (force == null || !force.equals("true")) {
                 throw APIException.badRequests.resourceCannotBeDeleted(ci.getLabel());
@@ -295,26 +326,33 @@ public class ComputeImageService extends TaskResourceService {
             else { // delete is forced
                 _dbClient.markForDeletion(ci);
                 auditOp(OperationTypeEnum.DELETE_COMPUTE_IMAGE, true, null, ci.getId().toString(), ci.getImageUrl());
-                return getReadyOp(ci, ResourceOperationTypeEnum.REMOVE_IMAGE);
+                taskList.addTask(getReadyOp(ci, ResourceOperationTypeEnum.REMOVE_IMAGE));
             }
         } else { // NOT_AVAILABLE
             _dbClient.markForDeletion(ci);
             auditOp(OperationTypeEnum.DELETE_COMPUTE_IMAGE, true, null, ci.getId().toString(), ci.getImageUrl());
-            return getReadyOp(ci, ResourceOperationTypeEnum.REMOVE_IMAGE);
+            taskList.addTask(getReadyOp(ci, ResourceOperationTypeEnum.REMOVE_IMAGE));
         }
+        return taskList;
     }
 
     /*
      * Schedules the remove task.
      */
-    private TaskResourceRep doRemoveImage(ComputeImage ci) {
+    private TaskResourceRep doRemoveImage(ComputeImage ci,ComputeImageServer imageServer) {
         log.info("doRemoveImage");
         ImageServerController controller = getController(ImageServerController.class, null);
-        AsyncTask task = new AsyncTask(ComputeImage.class, ci.getId(), UUID.randomUUID().toString());
+       
+		AsyncTask task = new AsyncTask(ComputeImage.class, ci.getId(), UUID.randomUUID().toString());
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.REMOVE_IMAGE);
+        
         _dbClient.createTaskOpStatus(ComputeImage.class, ci.getId(), task._opId, op);
-        controller.deleteImage(task);
+        controller.deleteImage(task,imageServer.getId());
+        
+        log.info("Removing image "+ci.getImageName()+ " from server "+ imageServer.getImageServerIp());
+        
+        
         return TaskMapper.toTask(ci, task._opId, op);
     }
 

@@ -42,7 +42,6 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.imageservercontroller.ComputeImageCompleter;
 import com.emc.storageos.imageservercontroller.ComputeImageServerCompleter;
-import com.emc.storageos.imageservercontroller.ImageServerConf;
 import com.emc.storageos.imageservercontroller.ImageServerController;
 import com.emc.storageos.imageservercontroller.OsInstallCompleter;
 import com.emc.storageos.imageservercontroller.exceptions.ImageServerControllerException;
@@ -88,11 +87,8 @@ public class ImageServerControllerImpl implements ImageServerController {
 
     private PxeIntegrationService pxeIntegrationService;
 
-    private ImageServerConf imageServerConf;
-
     private OsInstallStatusPoller osInstallStatusPoller;
 
-    private boolean imageServerVerified = false;
     private String imageServerErrorMsg = null;
     private final static int IMAGE_SERVER_VERSION = 100;
 
@@ -119,15 +115,19 @@ public class ImageServerControllerImpl implements ImageServerController {
         this.computeDeviceController = computeDeviceController;
     }
 
-    public void setImageServerConf(ImageServerConf imageServerConf) {
-        this.imageServerConf = imageServerConf;
-    }
 
-    /**
-     * init will verify image server.
-     */
-    public void init() {
-        verifyImageServer();
+
+
+    private boolean isImageServerValid(ComputeImageServer imageServer){
+    	boolean valid = false;
+        // make sure all required fields are set
+        if (!StringUtils.isBlank(imageServer.getImageServerIp()) && !StringUtils.isBlank(imageServer.getImageServerUser())
+                && !StringUtils.isBlank(imageServer.getTftpbootDir()) && !StringUtils.isBlank(imageServer.getImageServerSecondIp())
+                && !StringUtils.isBlank(imageServer.getImageServerHttpPort()) && !StringUtils.isBlank(imageServer.getImageServerPassword())) {
+            log.info("ImageServer appears valid");
+            valid = true;
+        }
+        return valid;
     }
 
     /**
@@ -137,33 +137,29 @@ public class ImageServerControllerImpl implements ImageServerController {
      * python
      * Everything else if doesn't exist, will be pushed.
      */
-    private void verifyImageServer() {
-        log.info("verifyImageServer: {}", imageServerConf);
+    private boolean verifyImageServer(ComputeImageServer imageServer) {
+        log.info("verifyImageServer: {}", imageServer.getImageServerIp());
+        boolean imageServerVerified = false;
 
-        if (!imageServerConf.isValid()) {
-            log.info("image server was not valid, attempt to validate again");
-            imageServerConf.init();
-            log.info("verifyImageServer: {}", imageServerConf);
-            if (!imageServerConf.isValid()) { // still not valid, skip verification
-                imageServerErrorMsg = "Image server settings are not valid, can't verify the server";
-                log.warn(imageServerErrorMsg);
-                return;
-            }
+        if (!isImageServerValid(imageServer)) {
+            imageServerErrorMsg = "Image server settings are not valid, can't verify the server";
+            log.warn(imageServerErrorMsg);
+            return imageServerVerified;
         }
 
         ImageServerDialog d = null;
         try {
             SSHSession session = new SSHSession();
-            session.connect(imageServerConf.getImageServerIp(), imageServerConf.getSshPort(),
-                    imageServerConf.getImageServerUser(), imageServerConf.getImageServerPassword());
-            d = new ImageServerDialog(session, imageServerConf.getSshTimeoutMs());
+            session.connect(imageServer.getImageServerIp(), imageServer.getSshPort(),
+                    imageServer.getImageServerUser(), imageServer.getImageServerPassword());
+            d = new ImageServerDialog(session, imageServer.getSshTimeoutMs());
             d.init();
 
-            if (!d.directoryExists(imageServerConf.getTftpbootDir())) {
+            if (!d.directoryExists(imageServer.getTftpbootDir())) {
                 throw ImageServerControllerException.exceptions.imageServerNotSetup("tftpboot directory does not exist");
             }
 
-            if (!d.fileExists(imageServerConf.getTftpbootDir() + PXELINUX_0_FILE)) {
+            if (!d.fileExists(imageServer.getTftpbootDir() + PXELINUX_0_FILE)) {
                 throw ImageServerControllerException.exceptions.imageServerNotSetup("pxelinux.0 binary does not exist");
             }
 
@@ -175,10 +171,10 @@ public class ImageServerControllerImpl implements ImageServerController {
             // perform upgrade if file is not there, or version property is not
             // found or not valid or less then IMAGE_SERVER_VERSION
             boolean upgradeRequired = false;
-            if (!d.fileExists(imageServerConf.getTftpbootDir() + "is.properties")) {
+            if (!d.fileExists(imageServer.getTftpbootDir() + "is.properties")) {
                 upgradeRequired = true;
             } else {
-                String s = d.readFile(imageServerConf.getTftpbootDir() + "is.properties");
+                String s = d.readFile(imageServer.getTftpbootDir() + "is.properties");
                 Properties p = ImageServerUtils.stringToProperties(s);
                 if (p.getProperty("version") == null) {
                     upgradeRequired = true;
@@ -196,39 +192,39 @@ public class ImageServerControllerImpl implements ImageServerController {
 
             log.info("image server upgrade required: {}", upgradeRequired);
 
-            if (!d.directoryExists(imageServerConf.getTftpbootDir() + PXELINUX_CFG_DIR)) {
+            if (!d.directoryExists(imageServer.getTftpbootDir() + PXELINUX_CFG_DIR)) {
                 log.info("pxelinux.cfg does not exist, will create it");
-                d.mkdir(imageServerConf.getTftpbootDir() + PXELINUX_CFG_DIR);
+                d.mkdir(imageServer.getTftpbootDir() + PXELINUX_CFG_DIR);
             }
 
-            if (!StringUtils.isBlank(imageServerConf.getImageDir())) {
-                if (!d.directoryExists(imageServerConf.getTftpbootDir() + imageServerConf.getImageDir())) {
+            if (!StringUtils.isBlank(imageServer.getImageDir())) {
+                if (!d.directoryExists(imageServer.getTftpbootDir() + imageServer.getImageDir())) {
                     log.info("image directory does not exist, will create it");
-                    d.mkdir(imageServerConf.getTftpbootDir() + imageServerConf.getImageDir());
+                    d.mkdir(imageServer.getTftpbootDir() + imageServer.getImageDir());
                 }
             }
 
-            if (upgradeRequired || !d.fileExists(imageServerConf.getTftpbootDir() + PXELINUX_CFG_DIR + DEFAULT_FILE)) {
+            if (upgradeRequired || !d.fileExists(imageServer.getTftpbootDir() + PXELINUX_CFG_DIR + DEFAULT_FILE)) {
                 log.info("creating pxelinux.cfg/default");
                 String content = ImageServerUtils.getResourceAsString("imageserver/default");
-                d.writeFile(imageServerConf.getTftpbootDir() + PXELINUX_CFG_DIR + DEFAULT_FILE, content);
+                d.writeFile(imageServer.getTftpbootDir() + PXELINUX_CFG_DIR + DEFAULT_FILE, content);
             }
 
-            if (!d.directoryExists(imageServerConf.getTftpbootDir() + HTTP_DIR)) {
+            if (!d.directoryExists(imageServer.getTftpbootDir() + HTTP_DIR)) {
                 log.info("http does not exist, will create it");
-                d.mkdir(imageServerConf.getTftpbootDir() + HTTP_DIR);
+                d.mkdir(imageServer.getTftpbootDir() + HTTP_DIR);
             }
 
-            if (upgradeRequired || !d.fileExists(imageServerConf.getTftpbootDir() + HTTP_DIR + SERVER_PY_FILE)) {
+            if (upgradeRequired || !d.fileExists(imageServer.getTftpbootDir() + HTTP_DIR + SERVER_PY_FILE)) {
                 log.info("creating server.py");
                 String content = ImageServerUtils.getResourceAsString("imageserver/server.py");
                 StringBuilder script = new StringBuilder(content);
-                ImageServerUtils.replaceAll(script, "{http.port}", imageServerConf.getImageServerHttpPort());
-                d.writeFile(imageServerConf.getTftpbootDir() + HTTP_DIR + SERVER_PY_FILE, script.toString());
-                d.chmodFile("744", imageServerConf.getTftpbootDir() + HTTP_DIR + SERVER_PY_FILE);
+                ImageServerUtils.replaceAll(script, "{http.port}", imageServer.getImageServerHttpPort());
+                d.writeFile(imageServer.getTftpbootDir() + HTTP_DIR + SERVER_PY_FILE, script.toString());
+                d.chmodFile("744", imageServer.getTftpbootDir() + HTTP_DIR + SERVER_PY_FILE);
             }
 
-            String pid = d.getServerPid(imageServerConf.getImageServerHttpPort());
+            String pid = d.getServerPid(imageServer.getImageServerHttpPort());
             if (upgradeRequired && pid != null) {
                 // if update required and server is running, kill it
                 log.info("{} is running as pid: {}, kill it", SERVER_PY_FILE, pid);
@@ -237,41 +233,41 @@ public class ImageServerControllerImpl implements ImageServerController {
             }
             if (pid == null) {
                 log.info("{} is not running, will attempt to start it", SERVER_PY_FILE);
-                d.cd(imageServerConf.getTftpbootDir() + HTTP_DIR);
+                d.cd(imageServer.getTftpbootDir() + HTTP_DIR);
                 d.nohup(String.format("python %s", SERVER_PY_FILE));
             }
 
-            if (upgradeRequired || !d.fileExists(imageServerConf.getTftpbootDir() + HTTP_DIR + WGET_FILE)) {
+            if (upgradeRequired || !d.fileExists(imageServer.getTftpbootDir() + HTTP_DIR + WGET_FILE)) {
                 log.info("creating wget wrapper script");
                 String content = ImageServerUtils.getResourceAsString("imageserver/wget");
-                d.writeFile(imageServerConf.getTftpbootDir() + HTTP_DIR + WGET_FILE, content);
+                d.writeFile(imageServer.getTftpbootDir() + HTTP_DIR + WGET_FILE, content);
             }
 
-            if (!d.directoryExists(imageServerConf.getTftpbootDir() + HTTP_KICKSTART_DIR)) {
+            if (!d.directoryExists(imageServer.getTftpbootDir() + HTTP_KICKSTART_DIR)) {
                 log.info("http/ks does not exist, will create it");
-                d.mkdir(imageServerConf.getTftpbootDir() + HTTP_KICKSTART_DIR);
+                d.mkdir(imageServer.getTftpbootDir() + HTTP_KICKSTART_DIR);
             }
 
-            if (!d.directoryExists(imageServerConf.getTftpbootDir() + HTTP_FIRSTBOOT_DIR)) {
+            if (!d.directoryExists(imageServer.getTftpbootDir() + HTTP_FIRSTBOOT_DIR)) {
                 log.info("http/fb does not exist, will create it");
-                d.mkdir(imageServerConf.getTftpbootDir() + HTTP_FIRSTBOOT_DIR);
+                d.mkdir(imageServer.getTftpbootDir() + HTTP_FIRSTBOOT_DIR);
             }
 
-            if (!d.directoryExists(imageServerConf.getTftpbootDir() + HTTP_SUCCESS_DIR)) {
+            if (!d.directoryExists(imageServer.getTftpbootDir() + HTTP_SUCCESS_DIR)) {
                 log.info("http/success does not exist, will create it");
-                d.mkdir(imageServerConf.getTftpbootDir() + HTTP_SUCCESS_DIR);
+                d.mkdir(imageServer.getTftpbootDir() + HTTP_SUCCESS_DIR);
             }
 
-            if (!d.directoryExists(imageServerConf.getTftpbootDir() + HTTP_FAILURE_DIR)) {
+            if (!d.directoryExists(imageServer.getTftpbootDir() + HTTP_FAILURE_DIR)) {
                 log.info("http/failure does not exist, will create it");
-                d.mkdir(imageServerConf.getTftpbootDir() + HTTP_FAILURE_DIR);
+                d.mkdir(imageServer.getTftpbootDir() + HTTP_FAILURE_DIR);
             }
 
             // save is.properties
             if (upgradeRequired) {
                 log.info("saving is.properties");
-                d.writeFile(imageServerConf.getTftpbootDir() + "is.properties", "version=" + IMAGE_SERVER_VERSION
-                        + "\nhttp_port=" + imageServerConf.getImageServerHttpPort());
+                d.writeFile(imageServer.getTftpbootDir() + "is.properties", "version=" + IMAGE_SERVER_VERSION
+                        + "\nhttp_port=" + imageServer.getImageServerHttpPort());
             }
 
             log.info("image server setup was successfully verified");
@@ -285,23 +281,23 @@ public class ImageServerControllerImpl implements ImageServerController {
                 d.close();
             }
         }
+        return imageServerVerified;
     }
 
     @Override
-    public void importImage(AsyncTask task) throws InternalException {
+    public void importImage(AsyncTask task,URI imageServerId) throws InternalException {
         log.info("importImage");
 
         URI ciId = task._id;
+        ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class, imageServerId);
         TaskCompleter completer = null;
         try {
             completer = new ComputeImageCompleter(ciId, task._opId, OperationTypeEnum.CREATE_COMPUTE_IMAGE, EVENT_SERVICE_TYPE);
-
+            boolean imageServerVerified = verifyImageServer(imageServer);
             if (!imageServerVerified) {
-                verifyImageServer();
-                if (!imageServerVerified) {// still not verified
-                    throw ImageServerControllerException.exceptions.imageServerNotSetup("Can't perform image import: "
+
+                throw ImageServerControllerException.exceptions.imageServerNotSetup("Can't perform image import: "
                             + imageServerErrorMsg);
-                }
             }
 
             Workflow workflow = workflowService.getNewWorkflow(this, IMPORT_IMAGE_WF, true, task._opId);
@@ -309,7 +305,7 @@ public class ImageServerControllerImpl implements ImageServerController {
                     String.format("importing image %s", ciId), null,
                     ciId, ciId.toString(),
                     this.getClass(),
-                    new Workflow.Method("importImageMethod", ciId),
+                    new Workflow.Method("importImageMethod", ciId, imageServer.getId()),
                     null,
                     null);
             workflow.executePlan(completer, "Success");
@@ -434,11 +430,13 @@ public class ImageServerControllerImpl implements ImageServerController {
         }
     }
 
-    public void importImageMethod(URI ciId, String stepId) {
+    public void importImageMethod(URI ciId, URI imageServerId, String stepId) {
         log.info("importImageMethod {}", ciId);
         ImageServerDialog d = null;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
+
+            ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class,imageServerId);
 
             ComputeImage ci = dbClient.queryObject(ComputeImage.class, ciId);
 
@@ -451,9 +449,9 @@ public class ImageServerControllerImpl implements ImageServerController {
             String tempDir = TMP + "/os" + ts + "/";
 
             SSHSession session = new SSHSession();
-            session.connect(imageServerConf.getImageServerIp(), imageServerConf.getSshPort(),
-                    imageServerConf.getImageServerUser(), imageServerConf.getImageServerPassword());
-            d = new ImageServerDialog(session, imageServerConf.getSshTimeoutMs());
+            session.connect(imageServer.getImageServerIp(), imageServer.getSshPort(),
+                    imageServer.getImageServerUser(), imageServer.getImageServerPassword());
+            d = new ImageServerDialog(session, imageServer.getSshTimeoutMs());
             d.init();
             log.info("connected to image server");
 
@@ -462,7 +460,7 @@ public class ImageServerControllerImpl implements ImageServerController {
 
             log.info("download image");
             // CTRL-12030: special characters in URL's password cause issues on Image Server. Adding quotes.
-            boolean res = d.wget("'" + ci.getImageUrl() + "'", imageName, imageServerConf.getImageImportTimeoutMs());
+            boolean res = d.wget("'" + ci.getImageUrl() + "'", imageName, imageServer.getImageImportTimeoutMs());
 
             if (res) {
                 log.info("downloaded image successfully");
@@ -495,7 +493,7 @@ public class ImageServerControllerImpl implements ImageServerController {
             log.info("Compute image '" + osMetadata.fullName() + "' will be loaded.");
 
             // copy OS into TFTP boot directory
-            String targetDir = imageServerConf.getTftpbootDir() + imageServerConf.getImageDir() + osMetadata.fullName();
+            String targetDir = imageServer.getTftpbootDir() + imageServer.getImageDir() + osMetadata.fullName();
 
             d.rm(targetDir);
 
@@ -513,7 +511,7 @@ public class ImageServerControllerImpl implements ImageServerController {
             ci.setOsBuild(osMetadata.getOsBuild());
             ci.setOsArchitecture(osMetadata.getOsArchitecture());
             ci.setCustomName(osMetadata.getCustomName());
-            ci.setPathToDirectory(imageServerConf.getImageDir() + osMetadata.fullName() + "/");
+            ci.setPathToDirectory(imageServer.getImageDir() + osMetadata.fullName() + "/");
             ci.setImageName(osMetadata.fullName());
             ci.setImageType(osMetadata.getImageType());
 
@@ -542,19 +540,18 @@ public class ImageServerControllerImpl implements ImageServerController {
     }
 
     @Override
-    public void deleteImage(AsyncTask task) throws InternalException {
+    public void deleteImage(AsyncTask task,URI imageServerId) throws InternalException {
         log.info("deleteImage " + task._id);
 
         URI ciId = task._id;
+        ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class, imageServerId);
         TaskCompleter completer = null;
         try {
             completer = new ComputeImageCompleter(ciId, task._opId, OperationTypeEnum.DELETE_COMPUTE_IMAGE, EVENT_SERVICE_TYPE);
+            boolean imageServerVerified = verifyImageServer(imageServer);
 
             if (!imageServerVerified) {
-                verifyImageServer();
-                if (!imageServerVerified) {// still not verified
-                    throw ImageServerControllerException.exceptions.imageServerNotSetup("Can't delete image: " + imageServerErrorMsg);
-                }
+            	throw ImageServerControllerException.exceptions.imageServerNotSetup("Can't delete image: " + imageServerErrorMsg);
             }
 
             Workflow workflow = workflowService.getNewWorkflow(this, DELETE_IMAGE_WF, true, task._opId);
@@ -562,7 +559,7 @@ public class ImageServerControllerImpl implements ImageServerController {
                     String.format("removing image %s", ciId), null,
                     ciId, ciId.toString(),
                     this.getClass(),
-                    new Workflow.Method("deleteImageMethod", ciId),
+                    new Workflow.Method("deleteImageMethod", ciId,imageServer.getId()),
                     null,
                     null);
             workflow.executePlan(completer, "Success");
@@ -573,23 +570,24 @@ public class ImageServerControllerImpl implements ImageServerController {
         }
     }
 
-    public void deleteImageMethod(URI ciId, String stepId) {
+    public void deleteImageMethod(URI ciId, URI imageServerId, String stepId) {
         log.info("deleteImageMethod {}", ciId);
         ImageServerDialog d = null;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
+            ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class, imageServerId);
 
             ComputeImage ci = dbClient.queryObject(ComputeImage.class, ciId);
 
             SSHSession session = new SSHSession();
-            session.connect(imageServerConf.getImageServerIp(), imageServerConf.getSshPort(),
-                    imageServerConf.getImageServerUser(), imageServerConf.getImageServerPassword());
-            d = new ImageServerDialog(session, imageServerConf.getSshTimeoutMs());
+            session.connect(imageServer.getImageServerIp(), imageServer.getSshPort(),
+                    imageServer.getImageServerUser(), imageServer.getImageServerPassword());
+            d = new ImageServerDialog(session, imageServer.getSshTimeoutMs());
             d.init();
             log.info("connected to image server");
 
             log.info("calling image server to delete image");
-            d.rm(imageServerConf.getTftpbootDir() + ci.getPathToDirectory());
+            d.rm(imageServer.getTftpbootDir() + ci.getPathToDirectory());
             log.info("delete done");
 
             WorkflowStepCompleter.stepSucceded(stepId);
@@ -622,18 +620,16 @@ public class ImageServerControllerImpl implements ImageServerController {
         ComputeSystem cs = dbClient.queryObject(ComputeSystem.class, ce.getComputeSystem());
 
         ComputeImageJob job = dbClient.queryObject(ComputeImageJob.class, computeImageJob);
+        ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class,job.getComputeImageServerId());
         ComputeImage img = dbClient.queryObject(ComputeImage.class, job.getComputeImageId());
 
         TaskCompleter completer = null;
         try {
             completer = new OsInstallCompleter(host.getId(), task._opId, job.getId(), EVENT_SERVICE_TYPE);
-
+            boolean imageServerVerified = verifyImageServer(imageServer);
             if (!imageServerVerified) {
-                verifyImageServer();
-                if (!imageServerVerified) {// still not verified
-                    throw ImageServerControllerException.exceptions.imageServerNotSetup("Can't install operating system: "
+                throw ImageServerControllerException.exceptions.imageServerNotSetup("Can't install operating system: "
                             + imageServerErrorMsg);
-                }
             }
 
             Workflow workflow = workflowService.getNewWorkflow(this, OS_INSTALL_WF, true, task._opId);
@@ -757,7 +753,7 @@ public class ImageServerControllerImpl implements ImageServerController {
             log.info("connected to image server");
 
             log.info("putting pxe conf file");
-            pxeIntegrationService.createSession(d, job, img);
+            pxeIntegrationService.createSession(d, job, img, imageServer);
 
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException e) {
@@ -969,7 +965,7 @@ public class ImageServerControllerImpl implements ImageServerController {
         //URI computeImageServerID = imageServerId;
         WorkflowStepCompleter.stepSucceded(stepId);
 
-        ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class, computeImageServerID);
+        ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class, imageServerId);
 
         verifyImageServer(imageServer);
     }

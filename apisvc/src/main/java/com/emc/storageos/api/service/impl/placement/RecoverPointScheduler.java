@@ -1312,20 +1312,15 @@ public class RecoverPointScheduler implements Scheduler {
        VirtualPool srcVpool = dbClient.queryObject(VirtualPool.class, container.getSrcVpool().getId());
        VirtualArray haVarray = container.getHaVarray(); 
        VirtualPool haVpool = container.getHaVpool();
-       
-       // Set the haVarray if it's passed in as null and we are able to get the info from the srcVpool
-       // from the getHaVarrayConnectedToRp() field.
-       if (haVarray == null && NullColumnValueGetter.isNotNullValue(srcVpool.getHaVarrayConnectedToRp())) {
-           haVarray = dbClient.queryObject(VirtualArray.class, 
-                   URI.create(srcVpool.getHaVarrayConnectedToRp()));
-           container.setHaVarray(haVarray);
-       }
                
        // Check to see if the user has selected that the HA Varray should be used
        // as the RP Source.               
-       if (VirtualPool.isRPVPlexProtectHASide(srcVpool)) {                                             
+       if (VirtualPool.isRPVPlexProtectHASide(srcVpool)) {
+           // Get the HA Varray connected to RP 
+           haVarray = dbClient.queryObject(VirtualArray.class, URI.create(srcVpool.getHaVarrayConnectedToRp()));              
+           
            _log.info("Source Vpool[{}] indicates that we should use HA Varray[{}] as RP Source.", srcVpool.getLabel(), haVarray.getLabel());   
-                           
+                                      
            String haVpoolId = srcVpool.getHaVarrayVpoolMap().get(srcVpool.getHaVarrayConnectedToRp());
            
            if (haVpoolId != null 

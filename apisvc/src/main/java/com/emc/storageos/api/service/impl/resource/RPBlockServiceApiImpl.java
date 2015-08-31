@@ -229,6 +229,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         boolean isChangeVpool = false;      
         boolean isChangeVpoolForProtectedVolume = false;
         boolean isSrcAndHaSwapped = VirtualPool.isRPVPlexProtectHASide(originalVpool);
+        boolean metroPointEnabled = VirtualPool.vPoolSpecifiesMetroPoint(originalVpool);
         
         // Set the volume name from the param
         String volumeName = param.getName();
@@ -247,8 +248,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // Use the new references post swap
         VirtualArray varray = container.getSrcVarray();
         VirtualPool vpool = container.getSrcVpool();
-        haVarray = container.getHaVarray();
-        haVpool = container.getHaVpool();
         
         // Save a reference to the CG, we'll need this later
         BlockConsistencyGroup consistencyGroup = capabilities.getBlockConsistencyGroup() == null ? null : _dbClient
@@ -263,9 +262,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         while (recommendationsIter.hasNext()) {                 
             RPProtectionRecommendation rpProtectionRec = (RPProtectionRecommendation) recommendationsIter.next();
             
-            // Determine if MetroPoint is enabled
-            boolean metroPointEnabled = VirtualPool.vPoolSpecifiesMetroPoint(vpool);
-            
             URI protectionSystemURI = rpProtectionRec.getProtectionDevice();
             URI changeVpoolVolumeURI = rpProtectionRec.getVpoolChangeVolume();
             isChangeVpool = (changeVpoolVolumeURI != null);
@@ -274,8 +270,16 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             String newVolumeLabel = volumeName;
             
             String srcCopyName = varray.getLabel() + SRC_COPY_SUFFIX;
-            String activeSourceCopyName = varray.getLabel() + MP_ACTIVE_COPY_SUFFIX;
-            String standbySourceCopyName = (haVarray != null) ? haVarray.getLabel() + MP_STANDBY_COPY_SUFFIX : "";          
+            String activeSourceCopyName = "";
+            String standbySourceCopyName = "";
+            
+            if (metroPointEnabled) {
+                // Grab HA varray so we can set the standby copy name correctly
+                haVarray = _dbClient.queryObject(VirtualArray.class, VPlexUtil.getHAVarray(originalVpool));
+                
+                activeSourceCopyName = varray.getLabel() + MP_ACTIVE_COPY_SUFFIX;                
+                standbySourceCopyName = haVarray.getLabel() + MP_STANDBY_COPY_SUFFIX;
+            }
                                                  
             StringBuffer volumeInfoBuffer = new StringBuffer();
             volumeInfoBuffer.append(String.format("%n-------------------------------------------------%n"));
@@ -1301,7 +1305,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         } 
         
         if (standbyJournalVolume != null) {
-            volume.setSecondaryRpJournalVolume(journalVolume.getId());
+            volume.setSecondaryRpJournalVolume(standbyJournalVolume.getId());
         }
                 
         // Set all Journal Volumes to have the INTERNAL_OBJECT flag.

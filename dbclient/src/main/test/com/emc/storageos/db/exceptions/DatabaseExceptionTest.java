@@ -39,7 +39,7 @@ public class DatabaseExceptionTest extends BaseServiceCodeExceptionTest {
     @Test
     public void connectionException() {
         final DatabaseException exception = DatabaseException.retryables.connectionFailed(new UnknownException(EXCEPTION_MESSAGE));
-        assertInternalException(SERVICE_UNAVAILABLE, DBSVC_CONNECTION_ERROR, "Database connection failed", exception);
+        assertInternalException(SERVICE_UNAVAILABLE, DBSVC_CONNECTION_ERROR, "Database connection failed. Please check the database services and network connectivity on all nodes", exception);
     }
 
     @Test

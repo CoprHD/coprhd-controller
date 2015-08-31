@@ -474,8 +474,6 @@ public class UpgradeService {
                 AuditLogManager.AUDITLOG_SUCCESS,
                 null, versionStr, FORCE.equals(forceRemove));
 
-        /* wakeup all nodes */
-        _upgradeManager.wakeupAllNodes();
         ClusterInfo clusterInfo = _coordinator.getClusterInfo();
         if (clusterInfo == null) {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Cluster info");
@@ -620,8 +618,6 @@ public class UpgradeService {
                         temp._errorCounter), "downloadinfo", svcId);
 
                 _coordinator.setTargetInfo(new DownloadingInfo(version, versionSize), false);
-                // wake up all
-                _upgradeManager.wakeupAllNodes();
             }
             _log.info("uploadImage to {} end", svcId);
 

@@ -375,7 +375,7 @@
 	    <property name="unmarshaller" ref="unmarshaller"/>
 	</bean>
 	
-	<bean id="vnxstaticloadoperation"
+	<bean id="vnxstaticloadprocessor"
 		class="com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor.VNXStaticLoadProcessor">
 	    <property name="unmarshaller" ref="unmarshaller"/>
 	</bean>

@@ -685,13 +685,14 @@ public class HostService extends TaskResourceService {
     public TaskResourceRep createInitiator(@PathParam("id") URI id,
             InitiatorCreateParam createParam) throws DatabaseException {
         Host host = queryObject(Host.class, id, true);
+        Cluster cluster = null;
         validateInitiatorData(createParam, null);
         // create and populate the initiator
         Initiator initiator = new Initiator();
         initiator.setHost(id);
         initiator.setHostName(host.getHostName());
         if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
-            Cluster cluster = queryObject(Cluster.class, host.getCluster(), false);
+            cluster = queryObject(Cluster.class, host.getCluster(), false);
             initiator.setClusterName(cluster.getLabel());
         }
         initiator.setId(URIUtil.createId(Initiator.class));
@@ -703,7 +704,8 @@ public class HostService extends TaskResourceService {
                 ResourceOperationTypeEnum.ADD_HOST_INITIATOR);
 
         // if host in use. update export with new initiator
-        if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId())) {
+        if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId()) 
+                && (cluster != null && cluster.isAutoExportEnabled())) {
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
             controller.addInitiatorsToExport(initiator.getHost(), Arrays.asList(initiator.getId()), taskId);
         } else {

@@ -41,6 +41,11 @@ public interface Service {
     public String getId();
 
     /**
+     * Node id
+     */
+    public String getNodeId();
+
+    /**
      * Node name as seen in SSH login.
      */
     public String getNodeName();

@@ -4,10 +4,13 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
+import static com.emc.storageos.api.mapper.ComputeMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -23,9 +26,11 @@ import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.imageservercontroller.ImageServerController;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
@@ -33,7 +38,6 @@ import com.emc.storageos.model.compute.ComputeImageServerCreate;
 import com.emc.storageos.model.compute.ComputeImageServerList;
 import com.emc.storageos.model.compute.ComputeImageServerRestRep;
 import com.emc.storageos.model.compute.ComputeImageServerUpdate;
-import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
@@ -134,6 +138,7 @@ public class ComputeImageServerService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(password, "password");
         ArgValidator.checkFieldNotNull(installTimeout, "osInstallTimeoutMs");
 
+
         ComputeImageServer imageServer = new ComputeImageServer();
         imageServer.setId(URIUtil.createId(ComputeImageServer.class));
         imageServer.setLabel(imageServerAddress);
@@ -144,17 +149,22 @@ public class ComputeImageServerService extends TaskResourceService {
         imageServer.setOsInstallTimeoutMs((int) installTimeout);
         imageServer.setImageServerSecondIp(osInstallAddress);
 
+        auditOp(OperationTypeEnum.CREATE_COMPUTE_IMAGESERVER, true,
+                null, imageServer.getId().toString(),
+                imageServer.getImageServerIp());
+
         _dbClient.createObject(imageServer);
 
-        auditOp(OperationTypeEnum.CREATE_COMPUTE_IMAGESERVER, true,
-                AuditLogManager.AUDITOP_END, imageServer.getId().toString(),
-                imageServer.getImageServerIp());
         ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
         String taskId = UUID.randomUUID().toString();
-        tasks.add(new AsyncTask(ComputeImageServer.class, imageServer.getId(), taskId));
+        AsyncTask task = new AsyncTask(ComputeImageServer.class, imageServer.getId(), taskId);
+        tasks.add(task);
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.CREATE_COMPUTE_IMAGE_SERVER);
         _dbClient.createTaskOpStatus(ComputeImageServer.class, imageServer.getId(), taskId, op);
+
+        ImageServerController controller = getController(ImageServerController.class, null);
+        controller.verifyImageServerAndImportImages(task);
         return toTask(imageServer, taskId, op);
     }
 
@@ -171,7 +181,10 @@ public class ComputeImageServerService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public ComputeImageServerRestRep getComputeImageServer(
             @PathParam("id") URI id) {
-        return null;
+
+        ArgValidator.checkFieldUriType(id, ComputeImageServer.class, "id");
+        ComputeImageServer imageServer = queryResource(id);
+        return map(imageServer);
     }
 
     /**
@@ -184,7 +197,21 @@ public class ComputeImageServerService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public ComputeImageServerList getComputeImageServers() {
-        return null;
+
+        List<URI> ids = _dbClient.queryByType(ComputeImageServer.class, true);
+        /*List<ComputeImageServer> computeImageServers = _dbClient.queryObject(ComputeImageServer.class, ids);
+        if (computeImageServers == null) {
+            //TODO: Need to throw appropriate exception...
+            throw APIException.badRequests.unableToFindStorageProvidersForIds(ids);
+        }*/
+        ComputeImageServerList imageServerList = new ComputeImageServerList();
+        Iterator<ComputeImageServer> iter = _dbClient.queryIterativeObjects(ComputeImageServer.class, ids);
+        while (iter.hasNext()) {
+            ComputeImageServer imageServer = iter.next();
+                imageServerList.getComputeImageServers().add(DbObjectMapper.toNamedRelatedResource(imageServer));
+        }
+
+        return imageServerList;
     }
 
     /**

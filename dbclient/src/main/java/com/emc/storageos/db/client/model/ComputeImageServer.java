@@ -4,9 +4,11 @@
  */
 package com.emc.storageos.db.client.model;
 
+import com.emc.storageos.model.valid.EnumType;
+
 /**
  * Model/ColumnFamily to represent ComputeImageServer
- * 
+ *
  * @author kumara4
  *
  */
@@ -28,6 +30,12 @@ public class ComputeImageServer extends DataObject {
 
     private StringSet computeImage;
 
+    private String computeImageServerStatus = ComputeImageServerStatus.NOT_AVAILABLE.name();
+
+    public static enum ComputeImageServerStatus {
+        AVAILABLE, NOT_AVAILABLE
+    }
+
     @Name("imageServerIp")
     public String getImageServerIp() {
         return imageServerIp;
@@ -35,7 +43,7 @@ public class ComputeImageServer extends DataObject {
 
     public void setImageServerIp(String imageServerIp) {
         this.imageServerIp = imageServerIp;
-        setChanged("ImageServerIp");
+        setChanged("imageServerIp");
     }
 
     @Name("imageServerUser")
@@ -45,7 +53,7 @@ public class ComputeImageServer extends DataObject {
 
     public void setImageServerUser(String imageServerUser) {
         this.imageServerUser = imageServerUser;
-        setChanged("ImageServerUser");
+        setChanged("imageServerUser");
     }
 
     @Name("imageServerPassword")
@@ -176,4 +184,14 @@ public class ComputeImageServer extends DataObject {
         this.computeImage = computeImageUri;
     }
 
+    @EnumType(ComputeImageServerStatus.class)
+    @Name("computeImageServerStatus")
+    public String getComputeImageServerStatus() {
+        return computeImageServerStatus;
+    }
+
+    public void setComputeImageServerStatus(String computeImageServerStatus) {
+        this.computeImageServerStatus = computeImageServerStatus;
+        setChanged("computeImageServerStatus");
+    }
 }

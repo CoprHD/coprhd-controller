@@ -21,11 +21,13 @@ import java.net.URL;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
+import java.util.UUID;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.computecontroller.impl.ComputeDeviceController;
 import com.emc.storageos.db.client.DbClient;
@@ -36,8 +38,10 @@ import com.emc.storageos.db.client.model.ComputeImageJob.JobStatus;
 import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.imageservercontroller.ComputeImageCompleter;
+import com.emc.storageos.imageservercontroller.ComputeImageServerCompleter;
 import com.emc.storageos.imageservercontroller.ImageServerConf;
 import com.emc.storageos.imageservercontroller.ImageServerController;
 import com.emc.storageos.imageservercontroller.OsInstallCompleter;
@@ -329,7 +333,7 @@ public class ImageServerControllerImpl implements ImageServerController {
      * Example:
      * /tmp/ESX-4.1.0-update02-502767.iso
      * /tmp/VMware-VMvisor-Installer-4.1.0.update02-502767.x86_64.iso
-     * 
+     *
      * @param isoPath
      * @return
      */
@@ -347,7 +351,7 @@ public class ImageServerControllerImpl implements ImageServerController {
     /**
      * Get file name from file path.
      * Example: /tmp/dir1/my_file => my_file
-     * 
+     *
      * @param pathToFile
      * @return
      */
@@ -359,7 +363,7 @@ public class ImageServerControllerImpl implements ImageServerController {
 
     /**
      * Translate update01 to u1, update2 to u2.
-     * 
+     *
      * @param update
      * @return
      */
@@ -870,10 +874,103 @@ public class ImageServerControllerImpl implements ImageServerController {
 
     /**
      * This is needed if any of the workflow steps have a real rollback method.
-     * 
+     *
      * @param stepId
      */
     public void rollbackNothingMethod(String stepId) {
         WorkflowStepCompleter.stepSucceded(stepId);
+    }
+
+    @Override
+    public void verifyImageServerAndImportImages(AsyncTask task) {
+        TaskCompleter completer = null;
+        try{
+        URI computeImageServerID = task._id;
+        completer = new ComputeImageServerCompleter(computeImageServerID, task._opId, OperationTypeEnum.CREATE_COMPUTE_IMAGESERVER, EVENT_SERVICE_TYPE);
+
+        Workflow workflow = workflowService.getNewWorkflow(this, "CreateImageServer_WF", true, task._opId);
+        workflow.createStep("CreateImageServer_Step",
+                String.format("Verfiying ImageServer %s", computeImageServerID), null,
+                computeImageServerID, computeImageServerID.toString(),
+                this.getClass(),
+                new Workflow.Method("verifyComputeImageServer", computeImageServerID),
+                null,
+                null);
+        workflow.createStep("ImportImagesToServer_Step",
+                String.format("Importing images for %s", computeImageServerID), "CreateImageServer_Step",
+                computeImageServerID, computeImageServerID.toString(),
+                this.getClass(),
+                new Workflow.Method("importImagesToServer", computeImageServerID),
+                null,
+                null);
+        workflow.executePlan(completer, "Success");
+        }catch(Exception ex)
+        {
+            log.error("Unexpected exception waiting for finish: " + ex.getMessage(), ex);
+            //TODO: Need to decide if we need to throw a ServiceError.
+        }
+    }
+
+    public void importImagesToServer(URI imageServerID, String stepId) {
+        WorkflowStepCompleter.stepExecuting(stepId);
+        log.info("Executing method importImagesToServer");
+        ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class, imageServerID);
+
+        List<URI> imageURIList = dbClient.queryByType(ComputeImage.class, true);
+        if (imageURIList == null || !imageURIList.iterator().hasNext()) {
+            log.info("There are no images to be imported.");
+            //WorkflowStepCompleter.stepSucceded(stepId);
+        }else {
+            List<ComputeImage> imageList = dbClient.queryObject(ComputeImage.class, imageURIList);
+            if (CollectionUtils.isEmpty(imageList)) {
+                log.error("Could not find the ComputeImage's for the Ids {}", imageList.toString());
+                //WorkflowStepCompleter.stepSucceded(stepId);
+            } else {
+                String taskId = UUID.randomUUID().toString();
+                Operation op = new Operation();
+                op.setResourceType(ResourceOperationTypeEnum.IMPORT_IMAGE);
+                dbClient.createTaskOpStatus(ComputeImageServer.class, imageServerID, taskId, op);
+                AsyncTask subTask = new AsyncTask(ComputeImageServer.class, imageServerID, taskId);
+                TaskCompleter completer = new ComputeImageServerCompleter(imageServerID, subTask._opId, OperationTypeEnum.CREATE_COMPUTE_IMAGE, EVENT_SERVICE_TYPE);
+                Workflow workflow = workflowService.getNewWorkflow(this, "ImportImages_WF", true, subTask._opId);
+                for (ComputeImage computeImage : imageList) {
+                    if(computeImage.getComputeImageStatus().equals("AVAILABLE")) {
+                        workflow.createStep("ImportImage_Step", String.format(
+                                "Importing image for %s", imageServerID), null,
+                                imageServerID, imageServerID.toString(), this
+                                        .getClass(), new Workflow.Method(
+                                        "arunImportImage", imageServer,
+                                        computeImage), null, null);
+                    }
+                }
+                workflow.executePlan(completer, "Success");
+            }
+        }
+
+        //StringSet computeImagesSet = imageServer.getComputeImage();
+
+        /*for (String computeImageURI : computeImagesSet) {
+
+        }*/
+        WorkflowStepCompleter.stepSucceded(stepId);
+        log.info("exiting method importImagesToServer");
+    }
+
+    public void arunImportImage(ComputeImageServer imageServer, ComputeImage image, String stepId)
+    {
+        WorkflowStepCompleter.stepExecuting(stepId);
+        log.info("Executing method importImagesToServer");
+        WorkflowStepCompleter.stepSucceded(stepId);
+    }
+
+    public void verifyComputeImageServer(URI imageServerId, String stepId) {
+        log.info("entering method verifyComputeImageServer");
+        WorkflowStepCompleter.stepExecuting(stepId);
+        //URI computeImageServerID = imageServerId;
+        WorkflowStepCompleter.stepSucceded(stepId);
+
+        ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class, computeImageServerID);
+
+        verifyImageServer(imageServer);
     }
 }

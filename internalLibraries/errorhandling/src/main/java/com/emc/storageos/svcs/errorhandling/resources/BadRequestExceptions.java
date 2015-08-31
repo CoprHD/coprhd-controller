@@ -2384,5 +2384,8 @@ public interface BadRequestExceptions {
     public BadRequestException cantUnlinkExportedSnapshotSessionTarget(final String snapshotId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException maximumNumberSnapshotsReached(final String sourceId);
+    public BadRequestException maximumNumberVpoolSnapshotsReached(final String sourceId);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException maximumNumberSnapshotsForSourceReached(final String sourceId);
 }

@@ -951,7 +951,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
             if (vpool.getMaxNativeSnapshots() == 0) {
                 throw APIException.badRequests.maxNativeSnapshotsIsZero(vpool.getLabel());
             }
-            if (getNumNativeSnapshots(volumeToSnap) >= vpool.getMaxNativeSnapshots()) {
+            if (getNumNativeSnapshots(volumeToSnap) >= vpool.getMaxNativeSnapshots().intValue()) {
                 throw APIException.methodNotAllowed.maximumNumberSnapshotsReached();
             }
 
@@ -1030,7 +1030,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * 
      * @return The number of snapshots on a volume.
      */
-    protected Integer getNumNativeSnapshots(Volume volume) {
+    protected int getNumNativeSnapshots(Volume volume) {
         return BlockServiceUtils.getNumNativeSnapshots(volume.getId(), _dbClient);
     }
 

@@ -2903,7 +2903,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @return The number of snapshots on a VPLEX volume.
      */
     @Override
-    protected Integer getNumNativeSnapshots(Volume vplexVolume) {
+    protected int getNumNativeSnapshots(Volume vplexVolume) {
         Volume snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume);
         return super.getNumNativeSnapshots(snapshotSourceVolume);
     }

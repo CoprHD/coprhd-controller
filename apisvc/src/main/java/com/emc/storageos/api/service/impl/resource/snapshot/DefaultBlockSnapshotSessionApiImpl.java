@@ -136,15 +136,23 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
 
                 // Verify that array snapshots are allowed.
                 VirtualPool vpool = BlockSnapshotSessionUtils.querySnapshotSessionSourceVPool(sourceObj, _dbClient);
-                int maxNumberOfArraySnapsForSource = vpool.getMaxNativeSnapshots();
-                if (maxNumberOfArraySnapsForSource == 0) {
+                int maxVpoolSnaps = vpool.getMaxNativeSnapshots().intValue();
+                if (maxVpoolSnaps == 0) {
                     throw APIException.badRequests.maxNativeSnapshotsIsZero(vpool.getLabel());
                 }
 
                 // Verify the number of array snapshots does not exceed
                 // the limit specified by the virtual pool.
-                if (getNumNativeSnapshots(sourceVolume) >= maxNumberOfArraySnapsForSource) {
-                    throw APIException.badRequests.maximumNumberSnapshotsReached(sourceURI.toString());
+                int numNativeArraySnapshots = getNumNativeSnapshots(sourceVolume);
+                if (numNativeArraySnapshots >= maxVpoolSnaps) {
+                    throw APIException.badRequests.maximumNumberVpoolSnapshotsReached(sourceURI.toString());
+                }
+
+                // Verify the number of array snapshots does not exceed
+                // the limit specified by the platform.
+                int maxSnapsForSource = getMaxSnapshotsForSource();
+                if (numNativeArraySnapshots >= maxSnapsForSource) {
+                    throw APIException.badRequests.maximumNumberSnapshotsForSourceReached(sourceURI.toString());
                 }
 
                 // Check for duplicate name.
@@ -184,8 +192,19 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * 
      * @return The number of array snapshots on a volume.
      */
-    protected Integer getNumNativeSnapshots(Volume volume) {
+    protected int getNumNativeSnapshots(Volume volume) {
         return BlockServiceUtils.getNumNativeSnapshots(volume.getId(), _dbClient);
+    }
+
+    /**
+     * Get the maximum number of snapshots allowed for a source
+     * on the storage system. Should be overridden for each
+     * platform as needed.
+     * 
+     * @return The maximum number of snapshots allowed for a source.
+     */
+    protected int getMaxSnapshotsForSource() {
+        return Integer.MAX_VALUE;
     }
 
     /**

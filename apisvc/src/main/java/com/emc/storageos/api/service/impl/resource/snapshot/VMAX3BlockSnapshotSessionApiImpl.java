@@ -30,6 +30,7 @@ import com.emc.storageos.volumecontroller.BlockController;
 public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionApiImpl {
 
     private static final int MAX_LINKED_TARGETS_PER_SOURCE = 1024;
+    private static final int MAX_SNAPSHOTS_PER_SOURCE = 256;
 
     /**
      * Private default constructor should not be called outside class.
@@ -108,6 +109,14 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
                         MAX_LINKED_TARGETS_PER_SOURCE - totalLinkedTargets);
             }
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    protected int getMaxSnapshotsForSource() {
+        return MAX_SNAPSHOTS_PER_SOURCE;
     }
 
     /**

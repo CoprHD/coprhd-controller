@@ -50,7 +50,9 @@ import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingMap;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
@@ -228,6 +230,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         boolean isChangeVpoolForProtectedVolume = false;
         boolean isSrcAndHaSwapped = VirtualPool.isRPVPlexProtectHASide(originalVpool);
         
+        // Set the volume name from the param
         String volumeName = param.getName();
         
         // Need to check if we should swap src and ha, call the block scheduler code to
@@ -239,11 +242,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         container.setSrcVpool(originalVpool);            
         container.setHaVarray(haVarray);
         container.setHaVpool(haVpool);                 
-        container = RecoverPointScheduler.setActiveProtectionAtHAVarray(container, _dbClient);
+        container = RecoverPointScheduler.initializeSwapContainer(container, _dbClient);
                 
         // Use the new references post swap
         VirtualArray varray = container.getSrcVarray();
         VirtualPool vpool = container.getSrcVpool();
+        haVarray = container.getHaVarray();
+        haVpool = container.getHaVpool();
         
         // Save a reference to the CG, we'll need this later
         BlockConsistencyGroup consistencyGroup = capabilities.getBlockConsistencyGroup() == null ? null : _dbClient
@@ -269,112 +274,31 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             String newVolumeLabel = volumeName;
             
             String srcCopyName = varray.getLabel() + SRC_COPY_SUFFIX;
-            String activeSourceCopyName = "";
-            String standbySourceCopyName = "";          
-                        
-            Volume sourceJournal = null;
-            Volume standbyJournal = null;
-            Map<URI, Volume> targetJournals = new HashMap<URI, Volume>(); 
-            
-            // If the CG already contains RP volumes, then we need to check if new/additional journal volumes need to be created, based on the 
-            // journal policy specified. 
-            List<Volume> cgSourceVolumes = _rpHelper.getCgVolumes(consistencyGroup.getId(), Volume.PersonalityTypes.SOURCE.toString());     
-            List<Volume> cgTargetVolumes = _rpHelper.getCgVolumes(consistencyGroup.getId(), Volume.PersonalityTypes.TARGET.toString());
-            
-            if (!cgSourceVolumes.isEmpty()) {
-                boolean isAdditionalSourceJournalRequired = _rpHelper.isAdditionalJournalRequiredForCG(vpool.getJournalSize(), consistencyGroup, param.getSize(), 
-                                                                                            numberOfVolumesInRequest, Volume.PersonalityTypes.SOURCE.toString(), 
-                                                                                            cgSourceVolumes.get(0).getInternalSiteName());
-                if (!isAdditionalSourceJournalRequired) {
-                    _log.info(String.format("Re-use existing Source Journals"));
-                    // If the CG contains volumes already and no new additional journals are provisioned, 
-                    // then we simply update the reference on the source for the journal volume.                                                
-                    sourceJournal = _rpHelper.selectExistingJournalForSourceVolume(cgSourceVolumes, false);
-                    standbyJournal = _rpHelper.selectExistingJournalForSourceVolume(cgSourceVolumes, true);
-                }
-            }
-            
+            String activeSourceCopyName = varray.getLabel() + MP_ACTIVE_COPY_SUFFIX;
+            String standbySourceCopyName = (haVarray != null) ? haVarray.getLabel() + MP_STANDBY_COPY_SUFFIX : "";          
+                                                 
             StringBuffer volumeInfoBuffer = new StringBuffer();
             volumeInfoBuffer.append(String.format("%n-------------------------------------------------%n"));
             
-            ///////// ACTIVE SOURCE JOURNAL ///////////
-            if (!isChangeVpoolForProtectedVolume && (sourceJournal == null)) {  
-                _log.info("Create Active Source Journal...");
-                sourceJournal = createRecoverPointVolume(rpProtectionRec.getSourceJournalRecommendation(), 
-                                                                        new StringBuilder(newVolumeLabel).append(PRIMARY_SRC_JOURNAL_SUFFIX).toString(),
-                                                                        project, capabilities, consistencyGroup, param,                                                                            
-                                                                        protectionSystemURI, Volume.PersonalityTypes.METADATA,
-                                                                        "RSET_NAME", null, taskList, task,  (metroPointEnabled ? activeSourceCopyName : srcCopyName), 
-                                                                        descriptors, null, null);
-                volumeURIs.add(sourceJournal.getId());
-            }                                           
-                
-            volumeInfoBuffer.append(logVolumeInfo(sourceJournal));
+            // Prepare the Journals first           
+            List<Volume> sourceJournals = new ArrayList<Volume>();
+            Map<URI, Volume> targetJournals = new HashMap<URI, Volume>();
             
-            ///////// STANDBY SOURCE JOURNAL ///////////
-            if (metroPointEnabled && (standbyJournal == null)) {  
-                _log.info("Create Standby Source Journal...");
-                // If MetroPoint is enabled we need to create the standby journal volume
-                standbyJournal = createRecoverPointVolume(rpProtectionRec.getStandbyJournalRecommendation(), 
-                                                                        new StringBuilder(newVolumeLabel).append(SECONDARY_SRC_JOURNAL_SUFFIX).toString(),
-                                                                        project, capabilities, consistencyGroup, param,                                                                            
-                                                                        protectionSystemURI, Volume.PersonalityTypes.METADATA,
-                                                                        "RSET_NAME", null, taskList, task, standbySourceCopyName, 
-                                                                        descriptors, null, null);
-                volumeURIs.add(standbyJournal.getId());    
-            }
+            prepareRpJournals(rpProtectionRec, project, consistencyGroup, vpool, originalVpool, param, numberOfVolumesInRequest, 
+                                newVolumeLabel, isChangeVpoolForProtectedVolume, capabilities, protectionSystemURI, taskList, task, 
+                                metroPointEnabled, descriptors, volumeURIs, volumeInfoBuffer, 
+                                (metroPointEnabled ? activeSourceCopyName : srcCopyName), 
+                                standbySourceCopyName, sourceJournals, targetJournals);
             
-            volumeInfoBuffer.append(logVolumeInfo(standbyJournal));
-                
-            ///////// TARGET JOURNAL(s) /////////// 
-            for (RPRecommendation targetJournalRec : rpProtectionRec.getTargetJournalRecommendations()) {                
-                VirtualArray targetJournalVarray = _dbClient.queryObject(VirtualArray.class, targetJournalRec.getVirtualArray());
-                
-                //Get the target virtual array corresponding to this journal varray
-                VirtualArray targetVarrayForJournal = getProtectionVarray(rpProtectionRec, targetJournalRec.getInternalSiteName());
-                if (targetVarrayForJournal == null) {
-                	targetVarrayForJournal = targetJournalVarray;
-                }
-                VpoolProtectionVarraySettings protectionSettings = _rpHelper.getProtectionSettings(originalVpool, targetVarrayForJournal);
-                
-                if (!cgTargetVolumes.isEmpty()) {
-                    boolean isAdditionalTargetJournalRequired = _rpHelper.isAdditionalJournalRequiredForCG(protectionSettings.getJournalSize(), consistencyGroup, param.getSize(), 
-                                                                                                          numberOfVolumesInRequest, Volume.PersonalityTypes.TARGET.toString(), 
-                                                                                                          targetJournalRec.getInternalSiteName());
-                    if (!isAdditionalTargetJournalRequired) {
-                        // If the CG contains volumes already and no new additional journals are provisioned, 
-                        // then we simply update the reference on the source for the journal volume.
-                        _log.info(String.format("Re-use existing Target Journal (%s)", targetJournalVarray.getLabel()));
-                        Volume existingTargetJournalVolume = _rpHelper.selectExistingJournalForSourceVolume(cgSourceVolumes, false);
-                        targetJournals.put(targetJournalVarray.getId(), existingTargetJournalVolume);                        
-                        volumeInfoBuffer.append(logVolumeInfo(existingTargetJournalVolume));
-                        continue;
-                    }
-                }
-                
-                _log.info(String.format("Create Target Journal (%s)...", targetJournalVarray.getLabel()));                
-                
-                Volume targetJournalVolume = createRecoverPointVolume(targetJournalRec, 
-                                                                        new StringBuilder(newVolumeLabel).append(VOLUME_TYPE_TARGET_JOURNAL + targetJournalVarray.getLabel()).toString(),
-                                                                        project, capabilities, consistencyGroup, param,                                                                            
-                                                                        protectionSystemURI, Volume.PersonalityTypes.METADATA,
-                                                                        "RSET_NAME", null, taskList, task, null, descriptors,
-                                                                        null, null);
-                volumeURIs.add(targetJournalVolume.getId());    
-                targetJournals.put(targetJournalVarray.getId(), targetJournalVolume);
-                volumeInfoBuffer.append(logVolumeInfo(targetJournalVolume));
-            }
-                              
+            // Extract the source journals
+            Volume sourceJournal = sourceJournals.get(0); // always index 0
+            Volume standbyJournal = sourceJournals.get(1); // always index 1
+                        
+            // Prepare the source and targets
             for (RPRecommendation sourceRec : rpProtectionRec.getSourceRecommendations()) {
                 // Grab a handle of the haRec, it could be null which is Ok.    
                 RPRecommendation haRec = sourceRec.getHaRecommendation();
 
-                if (metroPointEnabled) {                       
-                    VirtualArray recHaVarray = _dbClient.queryObject(VirtualArray.class, haRec.getVirtualArray());
-                    activeSourceCopyName = varray.getLabel() + MP_ACTIVE_COPY_SUFFIX;
-                    standbySourceCopyName = recHaVarray.getLabel() + MP_STANDBY_COPY_SUFFIX;
-                } 
-            
                 MetroPointType metroPointType = MetroPointType.INVALID;
             
                 if (metroPointEnabled) {
@@ -618,13 +542,183 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         return volumeURIs;
     }
     
-    public VirtualArray getProtectionVarray(RPProtectionRecommendation protectionRec, String journalInternalSiteName) {    
+    /**
+     * Prepares all the journal volumes and populates the values into the sourceJournals and/or
+     * the targetJournals map.
+     * 
+     * @param rpProtectionRec - The main rec object
+     * @param project - The project
+     * @param consistencyGroup - The CG
+     * @param vpool - The vpool (potentially swapped)
+     * @param originalVpool - The original vpool
+     * @param param - Volume create param
+     * @param numberOfVolumesInRequest - Number of volumes to create
+     * @param newVolumeLabel - Label of volume
+     * @param isChangeVpoolForProtectedVolume - Flag for protected change vpool op
+     * @param capabilities - Capabilities object
+     * @param protectionSystemURI - Protection System being used
+     * @param taskList - Task List
+     * @param task - Task
+     * @param metroPointEnabled - Flag for MP
+     * @param descriptors - List of all descriptors to be added
+     * @param volumeURIs - List to store all the volume URIs
+     * @param volumeInfoBuffer - Buffer for volume info to be printed
+     * @param sourceCopyName - Source Copy Name
+     * @param standbySourceCopyName - Standby Copy Name
+     * @param sourceJournals - Container for the source journals
+     * @param targetJournals - Container for the target journals
+     */
+    private void prepareRpJournals(RPProtectionRecommendation rpProtectionRec, Project project,
+                                    BlockConsistencyGroup consistencyGroup, 
+                                    VirtualPool vpool, 
+                                    VirtualPool originalVpool,
+                                    VolumeCreate param, 
+                                    Integer numberOfVolumesInRequest, 
+                                    String newVolumeLabel,
+                                    boolean isChangeVpoolForProtectedVolume, VirtualPoolCapabilityValuesWrapper capabilities, 
+                                    URI protectionSystemURI, 
+                                    TaskList taskList, String task, boolean metroPointEnabled, 
+                                    List<VolumeDescriptor> descriptors, List<URI> volumeURIs, 
+                                    StringBuffer volumeInfoBuffer,
+                                    String sourceCopyName, String standbySourceCopyName,
+                                    List<Volume> sourceJournals, Map<URI, Volume> targetJournals) {
+        
+        Volume sourceJournal = null;
+        Volume standbyJournal = null;
+        
+        // If the CG already contains RP volumes, then we need to check if new/additional journal volumes need to be created, based on the 
+        // journal policy specified. 
+        List<Volume> cgSourceVolumes = _rpHelper.getCgVolumes(consistencyGroup.getId(), Volume.PersonalityTypes.SOURCE.toString());     
+        List<Volume> cgTargetVolumes = _rpHelper.getCgVolumes(consistencyGroup.getId(), Volume.PersonalityTypes.TARGET.toString());
+        
+        if (!cgSourceVolumes.isEmpty()) {
+            boolean isAdditionalSourceJournalRequired = _rpHelper.isAdditionalJournalRequiredForCG(vpool.getJournalSize(), consistencyGroup, param.getSize(), 
+                                                                                        numberOfVolumesInRequest, Volume.PersonalityTypes.SOURCE.toString(), 
+                                                                                        cgSourceVolumes.get(0).getInternalSiteName());
+            if (!isAdditionalSourceJournalRequired) {
+                _log.info(String.format("Re-use existing Source Journals"));
+                // If the CG contains volumes already and no new additional journals are provisioned, 
+                // then we simply update the reference on the source for the journal volume.                                                
+                sourceJournal = _rpHelper.selectExistingJournalForSourceVolume(cgSourceVolumes, false);
+                standbyJournal = _rpHelper.selectExistingJournalForSourceVolume(cgSourceVolumes, true);
+            }
+        }
+        
+        ///////// ACTIVE SOURCE JOURNAL ///////////
+        if (!isChangeVpoolForProtectedVolume 
+                && (sourceJournal == null)
+                && rpProtectionRec.getSourceJournalRecommendation() != null) {  
+            _log.info("Create Active Source Journal...");
+            sourceJournal = createRecoverPointVolume(rpProtectionRec.getSourceJournalRecommendation(), 
+                                                                    new StringBuilder(newVolumeLabel).append(PRIMARY_SRC_JOURNAL_SUFFIX).toString(),
+                                                                    project, capabilities, consistencyGroup, param,                                                                            
+                                                                    protectionSystemURI, Volume.PersonalityTypes.METADATA,
+                                                                    "RSET_NAME", null, taskList, task, 
+                                                                    sourceCopyName, 
+                                                                    descriptors, null, null);
+            volumeURIs.add(sourceJournal.getId());
+        }                                           
+            
+        volumeInfoBuffer.append(logVolumeInfo(sourceJournal));
+        
+        ///////// STANDBY SOURCE JOURNAL ///////////
+        if (metroPointEnabled 
+                && (standbyJournal == null)
+                && rpProtectionRec.getStandbyJournalRecommendation() != null) {  
+            _log.info("Create Standby Source Journal...");
+            // If MetroPoint is enabled we need to create the standby journal volume
+            standbyJournal = createRecoverPointVolume(rpProtectionRec.getStandbyJournalRecommendation(), 
+                                                                    new StringBuilder(newVolumeLabel).append(SECONDARY_SRC_JOURNAL_SUFFIX).toString(),
+                                                                    project, capabilities, consistencyGroup, param,                                                                            
+                                                                    protectionSystemURI, Volume.PersonalityTypes.METADATA,
+                                                                    "RSET_NAME", null, taskList, task, standbySourceCopyName, 
+                                                                    descriptors, null, null);
+            volumeURIs.add(standbyJournal.getId());    
+        }
+        
+        volumeInfoBuffer.append(logVolumeInfo(standbyJournal));
+        
+        // Add the source journals at the specified indices 
+        sourceJournals.add(0, sourceJournal);
+        sourceJournals.add(1, standbyJournal);
+            
+        ///////// TARGET JOURNAL(s) /////////// 
+        if (rpProtectionRec.getTargetJournalRecommendations() != null
+                && !rpProtectionRec.getTargetJournalRecommendations().isEmpty()) {
+            for (RPRecommendation targetJournalRec : rpProtectionRec.getTargetJournalRecommendations()) {                
+                VirtualArray targetJournalVarray = _dbClient.queryObject(VirtualArray.class, targetJournalRec.getVirtualArray());
+                
+                // This is the varray for the target we're associating the journal too. It could be the case
+                // that it is the same as the target journal varray set, or the user could have chosen a different
+                // varray for their target journal in which case we do need to find which target/copy this journal will be
+                // associated to in the RP CG.
+                // Ex:
+                // Target varray1
+                // Target journal varray6
+                // The target journal is varray6, however we are adding the journal to the target copy based on the protection 
+                // settings defined for varray1.
+                VirtualArray targetCopyVarray = getProtectionVarray(rpProtectionRec, targetJournalRec.getInternalSiteName());
+                if (targetCopyVarray == null) {
+                    targetCopyVarray = targetJournalVarray;
+                }
+                
+                VpoolProtectionVarraySettings protectionSettings = _rpHelper.getProtectionSettings(originalVpool, targetCopyVarray);
+                
+                if (!cgTargetVolumes.isEmpty()) {
+                    boolean isAdditionalTargetJournalRequired = _rpHelper.isAdditionalJournalRequiredForCG(protectionSettings.getJournalSize(), consistencyGroup, param.getSize(), 
+                                                                                                          numberOfVolumesInRequest, Volume.PersonalityTypes.TARGET.toString(), 
+                                                                                                          targetJournalRec.getInternalSiteName());
+                    if (!isAdditionalTargetJournalRequired) {
+                        // If the CG contains volumes already and no new additional journals are provisioned, 
+                        // then we simply update the reference on the source for the journal volume.
+                        _log.info(String.format("Re-use existing Target Journal (%s)", targetJournalVarray.getLabel()));
+                        Volume existingTargetJournalVolume = _rpHelper.selectExistingJournalForSourceVolume(cgSourceVolumes, false);
+                        targetJournals.put(targetJournalVarray.getId(), existingTargetJournalVolume);                        
+                        volumeInfoBuffer.append(logVolumeInfo(existingTargetJournalVolume));
+                        continue;
+                    }
+                }
+                
+                _log.info(String.format("Create Target Journal (%s)...", targetJournalVarray.getLabel()));                
+                
+                Volume targetJournalVolume = createRecoverPointVolume(targetJournalRec, 
+                                                                        new StringBuilder(newVolumeLabel).append(VOLUME_TYPE_TARGET_JOURNAL + targetJournalVarray.getLabel()).toString(),
+                                                                        project, capabilities, consistencyGroup, param,                                                                            
+                                                                        protectionSystemURI, Volume.PersonalityTypes.METADATA,
+                                                                        "RSET_NAME", null, taskList, task, 
+                                                                        targetCopyVarray.getLabel(), descriptors,
+                                                                        null, null);
+                volumeURIs.add(targetJournalVolume.getId());    
+                targetJournals.put(targetCopyVarray.getId(), targetJournalVolume);
+                volumeInfoBuffer.append(logVolumeInfo(targetJournalVolume));
+            }
+        }
+    }
+    
+    /**
+     * There are instances where the varray we're provisioning to and the varray associated to the protection copy
+     * are NOT the same.
+     * 
+     * Ex:
+     * Protection/Target Copy Varray => varray1
+     * Target Journal Varray => varray6
+     * 
+     * We're provisioning the journal volume on varray6 but the journal is for the Protection/Target at varray1.
+     * 
+     * Using the internal site name we are able to find the exact Protection/Copy varray that we
+     * need by parsing through the recommendation object.
+     * 
+     * @param protectionRec The RP Protection Recommendation
+     * @param internalSiteName The internal site name we're looking for
+     * @return Returns the varray for the protection internal site
+     */
+    private VirtualArray getProtectionVarray(RPProtectionRecommendation protectionRec, String internalSiteName) {    
     	if (protectionRec != null) {
     		if (protectionRec.getSourceRecommendations() != null) {
-    			for(RPRecommendation sourceRec : protectionRec.getSourceRecommendations()) {
+    			for (RPRecommendation sourceRec : protectionRec.getSourceRecommendations()) {
     				if (sourceRec.getTargetRecommendations() != null) {
     					for (RPRecommendation targetRec : sourceRec.getTargetRecommendations()) {
-    						if (targetRec.getInternalSiteName().equals(journalInternalSiteName)) {
+    						if (targetRec.getInternalSiteName().equals(internalSiteName)) {
     							return _dbClient.queryObject(VirtualArray.class, targetRec.getVirtualArray());
     						}
     					}
@@ -632,6 +726,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     			}
     		}
     	}
+    	
     	return null;
     }
     
@@ -1322,7 +1417,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 volumeDescriptors.addAll(createVolumeDescriptors(recommendation, volumeURIs, capabilities));                
                 logDescriptors(volumeDescriptors);
                 
-                // Only needed for internal testing
+//                // Only needed for internal testing
 //                if (true) {                    
 //                    _log.error("STOP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 //                    throw new WebApplicationException(Response

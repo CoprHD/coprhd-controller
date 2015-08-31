@@ -528,7 +528,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             List<URI> updatedClusters = StringSetUtil.stringSetToUriList(export.getClusters());
             Map<URI, Integer> updatedVolumesMap = StringMapUtil.stringMapToVolumeMap(export.getVolumes());
 
-            for (URI hostId : updatedHosts) {
+            Iterator<URI> updatedHostsIterator = updatedHosts.iterator();
+            while (updatedHostsIterator.hasNext()) {
+                URI hostId = updatedHostsIterator.next();
                 if (!clusterHostIds.contains(hostId)) {
                     updatedHosts.remove(hostId);
 

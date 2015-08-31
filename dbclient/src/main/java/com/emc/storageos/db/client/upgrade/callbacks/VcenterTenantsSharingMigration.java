@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 
@@ -18,7 +18,7 @@ import java.util.List;
 
 /**
  * A migration callback for the migrating the tenant information
- * to the vCenters acls and make the vCenter as non sharable resources.
+ * to the vCenters acls and make the vCenter as a tenants sharable resources.
  *
  */
 public class VcenterTenantsSharingMigration extends BaseCustomMigrationCallback {

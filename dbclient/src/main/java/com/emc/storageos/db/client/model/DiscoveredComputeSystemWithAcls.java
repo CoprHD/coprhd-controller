@@ -100,6 +100,7 @@ public abstract class DiscoveredComputeSystemWithAcls extends AbstractDiscovered
     @Override
     public void setTenant(URI tenant) {
         _tenant = tenant;
+        setChanged("tenant");
     }
 
     /* (non-Javadoc)

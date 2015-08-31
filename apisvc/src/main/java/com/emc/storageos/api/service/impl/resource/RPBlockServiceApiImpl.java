@@ -104,6 +104,7 @@ import com.emc.storageos.volumecontroller.RPRecommendation;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.google.common.collect.Lists;
 
 /**
  * Block Service subtask (parts of larger operations) RecoverPoint implementation.
@@ -255,7 +256,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // Create an entire Protection object for each recommendation result.
         Iterator<Recommendation> recommendationsIter = recommendations.iterator();
         
-        while (recommendationsIter.hasNext()) {                 
+        while (recommendationsIter.hasNext()) {        	        	        	
             RPProtectionRecommendation rpProtectionRec = (RPProtectionRecommendation) recommendationsIter.next();
             
             // Determine if MetroPoint is enabled
@@ -1256,7 +1257,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         _log.info("All volumes are of the same size. No need for capacity calculations.");
         return true;
     }
-    
+            
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray varray,
             VirtualPool vpool, List<Recommendation> recommendations, String task,
@@ -1288,7 +1289,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                                                 varray, vpool, 
                                                                 capabilities.getResourceCount(), 
                                                                 recommendations, volumeLabel, capabilities, 
-                                                                volumeDescriptors);
+                                                                volumeDescriptors);        
         
         // Execute the volume creations requests for each recommendation.
         Iterator<Recommendation> recommendationsIter = recommendations.iterator();
@@ -2758,5 +2759,49 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     @Override
     public void setCoordinator(CoordinatorClient locator) {
         _coordinator = locator;
+    }
+    
+    public TaskList addJournalCapacity(VolumeCreate param, Project project, VirtualArray journalVarray,
+            VirtualPool journalVpool, BlockConsistencyGroup consistencyGroup, VirtualPoolCapabilityValuesWrapper capabilities, String task) {
+        // Prepare the Bourne Volumes to be created and associated
+        // with the actual storage system volumes created. Also create
+        // a BlockTaskList containing the list of task resources to be
+        // returned for the purpose of monitoring the volume creation
+        // operation for each volume to be created.
+        String volumeLabel = param.getName();        
+        
+        ProtectionSystem  protectionSystem = getBlockScheduler().getCgProtectionSystem(consistencyGroup.getId());
+        if (protectionSystem != null) {
+            _log.info(
+                    "Narrowing down placement to use protection system {}, which is currently used by RecoverPoint consistency group {}.",
+                    protectionSystem.getLabel(), consistencyGroup);
+        }
+        
+        String internalSiteName = null;
+        List<Volume> journVolumes = _rpHelper.getCgVolumes(consistencyGroup.getId(), Volume.PersonalityTypes.METADATA.name());
+        for (Volume journVolume : journVolumes) {
+        	if (journVolume.getVirtualArray().equals(journalVarray.getId())) {
+        		// This journal volume is being protected by the same internal site
+        		internalSiteName = journVolume.getInternalSiteName();
+        		break;
+        	}
+        } 
+
+        // TODO: Left off here on Fri night, lets see if we can get to this point in debugger tomorrow.
+        // source standby or target
+        RPProtectionRecommendation rpProtectionRecommendation = new RPProtectionRecommendation();
+        RPRecommendation recommendation = getBlockScheduler().buildJournalRecommendation(rpProtectionRecommendation, internalSiteName,
+        		new Long(capabilities.getSize()).toString(), journalVarray, journalVpool, 
+        		protectionSystem, capabilities, capabilities.getResourceCount(), null, false);
+        // TODO: Need to throw better exception here, this was just for debugging
+        if (recommendation == null) {
+        	throw new UnsupportedOperationException();
+        }
+        
+        List<Recommendation> recommendations = Lists.newArrayList();
+        recommendations.add(recommendation);
+                
+        return this.createVolumes(param, project, journalVarray, journalVpool, recommendations, task, capabilities);                       
+
     }
 }

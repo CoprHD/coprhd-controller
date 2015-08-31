@@ -2224,7 +2224,7 @@ public class RecoverPointScheduler implements Scheduler {
      * @param standbySite indicates if this is a metropoint standby site (or active if false)
      * @return recommendation object
      */
-    private RPRecommendation buildJournalRecommendation(RPProtectionRecommendation rpProtectionRecommendation, String internalSiteName, 
+    public RPRecommendation buildJournalRecommendation(RPProtectionRecommendation rpProtectionRecommendation, String internalSiteName, 
     										String journalPolicy, VirtualArray journalVarray, VirtualPool journalVpool, ProtectionSystem ps, 
 								    		VirtualPoolCapabilityValuesWrapper capabilities,
 								    		int satisfiedSourceVolCount, Volume vpoolChangeVolume, boolean isMPStandby) {
@@ -2400,7 +2400,7 @@ public class RecoverPointScheduler implements Scheduler {
      * @param blockConsistencyGroupUri
      * @return
      */
-	private ProtectionSystem getCgProtectionSystem(URI blockConsistencyGroupUri) {
+	public ProtectionSystem getCgProtectionSystem(URI blockConsistencyGroupUri) {
         ProtectionSystem protectionSystem = null;
         List<Volume> cgVolumes = rpHelper.getCgVolumes(blockConsistencyGroupUri);
         

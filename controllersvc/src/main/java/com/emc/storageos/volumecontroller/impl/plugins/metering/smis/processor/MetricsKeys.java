@@ -52,6 +52,18 @@ public enum MetricsKeys {
     unmanagedVolumeCount,
     /** Unmanaged initiator count (computed from UnManagedExportMasks). */
     unmanagedInitiatorCount,
+    
+    
+    /** Maximum number of storage objects (FS + Check points) */
+    maxStorageObjects,
+    /** Maximum storage capacity of storage objects */
+    maxStorageCapacity,
+    /** Number of storage objects (FS + Check points) */
+    storageObjects,
+    /** Storage capacity of storage objects */
+    storageCapacity,
+    /** Indicates whether the storage server is overloaded or not */
+    overLoaded,
     /** The ViPR time this port/cpu was last processed. */
     lastProcessingTime;
 

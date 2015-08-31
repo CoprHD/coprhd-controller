@@ -37,6 +37,10 @@ public class MailHelper {
     public static final String ZERO_PORT = "0";
     public static final String DEFAULT_SMTP_TLS_PORT = "465";
     public static final String DEFAULT_SMTP_PORT = "25";
+    
+    public static final String SMTP_CONNECTION_TIMEOUT = "10000"; // 10 seconds
+    public static final String SMTP_WRITE_TIMEOUT = "5000"; // 5 seconds
+    public static final String SMTP_READ_TIMEOUT = "5000"; //5 seconds
 
     public static final String SMTP_SERVER = "system_connectemc_smtp_server";
     public static final String SMTP_PORT = "system_connectemc_smtp_port";
@@ -152,6 +156,9 @@ public class MailHelper {
 
         Properties javaMailProperties = new Properties();
         javaMailProperties.setProperty("mail.smtp.host", smtpServer);
+        javaMailProperties.setProperty("mail.smtp.connectiontimeout", SMTP_CONNECTION_TIMEOUT);
+        javaMailProperties.setProperty("mail.smtp.timeout", SMTP_READ_TIMEOUT);
+        javaMailProperties.setProperty("mail.smtp.writetimeout", SMTP_WRITE_TIMEOUT);
 
         if (enableTls) {
             javaMailProperties.setProperty("mail.smtp.channel", "starttls");

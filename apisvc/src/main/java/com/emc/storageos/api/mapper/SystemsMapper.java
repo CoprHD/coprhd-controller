@@ -11,7 +11,9 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
@@ -108,41 +110,77 @@ public class SystemsMapper {
         to.setElementManagerURL(from.getElementManagerURL());
         return to;
     }
-    
-    
-    
-    public static VirtualNASRestRep map(VirtualNAS from){
-        if(from == null){
+
+    public static VirtualNASRestRep map(VirtualNAS from) {
+        if (from == null) {
             return null;
         }
-        
-        VirtualNASRestRep to= new VirtualNASRestRep();
+
+        VirtualNASRestRep to = new VirtualNASRestRep();
         mapDiscoveredDataObjectFields(from, to);
         to.setAssignedVirtualArrays(from.getAssignedVirtualArrays());
         to.setBaseDirPath(from.getBaseDirPath());
-        to.setCifsServers(from.getCifsServers());
         to.setCompatibilityStatus(from.getCompatibilityStatus());
         to.setConnectedVirtualArrays(from.getConnectedVirtualArrays());
         to.setDiscoveryStatus(from.getDiscoveryStatus());
-
-        to.setMaxExports(from.getMaxExports());
-        to.setMaxFSID(from.getMaxExports());
-        to.setMaxProvisionedCapacity(from.getMaxProvisionedCapacity());
-        
         to.setNasName(from.getNasName());
+        to.setName(from.getNasName());
         to.setNasState(from.getNasState());
         to.setNasTag(from.getNAStag());
         
-        to.setParentNASURI(toRelatedResource(ResourceTypeEnum.VIRTUAL_NAS,from.getParentPhysicalNAS()));
+        if(from.getParentPhysicalNAS() != null){
+        	to.setParentNASURI(from.getParentPhysicalNAS().toString());
+        }
         
+       
         to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT,from.getProject()));
        
         to.setProtocols(from.getProtocols());
         to.setRegistrationStatus(from.getRegistrationStatus());
         
+        Set<String> cifsServers = new HashSet<String>();
+        if(from.getCifsServersMap() != null && !from.getCifsServersMap().isEmpty()){
+        	for(String serverName: from.getCifsServersMap().keySet() ){
+        		String serverDomain = serverName;
+        		if(from.getCifsServersMap().get(serverName).getDomain() != null){
+        			serverDomain = serverDomain + "=" + from.getCifsServersMap().get(serverName).getDomain();
+        		}
+        			
+        		cifsServers.add(serverDomain);
+        	}
+        	if(cifsServers != null && !cifsServers.isEmpty()){
+        		to.setCifsServers(cifsServers);
+        	}
+        }
+        
+        for (String port : from.getStoragePorts()) {
+            to.getStoragePorts().add(toRelatedResource(
+                    ResourceTypeEnum.STORAGE_PORT, URI.create(port)));
+        }
+        
+        to.setAssignedVirtualArrays(from.getAssignedVirtualArrays());
+        to.setTaggedVirtualArrays(from.getTaggedVirtualArrays());
+        
         to.setStorageDeviceURI(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM,from.getStorageDeviceURI()));
-        to.setvNasType(from.getvNasType());
-                
+        
+               
+        // Set the metrics!!!
+        to.setMaxStorageCapacity(MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, from.getMetrics()).toString());
+        to.setMaxStorageObjects(MetricsKeys.getLong(MetricsKeys.maxStorageObjects, from.getMetrics()).toString());
+        
+        to.setStorageObjects(MetricsKeys.getLong(MetricsKeys.storageObjects, from.getMetrics()).toString());
+        to.setStorageCapacity(MetricsKeys.getLong(MetricsKeys.storageCapacity, from.getMetrics()).toString());
+        to.setIsOverloaded(MetricsKeys.getBoolean(MetricsKeys.overLoaded, from.getMetrics()));
+        
+        Double percentBusy = MetricsKeys.getDoubleOrNull(MetricsKeys.emaPercentBusy, from.getMetrics());
+        if (percentBusy != null) {
+        	to.setAvgEmaPercentagebusy(percentBusy.toString());
+        }
+        percentBusy = MetricsKeys.getDoubleOrNull(MetricsKeys.avgPercentBusy, from.getMetrics());
+        if (percentBusy != null) {
+            to.setAvgPercentagebusy(percentBusy.toString());
+        }
+                       
         return to;
     }
 

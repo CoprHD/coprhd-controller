@@ -12,14 +12,14 @@ import javax.xml.bind.annotation.XmlRootElement;
 import org.codehaus.jackson.annotate.JsonProperty;
 
 /**
- * AssignVNASParam will contain the list of Virtual NAS parameters assign to a project.
+ * VirtualNasParam will contain the list of Virtual NAS parameters assign to a project.
  * 
  * @author prasaa9
  * 
  */
 
-@XmlRootElement(name = "assign_vnas_servers")
-public class AssignVNASParam {
+@XmlRootElement(name = "vnas_servers")
+public class VirtualNasParam {
 
     /**
      * Returned list of Virtual NAS Servers.
@@ -28,10 +28,10 @@ public class AssignVNASParam {
      */
     private Set<String> vnasServers;
 
-    public AssignVNASParam() {
+    public VirtualNasParam() {
     }
 
-    public AssignVNASParam(Set<String> vnasServers) {
+    public VirtualNasParam(Set<String> vnasServers) {
         this.vnasServers = vnasServers;
     }
 
@@ -41,7 +41,7 @@ public class AssignVNASParam {
      * 
      * @valid none
      */
-    @XmlElement(name = "vnas_servers")
+    @XmlElement(name = "vnas_server")
     @JsonProperty("vnas_server")
     public Set<String> getVnasServers() {
         return vnasServers;

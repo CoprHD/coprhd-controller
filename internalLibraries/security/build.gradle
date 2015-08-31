@@ -7,7 +7,7 @@ dependencies {
             project(":geomodels"),
             project(":coordinatorsvc"),
             project(":dbclient"),
-            "javax.mail:mail:1.4.3"
+            "com.sun.mail:javax.mail:1.5.4"
 
     if (project.hasProperty("buildType") && project.getProperty("buildType") == "emc") {
         compile emclibrary(rsa_bsafe)

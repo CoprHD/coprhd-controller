@@ -97,21 +97,28 @@ public class InternalAlertsClient {
     }
 
     public void sendInternalAlert(String src,
-            int eventId,
-            List<String> nodeIds,
-            List<String> logNames,
-            int severity,
-            Date start,
-            Date end,
-            String msgRegex,
-            String user,
-            String contact) throws SysClientException {
+                                  int eventId,
+                                  List<String> nodeIds,
+                                  List<String> nodeNames,
+                                  List<String> logNames,
+                                  int severity,
+                                  Date start,
+                                  Date end,
+                                  String msgRegex,
+                                  String user,
+                                  String contact) throws SysClientException {
 
         UriBuilder b = UriBuilder.fromUri(URI_SEND_INTERNAL_ALERT);
         b.queryParam("source", src).queryParam("event_id", Integer.toString(eventId));
         if (nodeIds != null) {
             for (String nodeId : nodeIds) {
                 b.queryParam(LogRequestParam.NODE_ID, nodeId);
+            }
+        }
+
+        if (nodeNames != null) {
+            for (String nodeName : nodeNames) {
+                b.queryParam(LogRequestParam.NODE_NAME, nodeName);
             }
         }
 

@@ -138,20 +138,20 @@
 
             success: function(percent) {
                 var downloadFinished = true;
-                $.each(percent, function(nodeName, downloadStatus) {
-                    updateProgressBar(nodeName,downloadStatus.percent);
+                $.each(percent, function(nodeId, downloadStatus) {
+                    updateProgressBar(nodeId,downloadStatus.percent);
                     if (downloadStatus.percent != 100) {
                         downloadFinished = false;
                     }
 
                     if (!(downloadStatus.status == "NORMAL" || downloadStatus.status == "COMPLETED")) {
-                        updateProgressBarStyle(nodeName, "danger")
+                        updateProgressBarStyle(nodeId, "danger")
 
                         if (downloadStatus.status == "DOWNLOADERROR") {
-                            $("#download-status-"+nodeName).text('&{'upgrade.downloadError'}');
+                            $("#download-status-"+nodeId).text('&{'upgrade.downloadError'}');
                         }
                         else if (downloadStatus.status == "CHECKSUMERROR") {
-                            $("#download-status-"+nodeName).text('&{'upgrade.downloadChecksumError'}');
+                            $("#download-status-"+nodeId).text('&{'upgrade.downloadChecksumError'}');
                         }
                     }
                 });

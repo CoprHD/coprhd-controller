@@ -75,14 +75,16 @@ public class NativeGUIDGenerator {
 
     private static final String UN_MANAGED_FILE_SHARE = "UNMANAGEDFILESHARE";
     
-    private static final String PHYSICAL_NAS = "PHYSICALNAS";
+    public static final String PHYSICAL_NAS = "PHYSICALNAS";
     
-    private static final String VIRTUAL_NAS = "VIRTUALNAS";
+    public static final String VIRTUAL_NAS = "VIRTUALNAS";
 
     static {
         OBJECT_TYPE_SET.add(POOL);
         OBJECT_TYPE_SET.add(PORT);
         OBJECT_TYPE_SET.add(ADAPTER);
+        OBJECT_TYPE_SET.add(PHYSICAL_NAS);
+        OBJECT_TYPE_SET.add(VIRTUAL_NAS);
     }
 
     /**

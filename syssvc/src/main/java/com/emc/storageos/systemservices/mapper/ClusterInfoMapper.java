@@ -65,7 +65,7 @@ public class ClusterInfoMapper {
             toClusterInfo.setControlNodes(new HashMap<String, NodeState>());
 
             for (Map.Entry<Service, RepositoryInfo> entry : controlNodesInfo.entrySet()) {
-                addControlNodeInfo(toClusterInfo, entry.getKey().getNodeName(), entry.getValue(),
+                addControlNodeInfo(toClusterInfo, entry.getKey().getNodeId(), entry.getValue(),
                         controlNodesConfigVersions != null ? controlNodesConfigVersions.get(entry.getKey()) : null);
             }
         }

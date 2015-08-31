@@ -173,11 +173,12 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
                         totalSnapCap = totalSnapCap + snapCapacity.getValue();
                     }
                 }
+                //
                 totalFSCap = totalFSCap + (Long)fsCapList.get(fsId);
             }
         }
-        //total fs capacity
-        fsCount = fsCount + fsList.size();
+        //no of fs on given mover
+        fsCount = fsCapList.size();
         
         // set the values dbMetrics
         long totalObjects = fsCount + snapCount;

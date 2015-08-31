@@ -25,7 +25,6 @@
 		<property name="nsList">
 			<map>
 				<entry key="metering-file" value-ref="vnxfilenamespace" />
-				
             </map>
 		</property>
 	</bean>
@@ -39,6 +38,7 @@
 				<ref bean="fsusageoperation" />
 				<ref bean="snapshotoperation" />
 				<ref bean="volumestatsoperation" />
+				<!-- collecting static load metrics -->
 				<ref bean="vnxstaticloadoperation" />
 				<!-- collecting ip port metrics -->
 				<ref bean="vnxdatamoverquery"/>

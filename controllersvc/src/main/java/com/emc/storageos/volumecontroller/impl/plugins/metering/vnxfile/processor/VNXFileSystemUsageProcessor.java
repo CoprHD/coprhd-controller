@@ -114,7 +114,7 @@ public class VNXFileSystemUsageProcessor extends VNXFileProcessor {
         final String serialId = keyMap.get(Constants._serialID).toString();
         Iterator iterator = fsUsageList.iterator();
         keyMap.put(Constants._TimeCollected, System.currentTimeMillis());
-        
+        Map<String, Long> fsCapacityMap = new HashMap<String, Long>();        
         FileSystemSetUsageStats fsSetUsageStats = (FileSystemSetUsageStats) iterator.next();
         while (iterator.hasNext()) {
             FileSystemSetUsageStats fsSetUsageStats = (FileSystemSetUsageStats) iterator.next();

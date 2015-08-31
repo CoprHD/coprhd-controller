@@ -701,7 +701,7 @@ function DisplayNetworkProperties() {
 	Write-Host "Network properties"
     if ($Script:isVMX -eq $false) {
         Write-Host "	Node count [ 1 (evaluation only) | 3 | 5 ]: $Script:nodeCount"
-    else {
+    } else {
         Write-Host "	Node count [ 1 (Node count can only be 1 in install-vmx mode) ]: $Script:nodeCount"
     }
 	Write-Host "	IPv4 Settings"

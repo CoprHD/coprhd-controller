@@ -269,7 +269,7 @@ public class FileService extends TaskResourceService {
         CapacityUtils.validateQuotasForProvisioning(_dbClient, cos, project, tenant, fsSize, "filesystem");
 
         List<FileRecommendation> placement;
-        placement = _fileScheduler.placeFileShare(neighborhood, cos, capabilities);
+        placement = _fileScheduler.placeFileShare(neighborhood, cos, capabilities, project);
         if (placement.isEmpty()) {
             throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(cos.getId(), neighborhood.getId());
         }

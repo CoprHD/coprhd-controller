@@ -330,7 +330,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             for (RPRecommendation targetJournalRec : rpProtectionRec.getTargetJournalRecommendations()) {                
                 VirtualArray targetJournalVarray = _dbClient.queryObject(VirtualArray.class, targetJournalRec.getVirtualArray());
                 
-                VpoolProtectionVarraySettings protectionSettings = _rpHelper.getProtectionSettings(originalVpool, targetJournalVarray);
+                //Get the target virtual array corresponding to this journal varray
+                VirtualArray targetVarrayForJournal = getProtectionVarray(rpProtectionRec, targetJournalRec.getInternalSiteName());
+                if (targetVarrayForJournal == null) {
+                	targetVarrayForJournal = targetJournalVarray;
+                }
+                VpoolProtectionVarraySettings protectionSettings = _rpHelper.getProtectionSettings(originalVpool, targetVarrayForJournal);
                 
                 if (!cgTargetVolumes.isEmpty()) {
                     boolean isAdditionalTargetJournalRequired = _rpHelper.isAdditionalJournalRequiredForCG(protectionSettings.getJournalSize(), consistencyGroup, param.getSize(), 
@@ -611,6 +616,23 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         }
                                
         return volumeURIs;
+    }
+    
+    public VirtualArray getProtectionVarray(RPProtectionRecommendation protectionRec, String journalInternalSiteName) {    
+    	if (protectionRec != null) {
+    		if (protectionRec.getSourceRecommendations() != null) {
+    			for(RPRecommendation sourceRec : protectionRec.getSourceRecommendations()) {
+    				if (sourceRec.getTargetRecommendations() != null) {
+    					for (RPRecommendation targetRec : sourceRec.getTargetRecommendations()) {
+    						if (targetRec.getInternalSiteName().equals(journalInternalSiteName)) {
+    							return _dbClient.queryObject(VirtualArray.class, targetRec.getVirtualArray());
+    						}
+    					}
+    				}
+    			}
+    		}
+    	}
+    	return null;
     }
     
     /**
@@ -1301,11 +1323,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 logDescriptors(volumeDescriptors);
                 
                 // Only needed for internal testing
-                if (true) {                    
-                    _log.error("STOP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-                    throw new WebApplicationException(Response
-                            .status(Response.Status.INTERNAL_SERVER_ERROR).entity(taskList).build());
-                }
+//                if (true) {                    
+//                    _log.error("STOP!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+//                    throw new WebApplicationException(Response
+//                            .status(Response.Status.INTERNAL_SERVER_ERROR).entity(taskList).build());
+//                }
                 
                 BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
                         BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);

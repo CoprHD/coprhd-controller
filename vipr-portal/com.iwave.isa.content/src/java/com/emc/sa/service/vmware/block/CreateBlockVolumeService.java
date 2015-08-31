@@ -4,9 +4,9 @@
  */
 package com.emc.sa.service.vmware.block;
 
+import java.net.URI;
 import java.util.List;
 
-import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.engine.bind.Bindable;
 import com.emc.sa.engine.bind.BindingUtils;
 import com.emc.sa.engine.service.Service;
@@ -15,7 +15,6 @@ import com.emc.sa.service.vipr.block.CreateBlockVolumeHelper;
 import com.emc.sa.service.vmware.VMwareUtils;
 import com.emc.sa.service.vmware.VMwareUtils.VolumeParams;
 import com.emc.sa.service.vmware.VMwareUtils.VolumeTable;
-import com.emc.storageos.model.block.BlockObjectRestRep;
 import com.google.common.collect.Lists;
 
 @Service("VMware-CreateBlockVolume")
@@ -36,7 +35,7 @@ public class CreateBlockVolumeService extends ViPRService {
     public void init() throws Exception {
         super.init();
 
-        // for each pair of volume name and size, createBlockVolumeHelper
+        // for each pair of volume name and size, create a createBlockVolumeHelper
         for (VolumeTable volumes : volumeTable) {
             CreateBlockVolumeHelper createBlockVolumeHelper = new CreateBlockVolumeHelper();
             BindingUtils.bind(createBlockVolumeHelper, VMwareUtils.createVolumeParam(volumes, volumeParams));
@@ -53,11 +52,12 @@ public class CreateBlockVolumeService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        for (CreateBlockVolumeHelper helper : createBlockVolumeHelpers) {
-            List<BlockObjectRestRep> volumes = helper.createAndExportVolumes();
-            if (volumes.isEmpty()) {
-                ExecutionUtils.fail("CreateVolumeAndVmfsDatastoreService.illegalState.noVolumesCreated", args(), args());
+        if (!createBlockVolumeHelpers.isEmpty()) {
+            List<URI> volumeIds = Lists.newArrayList();
+            for (CreateBlockVolumeHelper helper : createBlockVolumeHelpers) {
+                volumeIds.addAll(helper.createVolumes());
             }
+            createBlockVolumeHelpers.get(0).exportVolumes(volumeIds);
         }
     }
 }

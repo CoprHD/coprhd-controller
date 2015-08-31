@@ -66,14 +66,16 @@ public class CreateBlockVolumeHelper {
         }
     }
 
-    public List<BlockObjectRestRep> createAndExportVolumes() {
-        // Create the volumes
+    public List<URI> createVolumes() {
         List<URI> volumeIds = BlockStorageUtils.createVolumes(project, virtualArray, virtualPool, nameParam,
                 sizeInGb, count, consistencyGroup);
         for (URI volumeId : volumeIds) {
             logInfo("create.block.volume.create.volume", volumeId);
         }
+        return volumeIds;
+    }
 
+    public List<BlockObjectRestRep> exportVolumes(List<URI> volumeIds) {
         // See if an existing export exists for the host ports
         ExportGroupRestRep export = null;
         if (cluster != null) {
@@ -112,6 +114,11 @@ public class CreateBlockVolumeHelper {
         // Get the volumes after exporting, volumes would not have WWNs until after export in VPLEX
         List<BlockObjectRestRep> volumes = BlockStorageUtils.getVolumes(volumeIds);
         return volumes;
+    }
+
+    public List<BlockObjectRestRep> createAndExportVolumes() {
+        List<URI> volumeIds = createVolumes();
+        return exportVolumes(volumeIds);
     }
 
     public Double getSizeInGb() {

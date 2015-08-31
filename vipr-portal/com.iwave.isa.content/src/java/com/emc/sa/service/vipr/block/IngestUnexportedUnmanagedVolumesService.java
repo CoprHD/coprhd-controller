@@ -52,7 +52,7 @@ public class IngestUnexportedUnmanagedVolumesService extends ViPRService {
     public void execute() throws Exception {
         List<UnManagedVolumeRestRep> unmanagedVolumes = execute(new GetUnmanagedVolumes(storageSystem, virtualPool));
 
-        execute(new IngestUnexportedUnmanagedVolumes(virtualPool, virtualArray, project, uris(volumeIds)));
+        execute(new IngestUnexportedUnmanagedVolumes(virtualPool, virtualArray, project, uris(volumeIds), ingestionMethod));
 
         // Requery and produce a log of what was ingested or not
         int failed = execute(new GetUnmanagedVolumes(storageSystem, virtualPool)).size();

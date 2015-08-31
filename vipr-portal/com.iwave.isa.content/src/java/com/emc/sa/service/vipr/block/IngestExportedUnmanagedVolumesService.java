@@ -60,7 +60,8 @@ public class IngestExportedUnmanagedVolumesService extends ViPRService {
         int succeed = execute(new IngestExportedUnmanagedVolumes(virtualPool, virtualArray, project,
                 host == null ? null : host.getId(),
                 cluster == null ? null : cluster.getId(),
-                uris(volumeIds)
+                uris(volumeIds),
+                ingestionMethod
                 )).getTasks().size();
         logInfo("ingest.exported.unmanaged.volume.service.ingested", succeed);
         logInfo("ingest.exported.unmanaged.volume.service.skipped", volumeIds.size() - succeed);

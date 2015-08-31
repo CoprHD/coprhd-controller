@@ -62,6 +62,7 @@ import com.emc.storageos.recoverpoint.utils.WwnUtils;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.util.VersionChecker;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
@@ -90,6 +91,8 @@ import com.google.common.collect.Sets.SetView;
 public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceImpl {
 
     // string constants
+    private static final String DISCOVERY_MODE = "controller_vplex_volume_discovery_mode";
+    private static final String DISCOVERY_MODE_FASTER_DISCOVERY = "Faster Discovery";
     private final String ISCSI_PATTERN = "^(iqn|IQN|eui).*$";
     protected static int BATCH_SIZE = Constants.DEFAULT_PARTITION_SIZE;
     private static final String TRUE = "true";
@@ -886,8 +889,11 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         volume.setVolumeCharacterstics(unManagedVolumeCharacteristics);
         volume.addVolumeInformation(unManagedVolumeInformation);
         
-        VplexBackendIngestionContext context = new VplexBackendIngestionContext(volume, _dbClient);
-        context.discover();
+        String discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(_coordinator, DISCOVERY_MODE);
+        if (!DISCOVERY_MODE_FASTER_DISCOVERY.equals(discoveryMode)) {
+            VplexBackendIngestionContext context = new VplexBackendIngestionContext(volume, _dbClient);
+            context.discover();
+        }
     }
 
     /**

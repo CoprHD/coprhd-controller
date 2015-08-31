@@ -25,8 +25,6 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.TenantOrg;
-import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
@@ -36,7 +34,6 @@ import com.emc.storageos.vplex.api.VPlexDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexDistributedDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexResourceInfo;
 import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
-import com.google.common.base.Joiner;
 
 public class VplexBackendIngestionContext {
 
@@ -81,14 +78,10 @@ public class VplexBackendIngestionContext {
     }
     
     public void discover() {
-        this.setDiscoveryMode(true);
+        this.setInDiscoveryMode(true);
         this.getUnmanagedBackendVolumes();
         this.getUnmanagedFullClones();
         this.getUnmanagedMirrors();
-        if (_isDirty) {
-            _dbClient.persistObject(_unmanagedVirtualVolume);
-            _isDirty = false;
-        }
     }
     
     public UnManagedVolume getUnmanagedVirtualVolume() {
@@ -114,7 +107,7 @@ public class VplexBackendIngestionContext {
             return unmanagedBackendVolumes;
         }
         
-        if (!inDiscoveryMode()) {
+        if (!isInDiscoveryMode()) {
             // first check the database for this unmanaged volume's backend volumes
             StringSet dbBackendVolumes = extractValuesFromStringSet(
                     SupportedVolumeInformation.VPLEX_BACKEND_VOLUMES.toString(),
@@ -297,7 +290,7 @@ public class VplexBackendIngestionContext {
             return unmanagedFullClones;
         }
 
-        if (!inDiscoveryMode()) {
+        if (!isInDiscoveryMode()) {
             // first check the database for this unmanaged volume's backend full clones
             StringSet fullCloneMap = extractValuesFromStringSet(
                     SupportedVolumeInformation.VPLEX_FULL_CLONE_MAP.toString(),
@@ -414,7 +407,7 @@ public class VplexBackendIngestionContext {
             return unmanagedMirrors;
         }
 
-        if (!inDiscoveryMode()) {
+        if (!isInDiscoveryMode()) {
             // first check the database for this unmanaged volume's backend mirrors
             StringSet mirrorMap = extractValuesFromStringSet(
                     SupportedVolumeInformation.VPLEX_MIRROR_MAP.toString(),
@@ -436,6 +429,12 @@ public class VplexBackendIngestionContext {
                             unmanagedMirrors = new HashMap<UnManagedVolume, String>();
                         }
                         unmanagedMirrors.put(mirrorVolume, contextPath);
+                        Iterator<UnManagedVolume> itr = getUnmanagedBackendVolumes().iterator();
+                        while (itr.hasNext()) {
+                            if (mirrorVolume.getId().toString().equals(itr.next().getId().toString())) {
+                                itr.remove();
+                            }
+                        }
                     }
                 }
                 if (null != unmanagedMirrors && !unmanagedMirrors.isEmpty()) {
@@ -478,7 +477,7 @@ public class VplexBackendIngestionContext {
                         set.add(associatedVolumeMirror.getNativeGuid());
                         _logger.info("adding mirror set {} to source unmanaged volume {}", set, associatedVolumeSource);
                         associatedVolumeSource.putVolumeInfo(SupportedVolumeInformation.MIRRORS.toString(), set);
-                        
+                        _dbClient.persistObject(associatedVolumeSource);
                     } else {
                         // TODO: create exception
                         String message = "couldn't find all associated device components in mirror device: ";
@@ -694,14 +693,14 @@ public class VplexBackendIngestionContext {
     /**
      * @return true if in discovery mode (gets everything fresh)
      */
-    public boolean inDiscoveryMode() {
+    public boolean isInDiscoveryMode() {
         return _inDiscoveryMode;
     }
 
     /**
      * @param set the discovery mode
      */
-    public void setDiscoveryMode(boolean inDiscoveryMode) {
+    public void setInDiscoveryMode(boolean inDiscoveryMode) {
         this._inDiscoveryMode = inDiscoveryMode;
     }
 

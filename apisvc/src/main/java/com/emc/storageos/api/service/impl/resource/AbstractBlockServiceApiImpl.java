@@ -41,7 +41,6 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -1032,20 +1031,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @return The number of snapshots on a volume.
      */
     protected Integer getNumNativeSnapshots(Volume volume) {
-        Integer numSnapshots = 0;
-        URI volumeURI = volume.getId();
-        URIQueryResultList snapshotURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
-                volumeURI), snapshotURIs);
-        while (snapshotURIs.iterator().hasNext()) {
-            URI snapshotURI = snapshotURIs.iterator().next();
-            BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
-            if (snapshot != null && !snapshot.getInactive()
-                    && snapshot.getTechnologyType().equals(TechnologyType.NATIVE.toString())) {
-                numSnapshots++;
-            }
-        }
-        return numSnapshots;
+        return BlockServiceUtils.getNumNativeSnapshots(volume.getId(), _dbClient);
     }
 
     /**
@@ -1060,16 +1046,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @param volume The volume to check.
      */
     protected void checkForDuplicatSnapshotName(String requestedName, Volume volume) {
-        String snapsetLabel = ResourceOnlyNameGenerator.removeSpecialCharsForName(
-                requestedName, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
-        List<BlockSnapshot> volumeSnapshots = CustomQueryUtility
-                .queryActiveResourcesByConstraint(_dbClient, BlockSnapshot.class,
-                        ContainmentConstraint.Factory.getVolumeSnapshotConstraint(volume.getId()));
-        for (BlockSnapshot snapshot : volumeSnapshots) {
-            if (snapsetLabel.equals(snapshot.getSnapsetLabel())) {
-                throw APIException.badRequests.duplicateLabel(requestedName);
-            }
-        }
+        BlockServiceUtils.checkForDuplicateArraySnapshotName(requestedName, volume.getId(), _dbClient);
     }
 
     /**

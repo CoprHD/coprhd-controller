@@ -97,7 +97,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public List<BlockObject> getAllSourceObjectsForSnapshotSessionRequest(BlockObject sourceObj) {
-        // TBD - Handle source objects in CGs.
+        // TBD - Future Handle source objects in CGs.
         List<BlockObject> sourceObjList = new ArrayList<BlockObject>();
         sourceObjList.add(sourceObj);
         return sourceObjList;
@@ -108,7 +108,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public void validateSnapshotSessionCreateRequest(BlockObject requestedSourceObj, List<BlockObject> sourceObjList, Project project,
-            String name, int newTargetsCount, String newTargetCopyMode, BlockFullCopyManager fcManager) {
+            String name, int newTargetsCount, String newTargetsName, String newTargetCopyMode, BlockFullCopyManager fcManager) {
 
         // Validate the project tenant.
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
@@ -143,9 +143,8 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
 
                 // Verify the number of array snapshots does not exceed
                 // the limit specified by the virtual pool.
-                // TBD - In my mind this should be a bad request exception. Inherited from create snapshot.
                 if (getNumNativeSnapshots(sourceVolume) >= maxNumberOfArraySnapsForSource) {
-                    throw APIException.methodNotAllowed.maximumNumberSnapshotsReached();
+                    throw APIException.badRequests.maximumNumberSnapshotsReached(sourceURI.toString());
                 }
 
                 // Check for duplicate name.
@@ -155,6 +154,8 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                 // number of targets that can be linked to the snapshot sessions
                 // for a given source.
                 verifyNewTargetCount(sourceObj, newTargetsCount, true);
+
+                // TBD - Future Verify new targets name for duplicates.
             } else {
                 // TBD Future - What if source is a BlockSnapshot i.e., cascaded snapshot?
                 // What about when the source is a BlockSnapshot. It has no vpool
@@ -179,23 +180,12 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * of native snapshots are determined in a different manner
      * for the platform.
      * 
-     * TBD - Reconcile with implementation in AbstractBlockServiceApiImpl,
-     * which needs to be updated to look at sessions instances.
-     * 
      * @param volume A reference to a snapshot source volume.
      * 
      * @return The number of array snapshots on a volume.
      */
     protected Integer getNumNativeSnapshots(Volume volume) {
-        // The number of native array snapshots is determined by the
-        // number of snapshots sessions for which the passed volume
-        // is the source.
-        List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
-                BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volume.getId()));
-
-        // TBD - Still have to account for Block snapshot instances not associated with a
-        // session as these will also have a point in time copy on the array.
-        return snapSessions.size();
+        return BlockServiceUtils.getNumNativeSnapshots(volume.getId(), _dbClient);
     }
 
     /**
@@ -208,20 +198,11 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * when the manner in which duplicate names are checked is determined in a
      * different manner for the platform.
      * 
-     * TBD - Reconcile with implementation in AbstractBlockServiceApiImpl.
-     * 
      * @param requestedName The name to verify.
      * @param volume A reference to a snapshot source volume.
      */
     protected void checkForDuplicateSnapshotName(String requestedName, Volume volume) {
-        String sessionLabel = ResourceOnlyNameGenerator.removeSpecialCharsForName(requestedName, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
-        List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
-                BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(volume.getId()));
-        for (BlockSnapshotSession snapSession : snapSessions) {
-            if (sessionLabel.equals(snapSession.getSessionLabel())) {
-                throw APIException.badRequests.duplicateLabel(requestedName);
-            }
-        }
+        BlockServiceUtils.checkForDuplicateArraySnapshotName(requestedName, volume.getId(), _dbClient);
     }
 
     /**
@@ -245,24 +226,23 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public List<BlockSnapshotSession> prepareSnapshotSessions(List<BlockObject> sourceObjList, String snapSessionLabel, int newTargetCount,
-            List<URI> snapSessionURIs, Map<URI, List<URI>> snapSessionSnapshotMap, String taskId) {
+            String newTargetsName, List<URI> snapSessionURIs, Map<URI, List<URI>> snapSessionSnapshotMap, String taskId) {
 
-        int sourceCount = 1;
+        int sourceCount = 0;
         List<BlockSnapshotSession> snapSessions = new ArrayList<BlockSnapshotSession>();
         for (BlockObject sourceObj : sourceObjList) {
             // Attempt to create distinct labels here when creating sessions
             // for more than one source.
             String instanceLabel = snapSessionLabel;
             if (sourceObjList.size() > 1) {
-                instanceLabel = String.format("%s-%s", snapSessionLabel, sourceCount++);
+                instanceLabel = String.format("%s-%s", snapSessionLabel, ++sourceCount);
             }
             BlockSnapshotSession snapSession = prepareSnapshotSessionFromSource(sourceObj, snapSessionLabel, instanceLabel, taskId);
 
             // If new targets are to be created and linked to the snapshot session, prepare
             // the BlockSnapshot instances to represent those targets.
             if (newTargetCount > 0) {
-                List<URI> snapshotURIs = prepareSnapshotsForSession(newTargetCount, sourceObj, snapSessionLabel,
-                        instanceLabel);
+                List<URI> snapshotURIs = prepareSnapshotsForSession(sourceObj, sourceCount, newTargetCount, newTargetsName);
                 StringSet linkedTargetIds = new StringSet();
                 for (URI snapshotURI : snapshotURIs) {
                     linkedTargetIds.add(snapshotURI.toString());
@@ -314,18 +294,17 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      * {@inheritDoc}
      */
     @Override
-    public List<URI> prepareSnapshotsForSession(int newTargetCount, BlockObject sourceObj, String sessionLabel,
-            String sessionInstanceLabel) {
+    public List<URI> prepareSnapshotsForSession(BlockObject sourceObj, int sourceCount, int newTargetCount, String newTargetsName) {
 
         List<URI> snapshotURIs = new ArrayList<URI>();
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
         for (int i = 1; i <= newTargetCount; i++) {
             // Create distinct snapset and instance labels for each snapshot
-            String snapsetLabel = sessionLabel;
-            String snapshotLabel = sessionInstanceLabel;
+            String snapsetLabel = newTargetsName;
+            String snapshotLabel = snapsetLabel;
             if (newTargetCount > 1) {
-                snapsetLabel = String.format("%s-%s", sessionLabel, i);
-                snapshotLabel = String.format("%s-%s", sessionInstanceLabel, i);
+                snapsetLabel = String.format("%s-%s", newTargetsName, i);
+                snapshotLabel = String.format("%s-%s", snapsetLabel, sourceCount);
             }
 
             BlockSnapshot snapshot = new BlockSnapshot();
@@ -368,7 +347,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public void validateLinkNewTargetsRequest(BlockObject snapSessionSourceObj, Project project, int newTargetsCount,
-            String newTargetCopyMode) {
+            String newTargetsName, String newTargetCopyMode) {
 
         // Validate the project tenant.
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
@@ -382,6 +361,8 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         // number of targets that can be linked to the snapshot sessions
         // for a given source.
         verifyNewTargetCount(snapSessionSourceObj, newTargetsCount, false);
+
+        // TBD - Future Verify the target name for duplicates.
     }
 
     /**
@@ -389,7 +370,7 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
      */
     @Override
     public void linkNewTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
-            List<URI> snapshotURIs, int newTargetsCount, String copyMode, String taskId) {
+            List<URI> snapshotURIs, String copyMode, String taskId) {
         APIException.methodNotAllowed.notSupported();
     }
 

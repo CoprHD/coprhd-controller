@@ -58,14 +58,13 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      */
     @Override
     public void validateSnapshotSessionCreateRequest(BlockObject requestedSourceObj, List<BlockObject> sourceObjList, Project project,
-            String name, int newTargetsCount, String newTargetCopyMode, BlockFullCopyManager fcManager) {
+            String name, int newTargetsCount, String newTargetsName, String newTargetCopyMode, BlockFullCopyManager fcManager) {
         // TBD Future - Other platforms that support creation of arrays snapshots
         // without linked targets. Also RP protected VPLEX volumes backed by VMAX3
         // and these other platforms.
 
         // If the requested source is a simple VMAX3 volume that is RP protected,
         // then we simply do VMAX3 platform validation.
-        // TBD - Need a check to allow only local, native snapshots of RP source volumes.
         URI requestedSourceURI = requestedSourceObj.getId();
         URI srcSystemURI = requestedSourceObj.getStorageController();
         StorageSystem srcSystem = _dbClient.queryObject(StorageSystem.class, srcSystemURI);
@@ -76,7 +75,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
             BlockSnapshotSessionApi vmax3Impl = _blockSnapshotSessionMgr
                     .getPlatformSpecificImpl(BlockSnapshotSessionManager.SnapshotSessionImpl.vmax3);
             vmax3Impl.validateSnapshotSessionCreateRequest(requestedSourceObj, sourceObjList, project, name, newTargetsCount,
-                    newTargetCopyMode, fcManager);
+                    newTargetsName, newTargetCopyMode, fcManager);
         } else {
             throw APIException.badRequests.createSnapSessionNotSupportedForRPProtected();
         }
@@ -86,13 +85,12 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      * {@inheritDoc}
      */
     @Override
-    public List<URI> prepareSnapshotsForSession(int newTargetCount, BlockObject sourceObj, String sessionLabel,
-            String sessionInstanceLabel) {
+    public List<URI> prepareSnapshotsForSession(BlockObject sourceObj, int sessionCount, int newTargetCount, String newTargetsName) {
         // Important: that the only difference between these snapshots and snapshots created with the
         // create snapshot APIs is that the parent and project NamedURIs for the snapshot use the
         // snapshot label rather than the source label. This is an inconsistency between non-RP snaps
         // and other snaps and should probably be fixed.
-        List<URI> snapshotURIs = super.prepareSnapshotsForSession(newTargetCount, sourceObj, sessionLabel, sessionInstanceLabel);
+        List<URI> snapshotURIs = super.prepareSnapshotsForSession(sourceObj, sessionCount, newTargetCount, newTargetsName);
         Iterator<BlockSnapshot> snapshotsIter = _dbClient.queryIterativeObjects(BlockSnapshot.class, snapshotURIs, true);
         while (snapshotsIter.hasNext()) {
             BlockSnapshot snapshot = snapshotsIter.next();
@@ -121,7 +119,7 @@ public class RPBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionAp
      */
     @Override
     public void validateLinkNewTargetsRequest(BlockObject snapSessionSourceObj, Project project, int newTargetsCount,
-            String newTargetCopyMode) {
+            String newTargetsName, String newTargetCopyMode) {
         throw APIException.methodNotAllowed.notSupportedForRP();
     }
 

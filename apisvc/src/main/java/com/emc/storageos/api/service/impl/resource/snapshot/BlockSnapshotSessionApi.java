@@ -40,11 +40,12 @@ public interface BlockSnapshotSessionApi {
      * @param project A reference to the source project.
      * @param name The requested name for the new block snapshot session.
      * @param newTargetsCount The number of new targets to create and link to the session.
+     * @param newTargetsName The requested name for the new linked targets.
      * @param newTargetCopyMode The copy mode for newly linked targets.
      * @param fcManager A reference to a full copy manager.
      */
     public void validateSnapshotSessionCreateRequest(BlockObject requestedSourceObj, List<BlockObject> sourceObjList, Project project,
-            String name, int newTargetsCount, String newTargetCopyMode, BlockFullCopyManager fcManager);
+            String name, int newTargetsCount, String newTargetsName, String newTargetCopyMode, BlockFullCopyManager fcManager);
 
     /**
      * Prepare a ViPR BlockSnapshotSession instance for each source. Also, if new linked
@@ -54,6 +55,7 @@ public interface BlockSnapshotSessionApi {
      * @param sourceObjList The list of source objects for which we are to create a snapshot session.
      * @param snapSessionLabel The snapshot session label for these snapshot sessions.
      * @param newTargetCount The number of new targets to create and link to each snapshot session.
+     * @param newTargetsName The requested name for the new linked targets.
      * @param snapSessionURIs This OUT parameter gets populated with the URIs of the created snapshot sessions.
      * @param snapSessionSnapshotMap This OUT parameter gets populated with the BlockSnaphot instances created for each session, if any.
      * @param taskId The unique task identifier.
@@ -61,21 +63,20 @@ public interface BlockSnapshotSessionApi {
      * @return
      */
     public List<BlockSnapshotSession> prepareSnapshotSessions(List<BlockObject> sourceObjList, String snapSessionLabel, int newTargetCount,
-            List<URI> snapSessionURIs, Map<URI, List<URI>> snapSessionSnapshotMap, String taskId);
+            String newTargetsName, List<URI> snapSessionURIs, Map<URI, List<URI>> snapSessionSnapshotMap, String taskId);
 
     /**
      * Prepare ViPR BlockSnapshot instances for the new targets to be created and
      * linked to a block snapshot session.
      * 
-     * @param newTargetCount The number of new targets to be created.
      * @param sourceObj The snapshot session source.
-     * @param sessionLabel The session label for the snapshot session.
-     * @param sessionInstanceLabel The instance label for the snapshot session.
+     * @param sessionCount The snapshot session count when preparing snapshots for multiple sessions.
+     * @param newTargetCount The number of new targets to be created.
+     * @param newTargetsName The requested name for the new linked targets.
      * 
      * @return A list of the URIs of the prepared BlockSnapshot instances.
      */
-    public List<URI> prepareSnapshotsForSession(int newTargetCount, BlockObject sourceObj,
-            String sessionLabel, String sessionInstanceLabel);
+    public List<URI> prepareSnapshotsForSession(BlockObject sourceObj, int sessionCount, int newTargetCount, String newTargetsName);
 
     /**
      * Creates a new block snapshot session.
@@ -95,10 +96,11 @@ public interface BlockSnapshotSessionApi {
      * @param snapSessionSourceObj A reference to the snapshot session source.
      * @param project A reference to the source project.
      * @param newTargetsCount The number of new targets to create and link to the session.
+     * @param newTargetsName The requested name for the new linked targets.
      * @param newTargetCopyMode The copy mode for newly linked targets.
      */
     public void validateLinkNewTargetsRequest(BlockObject snapSessionSourceObj, Project project, int newTargetsCount,
-            String newTargetCopyMode);
+            String newTargetsName, String newTargetCopyMode);
 
     /**
      * Creates a new block snapshot session.
@@ -106,12 +108,11 @@ public interface BlockSnapshotSessionApi {
      * @param snapSessionSourceObj A reference to the source object.
      * @param snapSession A reference to the BlockSnapshotSession instance.
      * @param snapshotURIs The URIs of the BlockSnapshot instances representing the linked targets.
-     * @param newTargetsCount The number of new targets to create and link to the session.
      * @param copyMode The copy mode for linked targets.
      * @param taskId A unique task identifier.
      */
     public void linkNewTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
-            List<URI> snapshotURIs, int newTargetsCount, String copyMode, String taskId);
+            List<URI> snapshotURIs, String copyMode, String taskId);
 
     /**
      * Validates a re-link targets to block snapshot session request.

@@ -170,10 +170,12 @@ public class BlockSnapshotSessionManager {
 
         // Get the target device information, if any.
         int newLinkedTargetsCount = 0;
+        String newTargetsName = null;
         String newTargetsCopyMode = CopyMode.nocopy.name();
         SnapshotSessionNewTargetsParam linkedTargetsParam = param.getNewLinkedTargets();
         if (linkedTargetsParam != null) {
             newLinkedTargetsCount = linkedTargetsParam.getCount().intValue();
+            newTargetsName = linkedTargetsParam.getName();
             newTargetsCopyMode = linkedTargetsParam.getCopyMode();
         }
 
@@ -195,7 +197,7 @@ public class BlockSnapshotSessionManager {
 
         // Validate the create snapshot session request.
         snapSessionApiImpl.validateSnapshotSessionCreateRequest(snapSessionSourceObj, snapSessionSourceObjList, project, snapSessionLabel,
-                newLinkedTargetsCount, newTargetsCopyMode, fcManager);
+                newLinkedTargetsCount, newTargetsName, newTargetsCopyMode, fcManager);
 
         // Create a unique task identifier.
         String taskId = UUID.randomUUID().toString();
@@ -206,7 +208,7 @@ public class BlockSnapshotSessionManager {
         List<URI> snapSessionURIs = new ArrayList<URI>();
         Map<URI, List<URI>> snapSessionSnapshotMap = new HashMap<URI, List<URI>>();
         List<BlockSnapshotSession> snapSessions = snapSessionApiImpl.prepareSnapshotSessions(snapSessionSourceObjList, snapSessionLabel,
-                newLinkedTargetsCount, snapSessionURIs, snapSessionSnapshotMap, taskId);
+                newLinkedTargetsCount, newTargetsName, snapSessionURIs, snapSessionSnapshotMap, taskId);
 
         // Create tasks for each snapshot session.
         TaskList response = new TaskList();
@@ -248,6 +250,7 @@ public class BlockSnapshotSessionManager {
 
         // Get the target information.
         int newLinkedTargetsCount = param.getNewLinkedTargets().getCount();
+        String newTargetsName = param.getNewLinkedTargets().getName();
         String newTargetsCopyMode = param.getNewLinkedTargets().getCopyMode();
         if (newTargetsCopyMode == null) {
             newTargetsCopyMode = CopyMode.nocopy.name();
@@ -257,11 +260,12 @@ public class BlockSnapshotSessionManager {
         BlockSnapshotSessionApi snapSessionApiImpl = determinePlatformSpecificImplForSource(snapSessionSourceObj);
 
         // Validate that the requested new targets can be linked to the snapshot session.
-        snapSessionApiImpl.validateLinkNewTargetsRequest(snapSessionSourceObj, project, newLinkedTargetsCount, newTargetsCopyMode);
+        snapSessionApiImpl.validateLinkNewTargetsRequest(snapSessionSourceObj, project, newLinkedTargetsCount, newTargetsName,
+                newTargetsCopyMode);
 
         // Prepare the BlockSnapshot instances to represent the new linked targets.
-        List<URI> snapshotURIs = snapSessionApiImpl.prepareSnapshotsForSession(newLinkedTargetsCount, snapSessionSourceObj,
-                snapSession.getSessionLabel(), snapSession.getLabel());
+        List<URI> snapshotURIs = snapSessionApiImpl.prepareSnapshotsForSession(snapSessionSourceObj, 1, newLinkedTargetsCount,
+                newTargetsName);
 
         // Create a unique task identifier.
         String taskId = UUID.randomUUID().toString();
@@ -275,7 +279,7 @@ public class BlockSnapshotSessionManager {
 
         // Create and link new targets to the snapshot session.
         snapSessionApiImpl.linkNewTargetVolumesToSnapshotSession(snapSessionSourceObj, snapSession, snapshotURIs,
-                newLinkedTargetsCount, newTargetsCopyMode, taskId);
+                newTargetsCopyMode, taskId);
 
         // Create the audit log entry.
         auditOp(OperationTypeEnum.LINK_SNAPSHOT_SESSION_TARGET, true, AuditLogManager.AUDITOP_BEGIN,

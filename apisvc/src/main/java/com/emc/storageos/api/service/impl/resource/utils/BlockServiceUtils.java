@@ -27,14 +27,19 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 
 /**
  * Utility class to hold generic, reusable block service methods
@@ -222,5 +227,80 @@ public class BlockServiceUtils {
      */
     public static boolean hasMirrors(Volume volume) {
         return volume.getMirrors() != null && !volume.getMirrors().isEmpty();
+    }
+
+    /**
+     * Checks if there are any native array snapshots with the requested name.
+     * 
+     * @param requestedName A name requested for a new native array snapshot.
+     * @param sourceURI The URI of the snapshot source.
+     * @param dbClient A reference to a database client.
+     */
+    public static void checkForDuplicateArraySnapshotName(String requestedName, URI sourceURI, DbClient dbClient) {
+        // We need to check the BlockSnapshotSession instances created using
+        // the new Create Snapshot Session service as it creates a native
+        // array snapshot.
+        String modifiedRequestedName = ResourceOnlyNameGenerator.removeSpecialCharsForName(
+                requestedName, SmisConstants.MAX_SNAPSHOT_NAME_LENGTH);
+        List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(sourceURI));
+        for (BlockSnapshotSession snapSession : snapSessions) {
+            if (modifiedRequestedName.equals(snapSession.getSessionLabel())) {
+                throw APIException.badRequests.duplicateLabel(requestedName);
+            }
+        }
+
+        // We also need to check BlockSnapshot instances created on the source
+        // using the existing Create Snapshot service. We only need to check
+        // those BlockSnapshot instances which are not a linked target of a
+        // BlockSnapshotSession instance.
+        List<BlockSnapshot> sourceSnapshots = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                BlockSnapshot.class, ContainmentConstraint.Factory.getVolumeSnapshotConstraint(sourceURI));
+        for (BlockSnapshot snapshot : sourceSnapshots) {
+            URIQueryResultList queryResults = new URIQueryResultList();
+            dbClient.queryByConstraint(ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint(
+                    snapshot.getId()), queryResults);
+            Iterator<URI> queryResultsIter = queryResults.iterator();
+            if ((!queryResultsIter.hasNext()) && (modifiedRequestedName.equals(snapshot.getSnapsetLabel()))) {
+                throw APIException.badRequests.duplicateLabel(requestedName);
+            }
+        }
+    }
+
+    /**
+     * Gets the number of native array snapshots created for the source with
+     * the passed URI.
+     * 
+     * @param sourceURI The URI of the source.
+     * @param dbClient A reference to a database client.
+     * 
+     * @return The number of native array snapshots for the source.
+     */
+    public static int getNumNativeSnapshots(URI sourceURI, DbClient dbClient) {
+        // The number of native array snapshots is determined by the
+        // number of BlockSnapshotSession instances created for the
+        // source using new Create Snapshot Session service.
+        List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(sourceURI));
+        int numSnapshots = snapSessions.size();
+
+        // Also, we must account for the native array snapshots associated
+        // with the BlockSnapshot instances created using the existing Create
+        // Block Snapshot service. These will be the BlockSnapshot instances
+        // that are not a linked target for a BlockSnapshotSession instance.
+        List<BlockSnapshot> sourceSnapshots = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
+                BlockSnapshot.class, ContainmentConstraint.Factory.getVolumeSnapshotConstraint(sourceURI));
+        for (BlockSnapshot snapshot : sourceSnapshots) {
+            URIQueryResultList queryResults = new URIQueryResultList();
+            dbClient.queryByConstraint(ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint(
+                    snapshot.getId()), queryResults);
+            Iterator<URI> queryResultsIter = queryResults.iterator();
+            if ((!queryResultsIter.hasNext()) &&
+                    (snapshot.getTechnologyType().equals(TechnologyType.NATIVE.toString()))) {
+                numSnapshots++;
+            }
+        }
+
+        return numSnapshots;
     }
 }

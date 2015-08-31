@@ -58,10 +58,10 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      */
     @Override
     public void validateSnapshotSessionCreateRequest(BlockObject requestedSourceObj, List<BlockObject> sourceObjList, Project project,
-            String name, int newTargetsCount, String newTargetCopyMode, BlockFullCopyManager fcManager) {
+            String name, int newTargetsCount, String newTargetsName, String newTargetCopyMode, BlockFullCopyManager fcManager) {
         // Do the super class validation.
         super.validateSnapshotSessionCreateRequest(requestedSourceObj, sourceObjList, project, name, newTargetsCount,
-                newTargetCopyMode, fcManager);
+                newTargetsName, newTargetCopyMode, fcManager);
 
         // Verify new target copy mode is a valid value.
         verifyNewTargetCopyMode(newTargetCopyMode);
@@ -128,9 +128,9 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      */
     @Override
     public void validateLinkNewTargetsRequest(BlockObject snapSessionSourceObj, Project project, int newTargetsCount,
-            String newTargetCopyMode) {
+            String newTargetsName, String newTargetCopyMode) {
         // Do the super class validation.
-        super.validateLinkNewTargetsRequest(snapSessionSourceObj, project, newTargetsCount, newTargetCopyMode);
+        super.validateLinkNewTargetsRequest(snapSessionSourceObj, project, newTargetsCount, newTargetsName, newTargetCopyMode);
 
         // Verify new target copy mode is a valid value.
         verifyNewTargetCopyMode(newTargetCopyMode);
@@ -141,7 +141,7 @@ public class VMAX3BlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      */
     @Override
     public void linkNewTargetVolumesToSnapshotSession(BlockObject snapSessionSourceObj, BlockSnapshotSession snapSession,
-            List<URI> snapshotURIs, int newTargetsCount, String copyMode, String taskId) {
+            List<URI> snapshotURIs, String copyMode, String taskId) {
         // Invoke the BlockDeviceController to create and link new target
         // volumes to the passed snapshot session.
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapSessionSourceObj.getStorageController());

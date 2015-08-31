@@ -52,7 +52,7 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      */
     @Override
     public void validateSnapshotSessionCreateRequest(BlockObject requestedSourceObj, List<BlockObject> sourceObjList, Project project,
-            String name, int newTargetsCount, String newTargetCopyMode, BlockFullCopyManager fcManager) {
+            String name, int newTargetsCount, String newTargetsName, String newTargetCopyMode, BlockFullCopyManager fcManager) {
         // TBD Future - We could support for VPLEX if the backend arrays are
         // VMAX3 or other platforms that support creation of arrays snapshots
         // without linked targets.
@@ -64,7 +64,7 @@ public class VPlexBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessio
      */
     @Override
     public void validateLinkNewTargetsRequest(BlockObject snapSessionSourceObj, Project project, int newTargetsCount,
-            String newTargetCopyMode) {
+            String newTargetsName, String newTargetCopyMode) {
         throw APIException.methodNotAllowed.notSupportedForVplexVolumes();
     }
 

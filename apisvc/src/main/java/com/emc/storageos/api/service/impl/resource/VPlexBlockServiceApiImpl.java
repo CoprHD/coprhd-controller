@@ -54,7 +54,6 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -2905,22 +2904,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     protected Integer getNumNativeSnapshots(Volume vplexVolume) {
-
-        Integer numSnapshots = 0;
         Volume snapshotSourceVolume = getVPLEXSnapshotSourceVolume(vplexVolume);
-        URI snapshotSourceVolumeURI = snapshotSourceVolume.getId();
-        URIQueryResultList snapshotURIs = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVolumeSnapshotConstraint(
-                snapshotSourceVolumeURI), snapshotURIs);
-        while (snapshotURIs.iterator().hasNext()) {
-            URI snapshotURI = snapshotURIs.iterator().next();
-            BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
-            if (snapshot != null && !snapshot.getInactive()
-                    && snapshot.getTechnologyType().equals(TechnologyType.NATIVE.toString())) {
-                numSnapshots++;
-            }
-        }
-        return numSnapshots;
+        return super.getNumNativeSnapshots(snapshotSourceVolume);
     }
 
     /**

@@ -52,7 +52,7 @@ public class XIVBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionA
      */
     @Override
     public void validateSnapshotSessionCreateRequest(BlockObject requestedSourceObj, List<BlockObject> sourceObjList, Project project,
-            String name, int newTargetsCount, String newTargetCopyMode, BlockFullCopyManager fcManager) {
+            String name, int newTargetsCount, String newTargetsName, String newTargetCopyMode, BlockFullCopyManager fcManager) {
         throw APIException.methodNotAllowed.notSupportedForXIV();
     }
 
@@ -61,7 +61,7 @@ public class XIVBlockSnapshotSessionApiImpl extends DefaultBlockSnapshotSessionA
      */
     @Override
     public void validateLinkNewTargetsRequest(BlockObject snapSessionSourceObj, Project project, int newTargetsCount,
-            String newTargetCopyMode) {
+            String newTargetsName, String newTargetCopyMode) {
         throw APIException.methodNotAllowed.notSupportedForXIV();
     }
 

@@ -112,6 +112,12 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         VPLEX_SUPPORTING_DEVICE_NAME("vplexSupportingDeviceName", "vplexSupportingDeviceName"),
         VPLEX_CONSISTENCY_GROUP_NAME("vplexConsistencyGroup", "vplexConsistencyGroup"),
         VPLEX_CLUSTER_IDS("vplexClusters", "vplexClusters"),
+        // unmanaged volume native GUIDs for the vplex backend volumes
+        VPLEX_BACKEND_VOLUMES("vplexBackendVolumes", "vplexBackendVolumes"),
+        // map of backend clone volume GUID to virtual volume GUID 
+        VPLEX_FULL_CLONE_MAP("vplexFullCloneMap", "vplexFullCloneMap"),
+        // map of unmanaged volume GUID mirror to vplex device info context path
+        VPLEX_MIRROR_MAP("vplexMirrorMap", "vplexMirrorMap"),
         META_MEMBER_SIZE("metaMemberSize", "metaMemberSize"),
         META_MEMBER_COUNT("metaMemberCount", "metaMemberCount"),
         META_VOLUME_TYPE("compositeType", "compositeType"),

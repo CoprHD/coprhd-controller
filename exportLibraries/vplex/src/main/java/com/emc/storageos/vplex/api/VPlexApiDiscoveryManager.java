@@ -3422,7 +3422,8 @@ public class VPlexApiDiscoveryManager {
                     + _vplexApiClient.getBaseURI().toString(), backendArraySerialNum, volumeNativeId);
         
         StringBuilder contextArgBuilder = new StringBuilder();
-        // format /clusters/*/storage-elements/storage-volumes/[name]
+        // format /storage-volume+used-by
+        // payload {"args":"-d \/clusters\/*\/storage-elements\/storage-volumes\/*APM00140844981*01735"} 
         contextArgBuilder.append(VPlexApiConstants.URI_CLUSTERS_RELATIVE.toString());
         contextArgBuilder.append(VPlexApiConstants.WILDCARD.toString());
         contextArgBuilder.append(VPlexApiConstants.URI_STORAGE_VOLUMES.toString());
@@ -3469,12 +3470,19 @@ public class VPlexApiDiscoveryManager {
         String customData = VPlexApiUtils.getCustomDataFromResponse(responseStr);
         
         // this custom data parsing hackage is so gross...
-        s_logger.info("custom data is " + customData);
-        String[] lines = customData.split(":\n");
-        s_logger.info("device context is: " + lines[0]);
-        String[] subLines = lines[0].split("/");
-        String deviceName = subLines[subLines.length - 1];
-        s_logger.info("returning device name: " + deviceName);
+        String deviceName = null; 
+        try {
+            s_logger.info("custom data is " + customData);
+            String[] lines = customData.split(":\n");
+            s_logger.info("device context is: " + lines[0]);
+            String[] subLines = lines[0].split("/");
+            deviceName = subLines[subLines.length - 1];
+            s_logger.info("returning device name: " + deviceName);
+        } catch (Exception ex) {
+            String reason = "could not parse custom data string to find device name: " + customData;
+            throw VPlexApiException.exceptions
+                .failedGettingDeviceNameForStorageVolume(reason);
+        }
         
         s_logger.info("TIMER: getDeviceForStorageVolume took {}ms", 
                 System.currentTimeMillis() - start);
@@ -3492,7 +3500,7 @@ public class VPlexApiDiscoveryManager {
         
         StringBuilder uriBuilder = new StringBuilder();
         // format /vplex/distributed-storage/distributed-devices
-        //        /DEVICE_NAME/distributed-device-components/*/components/*/components/*
+        //        /DEVICE_NAME/distributed-device-components/*
         uriBuilder.append(VPlexApiConstants.URI_DISTRIBUTED_DEVICES.toString());
         uriBuilder.append(deviceName);
         uriBuilder.append(VPlexApiConstants.URI_DISTRIBUTED_DEVICE_COMP.toString());
@@ -3500,7 +3508,7 @@ public class VPlexApiDiscoveryManager {
 
         
         URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
-        s_logger.info("Device Info Request URI is {}", requestURI.toString());
+        s_logger.info("Distributed Device Info Request URI is {}", requestURI.toString());
         
         ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
         String responseStr = response.getEntity(String.class);
@@ -3572,7 +3580,7 @@ public class VPlexApiDiscoveryManager {
         uriBuilder.append(deviceName);
         
         URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
-        s_logger.info("Device Info Request URI is {}", requestURI.toString());
+        s_logger.info("Local Device Info Request URI is {}", requestURI.toString());
         
         ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
         String responseStr = response.getEntity(String.class);
@@ -3639,13 +3647,14 @@ public class VPlexApiDiscoveryManager {
                     + _vplexApiClient.getBaseURI().toString(), parentDevice.getName());
         
         StringBuilder uriBuilder = new StringBuilder();
+        // /vplex/clusters/cluster-1/devices/device_VAPM00140844981-01736/components/* 
         uriBuilder.append(VPlexApiConstants.VPLEX_PATH);
         uriBuilder.append(parentDevice.getPath());
         uriBuilder.append(VPlexApiConstants.URI_COMPONENTS.toString());
         uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
         
         URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
-        s_logger.info("Device Info Request URI is {}", requestURI.toString());
+        s_logger.info("Child Device Component Info Request URI is {}", requestURI.toString());
         
         ClientResponse response = _vplexApiClient.get(requestURI, VPlexApiConstants.ACCEPT_JSON_FORMAT_1);
         String responseStr = response.getEntity(String.class);

@@ -1569,6 +1569,11 @@ public class VPlexApiClient {
         
         Map<String, VPlexStorageVolumeInfo> storageVolumeWwns = new HashMap<String, VPlexStorageVolumeInfo>();
         for (VPlexStorageVolumeInfo info : storageVolumes) {
+            if (null == info.getWwn()) {
+                String reason = "could not parse WWN for storage volume " + info.getName();
+                s_logger.error(reason);
+                throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(reason);
+            }
             storageVolumeWwns.put(info.getWwn(), info);
         }
         

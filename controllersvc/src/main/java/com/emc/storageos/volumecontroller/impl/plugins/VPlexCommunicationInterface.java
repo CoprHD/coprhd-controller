@@ -79,6 +79,7 @@ import com.emc.storageos.vplex.api.VPlexPortInfo.SpeedUnits;
 import com.emc.storageos.vplex.api.VPlexStorageViewInfo;
 import com.emc.storageos.vplex.api.VPlexTargetInfo;
 import com.emc.storageos.vplex.api.VPlexVirtualVolumeInfo;
+import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 import com.google.common.collect.Sets.SetView;
@@ -396,22 +397,25 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             try {
                 VPlexApiClient client = getVPlexAPIClient(accessProfile);
 
-                long unManagedStart = new Date().getTime();
+                long unManagedStart = System.currentTimeMillis();
+                long timerIncremental = unManagedStart;
                 Map<String, VPlexVirtualVolumeInfo> vvolMap = client.getVirtualVolumes(true);
+                long unmanagedElapsed = System.currentTimeMillis() - timerIncremental;
+                s_logger.info("TIMER: fetching all volume data from the VPLEX API took {}ms", unmanagedElapsed);
+
+                timerIncremental = System.currentTimeMillis();
                 Map<String, Set<UnManagedExportMask>> volumeToExportMasksMap = new HashMap<String, Set<UnManagedExportMask>>();
-                long unmanagedElapsed = new Date().getTime() - unManagedStart;
-                s_logger.info("TIMER: discovering deep vplex unmanaged volumes took {} ms", unmanagedElapsed);
-
-                unManagedStart = new Date().getTime();
                 discoverUnmanagedStorageViews(accessProfile, client, vvolMap, volumeToExportMasksMap);
-                unmanagedElapsed = new Date().getTime() - unManagedStart;
-                s_logger.info("TIMER: discovering vplex unmanaged storage views took {} ms", unmanagedElapsed);
+                unmanagedElapsed = System.currentTimeMillis() - timerIncremental;
+                s_logger.info("TIMER: fetching all storage view data from the VPLEX API took {}ms", unmanagedElapsed);
 
-                unManagedStart = new Date().getTime();
+                timerIncremental = System.currentTimeMillis();
                 discoverUnmanagedVolumes(accessProfile, client, vvolMap, volumeToExportMasksMap);
-                unmanagedElapsed = new Date().getTime() - unManagedStart;
-
-                s_logger.info("TIMER: discovering vplex unmanaged volumes took {} ms", unmanagedElapsed);
+                unmanagedElapsed = System.currentTimeMillis() - timerIncremental;
+                s_logger.info("TIMER: processing vplex unmanaged volume data took {}ms", unmanagedElapsed);
+                unmanagedElapsed = System.currentTimeMillis() - unManagedStart;
+                String message = "TIMER: total vplex unmanaged volume discovery took {}ms (average: {}ms per volume)";
+                s_logger.info(message, unmanagedElapsed, (unmanagedElapsed/vvolMap.size()));
             } catch (URISyntaxException ex) {
                 s_logger.error(ex.getLocalizedMessage());
                 throw VPlexCollectionException.exceptions.vplexUnmanagedVolumeDiscoveryFailed(
@@ -881,6 +885,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         // add this info to the unmanaged volume object
         volume.setVolumeCharacterstics(unManagedVolumeCharacteristics);
         volume.addVolumeInformation(unManagedVolumeInformation);
+        
+        VplexBackendIngestionContext context = new VplexBackendIngestionContext(volume, _dbClient);
+        context.discover();
     }
 
     /**

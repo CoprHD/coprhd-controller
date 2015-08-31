@@ -55,6 +55,7 @@ import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.block.VolumeExportIngestParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 import com.google.common.base.Joiner;
 
 /**
@@ -196,7 +197,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         _logger.info("validating the backend volumes: " + unManagedBackendVolumes);
         
         _logger.info("validating if we have found enough backend volumes for ingestion");
-        boolean isLocal = VolumeIngestionUtil.isVplexLocal(unManagedVirtualVolume);
+        boolean isLocal = context.isVplexLocal();
         if ((isLocal && (unManagedBackendVolumes.size() < 1)) 
          || !isLocal && (unManagedBackendVolumes.size() < 2)) {
             String supportingDevice = PropertySetterUtil.extractValueFromStringSet(

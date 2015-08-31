@@ -155,14 +155,14 @@ restore_data() {
     for i in $(seq 1 $NODE_COUNT)
     do
         local viprNode=$(get_nodeid)
-        ls $RESTORE_DIR/*_$viprNode_* &>/dev/null
+        ls $RESTORE_DIR/*_${viprNode}_* &>/dev/null
         if [ $? == 0 ]; then
-            restore_node "$viprNode"
+            restore_node "${viprNode}"
         else
-            purge_node "$viprNode"
+            purge_node "${viprNode}"
         fi
         if [ $? != 0 ]; then
-            echo -n "failed on $viprNode.."
+            echo -n "failed on ${viprNode}.."
             RESTORE_RESULT="failed"
         fi
     done

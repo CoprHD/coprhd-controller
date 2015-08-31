@@ -28,7 +28,7 @@ import com.emc.storageos.plugins.metering.vnxfile.VNXFilePluginException;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileProcessor;
 
 public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
-    private final Logger _logger = LoggerFactory.getLogger(VNXFileSystemIdProcessor.class);
+    private final Logger _logger = LoggerFactory.getLogger(VNXFileSystemStaticLoadProcessor.class);
     @Override
     public void processResult(Operation operation, Object resultObj, Map<String, Object> keyMap) throws BaseCollectionException {
         // TODO Auto-generated method stub
@@ -68,28 +68,29 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
     
     
     /**
-     * Process the fileSystemList which are received from XMLAPI server.
+     * Process the mountList which are received from XMLAPI server.
      * 
-     * @param filesystemList : List of FileSystem objects.
+     * @param mountList : List of Mount objects.
      * @param keyMap : keyMap.
      */
     private void processMountList(final List<Object> mountList,
             Map<String, Object> keyMap) throws VNXFilePluginException {
         _logger.info("call processMountList");
+        
         final DbClient dbClient = (DbClient) keyMap.get(VNXFileConstants.DBCLIENT);
         Map<String, Long> fsCapList = (HashMap<String, Long>)keyMap.get(VNXFileConstants.FILE_CAPACITY_MAP);
-        Map<String, Map<String, Long>> snapCapFsMap =  (HashMap<String, Map<String, Long>> )keyMap.get(VNXFileConstants.SNAP_CAPACITY_MAP);
-
+        Map<String, Map<String, Long>> snapCapFsMap =  
+                (HashMap<String, Map<String, Long>> )keyMap.get(VNXFileConstants.SNAP_CAPACITY_MAP);
         
+        List<String> fsList = null;
         Map<String, List<String>> fsMountvNASMap = new HashMap<String, List<String>>();
         Map<String, List<String>> fsMountPhyNASMap = new HashMap<String, List<String>>();
-        List<String> fsList = null;
-
         
         Iterator<Object> iterator = mountList.iterator();
         if (iterator.hasNext()) {
             Status status = (Status) iterator.next();
             if (status.getMaxSeverity() == Severity.OK) {
+                //get the filesystem list on mover
                 while (iterator.hasNext()) {
                     Mount mount = (Mount) iterator.next();
                     
@@ -118,7 +119,7 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
                 }
                 
                
-                
+                //process the filesystems of VDM or DM
                 if(!fsMountvNASMap.isEmpty()) {
                     _logger.info("virtual mover size: {} ", String.valueOf(fsMountvNASMap.size()));
                     for (Entry<String, List<String>> entry : fsMountvNASMap.entrySet()) {
@@ -127,8 +128,6 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
                         //prepareDBMetrics(fsList, fsCapList, snapCapFsMap, virtualNAS.getMetrics());
                     
                     }
-                    
-                    
                 }
                 //physical nas
                 if(!fsMountPhyNASMap.isEmpty()) {
@@ -140,7 +139,6 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
                         //prepareDBMetrics(fsList, fsCapList, snapCapFsMap, virtualNAS.getMetrics());
                     
                     }
-                    
                 }
                 
             } else {
@@ -151,18 +149,25 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
         }
 
     }
-    
+    /**
+     * get the db metrics for each data mover or VDM
+     * @param fsList
+     * @param fsCapList
+     * @param snapCapFsMap
+     * @param dbMetrics
+     */
     private void prepareDBMetrics(List<String> fsList, 
             final Map<String, Long> fsCapList, 
             final Map<String, Map<String, Long>> snapCapFsMap, StringMap dbMetrics) {
         
-        //process virtual nas
-        Long totalFSCap = 0L;
+        //get the demetrics
+        Long totalFSCap = 0L; //in KB
         Long totalSnapCap = 0L;
         long fsCount = 0;
         long snapCount = 0;
         
         Map<String, Long> snapCapMap = null;
+        //list of fs system on data mover or vdm
         if(fsList != null && !fsList.isEmpty()) {
             for(String fsId: fsList) {
                 //no of snapshot
@@ -173,7 +178,7 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
                         totalSnapCap = totalSnapCap + snapCapacity.getValue();
                     }
                 }
-                //
+                //file system capacity
                 totalFSCap = totalFSCap + (Long)fsCapList.get(fsId);
             }
         }
@@ -188,5 +193,4 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
         return;
     }
   
-
 }

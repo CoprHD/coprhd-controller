@@ -149,7 +149,7 @@ public class VNXFileSystemUsageProcessor extends VNXFileProcessor {
                         }
                     }
                 }
-               //new code
+               // filesystem and total capacity in Map
                 long totalSpace =item.getSpaceTotal();
                 String fsNativeId = item.getFileSystem();
                 fsCapacityMap.put(fsNativeId, totalSpace);

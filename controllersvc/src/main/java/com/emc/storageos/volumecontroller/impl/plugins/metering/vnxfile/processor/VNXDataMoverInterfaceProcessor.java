@@ -97,6 +97,11 @@ public class VNXDataMoverInterfaceProcessor extends VNXFileProcessor {
     }
 
     // process the results
+    /**
+     * from each logicalnetworkdevice get the interface and port list as key and values
+     * @param logicalNetworkDevice
+     * @param interfacePortMap
+     */
     void processNetworkDevice(LogicalNetworkDevice logicalNetworkDevice,
             Map<String, List<String>> interfacePortMap) {
 
@@ -138,6 +143,11 @@ public class VNXDataMoverInterfaceProcessor extends VNXFileProcessor {
     }
 
     // TDO
+    /**
+     * 
+     * @param logicalNetworkDevice
+     * @param portSpeedMap
+     */
     void processPortSpeed(LogicalNetworkDevice logicalNetworkDevice, Map<String, String> portSpeedMap) {
 
         NetworkDeviceSpeed networkDeviceSpeed = logicalNetworkDevice.getSpeed();

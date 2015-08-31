@@ -48,7 +48,7 @@ public class VNXDataMoverInterfaceProcessor extends VNXFileProcessor {
 
                 // this is mover to interportMap
                 Map<String, Map<String, List<String>>> moverInterMap = new HashMap<String, Map<String, List<String>>>();
-                Map<String, Map<String, String>> portSpeedMap = new HashMap<String, Map<String, String>>();
+                Map<String, String> portSpeedMap = new HashMap<String, String>();
                 while (queryRespItr.hasNext()) {
                     Object responseObj = queryRespItr.next();
                     if (responseObj instanceof LogicalNetworkDevice) {
@@ -71,7 +71,7 @@ public class VNXDataMoverInterfaceProcessor extends VNXFileProcessor {
                         }
 
                         // process logical network device speed
-                        // TDO
+                        processPortSpeed(logicalNetworkDevice, portSpeedMap);
 
                     }
                 }
@@ -120,7 +120,7 @@ public class VNXDataMoverInterfaceProcessor extends VNXFileProcessor {
                     if (nameList != null) {
                         // physical port for virtual device list
                         List<String> deviceList = nameList.getLi();
-                        if (deviceList.isEmpty()) {
+                        if (!deviceList.isEmpty()) {
                             portList.addAll(new ArrayList<>(deviceList));
                             interfacePortMap.put(interfaceIP, portList);
                         }
@@ -137,13 +137,21 @@ public class VNXDataMoverInterfaceProcessor extends VNXFileProcessor {
         }
     }
 
-    // TDO
     void processPortSpeed(LogicalNetworkDevice logicalNetworkDevice, Map<String, String> portSpeedMap) {
+        List<String> logicalNetworkList = logicalNetworkDevice.getInterfaces();
+        if (logicalNetworkList != null && !logicalNetworkList.isEmpty()) {
 
-        NetworkDeviceSpeed networkDeviceSpeed = logicalNetworkDevice.getSpeed();
-        String deviceSpeed = networkDeviceSpeed.value();
-        _logger.info(
-                " logical device port{} and speed : {}", logicalNetworkDevice.getName(), deviceSpeed);
+            // get logical interfaces
+            NetworkDeviceSpeed networkDeviceSpeed = logicalNetworkDevice.getSpeed();
+            String deviceSpeed = networkDeviceSpeed.value();
+
+            for (String interfaceIP : logicalNetworkList) {
+                portSpeedMap.put(interfaceIP, deviceSpeed);
+            }
+
+            _logger.info(
+                    " logical device port{} and speed : {}", logicalNetworkDevice.getName(), deviceSpeed);
+        }
 
     }
 }

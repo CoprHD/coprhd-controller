@@ -720,7 +720,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     project = _dbClient.queryObject(Project.class, volume.getProject());
                     cg = _dbClient.queryObject(BlockConsistencyGroup.class, volumeDescriptor.getCapabilitiesValues()
                             .getBlockConsistencyGroup());
-                    cgName = cg.getNameOnStorageSystem(rpSystem.getId());
+                    cgName = cg.getCgNameOnStorageSystem(rpSystem.getId());
                     if (cgName == null) {
                         cgName = CG_NAME_PREFIX + cg.getLabel();
                     }
@@ -1742,7 +1742,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             if (!lockAcquired) {
                 lockException = true;
                 throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
-                        String.format("Delete or remove volumes from RP consistency group %s", cg.getNameOnStorageSystem(rpSystem)));
+                        String.format("Delete or remove volumes from RP consistency group %s", cg.getCgNameOnStorageSystem(rpSystem)));
             }
 
             // Validate that all volumes belong to one protection set. In the meantime, figure out the protection set for future use.

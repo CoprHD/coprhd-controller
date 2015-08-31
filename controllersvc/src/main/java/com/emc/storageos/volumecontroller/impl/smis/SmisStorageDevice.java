@@ -24,7 +24,6 @@ import javax.cim.CIMObjectPath;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
-import com.emc.storageos.volumecontroller.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -33,11 +32,10 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
-import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
@@ -48,6 +46,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.NameGenerator;
@@ -60,6 +59,13 @@ import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.volumecontroller.CloneOperations;
+import com.emc.storageos.volumecontroller.ControllerLockingService;
+import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
+import com.emc.storageos.volumecontroller.Job;
+import com.emc.storageos.volumecontroller.MetaVolumeOperations;
+import com.emc.storageos.volumecontroller.SnapshotOperations;
+import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
@@ -402,8 +408,8 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 volumeCompleter);
         boolean canBeExpanded = false;
         try {
-            _helper.doApplyRecoverPointTag(storageSystem, volume, false );
-            
+            _helper.doApplyRecoverPointTag(storageSystem, volume, false);
+
             // First of all check if we need to do cleanup of dangling meta volumes left from previous failed
             // expand attempt (may happen when rollback of expand failed due to smis connection issues -- typically cleanup
             // is done by expand rollback)
@@ -943,7 +949,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     /**
      * This interface will return a mapping of the port name to the URI of the ExportMask in which
      * it is contained.
-     * 
+     *
      * @param storage
      *            [in] - StorageSystem object representing the array
      * @param initiatorNames
@@ -1085,7 +1091,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     /**
      * Given a list of BlockSnapshot objects, determine if they were created as part of a
      * consistency group.
-     * 
+     *
      * @param snapshotList
      *            [required] - List of BlockSnapshot objects
      * @return true iff the BlockSnapshots were created as part of volume consistency group.
@@ -1117,7 +1123,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * This method is for adding volumes to a consistency group. Be aware that this method is going
      * to be invoked by the SmisCreateVolumeJob, after there is a successful completion of the
      * volume create.
-     * 
+     *
      * @param storage
      * @param consistencyGroup
      * @param volumes
@@ -1213,7 +1219,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
 
     /**
      * Method will remove the volume from the consistency group to which it currently belongs.
-     * 
+     *
      * @param storage
      *            [required] - StorageSystem object
      * @param volume
@@ -1285,7 +1291,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
      * the volume. Typically, on VNX arrays, if there's a restore operation against an 'advanced'
      * snap, there will be backup snapshot created. There isn't any easy way to get to this backup
      * using the SMI-S API, so we'll have to clean them all up when we go to delete the volume.
-     * 
+     *
      * @param storage
      *            [required] - StorageSystem object
      * @param volume
@@ -1321,7 +1327,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     /**
      * Method will look up backup snapshots that were created when a snapshot restore operation was
      * performed, then clean them up. This would be required in order to do the volume delete.
-     * 
+     *
      * @param storage
      *            [required] - StorageSystem object representing the array
      * @param volume
@@ -1360,7 +1366,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     /**
      * Method will look up backup snapshots that were created when a snapshot restore operation was
      * performed, then clean them up. This would be required in order to delete the ReplicationGroup.
-     * 
+     *
      * @param storage
      *            [required] - StorageSystem object representing the array
      * @param replicationGroupPath
@@ -1525,7 +1531,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             // Set the consistency group to inactive
             URI systemURI = storage.getId();
             consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(),
-                    consistencyGroup.fetchArrayCgName(systemURI));
+                    consistencyGroup.getCgNameOnStorageSystem(systemURI));
             if (markInactive) {
                 consistencyGroup.setInactive(true);
             }
@@ -1759,7 +1765,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             if (cgPathInstance == null) {
                 taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                         .consistencyGroupNotFound(consistencyGroup.getLabel(),
-                                consistencyGroup.fetchArrayCgName(storage.getId())));
+                                consistencyGroup.getCgNameOnStorageSystem(storage.getId())));
                 return;
             }
             CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
@@ -1788,7 +1794,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             }
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                     .failedToAddMembersToConsistencyGroup(consistencyGroup.getLabel(),
-                            consistencyGroup.fetchArrayCgName(storage.getId()), e.getMessage()));
+                            consistencyGroup.getCgNameOnStorageSystem(storage.getId()), e.getMessage()));
         }
     }
 
@@ -1816,7 +1822,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             if (cgPathInstance == null) {
                 taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                         .consistencyGroupNotFound(consistencyGroup.getLabel(),
-                                consistencyGroup.fetchArrayCgName(storage.getId())));
+                                consistencyGroup.getCgNameOnStorageSystem(storage.getId())));
                 return;
             }
             CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
@@ -1839,7 +1845,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         } catch (Exception e) {
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                     .failedToRemoveMembersToConsistencyGroup(consistencyGroup.getLabel(),
-                            consistencyGroup.fetchArrayCgName(storage.getId()), e.getMessage()));
+                            consistencyGroup.getCgNameOnStorageSystem(storage.getId()), e.getMessage()));
         }
     }
 
@@ -1875,11 +1881,13 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         _srdfOperations.rollbackSRDFMirrors(system, sourceURIs, targetURIs, isGroupRollback, completer);
     }
 
+    @Override
     public void doSplitLink(final StorageSystem system, final Volume targetVolume, boolean rollback,
             final TaskCompleter completer) {
         _srdfOperations.performSplit(system, targetVolume, completer);
     }
 
+    @Override
     public void doSuspendLink(StorageSystem system, Volume targetVolume, boolean consExempt, TaskCompleter completer) {
         _srdfOperations.performSuspend(system, targetVolume, consExempt, completer);
     }
@@ -1921,6 +1929,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         _srdfOperations.startSRDFLink(system, targetVolume, completer);
     }
 
+    @Override
     public void doStopLink(final StorageSystem system, final Volume targetVolume,
             final TaskCompleter completer) {
         _srdfOperations.performStop(system, targetVolume, completer);
@@ -1969,11 +1978,13 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
         return _helper.getExportMaskPolicy(storage, mask);
     }
 
+    @Override
     public void doSyncLink(StorageSystem targetSystem, Volume targetVolume, TaskCompleter completer)
             throws Exception {
         _srdfOperations.performRestore(targetSystem, targetVolume, completer);
     }
 
+    @Override
     public void doUpdateSourceAndTargetPairings(List<URI> sourceURIs, List<URI> targetURIs) {
         _srdfOperations.updateSourceAndTargetPairings(sourceURIs, targetURIs);
     }
@@ -2031,7 +2042,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     /**
      * Before the clone could be deleted, if the clone is from a CG, we will
      * remove the target group, then reset the replicationGroupInstance for the clones in the group.
-     * 
+     *
      * @param storage
      * @param clones
      * @throws Exception

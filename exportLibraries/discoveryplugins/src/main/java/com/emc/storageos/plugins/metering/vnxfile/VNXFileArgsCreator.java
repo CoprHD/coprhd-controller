@@ -5,18 +5,63 @@
 package com.emc.storageos.plugins.metering.vnxfile;
 
 import java.io.InputStream;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.xml.bind.JAXBException;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.nas.vnxfile.xmlapi.*;
+import com.emc.nas.vnxfile.xmlapi.AccessPolicy;
+import com.emc.nas.vnxfile.xmlapi.CelerraSystemQueryParams;
+import com.emc.nas.vnxfile.xmlapi.CheckpointQueryParams;
+import com.emc.nas.vnxfile.xmlapi.CifsOptions;
+import com.emc.nas.vnxfile.xmlapi.CifsServerQueryParams;
+import com.emc.nas.vnxfile.xmlapi.DeleteCheckpoint;
+import com.emc.nas.vnxfile.xmlapi.DeleteFileSystem;
+import com.emc.nas.vnxfile.xmlapi.DeleteMount;
+import com.emc.nas.vnxfile.xmlapi.DeleteNfsExport;
+import com.emc.nas.vnxfile.xmlapi.DeleteTree;
+import com.emc.nas.vnxfile.xmlapi.ExtendFileSystem;
 import com.emc.nas.vnxfile.xmlapi.ExtendFileSystem.StoragePool;
 import com.emc.nas.vnxfile.xmlapi.ExtendFileSystem.StoragePool.EnableAutoExt;
+import com.emc.nas.vnxfile.xmlapi.FileSystem;
+import com.emc.nas.vnxfile.xmlapi.FileSystemAlias;
+import com.emc.nas.vnxfile.xmlapi.FileSystemQueryParams;
 import com.emc.nas.vnxfile.xmlapi.FileSystemQueryParams.AspectSelection;
+import com.emc.nas.vnxfile.xmlapi.FileSystemType;
+import com.emc.nas.vnxfile.xmlapi.FileSystemUsageSet;
+import com.emc.nas.vnxfile.xmlapi.LockingPolicy;
+import com.emc.nas.vnxfile.xmlapi.ModifyFileSystem;
 import com.emc.nas.vnxfile.xmlapi.ModifyFileSystem.AutoExtend;
+import com.emc.nas.vnxfile.xmlapi.ModifyTreeQuota;
+import com.emc.nas.vnxfile.xmlapi.MountQueryParams;
+import com.emc.nas.vnxfile.xmlapi.MoverOrVdmRef;
+import com.emc.nas.vnxfile.xmlapi.MoverQueryParams;
+import com.emc.nas.vnxfile.xmlapi.MoverRef;
+import com.emc.nas.vnxfile.xmlapi.MoverStatsSetQueryParams;
+import com.emc.nas.vnxfile.xmlapi.MoverStatsSetType;
+import com.emc.nas.vnxfile.xmlapi.NewCheckpoint;
+import com.emc.nas.vnxfile.xmlapi.NewFileSystem;
+import com.emc.nas.vnxfile.xmlapi.NewMount;
+import com.emc.nas.vnxfile.xmlapi.NewTree;
+import com.emc.nas.vnxfile.xmlapi.NfsExportQueryParams;
+import com.emc.nas.vnxfile.xmlapi.NfsOptions;
+import com.emc.nas.vnxfile.xmlapi.Query;
+import com.emc.nas.vnxfile.xmlapi.QueryStats;
+import com.emc.nas.vnxfile.xmlapi.QuotaLimits;
+import com.emc.nas.vnxfile.xmlapi.RestoreCheckpoint;
+import com.emc.nas.vnxfile.xmlapi.StoragePoolQueryParams;
+import com.emc.nas.vnxfile.xmlapi.Task;
+import com.emc.nas.vnxfile.xmlapi.TreeQuotaQueryParams;
+import com.emc.nas.vnxfile.xmlapi.UserAccountQueryParams;
+import com.emc.nas.vnxfile.xmlapi.VdmQueryParams;
+import com.emc.nas.vnxfile.xmlapi.VolumeStatsSetQueryParams;
+import com.emc.nas.vnxfile.xmlapi.VolumeStatsSetType;
 import com.emc.storageos.plugins.common.ArgsCreator;
 import com.emc.storageos.plugins.common.Util;
 import com.emc.storageos.plugins.common.domainmodel.Argument;
@@ -222,7 +267,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
         return iStream;
 
     }
-    
+
     /**
      * create Mount query and returns its stream after marshalling.
      * 
@@ -232,7 +277,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
      * @return
      * @throws VNXFilePluginException
      */
-    public InputStream fetchMoverInfo(final Argument argument,
+    public InputStream fetchMountFSInfo(final Argument argument,
             final Map<String, Object> keyMap, int index)
             throws VNXFilePluginException {
         _logger.info("VNX File System Mount info query");
@@ -307,94 +352,6 @@ public class VNXFileArgsCreator extends ArgsCreator {
         } catch (JAXBException jaxbException) {
             throw new VNXFilePluginException(
                     "Exception occurred while generating input xml for fileSystem info",
-                    jaxbException.getCause());
-        }
-        return iStream;
-    }
-    
-    /**
-     * get FileSystem capcacity input XML request and returns stream after marshalling.
-     * 
-     * @param argument
-     * @param keyMap
-     * @param index
-     * @return
-     * @throws VNXFilePluginException
-     */
-    public InputStream fetchfscapacityInfo(final Argument argument,
-            final Map<String, Object> keyMap, int index)
-            throws VNXFilePluginException {
-        _logger.info("filesystem capacity info query");
-        InputStream iStream = null;
-        try {
-            String moverId = (String) keyMap.get(VNXFileConstants.MOVER_ID);
-            String isVDM = (String) keyMap.get(VNXFileConstants.ISVDM);
-            _logger.info("filesystem capacity info for Mover {} and isVDM {}", moverId, isVDM);
-            FileSystemQueryParams fsQueryParam = new FileSystemQueryParams();
-            AspectSelection selection = new AspectSelection();
-            selection.setFileSystemCapacityInfos(true);
-            //get the filesystem for given vdm
-            if (moverId != null && isVDM != null) {
-                if (isVDM.equalsIgnoreCase("true")) {
-                    VdmRef vdmRef = new VdmRef();
-                    vdmRef.setVdm(moverId);
-                    fsQueryParam.setVdm(vdmRef);
-                } else {
-                    MoverRef moverRef = new MoverRef();
-                    moverRef.setMover(moverId);
-                    fsQueryParam.setMover(moverRef);
-                }
-             }
-            
-            fsQueryParam.setAspectSelection(selection);
-            Query query = new Query();
-            query.getQueryRequestChoice().add(fsQueryParam);
-            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(fsQueryParam, false);
-        } catch (JAXBException jaxbException) {
-            throw new VNXFilePluginException(
-                    "Exception occurred while generating input xml for fetchfscapacityInfo",
-                    jaxbException.getCause());
-        }
-        return iStream;
-    }
-    
-    /**
-     * get FileSystem capcacity input XML request and returns stream after marshalling.
-     * 
-     * @param argument
-     * @param keyMap
-     * @param index
-     * @return
-     * @throws VNXFilePluginException
-     */
-    public InputStream fetchsnapcapacityInfo(final Argument argument,
-            final Map<String, Object> keyMap, int index)
-            throws VNXFilePluginException {
-        _logger.info("Snapshot info query");
-        InputStream iStream = null;
-        try {
-            String moverId = (String) keyMap.get(VNXFileConstants.MOVER_ID);
-            String isVDM = (String) keyMap.get(VNXFileConstants.ISVDM);
-            _logger.info("snapshot capacity info for Mover {} and isVDM {}", moverId, isVDM);
-            //prepare the checkpoint query params
-            CheckpointQueryParams cheQueryParams = new CheckpointQueryParams();
-            if (moverId != null && isVDM != null) {
-                if (isVDM.equalsIgnoreCase("true")) {
-                    VdmRef vdmRef = new VdmRef();
-                    vdmRef.setVdm(moverId);
-                    cheQueryParams.setVdm(vdmRef);
-                } else {
-                    MoverRef moverRef = new MoverRef();
-                    moverRef.setMover(moverId);
-                    cheQueryParams.setMover(moverRef);
-                }
-             }
-            Query query = new Query();
-            query.getQueryRequestChoice().add(cheQueryParams);
-            iStream = _vnxFileInputRequestBuilder.getQueryParamPacket(cheQueryParams, false);
-        } catch (JAXBException jaxbException) {
-            throw new VNXFilePluginException(
-                    "Exception occurred while generating input xml for fetchsnapcapacityInfo",
                     jaxbException.getCause());
         }
         return iStream;
@@ -585,10 +542,10 @@ public class VNXFileArgsCreator extends ArgsCreator {
         }
         return iStream;
     }
-    
+
     public InputStream fetchMoverStats(final Argument argument,
-                                        final Map<String, Object> keyMap, int index)
-                                        throws VNXFilePluginException {
+            final Map<String, Object> keyMap, int index)
+            throws VNXFilePluginException {
         _logger.info("VNX Mover Stats query");
         InputStream iStream = null;
         List<QueryStats> statsList = new ArrayList<QueryStats>();
@@ -607,7 +564,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
             } else {
                 _logger.error("No movers found to construct volumeStats query.");
             }
-            
+
         } catch (JAXBException jaxbException) {
             throw new VNXFilePluginException(
                     "Exception occurred while generating input xml for celerra mover stats",
@@ -615,7 +572,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
         }
         return iStream;
     }
-    
+
     public InputStream fetchMoverInterfacesInfo(final Argument argument,
             final Map<String, Object> keyMap,
             int index) throws VNXFilePluginException {
@@ -636,8 +593,6 @@ public class VNXFileArgsCreator extends ArgsCreator {
         }
         return iStream;
     }
-    
-    
 
     /**
      * Performs a query for the user accounts on the specified data mover.
@@ -739,7 +694,7 @@ public class VNXFileArgsCreator extends ArgsCreator {
             String dataMover = null;
             if (!movers.isEmpty()) {
                 Iterator<String> iter = movers.iterator();
-                dataMover = (String) iter.next();
+                dataMover = iter.next();
             }
 
             _logger.debug("new file system name: {}", fsName);

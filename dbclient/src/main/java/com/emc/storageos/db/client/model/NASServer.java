@@ -196,6 +196,5 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
         setChanged("nasTag");
     }
     
-    
 }
 

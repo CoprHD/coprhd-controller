@@ -42,6 +42,7 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 
 @Path("/compute/compute-imageservers")
@@ -229,7 +230,51 @@ public class ComputeImageServerService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public ComputeImageServerRestRep updateComputeImageServer(
             @PathParam("id") URI id, ComputeImageServerUpdate param) {
-        return null;
+        ComputeImageServer imageServer = _dbClient.queryObject(ComputeImageServer.class,
+                id);
+        if (null == imageServer || imageServer.getInactive()) {
+            throw APIException.notFound.unableToFindEntityInURL(id);
+        } else {
+            String imageServerAddress = param.getImageServerIp();
+            String bootDir = param.getTftpbootDir();
+            String osInstallAddress = param.getImageServerSecondIp();
+            String username = param.getImageServerUser();
+            String password = param.getImageServerPassword();
+            Integer installTimeout = param.getOsInstallTimeoutMs();
+
+            ArgValidator.checkFieldNotEmpty(bootDir, "tftpbootDir");
+            ArgValidator
+                    .checkFieldNotEmpty(osInstallAddress, "imageServerSecondIp");
+            ArgValidator.checkFieldNotEmpty(username, "imageServerPassword");
+            ArgValidator.checkFieldNotEmpty(password, "password");
+            ArgValidator.checkFieldNotNull(installTimeout, "osInstallTimeoutMs");
+
+            imageServer.setLabel(imageServerAddress);
+            imageServer.setImageServerIp(imageServerAddress);
+            imageServer.setTftpbootDir(bootDir);
+            imageServer.setImageServerUser(username);
+            imageServer.setImageServerPassword(password);
+            imageServer.setOsInstallTimeoutMs((int) installTimeout);
+            imageServer.setImageServerSecondIp(osInstallAddress);
+
+            auditOp(OperationTypeEnum.UPDATE_COMPUTE_IMAGESERVER, true,
+                    null, imageServer.getId().toString(),
+                    imageServer.getImageServerIp());
+
+            _dbClient.persistObject(imageServer);
+
+            ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
+            String taskId = UUID.randomUUID().toString();
+            AsyncTask task = new AsyncTask(ComputeImageServer.class, imageServer.getId(), taskId);
+            tasks.add(task);
+            Operation op = new Operation();
+            op.setResourceType(ResourceOperationTypeEnum.UPDATE_COMPUTE_IMAGE_SERVER);
+            _dbClient.createTaskOpStatus(ComputeImageServer.class, imageServer.getId(), taskId, op);
+
+            ImageServerController controller = getController(ImageServerController.class, null);
+            controller.verifyImageServerAndImportImages(task);
+        }
+        return map(imageServer);
     }
 
 }

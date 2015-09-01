@@ -241,7 +241,8 @@ public class StorageSystemService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(param.getSystemType(), "system_type");
         ArgValidator.checkFieldValueFromEnum(param.getSystemType(), "system_type", EnumSet.of(
                 StorageSystem.Type.vnxfile, StorageSystem.Type.isilon, StorageSystem.Type.rp,
-                StorageSystem.Type.netapp, StorageSystem.Type.netappc, StorageSystem.Type.vnxe, StorageSystem.Type.xtremio));
+                StorageSystem.Type.netapp, StorageSystem.Type.netappc, StorageSystem.Type.vnxe, 
+                StorageSystem.Type.xtremio, StorageSystem.Type.ecs));
         StorageSystem.Type systemType = StorageSystem.Type.valueOf(param.getSystemType());
         if (systemType.equals(StorageSystem.Type.vnxfile)) {
             validateVNXFileSMISProviderMandatoryDetails(param);

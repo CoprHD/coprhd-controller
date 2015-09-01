@@ -1,5 +1,7 @@
 package com.emc.storageos.ecs.api;
 
+import java.net.URI;
+
 public class ECSStoragePool {
 	private String name;
 	
@@ -10,5 +12,4 @@ public class ECSStoragePool {
     public void setName(String name) {
         this.name = name;
     }
-
 }

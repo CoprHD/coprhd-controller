@@ -14,7 +14,10 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -90,14 +93,19 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             for (ECSStoragePool ecsPool : ecsStoragePools)  {
             	storagePool = new StoragePool();
             	storagePool.setPoolName(ecsPool.getName());
+            	storagePool.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
+            	storagePool.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
+            	storagePool.setId(URIUtil.createId(StoragePool.class));
+            	storagePool.setNativeGuid(nativeGuid);
+            	storagePool.setNativeId(nativeGuid);
             	pools.add(storagePool);
             }
             
             _dbClient.createObject(pools);
             
 		}  catch (Exception e) {
-            detailedStatusMessage = String.format("Discovery failed for Storage System: %s because %s",
-                    storageSystemURI.toString(), e.getMessage());
+            detailedStatusMessage = String.format("Discovery failed for Storage System ECS Test: because %s",
+                    e.getMessage());
             _logger.error(detailedStatusMessage, e);
             //throw new SMIPluginException(detailedStatusMessage);
 		}finally {

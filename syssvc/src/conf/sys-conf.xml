@@ -249,6 +249,8 @@
                 <ref bean="authLoginAttemptsHandler" />
                 <ref bean="authLockoutTimeHandler" />
                 <bean class="com.emc.storageos.systemservices.impl.propertyhandler.UpgradeCheckFrequencyRuleHandler" />
+                <bean class="com.emc.storageos.systemservices.impl.propertyhandler.TokenLifeTimeHandler" />
+                <bean class="com.emc.storageos.systemservices.impl.propertyhandler.TokenIdleTimeHandler" />
             </list>
         </property>
     </bean>

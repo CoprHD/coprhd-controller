@@ -20,7 +20,7 @@ import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.GetUnmanagedVolumes;
 import com.emc.sa.service.vipr.block.tasks.IngestUnexportedUnmanagedVolumes;
 import com.emc.sa.service.vipr.tasks.CheckStorageSystemDiscoveryStatus;
-import com.emc.storageos.model.block.IngestionMethodEnum;
+import com.emc.sa.util.IngestionMethodEnum;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
 
 @Service("IngestUnexportedUnmanagedVolumes")

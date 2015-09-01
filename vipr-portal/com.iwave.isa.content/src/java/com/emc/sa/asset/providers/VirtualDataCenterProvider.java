@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
+import com.emc.sa.util.IngestionMethodEnum;
 import com.emc.sa.util.SizeUtils;
 
 import org.springframework.stereotype.Component;
@@ -27,7 +28,6 @@ import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
-import com.emc.storageos.model.block.IngestionMethodEnum;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
 import com.emc.storageos.model.file.UnManagedFileSystemRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;

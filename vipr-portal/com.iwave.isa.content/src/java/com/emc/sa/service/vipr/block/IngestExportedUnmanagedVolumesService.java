@@ -19,9 +19,9 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.GetUnmanagedVolumesByHostOrCluster;
 import com.emc.sa.service.vipr.block.tasks.IngestExportedUnmanagedVolumes;
+import com.emc.sa.util.IngestionMethodEnum;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.model.block.IngestionMethodEnum;
 
 @Service("IngestExportedUnmanagedVolumes")
 public class IngestExportedUnmanagedVolumesService extends ViPRService {

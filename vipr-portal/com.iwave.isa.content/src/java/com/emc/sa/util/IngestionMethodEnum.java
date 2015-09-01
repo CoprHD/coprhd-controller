@@ -3,7 +3,7 @@
  * All Rights Reserved
  */
 
-package com.emc.storageos.model.block;
+package com.emc.sa.util;
 
 public enum IngestionMethodEnum {
     FULL("Full"),

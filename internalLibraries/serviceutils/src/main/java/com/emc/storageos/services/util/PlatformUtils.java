@@ -11,10 +11,7 @@ import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -34,6 +31,7 @@ public class PlatformUtils {
     private static String PID_DIR = "/var/run/storageos/";
     // matches <svcname>.pid, <svcname>-debug.pid, <svcname>-coverage.pid which contains pid
     private static final String PID_FILENAME_PATTERN = "%s(-(coverage|debug))?.pid";
+    private static final String PRODUCT_IDENT_PATH = "/opt/storageos/etc/product";
 
     private static volatile Boolean isVMwareVapp;
     private static volatile Boolean isAppliance;
@@ -305,5 +303,15 @@ public class PlatformUtils {
         try (Scanner scanner = new Scanner(files.get(0))) {
             return scanner.nextInt();
         }
+    }
+
+    /**
+     * Get product ident.
+     *
+     * @return Product ident
+     */
+    public static String getProductIdent() throws IOException {
+        byte[] productIdent = FileUtils.readDataFromFile(PRODUCT_IDENT_PATH);
+        return new String(productIdent).trim();
     }
 }

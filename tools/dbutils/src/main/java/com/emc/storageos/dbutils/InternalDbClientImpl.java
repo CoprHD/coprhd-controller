@@ -13,6 +13,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 
 import com.emc.storageos.db.client.impl.ColumnField;
@@ -297,7 +298,7 @@ public class InternalDbClientImpl extends InternalDbClient {
         logAndPrintToScreen(msg, false);
     }
     
-    public Column<CompositeColumnName> getLatestModifiedField(DataObjectType type, URI id) {
+    public Column<CompositeColumnName> getLatestModifiedField(DataObjectType type, URI id, Set<String> ignoreList) {
         Column<CompositeColumnName> latestField = null;
         ColumnFamily<String, CompositeColumnName> cf = type.getCF();
         Keyspace ks = this.getKeyspace(type.getDataObjectClass());
@@ -310,6 +311,10 @@ public class InternalDbClientImpl extends InternalDbClient {
         
         long latestTimeStampe = 0;
         for (Column<CompositeColumnName> column : rows.iterator().next().getColumns()) {
+            if (ignoreList != null && ignoreList.contains(column.getName().getOne())) {
+                continue;
+            }
+            
             if (column.getTimestamp() > latestTimeStampe) {
                 latestTimeStampe = column.getTimestamp();
                 latestField = column;

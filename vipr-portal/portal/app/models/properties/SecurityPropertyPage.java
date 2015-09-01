@@ -16,6 +16,8 @@ public class SecurityPropertyPage extends CustomPropertyPage {
     private Property svcuserEncPassword;
     private Property proxyuserEncPassword;
     private Property sysmonitorEncPassword;
+    private Property authLoginAttempts;
+    private Property authLockoutTime;
 
     public SecurityPropertyPage(Map<String, Property> properties) {
         super("Security");
@@ -28,6 +30,8 @@ public class SecurityPropertyPage extends CustomPropertyPage {
         svcuserEncPassword = addCustomProperty(properties, "system_svcuser_encpassword");
         proxyuserEncPassword = addCustomProperty(properties, "system_proxyuser_encpassword");
         sysmonitorEncPassword = addCustomProperty(properties, "system_sysmonitor_encpassword");
+        authLoginAttempts = addCustomProperty(properties, "max_auth_login_attempts");
+        authLockoutTime = addCustomProperty(properties, "auth_lockout_time_in_minutes");
     }
 
     public Property getFirewallEnabled() {
@@ -60,5 +64,13 @@ public class SecurityPropertyPage extends CustomPropertyPage {
 
     public Property getSysmonitorEncPassword() {
         return sysmonitorEncPassword;
+    }
+
+    public Property getAuthLoginAttempts() {
+        return authLoginAttempts;
+    }
+
+    public Property getAuthLockoutTime() {
+        return authLockoutTime;
     }
 }

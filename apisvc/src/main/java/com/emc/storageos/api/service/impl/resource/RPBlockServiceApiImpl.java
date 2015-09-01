@@ -109,6 +109,8 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
  * Block Service subtask (parts of larger operations) RecoverPoint implementation.
  */
 public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPointScheduler> {    
+	private static final String NEW_LINE = "%n-------------------------------------------------%n";
+
 	private static final Logger _log = LoggerFactory.getLogger(RPBlockServiceApiImpl.class);
    
     protected final static String CONTROLLER_SVC = "controllersvc";
@@ -280,7 +282,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             }
                                                  
             StringBuffer volumeInfoBuffer = new StringBuffer();
-            volumeInfoBuffer.append(String.format("%n-------------------------------------------------%n"));
+            volumeInfoBuffer.append(String.format(NEW_LINE));
             
             // Prepare the Journals first           
             List<Volume> sourceJournals = new ArrayList<Volume>();
@@ -372,20 +374,22 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 // This is because the VPlexBlockServiceApiImpl will be creating the migration descriptors for the backend
                                 // volumes and it doesn't really care that we are swapping the Source and HA it just needs the correct
                                 // recommendations.                        
-                                List<Recommendation> swapRecommendations = new ArrayList<Recommendation>();                                        
-                                if (isSrcAndHaSwapped && (haRec != null)) {
-                                    swapRecommendations.add(0, haRec.getVirtualVolumeRecommendation());
-                                    swapRecommendations.add(1, sourceRec.getVirtualVolumeRecommendation());                        
-                                    // If we had to swap, that's means we had to use the HA vpool as the Source vpool
-                                    // and Source Vpool as HA vpool for placement to happen correctly. This can lead to weird 
-                                    // instances when calling code that doesn't understand the swap.
-                                    // VPLEX doesn't really care about swap so let's make sure
-                                    // we use the originalVpool here to correctly to get the change vpool 
-                                    // artifacts we need.
-                                    vpool = originalVpool;
-                                } else {
-                                    swapRecommendations.add(0, sourceRec.getVirtualVolumeRecommendation());
-                                    swapRecommendations.add(1, haRec.getVirtualVolumeRecommendation());
+                                List<Recommendation> swapRecommendations = new ArrayList<Recommendation>(); 
+                                if (haRec != null) {
+	                                if (isSrcAndHaSwapped ) {
+	                                    swapRecommendations.add(0, haRec.getVirtualVolumeRecommendation());
+	                                    swapRecommendations.add(1, sourceRec.getVirtualVolumeRecommendation());                        
+	                                    // If we had to swap, that's means we had to use the HA vpool as the Source vpool
+	                                    // and Source Vpool as HA vpool for placement to happen correctly. This can lead to weird 
+	                                    // instances when calling code that doesn't understand the swap.
+	                                    // VPLEX doesn't really care about swap so let's make sure
+	                                    // we use the originalVpool here to correctly to get the change vpool 
+	                                    // artifacts we need.
+	                                    vpool = originalVpool;
+	                                } else {
+	                                    swapRecommendations.add(0, sourceRec.getVirtualVolumeRecommendation());
+	                                    swapRecommendations.add(1, haRec.getVirtualVolumeRecommendation());
+	                                }
                                 }
                                 
                                 // VPLEX needs to be aware of the CG
@@ -537,7 +541,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }                               
             }
             
-            volumeInfoBuffer.append(String.format("%n-------------------------------------------------%n"));
+            volumeInfoBuffer.append(String.format(NEW_LINE));
             _log.info(volumeInfoBuffer.toString());
         }
         
@@ -560,7 +564,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             }
             
             // ...but prefer SOURCE volumes if we have them
-            if (Volume.PersonalityTypes.SOURCE.equals(tempVolume.getPersonality())) {
+            if (Volume.PersonalityTypes.SOURCE.name().equals(tempVolume.getPersonality())) {
                 sourceVolumes.add(tempVolume);
             }                            
         }
@@ -1118,18 +1122,18 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                     
             // Determine if all the source/target storage systems involved are the same based
             // on type, model, and firmware version.
-            for (URI storageSystemKey : volumeStorageSystems.keySet()) {
+            for (Map.Entry<URI, StorageSystem> storageSystemEntry : volumeStorageSystems.entrySet()) {
                 if (storageSystemToCompare == null) {
                     // Find a base for the comparison, the first element will do.
-                    storageSystemToCompare = volumeStorageSystems.get(storageSystemKey);
+                    storageSystemToCompare = volumeStorageSystems.get(storageSystemEntry.getKey());
                     // set storageSystem to first element if there is only one
                     if (volumeStorageSystems.size() == 1) {
-                        storageSystem = volumeStorageSystems.get(storageSystemKey);
+                        storageSystem = volumeStorageSystems.get(storageSystemEntry.getKey());
                     }
                     continue;
                 }
 
-                storageSystem = volumeStorageSystems.get(storageSystemKey);
+                storageSystem = volumeStorageSystems.get(storageSystemEntry);
 
                 if (!storageSystemToCompare.getSystemType().equals(storageSystem.getSystemType())) {
                     // The storage systems do not all match so we need to determine the allocated 
@@ -1733,7 +1737,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 volume.getVirtualArray(), volume.getProject().getURI());
 
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, 1);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, vpoolChangeParam.getConsistencyGroup());
         createVolumes(param, project, varray, newVpool, recommendations, taskId, capabilities);
     }
@@ -2715,7 +2719,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             buf.append(String.format("\t RP Internal Site : [%s %s]%n", internalSiteName, volume.getInternalSiteName()));            
             buf.append(String.format("\t RP Copy Name : [%s]%n", volume.getRpCopyName()));
             
-            if (Volume.PersonalityTypes.SOURCE.equals(volume.getPersonality())) {
+            if (Volume.PersonalityTypes.SOURCE.name().equals(volume.getPersonality())) {
                 buf.append(String.format("\t RP MetroPoint enabled : [%s]%n", (VirtualPool.vPoolSpecifiesMetroPoint(vpool) ? "true" : "false")));
             }
             
@@ -2819,7 +2823,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 volume.getVirtualArray(), volume.getProject().getURI());
 
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, 1);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, volume.getConsistencyGroup());
         createVolumes(param, project, varray, newVpool, recommendations, taskId, capabilities);
     }
@@ -2893,7 +2897,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     
     private void logDescriptors(List<VolumeDescriptor> descriptors) {
         StringBuffer buf = new StringBuffer(); 
-        buf.append(String.format("%n-------------------------------------------------%n"));
+        buf.append(String.format(NEW_LINE));
         buf.append(String.format("Volume descriptors for RP: %n"));
         
         for (VolumeDescriptor desc : descriptors) {
@@ -2901,7 +2905,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             buf.append(String.format("%n\t Volume Name: [%s] %n\t Descriptor Type: [%s] %n\t Full Descriptor Info: [%s] %n", volume.getLabel(), desc.getType(), desc.toString()));            
         }
         
-        buf.append(String.format("%n-------------------------------------------------%n"));
+        buf.append(String.format(NEW_LINE));
         _log.info(buf.toString());
     }
     

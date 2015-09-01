@@ -136,9 +136,10 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
                 if(!fsMountvNASMap.isEmpty()) {
                     VirtualNAS virtualNAS = null;
                     _logger.info("virtual mover size: {} ", String.valueOf(fsMountvNASMap.size()));
-                    for (Entry<String, List<String>> entry : fsMountvNASMap.entrySet()) {
+                    for (Entry<String, List<String>> entryMount : fsMountvNASMap.entrySet()) {
                         
-                        String moverId = entry.getKey();
+                        String moverId = entryMount.getKey();
+                        
                         //get vNAS object from db
                         virtualNAS = findvNasByNativeId(storageSystem, dbClient, moverId);
                         if(virtualNAS != null) {
@@ -147,6 +148,7 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
                                 mStringMap = new StringMap();
                             }
                             //store the metrics in db
+                            fsList = (List<String>)entryMount.getValue();
                             prepareDBMetrics(fsList, fsCapList, snapCapFsMap, mStringMap);
                             virtualNAS.setMetrics(mStringMap);
                             dbClient.persistObject(virtualNAS);
@@ -160,9 +162,10 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
                 if(!fsMountPhyNASMap.isEmpty()) {
                     PhysicalNAS physicalNAS = null;
                     _logger.info("physical mover size: {} ", String.valueOf(fsMountPhyNASMap.size()));
-                    for (Entry<String, List<String>> entry : fsMountPhyNASMap.entrySet()) {
+                    for (Entry<String, List<String>> entryMount : fsMountPhyNASMap.entrySet()) {
                         
-                        String moverId = entry.getKey();
+                        String moverId = entryMount.getKey();
+                        
                         //get NAS object from db
                         physicalNAS = findPhysicalNasByNativeId(storageSystem, dbClient, moverId);
                         if(null != physicalNAS) {
@@ -170,6 +173,7 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
                             if(null == mStringMap) {
                                 mStringMap = new StringMap();
                             }
+                            fsList = (List<String>)entryMount.getValue();
                             //store the metrics in db
                             prepareDBMetrics(fsList, fsCapList, snapCapFsMap, mStringMap);
                             physicalNAS.setMetrics(mStringMap);
@@ -210,7 +214,7 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
         if(fsList != null && !fsList.isEmpty()) {
             for(String fsId: fsList) {
                 //get snaps of fs
-                snapCapMap = (Map<String, Long>)snapCapFsMap.get(fsId);
+                snapCapMap = snapCapFsMap.get(fsId);
                 if(snapCapMap  != null && !snapCapMap.isEmpty()) {
                     
                     snapCount = snapCount + snapCapMap.size();

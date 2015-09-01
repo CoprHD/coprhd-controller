@@ -21,7 +21,7 @@ import com.emc.storageos.db.client.model.VirtualPool.MetroPointType;
 import com.emc.storageos.volumecontroller.RPRecommendation.ProtectionType;
 
 /**
- * Recommendation for a placement is a storage pool and its storage device.
+ * Top level recommendation for RP protection placement
  */
 @SuppressWarnings("serial")
 public class RPProtectionRecommendation extends Recommendation {
@@ -55,12 +55,10 @@ public class RPProtectionRecommendation extends Recommendation {
     }
     
     public RPProtectionRecommendation(RPProtectionRecommendation copy) {
-    	// properties of Recommendation
     	this.setSourceStoragePool(copy.getSourceStoragePool());
     	this.setSourceStorageSystem(copy.getSourceStorageSystem());
     	this.setDeviceType(copy.getDeviceType());
     	this.setResourceCount(copy.getResourceCount());
-    	// properties of RPProtectionRecommendation
     	this.placementStepsCompleted = copy.getPlacementStepsCompleted();
     	this.protectionDevice = copy.getProtectionDevice();
     	this.sourceJournalRecommendation = copy.getSourceJournalRecommendation();
@@ -213,7 +211,7 @@ public class RPProtectionRecommendation extends Recommendation {
     	buff.append(protectionType + "\n");
     	ProtectionSystem ps = dbClient.queryObject(ProtectionSystem.class, getProtectionDevice());
     	buff.append("Total volumes placed : " + this.getResourceCount() + "\n");
-    	buff.append("Protection System Allocated : " + ps.getLabel() + "\n\n");
+    	buff.append("Protection System : " + ps.getLabel() + "\n\n");
    
     	for (RPRecommendation sourceRecommendation : this.getSourceRecommendations()) {	    	
     		buff.append("Source Recommendation : " + "\n");    		    		
@@ -247,103 +245,7 @@ public class RPProtectionRecommendation extends Recommendation {
     	
     	buff.append("--------------------------------------\n");
     	return buff.toString();
-    } 
-	
-	/**
-	 * Gets the MetroPoint configuration type for the recommendation.  Looks specifically
-	 * at the protection copy types to figure out the configuration.  If any of the
-	 * protection copy types is not set, we cannot properly determine the configuration
-	 * so we must return null;
-	 * 
-	 * @return the MetroPoint configuration type
-	 */
-	public MetroPointType getMetroPointType() {		
-		MetroPointType metroPointType = null;
-		
-    	int primaryLocalCopyCount 	= 0;
-    	int primaryRemoteCopyCount 	= 0;
-    	int secondaryLocalCopyCount = 0;
-    	int secondaryRemoteCopyCount = 0;
-    	    	    	
-    	// Return invalid configuration if there is no primary protection specified.
-    	if (getSourceRecommendations().get(0).getTargetRecommendations() == null  || getSourceRecommendations().get(0).getTargetRecommendations().isEmpty()) {
-    		return MetroPointType.INVALID;
-    	}
-    	    
-	    for (RPRecommendation protection : getSourceRecommendations().get(0).getTargetRecommendations()) {
-    		if (protection.getProtectionType() == null) {
-    			// If even one protection type is missing, this is not a valid MetroPoint
-    			// recommendation.  The protection type is only ever set in 
-    			// MetroPoint specific code.
-    			return MetroPointType.INVALID;
-    		}
-    		if (protection.getProtectionType() == ProtectionType.LOCAL) {
-    			primaryLocalCopyCount++;
-    		} else if (protection.getProtectionType() == ProtectionType.REMOTE) {
-    			primaryRemoteCopyCount++;
-    		}
-	    }    	
-    	    
-    	RPRecommendation secondaryRecommendation = null;;    	
-    	if (getSourceRecommendations().get(0).getHaRecommendation() != null) {
-    		// There will only ever be 1 secondary recommendation in a MetroPoint case.
-        	secondaryRecommendation = getSourceRecommendations().get(0).getHaRecommendation();
-        } else {
-        	// There must be a secondary recommendation to satisfy a valid MetroPoint
-        	// configuration.
-        	return MetroPointType.INVALID;
-        }    	
-    	
-        // Return invalid configuration if there is no secondary protection specified.
-        if (secondaryRecommendation.getTargetRecommendations() == null || secondaryRecommendation.getTargetRecommendations().isEmpty()) {
-            return MetroPointType.INVALID;
-        }
-              
-        for (RPRecommendation protection : secondaryRecommendation.getTargetRecommendations()) {
-    		if (protection.getProtectionType() == null) {
-    			// If even one protection type is missing, this is not a valid MetroPoint
-    			// recommendation.  The protection type is only ever set in 
-    			// MetroPoint specific code.
-    			return MetroPointType.INVALID;
-    		}
-    		if (protection.getProtectionType() == ProtectionType.LOCAL) {
-    			secondaryLocalCopyCount++;
-    		} else if (protection.getProtectionType() == ProtectionType.REMOTE) {
-    			secondaryRemoteCopyCount++;
-    		}
-        }    	
-    	
-    	boolean singleRemoteCopy = false;
-    	boolean primaryLocalCopy = false;
-    	boolean secondaryLocalCopy = false;
-    	
-    	if (primaryRemoteCopyCount == 1 && secondaryRemoteCopyCount == 1) {
-    		singleRemoteCopy = true;
-    	}
-    	
-    	if (primaryLocalCopyCount == 1) {
-    		primaryLocalCopy = true;
-    	}
-    	
-    	if (secondaryLocalCopyCount == 1) {
-    		secondaryLocalCopy = true;
-    	}
-    	
-    	if (singleRemoteCopy && primaryLocalCopy && secondaryLocalCopy) {
-    		metroPointType = MetroPointType.TWO_LOCAL_REMOTE;
-    	} else if (singleRemoteCopy && 
-    			((!primaryLocalCopy && secondaryLocalCopy) || (primaryLocalCopy && !secondaryLocalCopy))) {
-    		metroPointType = MetroPointType.ONE_LOCAL_REMOTE;
-    	} else if (singleRemoteCopy && !primaryLocalCopy && !secondaryLocalCopy) {
-    		metroPointType = MetroPointType.SINGLE_REMOTE;
-    	} else if (!singleRemoteCopy && primaryLocalCopy && secondaryLocalCopy) {
-    		metroPointType = MetroPointType.LOCAL_ONLY;
-    	} else {
-    		metroPointType = MetroPointType.INVALID;
-    	}
-    	
-    	return metroPointType;    	
-	}
+    } 	
 }
 
 

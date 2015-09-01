@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins;
 
-import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
 
 import java.io.IOException;
 import java.net.URI;
@@ -480,13 +479,20 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
              		vNasURI);
              if (vNas != null && !vNas.getInactive()) {
              	// clear the existing varrays as part of vnas!!!
-            	 vNas.getAssignedVirtualArrays().clear();
+            	 if(vNas.getAssignedVirtualArrays() != null &&
+            			 !vNas.getAssignedVirtualArrays().isEmpty()){
+            		 vNas.getAssignedVirtualArrays().clear();
+            	 }
+            	 
             	 //Assign the varrays of its storage ports.
             	 for( String port: vNas.getStoragePorts()){
             		 StoragePort storagePort = _dbClient.queryObject(StoragePort.class,
             				 URI.create(port));
             		 if(storagePort.getConnectedVirtualArrays() != null &&
             				 !storagePort.getConnectedVirtualArrays().isEmpty()) {
+            			 if(vNas.getAssignedVirtualArrays() == null){
+            				 vNas.setAssignedVirtualArrays(new StringSet());
+            			 }
             			 vNas.getAssignedVirtualArrays().addAll(storagePort.getConnectedVirtualArrays());
             			 _logger.info("Added {} varrays to virtual nas {} ",
             					 storagePort.getConnectedVirtualArrays(), vNas.getNasName());

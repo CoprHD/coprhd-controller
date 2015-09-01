@@ -236,6 +236,9 @@ public class VPlexApiConstants {
     // Type for a system volume that is a logging volume
     public static final String LOGGING_VOLUME_TYPE = "logging-volume";
 
+    // Component type for a storage volume
+    public static final String STORAGE_VOLUME_TYPE = "storage-volume";
+
     // When trying to find storage volumes these parameters control how
     // long we will try and find those volumes before giving up.
     public static final int FIND_STORAGE_VOLUME_RETRY_COUNT = 5;

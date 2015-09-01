@@ -245,9 +245,11 @@ public class VPlexControllerUtils {
         
         return device;
     }
-    
-    public static Map<String, VPlexStorageVolumeInfo> getStorageVolumeInfoForDevice(String deviceName, String locality, 
-            Map<String, Map<String, VPlexDeviceInfo>> mirrorMap, URI vplexUri, DbClient dbClient) {
+
+    public static Map<String, VPlexStorageVolumeInfo> getStorageVolumeInfoForDevice(
+            String deviceName, String locality, String clusterName, 
+            Map<String, Map<String, VPlexDeviceInfo>> mirrorMap, 
+            URI vplexUri, DbClient dbClient) throws VPlexApiException {
 
         Map<String, VPlexStorageVolumeInfo> storageVolumeInfo = null;
         VPlexApiClient client = null;
@@ -260,7 +262,7 @@ public class VPlexControllerUtils {
         }
 
         if (null != client) {
-            storageVolumeInfo = client.getStorageVolumeInfoForDevice(deviceName, locality, mirrorMap);
+            storageVolumeInfo = client.getStorageVolumeInfoForDevice(deviceName, locality, clusterName, mirrorMap);
         }
         
         log.info("Backend storage volume wwns for {} are {}", deviceName, storageVolumeInfo);

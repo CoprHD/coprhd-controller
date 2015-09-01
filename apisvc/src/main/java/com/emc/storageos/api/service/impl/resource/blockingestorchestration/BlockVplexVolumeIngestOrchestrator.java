@@ -127,12 +127,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             context.setFrontendProject(project);
     
             try {
-                
-                // TODO calling this will preload everything and log it for debug purposes.
-                // this is really just useful for testing, no need to call this first
-                // as everything will lazy load from the context as needed from this point
-                context.load();
-                
                 List<UnManagedVolume> unmanagedBackendVolumes = context.getUnmanagedBackendVolumes();
                 if (null != unmanagedBackendVolumes && !unmanagedBackendVolumes.isEmpty()) {
     
@@ -174,7 +168,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 sortOutCloneAssociations(context, (Volume) virtualVolume);
                 handleBackendPersistence(context);
             }
-
+            
+            _logger.info(context.toStringDebug());
+            _logger.info(context.getPerformanceReport());
             return virtualVolume;
         } catch (Exception ex) {
             _logger.error("error during VPLEX backend ingestion wrap up: ", ex);

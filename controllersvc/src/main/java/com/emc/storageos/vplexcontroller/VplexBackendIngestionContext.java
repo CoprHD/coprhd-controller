@@ -64,9 +64,12 @@ public class VplexBackendIngestionContext {
     private Map<String, List<DataObject>> updatedObjectMap = new HashMap<String, List<DataObject>>();
     private List<BlockObject> ingestedObjects = new ArrayList<BlockObject>();
     
+    private BackendDiscoveryPerformanceTracker _tracker;
+    
     public VplexBackendIngestionContext(UnManagedVolume unManagedVolume, DbClient dbClient) {
         this._unmanagedVirtualVolume = unManagedVolume;
         this._dbClient = dbClient;
+        this._tracker = new BackendDiscoveryPerformanceTracker();
     }
 
     public void load() {
@@ -115,7 +118,7 @@ public class VplexBackendIngestionContext {
             if (null != dbBackendVolumes && !dbBackendVolumes.isEmpty()) {
                 List<URI> umvUris = new ArrayList<URI>();
                 for (String nativeId : dbBackendVolumes) {
-                    _logger.info("   found unmanaged backend volume native id " + nativeId);
+                    _logger.info("\tfound unmanaged backend volume native id " + nativeId);
                     URIQueryResultList unManagedVolumeList = new URIQueryResultList();
                     _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                             .getVolumeInfoNativeIdConstraint(nativeId), unManagedVolumeList);
@@ -129,7 +132,7 @@ public class VplexBackendIngestionContext {
                         // only return vols from the database if we have the correct number
                         // of backend volumes for this type of unmanaged vplex virtual volume
                         unmanagedBackendVolumes = _dbClient.queryObject(UnManagedVolume.class, umvUris, true);
-                        _logger.info("   returning unmanaged backend volume objects: " + unmanagedBackendVolumes);
+                        _logger.info("\treturning unmanaged backend volume objects: " + unmanagedBackendVolumes);
                         return unmanagedBackendVolumes;
                     }
                 }
@@ -164,8 +167,7 @@ public class VplexBackendIngestionContext {
         unmanagedBackendVolumes = _dbClient.queryObject(UnManagedVolume.class, associatedVolumeUris);
         
         _logger.info("for VPLEX UnManagedVolume {} found these associated volumes: " + unmanagedBackendVolumes, _unmanagedVirtualVolume.getId());
-        _logger.info("TIMER: getting backend volume info took {}ms", 
-                System.currentTimeMillis() - start);
+        _tracker.fetchBackendVolumes = System.currentTimeMillis() - start;
         
         if (null != unmanagedBackendVolumes && !unmanagedBackendVolumes.isEmpty()) {
             StringSet bvols = new StringSet();
@@ -187,12 +189,23 @@ public class VplexBackendIngestionContext {
             return backendVolumeWwnToInfoMap;
         }
         
-        long start = System.currentTimeMillis();
         _logger.info("getting backend volume wwn to api info map");
         try {
+            // first trying with a null mirror map to save some time
             backendVolumeWwnToInfoMap = 
                     VPlexControllerUtils.getStorageVolumeInfoForDevice(
-                            getSupportingDeviceName(), getLocality(), getMirrorMap(),
+                            getSupportingDeviceName(), getLocality(), getClusterName(), null,
+                            _unmanagedVirtualVolume.getStorageSystemUri(), _dbClient);
+        } catch (VPlexApiException ex) {
+            _logger.warn("failed to find wwn to storage volume map on "
+                    + "first try with no mirror map, will analyze mirrors and try again", ex);
+        }
+        
+        try {
+            // first trying with a null mirror map to save some time
+            backendVolumeWwnToInfoMap = 
+                    VPlexControllerUtils.getStorageVolumeInfoForDevice(
+                            getSupportingDeviceName(), getLocality(), getClusterName(), getMirrorMap(),
                             _unmanagedVirtualVolume.getStorageSystemUri(), _dbClient);
         } catch (VPlexApiException ex) {
             _logger.error("could not determine backend storage volumes for {}: ", 
@@ -204,10 +217,6 @@ public class VplexBackendIngestionContext {
         }
         
         _logger.info("backend volume wwn to api info map: " + backendVolumeWwnToInfoMap);
-        if (!backendVolumeWwnToInfoMap.isEmpty()) {
-            _logger.info("TIMER: fetching backend volume wwn to info map took {}ms", 
-                    System.currentTimeMillis() - start);
-        }
         return backendVolumeWwnToInfoMap;
     }
     
@@ -237,10 +246,8 @@ public class VplexBackendIngestionContext {
         }
         
         _logger.info("found these associated snapshots: " + unmanagedSnapshots);
-        if (!unmanagedSnapshots.isEmpty()) {
-            _logger.info("TIMER: fetching unmanaged snapshots took {}ms", 
-                    System.currentTimeMillis() - start);
-        }
+        _tracker.fetchSnapshots = System.currentTimeMillis() - start;
+
         return unmanagedSnapshots;
     }
 
@@ -277,10 +284,8 @@ public class VplexBackendIngestionContext {
         }
         
         _logger.info("unmanaged backend-only clones found: " + unmanagedBackendOnlyClones);
-        if (!unmanagedBackendOnlyClones.isEmpty()) {
-            _logger.info("TIMER: fetching unmanaged backend-only clones took {}ms", 
-                    System.currentTimeMillis() - start);
-        }
+        _tracker.fetchBackendOnlyClones = System.currentTimeMillis() - start;
+
         return unmanagedBackendOnlyClones;
     }
     
@@ -383,10 +388,8 @@ public class VplexBackendIngestionContext {
         }
         
         _logger.info("unmanaged full clones found: " + unmanagedFullClones);
+        _tracker.fetchFullClones = System.currentTimeMillis() - start;
         if (!unmanagedFullClones.isEmpty()) {
-            _logger.info("TIMER: fetching unmanaged full clones took {}ms", 
-                    System.currentTimeMillis() - start);
-            
             StringSet cloneEntries = new StringSet();
             for (Entry<UnManagedVolume,UnManagedVolume> cloneEntry : unmanagedFullClones.entrySet()) {
                 cloneEntries.add(cloneEntry.getKey().getNativeGuid() + "=" + cloneEntry.getValue().getNativeGuid());
@@ -490,9 +493,8 @@ public class VplexBackendIngestionContext {
         }
 
         _logger.info("unmanaged mirrors found: " + unmanagedMirrors);
+        _tracker.fetchMirrors = System.currentTimeMillis() - start;
         if (!unmanagedMirrors.isEmpty()) {
-            _logger.info("TIMER: fetching unmanaged mirrors took {}ms", 
-                    System.currentTimeMillis() - start);
             
             StringSet mirrorEntries = new StringSet();
             for (Entry<UnManagedVolume,String> mirrorEntry : unmanagedMirrors.entrySet()) {
@@ -580,8 +582,7 @@ public class VplexBackendIngestionContext {
                 _dbClient);
         
         _logger.info("top level device is: " + topLevelDevice);
-        _logger.info("TIMER: fetching top level device took {}ms", 
-                System.currentTimeMillis() - start);
+        _tracker.fetchTopLevelDevice = System.currentTimeMillis() - start;
         return topLevelDevice;
     }
 
@@ -597,6 +598,14 @@ public class VplexBackendIngestionContext {
                 SupportedVolumeInformation.VPLEX_LOCALITY.toString(),
                 _unmanagedVirtualVolume.getVolumeInformation());
         return locality;
+    }
+    
+    public String getClusterName() {
+        String cluster = extractValueFromStringSet(
+                SupportedVolumeInformation.VPLEX_CLUSTER_IDS.toString(),
+                _unmanagedVirtualVolume.getVolumeInformation());
+        // even if both clusters are listed, returning just one is fine
+        return cluster;
     }
     
     public boolean isLocal() {
@@ -632,17 +641,8 @@ public class VplexBackendIngestionContext {
     }
     
     public String toStringDebug() {
-        // gotta fetch all this stuff first to ensure the string build has the latest
-        this.getTopLevelDevice();
-        this.getUnmanagedMirrors();
-        this.getUnmanagedBackendVolumes();
-        this.getUnmanagedSnapshots();
-        this.getUnmanagedFullClones();
-        this.getUnmanagedBackendOnlyClones();
-
         StringBuilder s = new StringBuilder("\n\t VplexBackendIngestionContext \n\t\t ");
         s.append("unmanaged virtual volume: ").append(this._unmanagedVirtualVolume).append(" \n\t\t ");
-        s.append("top level device: ").append(this.getTopLevelDevice()).append(" \n\t\t ");
         s.append("unmanaged backend volume(s): ").append(this.getUnmanagedBackendVolumes()).append(" \n\t\t ");
         s.append("unmanaged snapshots: ").append(this.getUnmanagedSnapshots()).append(" \n\t\t ");
         s.append("unmanaged full clones: ").append(this.getUnmanagedFullClones()).append(" \n\t\t ");
@@ -891,5 +891,34 @@ public class VplexBackendIngestionContext {
         // also, it has line breaks and tabs, which kind of violates
         // the spirit of toString.
         return toStringDebug();
+    }
+
+    public String getPerformanceReport() {
+        return _tracker.getPerformanceReport();
+    }
+    
+    private class BackendDiscoveryPerformanceTracker {
+        
+        public long startTime = new Date().getTime();
+        public long fetchBackendVolumes = 0;
+        public long fetchSnapshots = 0;
+        public long fetchBackendOnlyClones = 0;
+        public long fetchFullClones = 0;
+        public long fetchMirrors = 0;
+        public long fetchTopLevelDevice = 0;
+        
+        public String getPerformanceReport() {
+            StringBuilder report = new StringBuilder("\nBackend Discovery Performance Report\n");
+            report.append("\tvolume name: ").append(_unmanagedVirtualVolume.getLabel()).append("\n");
+            report.append("\ttotal discovery time: ").append(System.currentTimeMillis() - startTime).append("ms\n");
+            report.append("\tfetch backend volumes: ").append(fetchBackendVolumes).append("\n");
+            report.append("\tfetch snapshots: ").append(fetchSnapshots).append("\n");
+            report.append("\tfetch backend clones: ").append(fetchBackendOnlyClones).append("ms\n");
+            report.append("\tfetch full clones: ").append(fetchFullClones).append("ms\n");
+            report.append("\tfetch mirrors: ").append(fetchMirrors).append("ms\n");
+            report.append("\tfetch top-level device: ").append(fetchTopLevelDevice).append("\n");
+
+            return report.toString();
+        }
     }
 }

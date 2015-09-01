@@ -8,14 +8,20 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.TreeMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -93,6 +99,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     // string constants
     private static final String DISCOVERY_MODE = "controller_vplex_volume_discovery_mode";
     private static final String DISCOVERY_MODE_FASTER_DISCOVERY = "Faster Discovery";
+    private static final String DISCOVERY_FILTER = "controller_vplex_volume_discovery_filter";
+    private static final String DISCOVERY_KILL_SWITCH = "controller_vplex_volume_discovery_kill_switch";
     private final String ISCSI_PATTERN = "^(iqn|IQN|eui).*$";
     protected static int BATCH_SIZE = Constants.DEFAULT_PARTITION_SIZE;
     private static final String TRUE = "true";
@@ -390,35 +398,31 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      */
     @Override
     public void discover(AccessProfile accessProfile) throws BaseCollectionException {
-
-        long start = new Date().getTime();
         s_logger.info("initiating discovery of VPLEX system {}", accessProfile.getProfileName());
         if ((null != accessProfile.getnamespace())
                 && (accessProfile.getnamespace()
                         .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES
                                 .toString()))) {
+            
             try {
                 VPlexApiClient client = getVPlexAPIClient(accessProfile);
 
-                long unManagedStart = System.currentTimeMillis();
-                long timerIncremental = unManagedStart;
+                long timer = System.currentTimeMillis();
+                UnmanagedDiscoveryPerformanceTracker tracker = new UnmanagedDiscoveryPerformanceTracker();
                 Map<String, VPlexVirtualVolumeInfo> vvolMap = client.getVirtualVolumes(true);
-                long unmanagedElapsed = System.currentTimeMillis() - timerIncremental;
-                s_logger.info("TIMER: fetching all volume data from the VPLEX API took {}ms", unmanagedElapsed);
-
-                timerIncremental = System.currentTimeMillis();
+                tracker.virtualVolumeFetch = System.currentTimeMillis() - timer;
+                tracker.totalVolumesFetched = vvolMap.size();
+                
+                timer = System.currentTimeMillis();
                 Map<String, Set<UnManagedExportMask>> volumeToExportMasksMap = new HashMap<String, Set<UnManagedExportMask>>();
                 discoverUnmanagedStorageViews(accessProfile, client, vvolMap, volumeToExportMasksMap);
-                unmanagedElapsed = System.currentTimeMillis() - timerIncremental;
-                s_logger.info("TIMER: fetching all storage view data from the VPLEX API took {}ms", unmanagedElapsed);
+                tracker.storageViewFetch = System.currentTimeMillis() - timer;
 
-                timerIncremental = System.currentTimeMillis();
-                discoverUnmanagedVolumes(accessProfile, client, vvolMap, volumeToExportMasksMap);
-                unmanagedElapsed = System.currentTimeMillis() - timerIncremental;
-                s_logger.info("TIMER: processing vplex unmanaged volume data took {}ms", unmanagedElapsed);
-                unmanagedElapsed = System.currentTimeMillis() - unManagedStart;
-                String message = "TIMER: total vplex unmanaged volume discovery took {}ms (average: {}ms per volume)";
-                s_logger.info(message, unmanagedElapsed, (unmanagedElapsed/vvolMap.size()));
+                timer = System.currentTimeMillis();
+                discoverUnmanagedVolumes(accessProfile, client, vvolMap, volumeToExportMasksMap, tracker);
+                tracker.unmanagedVolumeProcessing = System.currentTimeMillis() - timer;
+                
+                s_logger.info(tracker.getPerformanceReport());
             } catch (URISyntaxException ex) {
                 s_logger.error(ex.getLocalizedMessage());
                 throw VPlexCollectionException.exceptions.vplexUnmanagedVolumeDiscoveryFailed(
@@ -427,9 +431,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         } else {
             discoverAll(accessProfile);
         }
-
-        long elapsed = new Date().getTime() - start;
-        s_logger.info("TIMER: vplex storage system discovery took {} ms", elapsed);
     }
 
     /**
@@ -504,7 +505,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      */
     private void discoverUnmanagedVolumes(AccessProfile accessProfile, VPlexApiClient client,
             Map<String, VPlexVirtualVolumeInfo> allVirtualVolumes,
-            Map<String, Set<UnManagedExportMask>> volumeToExportMasksMap) throws BaseCollectionException {
+            Map<String, Set<UnManagedExportMask>> volumeToExportMasksMap,
+            UnmanagedDiscoveryPerformanceTracker tracker) throws BaseCollectionException {
 
         String statusMessage = "Starting discovery of Unmanaged VPLEX Volumes.";
         s_logger.info(statusMessage + " Access Profile Details :  IpAddress : "
@@ -534,6 +536,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 batchSize = Integer.parseInt(props.get(Constants.METERING_RECORDS_PARTITION_SIZE));
             }
 
+            long timer = System.currentTimeMillis();
             Map<String, String> volumesToCgs = new HashMap<String, String>();
             List<VPlexConsistencyGroupInfo> cgs = client.getConsistencyGroups();
             s_logger.info("Found {} Consistency Groups.", cgs.size());
@@ -543,15 +546,35 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 }
             }
             s_logger.info("Volume to Consistency Group Map is: " + volumesToCgs.toString());
+            tracker.consistencyGroupFetch = System.currentTimeMillis() - timer;
 
             Map<String, String> clusterIdToNameMap = client.getClusterIdToNameMap();
             Map<String, String> varrayToClusterIdMap = new HashMap<String, String>();
 
             if (null != allVirtualVolumes) {
                 for (String name : allVirtualVolumes.keySet()) {
+                    timer = System.currentTimeMillis();
                     s_logger.info("Looking at Virtual Volume {}", name);
+                    
+                    String discoveryKillSwitch = ControllerUtils
+                            .getPropertyValueFromCoordinator(_coordinator, DISCOVERY_KILL_SWITCH);
+                    // TODO just for testing to speed up discovery some
+                    if (!("stop".equals(discoveryKillSwitch))) {
+                        s_logger.warn("discovery kill switch was set to stop, so discontinuing unmanaged volume discovery");
+                        return;
+                    }
+                    
+                    String discoveryFilter = ControllerUtils
+                            .getPropertyValueFromCoordinator(_coordinator, DISCOVERY_FILTER);
+                    // TODO just for testing to speed up discovery some
+                    if ((discoveryFilter != null && !discoveryFilter.isEmpty()) 
+                            && !(name.matches(discoveryFilter))) {
+                        s_logger.warn("name {} doesn't match discovery filter {}", name, discoveryFilter);
+                        continue;
+                    }
+                    
                     VPlexVirtualVolumeInfo info = allVirtualVolumes.get(name);
-
+                    
                     // UnManagedVolume discover does a pretty expensive
                     // iterative call into the VPLEX API to get extended details
                     // on every volume in each cluster. First it gets all the
@@ -627,6 +650,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                         s_logger.info("Virtual Volume {} is already managed by "
                                 + "ViPR as Volume URI {}", name, managedVolume.getId());
                     }
+                    
+                    tracker.volumeTimeResults.put(name, System.currentTimeMillis() - timer);
+                    tracker.totalVolumesDiscovered++;
                 }
             } else {
                 s_logger.warn("No virtual volumes were found on VPLEX.");
@@ -891,8 +917,15 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         
         String discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(_coordinator, DISCOVERY_MODE);
         if (!DISCOVERY_MODE_FASTER_DISCOVERY.equals(discoveryMode)) {
-            VplexBackendIngestionContext context = new VplexBackendIngestionContext(volume, _dbClient);
-            context.discover();
+            try {
+                VplexBackendIngestionContext context = new VplexBackendIngestionContext(volume, _dbClient);
+                context.discover();
+                s_logger.info(context.getPerformanceReport());
+            } catch (Exception ex) {
+                s_logger.warn("error discovering backend structure for {}: {}", 
+                        volume.getNativeGuid(), ex.getLocalizedMessage());
+                // no need to throw further
+            }
         }
     }
 
@@ -1823,6 +1856,62 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             } else {
                 return StoragePort.OperationalStatus.NOT_OK.name();
             }
+        }
+    }
+    
+    private class UnmanagedDiscoveryPerformanceTracker {
+        
+        public Map<String, Long> volumeTimeResults = new TreeMap<String, Long>();
+        public long startTime = new Date().getTime();
+        public long virtualVolumeFetch = 0;
+        public long storageViewFetch = 0;
+        public long consistencyGroupFetch = 0;
+        public long unmanagedVolumeProcessing = 0;
+        public int totalVolumesFetched = 0;
+        public int totalVolumesDiscovered = 0;
+        
+        public String getPerformanceReport() {
+            StringBuilder report = new StringBuilder("\nVolume Discovery Performance Report\n");
+            report.append("\ttotal discovery time: ").append(System.currentTimeMillis() - startTime).append("ms\n");
+            report.append("\ttotal volumes fetched: ").append(totalVolumesFetched).append("\n");
+            report.append("\ttotal volumes discovered: ").append(totalVolumesDiscovered).append("\n");
+            report.append("\taverage time per volume: ").append((System.currentTimeMillis() - startTime)/totalVolumesDiscovered).append("ms\n");
+            report.append("\tvirtual volume data fetch: ").append(virtualVolumeFetch).append("ms\n");
+            report.append("\tstorage view data fetch: ").append(storageViewFetch).append("ms\n");
+            report.append("\tconsistency group data fetch: ").append(consistencyGroupFetch).append("ms\n");
+            report.append("\tunmanaged volume processing time: ").append(unmanagedVolumeProcessing).append("ms\n");
+            
+            volumeTimeResults = sortByValue(volumeTimeResults);
+            report.append("\nTop Longest-Running Volumes...\n");
+            String[] keys = (String[]) volumeTimeResults.keySet().toArray();
+            for (int i = 0; i < 20; i++) {
+                if (keys.length >= (1 + i)) {
+                    String key = keys[keys.length - 1 - i];
+                    report.append("\t").append(key).append(": ").append(volumeTimeResults.get(key)).append("ms\n");
+                }
+            }
+            
+            return report.toString();
+        }
+        
+        public <K, V extends Comparable<? super V>> Map<K, V> sortByValue( Map<K, V> map )
+        {
+            List<Map.Entry<K, V>> list =
+                new LinkedList<Map.Entry<K, V>>( map.entrySet() );
+            Collections.sort( list, new Comparator<Map.Entry<K, V>>()
+            {
+                public int compare( Map.Entry<K, V> o1, Map.Entry<K, V> o2 )
+                {
+                    return (o1.getValue()).compareTo( o2.getValue() );
+                }
+            } );
+    
+            Map<K, V> result = new LinkedHashMap<K, V>();
+            for (Map.Entry<K, V> entry : list)
+            {
+                result.put( entry.getKey(), entry.getValue() );
+            }
+            return result;
         }
     }
 }

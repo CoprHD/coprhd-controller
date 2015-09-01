@@ -280,6 +280,7 @@ public class VPlexApiClient {
             for (VPlexVirtualVolumeInfo virtualVolumeInfo : clusterVirtualVolumeInfoList) {
                 virtualVolumeInfo.addCluster(clusterId);
                 String virtualVolumeName = virtualVolumeInfo.getName();
+                
                 if (!virtualVolumeInfoMap.containsKey(virtualVolumeName)) {
                     // We want the unique list of virtual volumes on all
                     // clusters. Distributed volumes will appear on both
@@ -1301,7 +1302,7 @@ public class VPlexApiClient {
     ClientResponse get(URI resourceURI) {
         return get(resourceURI,
                 VPlexApiConstants.ACCEPT_JSON_FORMAT_0,
-                VPlexApiConstants.CACHE_CONTROL_MAXAGE_ZERO);
+                VPlexApiConstants.CACHE_CONTROL_MAXAGE_DEFAULT_VALUE);
     }
 
     /**
@@ -1315,7 +1316,7 @@ public class VPlexApiClient {
      */
     ClientResponse get(URI resourceURI, String jsonFormat) {
         return get(resourceURI, jsonFormat,
-                VPlexApiConstants.CACHE_CONTROL_MAXAGE_ZERO);
+                VPlexApiConstants.CACHE_CONTROL_MAXAGE_DEFAULT_VALUE);
     }
 
     /**
@@ -1553,9 +1554,9 @@ public class VPlexApiClient {
         
         return device;
     }
-    
+
     public Map<String, VPlexStorageVolumeInfo> getStorageVolumeInfoForDevice(String deviceName, String locality, 
-            Map<String, Map<String, VPlexDeviceInfo>> mirrorMap) throws VPlexApiException {
+            String clusterName, Map<String, Map<String, VPlexDeviceInfo>> mirrorMap) throws VPlexApiException {
         if (null == deviceName || null == locality) {
             String reason = "deviceName was " + deviceName + " and locality was " + locality;
             throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(reason);
@@ -1564,8 +1565,9 @@ public class VPlexApiClient {
         s_logger.info("Request to find storage volume wwns for {} on VPLEX at {}",
                 deviceName, _baseURI);
         
+        boolean hasMirror = ((null != mirrorMap) && !mirrorMap.isEmpty());
         List<VPlexStorageVolumeInfo> storageVolumes = getDiscoveryManager()
-                .getStorageVolumesForDevice(deviceName, locality, !mirrorMap.isEmpty());
+                    .getStorageVolumesForDevice(deviceName, locality, clusterName, hasMirror);
         
         Map<String, VPlexStorageVolumeInfo> storageVolumeWwns = new HashMap<String, VPlexStorageVolumeInfo>();
         for (VPlexStorageVolumeInfo info : storageVolumes) {

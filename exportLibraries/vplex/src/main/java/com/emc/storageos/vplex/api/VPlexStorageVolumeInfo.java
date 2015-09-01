@@ -15,6 +15,9 @@ public class VPlexStorageVolumeInfo extends VPlexResourceInfo {
     // The system-id of the storage volume 
     // which contains the backend volume WWN
     private String systemId;
+    
+    // the component-type value
+    private String componentType;
 
     /**
      * Getter for the storage system cluster id.
@@ -73,6 +76,24 @@ public class VPlexStorageVolumeInfo extends VPlexResourceInfo {
     }
 
     /**
+     * Getter for the storage volume component type.
+     * 
+     * @return The storage volume component type.
+     */
+    public String getComponentType() {
+        return componentType;
+    }
+
+    /**
+     * Setter for the storage volume component type.
+     * 
+     * @param componentType the component type.
+     */
+    public void setComponentType(String componentType) {
+        this.componentType = componentType;
+    }
+    
+    /**
      * {@inheritDoc}
      */
     @Override
@@ -82,7 +103,9 @@ public class VPlexStorageVolumeInfo extends VPlexResourceInfo {
         str.append(super.toString());
         str.append(", clusterId: " + clusterId);
         str.append(", systemId: " + systemId);
+        str.append(", componentType: " + componentType);
         str.append(" )");
         return str.toString();
     }
+
 }

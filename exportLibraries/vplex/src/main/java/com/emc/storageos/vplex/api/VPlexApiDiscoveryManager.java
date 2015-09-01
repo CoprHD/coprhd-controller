@@ -3308,7 +3308,7 @@ public class VPlexApiDiscoveryManager {
     }
 
     public List<VPlexStorageVolumeInfo> getStorageVolumesForDevice(
-            String deviceName, String locality, boolean hasMirror) throws VPlexApiException {
+            String deviceName, String locality, String clusterName, boolean hasMirror) throws VPlexApiException {
         
         long start = System.currentTimeMillis();
         s_logger.info("Getting backend storage volume wwn info for {} volume {} from VPLEX at " 
@@ -3319,7 +3319,11 @@ public class VPlexApiDiscoveryManager {
             // format /vplex/clusters/*/devices
             //        /DEVICE_NAME/components/*/components/*
             uriBuilder.append(VPlexApiConstants.URI_CLUSTERS.toString());
-            uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
+            if (null != clusterName && !clusterName.isEmpty()) {
+                uriBuilder.append(clusterName);
+            } else {
+                uriBuilder.append(VPlexApiConstants.WILDCARD.toString());
+            }
             uriBuilder.append(VPlexApiConstants.URI_DEVICES.toString());
             uriBuilder.append(deviceName);
             uriBuilder.append(VPlexApiConstants.URI_COMPONENTS.toString());
@@ -3368,16 +3372,23 @@ public class VPlexApiDiscoveryManager {
         try {
             storageVolumeInfoList = VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
                 responseStr, VPlexStorageVolumeInfo.class);
-            for (VPlexStorageVolumeInfo info : storageVolumeInfoList) {
-                s_logger.warn("info.getWwn is " + info.getWwn());
-            }
         } catch (Exception e) {
             throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(e.getLocalizedMessage());
         }
 
+        String badComponentTypeMessage = "";
         s_logger.info("found these storage volumes for VPLEX device {}:", deviceName);
         for (VPlexStorageVolumeInfo info : storageVolumeInfoList) {
             s_logger.info(info.toString()); 
+            if (VPlexApiConstants.STORAGE_VOLUME_TYPE.equals(info.getComponentType())) {
+                badComponentTypeMessage += "Unexpected component type " 
+                        + info.getComponentType() + " found for volume " + info.getName() + ". "; 
+            }
+        }
+        
+        if (!badComponentTypeMessage.isEmpty()) {
+            s_logger.warn(badComponentTypeMessage);
+            throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(badComponentTypeMessage);
         }
         
         s_logger.info("TIMER: getStorageVolumesForDevice took {}ms", 

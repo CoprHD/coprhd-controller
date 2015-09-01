@@ -2425,7 +2425,7 @@ public class RecoverPointScheduler implements Scheduler {
     	//TODO (Brad/Bharath): ChangeVPool doesnt add any new targets. If new targets are requested as part of the changeVpool, then this code needs to be enhanced
     	//to be able to handle that.
     	
-    	_log.info("RP Placement : Fetching pool recommendations for " + personality);
+    	_log.info("RP Placement : Fetching pool recommendations for : " + personality);
     	long sizeInBytes = capabilities.getSize();    	
     	long requestedCount = capabilities.getResourceCount();
     	VirtualPoolCapabilityValuesWrapper newCapabilities = new VirtualPoolCapabilityValuesWrapper(capabilities);
@@ -2434,13 +2434,11 @@ public class RecoverPointScheduler implements Scheduler {
         	newCapabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, 1);       
         	sizeInBytes = RPHelper.getJournalSizeGivenPolicy(Long.toString(capabilities.getSize()), journalPolicy, capabilities.getResourceCount());
         	newCapabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, sizeInBytes);    	       
-    	} else if (personality.equals(RPHelper.TARGET)) {
-    		sizeInBytes = requestedCount * sizeInBytes;
-    	}
+    	} 
     	
     	long sizeInKB = getSizeInKB(sizeInBytes);
     	List<Recommendation> recommendations = new ArrayList<Recommendation>();
-    	_log.info(String.format("RP Placement : Requested size : [%s] Bytes - [%s] KB", sizeInBytes, sizeInKB));
+    	_log.info(String.format("RP Placement : Requested size : [%s] Bytes - [%s] KB - %s GB", sizeInBytes, sizeInKB, SizeUtil.translateSize(sizeInBytes, SizeUtil.SIZE_GB)));
     	
     	//Fetch candidate storage pools
     	List<StoragePool> candidatePools = getCandidatePools(srcVarray, srcVpool, haVarray, haVpool, newCapabilities, personality);

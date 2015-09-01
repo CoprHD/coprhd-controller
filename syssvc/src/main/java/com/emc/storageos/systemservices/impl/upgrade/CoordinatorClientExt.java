@@ -29,6 +29,7 @@ import java.util.regex.Pattern;
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientImpl;
 import com.emc.storageos.coordinator.common.impl.ZkConnection;
+import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.common.DbConfigConstants;
 
 import org.slf4j.Logger;
@@ -542,7 +543,7 @@ public class CoordinatorClientExt {
      */
     public URI getNodeEndpoint(String nodeId) {
         try {
-            List<Service> svcs = _coordinator.locateAllServices(_svc.getName(),_svc.getVersion(),(String)null,null);
+            List<Service> svcs = _coordinator.locateAllServices(_svc.getName(), _svc.getVersion(),(String) null,null);
             for (Service svc : svcs) {
                 if (svc.getNodeId().equals(nodeId)) {
                     return svc.getEndpoint();
@@ -1282,5 +1283,33 @@ public class CoordinatorClientExt {
             _log.info("Fail to get the cluster information " + e.getMessage());
         }
         return null;
+    }
+
+    public String getMySiteId() {
+        LocalRepository localRepository = new LocalRepository();
+        PropertyInfoExt property = localRepository.getOverrideProperties();
+        return property.getProperty("site_id");
+    }
+
+    public void initSiteInfo() {
+        String mySiteId = getMySiteId();
+
+        InterProcessLock lock = _coordinator.getLock(ZkPath.SITES.name());
+        try {
+            lock.acquire();
+            if (_coordinator.hasSite(mySiteId)) {
+                return;
+            }
+
+            _coordinator.setSite(mySiteId, true);
+        }catch (Exception e) {
+            _log.error("Failed to acquire the lock for {}", ZkPath.SITES);
+        } finally {
+             try {
+                 lock.release();
+             }catch (Exception e) {
+                 _log.error("Failed to release the lock for {}", ZkPath.SITES);
+             }
+        }
     }
 }

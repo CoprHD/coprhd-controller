@@ -38,6 +38,12 @@ public interface FatalCoordinatorExceptions {
     @DeclareServiceCode(ServiceCode.COORDINATOR_ERROR)
     public FatalCoordinatorException unableToConnectToEndpoint(final Throwable lastError);
 
+    @DeclareServiceCode(ServiceCode.COORDINATOR_ERROR)
+    public FatalCoordinatorException unableToAccessPath(final String path, final Throwable lastError);
+
+    @DeclareServiceCode(ServiceCode.COORDINATOR_ERROR)
+    public FatalCoordinatorException unableToWriteSite(final String siteId, final Throwable lastError);
+
     @DeclareServiceCode(ServiceCode.IO_ERROR)
     public FatalCoordinatorException unableToCreateServerIDDirectories(
             final String dirAbsolutePath);

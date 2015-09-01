@@ -35,14 +35,6 @@ public enum MetricsKeys {
     avgPortPercentBusy,
     /** The computed average port cpu percent usage at an instance of time. Double, percent. */
     avgCpuPercentBusy,
-    
-    vdmstaticmetrix,
-    filesystemCount,
-    snapshotCount,
-    totalfsCapacityOnMover,
-    totalsnapshotCapacityOnMover,
-    
-    
     /**
      * boolean to indicate one of port metric: volume count, initiator count, avgCpuPercentBusy, or avgPortPercentBusy exceeded ceiling
      * value

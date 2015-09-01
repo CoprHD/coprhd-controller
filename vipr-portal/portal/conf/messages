@@ -1724,9 +1724,6 @@ StorageArrayPools.not.registered=Storage Pool: '%s' is not registered.  It can n
 StorageSystems.pools.description=Enter the information needed to edit a Storage Pool.
 
 vNasServers.nasName=Name
-vNasServers.maxFSID=Max FSID
-vNasServers.maxExports=Max Exports
-vNasServers.maxProvisionedCapacity=Max Capacity
 vNasServers.protocols=Protocols
 vNasServers.storagePorts=Storage Ports
 vNasServers.project=Project
@@ -1742,6 +1739,11 @@ vNasServers.associate=Associate vNAS Servers
 vNasServers.cifsServers=CIFS Servers
 vNasServers.vNasTag=Tag
 vNasServers.baseDirPath=Path
+vNasServers.storageObjects=Storage Objects
+vNasServers.storageCapacity=Storage Capacity
+vNasServers.avgPercentagebusy=Average Percentage busy
+vNasServers.avgEmaPercentagebusy=Average Ema Percentage busy
+vNasServersDataTable.notApplicable=N/A
 vNasServers.associateToProject=Associate to a Project
 vNasServers.dissociate.Confirm=Are you sure you want to dissociate these vNas Server(s) from the project?
 

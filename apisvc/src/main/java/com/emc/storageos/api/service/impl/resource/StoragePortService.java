@@ -36,6 +36,7 @@ import com.emc.storageos.api.service.impl.resource.utils.PurgeRunnable;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
@@ -61,6 +62,7 @@ import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.model.pools.VirtualArrayAssignmentChanges;
 import com.emc.storageos.model.pools.VirtualArrayAssignments;
 import com.emc.storageos.model.ports.StoragePortBulkRep;
@@ -82,6 +84,7 @@ import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
+
 
 /**
  * StoragePort resource implementation
@@ -651,7 +654,7 @@ public class StoragePortService extends TaggedResource {
     			// Get the virtual nas servers contains the storage port!!!
     			URIQueryResultList vNasUriList = new URIQueryResultList();
     			_dbClient.queryByConstraint(
-    					AlternateIdConstraint.Factory.getStoragePortEndpointConstraint(storagePort.getId().toString()), vNasUriList);
+    					ContainmentConstraint.Factory.getVirtualNASContainStoragePortConstraint(storagePort.getId()), vNasUriList);
 
     			Iterator<URI> vNasIter = vNasUriList.iterator();
     			while (vNasIter.hasNext()) {

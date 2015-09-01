@@ -607,5 +607,11 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField("taggedVirtualArrays");
             return new ContainmentConstraintImpl(varray, VirtualNAS.class, field);
         }
+        
+        public static ContainmentConstraint getVirtualNASContainStoragePortConstraint(URI port) {
+            DataObjectType doType = TypeMap.getDoType(VirtualNAS.class);
+            ColumnField field = doType.getColumnField("storagePorts");
+            return new ContainmentConstraintImpl(port, VirtualNAS.class, field);
+        }
     }
 }

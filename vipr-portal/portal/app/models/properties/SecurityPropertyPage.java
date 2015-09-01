@@ -18,6 +18,8 @@ public class SecurityPropertyPage extends CustomPropertyPage {
     private Property sysmonitorEncPassword;
     private Property authLoginAttempts;
     private Property authLockoutTime;
+    private Property tokenLifeTime;
+    private Property tokenIdleTime;
 
     public SecurityPropertyPage(Map<String, Property> properties) {
         super("Security");
@@ -32,6 +34,8 @@ public class SecurityPropertyPage extends CustomPropertyPage {
         sysmonitorEncPassword = addCustomProperty(properties, "system_sysmonitor_encpassword");
         authLoginAttempts = addCustomProperty(properties, "max_auth_login_attempts");
         authLockoutTime = addCustomProperty(properties, "auth_lockout_time_in_minutes");
+        tokenLifeTime = addCustomProperty(properties, "token_life_time_in_minutes");
+        tokenIdleTime = addCustomProperty(properties, "token_idle_time_in_minutes");
     }
 
     public Property getFirewallEnabled() {
@@ -72,5 +76,13 @@ public class SecurityPropertyPage extends CustomPropertyPage {
 
     public Property getAuthLockoutTime() {
         return authLockoutTime;
+    }
+
+    public Property getTokenLifeTime() {
+        return tokenLifeTime;
+    }
+
+    public Property getTokenIdleTime() {
+        return tokenIdleTime;
     }
 }

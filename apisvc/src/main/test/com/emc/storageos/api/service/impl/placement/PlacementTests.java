@@ -3058,61 +3058,60 @@ public class PlacementTests extends DbsvcTestBase {
 	
 	    // Create a storage pool for vmax1
 	    StoragePool srcPool1 = PlacementTestUtils.createStoragePool(_dbClient, srcVarray, vmaxStorageSystem1, "SrcPool1", "SrcPool1",
-	            Long.valueOf(SIZE_GB * 75), Long.valueOf(1024 * 1024 * 10), 300, 300,
+	            Long.valueOf(SIZE_GB * 75), Long.valueOf(SIZE_GB * 150), 300, 300,
 	            StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 	
 	    // Create a storage pool for vmax1
 	    StoragePool srcPool2 = PlacementTestUtils.createStoragePool(_dbClient, srcVarray, vmaxStorageSystem1, "SrcPool2", "SrcPool2",
-	            Long.valueOf(SIZE_GB * 150), Long.valueOf(1024 * 1024 * 10), 300, 300,
+	            Long.valueOf(SIZE_GB * 150), Long.valueOf(SIZE_GB * 150), 300, 300,
 	            StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 	
 	    // Create a storage pool for vmax1
 	    StoragePool srcPool3 = PlacementTestUtils.createStoragePool(_dbClient, srcVarray, vmaxStorageSystem1, "SrcPool3", "SrcPool3",
-	            Long.valueOf(1024 * 1024 * 1), Long.valueOf(1024 * 1024 * 1), 100, 100,
+	            Long.valueOf(SIZE_GB * 200), Long.valueOf(SIZE_GB * 200), 100, 100,
 	            StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 	
 	    // Create a storage pool for vmax2
 	    StoragePool haPool4 = PlacementTestUtils.createStoragePool(_dbClient, haVarray, vmaxStorageSystem2, "HaPool4", "HaPool4",
-	            Long.valueOf(1024 * 1024 * 1024), Long.valueOf(1024 * 1024 * 10), 300, 300,
+	            Long.valueOf(SIZE_GB * 1024), Long.valueOf(SIZE_GB * 1024 * 1024), 300, 300,
 	            StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 	
 	    // Create a storage pool for vmax2
 	    StoragePool haPool5 = PlacementTestUtils.createStoragePool(_dbClient, haVarray, vmaxStorageSystem2, "HaPool5", "HaPool5",
-	            Long.valueOf(1024 * 1024 * 10), Long.valueOf(1024 * 1024 * 10), 300, 300,
+	            Long.valueOf(SIZE_GB * 300), Long.valueOf(SIZE_GB * 300), 300, 300,
 	            StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
-	
-	    // Create a storage pool for vmax2
-//	    StoragePool haPool6 = PlacementTestUtils.createStoragePool(_dbClient, haVarray, vmaxStorageSystem2, "Hapool6", "HaPool6",
-//	            Long.valueOf(1024 * 1024 * 1), Long.valueOf(1024 * 1024 * 1), 100, 100,
-//	            StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
-	
+		
+		// Create a storage pool for vmax2
+		// StoragePool haPool6 = PlacementTestUtils.createStoragePool(_dbClient, haVarray, vmaxStorageSystem2, "Hapool6", "HaPool6",
+		//      Long.valueOf(1024 * 1024 * 1), Long.valueOf(1024 * 1024 * 1), 100, 100,
+		//      StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 	    
 	    StoragePool haPool6 = PlacementTestUtils.createStoragePool(_dbClient, haVarray, vmaxStorageSystem3, "Hapool6", "HaPool6",
-	            Long.valueOf(1024 * 1024 * 1), Long.valueOf(1024 * 1024 * 1), 100, 100,
+	            Long.valueOf(SIZE_GB * 100), Long.valueOf(SIZE_GB * 300), 100, 100,
 	            StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 	    // Create a storage pool for vmax3
 	    StoragePool tgtPool7 = PlacementTestUtils.createStoragePool(_dbClient, srcVarray, vmaxStorageSystem3, "TgtPool7", "TgtPool7",
-	            Long.valueOf(SIZE_GB * 300), Long.valueOf(1024 * 1024 * 10), 300, 300,
+	            Long.valueOf(SIZE_GB * 300), Long.valueOf(SIZE_GB * 300), 300, 300,
 	            StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 	
 	    // Create a storage pool for vmax3
 	    StoragePool tgtPool8 = PlacementTestUtils.createStoragePool(_dbClient, haVarray, vmaxStorageSystem3, "Tgtpool8", "TgtPool8",
-	            Long.valueOf(SIZE_GB * 300), Long.valueOf(1024 * 1024 * 10), 300, 300,
+	            Long.valueOf(SIZE_GB * 300), Long.valueOf(SIZE_GB * 300), 300, 300,
 	            StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 	
 	    // Create a storage pool for vnx1
 	    StoragePool sjPool9 = PlacementTestUtils.createStoragePool(_dbClient, srcJournalVarray, vnxStorageSystem1, "Sjpool9", "SjPool9",
-	            Long.valueOf(SIZE_GB * 1024), Long.valueOf(1024 * 1024 * 1024 * 1), 100, 100,
+	            Long.valueOf(SIZE_GB * 1024), Long.valueOf(SIZE_GB * 1024 * 1024), 100, 100,
 	            StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 	
 	    // Create a storage pool for vnx1
 	    StoragePool hajPool10 = PlacementTestUtils.createStoragePool(_dbClient, haJournalVarray, vnxStorageSystem2, "HaJpool10", "HaJPool10",
-	            Long.valueOf(SIZE_GB * 1024), Long.valueOf(1024 * 1024 * 1024 * 1), 100, 100,
+	            Long.valueOf(SIZE_GB * 1024), Long.valueOf(SIZE_GB * 1024 * 1024), 100, 100,
 	            StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 	    
 	    // Create a storage pool for vnx1
 	    StoragePool tjPool11 = PlacementTestUtils.createStoragePool(_dbClient, tgtJournalVarray, vnxStorageSystem3, "Tjpool11", "TjPool11",
-	            Long.valueOf(SIZE_GB* 1024 * 1), Long.valueOf(1024 * 1024 * 1024 *1), 100, 100,
+	            Long.valueOf(SIZE_GB * 1024), Long.valueOf(SIZE_GB * 1024 * 1024), 100, 100,
 	            StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 	
 	    //Create HA vpool
@@ -3288,7 +3287,7 @@ public class PlacementTests extends DbsvcTestBase {
 	    _dbClient.createObject(cg);
 	
 	    // Create capabilities
-	    VirtualPoolCapabilityValuesWrapper capabilities = PlacementTestUtils.createCapabilities("20GB", 13, cg);
+	    VirtualPoolCapabilityValuesWrapper capabilities = PlacementTestUtils.createCapabilities("10GB", 13, cg);
 	
 	    // Run single volume placement: Run 10 times to make sure pool6 never comes up for source and pool9 for target.
 	    for (int i = 0; i < 10; i++) {

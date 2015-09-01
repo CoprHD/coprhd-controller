@@ -2480,7 +2480,7 @@
     {
         key : "token_life_time_in_minutes",
         label : "Token Life Time",
-        description : "the life time of a token in minutes (valid value range is [10-1440])",
+        description : "the life time of a token in minutes (valid value range is [5-1440])",
         type : "uint8",
         userConfigurable : true,
         userMutable : true,
@@ -2494,7 +2494,7 @@
     },{
         key : "token_idle_time_in_minutes",
         label : "Token Idle Time",
-        description : "the idle time of a token in minutes (valid value range is [10-1440], and it must less than Token Life Time)",
+        description : "the idle time of a token in minutes (valid value range is [5-1440])",
         type : "uint8",
         userConfigurable : true,
         userMutable : true,

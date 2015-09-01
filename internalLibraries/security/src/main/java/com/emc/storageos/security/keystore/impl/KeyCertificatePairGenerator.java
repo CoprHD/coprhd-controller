@@ -27,6 +27,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.CertificateParsingException;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPrivateKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
@@ -491,5 +492,10 @@ public class KeyCertificatePairGenerator {
                 SecurityUtil.clearSensitiveData(random);
             }
         }
+    }
+
+    public static void validateKeyAndCertPairing(RSAPrivateKey privateKey, Certificate[] certChain) {
+        KeyCertificateEntry entry = new KeyCertificateEntry(privateKey.getEncoded(), certChain);
+        verifyKeyCertificateEntry(entry);
     }
 }

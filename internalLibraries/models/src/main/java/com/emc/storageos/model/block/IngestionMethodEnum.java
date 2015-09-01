@@ -6,8 +6,8 @@
 package com.emc.storageos.model.block;
 
 public enum IngestionMethodEnum {
-    FULL_INGESTION_INCLUDING_BACKEND_VOLUMES("Change one or more volumes from local VPLEX to distributed VPLEX virtual pool"),
-    INGEST_ONLY_VIRTUAL_VOLUME("Migrate data from one or more volumes to new virtual pool");
+    FULL("Full"),
+    VIRTUAL_VOLUMES_ONLY("VirtualVolumesOnly");
     
     private String description;
 

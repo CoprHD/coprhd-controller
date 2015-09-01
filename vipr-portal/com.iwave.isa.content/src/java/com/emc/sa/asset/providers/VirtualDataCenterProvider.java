@@ -126,8 +126,8 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         
         List<AssetOption> options = Lists.newArrayList();
         if (BlockProviderUtils.isVplex(storageSystemRestRep)) {
-            options.add(newAssetOption(IngestionMethodEnum.FULL_INGESTION_INCLUDING_BACKEND_VOLUMES.name(), "unmanagedVolume.ingestMethod." + IngestionMethodEnum.FULL_INGESTION_INCLUDING_BACKEND_VOLUMES.name()));
-            options.add(newAssetOption(IngestionMethodEnum.INGEST_ONLY_VIRTUAL_VOLUME.name(), "unmanagedVolume.ingestMethod." + IngestionMethodEnum.INGEST_ONLY_VIRTUAL_VOLUME.name()));
+            options.add(newAssetOption(IngestionMethodEnum.FULL.toString(), "unmanagedVolume.ingestMethod.full"));
+            options.add(newAssetOption(IngestionMethodEnum.VIRTUAL_VOLUMES_ONLY.toString(), "unmanagedVolume.ingestMethod.virtualVolumesOnly"));
         }
         return options;
     }
@@ -141,8 +141,8 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
 
         List<AssetOption> options = Lists.newArrayList();
         if (virtualPoolRestRep.getHighAvailability() != null) {
-            options.add(newAssetOption(IngestionMethodEnum.FULL_INGESTION_INCLUDING_BACKEND_VOLUMES.name(), "unmanagedVolume.ingestMethod." + IngestionMethodEnum.FULL_INGESTION_INCLUDING_BACKEND_VOLUMES.name()));
-            options.add(newAssetOption(IngestionMethodEnum.INGEST_ONLY_VIRTUAL_VOLUME.name(), "unmanagedVolume.ingestMethod." + IngestionMethodEnum.INGEST_ONLY_VIRTUAL_VOLUME.name()));
+            options.add(newAssetOption(IngestionMethodEnum.FULL.toString(), "unmanagedVolume.ingestMethod.full"));
+            options.add(newAssetOption(IngestionMethodEnum.VIRTUAL_VOLUMES_ONLY.toString(), "unmanagedVolume.ingestMethod.virtualVolumesOnly"));
         }
         return options;
     }

@@ -956,11 +956,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                 newInitiatorObjects);
                         Collection<URI> validInitiatorIds = Collections2.transform(validInitiators,
                                 CommonTransformerFunctions.fctnDataObjectToID());
-                        if (currentClusterRef != null) {
-                            if (currentClusterRef.isAutoExportEnabled()) {
-                                egh.addInitiators(validInitiatorIds);
-                                egh.removeInitiators(change.getOldInitiators());
-                            }
+                        if (currentClusterRef != null && currentClusterRef.isAutoExportEnabled()) {
+                            egh.addInitiators(validInitiatorIds);
+                            egh.removeInitiators(change.getOldInitiators());
                         }
                     }
                 }

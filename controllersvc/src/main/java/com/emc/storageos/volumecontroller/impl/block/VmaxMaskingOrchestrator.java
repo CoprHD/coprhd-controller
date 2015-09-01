@@ -1929,6 +1929,12 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                         volumes.put(volume.getId(), volume);
                     }
 
+                    // TODO: We need to explore if we should/can make the volume count check (done below) another rule run as
+                    // part of the RuleApplicator. The one concern with doing this is what would happen if another ExportMask
+                    // is selected. Would we end up selecting an ExportMask that can support the volumes, but is undesirable
+                    // through some other considerations. For now, we will let the rules engine decide the appropriate
+                    // ExportMasks and then evaluate that selection for the volume count.
+
                     // Validate the number of volumes that will be in the ExportMask if 'volumes' were added to it.
                     // If there are more the maximum number of volumes allowed, then we should not place these 'volumes'.
                     // The volumes would show up in the descriptor as being unplaced. The VplexBackendManager would

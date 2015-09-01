@@ -251,6 +251,9 @@ public class VPlexBackendManager {
 
             // VplexBackEndMaskingOrchestrator#suggestExportMasksForPlacement should fill in the rest of the
             // placement data structures, such that decisions on how to reuse the ExportMasks can be done here.
+            // At a minimum, this placement is done based on reading the ExportMasks off the backend array based on the initiators.
+            // Customizations can be done per array based on other factors. Most notably, for the case of VMAX, this would
+            // place volumes in appropriate ExportMasks based on the volume's AutoTieringPolicy relationship.
             vplexBackendOrchestrator.suggestExportMasksForPlacement(array, storageDevice, _initiators, placementDescriptor);
 
             // Check if any export mask got renamed, if they did, change the name in the ViPR DB

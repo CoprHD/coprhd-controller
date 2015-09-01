@@ -50,9 +50,7 @@ import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.QueryResultList;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.AbstractChangeTrackingMap;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
@@ -406,12 +404,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                             
                                 sourceVolume = prepareVolume(sourceVolume, project, varray, vpool, param.getSize(), 
                                                                 sourceRec,
-                                                                newVolumeLabel, consistencyGroup, task, false, 
+                                                                newVolumeLabel, consistencyGroup, false, 
                                                                 protectionSystemURI,
                                                                 Volume.PersonalityTypes.SOURCE, rsetName, 
                                                                 sourceRec.getInternalSiteName(), 
-                                                                (metroPointEnabled ? activeSourceCopyName : srcCopyName), null, 
-                                                                sourceJournal,
+                                                                (metroPointEnabled ? activeSourceCopyName : srcCopyName), taskList, task,
+                                                                null, sourceJournal,
                                                                 (metroPointEnabled ? standbyJournal : null), vplex);        
                             }
                             else {
@@ -542,10 +540,51 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             volumeInfoBuffer.append(String.format("%n-------------------------------------------------%n"));
             _log.info(volumeInfoBuffer.toString());
         }
+        
+        addAllTasks(volumeURIs, taskList, task, isChangeVpool, isChangeVpoolForProtectedVolume);
                                
         return volumeURIs;
     }
     
+    private void addAllTasks(List<URI> volumeURIs, TaskList taskList,
+            String task, boolean isChangeVpool,
+            boolean isChangeVpoolForProtectedVolume) {
+        List<Volume> sourceVolumes = new ArrayList<Volume>();
+        Volume volume = null;
+        for (URI volURI : volumeURIs) {
+            Volume tempVolume = _dbClient.queryObject(Volume.class, volURI);
+            
+            // Have at least one volume we can use for creating tasks...
+            if (volume == null) {
+                volume = tempVolume;
+            }
+            
+            // ...but prefer SOURCE volumes if we have them
+            if (Volume.PersonalityTypes.SOURCE.equals(tempVolume.getPersonality())) {
+                sourceVolumes.add(tempVolume);
+            }                            
+        }
+        
+        // If we end up with no SOURCE volumes, use the single volume we found.
+        if (sourceVolumes.isEmpty()) {
+            sourceVolumes.add(volume);
+        }
+        
+        for (Volume vol : sourceVolumes) {
+            // Create the OP
+            Operation op = _dbClient.createTaskOpStatus(Volume.class, vol.getId(),
+                                                        task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);            
+            vol.setOpStatus(new OpStatusMap());
+            vol.getOpStatus().put(task, op);
+            
+            // Persist the volume in the db
+            _dbClient.persistObject(vol);
+                        
+            // Create the task and add it to the task list
+            taskList.getTaskList().add(toTask(vol, task, op));
+        }
+    }
+
     /**
      * Prepares all the journal volumes and populates the values into the sourceJournals and/or
      * the targetJournals map.
@@ -798,10 +837,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // Prepare specific volume info
             rpVolume = prepareVolume(rpVolume, project, varray, vpool, 
                                          size, rpRec, rpVolumeName,
-                                         consistencyGroup, task, false, 
+                                         consistencyGroup, false, 
                                          protectionSystemURI, 
                                          personalityType,
-                                         rsetName, rpInternalSiteName, copyName, 
+                                         rsetName, rpInternalSiteName, copyName, taskList, task,  
                                          sourceVolume, journalVolume, standbyJournalVolume, vplex);
 
             return rpVolume;
@@ -1232,32 +1271,38 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         return capacity;
     }
-
+    
     /**
-    * Prepare Volume for a RecoverPoint protected volume
-    *
-    * @param param volume request
-    * @param project project requested
-    * @param varray varray requested
-    * @param vpool vpool requested
-    * @param size size of the volume
-    * @param recommendation recommendation for placement
-    * @param label volume label
-    * @param consistencyGroup consistency group
-    * @param token task id
-    * @param remote is this a target volume
-    * @param protectionSystemURI protection system protecting this volume
-    * @param personality normal volume or metadata
-    * @param rsetName replication set name
-    * @param internalSiteName replication site ID
-    * @param rpCopyName copy name on RP CG
-    * @param sourceVolume source volume ID; only for target volumes
-    * @return a persisted volume
-    */
+     * Prepare Volume for a RecoverPoint protected volume
+     * 
+     * @param volume
+     * @param project
+     * @param varray
+     * @param vpool
+     * @param size
+     * @param recommendation
+     * @param label
+     * @param consistencyGroup
+     * @param token
+     * @param remote
+     * @param protectionSystemURI
+     * @param personality
+     * @param rsetName
+     * @param internalSiteName
+     * @param rpCopyName
+     * @param taskList
+     * @param task
+     * @param sourceVolume
+     * @param journalVolume
+     * @param standbyJournalVolume
+     * @param vplex
+     * @return
+     */
     public Volume prepareVolume(Volume volume, Project project, VirtualArray varray,
 			                    VirtualPool vpool, String size, RPRecommendation recommendation, String label, 
-			                    BlockConsistencyGroup consistencyGroup, String token, boolean remote, URI protectionSystemURI,
-			                    Volume.PersonalityTypes personality, String rsetName, String internalSiteName, String rpCopyName, 
+			                    BlockConsistencyGroup consistencyGroup, boolean remote, URI protectionSystemURI,
+			                    Volume.PersonalityTypes personality, String rsetName, String internalSiteName, String rpCopyName,
+			                    TaskList taskList, String task,
 			                    Volume sourceVolume, Volume journalVolume, Volume standbyJournalVolume, boolean vplex) {
         boolean isNewVolume = (volume == null);
         if (isNewVolume) {
@@ -1291,13 +1336,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 }
             }
 
-            volume.setVirtualArray(varray.getId());            
-
-            volume.setOpStatus(new OpStatusMap());
-            Operation op = new Operation();
-            op.setResourceType(ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
-            op.setStartTime(Calendar.getInstance());
-            volume.getOpStatus().put(token, op);
+            volume.setVirtualArray(varray.getId());                                                
         }
         
         if (journalVolume != null) {                
@@ -1340,9 +1379,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         }
 
         if (isNewVolume) {
-            _dbClient.createObject(volume);
-        } else {
-            _dbClient.persistObject(volume);
+            // Create the volume in the db
+            _dbClient.createObject(volume);                                  
+        } else {                       
+            // Persist the volume in the db
+            _dbClient.persistObject(volume);            
         }
 
         // Keep track of target volumes associated with the source volume

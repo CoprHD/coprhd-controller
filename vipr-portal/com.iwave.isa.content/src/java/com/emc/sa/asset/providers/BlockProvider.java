@@ -965,7 +965,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 VolumeRestRep vol1 = api(ctx).blockVolumes().get(protectionVolume);
                 if (vol1.getProtection().getRpRep().getPersonality().equalsIgnoreCase("METADATA")) {
                     String capacity = api(ctx).blockVolumes().get(protectionVolume).getCapacity();
-                    if (minimumSize == null || Integer.parseInt(capacity) < Integer.parseInt(minimumSize)) {
+                    if (minimumSize == null || Float.parseFloat(capacity) < Float.parseFloat(minimumSize)) {
                         minimumSize = capacity;
                     }
                 }

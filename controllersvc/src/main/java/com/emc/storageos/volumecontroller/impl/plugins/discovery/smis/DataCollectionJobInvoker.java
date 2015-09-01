@@ -62,6 +62,7 @@ class DataCollectionJobInvoker {
 
     public void process(ApplicationContext parentApplicationContext) throws BaseCollectionException {
         ApplicationContext context = null;
+        _accessProfile.setSystemType("ecs"); //sreenidhi Temp code
         String contextDeviceType = fetchDeviceType(_accessProfile.getSystemType());
         try {
             String currentThreadName = String.format("%s|%s|%s|%s|%s", Thread.currentThread().getId(),

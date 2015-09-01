@@ -29,6 +29,7 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
 	     * @param factory
 	     */
 	    public void setECSApiFactory(ECSApiFactory factory) {
+	    	_log.info("ECSObjectStorageDevice setECSApiFactory");
 	    	ecsApiFactory = factory;
 	    }
 

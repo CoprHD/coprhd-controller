@@ -177,7 +177,10 @@ public abstract class CommandHandler {
         private static final String TYPE_AUDITS = "audits";
         private static final String REGEX_NUMBERS = "\\d+";
         private static final String CRITERIAS_DELIMITER = "=";
-        private static volatile Map<String, String> criterias;
+        /*
+         * The KEY of map is the field name of an object, VALUE is the given value wants to be matched.
+         */
+        private static Map<String, String> criterias = new HashMap<>();
 
         public ListHandler(String[] args, DBClient client) {
             if (args.length < 2) {
@@ -292,6 +295,7 @@ public abstract class CommandHandler {
                     || args[args.length - 1].equalsIgnoreCase(Main.INACTIVE)
                     || args[args.length - 1].matches(REGEX_NUMBERS)
                     || args[args.length - 1].equalsIgnoreCase(Main.MODIFICATION_TIME)
+                    || args[args.length - 1].equalsIgnoreCase(Main.FILTER)
                     || args[args.length - 1].contains(CRITERIAS_DELIMITER)) {
                 System.err.println("The Column Family Name is missing");
                 throw new IllegalArgumentException("The Column Family Name is missing");
@@ -310,9 +314,6 @@ public abstract class CommandHandler {
                     _client.setShowModificationTime(true);
                 }
                 if (args[i].equalsIgnoreCase(Main.FILTER)) {
-                    if (criterias == null) {
-                        criterias = new HashMap<>();
-                    }
                     if(!args[i+1].contains(CRITERIAS_DELIMITER)) {
                         String errMsg = "The filter criteria is not available, please follow the usage.";
                         throw new IllegalArgumentException(errMsg);

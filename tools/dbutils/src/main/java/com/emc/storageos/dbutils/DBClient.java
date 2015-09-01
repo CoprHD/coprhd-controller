@@ -236,7 +236,7 @@ public class DBClient {
         if (criterias != null && !criterias.isEmpty()) {
             localCriterias = new HashMap<>(criterias);
         }
-        StringBuffer record = new StringBuffer();
+        StringBuilder record = new StringBuilder();
         record.append("id: " + object.getId().toString() + "\n");
         boolean isPrint = true;
         

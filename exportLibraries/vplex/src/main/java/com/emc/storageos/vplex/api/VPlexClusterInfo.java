@@ -29,9 +29,6 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
     // Information about the system volumes accessible to the cluster.
     List<VPlexSystemVolumeInfo> systemVolumeInfoList = new ArrayList<VPlexSystemVolumeInfo>();
     
-    // Information about the storage volumes accessible to the cluster with their ITLs.
-    List<VPlexStorageVolumeITLsInfo> storageVolumeITLsInfoList = new ArrayList<VPlexStorageVolumeITLsInfo>();
-    
 	/**
      * Getter for the assembly id.
      * 
@@ -123,24 +120,6 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
     public void setStorageVolumeInfo(List<VPlexStorageVolumeInfo> volumeInfoList) {
         storageVolumeInfoList = volumeInfoList;
     }
-    
-    /**
-     * Getter for the storage volume ITL info for the cluster.
-     * 
-     * @return
-     */
-    public List<VPlexStorageVolumeITLsInfo> getStorageVolumeITLsInfoList() {
-        return storageVolumeITLsInfoList;
-    }
-
-    /**
-     * Setter for the storage volume ITL info for the cluster.
-     * 
-     * @param storageVolumeITLsInfoList
-     */
-    public void setStorageVolumeITLsInfoList(List<VPlexStorageVolumeITLsInfo> storageVolumeITLsInfoList) {
-        this.storageVolumeITLsInfoList = storageVolumeITLsInfoList;
-    }
 
     /**
      * Gets the storage volume with the passed name.
@@ -152,7 +131,10 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
     public VPlexStorageVolumeInfo getStorageVolume(VolumeInfo volumeInfo) {
         String storageVolumeName = volumeInfo.getVolumeWWN().toLowerCase();
         String storageSystemNativeGuid = volumeInfo.getStorageSystemNativeGuid();
+        
         String storageVolumeWWN = volumeInfo.getVolumeWWN();
+        List<String> backendVolumeItlsList = volumeInfo.getITLs();
+        
         s_logger.info("Find volume {} in cluster", storageVolumeName);
         for (VPlexStorageVolumeInfo storageVolumeInfo : storageVolumeInfoList) {
             String clusterVolumeName = storageVolumeInfo.getName();
@@ -168,43 +150,15 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
                 } else if (storageVolumeName.equals(clusterVolumeName)) {
                     s_logger.info("Found volume {}", storageVolumeName);
                     return storageVolumeInfo;
-                }
-            } else if (storageVolumeName.equals(clusterVolumeName)) {
-                // This matching means, the volume has been claimed already
-                s_logger.info("Found volume {}", storageVolumeName);
-                return storageVolumeInfo;
-            }
-        }
-        return null;
-    }
-    
-    
-    /**
-     * Gets the storage volume based on ITL match.
-     * 
-     * @param volumeInfo The backend storage volume info.
-     * 
-     * @return A reference to the VPlexStorageVolumeITLsInfo for the requested volume or null if not found.
-     */
-    public VPlexStorageVolumeITLsInfo getStorageVolumeITL(VolumeInfo volumeInfo) {
-        String storageVolumeName = volumeInfo.getVolumeWWN().toLowerCase();
-        List<String> backendVolumeItlsList = volumeInfo.getITLs();
-
-        s_logger.info("Find volume {} in cluster", storageVolumeName);
-        for (VPlexStorageVolumeITLsInfo storageVolumeInfo : storageVolumeITLsInfoList) {
-            String clusterVolumeName = storageVolumeInfo.getName();
-            s_logger.info("Cluster volume name is {}", clusterVolumeName);
-            int startIndex = clusterVolumeName.indexOf(":") + 1;
-            if (startIndex != -1) {
-                clusterVolumeName = clusterVolumeName.substring(startIndex);
-                s_logger.info("Trimmed cluster volume name is {}", clusterVolumeName);
-
-                s_logger.info("Doing the ITLs lookup");
-                List<String> vplexVolItls = storageVolumeInfo.getItls();
-                if (null != vplexVolItls && !vplexVolItls.isEmpty()) {
-                    if (vplexVolItls.contains(backendVolumeItlsList.get(0).trim().toLowerCase())) {
-                        s_logger.info("Found volume '{}' using ITL lookup", storageVolumeName);
-                        return storageVolumeInfo;
+                } else {
+                    // This path is Currently for Cinder only
+                    s_logger.info("Doing the ITLs lookup");
+                    List<String> vplexVolItls = storageVolumeInfo.getItls();
+                    if (null != vplexVolItls && !vplexVolItls.isEmpty()) {
+                        if (vplexVolItls.contains(backendVolumeItlsList.get(0).trim().toLowerCase())) {
+                            s_logger.info("Found volume '{}' using ITL lookup", storageVolumeName);
+                            return storageVolumeInfo;
+                        }
                     }
                 }
             } else if (storageVolumeName.equals(clusterVolumeName)) {
@@ -215,7 +169,7 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
         }
         return null;
     }
-
+    
 
     /**
      * Getter for the system volume info for the cluster.

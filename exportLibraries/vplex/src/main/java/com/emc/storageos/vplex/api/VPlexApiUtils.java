@@ -148,7 +148,7 @@ public class VPlexApiUtils {
             for (int i = 0; i < contextArray.length(); i++) {
                 JSONObject contextObj = contextArray.getJSONObject(i);
 
-                s_logger.info("Parsing {}: {}", clazz.getName(), contextObj.toString());              
+                s_logger.info("Parsing {}: {}", clazz.getName(), contextObj.toString());
                 Gson gson = new GsonBuilder().setFieldNamingPolicy(FieldNamingPolicy.LOWER_CASE_WITH_DASHES).create();
                 T resource = gson.fromJson(contextObj.toString(), clazz);
                 resource.setPath(contextObj.getString(VPlexApiConstants.PARENT_JSON_KEY) + VPlexApiConstants.SLASH + resource.getName());
@@ -353,16 +353,9 @@ public class VPlexApiUtils {
      * @param volInfo
      * @return
      */
-    public static boolean isCinder(List<VolumeInfo> volInfos) {
-        boolean isFetch = false;
-        VolumeInfo vi = volInfos.get(0);
-        String backendSystemType = vi.getSystemType().getType().toString();
-        List<String> itls = vi.getITLs();
-        if (VPlexApiBackendSystemType.OPENSTACK.toString().equalsIgnoreCase(backendSystemType)
-                && !itls.isEmpty()) {
-            isFetch = true;
-        }
+    public static boolean isITLBasedSearch(VolumeInfo volumeInfo) {
 
-        return isFetch;
+        return !volumeInfo.getITLs().isEmpty();
     }
+    
 }

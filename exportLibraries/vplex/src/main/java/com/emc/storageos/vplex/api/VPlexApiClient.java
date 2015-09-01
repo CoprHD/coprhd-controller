@@ -175,9 +175,9 @@ public class VPlexApiClient {
      * 
      * @throws VPlexApiException When an error occurs querying the VPlex.
      */
-    public List<VPlexClusterInfo> getClusterInfo(boolean shallow) throws VPlexApiException {
+    public List<VPlexClusterInfo> getClusterInfo(boolean shallow, boolean isStorageVolumeItlsFetch) throws VPlexApiException {
         s_logger.info("Request for cluster info for VPlex at {}", _baseURI);
-        return _discoveryMgr.getClusterInfo(shallow, false);
+        return _discoveryMgr.getClusterInfo(shallow, isStorageVolumeItlsFetch);
     }
 
     /**

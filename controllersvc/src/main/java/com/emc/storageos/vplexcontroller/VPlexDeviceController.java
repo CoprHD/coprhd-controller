@@ -129,6 +129,7 @@ import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
+import com.emc.storageos.vplex.api.VPlexApiUtils;
 import com.emc.storageos.vplex.api.VPlexClusterInfo;
 import com.emc.storageos.vplex.api.VPlexDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexDistributedDeviceInfo;
@@ -701,15 +702,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Make a call to re-discover storage system for storageSystemGuids
             client.rediscoverStorageSystems(storageSystemGuids);
 
-            // Make a call to get cluster info
-            List<VPlexClusterInfo> clusterInfoList = client.getClusterInfo(false);
-
             // Now make a call to the VPlexAPIClient.createVirtualVolume for each vplex volume.
             StringBuilder buf = new StringBuilder();
             buf.append("Vplex: " + vplexURI + " created virtual volume(s): ");
 
             List<VPlexVirtualVolumeInfo> virtualVolumeInfos = new ArrayList<VPlexVirtualVolumeInfo>();
             Map<String, Volume> vplexVolumeNameMap = new HashMap<String, Volume>();
+            List<VPlexClusterInfo> clusterInfoList = null;
             for (Volume vplexVolume : volumeMap.keySet()) {
                 URI vplexVolumeId = vplexVolume.getId();
                 _log.info(String.format("Creating virtual volume: %s (%s)", vplexVolume.getLabel(), vplexVolumeId));
@@ -737,6 +736,15 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Update rollback information.
                 rollbackData.add(vinfos);
                 _workflowService.storeStepData(stepId, rollbackData);
+                
+                // Make a call to get cluster info
+                if(null == clusterInfoList) {
+                    
+                    boolean isItlFetch = VPlexApiUtils.isITLBasedSearch(vinfos.get(0));
+                    clusterInfoList = client.getClusterInfo(false, isItlFetch);
+                }
+                
+                
                 // Make the call to create a virtual volume. It is distributed if there are two (or more?)
                 // physical volumes.
                 boolean isDistributed = (vinfos.size() >= 2);

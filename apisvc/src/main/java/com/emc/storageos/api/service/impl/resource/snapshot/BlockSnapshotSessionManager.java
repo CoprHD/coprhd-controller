@@ -175,7 +175,7 @@ public class BlockSnapshotSessionManager {
         SnapshotSessionNewTargetsParam linkedTargetsParam = param.getNewLinkedTargets();
         if (linkedTargetsParam != null) {
             newLinkedTargetsCount = linkedTargetsParam.getCount().intValue();
-            newTargetsName = linkedTargetsParam.getName();
+            newTargetsName = linkedTargetsParam.getTargetName();
             newTargetsCopyMode = linkedTargetsParam.getCopyMode();
         }
 
@@ -250,7 +250,7 @@ public class BlockSnapshotSessionManager {
 
         // Get the target information.
         int newLinkedTargetsCount = param.getNewLinkedTargets().getCount();
-        String newTargetsName = param.getNewLinkedTargets().getName();
+        String newTargetsName = param.getNewLinkedTargets().getTargetName();
         String newTargetsCopyMode = param.getNewLinkedTargets().getCopyMode();
         if (newTargetsCopyMode == null) {
             newTargetsCopyMode = CopyMode.nocopy.name();

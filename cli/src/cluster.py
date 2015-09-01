@@ -646,6 +646,7 @@ def cluster_update(args):
                 SOSError.CMD_LINE_ERR, sys.argv[0] + " " + sys.argv[1] +
                 " " + sys.argv[2] + ": error:" + "At least one of the"
                 " arguments :-tenant -label -vcenter -datacenter"
+                " -autoExportsEnabled -autoUnexportsEnabled "
                 " should be provided to update the cluster")
 
         if(args.datacenter or args.vcenter):

@@ -109,6 +109,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private Boolean metroPoint = false;
     // Flag that enables VPlex automatic cross-connected export, default disabled
     private Boolean autoCrossConnectExport = false;
+    // Max retention days for a Virtual Pool
+    private Integer maxRetentionDays;
 
     public static enum MetroPointType {
         @XmlEnumValue("singleRemote")
@@ -1306,5 +1308,15 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     public void setAutoCrossConnectExport(Boolean autoCrossConnectExport) {
         this.autoCrossConnectExport = autoCrossConnectExport;
         setChanged("autoCrossConnectExport");
+    }
+    
+    @Name("maxRetentionDays")
+    public Integer getMaxRetentionDays() {
+        return (maxRetentionDays==null) ? 0 : maxRetentionDays;
+    }
+
+    public void setMaxRetentionDays(Integer maxRetentionDays) {
+        this.maxRetentionDays = (null==maxRetentionDays || maxRetentionDays == 0) ? 0 : maxRetentionDays;
+        setChanged("maxRetentionDays");
     }
 }

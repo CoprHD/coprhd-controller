@@ -1,0 +1,98 @@
+%{
+  titleKey = 'ComputeImageServers.' + (computeImageServers?.id ? 'edit' : 'create') + '.title';
+  descriptionKey = 'ComputeImageServers.description';
+  image = '/public/img/assets/Host.png';
+}%
+#{extends 'main.html' /}
+#{set navSelected: ['nav.assets', 'nav.computeImageServers'] /}
+#{set 'title'}&{titleKey}#{/set}
+#{set editMode:computeImageServers?.id ? true : false/}
+
+#{breadcrumb.container}
+#{breadcrumb.item @list()}&{'ComputeImageServers.list.title'}#{/breadcrumb.item}
+#{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
+#{/breadcrumb.container}
+
+
+#{ifErrors}
+  #{set errors: true/}
+#{/ifErrors}
+#{else}
+  #{set errors: flash.error ? true : false/}
+#{/else}
+
+
+#{set 'moreScripts'}
+  <script type="text/javascript">
+  var editMode = #{get 'editMode'/};
+  var errors = #{get 'errors'/};
+
+    $(document).ready(function() {
+
+        var editMode = #{get 'editMode'/};
+        if (!editMode && !errors) {
+            setDefaults();
+        }
+        $('#computeImageServers_password').val('');        
+        $('#computeImageServers_confirmPassword').val('');  
+                  
+    });
+
+    function setDefaults() {
+
+    }
+    
+  </script>
+#{/set}
+
+
+<div class="container">
+    #{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
+    
+    #{alerts/}
+    
+#{form @save(), id:'computeImageServerForm', class:'form form-horizontal', autocomplete:"off"}
+#{field 'referrer'}
+<input type="hidden" name="${field.name}" value="${referrer}">
+#{/field}
+   
+
+  <fieldset>
+    #{field 'computeImageServers.name'}
+      #{Form.inputTextControlGroup field:field, required:true, cssClass:'initialFocus' /}
+    #{/field} 
+
+    #{field 'computeImageServers.imageServerIp'}
+      #{Form.inputTextControlGroup field:field, required:!editMode /}
+    #{/field}
+    
+    #{field 'computeImageServers.osInstallNetworkAddress'}
+        #{Form.inputTextControlGroup field:field, required:false /}
+    #{/field}
+    #{field 'computeImageServers.userName'}
+      #{Form.inputTextControlGroup field:field, required:!editMode /}
+    #{/field}
+    
+    #{field 'computeImageServers.password'}
+      #{Form.inputPasswordControlGroup field:field, required:!editMode /}
+    #{/field}
+
+    #{field 'computeImageServers.tftpBootDir'}
+      #{Form.inputPasswordControlGroup field:field, required:!editMode /}
+    #{/field}    
+
+    #{field 'computeImageServers.osInstallTimeout'}
+      #{Form.inputPasswordControlGroup field:field, required:!editMode /}
+    #{/field}    
+
+    #{if computeImageServers?.id}
+        #{field 'computeImageServers.id'}
+          <input type="hidden" name="${field.name}" value="${field.value}">
+        #{/field}
+    
+      #{/if} 
+    </fieldset>
+
+    #{Form.saveCancel cancelHref:referrer/}
+#{/form}
+</div>

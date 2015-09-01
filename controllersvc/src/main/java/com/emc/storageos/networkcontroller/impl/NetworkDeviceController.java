@@ -19,6 +19,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.DataSourceFactory;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
+import com.emc.storageos.db.client.model.*;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,24 +35,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
-import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.FCEndpoint;
-import com.emc.storageos.db.client.model.FCZoneReference;
-import com.emc.storageos.db.client.model.HostInterface;
-import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.Network;
-import com.emc.storageos.db.client.model.NetworkSystem;
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.VirtualArray;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.ZoneInfo;
-import com.emc.storageos.db.client.model.ZoneInfoMap;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.StringMapUtil;
@@ -98,11 +85,17 @@ public class NetworkDeviceController implements NetworkController {
     private NetworkScheduler _networkScheduler;
     private static final String EVENT_SERVICE_TYPE = "network";
     private static final String EVENT_SERVICE_SOURCE = "NetworkDeviceController";
+    private static final StringMap scope = new StringMap();
 
     @Autowired
     private AuditLogManager _auditMgr;
     @Autowired
     private DbModelClient dbModelClient;
+    @Autowired
+    private DataSourceFactory dataSourceFactory;
+    @Autowired
+    private CustomConfigHandler customConfigHandler;
+
 
     private RecordableEventManager _eventManager;
 
@@ -1035,7 +1028,19 @@ public class NetworkDeviceController implements NetworkController {
                     ex.getMessage(), ex);
             WorkflowStepCompleter.stepFailed(token, svcError);
         }
-        return doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token, true);
+        //Check if Zoning needs to be checked from system config
+        //call the doZoneExportMasksCreate to check/create/remove zones with the flag
+        scope.put(CustomConfigConstants.GLOBAL_KEY, CustomConfigConstants.GLOBAL_KEY);
+        String addZoneWhileAddingVolume =  customConfigHandler.getCustomConfigValue(
+                CustomConfigConstants.ZONE_ADD_VOLUME, scope);
+        Boolean addZoneOnDeviceOperation = false;
+        if(addZoneWhileAddingVolume != null) {
+            addZoneOnDeviceOperation = Boolean.getBoolean(addZoneWhileAddingVolume);
+        }
+
+        _log.info("zoneExportAddVolumes checking for custome config value to skip zoning checks", addZoneOnDeviceOperation);
+
+        return doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token, addZoneOnDeviceOperation);
     }
 
     /**

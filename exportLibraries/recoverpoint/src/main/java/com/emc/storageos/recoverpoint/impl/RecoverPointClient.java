@@ -2587,7 +2587,7 @@ public class RecoverPointClient {
             // Only execute the remove replication sets operation if there are replication sets
             // to remove.
             if (cgSettingsParam.getRemovedReplicationSets() != null &&
-                    cgSettingsParam.getRemovedReplicationSets().size() > 0) {
+                    !cgSettingsParam.getRemovedReplicationSets().isEmpty()) {
                 if (replicationSetSettings.size() == cgSettingsParam.getRemovedReplicationSets().size()) {
                     // We are removing all the replication sets in the CG so we need to disable
                     // the entire CG.

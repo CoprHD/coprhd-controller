@@ -20,14 +20,4 @@ public class ClusterTest {
         Assert.assertFalse(cluster.isAutoExportEnabled());
     }
 
-    @Test
-    public void testClusterAutoUnexportEnabled() {
-        Cluster cluster = new Cluster();
-        Assert.assertTrue(cluster.isAutoUnexportEnabled());
-        cluster.setAutoUnexportEnabled(true);
-        Assert.assertTrue(cluster.isAutoUnexportEnabled());
-        cluster.setAutoUnexportEnabled(false);
-        Assert.assertFalse(cluster.isAutoUnexportEnabled());
-    }
-
 }

@@ -338,17 +338,16 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     @Override
-    public void synchronizeSharedExports(URI clusterId, boolean enablingAutoExports, boolean enablingAutoUnexports, String taskId)
+    public void synchronizeSharedExports(URI clusterId, boolean enablingAutoExports, String taskId)
             throws ControllerException {
         TaskCompleter completer = null;
         try {
             completer = new ClusterCompleter(clusterId, false, taskId);
             Workflow workflow = _workflowService.getNewWorkflow(this, SYNCHRONIZE_SHARED_EXPORTS_WF_NAME, true, taskId);
             String waitFor = null;
-            if (enablingAutoExports || enablingAutoUnexports) {
+            if (enablingAutoExports) {
                 List<URI> clusterHostIds = ComputeSystemHelper.getChildrenUris(_dbClient, clusterId, Host.class, "cluster");
-                waitFor = addStepsForSynchronizeClusterExport(workflow, waitFor, clusterHostIds, clusterId, enablingAutoExports,
-                        enablingAutoUnexports);
+                waitFor = addStepsForSynchronizeClusterExport(workflow, waitFor, clusterHostIds, clusterId, enablingAutoExports);
             }
             workflow.executePlan(completer, "Success", null, null, null, null);
         } catch (Exception ex) {
@@ -513,7 +512,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
     }
 
     public String addStepsForSynchronizeClusterExport(Workflow workflow, String waitFor, List<URI> clusterHostIds, URI clusterId,
-            boolean autoExportEnabled, boolean autoUnexportEnabled) {
+            boolean autoExportEnabled) {
 
         for (ExportGroup export : getSharedExports(clusterId)) {
             List<URI> updatedInitiators = StringSetUtil.stringSetToUriList(export.getInitiators());
@@ -532,10 +531,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         }
                     }
                 }
-            }
 
-            // Remove all hosts in cluster's export group that don't belong to the cluster
-            if (autoUnexportEnabled) {
+                // Remove all hosts in cluster's export group that don't belong to the cluster
                 Iterator<URI> updatedHostsIterator = updatedHosts.iterator();
                 while (updatedHostsIterator.hasNext()) {
                     URI hostId = updatedHostsIterator.next();
@@ -916,8 +913,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 Host host = _dbClient.queryObject(Host.class, deletedHost);
                 if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
                     Cluster cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
-                    if (!cluster.isAutoUnexportEnabled()) {
-                        _log.info(String.format("Unable to delete host %s. Belongs to cluster %s which has auto unexport disabled.",
+                    if (!cluster.isAutoExportEnabled()) {
+                        _log.info(String.format("Unable to delete host %s. Belongs to cluster %s which has auto export disabled.",
                                 host.getId(),
                                 cluster.getId()));
                         it.remove();
@@ -962,8 +959,6 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         if (currentClusterRef != null) {
                             if (currentClusterRef.isAutoExportEnabled()) {
                                 egh.addInitiators(validInitiatorIds);
-                            }
-                            if (currentClusterRef.isAutoUnexportEnabled()) {
                                 egh.removeInitiators(change.getOldInitiators());
                             }
                         }
@@ -976,7 +971,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         && ComputeSystemHelper.isClusterInExport(_dbClient, oldCluster);
 
                 // being removed from a cluster and no longer in a cluster
-                if (isRemovedFromCluster && !oldClusterRef.isAutoUnexportEnabled()) {
+                if (isRemovedFromCluster && !oldClusterRef.isAutoExportEnabled()) {
                     for (ExportGroup export : getSharedExports(oldCluster)) {
                         ExportGroupState egh = getExportGroupState(exportGroups, export);
                         _log.info("Host removed from cluster and no longer in a cluster. Export: " + export.getId() + " Remove Host: "
@@ -1010,7 +1005,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         }
                     }
 
-                    if (isMovedToDifferentCluster && oldClusterRef.isAutoUnexportEnabled()) {
+                    if (isMovedToDifferentCluster && oldClusterRef.isAutoExportEnabled()) {
                         for (ExportGroup export : getSharedExports(oldCluster)) {
                             ExportGroupState egh = getExportGroupState(exportGroups, export);
                             _log.info("Removing references to previous cluster. Export: " + export.getId() + " Remove Host: " + hostId

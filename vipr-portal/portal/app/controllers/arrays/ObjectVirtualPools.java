@@ -7,7 +7,6 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import jobs.vipr.TenantsCall;
 import jobs.vipr.VirtualArraysCall;
@@ -26,6 +25,7 @@ import play.Logger;
 import play.data.binding.As;
 import play.data.validation.Validation;
 import play.exceptions.UnexpectedException;
+import play.i18n.Messages;
 import play.libs.F.Promise;
 import play.mvc.Http;
 import play.mvc.With;
@@ -41,11 +41,9 @@ import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.model.vpool.ObjectVirtualPoolRestRep;
 import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 import controllers.Common;
-import controllers.arrays.FileVirtualPools.DeactivateOperation;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
@@ -95,7 +93,18 @@ public class ObjectVirtualPools extends ViprResourceController{
 	    }
 
 	    public static void duplicate(String ids) {
-	       list();
+	    	 ObjectVirtualPoolRestRep targetVPool = VirtualPoolUtils.getObjectVirtualPool(ids);
+	         if (targetVPool == null) {
+	             flash.error(MessagesUtils.get(UNKNOWN, ids));
+	             backToReferrer();
+	         }
+	         ObjectVirtualPoolForm copy = new ObjectVirtualPoolForm();
+	         copy.load(targetVPool);
+	         copy.id = null;
+	         copy.name = Messages.get("virtualPools.duplicate.name", copy.name);
+	         // Target VPool could have resources, set resources to 0 on the new Copy VPool so user can modify form
+	         copy.numResources = 0;
+	         edit(copy);
 	    }
 
 	    public static void edit(String id) {
@@ -144,17 +153,15 @@ public class ObjectVirtualPools extends ViprResourceController{
 	    }
 	    
 	    public static void listVirtualArrayAttributesJson(ObjectVirtualPoolForm vpool) {
-	        if (vpool == null) {
-	            renderJSON(Collections.emptyList());
-	        }
-	        Map<String, Set<String>> attributes = Maps.newHashMap();
-	        //attributes.put("protocols", Sets.newHashSet(allAttributes.get(VirtualArrayUtils.ATTRIBUTE_PROTOCOLS)));
-	        renderJSON(attributes);
+	    	  if (vpool == null) {
+	              renderJSON(Collections.emptyList());
+	          }
+	          renderJSON(vpool.getVirtualPoolAttributes());
 	    }
 	    
 	    public static void listStoragePoolsJson(ObjectVirtualPoolForm vpool) {
 	        List<StoragePoolInfo> items = Lists.newArrayList();
-	        if (vpool != null && vpool.protocols != null && !vpool.protocols.isEmpty()) {
+	        if (vpool != null) {
 	            Map<URI, String> storageSystemNames = StorageSystemUtils.getStorageSystemNames();
 	            List<StoragePoolRestRep> pools = getMatchingStoragePools(vpool);
 	            for (StoragePoolRestRep pool : pools) {
@@ -206,5 +213,13 @@ public class ObjectVirtualPools extends ViprResourceController{
 	    private static void delete(List<URI> ids) {
 	        performSuccessFail(ids, new DeactivateOperation(), DELETED_SUCCESS, DELETED_ERROR);
 	        backToReferrer();
+	    }
+	    
+	    protected static class DeactivateOperation implements ResourceIdOperation<Void> {
+	        @Override
+	        public Void performOperation(URI id) throws Exception {
+	            VirtualPoolUtils.deactivateObject(id);
+	            return null;
+	        }
 	    }
 }

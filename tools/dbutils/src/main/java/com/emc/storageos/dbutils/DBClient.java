@@ -218,7 +218,7 @@ public class DBClient {
             return;
         }
 
-        printBeanProperties(clazz, object, null);
+        printBeanProperties(clazz, object);
     }
 
     /**
@@ -232,10 +232,8 @@ public class DBClient {
      */
     private <T extends DataObject> boolean printBeanProperties(Class<T> clazz, T object, Map<String, String> criterias)
             throws Exception {
-        Map<String, String> localCriterias = null;
-        if (criterias != null && !criterias.isEmpty()) {
-            localCriterias = new HashMap<>(criterias);
-        }
+        Map<String, String> localCriterias = new HashMap<>(criterias);
+        
         StringBuilder record = new StringBuilder();
         record.append("id: " + object.getId().toString() + "\n");
         boolean isPrint = true;
@@ -268,7 +266,7 @@ public class DBClient {
 
             objValue = pd.getReadMethod().invoke(object);
             
-            if(localCriterias !=null && !localCriterias.isEmpty()) {
+            if(!localCriterias.isEmpty()) {
                 if(localCriterias.containsKey(objKey)) {
                     if(!localCriterias.get(objKey).equalsIgnoreCase(String.valueOf(objValue))) {
                         isPrint = false;
@@ -324,7 +322,7 @@ public class DBClient {
         }
         
         if (isPrint) {
-            if (localCriterias != null && !localCriterias.isEmpty()) {
+            if (!localCriterias.isEmpty()) {
                 String errMsg = String.format(
                         "The filters %s are not available for the CF %s",
                         localCriterias.keySet(), clazz);
@@ -334,6 +332,11 @@ public class DBClient {
         }
         
         return isPrint;
+    }
+    
+    private <T extends DataObject> boolean printBeanProperties(Class<T> clazz, T object)
+            throws Exception {
+        return printBeanProperties(clazz, object, new HashMap<String, String>());
     }
 
     private boolean isEmptyStr(Object objValue) {

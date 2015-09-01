@@ -25,7 +25,6 @@ import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 
 import com.emc.storageos.volumecontroller.*;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

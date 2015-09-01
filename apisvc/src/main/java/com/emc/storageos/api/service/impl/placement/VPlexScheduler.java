@@ -478,10 +478,7 @@ public class VPlexScheduler implements Scheduler {
         // backend system where the corresponding backend CG resides.
         URI cgURI = capabilities.getBlockConsistencyGroup();
         BlockConsistencyGroup cg = (cgURI == null ? null : _dbClient.queryObject(BlockConsistencyGroup.class, cgURI));
-        if ((srcStorageSystem == null) && (cg != null)) {
-           // srcStorageSystem = getCGStorageSystemForBackendPlacement(cg, srcVarray.getId(), null);
-        }
-
+        
         // Get all storage pools that match the passed source VirtualPool params,
         // and source virtual array. In addition, the pool must have enough
         // capacity to hold at least one resource of the requested size.

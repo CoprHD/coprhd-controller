@@ -1229,10 +1229,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     private void verifyVolumesInCG(List<Volume> volumes, BlockConsistencyGroup cg) {
         List<Volume> cgVolumes = getActiveCGVolumes(cg);
-        /*if (volumes.size() < cgVolumes.size()) {
-            throw APIException.badRequests.cantChangeVpoolNotAllCGVolumes();
-        }*/
-
         // Make sure only the CG volumes are selected.
         for (Volume volume : volumes) {
             boolean found = false;
@@ -3187,37 +3183,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 throw APIException.badRequests.notAllowedAddVolumeToCGWithIngestedVolumes();
             }
         }
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void verifySystemForVolumeToBeAddedToCG(Volume vplexVolume,
-            BlockConsistencyGroup cg, StorageSystem cgStorageSystem) {
-
-        // Verify the VPLEX system for the volume is the same VPLEX system
-        // for the consistency group.
-        super.verifySystemForVolumeToBeAddedToCG(vplexVolume, cg, cgStorageSystem);
-
-        // Because for VPLEX CGs there are corresponding backend CG(s), we
-        // also need to check that the backend volumes used by VPLEX
-        // volume are on the same array as the backend CGs. Note that CGs
-        // created prior to release 2.2 will not have backend CGs.
-        /*if (cg.checkForType(Types.LOCAL)) {
-            List<URI> backendCGSystemURIs = BlockConsistencyGroupUtils
-                    .getLocalSystems(cg, _dbClient);
-            StringSet assocVolumes = vplexVolume.getAssociatedVolumes();
-            if (assocVolumes != null) {
-                for (String assocVolumeId : assocVolumes) {
-                    Volume assocVolume = _dbClient.queryObject(Volume.class, URI.create(assocVolumeId));
-                    URI assocVolumeSystemURI = assocVolume.getStorageController();
-                    if (!backendCGSystemURIs.contains(assocVolumeSystemURI)) {
-                        throw APIException.badRequests.notAllowedInvalidBackendSystem();
-                    }
-                }
-            }
-        }*/
     }
 
     private void checkIfClusterIsUnknown(String cluster, String varrayURI, String vplexStorageSystemURI) {

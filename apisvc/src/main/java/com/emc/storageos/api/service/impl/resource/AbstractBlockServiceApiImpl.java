@@ -1476,8 +1476,6 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                     .invalidParameterConsistencyGroupCannotAddProtectedVolume(volumeURI);
         }
 
-        // For VPLEX volumes the backend storage must be on the same
-        // array as the volumes currently in the consistency group.
         verifySystemForVolumeToBeAddedToCG(volume, cg, cgStorageSystem);
     }
 

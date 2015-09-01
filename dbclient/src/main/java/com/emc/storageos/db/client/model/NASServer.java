@@ -6,52 +6,45 @@ package com.emc.storageos.db.client.model;
 
 import java.net.URI;
 
-import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.StorageHADomain.HADomainType;
-import com.emc.storageos.model.valid.EnumType;
-
 /**
  * VirtualNAS Server will contain the details of NAS server depending on StorageArray type
  * eg. VDM, vFiler, vServer or AccessZone or NasServer.
  * It will hold information about the Ip interfaces, cifs Server & NFS servers mapped to NasServer
  * 
  * @author ganeso
- *
+ * 
  */
 
-public class NASServer extends VirtualArrayTaggedResource implements Comparable <NASServer>  {
+public class NASServer extends VirtualArrayTaggedResource implements Comparable<NASServer> {
 
     // NAS Server name
     private String nasName;
-    
+
     private String nativeId;
-    
-   	// storageSystem, which it belongs
+
+    // storageSystem, which it belongs
     private URI storageDeviceURI;
     private StringSet protocols;
-    
+
     // Set of Authentication providers for the VNasServer - set values will of type AunthnProvider
     private CifsServerMap cifsServersMap;
-    
+
     // List of Storage Ports associated with this Nas Server
     private StringSet storagePorts;
-    
+
     // State of the NAS server
     private String nasState;
-    
-    
+
     // Place holder for hosting storageDomain's information
     private StringSet storageDomain;
-    
+
     private String registrationStatus = RegistrationStatus.REGISTERED.toString();
     private String compatibilityStatus = CompatibilityStatus.UNKNOWN.name();
     private String discoveryStatus = DiscoveryStatus.VISIBLE.name();
-    
+
     // Place holder for Tag
     private StringSet nasTag;
-    
+
     private StringMap metrics;
 
     @Override
@@ -83,13 +76,13 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
 
     @Name("nativeId")
     public String getNativeId() {
-		return nativeId;
-	}
+        return nativeId;
+    }
 
-	public void setNativeId(String nativeId) {
-		this.nativeId = nativeId;
-	}
-	
+    public void setNativeId(String nativeId) {
+        this.nativeId = nativeId;
+    }
+
     @Name("protocols")
     public StringSet getProtocols() {
         return protocols;
@@ -102,24 +95,22 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
 
     @Name("cifsServers")
     public CifsServerMap getCifsServersMap() {
-		return cifsServersMap;
-	}
+        return cifsServersMap;
+    }
 
-	public void setCifsServersMap(CifsServerMap cifsServersMap) {
-		this.cifsServersMap = cifsServersMap;
-	}
+    public void setCifsServersMap(CifsServerMap cifsServersMap) {
+        this.cifsServersMap = cifsServersMap;
+    }
 
     @Name("storagePorts")
     public StringSet getStoragePorts() {
-    	if(storagePorts == null){
-    		storagePorts = new StringSet();
-    	}
+        if (storagePorts == null) {
+            storagePorts = new StringSet();
+        }
         return storagePorts;
     }
 
-    
-
-	public void setStoragePorts(StringSet storagePorts) {
+    public void setStoragePorts(StringSet storagePorts) {
         this.storagePorts = storagePorts;
         setChanged("storagePorts");
     }
@@ -174,9 +165,11 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
         setChanged("discoveryStatus");
     }
 
-    
     @Name("metrics")
     public StringMap getMetrics() {
+        if (metrics == null) {
+            metrics = new StringMap();
+        }
         return metrics;
     }
 
@@ -184,7 +177,6 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
         this.metrics = _metrics;
         setChanged("metrics");
     }
-
 
     @Name("nasTag")
     public StringSet getNAStag() {
@@ -195,6 +187,5 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
         this.nasTag = vNAStag;
         setChanged("nasTag");
     }
-    
-}
 
+}

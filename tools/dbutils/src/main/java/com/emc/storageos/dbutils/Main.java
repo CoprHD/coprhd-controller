@@ -71,13 +71,13 @@ public class Main {
      */
     private static void usage() {
         System.out.printf("Usage: %n");
-        System.out.printf("\t%s [%s <n>] [%s] [%s] <Column Family Name>%n",
-                Command.LIST.name().toLowerCase(), LIST_LIMIT, INACTIVE, MODIFICATION_TIME);
+        System.out.printf("\t%s [%s <n>] [%s] [%s] [%s <criterias>] <Column Family Name>%n",
+                Command.LIST.name().toLowerCase(), LIST_LIMIT, INACTIVE, MODIFICATION_TIME, FILTER);
         System.out.printf("\t\t%s <n>\t List paginated with a limit of <n>, "
                 + "if <n> is missing, default is 100.%n", LIST_LIMIT);
         System.out.printf("\t\t%s\t List including inactive object ids.%n", INACTIVE);
         System.out.printf("\t\t%s\t\t Show the latest modified field of each record.%n", MODIFICATION_TIME);
-        System.out.printf("\t\t%s\t\t Filter with criterias, e.g, -filter resource=\"<resource id>\" -filter pending=true.%n", FILTER);
+        System.out.printf("\t\t%s <criterias>\t Filter with <criterias>, e.g, -filter resource=\"<resource id>\" -filter pending=true.%n", FILTER);
         System.out.printf("\t%s [%s] <Column Family Name> <id>%n", Command.QUERY.name().toLowerCase(), MODIFICATION_TIME);
         System.out.printf("\t\t%s\t\t Show the latest modified field of the record.%n", MODIFICATION_TIME);
         System.out.printf("\t%s <%s/%s/%s> <file_prefix> [<YEAR/MONTH/DAY/HOUR>]%n",

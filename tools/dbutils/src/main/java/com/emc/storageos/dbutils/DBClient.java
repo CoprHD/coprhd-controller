@@ -232,7 +232,10 @@ public class DBClient {
      */
     private <T extends DataObject> boolean printBeanProperties(Class<T> clazz, T object, Map<String, String> criterias)
             throws Exception {
-        Map<String, String> localCriterias = new HashMap<>(criterias);
+        Map<String, String> localCriterias = null;
+        if (criterias != null && !criterias.isEmpty()) {
+            localCriterias = new HashMap<>(criterias);
+        }
         StringBuffer record = new StringBuffer();
         record.append("id: " + object.getId().toString() + "\n");
         boolean isPrint = true;

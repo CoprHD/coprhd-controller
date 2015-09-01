@@ -48,6 +48,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualNAS.vNasState;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -858,7 +859,7 @@ public class ProjectService extends TaggedResource {
                 ArgValidator.checkEntity(vnas, vnasURI, isIdEmbeddedInURL(vnasURI));
 
                 // VNAS server should not associated with any project and should be in loaded state
-                if (vnas.getProject() == null && vnas.getVNasState().equalsIgnoreCase(vNasState.LOADED.getNasState())) {
+                if (vnas.isNotAssignedToProject() && vnas.getVNasState().equalsIgnoreCase(vNasState.LOADED.getNasState())) {
 
                     // Get list of domains associated with a VNAS server and validate with project's domain
                     boolean domainMatched = false;
@@ -932,7 +933,7 @@ public class ProjectService extends TaggedResource {
                     VirtualNAS vnas = _permissionsHelper.getObjectById(vnasURI, VirtualNAS.class);
                     ArgValidator.checkEntity(vnas, vnasURI, isIdEmbeddedInURL(vnasURI));
                     if (vnasServers.contains(vId)) {
-                        vnas.setProject(null);
+                        vnas.setProject(NullColumnValueGetter.getNullURI());
                         _dbClient.persistObject(vnas);
                         vnasServers.remove(vId);
                     }

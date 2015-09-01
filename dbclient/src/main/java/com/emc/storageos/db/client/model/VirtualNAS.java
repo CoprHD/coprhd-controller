@@ -6,6 +6,7 @@ package com.emc.storageos.db.client.model;
 
 import java.net.URI;
 
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.valid.EnumType;
 
 /**
@@ -99,4 +100,8 @@ public class VirtualNAS extends NASServer {
             return UNKNOWN.toString();
         }
     };
+
+    public boolean isNotAssignedToProject() {
+        return NullColumnValueGetter.isNullURI(project);
+    }
 }

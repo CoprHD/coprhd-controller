@@ -2357,16 +2357,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      */
     @Override
     public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId) {
-        // If the volume is under protection
-        if (snapshot.getEmName() != null) {
-            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class,
-                snapshot.getStorageController());
-            RPController controller = getController(RPController.class, ProtectionSystem._RP);
-            controller.restoreVolume(parentVolume.getProtectionController(),
-                storageSystem.getId(), snapshot.getId(), taskId);
-        } else {
-            super.restoreSnapshot(snapshot, parentVolume, taskId);
-        }
+        _log.info(String.format("Request to restore RP volume %s from snapshot %s.",
+                parentVolume.getId().toString(), snapshot.getId().toString()));
+
+        super.restoreSnapshot(snapshot, parentVolume, taskId);
     }
     
     /**
@@ -2679,7 +2673,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             String internalSiteName = ((ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(volume.getInternalSiteName()) : volume.getInternalSiteName());            
             buf.append(String.format("\t RP Internal Site : [%s %s]%n", internalSiteName, volume.getInternalSiteName()));            
             buf.append(String.format("\t RP Copy Name : [%s]%n", volume.getRpCopyName()));
-            buf.append(String.format("\t RP MetroPoint enabled : [%s]%n", (VirtualPool.vPoolSpecifiesMetroPoint(vpool) ? "true" : "false")));
+            
+            if (Volume.PersonalityTypes.SOURCE.equals(volume.getPersonality())) {
+                buf.append(String.format("\t RP MetroPoint enabled : [%s]%n", (VirtualPool.vPoolSpecifiesMetroPoint(vpool) ? "true" : "false")));
+            }
             
             if (!NullColumnValueGetter.isNullURI(volume.getRpJournalVolume())) { 
                 Volume journalVolume = _dbClient.queryObject(Volume.class, volume.getRpJournalVolume());

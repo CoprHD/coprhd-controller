@@ -51,6 +51,7 @@ import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StoragePort.TransportType;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.EndpointUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -295,6 +296,11 @@ public class StoragePortService extends TaggedResource {
         // Update the storage port virtual array assignments.
         _log.info("Checking for updates to storage port virtual array assignments.");
         boolean virtualArraysUpdated = updateStoragePortVirtualArrays(storagePort,
+                storagePortUpdates.getVarrayChanges());
+        
+        // Update the virtual nas virtual array assignments.
+        _log.info("Checking for updates to virtual nas virtual array assignments.");
+        boolean vNasVirtualArraysUpdated = updatevNasVirtualArrays(storagePort,
                 storagePortUpdates.getVarrayChanges());
 
         /**
@@ -612,6 +618,116 @@ public class StoragePortService extends TaggedResource {
         return varraysForPortUpdated;
     }
 
+    /**
+     * Updates the virtual arrays to which the port of virtual nas is assigned.
+     * 
+     * @param storagePort A reference to the storage port.
+     * @param varrayChanges The virtual array changes.
+     * 
+     * @return true if there was a virtual array assignment change, false otherwise.
+     */
+    
+    private boolean updatevNasVirtualArrays(StoragePort storagePort,
+    		VirtualArrayAssignmentChanges varrayAssignmentChanges) {
+
+    	// Validate that the virtual arrays to be assigned to the vnas
+    	// reference existing virtual arrays in the database and add them to
+    	// the vnas.
+    	boolean varraysForvNasUpdated = false;
+
+    	Set<String> varraysAddedTovNas = new HashSet<String>();
+    	Set<String> varraysRemovedFromvNas = new HashSet<String>();
+
+    	if (varrayAssignmentChanges != null) {
+
+    		VirtualArrayAssignments addAssignments = varrayAssignmentChanges.getAdd();
+    		VirtualArrayAssignments removeAssignments = varrayAssignmentChanges.getRemove();
+
+    		// Update the vNAS if the port belongs to VNX file!!!
+    		URI systemURI = storagePort.getStorageDevice();
+    		StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
+    		if (DiscoveredDataObject.Type.vnxfile.name().equals(system.getSystemType())) {
+
+    			// Get the virtual nas servers contains the storage port!!!
+    			URIQueryResultList vNasUriList = new URIQueryResultList();
+    			_dbClient.queryByConstraint(
+    					AlternateIdConstraint.Factory.getStoragePortEndpointConstraint(storagePort.getId().toString()), vNasUriList);
+
+    			Iterator<URI> vNasIter = vNasUriList.iterator();
+    			while (vNasIter.hasNext()) {
+    				VirtualNAS vNas = _dbClient.queryObject(VirtualNAS.class, vNasIter.next());
+    				if (vNas != null && !vNas.getInactive()) {
+    					StringSet currentAssignmentsForvNas = vNas.getAssignedVirtualArrays();
+    					if (addAssignments != null) {
+    						Set<String> addVArrays = addAssignments.getVarrays();
+    						if ((addVArrays != null) && (!addVArrays.isEmpty())) {
+    							// Iterate over the virtual arrays and assign them
+    							// to the virtual NAS.
+
+    							Iterator<String> addVArraysIterForvNas = addVArrays.iterator();
+    							while (addVArraysIterForvNas.hasNext()) {
+    								String addVArrayId = addVArraysIterForvNas.next();
+    								if ((currentAssignmentsForvNas != null) && (currentAssignmentsForvNas.contains(addVArrayId))) {
+    									// Just ignore those already assigned
+    									_log.info("Virtual Nas already assigned to virtual array {}",
+    											addVArrayId);
+    									continue;
+    								}
+
+    								varraysAddedTovNas.add(addVArrayId);
+    								varraysForvNasUpdated = true;
+    								_log.info("virtual nas will be assigned to virtual array {}", addVArrayId);
+    							}
+
+    						}
+
+    					}
+
+    					if (removeAssignments != null) {
+    						Set<String> removeVArrays = removeAssignments.getVarrays();
+    						if ((removeVArrays != null) && (!removeVArrays.isEmpty())) {
+
+    							// Iterate over the virtual arrays and assign them
+    							// to the virtual NAS.
+    							Iterator<String> removeVArraysIterForvNas = removeVArrays.iterator();
+    							while (removeVArraysIterForvNas.hasNext()) {
+    								String removeVArrayId = removeVArraysIterForvNas.next();
+    								if ((currentAssignmentsForvNas != null) && (!currentAssignmentsForvNas.contains(removeVArrayId))) {
+    									// Just ignore those already assigned
+    									_log.info("Virtual Nas not assigned to virtual array {}",
+    											removeVArrayId);
+    									continue;
+    								}
+
+    								varraysRemovedFromvNas.add(removeVArrayId);
+    								varraysForvNasUpdated = true;
+    								_log.info("virtual nas will be unassigned to virtual array {}", removeVArrayId);
+    							}
+    						}
+    					}
+
+    					if(varraysForvNasUpdated){
+    						if(!varraysAddedTovNas.isEmpty()){
+    							vNas.addAssignedVirtualArrays(varraysAddedTovNas);
+    							_log.info("virtual nas assigned with virtual arrays size {}", varraysAddedTovNas.size());
+    						}
+    						if(!varraysRemovedFromvNas.isEmpty()){
+    							vNas.removeAssignedVirtualArrays(varraysRemovedFromvNas);
+    							_log.info("virtual nas un-assigned with virtual arrays size {}", varraysRemovedFromvNas.size());
+    						}
+    					}
+
+    				}
+
+    			}
+
+    		} else {
+    			_log.info("Ignored assignment of varray to virtual nas as the storage port not belongs to vnx file");
+    		}
+    	}
+    	return varraysForvNasUpdated;
+    }
+    
     /**
      * Checks that the storage port does not have any active exports (file or block) in any
      * of the varrays from which it is being removed.

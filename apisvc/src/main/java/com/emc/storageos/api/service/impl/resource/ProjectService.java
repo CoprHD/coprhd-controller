@@ -862,13 +862,17 @@ public class ProjectService extends TaggedResource {
 
                     // Get list of domains associated with a VNAS server and validate with project's domain
                     boolean domainMatched = false;
-                    Set<Entry<String, NasCifsServer>> nasCifsServers = vnas.getCifsServersMap().entrySet();
-                    for (Entry<String, NasCifsServer> nasCifsServer : nasCifsServers) {
-                        NasCifsServer cifsServer = nasCifsServer.getValue();
-                        if (projectDomains.contains(cifsServer.getDomain())) {
-                            domainMatched = true;
-                            break;
+                    if (projectDomains != null && !projectDomains.isEmpty()) {
+                        Set<Entry<String, NasCifsServer>> nasCifsServers = vnas.getCifsServersMap().entrySet();
+                        for (Entry<String, NasCifsServer> nasCifsServer : nasCifsServers) {
+                            NasCifsServer cifsServer = nasCifsServer.getValue();
+                            if (projectDomains.contains(cifsServer.getDomain())) {
+                                domainMatched = true;
+                                break;
+                            }
                         }
+                    } else {
+                        domainMatched = true;
                     }
 
                     // Get list of file systems and associated project of VNAS server and validate with Project
@@ -892,9 +896,7 @@ public class ProjectService extends TaggedResource {
 
                     // VNAS server and project should be in same domain
                     // VNAS server should not have file systems associated to a different project
-                    if (projectDomains != null && projectDomains.isEmpty()) {
-                        validNas.add(id);
-                    } else if (domainMatched && projectMatched) {
+                    if (domainMatched && projectMatched) {
                         validNas.add(id);
                     }
                 }

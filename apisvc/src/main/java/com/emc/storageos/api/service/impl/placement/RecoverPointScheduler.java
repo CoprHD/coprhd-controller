@@ -2408,8 +2408,8 @@ public class RecoverPointScheduler implements Scheduler {
      * Returns a list of recommendations for storage pools that satisfy the request. 
      * The return list is sorted in increasing order by the number of resources of size X that the pool can satisy. 
      * @param rpProtectionRecommendation - RP protection recommendation
-     * @param srcVarray - Virtual Array
-     * @param srcVpool - Virtual Pool
+     * @param varray - Virtual Array
+     * @param vpool - Virtual Pool
      * @param haVarray - HA Virtual Array
      * @param haVpool - HA Virtual Pool
      * @param capabilities - Virtual Pool capabilities 
@@ -2418,9 +2418,10 @@ public class RecoverPointScheduler implements Scheduler {
      * @param internalSiteName - RP internal site name
      * @return - List of recommendations
      */
-    private List<Recommendation> getRecommendedPools(RPProtectionRecommendation rpProtectionRecommendation, VirtualArray srcVarray, VirtualPool srcVpool, 
-    								VirtualArray haVarray, VirtualPool haVpool, VirtualPoolCapabilityValuesWrapper capabilities, String journalPolicy, 
-    								String personality, String internalSiteName) {  
+    private List<Recommendation> getRecommendedPools(RPProtectionRecommendation rpProtectionRecommendation, VirtualArray varray, 
+    								VirtualPool vpool, VirtualArray haVarray, VirtualPool haVpool,
+    								VirtualPoolCapabilityValuesWrapper capabilities, 
+    								String journalPolicy, String personality, String internalSiteName) {  
     	
     	//TODO (Brad/Bharath): ChangeVPool doesnt add any new targets. If new targets are requested as part of the changeVpool, then this code needs to be enhanced
     	//to be able to handle that.
@@ -2438,10 +2439,11 @@ public class RecoverPointScheduler implements Scheduler {
     	
     	long sizeInKB = getSizeInKB(sizeInBytes);
     	List<Recommendation> recommendations = new ArrayList<Recommendation>();
-    	_log.info(String.format("RP Placement : Requested size : [%s] Bytes - [%s] KB - %s GB", sizeInBytes, sizeInKB, SizeUtil.translateSize(sizeInBytes, SizeUtil.SIZE_GB)));
+    	_log.info(String.format("RP Placement : Requested size : [%s] Bytes - [%s] KB - [%s] GB", sizeInBytes, sizeInKB, 
+    			SizeUtil.translateSize(sizeInBytes, SizeUtil.SIZE_GB)));
     	
     	//Fetch candidate storage pools
-    	List<StoragePool> candidatePools = getCandidatePools(srcVarray, srcVpool, haVarray, haVpool, newCapabilities, personality);
+    	List<StoragePool> candidatePools = getCandidatePools(varray, vpool, haVarray, haVpool, newCapabilities, personality);
     	
     	//Get all the pools already recommended
     	List<RPRecommendation> poolsInAllRecommendations = getPoolsInAllRecommendations(rpProtectionRecommendation);
@@ -2450,7 +2452,8 @@ public class RecoverPointScheduler implements Scheduler {
     	List<RPRecommendation> reconsiderPools = new ArrayList<RPRecommendation>();
     	for(StoragePool storagePool : candidatePools) {    		
     		int count = Math.abs((int) (storagePool.getFreeCapacity()/ (sizeInKB)));
-    		_log.info(String.format("\nRP Placement : # of resources of size %sGB that pool %s can accomodate: %s\n", SizeUtil.translateSize(sizeInBytes, SizeUtil.SIZE_GB).toString(), storagePool.getLabel(), count));
+    		_log.info(String.format("\nRP Placement : # of resources of size %sGB that pool %s can accomodate: %s\n",
+    				SizeUtil.translateSize(sizeInBytes, SizeUtil.SIZE_GB).toString(), storagePool.getLabel(), count));
     		RPRecommendation recommendedPool = getRecommendationForStoragePool(poolsInAllRecommendations, storagePool);
     		//pool should be capable of satisfying atleast one resource of the specified size.
     		if (count >= 1) {    			
@@ -2568,6 +2571,8 @@ public class RecoverPointScheduler implements Scheduler {
 
     
 	/**
+	 * Checks if existing recommendations for pools can satisfy requested resource count in addition to what it already satisifies.
+	 * 
 	 * @param sizeInBytes - Size requested in bytes
 	 * @param requestedCount - Resource count requested
 	 * @param sizeInKB - Size in KB
@@ -3155,7 +3160,6 @@ public class RecoverPointScheduler implements Scheduler {
         }
                       
         Iterator<Recommendation> targetPoolRecommendationsIter = targetPoolRecommendations.iterator();
-        // TODO: Distill the storage pools into their storage systems so we can determine protection system and internal site name connectivity        
         while(targetPoolRecommendationsIter.hasNext()) {       
 	        	Recommendation targetPoolRecommendation = targetPoolRecommendationsIter.next();	        	
 	        	StoragePool candidateTargetPool = dbClient.queryObject(StoragePool.class, targetPoolRecommendation.getSourceStoragePool());	        

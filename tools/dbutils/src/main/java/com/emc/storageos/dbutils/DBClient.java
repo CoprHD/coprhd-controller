@@ -163,10 +163,10 @@ public class DBClient {
         int countAll = 0;
         String input;
         BufferedReader buf = new BufferedReader(new InputStreamReader(System.in));
+        boolean isPrint = true;
 
         try {
             objects = _dbClient.queryIterativeObjects(clazz, ids);
-            boolean isPrint = true;
             while (objects.hasNext()) {
                 T object = (T) objects.next();
                 isPrint = printBeanProperties(clazz, object, criterias);
@@ -329,9 +329,8 @@ public class DBClient {
                         "The filters %s are not available for the CF %s",
                         localCriterias.keySet(), clazz);
                 throw new IllegalArgumentException(errMsg);
-            } else {
-                System.out.println(record.toString());
             }
+            System.out.println(record.toString());
         }
         
         return isPrint;

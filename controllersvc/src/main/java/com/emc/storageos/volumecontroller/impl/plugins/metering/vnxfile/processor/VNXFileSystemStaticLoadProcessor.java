@@ -125,13 +125,13 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
                     }
                     
                     
-                    _logger.info("mount fs object fs: {} and Mover: {}", mount.getFileSystem(), mount.getMover());
+                    _logger.info("mount fs object fsId: {} and Mover: {}", mount.getFileSystem(), mount.getMover());
                     _logger.info("mount fs object fssize: {} and Mover: {}", String.valueOf(fsList.size()), mount.getMover());
                 }
                 
                
                 //process the filesystems of VDM or DM
-                StringMap mStringMap = null;
+                StringMap dbMetricsMap = null;
                 
                 if(!fsMountvNASMap.isEmpty()) {
                     VirtualNAS virtualNAS = null;
@@ -143,14 +143,14 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
                         //get vNAS object from db
                         virtualNAS = findvNasByNativeId(storageSystem, dbClient, moverId);
                         if(virtualNAS != null) {
-                            mStringMap = virtualNAS.getMetrics();
-                            if(null == mStringMap) {
-                                mStringMap = new StringMap();
+                            dbMetricsMap = virtualNAS.getMetrics();
+                            if(null == dbMetricsMap) {
+                                dbMetricsMap = new StringMap();
                             }
                             //store the metrics in db
                             fsList = (List<String>)entryMount.getValue();
-                            prepareDBMetrics(fsList, fsCapList, snapCapFsMap, mStringMap);
-                            virtualNAS.setMetrics(mStringMap);
+                            prepareDBMetrics(fsList, fsCapList, snapCapFsMap, dbMetricsMap);
+                            virtualNAS.setMetrics(dbMetricsMap);
                             dbClient.persistObject(virtualNAS);
                         } else {
                             _logger.info("virtual mover not present in ViPR db: {} ", moverId);
@@ -169,14 +169,14 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
                         //get NAS object from db
                         physicalNAS = findPhysicalNasByNativeId(storageSystem, dbClient, moverId);
                         if(null != physicalNAS) {
-                            mStringMap = physicalNAS.getMetrics();
-                            if(null == mStringMap) {
-                                mStringMap = new StringMap();
+                            dbMetricsMap = physicalNAS.getMetrics();
+                            if(null == dbMetricsMap) {
+                                dbMetricsMap = new StringMap();
                             }
                             fsList = (List<String>)entryMount.getValue();
                             //store the metrics in db
-                            prepareDBMetrics(fsList, fsCapList, snapCapFsMap, mStringMap);
-                            physicalNAS.setMetrics(mStringMap);
+                            prepareDBMetrics(fsList, fsCapList, snapCapFsMap, dbMetricsMap);
+                            physicalNAS.setMetrics(dbMetricsMap);
                             dbClient.persistObject(physicalNAS);
                         } else {
                             _logger.info("mover not present in ViPR db: {} ", moverId);

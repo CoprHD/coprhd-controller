@@ -22,6 +22,9 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.MetroPointType;
 
+/*
+ * Represents recommendation for an RP protected volume.  
+ */
 @SuppressWarnings("serial")
 public class RPRecommendation extends Recommendation {
     public static enum ProtectionType {
@@ -100,6 +103,7 @@ public class RPRecommendation extends Recommendation {
 	}
 		
 	/**
+	 * Returns true of the specified internal site is already part of this recommendation
 	 * @param destInternalSiteName
 	 * @return
 	 */

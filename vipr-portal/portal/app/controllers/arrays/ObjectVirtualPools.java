@@ -7,19 +7,20 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import jobs.vipr.TenantsCall;
 import jobs.vipr.VirtualArraysCall;
+import models.ObjectProtocols;
+import models.PoolAssignmentTypes;
+import models.StorageSystemTypes;
+import models.datatable.StoragePoolDataTable;
+import models.datatable.StoragePoolDataTable.StoragePoolInfo;
+import models.datatable.VirtualPoolDataTable;
+import models.datatable.VirtualPoolDataTable.VirtualPoolInfo;
+import models.virtualpool.ObjectVirtualPoolForm;
 
 import org.apache.commons.lang.StringUtils;
-
-import com.emc.storageos.model.pools.StoragePoolRestRep;
-import com.emc.storageos.model.varray.VirtualArrayRestRep;
-import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
-import com.emc.storageos.model.vpool.ObjectVirtualPoolRestRep;
-import com.emc.vipr.client.exceptions.ViPRHttpException;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
 
 import play.Logger;
 import play.data.binding.As;
@@ -34,23 +35,21 @@ import util.TenantUtils;
 import util.VirtualArrayUtils;
 import util.VirtualPoolUtils;
 import util.datatable.DataTablesSupport;
+
+import com.emc.storageos.model.pools.StoragePoolRestRep;
+import com.emc.storageos.model.varray.VirtualArrayRestRep;
+import com.emc.storageos.model.vpool.ObjectVirtualPoolRestRep;
+import com.emc.vipr.client.exceptions.ViPRHttpException;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
+
 import controllers.Common;
 import controllers.arrays.FileVirtualPools.DeactivateOperation;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
 import controllers.util.ViprResourceController;
-import models.FileProtocols;
-import models.ObjectProtocols;
-import models.PoolAssignmentTypes;
-import models.ProvisioningTypes;
-import models.StorageSystemTypes;
-import models.datatable.StoragePoolDataTable;
-import models.datatable.VirtualPoolDataTable;
-import models.datatable.StoragePoolDataTable.StoragePoolInfo;
-import models.datatable.VirtualPoolDataTable.VirtualPoolInfo;
-import models.virtualpool.FileVirtualPoolForm;
-import models.virtualpool.ObjectVirtualPoolForm;
 
 @With(Common.class)
 @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
@@ -92,8 +91,6 @@ public class ObjectVirtualPools extends ViprResourceController{
 
 	    public static void create() {
 	        ObjectVirtualPoolForm form = new ObjectVirtualPoolForm();
-	        // Set default values
-	        form.protocols = Sets.newHashSet(ObjectProtocols.SWIFT, ObjectProtocols.ATMOS, ObjectProtocols.S3);
 	        edit(form);
 	    }
 
@@ -109,7 +106,7 @@ public class ObjectVirtualPools extends ViprResourceController{
 	        }
 	        ObjectVirtualPoolForm form = new ObjectVirtualPoolForm();
 	        form.load(virtualPool);
-	        edit(form);;
+	        edit(form);
 	    }
 
 	    private static void edit(ObjectVirtualPoolForm vpool) {
@@ -150,7 +147,9 @@ public class ObjectVirtualPools extends ViprResourceController{
 	        if (vpool == null) {
 	            renderJSON(Collections.emptyList());
 	        }
-	        renderJSON(vpool.getVirtualPoolAttributes());
+	        Map<String, Set<String>> attributes = Maps.newHashMap();
+	        //attributes.put("protocols", Sets.newHashSet(allAttributes.get(VirtualArrayUtils.ATTRIBUTE_PROTOCOLS)));
+	        renderJSON(attributes);
 	    }
 	    
 	    public static void listStoragePoolsJson(ObjectVirtualPoolForm vpool) {
@@ -188,12 +187,13 @@ public class ObjectVirtualPools extends ViprResourceController{
 	        if (vpool == null) {
 	            list();
 	        }
-
+	        if(vpool.objectProtocols != null){
+	        	vpool.protocols = Sets.newHashSet(vpool.objectProtocols);
+	        }
 	        vpool.validate("vpool");
 	        if (Validation.hasErrors()) {
 	            Common.handleError();
 	        }
-
 	        ObjectVirtualPoolRestRep result = vpool.save();
 	        flash.success(MessagesUtils.get(SAVED_SUCCESS, result.getName()));
 	        backToReferrer();

@@ -76,7 +76,9 @@
     <bean id="interVDCTokenCacheHelper" class="com.emc.storageos.security.geo.InterVDCTokenCacheHelper"/>
     <bean id="tokenEncoder" class="com.emc.storageos.security.authentication.Base64TokenEncoder" init-method="managerInit"/>
     <bean id="tokenKeyGenerator" class="com.emc.storageos.security.authentication.TokenKeyGenerator" destroy-method="destroy" />
-    <bean id="tokenMaxLifeValuesHolder" class="com.emc.storageos.security.authentication.TokenMaxLifeValuesHolder" />
+    <bean id="tokenMaxLifeValuesHolder" class="com.emc.storageos.security.authentication.TokenMaxLifeValuesHolder">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
     <!-- Uncomment this to disable token encoding/decoding, signing
     <bean id="tokenEncodingDisabler" class="com.emc.storageos.security.TokenEncodingDisabler"/>
     -->

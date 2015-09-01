@@ -39,6 +39,7 @@ import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.imageservercontroller.ComputeImageCompleter;
 import com.emc.storageos.imageservercontroller.ComputeImageServerCompleter;
@@ -544,7 +545,14 @@ public class ImageServerControllerImpl implements ImageServerController {
         ci.setImageType(osMetadata.getImageType());
 
         dbClient.persistObject(ci);
-
+        //update the imageServer with the successfully updated image.
+        StringSet imagesSet = imageServer.getComputeImage();
+        if(imagesSet == null){
+            imageServer.setComputeImage(new StringSet());
+        }
+        imagesSet.add(ci.getId().toString());
+        imageServer.setComputeImage(imagesSet);
+        dbClient.persistObject(imageServer);
         // clean up
         cleanupTemp(imageserverDialog, tempDir, imagePath);
     }

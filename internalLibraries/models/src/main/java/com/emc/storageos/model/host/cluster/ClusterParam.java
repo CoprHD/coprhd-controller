@@ -18,7 +18,6 @@ public abstract class ClusterParam {
     private URI VcenterDataCenter;
     private URI project;
     private Boolean autoExportEnabled;
-    private Boolean autoUnexportEnabled;
 
     public ClusterParam() {
     }
@@ -64,15 +63,6 @@ public abstract class ClusterParam {
 
     public void setAutoExportEnabled(Boolean autoExportEnabled) {
         this.autoExportEnabled = autoExportEnabled;
-    }
-
-    @XmlElement(name = "auto_unexport_enabled")
-    public Boolean getAutoUnexportEnabled() {
-        return autoUnexportEnabled;
-    }
-
-    public void setAutoUnexportEnabled(Boolean autoUnexportEnabled) {
-        this.autoUnexportEnabled = autoUnexportEnabled;
     }
 
     /** Gets the cluster name */

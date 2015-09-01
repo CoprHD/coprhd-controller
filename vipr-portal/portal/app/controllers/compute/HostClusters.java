@@ -216,7 +216,6 @@ public class HostClusters extends Controller {
         public String id;
         public String tenantId;
         public Boolean autoExportEnabled;
-        public Boolean autoUnexportEnabled;
 
         @Required
         @MaxSize(128)
@@ -236,7 +235,6 @@ public class HostClusters extends Controller {
             this.tenantId = clusterResponse.getTenant().getId().toString();
             this.name = clusterResponse.getName();
             this.autoExportEnabled = clusterResponse.getAutoExportEnabled();
-            this.autoUnexportEnabled = clusterResponse.getAutoUnexportEnabled();
         }
 
         protected void doWriteTo(ClusterUpdateParam clusterUpdateParam) {
@@ -296,7 +294,6 @@ public class HostClusters extends Controller {
         protected String createCluster() {
             ClusterCreateParam clusterCreateParam = new ClusterCreateParam(name);
             clusterCreateParam.setAutoExportEnabled(autoExportEnabled);
-            clusterCreateParam.setAutoUnexportEnabled(autoUnexportEnabled);
 
             return ClusterUtils.createCluster(tenantId, clusterCreateParam).toString();
         }
@@ -310,7 +307,6 @@ public class HostClusters extends Controller {
         protected String updateCluster(HostClusterForm hostCluster) {
             ClusterUpdateParam hostUpdateParam = new ClusterUpdateParam();
             hostUpdateParam.setAutoExportEnabled(hostCluster.autoExportEnabled);
-            hostUpdateParam.setAutoUnexportEnabled(hostCluster.autoUnexportEnabled);
 
             doWriteTo(hostUpdateParam);
             return ClusterUtils.updateHost(uri(this.id), hostUpdateParam).toString();

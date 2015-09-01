@@ -20,7 +20,6 @@ public class Cluster extends AbstractTenantResource {
     private URI _project;
     private String _externalId;
     private Boolean autoExportEnabled = true;
-    private Boolean autoUnexportEnabled = true;
 
     /**
      * Returns the data center in vcenter where this cluster resides
@@ -103,24 +102,5 @@ public class Cluster extends AbstractTenantResource {
 
     public Boolean isAutoExportEnabled() {
         return this.autoExportEnabled == null || this.autoExportEnabled;
-    }
-
-    /**
-     * If discovery will automatically unexport from this cluster.
-     * 
-     * @return
-     */
-    @Name("autoUnexportEnabled")
-    public Boolean getAutoUnexportEnabled() {
-        return autoUnexportEnabled;
-    }
-
-    public void setAutoUnexportEnabled(Boolean autoUnexportEnabled) {
-        this.autoUnexportEnabled = autoUnexportEnabled;
-        setChanged("autoUnexportEnabled");
-    }
-
-    public Boolean isAutoUnexportEnabled() {
-        return this.autoUnexportEnabled == null || this.autoUnexportEnabled;
     }
 }

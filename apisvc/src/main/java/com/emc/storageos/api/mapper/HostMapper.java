@@ -147,7 +147,6 @@ public class HostMapper {
         to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject()));
         to.setVcenterDataCenter(toRelatedResource(ResourceTypeEnum.VCENTERDATACENTER, from.getVcenterDataCenter()));
         to.setAutoExportEnabled(from.isAutoExportEnabled());
-        to.setAutoUnexportEnabled(from.isAutoUnexportEnabled());
         return to;
     }
 

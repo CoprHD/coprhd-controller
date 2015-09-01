@@ -115,7 +115,6 @@ public class ClusterService extends TaskResourceService {
         // update the cluster
         Cluster cluster = queryObject(Cluster.class, id, true);
         boolean oldExportEnabled = cluster.isAutoExportEnabled();
-        boolean oldUnexportEnabled = cluster.isAutoUnexportEnabled();
 
         validateClusterData(updateParam, cluster.getTenant(), cluster, _dbClient);
         populateCluster(updateParam, cluster);
@@ -124,12 +123,11 @@ public class ClusterService extends TaskResourceService {
                 cluster.auditParameters());
 
         boolean enablingAutoExports = !oldExportEnabled && cluster.isAutoExportEnabled();
-        boolean enablingAutoUnexports = !oldUnexportEnabled && cluster.isAutoUnexportEnabled();
 
-        if (enablingAutoExports || enablingAutoUnexports) {
+        if (enablingAutoExports) {
             String taskId = UUID.randomUUID().toString();
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
-            controller.synchronizeSharedExports(cluster.getId(), enablingAutoExports, enablingAutoUnexports, taskId);
+            controller.synchronizeSharedExports(cluster.getId(), enablingAutoExports, taskId);
         }
 
         return map(queryObject(Cluster.class, id, false));
@@ -345,9 +343,6 @@ public class ClusterService extends TaskResourceService {
         }
         if (param.getAutoExportEnabled() != null) {
             cluster.setAutoExportEnabled(param.getAutoExportEnabled());
-        }
-        if (param.getAutoUnexportEnabled() != null) {
-            cluster.setAutoUnexportEnabled(param.getAutoUnexportEnabled());
         }
         // Commented out because cluster project is not currently used
         // if (param.project != null) {

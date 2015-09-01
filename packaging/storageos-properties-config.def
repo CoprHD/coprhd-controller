@@ -907,7 +907,7 @@
         rebootRequired : false,
         notifiers : ( "ssh" ),
         controlNodeOnly : false,
-        value : "yes",
+        value : "no",
     },
     {
         key : "system_permit_root_console",
@@ -922,7 +922,7 @@
         reconfigRequired : true,
         rebootRequired : false,
         controlNodeOnly : false,
-        value : "yes",
+        value : "no",
     },
     {
         key : "site_id",

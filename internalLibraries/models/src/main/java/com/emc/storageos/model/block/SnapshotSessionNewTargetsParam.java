@@ -16,7 +16,7 @@ public class SnapshotSessionNewTargetsParam {
     private Integer count;
 
     // The name to use for the targets.
-    private String name;
+    private String targetName;
 
     // The copy mode for the targets when they are linked as specified
     // by BlockSnapshotSession.CopyMode.
@@ -32,12 +32,12 @@ public class SnapshotSessionNewTargetsParam {
      * Constructor.
      * 
      * @param count The number of targets to be created and linked to the session.
-     * @param name The name to use for the targets.
+     * @param targetName The name to use for the targets.
      * @param copyMode The copy mode for the targets when they are linked to the session.
      */
-    public SnapshotSessionNewTargetsParam(Integer count, String name, String copyMode) {
+    public SnapshotSessionNewTargetsParam(Integer count, String targetName, String copyMode) {
         this.count = count;
-        this.name = name;
+        this.targetName = targetName;
         this.copyMode = copyMode;
     }
 
@@ -69,18 +69,18 @@ public class SnapshotSessionNewTargetsParam {
      * 
      * @return The name to use for the targets.
      */
-    @XmlElement(required = true)
-    public String getName() {
-        return name;
+    @XmlElement(name = "target_name", required = true)
+    public String getTargetName() {
+        return targetName;
     }
 
     /**
      * Set the name to use for the targets.
      * 
-     * @param name The name to use for the targets.
+     * @param targetName The name to use for the targets.
      */
-    public void setCount(String name) {
-        this.name = name;
+    public void setTargetName(String targetName) {
+        this.targetName = targetName;
     }
 
     /**

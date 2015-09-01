@@ -170,6 +170,7 @@ public class VPlexApiClient {
      * 
      * @param shallow true to get just the name and path for each cluster, false
      *            to get additional info about the systems and volumes.
+     * @param isStorageVolumeItlsFetch true to get the storage volume ITLs, false otherwise.
      * 
      * @return A list of VPlexClusterInfo instances.
      * 

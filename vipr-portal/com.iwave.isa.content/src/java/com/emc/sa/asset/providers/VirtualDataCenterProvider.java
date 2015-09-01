@@ -120,7 +120,6 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
     @Asset("unexportedIngestionMethod")
     @AssetDependencies({ "unmanagedBlockStorageSystem" })
     public List<AssetOption> getUnexportedIngestionMethod(AssetOptionsContext ctx, URI storageSystemId) {
-        // TODO: Validate against storageSystem to only return if VPLEX
         ViPRCoreClient client = api(ctx);
         StorageSystemRestRep storageSystemRestRep = client.storageSystems().get(storageSystemId);
         
@@ -135,7 +134,6 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
     @Asset("exportedIngestionMethod")
     @AssetDependencies({ "unmanagedBlockVirtualPool" })
     public List<AssetOption> getExportedIngestionMethod(AssetOptionsContext ctx, URI virtualPoolId) {
-        // TODO: Validate against virtual pool to only return if VPLEX
         ViPRCoreClient client = api(ctx);
         BlockVirtualPoolRestRep virtualPoolRestRep = client.blockVpools().get(virtualPoolId);
 

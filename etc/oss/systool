@@ -255,7 +255,7 @@ _reload() {
     esac
 }
 
-_initialize_props() {
+_initialize_ovfenv_props() {
     _props_symlink
 
     if [ -s ${ovf_props_file} ]; then
@@ -271,7 +271,7 @@ _initialize_props() {
     for index in $(seq 1 ${node_count}); do
         read -p "The IPv4 address of node index ${index}: " ipaddr
         ovfenv+="network_${index}_ipaddr=${ipaddr}${nl}"
-        
+
         read -p "The IPv6 address of node index ${index} [::0]: " ipaddr6
         ipaddr6=${ipaddr6:-::0}
         ovfenv+="network_${index}_ipaddr6=${ipaddr6}${nl}"
@@ -279,11 +279,11 @@ _initialize_props() {
 
     read -p "The IPv4 gateway: " gateway
     ovfenv+="network_gateway=${gateway}${nl}"
-    
+
     read -p "The IPv6 gateway [::0]: " gateway6
     gateway6=${gateway6:-::0}
     ovfenv+="network_gateway6=${gateway6}${nl}"
-    
+
     read -p "The netmask [255.255.255.0]: " netmask
     netmask=${netmask:-255.255.255.0}
     ovfenv+="network_netmask=${netmask}${nl}"
@@ -304,6 +304,54 @@ _initialize_props() {
     ovfenv+="node_id=vipr${node_index}"
 
     echo "${ovfenv}" > ${ovf_props_file}
+}
+
+_initialize_iterable_props() {
+    local expanded_props="$(_expand_iterable_props "${iters_file}" "$(<${ovf_props_file})")"
+    _props_append "${dflts_file}" "${expanded_props}"
+    chown storageos:storageos "${dflts_file}"
+}
+
+_props_append() {
+    chmod 400 "${1}" &&
+    for i in ${2} ; do
+        grep -q -F "${i%=*}" ${1} || echo $i >> "${1}"
+    done
+    sort "${1}" -o "${1}"
+}
+
+_expand_iterable_props() {
+    while read line ; do
+        for nodeid in $(_get_node_ids "${2}") ; do
+            if [ "${nodeid}" == "standalone" ]; then
+                line="${line/vipr/}"
+            fi
+            echo "${line//\$\{iter\}/${nodeid}}"
+        done
+    done < "${1}"
+}
+
+_get_node_ids() {
+    if _get_ovf_property 'network_1_ipaddr' "${1}" &>/dev/null ; then
+        seq --separator=' ' $(_get_ovf_property 'node_count' "${1}")
+    else
+        echo 'standalone'
+    fi
+}
+
+_get_ovf_property() {
+   ( IFS="${nl}" ; for arg in ${2} ; do
+          [ "${1}" = "${arg%%=*}" ] && arg="${arg#*=}" && arg="${arg//\\n/${nl}}" && echo "${arg}" && return 0
+      done
+      return 1
+   )
+}
+
+_initialize_props() {
+    _props_symlink &&
+    _initialize_ovfenv_props &&
+    _initialize_iterable_props
+
 }
 
 # Write the properties file with the write permissions
@@ -433,6 +481,7 @@ bootfs_override_props=${bootfs_mntp}/etc/${override_props}
 override_link='/etc/'${override_props}
 dflts_file='/etc/config.defaults'
 ovf_props_file='/etc/ovfenv.properties'
+iters_file='/etc/.iterable.properties'
 ssl_props_file='/etc/ssl.properties'
 bootfs_controller_props=${bootfs_mntp}/etc/controller-ovf.properties
 nl='

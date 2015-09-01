@@ -83,7 +83,7 @@ public class DiagnosticsExecTest extends DiagnosticsExec {
     @Test
     public void testNodeDiagnostics() {
         HealthMonitorService healthMonitorService = new HealthMonitorService();
-        DiagnosticsRestRep resp = healthMonitorService.getDiagnostics(null, "1");
+        DiagnosticsRestRep resp = healthMonitorService.getDiagnostics(null,"1",null);
         Assert.assertNotNull(resp);
         Assert.assertNotNull(resp.getNodeDiagnosticsList());
         Set<String> testNames = new HashSet<String>();

@@ -6,6 +6,7 @@ package com.emc.storageos.db.client.model;
 
 import java.net.URI;
 
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.valid.EnumType;
 
 /**
@@ -23,13 +24,11 @@ public class VirtualNAS extends NASServer {
     // Project name which this VNAS belongs to
     private URI project;
 
-    private String vNasType;
-
     // Base directory Path for the VNAS applicable in AccessZones & vFiler device types
     private String baseDirPath;
 
     // place holder for the Parent NAS server the Data Mover
-    private URI parentNASURI;
+    private URI parentNasUri;
 
     @Name("project")
     public URI getProject() {
@@ -41,18 +40,7 @@ public class VirtualNAS extends NASServer {
         setChanged("project");
     }
 
-    @EnumType(vNasType.class)
-    @Name("vNasType")
-    public String getvNasType() {
-        return vNasType;
-    }
-
-    public void setvNasType(String vNasType) {
-        this.vNasType = vNasType;
-        setChanged("vNasType");
-    }
-
-    @Name("String")
+    @Name("baseDirPath")
     public String getBaseDirPath() {
         return baseDirPath;
     }
@@ -60,16 +48,6 @@ public class VirtualNAS extends NASServer {
     public void setBaseDirPath(String baseDirPath) {
         this.baseDirPath = baseDirPath;
         setChanged("baseDirPath");
-    }
-
-    @Name("parentNASURI")
-    public URI getParentPhysicalNAS() {
-        return parentNASURI;
-    }
-
-    public void setParentNAS(URI parentPhysicalNAS) {
-        this.parentNASURI = parentPhysicalNAS;
-        setChanged("parentNASURI");
     }
 
     @Name("vNasState")
@@ -81,6 +59,16 @@ public class VirtualNAS extends NASServer {
     public void setVNasState(String nasState) {
         this.setNasState(nasState);
         setChanged("vNasState");
+    }
+
+    @Name("parentNasUri")
+    public URI getParentNasUri() {
+        return parentNasUri;
+    }
+
+    public void setParentNasUri(URI parentNasUri) {
+        this.parentNasUri = parentNasUri;
+        setChanged("parentNasUri");
     }
 
     // Defines different States of the NAS server.
@@ -113,32 +101,7 @@ public class VirtualNAS extends NASServer {
         }
     };
 
-    // Defines different vNAS types.
-    public static enum vNasType {
-        LOCAL("local"),
-        DOMAIN("domain"),
-        UNKNOWN("N/A");
-
-        private final String vNasType;
-
-        private vNasType(String state) {
-            vNasType = state;
-        }
-
-        public String getNasType() {
-            return vNasType;
-        }
-
-        private static vNasType[] copyValues = values();
-
-        public static String getNasType(String name) {
-            for (vNasType type : copyValues) {
-                if (type.getNasType().equalsIgnoreCase(name)) {
-                    return type.name();
-                }
-            }
-            return UNKNOWN.toString();
-        }
-    };
-
+    public boolean isNotAssignedToProject() {
+        return NullColumnValueGetter.isNullURI(project);
+    }
 }

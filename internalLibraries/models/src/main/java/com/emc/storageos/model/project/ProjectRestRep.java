@@ -69,14 +69,14 @@ public class ProjectRestRep extends DataObjectRestRep {
      * 
      * @valid none
      */
-    @XmlElementWrapper(name = "vnas_servers")
+    @XmlElementWrapper(name = "assigned_vnas_servers")
     /**
      * 
      * List of VNAS Servers associated with this project.
      * 
      * @valid none
      */
-    @XmlElement(name = "vnas_server")
+    @XmlElement(name = "assigned_vnas_server")
     public Set<String> getAssignedVNasServers() {
         return assignedVNasServers;
     }

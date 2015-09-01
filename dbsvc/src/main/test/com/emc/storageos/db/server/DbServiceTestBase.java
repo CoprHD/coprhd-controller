@@ -120,10 +120,10 @@ public abstract class DbServiceTestBase {
         statusChecker.setServiceName(service.getName());
 
         CoordinatorClientInetAddressMap coordinatorMap = new CoordinatorClientInetAddressMap();
-        coordinatorMap.setNodeName("localhost");
+        coordinatorMap.setNodeId("localhost");
         coordinatorMap.setDualInetAddress(DualInetAddress.fromAddress("127.0.0.1"));
         Map<String, DualInetAddress> addressLookupMap = new HashMap<String, DualInetAddress>();
-        addressLookupMap.put(coordinatorMap.getNodeName(), coordinatorMap.getDualInetAddress());
+        addressLookupMap.put(coordinatorMap.getNodeId(), coordinatorMap.getDualInetAddress());
         coordinatorMap.setControllerNodeIPLookupMap(addressLookupMap);
         coordinatorMap.setCoordinatorClient(coordinator);
         coordinator.setInetAddessLookupMap(coordinatorMap);

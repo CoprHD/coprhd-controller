@@ -6,54 +6,45 @@ package com.emc.storageos.db.client.model;
 
 import java.net.URI;
 
-import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.StorageHADomain.HADomainType;
-import com.emc.storageos.model.valid.EnumType;
-
 /**
  * VirtualNAS Server will contain the details of NAS server depending on StorageArray type
  * eg. VDM, vFiler, vServer or AccessZone or NasServer.
  * It will hold information about the Ip interfaces, cifs Server & NFS servers mapped to NasServer
  * 
  * @author ganeso
- *
+ * 
  */
 
-public class NASServer extends VirtualArrayTaggedResource implements Comparable <NASServer>  {
+public class NASServer extends VirtualArrayTaggedResource implements Comparable<NASServer> {
 
     // NAS Server name
     private String nasName;
-    
-    
+
+    private String nativeId;
+
     // storageSystem, which it belongs
     private URI storageDeviceURI;
-    private String maxFSID="-1";
-    private String maxExports="-1";
-    private String maxProvisionedCapacity="-1";
     private StringSet protocols;
-    
+
     // Set of Authentication providers for the VNasServer - set values will of type AunthnProvider
-    private StringSet cifsServers;
-    
+    private CifsServerMap cifsServersMap;
+
     // List of Storage Ports associated with this Nas Server
     private StringSet storagePorts;
-    
+
     // State of the NAS server
     private String nasState;
-    
-    
+
     // Place holder for hosting storageDomain's information
     private StringSet storageDomain;
-    
+
     private String registrationStatus = RegistrationStatus.REGISTERED.toString();
     private String compatibilityStatus = CompatibilityStatus.UNKNOWN.name();
     private String discoveryStatus = DiscoveryStatus.VISIBLE.name();
-    
+
     // Place holder for Tag
     private StringSet nasTag;
-    
+
     private StringMap metrics;
 
     @Override
@@ -83,34 +74,13 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
         setChanged("storageDevice");
     }
 
-    @Name("maxFSID")
-    public String getMaxFSID() {
-        return maxFSID;
+    @Name("nativeId")
+    public String getNativeId() {
+        return nativeId;
     }
 
-    public void setMaxFSID(String maxFSID) {
-        this.maxFSID = maxFSID;
-        setChanged("maxFSID");
-    }
-
-    @Name("maxExports")
-    public String getMaxExports() {
-        return maxExports;
-    }
-
-    public void setMaxExports(String maxExports) {
-        this.maxExports = maxExports;
-        setChanged("maxExports");
-    }
-
-    @Name("maxProvisionedCapacity")
-    public String getMaxProvisionedCapacity() {
-        return maxProvisionedCapacity;
-    }
-
-    public void setMaxProvisionedCapacity(String maxProvisionedCapacity) {
-        this.maxProvisionedCapacity = maxProvisionedCapacity;
-        setChanged("maxProvisionedCapacity");
+    public void setNativeId(String nativeId) {
+        this.nativeId = nativeId;
     }
 
     @Name("protocols")
@@ -124,17 +94,19 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
     }
 
     @Name("cifsServers")
-    public StringSet getCifsServers() {
-        return cifsServers;
+    public CifsServerMap getCifsServersMap() {
+        return cifsServersMap;
     }
 
-    public void setCifsServers(StringSet cifsServers) {
-        this.cifsServers = cifsServers;
-        setChanged("cifsServers");
+    public void setCifsServersMap(CifsServerMap cifsServersMap) {
+        this.cifsServersMap = cifsServersMap;
     }
 
     @Name("storagePorts")
     public StringSet getStoragePorts() {
+        if (storagePorts == null) {
+            storagePorts = new StringSet();
+        }
         return storagePorts;
     }
 
@@ -193,9 +165,11 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
         setChanged("discoveryStatus");
     }
 
-    
     @Name("metrics")
     public StringMap getMetrics() {
+        if (metrics == null) {
+            metrics = new StringMap();
+        }
         return metrics;
     }
 
@@ -203,7 +177,6 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
         this.metrics = _metrics;
         setChanged("metrics");
     }
-
 
     @Name("nasTag")
     public StringSet getNAStag() {
@@ -215,6 +188,4 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable 
         setChanged("nasTag");
     }
 
-    
 }
-

@@ -63,7 +63,7 @@ public class Project extends DataObjectWithACLs {
     /**
      * @return the assignedVNasServers
      */
-    @Name("vnasServers")
+    @Name("assigned_vnas_servers")
     public StringSet getAssignedVNasServers() {
         if (assignedVNasServers == null) {
             assignedVNasServers = new StringSet();
@@ -76,7 +76,7 @@ public class Project extends DataObjectWithACLs {
      */
     public void setAssignedVNasServers(StringSet assignedVNasServers) {
         this.assignedVNasServers = assignedVNasServers;
-        setChanged("vnasServers");
+        setChanged("assigned_vnas_servers");
     }
 
 }

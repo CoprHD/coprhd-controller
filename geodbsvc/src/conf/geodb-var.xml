@@ -4,6 +4,7 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
     <!-- On deployed system, content of this file is generated from db-var-template.xml -->
     <import resource="classpath:dbversion-info.xml"/>
+    <import resource="classpath:dbclient-conf.xml"/>
 
     <bean id="serviceinfo" class="com.emc.storageos.coordinator.common.impl.ServiceImpl">
         <property name="name" value="geodbsvc"/>
@@ -19,7 +20,7 @@
         <property name="clusterName" value="GeoStorageOS"/>
         <property name="dataObjectScanner" ref="dataObjectScanner"/>
         <property name="vdcShortId" value="vdc1"/>
-        <property name="clientContext" ref="dbclientcontext"/>
+        <property name="clientContext" ref="geodbclientcontext"/>
         <property name="vdcList">
             <list>
                 <value>vdc1</value>

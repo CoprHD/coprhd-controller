@@ -87,13 +87,15 @@ public class VirtualNasServerDataTable extends DataTable {
         // place holder for the Parent NAS server the Data Mover
         private String parentNASURI;
         
-        public VirtualNasServerInfo(VirtualNASRestRep vNasRestRep){
+        public VirtualNasServerInfo(VirtualNASRestRep vNasRestRep, boolean isProjectAccessible){
            this.id = vNasRestRep.getId().toString();
            this.nasName = vNasRestRep.getNasName();
            this.storageDeviceURI = (vNasRestRep.getStorageDeviceURI() != null) ? vNasRestRep.getStorageDeviceURI().toString() : "";
-           if(vNasRestRep.getProject() != null){
-        	   ProjectRestRep projectRestRep = getViprClient().projects().get(vNasRestRep.getProject().getId());
-               this.project = projectRestRep.getName();
+           if(isProjectAccessible){
+              if(vNasRestRep.getProject() != null){
+        	      ProjectRestRep projectRestRep = getViprClient().projects().get(vNasRestRep.getProject().getId());
+                  this.project = projectRestRep.getName();
+              }
            }
            this.maxExports = vNasRestRep.getMaxExports();
            this.maxFSID = vNasRestRep.getMaxFSID();

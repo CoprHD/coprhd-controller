@@ -74,6 +74,9 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
+import static controllers.security.Security.isProjectAdmin;
+import static controllers.security.Security.isTenantAdmin;
+
 import controllers.Common;
 import controllers.arrays.StorageProviders.StorageProviderForm;
 import controllers.deadbolt.Restrict;
@@ -372,15 +375,26 @@ public class StorageSystems extends ViprResourceController {
         addReferenceData();
 
         StorageSystemRestRep storageSystem = StorageSystemUtils.getStorageSystem(id);
-        VirtualNasServerDataTable dataTable = new VirtualNasServerDataTable();
+        VirtualNasServerDataTable dataTable;
+        if (isTenantAdmin() || isProjectAdmin()) {
+        	dataTable = new VirtualNasServerDataTable();
+        }else{
+        	dataTable = new VirtualNasForNonProjectAdminDataTable();
+        }
         renderArgs.put("storageId", id);
         render("@listVirtualNasServers", storageSystem, dataTable);
     }
     
-    public static void associateProject(String nasIds, String projectId, String storageId ){
+    public static class VirtualNasForNonProjectAdminDataTable extends VirtualNasServerDataTable {
+    	public VirtualNasForNonProjectAdminDataTable() {
+    	     alterColumn("project").hidden();
+    	}
+    }
+    
+    public static void associateProject(String nasIds, String projectId, String storageId ) {
        String proj = projectId;
        Set<String> vnasServers = new TreeSet<String>();
-       if(nasIds!=null && !nasIds.isEmpty()){
+       if (nasIds!=null && !nasIds.isEmpty()) {
           String[] nasArray = nasIds.split(",");
           Collections.addAll(vnasServers,nasArray);
        }
@@ -394,26 +408,26 @@ public class StorageSystems extends ViprResourceController {
 	   virtualNasServers(storageId);
     }
     
-    public static void dissociateProject(@As(",") String[] ids,String storageId){
+    public static void dissociateProject(@As(",") String[] ids,String storageId) {
     	
     	List<URI> uris = Lists.newArrayList();
-    	for(String id:ids){
+    	for (String id:ids) {
     		uris.add(uri(id));
     	}
     	Map<URI,Set<String>> projectVNas = Maps.newHashMap();
     	List<VirtualNASRestRep> vNasServers = getViprClient().virtualNasServers().getByIds(uris);
-    	for (VirtualNASRestRep vnasServer:vNasServers){
-    		if(vnasServer.getProject() == null){
+    	for (VirtualNASRestRep vnasServer:vNasServers) {
+    		if(vnasServer.getProject() == null) {
     			continue;
     		}
     		URI projectId =  vnasServer.getProject().getId();
     		URI vNasId = vnasServer.getId();
     		
-    		if(projectVNas.get(projectId) == null){
+    		if (projectVNas.get(projectId) == null) {
     			Set<String> vnasIds = Sets.newTreeSet();
     			vnasIds.add(vNasId.toString());
     			projectVNas.put(projectId, vnasIds);
-    		}else{
+    		} else {
     			Set<String> vnasIds = projectVNas.get(projectId);
     			vnasIds.add(vNasId.toString());
     			projectVNas.put(projectId, vnasIds);
@@ -437,22 +451,26 @@ public class StorageSystems extends ViprResourceController {
     public static void virtualNasServersJson(String storageId) {
         List<VirtualNasServerInfo> results = Lists.newArrayList();
         List<VirtualNASRestRep> vNasServers = getViprClient().virtualNasServers().getByStorageSystem(uri(storageId));
+        boolean isProjectAccessible = false;
+        if (isTenantAdmin() || isProjectAdmin()) {
+        	isProjectAccessible = true;
+        }
         for (VirtualNASRestRep vNasServer : vNasServers) {
-            results.add(new VirtualNasServerInfo(vNasServer));
+            results.add(new VirtualNasServerInfo(vNasServer,isProjectAccessible));
         }
         renderArgs.put("storageId", storageId);
         renderJSON(DataTablesSupport.createJSON(results, params));
     }
     
-    public static void getProjectsForNas(){
+    public static void getProjectsForNas() {
         //String tenantId = Models.currentAdminTenant();
         List<URI> tenants = getViprClient().tenants().listBulkIds();
         List<StringOption> projectTenantOptions = Lists.newArrayList();
-        for(URI tenantId:tenants){
+        for (URI tenantId:tenants) {
         	 String tenantName = getViprClient().tenants().get(tenantId).getName();
         	 List<ProjectRestRep> projects = getViprClient().projects().getByTenant(tenantId);
              List<String> projectOptions = Lists.newArrayList();
-             for(ProjectRestRep project : projects){
+             for (ProjectRestRep project : projects) {
             	 projectOptions.add(project.getId().toString()+"~~~"+project.getName());
              }
              projectTenantOptions.add(new StringOption(projectOptions.toString(), tenantName));
@@ -461,12 +479,12 @@ public class StorageSystems extends ViprResourceController {
         renderJSON(projectTenantOptions);
     }
    
-    public static void vNasMoreDetails(String id){
+    public static void vNasMoreDetails(String id) {
         List<URI> ids = Lists.newArrayList();
         ids.add(uri(id));
         List<VirtualNASRestRep> vNasRep = getViprClient().virtualNasServers().getByIds(ids);
         VirtualNASRestRep vNas = new VirtualNASRestRep();
-        if (!vNasRep.isEmpty()){
+        if (!vNasRep.isEmpty()) {
            vNas = vNasRep.get(0);
         }
         render(vNas);

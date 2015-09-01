@@ -19,7 +19,9 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.ecs.api.ECSApi;
 import com.emc.storageos.ecs.api.ECSApiFactory;
@@ -92,11 +94,24 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             List<ECSStoragePool> ecsStoragePools = ecsApi.getStoragePools();
             for (ECSStoragePool ecsPool : ecsStoragePools)  {
             	storagePool = new StoragePool();
+            	storagePool.setNativeGuid(nativeGuid);
+            	storagePool.setStorageDevice(storageSystem.getId());
+            	storagePool.setId(URIUtil.createId(StoragePool.class));
+            	storagePool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.toString());
+            	storagePool.setPoolServiceType(PoolServiceType.object.toString());
+            	storagePool.setRegistrationStatus(DiscoveredDataObject.RegistrationStatus.REGISTERED.toString());
+            	StringSet protocols = new StringSet();
+            	protocols.add("S3");
+            	protocols.add("Swift");
+            	protocols.add("Atmos");
+            	storagePool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THIN_AND_THICK.toString());
+            	storagePool.setFreeCapacity((1024L*1024L*1024L)); // 1TB
+            	storagePool.setTotalCapacity((1024L*1024L*1024L));  // 1TB
+            	storagePool.setLabel(ecsPool.getName());
+            	
             	storagePool.setPoolName(ecsPool.getName());
             	storagePool.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
             	storagePool.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
-            	storagePool.setId(URIUtil.createId(StoragePool.class));
-            	storagePool.setNativeGuid(nativeGuid);
             	storagePool.setNativeId(nativeGuid);
             	pools.add(storagePool);
             }

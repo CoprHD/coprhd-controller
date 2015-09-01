@@ -202,6 +202,8 @@ DefaultStorageArrayPortMap.scaleio=22
 DefaultStorageArrayPortMap.scaleio_useSSL=22
 DefaultStorageArrayPortMap.datadomain=3009
 DefaultStorageArrayPortMap.datadomain_useSSL=3009
+DefaultStorageArrayPortMap.ecs=8080
+DefaultStorageArrayPortMap.ecs_useSSL=8080
 
 DefaultStorageProviderPortMap.hicommand_useSSL=2001
 DefaultStorageProviderPortMap.hicommand=2001
@@ -267,6 +269,7 @@ StorageSystemType.scaleio=Block Storage Powered by ScaleIO
 StorageSystemType.xtremio=EMC XtremIO
 StorageSystemType.vnxe=EMC VNXe
 StorageSystemType.datadomain=Data Domain
+StorageSystemType.ecs=EMC Elastic Cloud Storage
 StorageSystemType.STORAGE_PROVIDER.vmax=Storage Provider for EMC VMAX, VNX Block
 StorageSystemType.STORAGE_PROVIDER.hds=Storage Provider for Hitachi storage systems
 StorageSystemType.STORAGE_PROVIDER.vplex=Storage Provider for EMC VPLEX
@@ -310,6 +313,10 @@ BlockStorageProtocol.ScaleIO=ScaleIO
 FileStorageProtocol.NFS=NFS
 FileStorageProtocol.NFSv4=NFSv4
 FileStorageProtocol.CIFS=CIFS
+
+ObjectStorageProtocol.SWIFT=SWIFT
+ObjectStorageProtocol.ATMOS=ATMOS
+ObjectStorageProtocol.S3=S3
 
 CoSType.block=Block
 CoSType.file=File
@@ -1148,7 +1155,7 @@ tenants.name=Name
 tenant.name=Name
 tenants.description=Description
 tenant.description=Description
-tenants.deleted=Tenents(s) deleted successfully.
+tenants.deleted=Tenant(s) deleted successfully.
 tenants.delete.root=Deleting the Root Provider Tenant is not allowed.
 tenants.saved=Tenant '%s' saved successfully.
 tenants.unknown=Unknown Tenant ID '%s'
@@ -1159,6 +1166,9 @@ tenant.attribute.help=One Value per line
 tenant.removeDomain=Remove Domain
 tenant.enableQuota=Enable Quota
 tenant.quota=Quota
+tenant.enableNamespace=Object Namespace
+tenant.namespace=Namespace
+tenant.namespace.help=Specify namespace for object storage only
 tenant.noDomains=No Authentication Providers have been configured
 tenant.userMappingRequired=A Domain Authentication User Mapping is required
 tenant.quota.error.required=A quota must be supplied if quotas enabled
@@ -1872,6 +1882,10 @@ vpool.systemType=System Type
 vpool.poolAssignment=Pool Assignment
 vpool.poolAssignment.help=Choosing manual pool assignment allows selection of a subset of the storage pools matching the criteria
 
+#Object Specefic
+vpool.maxRetention=Maximum Retention (Days)
+vpool.objectProtocols=Protocols
+
 # Block Specific
 vpool.minPaths=Minimum Paths
 vpool.minPaths.help=Minimum number of total paths from the host to storage array
@@ -2296,6 +2310,7 @@ adminDashboard.confirm.poweroff=Are you sure you want to shutdown the ViPR Virtu
 adminDashboard.capacity=Arrays Capacity
 adminDashboard.fileCapacity=File
 adminDashboard.blockCapacity=Block
+adminDashboard.object=Object
 adminDashboard.blockFileFreeCapacity=Free Block/File
 
 license.model.ViPR_Controller=ViPR Controller

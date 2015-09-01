@@ -241,7 +241,8 @@ public class StorageSystemService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(param.getSystemType(), "system_type");
         ArgValidator.checkFieldValueFromEnum(param.getSystemType(), "system_type", EnumSet.of(
                 StorageSystem.Type.vnxfile, StorageSystem.Type.isilon, StorageSystem.Type.rp,
-                StorageSystem.Type.netapp, StorageSystem.Type.netappc, StorageSystem.Type.vnxe, StorageSystem.Type.xtremio));
+                StorageSystem.Type.netapp, StorageSystem.Type.netappc, StorageSystem.Type.vnxe, 
+                StorageSystem.Type.xtremio, StorageSystem.Type.ecs));
         StorageSystem.Type systemType = StorageSystem.Type.valueOf(param.getSystemType());
         if (systemType.equals(StorageSystem.Type.vnxfile)) {
             validateVNXFileSMISProviderMandatoryDetails(param);
@@ -260,12 +261,14 @@ public class StorageSystemService extends TaskResourceService {
                 param.getSystemType(), param.getIpAddress(), param.getPortNumber());
 
         //Temp code to be removed: Sreenidhi
-        if (system.getSystemType() == "isilon")
+        if (system.getSystemType().equals("isilon"))
         	system.setSystemType("ecs");
-        	
+        
+        system.setSystemType("ecs");
+
         startStorageSystem(system);
 
-        FileController controller = getController(FileController.class, param.getSystemType());
+        ObjectController controller = getController(ObjectController.class, param.getSystemType());
         ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
         String taskId = UUID.randomUUID().toString();
         tasks.add(new AsyncTask(StorageSystem.class, system.getId(), taskId));

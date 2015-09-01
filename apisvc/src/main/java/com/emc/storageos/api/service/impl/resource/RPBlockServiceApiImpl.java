@@ -1015,7 +1015,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     protected Long computeProtectionCapacity(List<URI> volumeURIs, Long requestedSize, boolean isExpand, boolean isChangeVpool, List<VolumeDescriptor> volumeDescriptors) {    
         List<Volume> volumes = _dbClient.queryObject(Volume.class, volumeURIs);
         _log.info("Performing checks to see if all volumes are of the same System Type and capacity for Protection.");
-        Map<URI, StorageSystem> volumeStorageSystems = new HashMap<URI, StorageSystem>();
+        Map<URI, StorageSystem> volumeStorageSystemMap = new HashMap<URI, StorageSystem>();
         List<Volume> allVolumesToCompare = new ArrayList<Volume>();
         List<Volume> allVolumesToUpdateCapacity = new ArrayList<Volume>();
         List<Long> currentVolumeSizes = new ArrayList<Long>();
@@ -1084,7 +1084,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 currentVolumeSizes.add(associatedVolume.getCapacity());
                             }
                             
-                            addVolumeStorageSystem(volumeStorageSystems, associatedVolume);
+                            addVolumeStorageSystem(volumeStorageSystemMap, associatedVolume);
                             allVolumesToCompare.add(associatedVolume);
                             allVolumesToUpdateCapacity.add(associatedVolume);
                             associatedVolumePersonalityMap.put(associatedVolume.getId(), volume.getPersonality());
@@ -1104,7 +1104,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                             currentVolumeSizes.add(volume.getCapacity());
                         }
                         
-                        addVolumeStorageSystem(volumeStorageSystems, volume);
+                        addVolumeStorageSystem(volumeStorageSystemMap, volume);
                         allVolumesToCompare.add(volume);
                     }                
                 }
@@ -1122,18 +1122,19 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                     
             // Determine if all the source/target storage systems involved are the same based
             // on type, model, and firmware version.
-            for (Map.Entry<URI, StorageSystem> storageSystemEntry : volumeStorageSystems.entrySet()) {
+            for (Map.Entry<URI, StorageSystem> volumeStorageSystemEntry : volumeStorageSystemMap.entrySet()) {
+            	URI volUri = volumeStorageSystemEntry.getKey();
                 if (storageSystemToCompare == null) {
                     // Find a base for the comparison, the first element will do.
-                    storageSystemToCompare = volumeStorageSystems.get(storageSystemEntry.getKey());
+                    storageSystemToCompare = volumeStorageSystemMap.get(volUri);
                     // set storageSystem to first element if there is only one
-                    if (volumeStorageSystems.size() == 1) {
-                        storageSystem = volumeStorageSystems.get(storageSystemEntry.getKey());
+                    if (volumeStorageSystemMap.size() == 1) {
+                        storageSystem = volumeStorageSystemMap.get(volUri);
                     }
                     continue;
                 }
 
-                storageSystem = volumeStorageSystems.get(storageSystemEntry);
+                storageSystem = volumeStorageSystemMap.get(volUri);
 
                 if (!storageSystemToCompare.getSystemType().equals(storageSystem.getSystemType())) {
                     // The storage systems do not all match so we need to determine the allocated 
@@ -1167,7 +1168,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 
                 // Determine if the provisioning request requires storage systems 
                 // which cannot allocate storage at the exact same amount
-                if (!capacitiesCanMatch(volumeStorageSystems)) {
+                if (!capacitiesCanMatch(volumeStorageSystemMap)) {
                 	setUnMatchedCapacities(allVolumesToUpdateCapacity, associatedVolumePersonalityMap, isExpand, capacityToUseInCalculation);
                 } else {
                 	// Storage systems in the provisioning request can allocate storage capacity in equal amounts
@@ -1190,7 +1191,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 		Volume currentVolume = tempVolumesList.remove(index);
 
                 		// Get the System Type for the current volume
-                		String currentVolumeSystemType = volumeStorageSystems.get(currentVolume.getStorageController()).getSystemType();
+                		String currentVolumeSystemType = volumeStorageSystemMap.get(currentVolume.getStorageController()).getSystemType();
                 		// Calculate the capacity for the current volume based on the Storage System type to see if it can be adjusted
                 		currentVolumeCapacity = 
                 				capacityCalculatorFactory.getCapacityCalculator(currentVolumeSystemType)                                    
@@ -1207,7 +1208,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 		// capacities will match.
                 		for (Volume volumeToCompare : tempVolumesList) {                        
                 			// Get the System Type for the volume to compare
-                			String volumeToCompareSystemType = volumeStorageSystems.get(volumeToCompare.getStorageController()).getSystemType();
+                			String volumeToCompareSystemType = volumeStorageSystemMap.get(volumeToCompare.getStorageController()).getSystemType();
                 			// Make sure the volume to compare is not the same storage system type as the one we used to calculate the
                 			// currentVolumeCapacity above.  We have already used that storage system with the capacity calculator so
                 			// we don't want to adjust the capacity again, so just skip it.

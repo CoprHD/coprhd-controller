@@ -17,8 +17,6 @@ import java.util.List;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.VirtualPool.MetroPointType;
-import com.emc.storageos.volumecontroller.RPRecommendation.ProtectionType;
 
 /**
  * Top level recommendation for RP protection placement
@@ -67,7 +65,7 @@ public class RPProtectionRecommendation extends Recommendation {
     	this.vpoolChangeVpool = copy.getVpoolChangeVpool();    	
     	
     	this.sourceRecommendations = new ArrayList<RPRecommendation>();
-    	this.sourceRecommendations = copy.getSourceRecommendations();    	
+    	this.getSourceRecommendations().addAll(copy.getSourceRecommendations());    	
     	this.targetJournalRecommendations = new ArrayList<RPRecommendation>();
     	this.getTargetJournalRecommendations().addAll(copy.getTargetJournalRecommendations());
    	}
@@ -197,8 +195,8 @@ public class RPProtectionRecommendation extends Recommendation {
      */
     public String toString(DbClient dbClient) {
     	    	
-    	StringBuffer buff = new StringBuffer("\nRecoverPoint Placement Results : \n"); 
-    	buff.append("--------------------------------------\n");
+    	StringBuffer buff = new StringBuffer("%nRecoverPoint Placement Results : %n"); 
+    	buff.append("--------------------------------------%n");
 
     	RPRecommendation rpRecommendation = this.getSourceRecommendations().get(0);    	
     	String protectionType = "Regular RP recommendation";
@@ -208,17 +206,17 @@ public class RPProtectionRecommendation extends Recommendation {
     		protectionType = "RP/VPLEX recommendation";
     	}
     	
-    	buff.append(protectionType + "\n");
+    	buff.append(protectionType + "%n");
     	ProtectionSystem ps = dbClient.queryObject(ProtectionSystem.class, getProtectionDevice());
-    	buff.append("Total volumes placed : " + this.getResourceCount() + "\n");
-    	buff.append("Protection System : " + ps.getLabel() + "\n\n");
+    	buff.append("Total volumes placed : " + this.getResourceCount() + "%n");
+    	buff.append("Protection System : " + ps.getLabel() + "%n%n");
    
     	for (RPRecommendation sourceRecommendation : this.getSourceRecommendations()) {	    	
-    		buff.append("Source Recommendation : " + "\n");    		    		
-    		buff.append(sourceRecommendation.toString(dbClient, ps) + "\n");
+    		buff.append("Source Recommendation : " + "%n");    		    		
+    		buff.append(sourceRecommendation.toString(dbClient, ps) + "%n");
     		for (RPRecommendation targetRecommendation : sourceRecommendation.getTargetRecommendations()) {
-    			buff.append("Target Recommendation : " + "\n");
-    			buff.append(targetRecommendation.toString(dbClient, ps) + "\n");
+    			buff.append("Target Recommendation : " + "%n");
+    			buff.append(targetRecommendation.toString(dbClient, ps) + "%n");
     		}
     	}    
     	buff.append("Journal Recommendation : ");
@@ -226,24 +224,24 @@ public class RPProtectionRecommendation extends Recommendation {
     	if (standbyJournalRecommendation != null) {
     		sourceJournalString = "Metropoint Active Source";
     	}
-    	buff.append(sourceJournalString + " : "+ "\n");
-    	buff.append(sourceJournalRecommendation.toString(dbClient, ps) + "\n");
+    	buff.append(sourceJournalString + " : "+ "%n");
+    	buff.append(sourceJournalRecommendation.toString(dbClient, ps) + "%n");
 	
     	if (standbyJournalRecommendation != null) {
-    		buff.append("\nJournal Recommendation	: Metropoint Standby Source" + "\n");
-    		buff.append(standbyJournalRecommendation.toString(dbClient, ps) + "\n");
+    		buff.append("%nJournal Recommendation	: Metropoint Standby Source" + "%n");
+    		buff.append(standbyJournalRecommendation.toString(dbClient, ps) + "%n");
     	}
     	
-    	buff.append("\n");
-    	buff.append("Journal Recommendation : Target" + "\n");
+    	buff.append("%n");
+    	buff.append("Journal Recommendation : Target" + "%n");
     	if (this.getTargetJournalRecommendations() != null) {
-    		buff.append("Journals : " + "\n");
+    		buff.append("Journals : " + "%n");
     		for (RPRecommendation targetJournalRecommendation : getTargetJournalRecommendations()) {
-    	    	buff.append(targetJournalRecommendation.toString(dbClient, ps) + "\n");    	    	
+    	    	buff.append(targetJournalRecommendation.toString(dbClient, ps) + "%n");    	    	
     		}
     	}
     	
-    	buff.append("--------------------------------------\n");
+    	buff.append("--------------------------------------%n");
     	return buff.toString();
     } 	
 }

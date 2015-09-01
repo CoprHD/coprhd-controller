@@ -221,14 +221,6 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         _blockScheduler = blockScheduler;
     }
 
-    public CustomConfigHandler getCustomConfigHandler() {
-        return customConfigHandler;
-    }
-
-    public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
-        this.customConfigHandler = customConfigHandler;
-    }
-
     /**
      * Select volumes from an export group that resides on a given storage array
      * 

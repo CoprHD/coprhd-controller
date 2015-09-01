@@ -51,7 +51,7 @@
                 <ref bean="hdsHostModeOption" />
                 <ref bean="vplexStorageViewName"/>
                 <ref bean="vplexMigrationSpeed"/>
-                <ref bean="vmaxMaskingViewMaximumVolumes"/>
+                <ref bean="vplexVmaxMaskingViewMaximumVolumes"/>
             </list>
         </property>
     </bean>
@@ -813,8 +813,8 @@
         </property>
     </bean>
 
-    <bean id="vmaxMaskingViewMaximumVolumes" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
-        <property name="name" value="VMAXMaskingViewMaximumVolumes"/>
+    <bean id="vplexVmaxMaskingViewMaximumVolumes" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="VPlexVMAXMaskingViewMaximumVolumes"/>
         <property name="configType" value="SimpleValue"/>
         <property name="type" value="Integer"/>
         <property name="scope">

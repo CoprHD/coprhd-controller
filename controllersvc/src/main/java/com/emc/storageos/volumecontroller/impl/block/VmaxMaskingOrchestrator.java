@@ -18,6 +18,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 import org.slf4j.Logger;
@@ -67,6 +68,7 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
             AtomicReference<BlockStorageDevice>();
     public static final String VMAX_SMIS_DEVICE = "vmaxSmisDevice";
     public static final HashSet<String> INITIATOR_FIELDS = new HashSet<String>();
+    public static final String CUSTOM_CONFIG_HANDLER = "customConfigHandler";
 
     static {
         INITIATOR_FIELDS.add("clustername");
@@ -1902,9 +1904,10 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                 // Get configuration value for how many volumes are allowed in MaskingView. If the number
                 // of volumes exceeds this amount for a particular ExportMask, then it cannot be a candidate
                 // for reuse.
+                customConfigHandler = (CustomConfigHandler) ControllerServiceImpl.getBean(CUSTOM_CONFIG_HANDLER);
                 int maxVolumesAllowedByConfig = Integer.valueOf(customConfigHandler
-                        .getComputedCustomConfigValue(CustomConfigConstants.VMAX_MASKING_VIEW_MAXIMUM_VOLUMES, storage.getSystemType(),
-                                null));
+                        .getComputedCustomConfigValue(CustomConfigConstants.VPLEX_VMAX_MASKING_VIEW_MAXIMUM_VOLUMES,
+                                storage.getSystemType(), null));
 
                 // Use a local cache in case the same volumes are selected
                 // to be placed into different ExportMasks

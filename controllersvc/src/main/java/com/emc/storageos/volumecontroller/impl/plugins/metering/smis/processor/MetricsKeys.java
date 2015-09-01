@@ -59,7 +59,6 @@ public enum MetricsKeys {
     /** The ViPR time this port/cpu was last processed. */
     lastProcessingTime;
 
-    
     static public Long getLong(MetricsKeys key, StringMap map) {
         Long value = 0L;
         if (map.containsKey(key.name()) && !map.get(key.name()).equals("")) {

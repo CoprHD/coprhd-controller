@@ -297,6 +297,11 @@ public class StoragePortService extends TaggedResource {
         _log.info("Checking for updates to storage port virtual array assignments.");
         boolean virtualArraysUpdated = updateStoragePortVirtualArrays(storagePort,
                 storagePortUpdates.getVarrayChanges());
+        
+        // Update the virtual nas virtual array assignments.
+        _log.info("Checking for updates to virtual nas virtual array assignments.");
+        boolean vNasVirtualArraysUpdated = updatevNasVirtualArrays(storagePort,
+                storagePortUpdates.getVarrayChanges());
 
         /**
          * This is applicable only for Cinder Storage System's port

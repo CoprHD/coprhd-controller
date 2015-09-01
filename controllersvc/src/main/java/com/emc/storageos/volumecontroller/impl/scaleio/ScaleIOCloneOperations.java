@@ -7,6 +7,8 @@ package com.emc.storageos.volumecontroller.impl.scaleio;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
@@ -18,11 +20,17 @@ import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.CloneOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.google.common.collect.Lists;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public class ScaleIOCloneOperations implements CloneOperations {
 
@@ -120,7 +128,44 @@ public class ScaleIOCloneOperations implements CloneOperations {
     @Override
     public void createGroupClone(StorageSystem storage, List<URI> cloneList,
             Boolean createInactive, TaskCompleter taskCompleter) {
-        throw new UnsupportedOperationException("Not yet implemented");
+        try {
+            ScaleIORestClient scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storage);
+            List<Volume> clones = dbClient.queryObject(Volume.class, cloneList);
+            Map<String, String> parent2snap = new HashMap<>();
+            Set<URI> poolsToUpdate = new HashSet<>();
+
+            for (Volume clone : clones) {
+                Volume parent = dbClient.queryObject(Volume.class, clone.getAssociatedSourceVolume());
+                parent2snap.put(parent.getNativeId(), clone.getLabel());
+                poolsToUpdate.add(parent.getPool());
+            }
+            String systemId = scaleIOHandle.getSystemId();
+            ScaleIOSnapshotVolumeResponse result = scaleIOHandle.snapshotMultiVolume(parent2snap, systemId);
+
+            List<String> nativeIds = result.getVolumeIdList();
+            Map<String, String> cloneNameIdMap = scaleIOHandle.getVolumes(nativeIds);
+            for (Volume clone : clones) {
+                String name = clone.getLabel();
+                String nativeId = cloneNameIdMap.get(name);
+                ScaleIOHelper.updateSnapshotWithSnapshotVolumeResult(dbClient, clone, systemId, nativeId);
+                clone.setReplicationGroupInstance(result.getSnapshotGroupId());
+            }
+            dbClient.persistObject(clones);
+
+            List<StoragePool> pools = dbClient.queryObject(StoragePool.class, Lists.newArrayList(poolsToUpdate));
+            for (StoragePool pool : pools) {
+                ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, pool, storage);
+            }
+
+            taskCompleter.ready(dbClient);
+
+        } catch (Exception e) {
+            log.error("Encountered an exception", e);
+            ServiceCoded code =
+                    DeviceControllerErrors.scaleio.
+                            encounteredAnExceptionFromScaleIOOperation("createGroupClone", e.getMessage());
+            taskCompleter.error(dbClient, code);
+        }
     }
 
     @Override
@@ -149,7 +194,19 @@ public class ScaleIOCloneOperations implements CloneOperations {
 
     @Override
     public void detachGroupClones(StorageSystem storageSystem, List<URI> clones, TaskCompleter completer) {
-        throw new UnsupportedOperationException("Not yet implemented");
+        List<Volume> cloneVolumes = dbClient.queryObject(Volume.class, clones);
+        for (Volume theClone : cloneVolumes) {
+            URI source = theClone.getAssociatedSourceVolume();
+            Volume sourceVol = dbClient.queryObject(Volume.class, source);
+            sourceVol.getFullCopies().remove(theClone.getId().toString());
+            theClone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
+            theClone.setReplicaState(ReplicationState.DETACHED.name());
+            dbClient.persistObject(sourceVol);
+        }
+        dbClient.persistObject(cloneVolumes);
+        if (completer != null) {
+            completer.ready(dbClient);
+        }
 
     }
 

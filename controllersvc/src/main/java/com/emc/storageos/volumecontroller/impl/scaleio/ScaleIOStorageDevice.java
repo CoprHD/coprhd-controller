@@ -248,9 +248,18 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     public void doExpandVolume(StorageSystem storage, StoragePool pool, Volume volume, Long size, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         Long volumeSize = size / ScaleIOHelper.BYTES_IN_GB;
+        Long expandSize = volumeSize;
+        //ScaleIO volume size has to be granularity of 8
+        long remainder = volumeSize % 8;
+        if (remainder != 0) {
+            expandSize += (8-remainder);
+            log.info("The requested size is {} GB, increase it to {} GB, so that it is granularity fo 8", volumeSize, expandSize);
+        }
+        
         try {
             ScaleIORestClient scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storage);
-            ScaleIOVolume result = scaleIOHandle.modifyVolumeCapacity(volume.getNativeId(), volumeSize.toString());
+            
+            ScaleIOVolume result = scaleIOHandle.modifyVolumeCapacity(volume.getNativeId(), expandSize.toString());
             long newSize = Long.parseLong(result.getSizeInKb()) * 1024L;
             volume.setProvisionedCapacity(newSize);
             volume.setAllocatedCapacity(newSize);
@@ -838,7 +847,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doCreateGroupClone(StorageSystem storageDevice, List<URI> clones,
             Boolean createInactive, TaskCompleter completer) {
-        completeTaskAsUnsupported(completer);
+        cloneOperations.createGroupClone(storageDevice, clones, createInactive, completer);
     }
 
     @Override

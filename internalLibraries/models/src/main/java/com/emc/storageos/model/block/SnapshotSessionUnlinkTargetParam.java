@@ -12,7 +12,7 @@ import javax.xml.bind.annotation.XmlElement;
  * Class that captures the POST data for a target to
  * be unlinked from a block snapshot session.
  */
-public class UnlinkSnapshotSessionTargetParam {
+public class SnapshotSessionUnlinkTargetParam {
 
     // The id of a BlockSnapshot representing a linked target for a
     // block snapshot session.
@@ -24,7 +24,7 @@ public class UnlinkSnapshotSessionTargetParam {
     /**
      * Default constructor.
      */
-    public UnlinkSnapshotSessionTargetParam() {
+    public SnapshotSessionUnlinkTargetParam() {
     }
 
     /**
@@ -33,7 +33,7 @@ public class UnlinkSnapshotSessionTargetParam {
      * @param id The id of a BlockSnapshot representing a linked target for a block snapshot session.
      * @param deleteTarget Whether or not the target should be deleted.
      */
-    public UnlinkSnapshotSessionTargetParam(URI id, Boolean deleteTarget) {
+    public SnapshotSessionUnlinkTargetParam(URI id, Boolean deleteTarget) {
         this.id = id;
         this.deleteTarget = deleteTarget;
     }
@@ -67,7 +67,7 @@ public class UnlinkSnapshotSessionTargetParam {
      * 
      * @return Whether or not the target should be deleted.
      */
-    @XmlElement(name = "delete-target", required = false, defaultValue = "false")
+    @XmlElement(name = "delete_target", required = false, defaultValue = "false")
     public Boolean getDeleteTarget() {
         return deleteTarget;
     }

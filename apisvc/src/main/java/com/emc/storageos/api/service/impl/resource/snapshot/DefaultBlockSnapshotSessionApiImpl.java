@@ -162,8 +162,6 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
                 // number of targets that can be linked to the snapshot sessions
                 // for a given source.
                 verifyNewTargetCount(sourceObj, newTargetsCount, true);
-
-                // TBD - Future Verify new targets name for duplicates.
             } else {
                 // TBD Future - What if source is a BlockSnapshot i.e., cascaded snapshot?
                 // What about when the source is a BlockSnapshot. It has no vpool
@@ -380,8 +378,6 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         // number of targets that can be linked to the snapshot sessions
         // for a given source.
         verifyNewTargetCount(snapSessionSourceObj, newTargetsCount, false);
-
-        // TBD - Future Verify the target name for duplicates.
     }
 
     /**

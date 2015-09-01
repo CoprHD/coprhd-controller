@@ -45,7 +45,7 @@ import com.emc.storageos.model.block.SnapshotSessionLinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionNewTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionRelinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
-import com.emc.storageos.model.block.UnlinkSnapshotSessionTargetParam;
+import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetParam;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InterNodeHMACAuthFilter;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -363,7 +363,7 @@ public class BlockSnapshotSessionManager {
 
         // Get the target information.
         Map<URI, Boolean> targetMap = new HashMap<URI, Boolean>();
-        for (UnlinkSnapshotSessionTargetParam targetInfo : param.getLinkedTargets()) {
+        for (SnapshotSessionUnlinkTargetParam targetInfo : param.getLinkedTargets()) {
             URI targetURI = targetInfo.getId();
             Boolean deleteTarget = targetInfo.getDeleteTarget();
             if (deleteTarget == null) {

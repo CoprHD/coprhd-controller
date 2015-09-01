@@ -18,7 +18,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class SnapshotSessionUnlinkTargetsParam {
 
     // The list of targets to be unlinked.
-    private List<UnlinkSnapshotSessionTargetParam> linkedTargets;
+    private List<SnapshotSessionUnlinkTargetParam> linkedTargets;
 
     /**
      * Default constructor.
@@ -31,7 +31,7 @@ public class SnapshotSessionUnlinkTargetsParam {
      * 
      * @param linkedTargets The list of targets to be unlinked.
      */
-    public SnapshotSessionUnlinkTargetsParam(List<UnlinkSnapshotSessionTargetParam> linkedTargets) {
+    public SnapshotSessionUnlinkTargetsParam(List<SnapshotSessionUnlinkTargetParam> linkedTargets) {
         this.linkedTargets = linkedTargets;
     }
 
@@ -44,7 +44,7 @@ public class SnapshotSessionUnlinkTargetsParam {
      * @return The list of targets to be unlinked.
      */
     @XmlElement(name = "linked_target", required = true)
-    public List<UnlinkSnapshotSessionTargetParam> getLinkedTargets() {
+    public List<SnapshotSessionUnlinkTargetParam> getLinkedTargets() {
         return linkedTargets;
     }
 
@@ -53,7 +53,7 @@ public class SnapshotSessionUnlinkTargetsParam {
      * 
      * @param linkedTargets The list of targets to be unlinked.
      */
-    public void setLinkedTargets(List<UnlinkSnapshotSessionTargetParam> linkedTargets) {
+    public void setLinkedTargets(List<SnapshotSessionUnlinkTargetParam> linkedTargets) {
         this.linkedTargets = linkedTargets;
     }
 }

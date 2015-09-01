@@ -17,23 +17,22 @@ public class VirtualNasServerDataTable extends DataTable {
         addColumn("registrationStatus").setRenderFunction("render.registrationStatus");
         addColumn("project");
         addColumn("storageDeviceURI").hidden();
-        addColumn("maxFSID").hidden();
-        addColumn("maxExports").hidden();
-        addColumn("maxProvisionedCapacity").hidden();
         addColumn("protocols");
         addColumn("parentNASURI");
         addColumn("storageDomain");
         addColumn("cifsServers").hidden();;
         addColumn("storagePorts").hidden();;
         addColumn("nasState");
-        
-        
         addColumn("compatibilityStatus").hidden();
         addColumn("discoveryStatus").hidden();;
         addColumn("vNasTag").hidden();
-        
         addColumn("vNasType").hidden();
-        addColumn("baseDirPath").hidden();;
+        addColumn("baseDirPath").hidden();
+        
+        addColumn("storageObjects").hidden();
+        addColumn("storageCapacity").hidden();
+        addColumn("avgPercentagebusy").hidden();
+        addColumn("avgEmaPercentagebusy").hidden();
         
         sortAll();
         setDefaultSort("name", "asc");
@@ -87,6 +86,11 @@ public class VirtualNasServerDataTable extends DataTable {
         // place holder for the Parent NAS server the Data Mover
         private String parentNASURI;
         
+        private String storageObjects;
+        private String storageCapacity;
+        private String avgPercentagebusy;
+        private String avgEmaPercentagebusy;
+        
         public VirtualNasServerInfo(VirtualNASRestRep vNasRestRep, boolean isProjectAccessible){
            this.id = vNasRestRep.getId().toString();
            this.nasName = vNasRestRep.getNasName();
@@ -97,9 +101,7 @@ public class VirtualNasServerDataTable extends DataTable {
                   this.project = projectRestRep.getName();
               }
            }
-           this.maxExports = vNasRestRep.getMaxExports();
-           this.maxFSID = vNasRestRep.getMaxFSID();
-           this.maxProvisionedCapacity = vNasRestRep.getMaxProvisionedCapacity();
+           
            this.protocols = vNasRestRep.getProtocols();
            this.baseDirPath = vNasRestRep.getBaseDirPath();
            this.nasTag = vNasRestRep.getTags();
@@ -107,12 +109,14 @@ public class VirtualNasServerDataTable extends DataTable {
            this.cifsServers = vNasRestRep.getCifsServers();
            this.storagePorts = (vNasRestRep.getStoragePorts() != null) ? vNasRestRep.getStoragePorts().toString() : "";
            this.storageDomain = (vNasRestRep.getStorageDomain() != null) ? vNasRestRep.getStorageDomain().toString() : "";
-           if(vNasRestRep.getParentNASURI() != null){
-               this.parentNASURI = vNasRestRep.getParentNASURI().getLink().getLinkName(); 
-           }
+           this.parentNASURI = vNasRestRep.getParentNASURI(); 
            this.registrationStatus = vNasRestRep.getRegistrationStatus();
            this.compatibilityStatus = vNasRestRep.getCompatibilityStatus();
-           this.discoveryStatus = vNasRestRep.getDiscoveryStatus(); 
+           this.discoveryStatus = vNasRestRep.getDiscoveryStatus();
+           this.storageObjects = vNasRestRep.getStorageObjects();
+           this.storageCapacity = vNasRestRep.getStorageCapacity();
+           this.avgPercentagebusy = vNasRestRep.getAvgPercentagebusy();
+           this.avgEmaPercentagebusy = vNasRestRep.getAvgEmaPercentagebusy();
            
         }
     }

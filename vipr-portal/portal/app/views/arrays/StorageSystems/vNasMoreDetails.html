@@ -1,26 +1,26 @@
 <div class="metricDetails">
 	<div class="col-md-2 col-sm-3 col-xs-6">
 	  <dl>
-		  <dt>&{'vNasServers.dynamicLoad'}</dt>
-		  <dd>${vNas?.parentNASURI != null? vNas?.parentNASURI : messages.get('StoragePortDataTable.notApplicable') }</dd>
+		  <dt>&{'vNasServers.storageObjects'}</dt>
+		  <dd>${vNas?.storageObjects != null? vNas?.storageObjects : messages.get('vNasServersDataTable.notApplicable') }</dd>
 	  </dl>
 	</div>
 	<div class="col-md-2 col-sm-3 col-xs-6">
 	  <dl>
-		  <dt>&{'vNasServers.staticLoad'}</dt>
-		  <dd>${vNas?.storageDomain != null? vNas?.storageDomain : messages.get('StoragePortDataTable.notApplicable') }</dd>
+		  <dt>&{'vNasServers.storageCapacity'}</dt>
+		  <dd>${vNas?.storageCapacity != null? vNas?.storageCapacity : messages.get('vNasServersDataTable.notApplicable') }</dd>
 	  </dl>
 	</div>
 	<div class="col-md-2 col-sm-3 col-xs-6">
 	  <dl>
-		  <!-- <dt>&{'vNasServers.vNasType'}</dt>
-		  <dd>${vNas?.vNasType != null? vNas?.vNasType : messages.get('StoragePortDataTable.notApplicable') }</dd> -->
+		  <dt>&{'vNasServers.avgPercentagebusy'}</dt>
+		  <dd>${vNas?.avgPercentagebusy != null? vNas?.avgPercentagebusy : messages.get('vNasServersDataTable.notApplicable') }</dd>
 	  </dl>
 	</div>
 	<div class="col-md-2 col-sm-3 col-xs-6">
 	  <dl>
-		  <!-- <dt>&{'vNasServers.compatibilityStatus'}</dt>
-		  <dd>${vNas?.compatibilityStatus != null? vNas?.compatibilityStatus : messages.get('StoragePortDataTable.notApplicable') }</dd> -->
+		  <dt>&{'vNasServers.avgEmaPercentagebusy'}</dt>
+		  <dd>${vNas?.avgEmaPercentagebusy != null? vNas?.avgEmaPercentagebusy : messages.get('vNasServersDataTable.notApplicable') }</dd>
 	  </dl>
 	</div>
 </div>

@@ -6,6 +6,8 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Task;
 import com.emc.storageos.db.client.model.util.TaskUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.workflow.Workflow;
+import com.emc.storageos.workflow.WorkflowService;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
 import org.slf4j.Logger;
@@ -14,8 +16,6 @@ import org.slf4j.LoggerFactory;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.List;
-
-import static org.apache.commons.lang.StringUtils.isBlank;
 
 /**
  * Asynchronous event handler for responding to addition/removal events from a running
@@ -27,9 +27,14 @@ public class ControlRequestLockQueueListener implements DistributedLockQueueEven
     private static final Logger log = LoggerFactory.getLogger(ControlRequestLockQueueListener.class);
     private static final int ORCHESTRATOR_TASK_ID_LENGTH = 36;
     private DbClient dbClient;
+    private WorkflowService workflowService;
 
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
+    }
+
+    public void setWorkflowService(WorkflowService workflowService) {
+        this.workflowService = workflowService;
     }
 
     @Override
@@ -66,12 +71,13 @@ public class ControlRequestLockQueueListener implements DistributedLockQueueEven
         String id = getLastArg(request.getArg());
 
         if (isWorkflowStepId(id)) {
-            // TODO Find stepId -> taskId
-            log.warn("Updating task statuses for queued workflow steps is not yet supported");
+            id = findTaskIdFromWorkflowStepId(id);
         }
 
-        List<Task> tasks = TaskUtils.findTasksForRequestId(dbClient, id);
-        updateTasks(tasks, pendingTasksPredicate(), Task.Status.queued, request);
+        if (id != null) {
+            List<Task> tasks = TaskUtils.findTasksForRequestId(dbClient, id);
+            updateTasks(tasks, pendingTasksPredicate(), Task.Status.queued, request);
+        }
     }
 
     public void nodeRemoved(ControlRequest request) {
@@ -83,13 +89,14 @@ public class ControlRequestLockQueueListener implements DistributedLockQueueEven
         String id = getLastArg(request.getArg());
 
         if (isWorkflowStepId(id)) {
-            // TODO Find stepId -> taskId
-            log.warn("Updating task statuses for queued workflow steps is not yet supported");
+            id = findTaskIdFromWorkflowStepId(id);
         }
 
-        request.setLockGroup(NullColumnValueGetter.getNullStr());
-        List<Task> tasks = TaskUtils.findTasksForRequestId(dbClient, id);
-        updateTasks(tasks, queuedTasksPredicate(), Task.Status.pending, request);
+        if (id != null) {
+            request.setLockGroup(NullColumnValueGetter.getNullStr());
+            List<Task> tasks = TaskUtils.findTasksForRequestId(dbClient, id);
+            updateTasks(tasks, queuedTasksPredicate(), Task.Status.pending, request);
+        }
     }
 
     private String getLastArg(Object[] args) {
@@ -146,5 +153,22 @@ public class ControlRequestLockQueueListener implements DistributedLockQueueEven
                 return task.isPending();
             }
         };
+    }
+
+    /**
+     * Given a workflow step id, recursively use the WorkflowService
+     * to find the top-most Workflow which would have the real Task id.
+     *
+     * @param stepId    Step id from a workflow that may potentially be nested itself.
+     * @return          The real Task id
+     */
+    private String findTaskIdFromWorkflowStepId(String stepId) {
+        Workflow workflow = workflowService.getWorkflowFromStepId(stepId);
+
+        if (workflow != null && isWorkflowStepId(workflow.getOrchTaskId())) {
+            return findTaskIdFromWorkflowStepId(workflow.getOrchTaskId());
+        }
+
+        return (workflow == null) ? null : workflow.getOrchTaskId();
     }
 }

@@ -569,6 +569,7 @@ public class ControllerServiceImpl implements ControllerService {
         // TODO Spring config
         ControlRequestLockQueueListener controlRequestLockQueueListener = new ControlRequestLockQueueListener();
         controlRequestLockQueueListener.setDbClient(_dbClient);
+        controlRequestLockQueueListener.setWorkflowService(_workflowService);
         _lockQueueManager.getListeners().add(controlRequestLockQueueListener);
     }
 

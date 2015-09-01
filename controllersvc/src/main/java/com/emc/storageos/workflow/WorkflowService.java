@@ -1240,6 +1240,27 @@ public class WorkflowService {
     }
 
     /**
+     * Given a Workflow step id, search ZK and return the immediate parent Workflow.
+     *
+     * @param stepId    Workflow step id
+     * @return          Workflow
+     */
+    public Workflow getWorkflowFromStepId(String stepId) {
+        try {
+            String parentPath = getZKStep2WorkflowPath(stepId);
+            if (_dataManager.checkExists(parentPath) != null) {
+                parentPath = (String) _dataManager.getData(parentPath, false);
+                if (parentPath != null) {
+                    return (Workflow) _dataManager.getData(parentPath, false);
+                }
+            }
+        } catch (Exception e) {
+            return null;
+        }
+        return null;
+    }
+
+    /**
      * Acquires locks on behalf of a Workflow. If successfully acquired,
      * they are saved in the Workflow state and will be released when the
      * workflow completes.

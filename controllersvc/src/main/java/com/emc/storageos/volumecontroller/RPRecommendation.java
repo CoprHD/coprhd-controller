@@ -262,7 +262,9 @@ public class RPRecommendation extends Recommendation {
 			buff.append(getHaRecommendation().toString(dbClient, ps, 1));
 			if (this.getHaRecommendation().getTargetRecommendations() != null && !this.getHaRecommendation().getTargetRecommendations().isEmpty()){
 				buff.append(printTabs + "HA target :" + "\n");
-				buff.append(this.getHaRecommendation().getTargetRecommendations().get(0).toString(dbClient, ps, 1));
+				for(RPRecommendation haTargetRec : this.getHaRecommendation().getTargetRecommendations()) {
+					buff.append(haTargetRec.toString(dbClient, ps, 1));
+				}
 			}
 		}
 		return buff.toString();

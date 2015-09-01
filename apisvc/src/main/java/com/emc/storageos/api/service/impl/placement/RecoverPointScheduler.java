@@ -85,7 +85,7 @@ public class RecoverPointScheduler implements Scheduler {
 
     // List of storage systems that require vplex to provide protection
     private static List<String> systemsRequiringVplex = new ArrayList<String>
-            (Arrays.asList(DiscoveredDataObject.Type.xtremio.toString(), DiscoveredDataObject.Type.hds.toString()));
+            (Arrays.asList(DiscoveredDataObject.Type.hds.toString()));
 
     public void setBlockScheduler(StorageScheduler blockScheduler) {
         _blockScheduler = blockScheduler;

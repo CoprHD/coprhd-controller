@@ -54,14 +54,7 @@
         <rasd:ResourceType>4</rasd:ResourceType>
         <rasd:VirtualQuantity>${memory}</rasd:VirtualQuantity>
       </Item>
-      <Item>
-        <rasd:Address>0</rasd:Address>
-        <rasd:Description>SCSI Controller</rasd:Description>
-        <rasd:ElementName>SCSI Controller 0</rasd:ElementName>
-        <rasd:InstanceID>3</rasd:InstanceID>
-        <rasd:ResourceSubType>VirtualSCSI</rasd:ResourceSubType>
-        <rasd:ResourceType>6</rasd:ResourceType>
-      </Item>
+      ${vsphere_only}
       <Item>
         <rasd:Address>1</rasd:Address>
         <rasd:Description>IDE Controller</rasd:Description>

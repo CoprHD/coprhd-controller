@@ -5,6 +5,7 @@
 package com.emc.sa.service.vipr.block;
 
 import static com.emc.sa.service.ServiceParams.NAME;
+import static com.emc.sa.service.ServiceParams.READ_ONLY;
 import static com.emc.sa.service.ServiceParams.TYPE;
 import static com.emc.sa.service.ServiceParams.VOLUMES;
 
@@ -30,6 +31,9 @@ public class CreateBlockSnapshotService extends ViPRService {
     @Param(value = TYPE, required = false)
     protected String type;
 
+    @Param(value = READ_ONLY, required = false)
+    protected Boolean readOnly;
+
     private List<BlockObjectRestRep> volumes;
 
     @Override
@@ -43,7 +47,7 @@ public class CreateBlockSnapshotService extends ViPRService {
     @Override
     public void execute() {
         for (BlockObjectRestRep volume : volumes) {
-            Tasks<BlockSnapshotRestRep> tasks = execute(new CreateBlockSnapshot(volume.getId(), type, nameParam));
+            Tasks<BlockSnapshotRestRep> tasks = execute(new CreateBlockSnapshot(volume.getId(), type, nameParam, readOnly));
             addAffectedResources(tasks);
         }
     }

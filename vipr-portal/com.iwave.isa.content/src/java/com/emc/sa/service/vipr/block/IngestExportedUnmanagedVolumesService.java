@@ -21,6 +21,7 @@ import com.emc.sa.service.vipr.block.tasks.GetUnmanagedVolumesByHostOrCluster;
 import com.emc.sa.service.vipr.block.tasks.IngestExportedUnmanagedVolumes;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.model.block.IngestionMethodEnum;
 
 @Service("IngestExportedUnmanagedVolumes")
 public class IngestExportedUnmanagedVolumesService extends ViPRService {
@@ -57,6 +58,10 @@ public class IngestExportedUnmanagedVolumesService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
+        if (ingestionMethod == null || ingestionMethod.isEmpty()) {
+            ingestionMethod = IngestionMethodEnum.FULL.toString();
+        }
+        
         int succeed = execute(new IngestExportedUnmanagedVolumes(virtualPool, virtualArray, project,
                 host == null ? null : host.getId(),
                 cluster == null ? null : cluster.getId(),

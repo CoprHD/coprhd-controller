@@ -268,10 +268,19 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
         for (RelatedResourceRep volume : volumes) {
             VolumeRestRep volumeRep = client.blockVolumes().get(volume);
-            if (volumeRep.getProtection() != null && volumeRep.getProtection().getRpRep() != null
-                    && volumeRep.getProtection().getRpRep().getCopyName() != null) {
-                String copyName = volumeRep.getProtection().getRpRep().getCopyName();
-                targets.add(newAssetOption(copyName, copyName));
+            if (volumeRep.getProtection() != null && volumeRep.getProtection().getRpRep() != null) {
+                if (volumeRep.getProtection().getRpRep().getCopyName() != null) {
+                    String copyName = volumeRep.getProtection().getRpRep().getCopyName();
+                    targets.add(newAssetOption(copyName, copyName));
+                }
+                if (volumeRep.getProtection().getRpRep().getRpTargets() != null) {
+                    List<VirtualArrayRelatedResourceRep> targetVolumes = volumeRep.getProtection().getRpRep().getRpTargets();
+                    for (VirtualArrayRelatedResourceRep target : targetVolumes) {
+                        VolumeRestRep targetVolume = client.blockVolumes().get(target.getId());
+                        String copyName = targetVolume.getProtection().getRpRep().getCopyName();
+                        targets.add(newAssetOption(copyName, copyName));
+                    }
+                }
             }
         }
         return targets;

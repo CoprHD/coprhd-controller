@@ -384,9 +384,12 @@ public class InitiatorService extends TaskResourceService {
     private Cluster getInitiatorCluster(Initiator initiator) {
         URI hostId = initiator.getHost();
         Cluster cluster = null;
+        URI clusterId = null;
         if (!NullColumnValueGetter.isNullURI(hostId)) {
             Host host = _dbClient.queryObject(Host.class, hostId);
-            URI clusterId = host.getCluster();
+            clusterId = host.getCluster();
+        }
+        if (!NullColumnValueGetter.isNullURI(clusterId)) {
             cluster = _dbClient.queryObject(Cluster.class, clusterId);
         }
         return cluster;

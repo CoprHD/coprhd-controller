@@ -237,7 +237,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         int mirrorCount = context.getUnmanagedMirrors().size();
         if (mirrorCount > 0) {
             if (VirtualPool.vPoolSpecifiesMirrors(vpool, _dbClient)) {
-                if (vpool.getMaxNativeContinuousCopies() > mirrorCount) {
+                if (mirrorCount > vpool.getMaxNativeContinuousCopies()) {
                     // TODO better exception
                     throw IngestionException.exceptions.generalException("more continuous copies (mirrors) for volume that vpool allows");
                 }
@@ -250,7 +250,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         int snapshotCount = context.getUnmanagedSnapshots().size();
         if (snapshotCount > 0) {
             if (VirtualPool.vPoolSpecifiesSnapshots(vpool)) {
-                if (vpool.getMaxNativeSnapshots() > snapshotCount) {
+                if (snapshotCount > vpool.getMaxNativeSnapshots()) {
                     // TODO better exception
                     throw IngestionException.exceptions.generalException("more snapshots for volume that vpool allows");
                 }

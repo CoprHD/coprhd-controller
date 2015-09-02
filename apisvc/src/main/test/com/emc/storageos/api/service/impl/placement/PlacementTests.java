@@ -4139,14 +4139,11 @@ public class PlacementTests extends DbsvcTestBase {
 	        	assertTrue("site1".equals(sourceRec.getInternalSiteName()));
 	        	assertTrue("vmax1".equals(sourceRec.getSourceStorageSystem().toString()));
 	        	assertTrue(("pool1".equals(sourceRec.getSourceStoragePool().toString())) || ("pool2".equals(sourceRec.getSourceStoragePool().toString())));
-	        	if (VirtualPool.vPoolSpecifiesHighAvailability(sourceRec.getVirtualPool())) {
-	        		assertNotNull(sourceRec.getVirtualVolumeRecommendation());
-	        		//assertTrue("vplex1".equals(sourceRec.getVirtualVolumeRecommendation().getVPlexStorageSystem().toString()));
-	        	}
-	        	
+	        	assertTrue("vplex1".equals(sourceRec.getVirtualVolumeRecommendation().getVPlexStorageSystem().toString()));
+	    	        	
 	        	assertNotNull(sourceRec.getHaRecommendation().getVirtualVolumeRecommendation());
 	        	assertTrue("vplex1".equals(sourceRec.getHaRecommendation().getVirtualVolumeRecommendation().getVPlexStorageSystem().toString()));
-		        assertTrue("varray1".equals(sourceRec.getHaRecommendation().getVirtualArray().toString()));
+		        assertTrue("varray2".equals(sourceRec.getHaRecommendation().getVirtualArray().toString()));
 		        assertTrue(dummyVpoolUri.equals(sourceRec.getHaRecommendation().getVirtualPool().getId().toString()));
 		        assertTrue("vmax2".equals(sourceRec.getHaRecommendation().getSourceStorageSystem().toString()));
 		        assertTrue(("pool4".equals(sourceRec.getHaRecommendation().getSourceStoragePool().toString())) || ("pool5".equals(sourceRec.getHaRecommendation().getSourceStoragePool().toString())));
@@ -4176,7 +4173,7 @@ public class PlacementTests extends DbsvcTestBase {
 	        if (VirtualPool.vPoolSpecifiesHighAvailability(sourceJournalRec.getVirtualPool())) {
 	        	assertNotNull(sourceJournalRec.getVirtualVolumeRecommendation());
 	        }
-	        assertTrue(("pool5".equals(sourceJournalRec.getSourceStoragePool().toString())) || ("pool4".equals(sourceJournalRec.getSourceStoragePool().toString())));
+	        assertTrue(("pool1".equals(sourceJournalRec.getSourceStoragePool().toString())) || ("pool2".equals(sourceJournalRec.getSourceStoragePool().toString())));
 	        
 	        //target journals
 	        assertNotNull(rec.getTargetJournalRecommendations());

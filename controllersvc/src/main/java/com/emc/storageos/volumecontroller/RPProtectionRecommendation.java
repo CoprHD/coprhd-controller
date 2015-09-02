@@ -195,8 +195,8 @@ public class RPProtectionRecommendation extends Recommendation {
      */
     public String toString(DbClient dbClient) {
     	    	
-    	StringBuffer buff = new StringBuffer("%nRecoverPoint Placement Results : %n"); 
-    	buff.append("--------------------------------------%n");
+    	StringBuffer buff = new StringBuffer(String.format("%nRecoverPoint Placement Results : %n")); 
+    	buff.append(String.format("--------------------------------------%n"));
 
     	RPRecommendation rpRecommendation = this.getSourceRecommendations().get(0);    	
     	String protectionType = "Regular RP recommendation";
@@ -206,42 +206,40 @@ public class RPProtectionRecommendation extends Recommendation {
     		protectionType = "RP/VPLEX recommendation";
     	}
     	
-    	buff.append(protectionType + "%n");
+    	buff.append(String.format(protectionType + "%n"));
     	ProtectionSystem ps = dbClient.queryObject(ProtectionSystem.class, getProtectionDevice());
-    	buff.append("Total volumes placed : " + this.getResourceCount() + "%n");
-    	buff.append("Protection System : " + ps.getLabel() + "%n%n");
+    	buff.append(String.format("Total volumes placed : %s %n", + this.getResourceCount()));
+    	buff.append(String.format("Protection System : %s %n%n", ps.getLabel()));
    
     	for (RPRecommendation sourceRecommendation : this.getSourceRecommendations()) {	    	
-    		buff.append("Source Recommendation : " + "%n");    		    		
-    		buff.append(sourceRecommendation.toString(dbClient, ps) + "%n");
+    		buff.append(String.format("Source Recommendation : %n"));    		    		
+    		buff.append(String.format("%s %n",sourceRecommendation.toString(dbClient, ps)));
     		for (RPRecommendation targetRecommendation : sourceRecommendation.getTargetRecommendations()) {
-    			buff.append("Target Recommendation : " + "%n");
-    			buff.append(targetRecommendation.toString(dbClient, ps) + "%n");
+    			buff.append(String.format("Target Recommendation : %n"));
+    			buff.append(String.format("%s %n", targetRecommendation.toString(dbClient, ps)));
     		}
     	}    
     	buff.append("Journal Recommendation : ");
     	String sourceJournalString = "Source";
     	if (standbyJournalRecommendation != null) {
-    		sourceJournalString = "Metropoint Active Source";
+    		sourceJournalString = "Metropoint Active Source : ";
     	}
-    	buff.append(sourceJournalString + " : "+ "%n");
-    	buff.append(sourceJournalRecommendation.toString(dbClient, ps) + "%n");
+    	buff.append(String.format("%s %n", sourceJournalString ));
+    	buff.append(String.format("%s %n", sourceJournalRecommendation.toString(dbClient, ps)));
 	
     	if (standbyJournalRecommendation != null) {
-    		buff.append("%nJournal Recommendation	: Metropoint Standby Source" + "%n");
-    		buff.append(standbyJournalRecommendation.toString(dbClient, ps) + "%n");
+    		buff.append(String.format("Journal Recommendation	: Metropoint Standby Source %n"));
+    		buff.append(String.format("%s %n", standbyJournalRecommendation.toString(dbClient, ps)));
     	}
     	
-    	buff.append("%n");
-    	buff.append("Journal Recommendation : Target" + "%n");
-    	if (this.getTargetJournalRecommendations() != null) {
-    		buff.append("Journals : " + "%n");
+    	buff.append(String.format("Journal Recommendation : Target %n"));
+    	if (this.getTargetJournalRecommendations() != null) {    		
     		for (RPRecommendation targetJournalRecommendation : getTargetJournalRecommendations()) {
-    	    	buff.append(targetJournalRecommendation.toString(dbClient, ps) + "%n");    	    	
+    	    	buff.append(String.format("%s %n", targetJournalRecommendation.toString(dbClient, ps)));    	    	
     		}
     	}
     	
-    	buff.append("--------------------------------------%n");
+    	buff.append(String.format("--------------------------------------%n"));
     	return buff.toString();
     } 	
 }

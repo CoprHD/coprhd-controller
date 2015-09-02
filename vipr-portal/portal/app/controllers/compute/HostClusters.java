@@ -223,6 +223,8 @@ public class HostClusters extends Controller {
         public String name;
 
         public HostClusterForm() {
+            // Make autoexports default true
+            this.autoExportEnabled = Boolean.TRUE;
         }
 
         public HostClusterForm(ClusterRestRep clusterResponse) {

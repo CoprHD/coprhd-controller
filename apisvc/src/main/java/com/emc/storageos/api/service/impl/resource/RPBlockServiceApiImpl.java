@@ -573,7 +573,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     // If the CG contains volumes already and no new additional journals are provisioned, 
                     // then we simply update the reference on the source for the journal volume.                                                
                     sourceJournal = _rpHelper.selectExistingJournalForSourceVolume(cgSourceVolumes, false);
-                    standbyJournal = _rpHelper.selectExistingJournalForSourceVolume(cgSourceVolumes, true);
+                    
+                    if (VirtualPool.vPoolSpecifiesMetroPoint(vpool)) {
+                    	standbyJournal = _rpHelper.selectExistingJournalForSourceVolume(cgSourceVolumes, true);
+                    }
                 }
             }
         }

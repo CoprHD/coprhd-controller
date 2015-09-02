@@ -45,7 +45,8 @@ public class VplexBackendIngestionContext {
     private UnManagedVolume _unmanagedVirtualVolume;
 
     private boolean _isDirty = false;
-    private boolean _inDiscoveryMode = false; 
+    private boolean _inDiscoveryMode = false;
+    private boolean _shouldCheckForMirrors = false;
     
     private VPlexResourceInfo topLevelDevice;
     private List<UnManagedVolume> unmanagedBackendVolumes;
@@ -166,10 +167,8 @@ public class VplexBackendIngestionContext {
         
         unmanagedBackendVolumes = _dbClient.queryObject(UnManagedVolume.class, associatedVolumeUris);
         
-        _logger.info("for VPLEX UnManagedVolume {} found these associated volumes: " + unmanagedBackendVolumes, _unmanagedVirtualVolume.getId());
-        _tracker.fetchBackendVolumes = System.currentTimeMillis() - start;
-        
         if (null != unmanagedBackendVolumes && !unmanagedBackendVolumes.isEmpty()) {
+            _logger.info("for VPLEX UnManagedVolume {}, found these associated volumes: " + unmanagedBackendVolumes, _unmanagedVirtualVolume.getLabel());
             StringSet bvols = new StringSet();
             for (UnManagedVolume backendVol : unmanagedBackendVolumes) {
                 bvols.add(backendVol.getNativeGuid());
@@ -179,7 +178,10 @@ public class VplexBackendIngestionContext {
                 _unmanagedVirtualVolume.putVolumeInfo(SupportedVolumeInformation.VPLEX_BACKEND_VOLUMES.name(), bvols);
                 _isDirty = true;
             }
+        } else {
+            _logger.warn("no backend volumes were found for {}, have the backend storage arrays already been discovered?", _unmanagedVirtualVolume.getLabel());
         }
+        _tracker.fetchBackendVolumes = System.currentTimeMillis() - start;
         
         return unmanagedBackendVolumes;
     }
@@ -190,30 +192,35 @@ public class VplexBackendIngestionContext {
         }
         
         _logger.info("getting backend volume wwn to api info map");
+        boolean success = false;
         try {
             // first trying with a null mirror map to save some time
             backendVolumeWwnToInfoMap = 
                     VPlexControllerUtils.getStorageVolumeInfoForDevice(
                             getSupportingDeviceName(), getLocality(), getClusterName(), null,
                             _unmanagedVirtualVolume.getStorageSystemUri(), _dbClient);
+            success = true;
         } catch (VPlexApiException ex) {
             _logger.warn("failed to find wwn to storage volume map on "
                     + "first try with no mirror map, will analyze mirrors and try again", ex);
+            _shouldCheckForMirrors = true;
         }
         
-        try {
-            // first trying with a null mirror map to save some time
-            backendVolumeWwnToInfoMap = 
-                    VPlexControllerUtils.getStorageVolumeInfoForDevice(
-                            getSupportingDeviceName(), getLocality(), getClusterName(), getMirrorMap(),
-                            _unmanagedVirtualVolume.getStorageSystemUri(), _dbClient);
-        } catch (VPlexApiException ex) {
-            _logger.error("could not determine backend storage volumes for {}: ", 
-                    _unmanagedVirtualVolume.getLabel(), ex);
-            // TODO: exception
-            throw new RuntimeException(
-                    getSupportingDeviceName() + ": " +
-                    ex.getLocalizedMessage());
+        if (!success) {
+            try {
+                // first trying with a null mirror map to save some time
+                backendVolumeWwnToInfoMap = 
+                        VPlexControllerUtils.getStorageVolumeInfoForDevice(
+                                getSupportingDeviceName(), getLocality(), getClusterName(), getMirrorMap(),
+                                _unmanagedVirtualVolume.getStorageSystemUri(), _dbClient);
+            } catch (VPlexApiException ex) {
+                _logger.error("could not determine backend storage volumes for {}: ", 
+                        _unmanagedVirtualVolume.getLabel(), ex);
+                // TODO: exception
+                throw new RuntimeException(
+                        getSupportingDeviceName() + ": " +
+                        ex.getLocalizedMessage());
+            }
         }
         
         _logger.info("backend volume wwn to api info map: " + backendVolumeWwnToInfoMap);
@@ -445,13 +452,20 @@ public class VplexBackendIngestionContext {
                 }
             }
         }
+
+        unmanagedMirrors = new HashMap<UnManagedVolume, String>();
         
+        // if a simple 1-1-1 device structure was found, no need
+        // to check for native mirrors
+        if (!_shouldCheckForMirrors) {
+            return unmanagedMirrors;
+        }
+        
+
         // if they couldn't be found in the database,
         // we will query the VPLEX API for this information
         long start = System.currentTimeMillis();
         _logger.info("getting unmanaged mirrors");
-        unmanagedMirrors = new HashMap<UnManagedVolume, String>();
-        
         if (!getMirrorMap().isEmpty()) {
             for (Entry<String, Map<String, VPlexDeviceInfo>> mirrorMapEntry : getMirrorMap().entrySet()) {
                 _logger.info("looking at mirrors for device leg on cluster " + mirrorMapEntry.getKey());
@@ -908,15 +922,15 @@ public class VplexBackendIngestionContext {
         public long fetchTopLevelDevice = 0;
         
         public String getPerformanceReport() {
-            StringBuilder report = new StringBuilder("\nBackend Discovery Performance Report\n");
+            StringBuilder report = new StringBuilder("\n\nBackend Discovery Performance Report\n");
             report.append("\tvolume name: ").append(_unmanagedVirtualVolume.getLabel()).append("\n");
             report.append("\ttotal discovery time: ").append(System.currentTimeMillis() - startTime).append("ms\n");
-            report.append("\tfetch backend volumes: ").append(fetchBackendVolumes).append("\n");
-            report.append("\tfetch snapshots: ").append(fetchSnapshots).append("\n");
+            report.append("\tfetch backend volumes: ").append(fetchBackendVolumes).append("ms\n");
+            report.append("\tfetch snapshots: ").append(fetchSnapshots).append("ms\n");
             report.append("\tfetch backend clones: ").append(fetchBackendOnlyClones).append("ms\n");
             report.append("\tfetch full clones: ").append(fetchFullClones).append("ms\n");
             report.append("\tfetch mirrors: ").append(fetchMirrors).append("ms\n");
-            report.append("\tfetch top-level device: ").append(fetchTopLevelDevice).append("\n");
+            report.append("\tfetch top-level device: ").append(fetchTopLevelDevice).append("ms\n");
 
             return report.toString();
         }

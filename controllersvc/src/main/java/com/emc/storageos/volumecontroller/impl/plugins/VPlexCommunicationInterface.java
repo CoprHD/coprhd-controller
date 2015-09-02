@@ -559,7 +559,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     String discoveryKillSwitch = ControllerUtils
                             .getPropertyValueFromCoordinator(_coordinator, DISCOVERY_KILL_SWITCH);
                     // TODO just for testing to speed up discovery some
-                    if (!("stop".equals(discoveryKillSwitch))) {
+                    if ("stop".equals(discoveryKillSwitch)) {
                         s_logger.warn("discovery kill switch was set to stop, so discontinuing unmanaged volume discovery");
                         return;
                     }
@@ -1868,10 +1868,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         public long consistencyGroupFetch = 0;
         public long unmanagedVolumeProcessing = 0;
         public int totalVolumesFetched = 0;
-        public int totalVolumesDiscovered = 0;
+        public int totalVolumesDiscovered = 1;
         
         public String getPerformanceReport() {
-            StringBuilder report = new StringBuilder("\nVolume Discovery Performance Report\n");
+            StringBuilder report = new StringBuilder("\n\nVolume Discovery Performance Report\n");
             report.append("\ttotal discovery time: ").append(System.currentTimeMillis() - startTime).append("ms\n");
             report.append("\ttotal volumes fetched: ").append(totalVolumesFetched).append("\n");
             report.append("\ttotal volumes discovered: ").append(totalVolumesDiscovered).append("\n");
@@ -1883,10 +1883,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             
             volumeTimeResults = sortByValue(volumeTimeResults);
             report.append("\nTop Longest-Running Volumes...\n");
-            String[] keys = (String[]) volumeTimeResults.keySet().toArray();
+            Object[] keys = volumeTimeResults.keySet().toArray();
             for (int i = 0; i < 20; i++) {
                 if (keys.length >= (1 + i)) {
-                    String key = keys[keys.length - 1 - i];
+                    Object key = keys[keys.length - 1 - i];
                     report.append("\t").append(key).append(": ").append(volumeTimeResults.get(key)).append("ms\n");
                 }
             }

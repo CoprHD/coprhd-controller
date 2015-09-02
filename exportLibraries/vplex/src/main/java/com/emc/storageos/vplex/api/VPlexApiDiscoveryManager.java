@@ -3380,7 +3380,7 @@ public class VPlexApiDiscoveryManager {
         s_logger.info("found these storage volumes for VPLEX device {}:", deviceName);
         for (VPlexStorageVolumeInfo info : storageVolumeInfoList) {
             s_logger.info(info.toString()); 
-            if (VPlexApiConstants.STORAGE_VOLUME_TYPE.equals(info.getComponentType())) {
+            if (!VPlexApiConstants.STORAGE_VOLUME_TYPE.equals(info.getComponentType())) {
                 badComponentTypeMessage += "Unexpected component type " 
                         + info.getComponentType() + " found for volume " + info.getName() + ". "; 
             }

@@ -49,8 +49,8 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.map;
  * API for creating and manipulating authentication providers
  */
 @Path("/vdc/admin/authnproviders")
-@DefaultPermissions(read_roles = { Role.SECURITY_ADMIN },
-        write_roles = { Role.SECURITY_ADMIN })
+@DefaultPermissions(readRoles = { Role.SECURITY_ADMIN },
+        writeRoles = { Role.SECURITY_ADMIN })
 public class AuthnConfigurationService extends TaggedResource {
     private static final Logger _log = LoggerFactory.getLogger(AuthnConfigurationService.class);
 

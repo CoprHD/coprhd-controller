@@ -61,14 +61,11 @@ _gen_prop2() {
     #'node_id
     [ -z ${_GENCONFIG_node_id} ] && export _GENCONFIG_node_id='standalone'
 
-    #'node_name')
-    export _GENCONFIG_node_name=${_GENCONFIG_node_id}
-
     #'node_index')
     export _GENCONFIG_node_index=$(_genconfig_node_index ${_GENCONFIG_node_id})
 
     #'node_suffix')
-    export _GENCONFIG_node_suffix=$(_genconfig_node_suffix ${_GENCONFIG_node_name})
+    export _GENCONFIG_node_suffix=$(_genconfig_node_suffix ${_GENCONFIG_node_id})
 
     #'node_indexes')
     if [ -n "${_GENCONFIG_network_1_ipaddr}" ] ; then
@@ -76,9 +73,6 @@ _gen_prop2() {
     else
         export _GENCONFIG_node_indexes='standalone'
     fi
-
-    #'node_names')
-    export _GENCONFIG_node_names=$(echo $(for i in ${_GENCONFIG_node_indexes}; do _genconfig_node_name ${i} ; done))
 
     #'network_ipaddr')
     local var="_GENCONFIG_network_${_GENCONFIG_node_index}_ipaddr"
@@ -268,9 +262,7 @@ _gen_config_version() {
 _genconfig_system_init() {
     # add these back to unblock upgrade from 1.1 to 2.0
     # tmp fix for geodb dir setup
-    if [ ! -d "/data/geodb" ]; then
-       _genconfig_mkdir 755 storageos:storageos /data/geodb
-    fi
+    _genconfig_mkdir 750 storageos:storageos /data/geodb
 
     # tmp fix for backup dir setup
     if [ ! -d "/data/backup" ]; then
@@ -290,6 +282,9 @@ _genconfig_system_init() {
     _genconfig_create 640 root:root '/var/log/btmp'
     _genconfig_create 640 root:root '/var/log/wtmp'
     _genconfig_create 640 root:root '/var/log/lastlog'  
+	
+    #only owner and group user can access db folder
+    chmod 750 "/data/db"
 }
 
 _genconfig_exec_scripts() {
@@ -328,11 +323,9 @@ done
 if [ -n "${_GENCONFIG_TEST}" ] ; then
     echo "node_count=${_GENCONFIG_node_count}"
     echo "node_id=${_GENCONFIG_node_id}"
-    echo "node_name=${_GENCONFIG_node_name}"
     echo "node_index=${_GENCONFIG_node_index}"
     echo "node_suffix=${_GENCONFIG_node_suffix}"
     echo "node_indexes=${_GENCONFIG_node_indexes}"
-    echo "node_names=${_GENCONFIG_node_names}"
     echo "network_ipaddr=${_GENCONFIG_network_ipaddr}"
     echo "network_1_ipaddr=${_GENCONFIG_network_1_ipaddr}"
     echo "network_ipaddr6=${_GENCONFIG_network_ipaddr6}"

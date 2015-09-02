@@ -108,8 +108,8 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
  * NetworkDevice resource implementation
  */
 @Path("/vdc/network-systems")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class NetworkSystemService extends TaskResourceService {
 
     // how many times to retry a procedure before returning failure to the user.
@@ -755,6 +755,7 @@ public class NetworkSystemService extends TaskResourceService {
      * @param fabricId The name of the VSAN or fabric as returned by
      * @param zoneName - only returns zone with zone name matched the given name. Return all zones, if not specified.
      * @param excludeMembers - true, do not include members with zone. Include members, if not specified.
+     * @param excludeAliases - true, do not include aliases with zone. Include aliases, if not specified.
      * @prereq none
      * @brief List active zones in a network system fabric or VSAN
      * @return A list of the active zones and their members. If zone name is specified, and there is a match, then only one zone is
@@ -767,7 +768,8 @@ public class NetworkSystemService extends TaskResourceService {
     @Path("/{id}/san-fabrics/{fabricId}/san-zones")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN })
     public SanZonesRestRep getSanZones(@PathParam("id") URI id, @PathParam("fabricId") String fabricId,
-            @QueryParam("zone-name") String zoneName, @QueryParam("exclude-members") boolean excludeMembers) throws InternalException {
+            @QueryParam("zone-name") String zoneName, @QueryParam("exclude-members") boolean excludeMembers,
+            @QueryParam("exclude-aliases") boolean excludeAliases) throws InternalException {
         SanZonesRestRep szones = new SanZonesRestRep();
         ArgValidator.checkFieldUriType(id, NetworkSystem.class, "id");
         NetworkSystem device = queryResource(id);
@@ -779,7 +781,7 @@ public class NetworkSystemService extends TaskResourceService {
         }
 
         NetworkController controller = getNetworkController(device.getSystemType());
-        List<Zoneset> zonesets = controller.getZonesets(device.getId(), fabricId, fabricWwn, zoneName, excludeMembers);
+        List<Zoneset> zonesets = controller.getZonesets(device.getId(), fabricId, fabricWwn, zoneName, excludeMembers, excludeAliases);
         for (Zoneset zoneset : zonesets) {
             for (Zone zone : zoneset.getZones()) {
                 SanZoneRestRep sz = new SanZoneRestRep();

@@ -68,7 +68,7 @@ public class VMAX3BlockFullCopyApiImpl extends VMAXBlockFullCopyApiImpl {
             if ((BlockFullCopyUtils.isVolumeFullCopy(volumeToSnap, _dbClient)) &&
                     (!BlockFullCopyUtils.isFullCopyDetached(volumeToSnap, _dbClient)) &&
                     (!BlockFullCopyUtils.isFullCopyInactive(volumeToSnap, _dbClient))) {
-                throw APIException.badRequests.NoSnapshotsForVMAX3VolumeWithActiveFullCopy();
+                throw APIException.badRequests.noSnapshotsForVMAX3VolumeWithActiveFullCopy();
             }
 
             // Now check if the volume to be snapped is a full copy source
@@ -82,7 +82,7 @@ public class VMAX3BlockFullCopyApiImpl extends VMAXBlockFullCopyApiImpl {
                     if ((fullCopyVolume != null) && (!fullCopyVolume.getInactive()) &&
                             (!BlockFullCopyUtils.isFullCopyDetached(fullCopyVolume, _dbClient)) &&
                             (!BlockFullCopyUtils.isFullCopyInactive(fullCopyVolume, _dbClient))) {
-                        throw APIException.badRequests.NoSnapshotsForVMAX3VolumeWithActiveFullCopy();
+                        throw APIException.badRequests.noSnapshotsForVMAX3VolumeWithActiveFullCopy();
                     }
                 }
             }

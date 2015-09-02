@@ -14,8 +14,16 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
 
-    <bean id="scaleIOCLIFactory"
-          class="com.emc.storageos.volumecontroller.impl.scaleio.ScaleIOCLIFactory">
+    <bean id="scaleIOHandleFactory"
+          class="com.emc.storageos.volumecontroller.impl.scaleio.ScaleIOHandleFactory">
+          <property name="scaleIORestClientFactory" ref="scaleIORestClientFactory"/>
     </bean>
-
+	<bean id="scaleIORestClientFactory"
+          class="com.emc.storageos.scaleio.api.restapi.ScaleIORestClientFactory" init-method="init" >
+        <property name="connectionTimeoutMs" value="30000"/>
+        <property name="maxConnections" value="300"/>
+        <property name="maxConnectionsPerHost" value="100"/>
+        <property name="socketConnectionTimeoutMs" value="3600000" />
+        <property name="needCertificateManager" value="true"/>
+    </bean>
 </beans>

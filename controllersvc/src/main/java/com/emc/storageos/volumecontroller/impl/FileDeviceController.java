@@ -25,7 +25,6 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.FSExportMap;
 import com.emc.storageos.db.client.model.FileExport;
@@ -157,7 +156,7 @@ public class FileDeviceController implements FileController {
         RecordableBourneEvent event = new RecordableBourneEvent(
                 type,
                 fs.getTenant().getURI(),
-                URI.create("ViPR-User"),  // user ID TODO when AAA fixed
+                URI.create("ViPR-User"),                                           // user ID TODO when AAA fixed
                 fs.getProject().getURI(),
                 fs.getVirtualPool(),
                 EVENT_SERVICE_TYPE,
@@ -189,7 +188,7 @@ public class FileDeviceController implements FileController {
         RecordableBourneEvent event = new RecordableBourneEvent(
                 type,
                 fs.getTenant().getURI(),
-                URI.create("ViPR-User"),  // user ID TODO when AAA fixed
+                URI.create("ViPR-User"),                                           // user ID TODO when AAA fixed
                 fs.getProject().getURI(),
                 fs.getVirtualPool(),
                 EVENT_SERVICE_TYPE,
@@ -326,68 +325,50 @@ public class FileDeviceController implements FileController {
                 fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 
                 if (result.isCommandSuccess() && (FileControllerConstants.DeleteTypeEnum.FULL.toString().equalsIgnoreCase(deleteType))) {
-                    fsObj.setInactive(true);  // set inactive
-
-                    // Mark Snapshots as InActive in case of force delete as snapshots will deleted from array when a file system deleted in
-                    // ISILON and NetApp.
-                    // @To-Do: For VNX it was already taken care and this needs to be refactored in such a way that all these three devices
-                    // clean-up done at the same level.
-                    if (!(storageObj.getSystemType().equals(DiscoveredDataObject.Type.vnxfile.name()))) {
-                        _log.info(" Setting Snapshots to InActive with Force Delete ");
-                        List<URI> snapIDList = _dbClient
-                                .queryByConstraint(ContainmentConstraint.Factory
-                                        .getFileshareSnapshotConstraint(uri));
-                        _log.info("getSnapshots: FS {}: {} ", uri.toString(),
-                                snapIDList.toString());
-                        List<Snapshot> snapList = _dbClient.queryObject(
-                                Snapshot.class, snapIDList);
-
-                        // Set this as snapshot operation to delete only snapshots.
-                        args.setFileOperation(false);
-                        for (Snapshot snapshot : snapList) {
-                            _log.info("Marking Snapshot as InActive Snapshot Id {} Fs Id : {}", snapshot.getId(), snapshot.getParent());
-                            snapshot.setInactive(true);
-                            // Delete all snapshot export rules from db when force delete set to TRUE
-                            if (forceDelete) {
-                                args.addSnapshot(snapshot);
-                                // Deletes only Snapshot export rules from DB as opType not set to FS
-                                doDeleteExportRulesFromDB(true, null, args);
-                            }
-                            _dbClient.persistObject(snapshot);
-                        }
-                        // Reset this back as this is common code.
-                        args.setFileOperation(true);
-                    }
-
-                    // Delete all fs export rules from db when force delete set to TRUE
+                    fsObj.setInactive(true);
                     if (forceDelete) {
-                        // Delete the FS Export Rules from DB
-                        doDeleteExportRulesFromDB(true, null, args);
-
-                        // Delete all fs quota directories from db when force delete
+                        doDeleteSnapshotsFromDB(fsObj, true, null, args);  // Delete Snapshot and its references from DB
                         args.addQuotaDirectory(null);
-                        doFSDeleteQuotaDirsFromDB(args);
+                        doFSDeleteQuotaDirsFromDB(args);                   // Delete Quota Directory from DB
+                        deleteShareACLsFromDB(args);                       // Delete CIFS Share ACLs from DB
+                        doDeleteExportRulesFromDB(true, null, args);       // Delete Export Rules from DB
                     }
-                    // Generate zero metering record.
                     generateZeroStatisticsRecord(fsObj);
                 }
                 if (result.isCommandSuccess()
                         && (FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString().equalsIgnoreCase(deleteType))) {
-                    if ((snapshotsExistsOnFS(fsObj) || quotaDirectoriesExistsOnFS(fsObj))) {
 
-                        String errMsg = new String(
-                                "Unable to delete file system from DB due to snapshots or QDs exist on FS " + fsObj.getLabel());
-                        _log.error(errMsg);
-                        final ServiceCoded serviceCoded = DeviceControllerException.errors.jobFailedOpMsg(
-                                OperationTypeEnum.DELETE_FILE_SYSTEM.toString(), errMsg);
-                        result = BiosCommandResult.createErrorResult(serviceCoded);
-                        fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
-                        recordFileDeviceOperation(_dbClient, OperationTypeEnum.DELETE_FILE_SYSTEM, result.isCommandSuccess(), "", "", fsObj,
-                                storageObj);
-                        return;
+                    if ((snapshotsExistsOnFS(fsObj) || quotaDirectoriesExistsOnFS(fsObj))) {
+                        boolean fsCheck = getDevice(storageObj.getSystemType()).doCheckFSExists(storageObj, args);
+
+                        if (fsCheck) {
+                            String errMsg = new String(
+                                    "delete file system from DB failed due to either snapshots or QDs exist on FS " + fsObj.getLabel());
+                            _log.error(errMsg);
+
+                            final ServiceCoded serviceCoded = DeviceControllerException.errors.jobFailedOpMsg(
+                                    OperationTypeEnum.DELETE_FILE_SYSTEM.toString(), errMsg);
+                            result = BiosCommandResult.createErrorResult(serviceCoded);
+                            fsObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
+                            recordFileDeviceOperation(_dbClient, OperationTypeEnum.DELETE_FILE_SYSTEM, result.isCommandSuccess(), "", "",
+                                    fsObj, storageObj);
+                            _dbClient.persistObject(fsObj);
+                            return;
+
+                        } else if (!fsCheck) {
+                            doDeleteSnapshotsFromDB(fsObj, true, null, args);  // Delete Snapshot and its references from DB
+                            args.addQuotaDirectory(null);
+                            doFSDeleteQuotaDirsFromDB(args);
+                        }
                     }
+
                     deleteShareACLsFromDB(args);
                     doDeleteExportRulesFromDB(true, null, args);
+                    SMBShareMap cifsSharesMap = fsObj.getSMBFileShares();
+                    if (cifsSharesMap != null && !cifsSharesMap.isEmpty()) {
+                        cifsSharesMap.clear();
+                    }
+                    fsObj.setInactive(true);
                     generateZeroStatisticsRecord(fsObj);
                 }
                 _dbClient.persistObject(fsObj);
@@ -453,10 +434,8 @@ public class FileDeviceController implements FileController {
     }
 
     private void doFSDeleteQuotaDirsFromDB(FileDeviceInputOutput args) throws Exception {
-        // Query All Quota dirs Specific to a File System.
         List<QuotaDirectory> quotaDirs = queryFileQuotaDirs(args);
-        if (quotaDirs != null) {
-            // ALl quota dirs
+        if (quotaDirs != null && !quotaDirs.isEmpty()) {
             _log.info("Doing CRUD Operations on all DB QuotaDirectory for requested fs");
             for (QuotaDirectory dir : quotaDirs) {
                 _log.info("Deleting quota dir from DB - Dir :{}", dir);
@@ -547,7 +526,7 @@ public class FileDeviceController implements FileController {
 
             if (result.getCommandPending()) {
                 return;
-            }                // Set Mount path info for the exports
+            }                                                         // Set Mount path info for the exports
             FSExportMap fsExports = fsObj.getFsExports();
 
             // Per New model get the rules and see if any rules that are already saved and available.
@@ -1984,7 +1963,7 @@ public class FileDeviceController implements FileController {
         // queryExports
         List<FileExportRule> exports = queryFileExports(args);
 
-        if (exports != null) {
+        if (exports != null && !exports.isEmpty()) {
             if (allDirs) {
                 // ALl EXPORTS
                 _log.info("Doing CRUD Operations on all DB FileExportRules for requested fs");
@@ -2018,6 +1997,28 @@ public class FileDeviceController implements FileController {
                 }
             }
         }
+    }
+
+    private void doDeleteSnapshotsFromDB(FileShare fs, boolean allDirs, String subDir, FileDeviceInputOutput args) throws Exception {
+
+        _log.info(" Setting Snapshots to InActive with Force Delete ");
+        URIQueryResultList snapIDList = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getFileshareSnapshotConstraint(fs.getId()), snapIDList);
+        _log.info("getSnapshots: FS {}: {} ", fs.getId().toString(), snapIDList.toString());
+        List<Snapshot> snapList = _dbClient.queryObject(Snapshot.class, snapIDList);
+
+        args.setFileOperation(false);// Set this as snapshot operation to delete only snapshots.
+        if (snapList != null && !snapList.isEmpty()) {
+            for (Snapshot snapshot : snapList) {
+                _log.info("Marking Snapshot as InActive Snapshot Id {} Fs Id : {}", snapshot.getId(), snapshot.getParent());
+                snapshot.setInactive(true);
+                args.addSnapshot(snapshot);
+                doDeleteExportRulesFromDB(true, null, args);
+                deleteShareACLsFromDB(args);
+                _dbClient.persistObject(snapshot);
+            }
+        }
+        args.setFileOperation(true);       // restoring back
     }
 
     private void doCRUDExports(FileExportUpdateParams param, FileShare fs, FileDeviceInputOutput args) throws Exception {

@@ -990,7 +990,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             || ComputeSystemHelper.isClusterInExport(_dbClient, currentCluster));
 
                     if ((isAddedToCluster && currentClusterRef.isAutoExportEnabled())
-                            || (isMovedToDifferentCluster && currentClusterRef.isAutoExportEnabled() && oldClusterRef.isAutoExportEnabled())) {
+                            || (isMovedToDifferentCluster && (currentClusterRef.isAutoExportEnabled() || oldClusterRef
+                                    .isAutoExportEnabled()))) {
                         for (ExportGroup export : getSharedExports(currentCluster)) {
                             ExportGroupState egh = getExportGroupState(exportGroups, export);
                             _log.info("Non-clustered being added to a cluster. Export: " + export.getId() + " Add Host: " + hostId

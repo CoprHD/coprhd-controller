@@ -142,10 +142,10 @@ public class ScaleIOCloneOperations implements CloneOperations {
             ScaleIOSnapshotVolumeResponse result = scaleIOHandle.snapshotMultiVolume(parent2snap, systemId);
 
             List<String> nativeIds = result.getVolumeIdList();
-            Map<String, ScaleIOVolume> cloneNameIdMap = scaleIOHandle.getVolumeNameMap(nativeIds);
+            Map<String, ScaleIOVolume> cloneNameMap = scaleIOHandle.getVolumeNameMap(nativeIds);
             for (Volume clone : clones) {
                 String name = clone.getLabel();
-                ScaleIOVolume sioVolume = cloneNameIdMap.get(name);
+                ScaleIOVolume sioVolume = cloneNameMap.get(name);
                 ScaleIOHelper.updateSnapshotWithSnapshotVolumeResult(dbClient, clone, systemId, sioVolume.getId());
                 clone.setAllocatedCapacity(Long.parseLong(sioVolume.getSizeInKb()) * 1024L);
                 clone.setProvisionedCapacity(clone.getAllocatedCapacity());
@@ -199,7 +199,9 @@ public class ScaleIOCloneOperations implements CloneOperations {
         for (Volume theClone : cloneVolumes) {
             URI source = theClone.getAssociatedSourceVolume();
             Volume sourceVol = dbClient.queryObject(Volume.class, source);
-            sourceVol.getFullCopies().remove(theClone.getId().toString());
+            if (sourceVol != null && sourceVol.getFullCopies() != null) {
+                sourceVol.getFullCopies().remove(theClone.getId().toString());
+            }
             theClone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
             theClone.setReplicaState(ReplicationState.DETACHED.name());
             dbClient.persistObject(sourceVol);

@@ -726,14 +726,15 @@ public class VolumeIngestionUtil {
      * 
      * @return true if the unmanaged volume can be ingested into the varray, false otherwise.
      */
-    public static boolean isValidVarrayForUnmanagedVolume(UnManagedVolume unmanagedVolume, URI varrayURI,
+    public static boolean checkValidVarrayForUnmanagedVolume(UnManagedVolume unmanagedVolume, URI varrayURI,
             Map<String, String> clusterIdToNameMap, Map<String, String> varrayToClusterIdMap, DbClient dbClient) {
         if (isVplexVolume(unmanagedVolume)) {
             StringSet unmanagedVolumeClusters = unmanagedVolume.getVolumeInformation().get(
                     SupportedVolumeInformation.VPLEX_CLUSTER_IDS.toString());
             if (unmanagedVolumeClusters == null) {
-                _logger.warn("Unmanaged VPLEX volume {} has no cluster info", unmanagedVolume.getLabel());
-                return false;
+                String reason = "Unmanaged VPLEX volume has no cluster info";
+                _logger.error(reason);
+                throw IngestionException.exceptions.varrayIsInvalidForVplexVolume(unmanagedVolume.getLabel(), reason);
             }
 
             String varrayClusterId = varrayToClusterIdMap.get(varrayURI.toString());
@@ -744,8 +745,9 @@ public class VolumeIngestionUtil {
             }
 
             if (varrayClusterId.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {
-                _logger.info("Virtual array {} is not associated with either cluster of VPLEX {}", varrayURI, null);
-                return false;
+                String reason = "Virtual Array is not associated with either cluster of the VPLEX";
+                _logger.error(reason);
+                throw IngestionException.exceptions.varrayIsInvalidForVplexVolume(unmanagedVolume.getLabel(), reason);
             }
 
             String varrayClusterName = clusterIdToNameMap.get(varrayClusterId);
@@ -757,13 +759,15 @@ public class VolumeIngestionUtil {
             }
 
             if (null == varrayClusterName) {
-                _logger.info("Unmanaged VPLEX volume {} cannot be ingested; "
-                        + "couldn't find VPLEX cluster name for id {}", unmanagedVolume.getLabel(), varrayClusterId);
-                return false;
+                String reason = "Couldn't find VPLEX cluster name for cluster id " + varrayClusterId;
+                _logger.error(reason);
+                throw IngestionException.exceptions.varrayIsInvalidForVplexVolume(unmanagedVolume.getLabel(), reason);
             }
             if (!unmanagedVolumeClusters.contains(varrayClusterName)) {
-                _logger.info("Unmanaged VPLEX volume {} cannot be ingested to varray {}", unmanagedVolume.getLabel(), varrayURI);
-                return false;
+                String reason = "volume is available on cluster " + unmanagedVolumeClusters 
+                        + ", but the varray is only connected to " + varrayClusterName;
+                _logger.error(reason);
+                throw IngestionException.exceptions.varrayIsInvalidForVplexVolume(unmanagedVolume.getLabel(), reason);
             }
         }
 

@@ -683,24 +683,24 @@ public class VplexBackendIngestionContext {
     }
     
     public String toStringDebug() {
-        StringBuilder s = new StringBuilder("\n\t VplexBackendIngestionContext \n\t\t ");
-        s.append("unmanaged virtual volume: ").append(this._unmanagedVirtualVolume).append(" \n\t\t ");
-        s.append("unmanaged backend volume(s): ").append(this.getUnmanagedBackendVolumes()).append(" \n\t\t ");
-        s.append("unmanaged snapshots: ").append(this.getUnmanagedSnapshots()).append(" \n\t\t ");
-        s.append("unmanaged full clones: ").append(this.getUnmanagedFullClones()).append(" \n\t\t ");
-        s.append("unmanaged backend only clones: ").append(this.getUnmanagedBackendOnlyClones()).append(" \n\t\t ");
-        s.append("unmanaged mirrors: ").append(this.getUnmanagedMirrors()).append(" \n\t\t ");
-        s.append("ingested objects: ").append(this.getIngestedObjects()).append(" \n\t\t ");
-        s.append("created objects map: ").append(this.getCreatedObjectMap()).append(" \n\t\t ");
+        StringBuilder s = new StringBuilder("\n\nVplexBackendIngestionContext \n\t ");
+        s.append("unmanaged virtual volume: ").append(this._unmanagedVirtualVolume).append(" \n\t ");
+        s.append("unmanaged backend volume(s): ").append(this.getUnmanagedBackendVolumes()).append(" \n\t ");
+        s.append("unmanaged snapshots: ").append(this.getUnmanagedSnapshots()).append(" \n\t ");
+        s.append("unmanaged full clones: ").append(this.getUnmanagedFullClones()).append(" \n\t ");
+        s.append("unmanaged backend only clones: ").append(this.getUnmanagedBackendOnlyClones()).append(" \n\t ");
+        s.append("unmanaged mirrors: ").append(this.getUnmanagedMirrors()).append(" \n\t ");
+        s.append("ingested objects: ").append(this.getIngestedObjects()).append(" \n\t ");
+        s.append("created objects map: ").append(this.getCreatedObjectMap()).append(" \n\t ");
         s.append("updated objects map: ").append("\n");
         for (Entry<String, List<DataObject>> e : this.getUpdatedObjectMap().entrySet()) {
             s.append(e.getKey()).append(": ");
             for (DataObject o : e.getValue()) {
-                s.append(" \n\t\t\t ").append(o.getLabel());
+                s.append(" \n\t\t ").append(o.getLabel());
             }
-            s.append("\n");
+            s.append("\n\t");
         }
-        s.append("processed unmanaged volumes: ").append(this.getProcessedUnManagedVolumeMap());
+        s.append("processed unmanaged volumes: ").append(this.getProcessedUnManagedVolumeMap()).append("\n");
         return s.toString();
     }
     

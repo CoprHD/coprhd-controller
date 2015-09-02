@@ -112,17 +112,14 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             cacheLastRefreshed = timeRightNow;
         }
 
-        if (!VolumeIngestionUtil.isValidVarrayForUnmanagedVolume(unManagedVolume, virtualArray.getId(),
-                clusterIdToNameMap, varrayToClusterIdMap, _dbClient)) {
-            throw IngestionException.exceptions.varrayIsInvalidForVplexVolume(virtualArray.getLabel(), unManagedVolume.getLabel());
-        }
+        VolumeIngestionUtil.checkValidVarrayForUnmanagedVolume(unManagedVolume, virtualArray.getId(), 
+                clusterIdToNameMap, varrayToClusterIdMap, _dbClient);
 
         // TODO probably convert to enum
         _logger.info("VPLEX ingestion method is " + vplexIngestionMethod);
         boolean ingestBackend = (null == vplexIngestionMethod) 
                 || vplexIngestionMethod.isEmpty() 
                 || (!vplexIngestionMethod.equals("VirtualVolumeOnly"));
-        
         
         VplexBackendIngestionContext context = null;
         

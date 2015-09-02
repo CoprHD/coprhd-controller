@@ -120,7 +120,7 @@ public interface IngestionExceptions {
     public IngestionException unmanagedVolumeVpoolTieringPolicyMismatch(String unManagedVolume, String vpool);
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
-    public IngestionException varrayIsInvalidForVplexVolume(String varray, String unManagedVolume);
+    public IngestionException varrayIsInvalidForVplexVolume(String unManagedVolume, String reason);
 
     @DeclareServiceCode(ServiceCode.UNMANAGED_VOLUME_INGESTION_EXCEPTION)
     public IngestionException unmanagedVolumeHasNoStoragePool(String unManagedVolume);

@@ -404,6 +404,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
                 long timer = System.currentTimeMillis();
                 UnmanagedDiscoveryPerformanceTracker tracker = new UnmanagedDiscoveryPerformanceTracker();
+                
+                tracker.discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(
+                        _coordinator, VplexBackendIngestionContext.DISCOVERY_MODE);
+                
                 Map<String, VPlexVirtualVolumeInfo> vvolMap = client.getVirtualVolumes(true);
                 tracker.virtualVolumeFetch = System.currentTimeMillis() - timer;
                 tracker.totalVolumesFetched = vvolMap.size();
@@ -648,6 +652,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     
                     tracker.volumeTimeResults.put(name, System.currentTimeMillis() - timer);
                     tracker.totalVolumesDiscovered++;
+                    
+                    s_logger.info("estimated discovery time remaining: " + 
+                            tracker.getDiscoveryTimeRemaining());
                 }
             } else {
                 s_logger.warn("No virtual volumes were found on VPLEX.");
@@ -1857,6 +1864,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     
     private class UnmanagedDiscoveryPerformanceTracker {
         
+        public String discoveryMode = "Unknown";
         public Map<String, Long> volumeTimeResults = new TreeMap<String, Long>();
         public long startTime = new Date().getTime();
         public long virtualVolumeFetch = 0;
@@ -1868,6 +1876,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         
         public String getPerformanceReport() {
             StringBuilder report = new StringBuilder("\n\nVolume Discovery Performance Report\n");
+            report.append("\tdiscovery mode: ").append(discoveryMode).append("\n");
             report.append("\ttotal discovery time: ").append(System.currentTimeMillis() - startTime).append("ms\n");
             report.append("\ttotal volumes fetched: ").append(totalVolumesFetched).append("\n");
             report.append("\ttotal volumes discovered: ").append(totalVolumesDiscovered).append("\n");
@@ -1882,7 +1891,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             report.append("\tunmanaged volume processing time: ").append(unmanagedVolumeProcessing).append("ms\n");
             
             volumeTimeResults = sortByValue(volumeTimeResults);
-            report.append("\nTop Longest-Running Volumes...\n");
+            report.append("\nTop 20 Longest-Running Volumes...\n");
             Object[] keys = volumeTimeResults.keySet().toArray();
             for (int i = 0; i < 20; i++) {
                 if (keys.length >= (1 + i)) {
@@ -1892,6 +1901,20 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             }
             
             return report.toString();
+        }
+        
+        public String getDiscoveryTimeRemaining() {
+            try {
+                if (totalVolumesDiscovered != 0) {
+                    long averageTime = (System.currentTimeMillis() - startTime) / totalVolumesDiscovered;
+                    long timeRemaining = averageTime * (totalVolumesFetched - totalVolumesDiscovered);
+                    return timeRemaining + "ms"; 
+                }
+            } catch (Exception ex) {
+                s_logger.warn("couldn't calculate discovery remaining time estimate: ", ex.getLocalizedMessage());
+            }
+            
+            return "Unknown";
         }
         
         // NOTE: this method is totally ripped from this stackoverflow question:

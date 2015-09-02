@@ -29,6 +29,7 @@ public class VirtualDataCenterRestRep extends DataObjectRestRep {
     private String geoCommandEndpoint;
     private String geoDataEndpoint;
     private Long lastSeenTimeInMillis;
+    private Set<String> standbyIDs;
 
     private static Set<String> ALLOW_DISCONNECT_STATUS = new HashSet<String>(Arrays.asList("CONNECTED",
             "REMOVE_FAILED", "REMOVE_PRECHECK_FAILED", "UPDATE_FAILED",
@@ -117,6 +118,15 @@ public class VirtualDataCenterRestRep extends DataObjectRestRep {
     @XmlElement(name = "lastSeenTimeInMillis")
     public Long getLastSeenTimeInMillis() {
         return lastSeenTimeInMillis;
+    }
+    
+    @XmlElement(name = "standbyIDs")
+    public Set<String> getStandbyIDs() {
+        return standbyIDs;
+    }
+
+    public void setStandbyIDs(Set<String> standbyIDs) {
+        this.standbyIDs = standbyIDs;
     }
 
     public void setLastSeenTimeInMillis(Long lastSeenTimeInMillis) {

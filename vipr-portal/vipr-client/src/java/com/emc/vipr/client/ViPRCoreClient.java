@@ -311,4 +311,8 @@ public class ViPRCoreClient {
     public UserGroup getUserGroup() {
         return new UserGroup(this, client);
     }
+    
+    public Standby standby(){
+        return new Standby(this, client);
+    }
 }

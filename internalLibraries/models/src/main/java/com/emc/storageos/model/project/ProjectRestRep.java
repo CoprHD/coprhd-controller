@@ -76,7 +76,7 @@ public class ProjectRestRep extends DataObjectRestRep {
      * 
      * @valid none
      */
-    @XmlElement(name = "assigned_vnas_servers")
+    @XmlElement(name = "assigned_vnas_server")
     public Set<String> getAssignedVNasServers() {
         return assignedVNasServers;
     }

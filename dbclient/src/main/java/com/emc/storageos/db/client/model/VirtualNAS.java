@@ -6,6 +6,7 @@ package com.emc.storageos.db.client.model;
 
 import java.net.URI;
 
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.valid.EnumType;
 
 /**
@@ -27,7 +28,7 @@ public class VirtualNAS extends NASServer {
     private String baseDirPath;
 
     // place holder for the Parent NAS server the Data Mover
-    private URI parentNASURI;
+    private URI parentNasUri;
 
     @Name("project")
     public URI getProject() {
@@ -49,16 +50,6 @@ public class VirtualNAS extends NASServer {
         setChanged("baseDirPath");
     }
 
-    @Name("parentNASURI")
-    public URI getParentPhysicalNAS() {
-        return parentNASURI;
-    }
-
-    public void setParentNAS(URI parentPhysicalNAS) {
-        this.parentNASURI = parentPhysicalNAS;
-        setChanged("parentNASURI");
-    }
-
     @Name("vNasState")
     @EnumType(vNasState.class)
     public String getVNasState() {
@@ -68,6 +59,16 @@ public class VirtualNAS extends NASServer {
     public void setVNasState(String nasState) {
         this.setNasState(nasState);
         setChanged("vNasState");
+    }
+
+    @Name("parentNasUri")
+    public URI getParentNasUri() {
+        return parentNasUri;
+    }
+
+    public void setParentNasUri(URI parentNasUri) {
+        this.parentNasUri = parentNasUri;
+        setChanged("parentNasUri");
     }
 
     // Defines different States of the NAS server.
@@ -99,4 +100,8 @@ public class VirtualNAS extends NASServer {
             return UNKNOWN.toString();
         }
     };
+
+    public boolean isNotAssignedToProject() {
+        return NullColumnValueGetter.isNullURI(project);
+    }
 }

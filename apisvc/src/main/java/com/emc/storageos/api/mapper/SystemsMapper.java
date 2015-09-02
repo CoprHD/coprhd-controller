@@ -127,60 +127,57 @@ public class SystemsMapper {
         to.setName(from.getNasName());
         to.setNasState(from.getNasState());
         to.setNasTag(from.getNAStag());
-        
-        if(from.getParentPhysicalNAS() != null){
-        	to.setParentNASURI(from.getParentPhysicalNAS().toString());
+
+        if (from.getParentNasUri() != null) {
+            to.setParentNASURI(from.getParentNasUri().toString());
         }
-        
-       
-        to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT,from.getProject()));
-       
+
+        to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject()));
+
         to.setProtocols(from.getProtocols());
         to.setRegistrationStatus(from.getRegistrationStatus());
-        
+
         Set<String> cifsServers = new HashSet<String>();
-        if(from.getCifsServersMap() != null && !from.getCifsServersMap().isEmpty()){
-        	for(String serverName: from.getCifsServersMap().keySet() ){
-        		String serverDomain = serverName;
-        		if(from.getCifsServersMap().get(serverName).getDomain() != null){
-        			serverDomain = serverDomain + "=" + from.getCifsServersMap().get(serverName).getDomain();
-        		}
-        			
-        		cifsServers.add(serverDomain);
-        	}
-        	if(cifsServers != null && !cifsServers.isEmpty()){
-        		to.setCifsServers(cifsServers);
-        	}
+        if (from.getCifsServersMap() != null && !from.getCifsServersMap().isEmpty()) {
+            for (String serverName : from.getCifsServersMap().keySet()) {
+                String serverDomain = serverName;
+                if (from.getCifsServersMap().get(serverName).getDomain() != null) {
+                    serverDomain = serverDomain + "=" + from.getCifsServersMap().get(serverName).getDomain();
+                }
+
+                cifsServers.add(serverDomain);
+            }
+            if (cifsServers != null && !cifsServers.isEmpty()) {
+                to.setCifsServers(cifsServers);
+            }
         }
-        
+
         for (String port : from.getStoragePorts()) {
             to.getStoragePorts().add(toRelatedResource(
                     ResourceTypeEnum.STORAGE_PORT, URI.create(port)));
         }
-        
-        to.setAssignedVirtualArrays(from.getAssignedVirtualArrays());
+
         to.setTaggedVirtualArrays(from.getTaggedVirtualArrays());
-        
-        to.setStorageDeviceURI(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM,from.getStorageDeviceURI()));
-        
-               
+
+        to.setStorageDeviceURI(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageDeviceURI()));
+
         // Set the metrics!!!
         to.setMaxStorageCapacity(MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, from.getMetrics()).toString());
         to.setMaxStorageObjects(MetricsKeys.getLong(MetricsKeys.maxStorageObjects, from.getMetrics()).toString());
-        
+
         to.setStorageObjects(MetricsKeys.getLong(MetricsKeys.storageObjects, from.getMetrics()).toString());
         to.setStorageCapacity(MetricsKeys.getLong(MetricsKeys.storageCapacity, from.getMetrics()).toString());
         to.setIsOverloaded(MetricsKeys.getBoolean(MetricsKeys.overLoaded, from.getMetrics()));
-        
+
         Double percentBusy = MetricsKeys.getDoubleOrNull(MetricsKeys.emaPercentBusy, from.getMetrics());
         if (percentBusy != null) {
-        	to.setAvgEmaPercentagebusy(percentBusy.toString());
+            to.setAvgEmaPercentagebusy(percentBusy.toString());
         }
         percentBusy = MetricsKeys.getDoubleOrNull(MetricsKeys.avgPercentBusy, from.getMetrics());
         if (percentBusy != null) {
             to.setAvgPercentagebusy(percentBusy.toString());
         }
-                       
+
         return to;
     }
 

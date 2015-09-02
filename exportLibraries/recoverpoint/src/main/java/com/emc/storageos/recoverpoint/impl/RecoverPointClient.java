@@ -573,6 +573,57 @@ public class RecoverPointClient {
 
     }
 
+    public void addJournalVolumesToCG(CGRequestParams request) {
+
+    	// Make sure the CG name is unique.
+    	ConsistencyGroupUID cgUID = null;
+    	List<ConsistencyGroupUID> allCgs;
+    	try {
+    		allCgs = functionalAPI.getAllConsistencyGroups();
+    		for (ConsistencyGroupUID cg : allCgs) {
+    			ConsistencyGroupSettings settings = functionalAPI.getGroupSettings(cg);
+    			if (settings.getName().toString().equalsIgnoreCase(request.getCgName())) {
+    				cgUID = settings.getGroupUID();
+    				break;
+    			}
+    		}
+    		if (cgUID == null) {
+    			// The CG does not exist so we cannot add replication sets
+    			throw RecoverPointException.exceptions.failedToAddReplicationSetCgDoesNotExist(request.getCgName());
+    		}
+
+    		List<CreateCopyParams> copyParams = request.getCopies();
+    		// add journals
+    		for (CreateCopyParams copyParam : copyParams) {
+    			for (CreateVolumeParams journalVolume: copyParam.getJournals()) {
+    				ClusterUID clusterId = RecoverPointUtils.getRPSiteID(functionalAPI, journalVolume.getInternalSiteName()); 
+    				Set<RPSite> allSites = getAssociatedRPSites();      		
+    				// caches site names to cluster id's to reduce calls to fapi for the same information
+    				Map<String, ClusterUID> clusterIdCache = new HashMap<String, ClusterUID>();
+    				// prodSites is used for logging and to determine if a non-production copy is local or remote
+    				List<ClusterUID> prodSites = getProdSites(request, clusterIdCache);
+    				RecoverPointCGCopyType copyType = getCopyType(copyParam, prodSites, clusterId);
+    				if (copyType != null) {
+    					logger.info(String.format("Configuring %s copy %s for CG %s", copyType.toString(), copyParam.getName(),
+    							request.getCgName()));
+    					ConsistencyGroupCopyUID copyUID = getCGCopyUid(clusterId, RecoverPointCGCopyType.LOCAL, null);
+    					logger.info("Adding Journal : " + journalVolume.toString() + " for copy : " + copyParam.getName());
+    					functionalAPI.addJournalVolume(copyUID, RecoverPointUtils.getDeviceID(allSites, journalVolume.getWwn()));        		
+    				}
+
+    			}
+    		}
+    	}
+    	catch (FunctionalAPIActionFailedException_Exception e) {
+    		// TODO Auto-generated catch block
+    		e.printStackTrace();
+    	} catch (FunctionalAPIInternalError_Exception e) {
+    		// TODO Auto-generated catch block
+    		e.printStackTrace();
+    	}
+        
+    }
+    
     /**
      * @param request
      * @param clusterIdCache

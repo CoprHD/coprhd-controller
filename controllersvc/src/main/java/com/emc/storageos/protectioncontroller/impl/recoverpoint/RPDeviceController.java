@@ -30,6 +30,7 @@ import com.emc.fapiclient.ws.FunctionalAPIActionFailedException_Exception;
 import com.emc.fapiclient.ws.FunctionalAPIInternalError_Exception;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
+import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor.Type;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
@@ -167,6 +168,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String STEP_EXPORT_GROUP_DISABLE = "exportGroupDisable";
     private static final String STEP_EXPORT_REMOVE_SNAPSHOT = "exportRemoveSnapshot";
     private static final String STEP_POST_VOLUME_CREATE = "postVolumeCreate";
+    private static final String STEP_ADD_JOURNAL_VOLUME = "addJournalVolume";
 
     private static final String STEP_PRE_VOLUME_EXPAND = "preVolumeExpand";
     private static final String STEP_POST_VOLUME_EXPAND = "postVolumeExpand";
@@ -174,6 +176,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     // Methods in the create workflow. Constants helps us avoid step dependency flubs.
     private static final String METHOD_CG_CREATE_STEP = "cgCreateStep";
     private static final String METHOD_CG_CREATE_ROLLBACK_STEP = "cgCreateRollbackStep";
+    
+    // Methods in the add journal volume workflow.
+    private static final String METHOD_ADD_JOURNAL_STEP = "addJournalStep";
+    private static final String METHOD_ADD_JOURNAL_ROLLBACK_STEP = "addJournalRollbackStep";
 
     // Methods in the update workflow.
     private static final String METHOD_CG_UPDATE_STEP = "cgUpdateStep";
@@ -389,7 +395,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         List<VolumeDescriptor> protectionControllerDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_TARGET,
                         VolumeDescriptor.Type.RP_VPLEX_VIRT_TARGET,
-                        VolumeDescriptor.Type.RP_EXISTING_PROTECTED_SOURCE },
+                        VolumeDescriptor.Type.RP_EXISTING_PROTECTED_SOURCE,
+                        VolumeDescriptor.Type.RP_JOURNAL,
+                        VolumeDescriptor.Type.RP_VPLEX_VIRT_JOURNAL},
                 new VolumeDescriptor.Type[] {});
         // If there are no RP volumes, just return
         if (protectionControllerDescriptors.isEmpty()) {
@@ -398,6 +406,22 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         }
 
         _log.info("Adding RP steps for create volumes");
+        
+        // Determine if this operation only involves adding additional journal capacity
+        boolean isJournalAdd = false;
+        List<VolumeDescriptor> journalDescriptors = VolumeDescriptor.filterByType(protectionControllerDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_JOURNAL,
+                        VolumeDescriptor.Type.RP_VPLEX_VIRT_JOURNAL},
+                new VolumeDescriptor.Type[] {});
+        if (!journalDescriptors.isEmpty()) {
+        	for (VolumeDescriptor journDesc : journalDescriptors) {
+        		if (journDesc.getCapabilitiesValues().getAddJournalCapacity()) {
+        			isJournalAdd = true;
+        			break;
+        		}
+        	}
+        }
+        
         // Grab any volume from the list so we can grab the protection system, which will be the same for all volumes.
         Volume volume = _dbClient.queryObject(Volume.class, protectionControllerDescriptors.get(0).getVolumeURI());
         ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
@@ -416,9 +440,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         // If there are no RP volumes, just return
         if (volumeDescriptorsTypeFilter.isEmpty()) {
             return waitFor;
-        }
-
-        String lastStep = waitFor;
+        }        
+        
+        String lastStep = waitFor;        
 
         try {
             List<VolumeDescriptor> existingProtectedSourceDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
@@ -426,7 +450,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     new VolumeDescriptor.Type[] {});
 
             boolean executeCreateSteps = true;
-            if (!existingProtectedSourceDescriptors.isEmpty()) {
+            if (!existingProtectedSourceDescriptors.isEmpty() || isJournalAdd) {
                 executeCreateSteps = false;
             }
 
@@ -435,8 +459,18 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Handle creation or updating of the Consistency Group (moved from the Export Workflow)
             // Get the CG Params based on the volume descriptors
             CGRequestParams params = this.getCGRequestParams(volumeDescriptors, rpSystem);
-            updateCGParams(params);
-
+            updateCGParams(params);            
+            
+            if (isJournalAdd) {
+            	lastStep = addAddJournalVolumesToCGStep(workflow, volumeDescriptors, params, rpSystem, taskId);
+            }
+            
+            int x = 1;
+            if (x == 1) {
+            	throw new UnsupportedOperationException();
+            }
+            
+            
             if (executeCreateSteps) {
                 _log.info("Adding steps for Create CG...");
                 lastStep = addCreateCGStep(workflow, volumeDescriptors, params, rpSystem, taskId);
@@ -760,6 +794,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Set up the journal volumes in the copy objects
             if (volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_JOURNAL)
                     || volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_VPLEX_VIRT_JOURNAL)) {
+            	if (!extraParamsGathered) {
+            		project = _dbClient.queryObject(Project.class, volume.getProject());
+            		cg = _dbClient.queryObject(BlockConsistencyGroup.class, volumeDescriptor.getCapabilitiesValues()
+	                        .getBlockConsistencyGroup());
+	                cgName = cg.getNameOnStorageSystem(rpSystem.getId());
+	                if (cgName == null) {
+	                    cgName = CG_NAME_PREFIX + cg.getLabel();
+	                }
+            	}
                 CreateVolumeParams volumeParams = populateVolumeParams(volume.getId(),
                         volume.getStorageController(),
                         volume.getVirtualArray(),
@@ -1181,6 +1224,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         }
     }
 
+    public boolean addJournalStep(URI rpSystemId, List<VolumeDescriptor> volumeDescriptors, CGRequestParams cgParams) {
+    	ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
+    	RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);
+    	rp.addJournalVolumesToCG(cgParams);
+    	return true;
+    }
+    
     /**
      * Recoverpoint specific workflow method for creating an Export Group
      * NOTE: Workflow.Method requires that opId is added as a param.
@@ -1253,6 +1303,34 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         return STEP_CG_CREATION;
     }
+    
+    /**
+     * Method that adds the step to the workflow that creates the CG.
+     * 
+     * @param workflow
+     * @param recommendation
+     * @param rpSystem
+     * @param protectionSet
+     * @throws InternalException
+     * @return the step group
+     */
+    private String addAddJournalVolumesToCGStep(Workflow workflow, List<VolumeDescriptor> volumeDescriptors, CGRequestParams cgParams,
+            ProtectionSystem rpSystem,
+            String taskId) throws InternalException {
+        String stepId = workflow.createStepId();
+        Workflow.Method addJournalExecuteMethod = new Workflow.Method(METHOD_ADD_JOURNAL_STEP,
+                rpSystem.getId(),
+                volumeDescriptors);
+        Workflow.Method addJournalExecutionRollbackMethod = new Workflow.Method(METHOD_ADD_JOURNAL_ROLLBACK_STEP,
+                rpSystem.getId());
+
+        workflow.createStep(STEP_ADD_JOURNAL_VOLUME, "Create add journal volume to consistency group subtask for RP CG: " + cgParams.getCgName(),
+                STEP_EXPORT_ORCHESTRATION, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(),
+                addJournalExecuteMethod, addJournalExecutionRollbackMethod, stepId);
+
+        return STEP_ADD_JOURNAL_VOLUME;
+    }
+    
 
     /**
      * Workflow step method for creating/updating a consistency group.

@@ -289,7 +289,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                 newVolumeLabel, isChangeVpoolForProtectedVolume, capabilities, protectionSystemURI, taskList, task, 
                                 metroPointEnabled, descriptors, volumeURIs, volumeInfoBuffer, 
                                 (metroPointEnabled ? activeSourceCopyName : srcCopyName), 
-                                standbySourceCopyName, sourceJournals, targetJournals);
+                                standbySourceCopyName, sourceJournals, targetJournals);            
             
             // Extract the source journals
             Volume sourceJournal = sourceJournals.get(0); // always index 0
@@ -534,7 +534,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, consistencyGroup.getId());
                     capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, Volume.PersonalityTypes.SOURCE.toString());
                 }                               
-            }
+            }            
             
             volumeInfoBuffer.append(String.format("%n-------------------------------------------------%n"));
             _log.info(volumeInfoBuffer.toString());
@@ -592,7 +592,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         List<Volume> cgSourceVolumes = _rpHelper.getCgVolumes(consistencyGroup.getId(), Volume.PersonalityTypes.SOURCE.toString());     
         List<Volume> cgTargetVolumes = _rpHelper.getCgVolumes(consistencyGroup.getId(), Volume.PersonalityTypes.TARGET.toString());
         
-        if (!cgSourceVolumes.isEmpty()) {
+        if (!cgSourceVolumes.isEmpty() && !capabilities.getAddJournalCapacity()) {
             boolean isAdditionalSourceJournalRequired = _rpHelper.isAdditionalJournalRequiredForCG(vpool.getJournalSize(), consistencyGroup, param.getSize(), 
                                                                                         numberOfVolumesInRequest, Volume.PersonalityTypes.SOURCE.toString(), 
                                                                                         cgSourceVolumes.get(0).getInternalSiteName());
@@ -661,11 +661,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 VirtualArray targetCopyVarray = getProtectionVarray(rpProtectionRec, targetJournalRec.getInternalSiteName());
                 if (targetCopyVarray == null) {
                     targetCopyVarray = targetJournalVarray;
-                }
+                }                               
                 
-                VpoolProtectionVarraySettings protectionSettings = _rpHelper.getProtectionSettings(originalVpool, targetCopyVarray);
-                
-                if (!cgTargetVolumes.isEmpty()) {
+                if (!cgTargetVolumes.isEmpty() && !capabilities.getAddJournalCapacity()) {
+                	// TODO: Left off here don't need to do this in my case
+                    VpoolProtectionVarraySettings protectionSettings = _rpHelper.getProtectionSettings(originalVpool, targetCopyVarray);
                     boolean isAdditionalTargetJournalRequired = _rpHelper.isAdditionalJournalRequiredForCG(protectionSettings.getJournalSize(), consistencyGroup, param.getSize(), 
                                                                                                           numberOfVolumesInRequest, Volume.PersonalityTypes.TARGET.toString(), 
                                                                                                           targetJournalRec.getInternalSiteName());
@@ -2894,12 +2894,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     
     public TaskList addJournalCapacity(VolumeCreate param, Project project, VirtualArray journalVarray,
             VirtualPool journalVpool, BlockConsistencyGroup consistencyGroup, VirtualPoolCapabilityValuesWrapper capabilities, String task) {
-        // Prepare the Bourne Volumes to be created and associated
-        // with the actual storage system volumes created. Also create
-        // a BlockTaskList containing the list of task resources to be
-        // returned for the purpose of monitoring the volume creation
-        // operation for each volume to be created.
-        String volumeLabel = param.getName();        
         
         ProtectionSystem  protectionSystem = getBlockScheduler().getCgProtectionSystem(consistencyGroup.getId());
         if (protectionSystem != null) {
@@ -2908,29 +2902,55 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     protectionSystem.getLabel(), consistencyGroup);
         }
         
-        String internalSiteName = null;
-        List<Volume> journVolumes = _rpHelper.getCgVolumes(consistencyGroup.getId(), Volume.PersonalityTypes.METADATA.name());
-        for (Volume journVolume : journVolumes) {
-        	if (journVolume.getVirtualArray().equals(journalVarray.getId())) {
-        		// This journal volume is being protected by the same internal site
-        		internalSiteName = journVolume.getInternalSiteName();
-        		break;
+        String copyName = param.getName();
+        String internalSiteName = null;        
+        boolean isSource = false;
+        boolean isMPStandby = false;
+        boolean isTarget = false;
+        List<Volume> cgVolumes = _rpHelper.getCgVolumes(consistencyGroup.getId());
+        for (Volume cgVolume : cgVolumes) {
+        	if (!cgVolume.getPersonality().equals(Volume.PersonalityTypes.METADATA) && cgVolume.getRpCopyName().equals(copyName)) {
+        		internalSiteName = cgVolume.getInternalSiteName();
+        		if (cgVolume.getPersonality().equals((Volume.PersonalityTypes.SOURCE))) {	        		
+        			if (cgVolume.getRpCopyName().contains("Standby")) {
+	        			isMPStandby = true;
+	        		} else {
+	        			isSource = true;
+	        		}
+        		} else {
+        			isTarget = true;
+        		}        		
         	}
         } 
-
-        // TODO: Left off here on Fri night, lets see if we can get to this point in debugger tomorrow.
-        // source standby or target
+        
         RPProtectionRecommendation rpProtectionRecommendation = new RPProtectionRecommendation();
-        RPRecommendation recommendation = getBlockScheduler().buildJournalRecommendation(rpProtectionRecommendation, internalSiteName,
+        rpProtectionRecommendation.setProtectionDevice(protectionSystem.getId());
+                
+        
+        RPRecommendation journalRecommendation = getBlockScheduler().buildJournalRecommendation(rpProtectionRecommendation, internalSiteName,
         		new Long(capabilities.getSize()).toString(), journalVarray, journalVpool, 
         		protectionSystem, capabilities, capabilities.getResourceCount(), null, false);
         // TODO: Need to throw better exception here, this was just for debugging
-        if (recommendation == null) {
+        if (journalRecommendation == null) {
         	throw new UnsupportedOperationException();
         }
         
+        if (isSource) {
+        	rpProtectionRecommendation.setSourceJournalRecommendation(journalRecommendation);
+        }
+        
+        if (isMPStandby) {
+        	rpProtectionRecommendation.setStandbyJournalRecommendation(journalRecommendation);
+        }
+        
+        if (isTarget) {
+        	List<RPRecommendation> journalRecommendations = Lists.newArrayList();
+            journalRecommendations.add(journalRecommendation);
+        	rpProtectionRecommendation.setTargetJournalRecommendations(journalRecommendations);
+        }                 
+        
         List<Recommendation> recommendations = Lists.newArrayList();
-        recommendations.add(recommendation);
+        recommendations.add(rpProtectionRecommendation);
                 
         return this.createVolumes(param, project, journalVarray, journalVpool, recommendations, task, capabilities);                       
 

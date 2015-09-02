@@ -4218,6 +4218,7 @@ public class BlockService extends TaskResourceService {
         VirtualPool vpool = getVirtualPoolForVolumeCreateRequest(project, param);
 
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.ADD_JOURNAL_CAPACITY, Boolean.TRUE);
         // Get the count indicating the number of journal volumes to add. If not
         //passed assume 1. 
         Integer volumeCount = 1;
@@ -4249,14 +4250,12 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkEntity(tenant, project.getTenantOrg().getURI(), false);
         CapacityUtils.validateQuotasForProvisioning(_dbClient, vpool, project, tenant, size, "volume");    
         
-        // TODO: Verify I need to set this information
         if (null != vpool.getThinVolumePreAllocationPercentage()
                 && 0 < vpool.getThinVolumePreAllocationPercentage()) {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, VirtualPoolUtil
                     .getThinVolumePreAllocationSize(vpool.getThinVolumePreAllocationPercentage(), volumeSize));
         }
         
-        // TODO: Verify I need to set this information
         if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
                 vpool.getSupportedProvisioningType())) {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
@@ -4274,9 +4273,6 @@ public class BlockService extends TaskResourceService {
         final URI expectedId = consistencyGroup.getProject().getURI();
         checkProjectsMatch(expectedId, project.getId());
 
-        // TODO:  Make sure that the number of journal volumes we are adding to the CG does not exceed a max allowed
-        // if there is any
-        
         // TODO:  Figure out if this check is needed
         // check if CG's storage system is associated to the requested virtual array
         validateCGValidWithVirtualArray(consistencyGroup, varray);
@@ -4285,11 +4281,8 @@ public class BlockService extends TaskResourceService {
         if (!consistencyGroup.getRequestedTypes().contains(BlockConsistencyGroup.Types.RP.toString())) {
         	throw APIException.badRequests.consistencyGroupIsNotCompatibleWithRequest(
         			consistencyGroup.getId(), consistencyGroup.getTypes().toString(), BlockConsistencyGroup.Types.RP.toString());
-        }        
-                
-        // TODO: Should I verify that volumes in the CG are RP, or is it good enough
-        // that we checked the consistency group type earlier        
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, consistencyGroup);           
+        }                                
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, consistencyGroup.getId());           
         
         // Create a unique task id if one is not passed in the request.
         String task = UUID.randomUUID().toString();

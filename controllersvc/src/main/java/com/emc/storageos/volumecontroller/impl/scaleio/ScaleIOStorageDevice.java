@@ -854,7 +854,13 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doDetachGroupClone(StorageSystem storage, List<URI> cloneVolume,
             TaskCompleter taskCompleter) {
-        completeTaskAsUnsupported(taskCompleter);
+
+        List<Volume> clones = dbClient.queryObject(Volume.class, cloneVolume);
+        for (Volume clone : clones) {
+            clone.setReplicaState(ReplicationState.DETACHED.name());
+        }
+        dbClient.persistObject(clones);
+        taskCompleter.ready(dbClient);
 
     }
 

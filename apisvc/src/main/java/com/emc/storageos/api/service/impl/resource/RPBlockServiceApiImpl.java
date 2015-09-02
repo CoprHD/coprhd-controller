@@ -41,8 +41,8 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
@@ -61,8 +61,8 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
-import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.ResourceOnlyNameGenerator;
@@ -83,8 +83,8 @@ import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
-import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.util.ConnectivityUtil.StorageSystemType;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.Protection;
 import com.emc.storageos.volumecontroller.RPProtectionRecommendation;
@@ -146,7 +146,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * Looks up controller dependency for given hardware
-     * 
+     *
      * @param clazz controller interface
      * @param hw hardware name
      * @param <T>
@@ -171,23 +171,23 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * Prepare Recommended Volumes for Protected scenarios only.
-     * 
+     *
      * This method is responsible for acting the same as the unprotected "prepareRecommendedVolumes" call,
      * however it needs to create multiple volumes per single volume requests in order to generate protection.
-     * 
+     *
      * Those most typical scenario is, that for any one volume requested in a CRR configuration, we create:
      * 1. One Source Volume
      * 2. One Source Journal Volume (minimum 10GB, otherwise 2.5X source size)
      * 3. One Target Volume on protection varray
      * 4. One Target Journal Volume on protection varray
-     * 
+     *
      * In a CLR configuration, there are additional volumes created for the Local Target and Local Target Journal.
-     * 
+     *
      * This method will assemble a ProtectionSet object in Cassandra that will describe the Protection that
      * will be created on the Protection System.
-     * 
+     *
      * When other protection mechanisms come on board, the RP-ness of this method will need to be pulled out.
-     * 
+     *
      * @param param volume create request
      * @param task task from request or generated
      * @param taskList task list
@@ -381,7 +381,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * Convenience method to set the journal volume reference.
-     * 
+     *
      * @param volume
      * @param journalVolumeUri
      */
@@ -392,7 +392,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * Convenience method to set the journal volume reference.
-     * 
+     *
      * @param volumeUri
      * @param journalVolumeUri
      */
@@ -403,7 +403,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * Prep work to call the orchestrator to create the volume descriptors
-     * 
+     *
      * @param recommendation recommendation object from RPRecommendation
      * @param volumeURIs volumes already prepared
      * @param capabilities vpool capabilities
@@ -468,7 +468,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * Adds a Volume to StorageSystem mapping entry in the provided Map.
-     * 
+     *
      * @param volumeStorageSystems the Map in which we want to add an entry
      * @param volume the Volume the Volume referencing the StorageSystem we want to Map
      */
@@ -493,9 +493,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * If we are protecting between different array types, we need to determine the actual allocation size on each array. Set the capacity
      * of the source and target volumes to be the larger of the actual allocation sizes. This is done to ensure the size of the source and
      * target volumes are identical so RP can create the CG properly.
-     * 
+     *
      * This method returns the size of the volume to be created taking into account the above considerations.
-     * 
+     *
      * @param volumeURIs
      * @param requestedSize Request size of the volume to be expanded
      * @param isExpand Expand or Create volume operation
@@ -774,7 +774,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * Prepare Volume for a RecoverPoint protected volume
-     * 
+     *
      * @param param volume request
      * @param project project requested
      * @param varray varray requested
@@ -906,7 +906,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * Determines if all the passed in volume sizes match
-     * 
+     *
      * @param currentVolumeSizes all volume sizes
      * @return true if all sizes match, false otherwise
      */
@@ -930,7 +930,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     /**
      * Given a recommendation object, return the protection info based on the site that is protecting to the given varray.
      * The protection info for that varray copy site could be a VPLEX or non-VPLEX protection info.
-     * 
+     *
      * @param varray
      * @param recommendation
      * @return
@@ -947,7 +947,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * Prepare Volume for a RecoverPoint protected volume
-     * 
+     *
      * @param param volume request
      * @param project project requested
      * @param journalVarray varray requested
@@ -1033,7 +1033,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * Populate and prepare all target volumes (targets and journals) associated with protection of a volume.
-     * 
+     *
      * @param param Volume creation request
      * @param project project requested
      * @param vpool class of service requested
@@ -1211,7 +1211,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * @throws InternalException
      */
     @Override
@@ -1227,7 +1227,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * @throws InternalException
      */
     @Override
@@ -1350,7 +1350,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     /**
      * /**
      * Upgrade a local block volume to a protected RP volume
-     * 
+     *
      * @param volume the existing volume being protected.
      * @param newVpool the requested virtual pool
      * @param taskId the task identifier
@@ -1416,7 +1416,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * {@inheritDoc}
-     * 
+     *
      * @throws InternalException
      */
     @Override
@@ -1631,7 +1631,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * Determines if the CG source volumes contain mixed backing arrays.
-     * 
+     *
      * @param cg the consistency group to search.
      * @return true if the CG contains source volumes with mixed backing arrays, false otherwise.
      */
@@ -1660,7 +1660,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * Gets the non-HA side backing volume storage system for the given VPlex volume.
-     * 
+     *
      * @param vplexVolume the VPlex volume.
      * @return the storage system URI corresonding to the backing volume.
      */
@@ -1674,13 +1674,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * Prepares the snapshots for a snapshot request.
-     * 
+     *
      * @param volumes The volumes for which snapshots are to be created.
      * @param snapShotType The snapshot technology type.
      * @param snapshotName The snapshot name.
      * @param snapshotURIs [OUT] The URIs for the prepared snapshots.
      * @param taskId The unique task identifier
-     * 
+     *
      * @return The list of snapshots
      */
     @Override
@@ -1770,10 +1770,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     /**
      * Creates and returns a new ViPR BlockSnapshot instance with the passed
      * name for the passed volume.
-     * 
+     *
      * @param volume The volume for which the snapshot is being created.
      * @param snapshotName The name to be given the snapshot
-     * 
+     *
      * @return A reference to the new BlockSnapshot instance.
      */
     protected BlockSnapshot prepareSnapshotFromVolume(Volume volume, String snapshotName, Volume targetVolume) {
@@ -1880,7 +1880,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * Uses the appropriate controller to create the snapshots.
-     * 
+     *
      * @param reqVolume The volume from the snapshot request.
      * @param snapshotURIs The URIs of the prepared snapshots.
      * @param snapshotType The snapshot technology type.
@@ -1903,7 +1903,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
         if (isProtectionBasedSnapshot(reqVolume, snapshotType)) {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageControllerURI);
-            RPController controller = (RPController) getController(RPController.class, protectionSystem.getSystemType());
+            RPController controller = getController(RPController.class, protectionSystem.getSystemType());
             controller.createSnapshot(protectionSystem.getId(), storageSystem.getId(), snapshotURIs, createInactive, taskId);
         } else {
             if (vplex) {
@@ -1918,7 +1918,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * Uses the appropriate controller to delete the snapshot.
-     * 
+     *
      * @param snapshot The snapshot to delete
      * @param taskId The unique task identifier
      */
@@ -1939,10 +1939,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * snapshot, probably not. If it's a protection-based snapshot or a remote array-based snapshot
      * that requires protection intervention to ensure consistency between the source and target, then
      * you should go to the protection controller
-     * 
+     *
      * @param volume source volume
      * @param snapshotType The snapshot technology type.
-     * 
+     *
      * @return true if this is a protection based snapshot, false otherwise.
      */
     private boolean isProtectionBasedSnapshot(Volume volume, String snapshotType) {
@@ -1960,10 +1960,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * Validates a restore snapshot request.
-     * 
+     *
      * @param snapshot The snapshot to restore.
      * @param parent The parent of the snapshot
      */
+    @Override
     public void validateRestoreSnapshot(BlockSnapshot snapshot, Volume parent) {
         // RecoverPoint snapshots (bookmarks) will be automatically activated
         // before restore.
@@ -1974,30 +1975,23 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * Restore the passed parent volume from the passed snapshot of that parent volume.
-     * 
+     *
      * @param snapshot The snapshot to restore
      * @param parentVolume The volume to be restored.
      * @param taskId The unique task identifier.
      */
     @Override
     public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId) {
-        // If the volume is under protection
-        if (snapshot.getEmName() != null) {
-            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class,
-                    snapshot.getStorageController());
-            RPController controller = getController(RPController.class, ProtectionSystem._RP);
-            controller.restoreVolume(parentVolume.getProtectionController(),
-                    storageSystem.getId(), snapshot.getId(), taskId);
-        } else {
-            super.restoreSnapshot(snapshot, parentVolume, taskId);
-        }
+        _log.info(String.format("Request to restore RP volume %s from snapshot %s.",
+                parentVolume.getId().toString(), snapshot.getId().toString()));
+        super.restoreSnapshot(snapshot, parentVolume, taskId);
     }
 
     /**
      * Get the snapshots for the passed volume.
-     * 
+     *
      * @param volume A reference to a volume.
-     * 
+     *
      * @return The snapshots for the passed volume.
      */
     @Override
@@ -2092,7 +2086,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     /**
      * Method to determine whether the capacities for all the volumes being provisioned
      * can match. Currently the capacities for vmax and xtremio cannot match exactly.
-     * 
+     *
      * @param volumeStorageSystems - map indicating storage system types required to fulfill this request
      * @return boolean - indicating if the capacity of all volumes can match
      */
@@ -2116,7 +2110,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     /**
      * Method to determine and set the capacity for volumes being provisioned on
      * storage systems where the capacities cannot match
-     * 
+     *
      * @param allVolumesToUpdateCapacity - list of volumes to update the capacities of
      * @param associatedVolumePersonalityMap - map of the associated back end volumes and their personality type
      * @param isExpand - boolean indicating if this is an expand operation
@@ -2158,7 +2152,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * Method to determine the capacity of either the source or target volumes in an unmatched capacity situation
-     * 
+     *
      * @param volume - volume to determine the capacity for
      * @param type - personality type of the volume
      * @param isExpand - boolean indicating if this is an expand operation
@@ -2183,7 +2177,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * Method to both update and persist the volume capacity
-     * 
+     *
      * @param volume - volume to update the capacity for
      * @param capacity - capacity to update the volume to
      * @param isExpand - boolean indicating if this is an expand operation

@@ -7,6 +7,8 @@ package com.emc.vipr.client.core;
 import static com.emc.vipr.client.core.impl.SearchConstants.VALIDATE_CONNECTION_PARAM;
 import static com.emc.vipr.client.core.util.ResourceUtils.NULL_URI;
 import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
+import static com.emc.vipr.client.core.impl.SearchConstants.DISCOVER_VCENTER;
+import static com.emc.vipr.client.core.impl.SearchConstants.TENANT_PARAM;
 
 import java.net.URI;
 import java.util.List;
@@ -28,6 +30,7 @@ import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
+import com.emc.vipr.client.core.impl.SearchConstants;
 import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.client.core.util.ResourceUtils;
 
@@ -165,6 +168,19 @@ public class Vcenters extends AbstractCoreBulkResources<VcenterRestRep> implemen
         if (validateConnection) {
             uriBuilder.queryParam(VALIDATE_CONNECTION_PARAM, Boolean.TRUE);
         }
+
+        return putTaskURI(input, uriBuilder.build(id));
+    }
+
+    public Task<VcenterRestRep> update(URI id, VcenterUpdateParam input, boolean validateConnection, boolean discoverVcenter) {
+        UriBuilder uriBuilder = client.uriBuilder(getIdUrl());
+        if (validateConnection) {
+            uriBuilder.queryParam(VALIDATE_CONNECTION_PARAM, Boolean.TRUE);
+        }
+
+        if (!discoverVcenter) {
+            uriBuilder.queryParam(DISCOVER_VCENTER, Boolean.FALSE);
+        }
         return putTaskURI(input, uriBuilder.build(id));
     }
 
@@ -290,7 +306,7 @@ public class Vcenters extends AbstractCoreBulkResources<VcenterRestRep> implemen
     public List<NamedRelatedResourceRep> listVcenters(URI tenantId) {
         UriBuilder uriBuilder = client.uriBuilder(baseUrl);
         if (tenantId != null) {
-            uriBuilder.queryParam("tenant", tenantId);
+            uriBuilder.queryParam(TENANT_PARAM, tenantId);
         }
         return getList(uriBuilder.build());
     }

@@ -49,14 +49,14 @@
   #{/Modal.header}
   #{form @editVcenterDataCenter(), class: 'form form-horizontal'}
     #{Modal.body}
-      #{field 'tenant'}
-        #{Form.selectOneControlGroup field:field, options:tenantOptions /}
-      #{/field}
-      <fieldset>
-      #{field 'vcenterDataCenterId'}
-        #{Form.inputTextControlGroup field:field /}
-      #{/field}
-      </fieldset>
+        #{field 'tenant'}
+            #{Form.selectOneControlGroup field:field /}
+        #{/field}
+        <fieldset>
+            #{field 'vcenterDataCenterId'}
+                #{Form.inputTextControlGroup field:field /}
+            #{/field}
+        </fieldset>
     #{/Modal.body}
     #{Modal.footer}
       #{Modal.buttonBar}
@@ -77,9 +77,45 @@ function showModalDialog() {
     $(deleteVcenterDialog).modal();
 }
 
-function showDatacenterEditDialog(id, name) {
+function addNoneOption(select, selected) {
+    var option ="<option value=''"
+
+    if (selected) {
+        option += "selected";
+    }
+
+    option += ">None</option>";
+
+    select.append(option);
+}
+
+function showDatacenterTenantUpdateDialog(id, name, dataCenterTenantId, vcenterId) {
     $(".modal-body #vcenterDataCenterId").val( id );
     $(".modal-body #vcenterDataCenterId").closest($("fieldset")).hide();
+
+    $(".modal-body #tenant").empty();
+
+    var vcenterTenantOptionsHandler = function(data, textStatus, jqXHR) {
+        addNoneOption($(".modal-body #tenant"), false);
+
+        for (var i = 0; i < data.length; i++) {
+            option ='<option value="'+data[i].id+'"';
+
+            if (dataCenterTenantId == data[i].id) {
+                option += "selected";
+            }
+
+            option += '>'+data[i].name+'</option>';
+
+            $(".modal-body #tenant").append(option);
+        }
+        $(".modal-body #tenant").trigger('chosen:updated');
+        $(".modal-body #tenant").trigger("change");
+    };
+
+    $.ajaxSetup({async: false});
+    $.get("@{getVcenterTenantOptions()}", "id="+vcenterId, vcenterTenantOptionsHandler, 'json');
+    $.ajaxSetup({async: true});
 
     var helpText = Messages.get("vCenter.dataCenter.updateTenant.help");
     helpText = helpText + ' ' + name;
@@ -88,4 +124,5 @@ function showDatacenterEditDialog(id, name) {
 
     $(editVcenterDataCenterDialog).modal();
 }
+
 </script>

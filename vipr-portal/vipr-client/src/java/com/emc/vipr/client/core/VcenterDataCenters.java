@@ -12,6 +12,7 @@ import com.emc.storageos.model.host.vcenter.*;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.impl.PathConstants;
+import com.emc.vipr.client.core.impl.SearchConstants;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.client.impl.RestClient;
 
@@ -62,7 +63,7 @@ public class VcenterDataCenters extends AbstractCoreBulkResources<VcenterDataCen
     public List<NamedRelatedResourceRep> listByVcenter(URI vcenterId, URI tenantId) {
         UriBuilder uriBuilder = client.uriBuilder(PathConstants.DATACENTER_BY_VCENTER);
         if(tenantId != null) {
-            uriBuilder.queryParam("tenant", tenantId);
+            uriBuilder.queryParam(SearchConstants.TENANT_PARAM, tenantId);
         }
 
         VcenterDataCenterList response = client.getURI(VcenterDataCenterList.class, uriBuilder.build(vcenterId));

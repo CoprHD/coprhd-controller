@@ -113,6 +113,35 @@ public class VCenters extends ViprResourceController {
         }
     }
 
+    public static void getVcenterTenantOptions(String id) {
+        List<TenantOrgRestRep> vCenterTenantOptions = new ArrayList<TenantOrgRestRep>();
+        if (StringUtils.isBlank(id) ||
+                id.equalsIgnoreCase("null")) {
+            renderJSON(vCenterTenantOptions);
+            return;
+        }
+
+        List<ACLEntry> vcenterAcls = VCenterUtils.getAcl(uri(id));
+        if (CollectionUtils.isEmpty(vcenterAcls)) {
+            renderJSON(vCenterTenantOptions);
+            return;
+        }
+
+        Iterator<ACLEntry> aclEntryIterator = vcenterAcls.iterator();
+        while (aclEntryIterator.hasNext()) {
+            ACLEntry aclEntry = aclEntryIterator.next();
+            if (aclEntry == null) {
+                continue;
+            }
+
+            TenantOrgRestRep tenantOrgRestRep = TenantUtils.getTenant(aclEntry.getTenant());
+            if (tenantOrgRestRep != null) {
+                vCenterTenantOptions.add(tenantOrgRestRep);
+            }
+        }
+        renderJSON(vCenterTenantOptions);
+    }
+
     public static void editVcenterDataCenter(String vcenterDataCenterId, String tenant) {
         VcenterDataCenterRestRep vcenterDataCenter = VcenterDataCenterUtils.getDataCenter(uri(vcenterDataCenterId));
         if (vcenterDataCenter != null) {
@@ -373,7 +402,8 @@ public class VCenters extends ViprResourceController {
             if (canEditVcenter()) {
                 VcenterUpdateParam vcenterUpdateParam = new VcenterUpdateParam();
                 doWriteTo(vcenterUpdateParam);
-                return VCenterUtils.updateVCenter(uri(id), vcenterUpdateParam, validateConnection, getAclAssignmentChanges());
+                return VCenterUtils.updateVCenter(uri(id), vcenterUpdateParam, validateConnection,
+                                getAclAssignmentChanges(), false);
             } else {
                 return VCenterUtils.updateAcl(uri(id), getAclAssignmentChanges());
             }

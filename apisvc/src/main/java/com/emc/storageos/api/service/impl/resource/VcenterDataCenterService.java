@@ -527,6 +527,7 @@ public class VcenterDataCenterService extends TaskResourceService {
     private void validateTenant(VcenterDataCenterUpdate updateParam, VcenterDataCenter dataCenter) {
         Vcenter vcenter = _dbClient.queryObject(Vcenter.class, dataCenter.getVcenter());
         ArgValidator.checkEntity(vcenter, dataCenter.getVcenter(), isIdEmbeddedInURL(dataCenter.getVcenter()));
+
         Set<URI> vcenterTenants = _permissionsHelper.getUsageURIsFromAcls(vcenter.getAcls());
         if (!NullColumnValueGetter.isNullURI(updateParam.getTenant())) {
             if (CollectionUtils.isEmpty(vcenterTenants) ||
@@ -552,18 +553,12 @@ public class VcenterDataCenterService extends TaskResourceService {
                     dataCenter.getTenant() != null &&
                     !URIUtil.identical(updateParam.getTenant(), dataCenter.getTenant())) {
                 throw APIException.forbidden.insufficientPermissionsForUser(getUserFromContext().getName());
-            }
-
-            if(updateParam.getTenant() == null &&
+            } else if(updateParam.getTenant() == null &&
                     dataCenter.getTenant() != null) {
                 throw APIException.forbidden.insufficientPermissionsForUser(getUserFromContext().getName());
-            }
-
-            if(updateParam.getTenant() != null &&
+            } else if(updateParam.getTenant() != null &&
                     dataCenter.getTenant() == null) {
-                if(!(isSecurityAdmin() || isSystemOrRestrictedSystemAdmin())) {
-                    throw APIException.forbidden.insufficientPermissionsForUser(getUserFromContext().getName());
-                }
+                throw APIException.forbidden.insufficientPermissionsForUser(getUserFromContext().getName());
             }
         }
     }

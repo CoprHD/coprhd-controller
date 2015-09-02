@@ -886,7 +886,9 @@ public class ApiTestVcenter extends ApiTestBase {
             param.getRemove().add(aclEntry);
         }
 
-        ClientResponse clientResponse = user.path(getVcenterAclApi(vCenterId)).put(ClientResponse.class, param);
+        ClientResponse clientResponse = user.path(getVcenterAclApi(vCenterId))
+                                                .queryParam("discover_vcenter", "false")
+                                                .put(ClientResponse.class, param);
         Assert.assertEquals(expectedStatus, clientResponse.getStatus());
 
         if (expectedStatus == HttpStatus.SC_OK &&
@@ -1775,8 +1777,6 @@ public class ApiTestVcenter extends ApiTestBase {
 
         BalancedWebResource securityAdmin = loginUser(getSecurityAdminWithDomain());
 
-        waitForDiscoveryFreshInterval();
-
         List<URI> tenantIds = new ArrayList<URI>();
         tenantIds.add(rootTenantId);
         removeVcenterAcl(securityAdmin, vCenterId, tenantIds, HttpStatus.SC_OK);
@@ -1842,8 +1842,6 @@ public class ApiTestVcenter extends ApiTestBase {
         clusters = getClusterIdsFromClusterList(getClustersByTenantApi(subTenantAdmin, getSubTenantId(), HttpStatus.SC_OK));
         Assert.assertFalse(CollectionUtils.isEmpty(clusters));
 
-        waitForDiscoveryFreshInterval();
-
         List<URI> tenantIds = new ArrayList<URI>();
         tenantIds.add(rootTenantId);
         tenantIds.add(getSubTenantId());
@@ -1864,11 +1862,6 @@ public class ApiTestVcenter extends ApiTestBase {
 
         clusters = getClusterIdsFromClusterList(getClustersByTenantApi(subTenantAdmin, getSubTenantId(), HttpStatus.SC_OK));
         Assert.assertTrue(CollectionUtils.isEmpty(clusters));
-    }
-
-    private void waitForDiscoveryFreshInterval() {
-        Waiter wait = new Waiter();
-        wait.sleep(60*1000);
     }
     */
 }

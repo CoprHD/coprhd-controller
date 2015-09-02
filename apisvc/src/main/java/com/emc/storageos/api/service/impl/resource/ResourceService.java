@@ -16,7 +16,6 @@ import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
 import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.security.authorization.PermissionsKey;
 import com.emc.storageos.security.geo.GeoDependencyChecker;
 import org.slf4j.Logger;
@@ -467,7 +466,7 @@ public abstract class ResourceService {
     }
 
     /**
-     * This function is to retrieve the name and id list of a class.
+     * This function is to retrieve the name and id list of a class of objects.
      *
      * @param clazz the class objects to retrieved.
      * @param nameField the name of the field of the class that will be displayed as
@@ -476,8 +475,8 @@ public abstract class ResourceService {
      *            this function.
      * @return a name and id list of a given class
      */
-    protected <T extends DataObject> List<NamedElementQueryResultList.NamedElement> listChildren(Class<T> clazz,
-                                                                                                 String nameField) {
+    protected <T extends DataObject> List<NamedElementQueryResultList.NamedElement> listDataObjects(Class<T> clazz,
+                                                                                                    String nameField) {
         List<T> dataObjects = getDataObjects(clazz);
         if(!CollectionUtils.isEmpty(dataObjects)) {
             return getNamedElementsList(clazz, nameField, dataObjects);
@@ -552,7 +551,8 @@ public abstract class ResourceService {
     }
 
     /**
-     * This function is to retrieve the children of a given class based on its acls list.
+     * Retrieves the list of NamedElements of the data objects with acls
+     * and the list is filtered based on the tenant information.
      *
      * @param tenantId the URN of parent
      * @param clzz the child class
@@ -560,7 +560,7 @@ public abstract class ResourceService {
      *            name in {@link NamedRelatedResourceRep}. Note this field should be a required
      *            field because, objects for which this field is null will not be returned by
      *            this function.
-     * @return a list of children of tenant for the given class
+     * @return a list of NamedElements filtered by tenant.
      */
     protected  <T extends DiscoveredComputeSystemWithAcls> List<NamedElementQueryResultList.NamedElement> listChildrenWithAcls (URI tenantId,
                                                                                                                                 Class<T> clzz,
@@ -717,7 +717,7 @@ public abstract class ResourceService {
         //The the requested tenant is null or ALL, return all the vCenters.
         if (NullColumnValueGetter.isNullURI(tenantId) ||
                 AbstractDiscoveredTenantResource.ALL_TENANT_RESOURCES.equalsIgnoreCase(tenantId.toString())) {
-            elements = listChildren(clazz, nameField);
+            elements = listDataObjects(clazz, nameField);
             return elements;
         }
 

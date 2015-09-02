@@ -14,6 +14,7 @@ import java.util.Set;
 
 import com.emc.storageos.db.client.URIUtil;
 import org.apache.commons.lang.ObjectUtils;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -570,8 +571,12 @@ public class ComputeSystemHelper {
             //Since vCenterDataCenter contains some exports,
             //dont allow the update.
             Set<String> tenants = new HashSet<String>();
-            tenants.add(tenantId.toString());
+            tenants.add(dataCenter.getTenant().toString());
             throw APIException.badRequests.cannotRemoveTenant("vCenterDataCenter", dataCenter.getLabel(), tenants);
+        }
+
+        if (tenantId == null || tenantId.equals(NullColumnValueGetter.getNullURI())) {
+            tenantId = NullColumnValueGetter.getNullURI();
         }
 
         List<NamedElementQueryResultList.NamedElement> hostUris = listChildren(dbClient, dataCenter.getId(),

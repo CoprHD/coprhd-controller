@@ -1688,11 +1688,7 @@ public class DbClientImpl implements DbClient {
                         task.setTenant(TenantOrg.SYSTEM_TENANT);
                     }
                     else {
-                        if (dataObject instanceof Vcenter) {
-                            task.setTenant(((Vcenter) dataObject).findVcenterTenant());
-                        } else {
-                            task.setTenant(tenantId);
-                        }
+                        task.setTenant(tenantId);
                     }
 
                     _log.info("Created task {}, {}", task.getId() + " (" + task.getRequestId() + ")", task.getLabel());

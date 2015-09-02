@@ -123,10 +123,11 @@ public class VCenterUtils {
     }
 
     public static Task<VcenterRestRep> updateVCenter(URI vcenterId, VcenterUpdateParam vcenterUpdateParam,
-                                                     boolean validateConnection, ACLAssignmentChanges aclAssignmentChanges) {
-        Task<VcenterRestRep> vCenterUpdateTask = getViprClient().vcenters().update(vcenterId, vcenterUpdateParam, validateConnection);
+                                                     boolean validateConnection, ACLAssignmentChanges aclAssignmentChanges,
+                                                     boolean discoverVcenter) {
+        Task<VcenterRestRep> vCenterUpdateTask = getViprClient().vcenters().update(vcenterId, vcenterUpdateParam, validateConnection, discoverVcenter);
         if (canUpdateACLs() && isValidAclAssignments(aclAssignmentChanges)) {
-            return updateAcl(aclAssignmentChanges, vCenterUpdateTask);
+            return updateAcl(vcenterId, aclAssignmentChanges);
         } else {
             return vCenterUpdateTask;
         }

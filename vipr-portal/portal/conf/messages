@@ -609,8 +609,8 @@ vCenter.tenant=Tenant
 vCenter.tenant.description=Exclusive access to the selected tenant only
 vCenter.tenants=Tenants
 vCenter.tenants.description=Shared access to all the selected tenants
-vCenter.dataCenter.updateTenant=Update vCenterDataCenter Tenant
-vCenter.dataCenter.updateTenant.description=Updates the vCenterDataCenter tenant. If the vCenterDataCenter or its clusters or hosts is in use (contains any exports) the update will not be successful.
+vCenter.dataCenter.updateTenant=Update vCenter DataCenter Tenant
+vCenter.dataCenter.updateTenant.description=Updates the vCenter DataCenter tenant. If the vCenter DataCenter or its clusters or hosts contain any exports then the update will not be successful.
 vCenter.dataCenter.updateTenant.help=Update tenant for Datacenter
 vCenter.shared=Share Across Tenants
 

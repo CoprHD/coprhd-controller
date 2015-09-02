@@ -22,8 +22,11 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.api.mapper.TaskMapper;
+import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.model.*;
 import com.emc.storageos.model.auth.ACLAssignmentChanges;
 import com.emc.storageos.model.auth.ACLAssignments;
 import com.emc.storageos.model.auth.ACLEntry;
@@ -46,12 +49,6 @@ import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.model.BulkIdParam;
-import com.emc.storageos.model.RelatedResourceRep;
-import com.emc.storageos.model.ResourceOperationTypeEnum;
-import com.emc.storageos.model.ResourceTypeEnum;
-import com.emc.storageos.model.TaskList;
-import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.host.HostList;
 import com.emc.storageos.model.host.cluster.ClusterList;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -125,7 +122,8 @@ public class VcenterService extends TaskResourceService {
     @Path("/{id}")
     public TaskResourceRep updateVcenter(@PathParam("id") URI id,
             VcenterUpdateParam updateParam,
-            @QueryParam("validate_connection") @DefaultValue("false") final Boolean validateConnection) {
+            @QueryParam("validate_connection") @DefaultValue("false") final Boolean validateConnection,
+            @QueryParam("discover_vcenter") @DefaultValue("true") final Boolean discoverVcenter) {
 
         // update the host
         Vcenter vcenter = queryObject(Vcenter.class, id, true);
@@ -139,7 +137,12 @@ public class VcenterService extends TaskResourceService {
         auditOp(OperationTypeEnum.UPDATE_VCENTER, true, null,
                 vcenter.auditParameters());
 
-        return doDiscoverVcenter(vcenter);
+        if (discoverVcenter) {
+            return doDiscoverVcenter(vcenter);
+        } else {
+            return createManualReadyTask(vcenter);
+
+        }
     }
 
     /**
@@ -177,7 +180,11 @@ public class VcenterService extends TaskResourceService {
         tasks.add(new AsyncTask(Vcenter.class, vcenter.getId(), taskId));
 
         TaskList taskList = scheduler.scheduleAsyncTasks(tasks);
-        return taskList.getTaskList().iterator().next();
+
+        TaskResourceRep taskResourceRep = taskList.getTaskList().iterator().next();
+        updateTaskTenant(taskResourceRep);
+
+        return taskResourceRep;
     }
 
     /**
@@ -601,7 +608,7 @@ public class VcenterService extends TaskResourceService {
         auditOp(OperationTypeEnum.CREATE_VCENTER, true, null,
                 vcenter.auditParameters());
 
-        return doDiscoverVcenter(vcenter);
+        return doDiscoverVcenter(queryObject(Vcenter.class, vcenter.getId(), true));
     }
 
     /**
@@ -992,6 +999,59 @@ public class VcenterService extends TaskResourceService {
             if (vcenter.getAcls().size() > 1) {
                 throw APIException.forbidden.tenantAdminCannotDeleteVcenter(getUserFromContext().getName(), vcenter.getLabel());
             }
+        }
+    }
+
+    /**
+     * Creates a manual (fake) vcenter discover task, so that
+     * there wont be any vcenter discovery happening because of
+     * this task.
+     *
+     * @param vcenter vcenter to create its manual/fake discovery task.
+     *
+     * @return returns fake/manual vcenter discovery task.
+     */
+    private TaskResourceRep createManualReadyTask(Vcenter vcenter) {
+        // if not discoverable, manually create a ready task
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.DISCOVER_VCENTER);
+        op.ready("Vcenter not discoverable.");
+
+        String taskId = UUID.randomUUID().toString();
+        _dbClient.createTaskOpStatus(Host.class, vcenter.getId(), taskId, op);
+
+        return toTask(vcenter, taskId, op);
+    }
+
+    /**
+     * Updates the tenant information in the Task data object and
+     * TaskResourceRep (the response object to the API request).
+     * Both Task and TaskResourceRep is updated with the user's
+     * tenant information if it they don't contain any tenant information
+     * already.
+     *
+     * @param taskResourceRep api response to be updated.
+     */
+    private void updateTaskTenant(TaskResourceRep taskResourceRep) {
+        Task task = _dbClient.queryObject(Task.class, taskResourceRep.getId());
+        if (areEqual(task.getTenant(), NullColumnValueGetter.getNullURI())) {
+            StorageOSUser user = getUserFromContext();
+            URI userTenantUri = URI.create(user.getTenantId());
+            task.setTenant(userTenantUri);
+
+            RelatedResourceRep tenant = new RelatedResourceRep();
+            tenant.setId(userTenantUri);
+            tenant.setLink(new RestLinkRep("self", URI.create("/tenants/" + userTenantUri.toString())));
+
+            taskResourceRep.setTenant(tenant);
+            _dbClient.persistObject(task);
+
+            List<String> traceParams = new ArrayList<String>();
+            traceParams.add(task.getId().toString());
+            traceParams.add(user.getName());
+            traceParams.add(user.getTenantId());
+
+            _log.info("Update the task {} with the user's {} tenant {}", traceParams);
         }
     }
 }

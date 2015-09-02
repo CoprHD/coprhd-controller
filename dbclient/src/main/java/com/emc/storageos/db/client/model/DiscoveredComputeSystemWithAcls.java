@@ -127,6 +127,7 @@ public abstract class DiscoveredComputeSystemWithAcls extends AbstractDiscovered
      */
     public URI findVcenterTenant() {
         if (CollectionUtils.isEmpty(_acls)) {
+            _log.debug("Returning null uri");
             return NullColumnValueGetter.getNullURI();
         }
 
@@ -145,7 +146,7 @@ public abstract class DiscoveredComputeSystemWithAcls extends AbstractDiscovered
             tenant = URI.create(permissionKey.split(",")[1]);
         }
 
-        _log.debug("Vcenter {} tenant ", this.getLabel(), tenant);
+        _log.debug("Vcenter {} tenant {}", this.getLabel(), tenant);
         return tenant;
     }
 }

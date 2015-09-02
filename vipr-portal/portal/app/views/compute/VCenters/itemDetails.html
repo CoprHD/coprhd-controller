@@ -6,7 +6,7 @@
   #{if util.VCenterUtils.canUpdateACLs()}
     <dd>
       #{list dataCenters, as:'datacenter'}
-        <a href="" onclick="showDatacenterEditDialog('${datacenter.id}', '${datacenter.name}')">${datacenter.name}</a>#{if !datacenter_isLast}, #{/if}
+        <a href="" onclick="showDatacenterTenantUpdateDialog('${datacenter.id}', '${datacenter.name}', '${datacenter.tenant?.id}', '${vcenter.id}')">${datacenter.name}</a>#{if !datacenter_isLast}, #{/if}
       #{/list}
       #{else}&nbsp;#{/else}
     </dd>

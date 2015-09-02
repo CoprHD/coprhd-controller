@@ -960,7 +960,7 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Background thread that runs the placement, scheduling, and controller dispatching of a create volume
-     * request.  This allows the API to return a Task object quickly.  This is a work in progress.
+     * request.  This allows the API to return a Task object quickly.  
      */
     private class CreateVolumeSchedulingThread implements Runnable {
 

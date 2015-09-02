@@ -107,7 +107,9 @@ import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
+import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
@@ -129,6 +131,7 @@ import com.google.common.collect.Sets;
         writeRoles = { Role.TENANT_ADMIN },
         writeAcls = { ACL.OWN, ACL.ALL })
 public class ExportGroupService extends TaskResourceService {
+
     private static final String SEARCH_HOST = "host";
     private static final String SEARCH_CLUSTER = "cluster";
     private static final String SEARCH_INITIATOR = "initiator";
@@ -285,23 +288,23 @@ public class ExportGroupService extends TaskResourceService {
         _log.info("Computed storage map: {} volumes in {} storage systems: {}",
                 new Object[] { volumeMap.size(), storageMap.size(), storageMap.keySet().toArray() });
 
-        // validate clients (initiators, hosts clusters) input and package them
-        List<URI> initiators = validateClientsAndPopulate(exportGroup,
-                project, neighborhood, storageMap.keySet(),
-                param.getClusters(), param.getHosts(), param.getInitiators(),
-                volumeMap.keySet());
-        _log.info("Initiators {} will be used.", initiators);
-
-        // create export groups in the array but only when the export
-        // group has both block objects and initiators.
-        String task = UUID.randomUUID().toString();
-        Operation.Status status = storageMap.isEmpty() || initiators.isEmpty() ?
-                Operation.Status.ready : Operation.Status.pending;
-
         // Validate that there is not already an ExportGroup of the same name, project, and varray.
         // If so, this is like because concurrent operations were in the API at the same time and another created
         // the ExportGroup.
         validateNotSameNameProjectAndVarray(param);
+
+        // COP-14028
+        // Changing the return of a TaskList to return immediately while the underlying tasks are
+        // being built up.  Steps:
+        // 1. Create a task object ahead of time and persist it for the export group
+        // 2. Fire off a thread that does the scheduling (planning) of the export operation
+        // 3. Return to the caller the new Task objects that is in the pending state.
+        
+        // create export groups in the array but only when the export
+        // group has both block objects and initiators.
+        String task = UUID.randomUUID().toString();
+        Operation.Status status = storageMap.isEmpty() ? 
+                Operation.Status.ready : Operation.Status.pending;
 
         _dbClient.createObject(exportGroup);
         Operation op = initTaskStatus(exportGroup, task, status, ResourceOperationTypeEnum.CREATE_EXPORT_GROUP);
@@ -309,13 +312,89 @@ public class ExportGroupService extends TaskResourceService {
         // persist the export group to the database
         auditOp(OperationTypeEnum.CREATE_EXPORT_GROUP, true, AuditLogManager.AUDITOP_BEGIN,
                 param.getName(), neighborhood.getId().toString(), project.getId().toString());
-        if (!storageMap.isEmpty() && !initiators.isEmpty()) {
-            // push it to storage devices
-            BlockExportController exportController = getExportController();
-            _log.info("createExportGroup request is submitted.");
-            exportController.exportGroupCreate(exportGroup.getId(), volumeMap, initiators, task);
+
+        TaskResourceRep taskRes = toTask(exportGroup, task, op);
+        
+        // call thread that does the work.
+        CreateExportGroupSchedulingThread cegst = new CreateExportGroupSchedulingThread(neighborhood, project, exportGroup, storageMap,
+                param.getClusters(), param.getHosts(), param.getInitiators(), volumeMap, task, taskRes);                
+        new Thread(cegst).start();
+        
+        _log.info("Kicked off thread to perform placement and scheduling.  Returning task: " + taskRes.getId());
+        
+        return taskRes;
+    }
+
+    /**
+     * Background thread that runs the placement, scheduling, and controller dispatching of an export group creation
+     * request.  This allows the API to return a Task object quickly.
+     */
+    private class CreateExportGroupSchedulingThread implements Runnable {
+        private VirtualArray virtualArray;
+        private Project project;
+        private ExportGroup exportGroup;
+        private Map<URI, Map<URI, Integer>> storageMap;
+        private List<URI> hosts;
+        private List<URI> clusters;
+        private List<URI> initiators;
+        private Map<URI, Integer> volumeMap;
+        private String task;
+        private TaskResourceRep taskRes;
+        
+        public CreateExportGroupSchedulingThread(VirtualArray virtualArray, Project project, ExportGroup exportGroup,
+                    Map<URI, Map<URI, Integer>> storageMap, List<URI> clusters, List<URI> hosts, List<URI> initiators, Map<URI, Integer> volumeMap,
+                    String task, TaskResourceRep taskRes) {
+            this.virtualArray = virtualArray;
+            this.project = project;
+            this.exportGroup = exportGroup;
+            this.storageMap = storageMap;
+            this.clusters = clusters;
+            this.hosts = hosts;
+            this.initiators = initiators;
+            this.volumeMap = volumeMap;
+            this.task = task;
+            this.taskRes = taskRes;
+        }      
+
+        @Override
+        public void run() {
+            _log.info("Starting scheduling for export group create thread...");
+            // Call out placementManager to get the recommendation for placement.
+            try {
+                // validate clients (initiators, hosts clusters) input and package them
+                // This call may take a long time.
+                List<URI> affectedInitiators = validateClientsAndPopulate(exportGroup,
+                        project, virtualArray, storageMap.keySet(),
+                        clusters, hosts, initiators,
+                        volumeMap.keySet());
+                _log.info("Initiators {} will be used.", affectedInitiators);
+
+                // If initiators list is empty and storage map is empty, there's no work to do (yet).
+                if (storageMap.isEmpty() || affectedInitiators.isEmpty()) {
+                    _dbClient.ready(ExportGroup.class, taskRes.getResource().getId(), taskRes.getOpId());
+                    return;
+                }
+
+                // push it to storage devices
+                BlockExportController exportController = getExportController();
+                _log.info("createExportGroup request is submitted.");
+                exportController.exportGroupCreate(exportGroup.getId(), volumeMap, affectedInitiators, task);
+            } catch (Exception ex) {
+                if (ex instanceof ServiceCoded) {
+                    _dbClient.error(ExportGroup.class, taskRes.getResource().getId(), taskRes.getOpId(), (ServiceCoded)ex);
+                } else {
+                    _dbClient.error(ExportGroup.class, taskRes.getResource().getId(), taskRes.getOpId(), 
+                            InternalServerErrorException.internalServerErrors
+                            .unexpectedErrorExportGroupPlacement(ex));
+                }
+                _log.error(ex.getMessage(), ex);
+                taskRes.setMessage(ex.getMessage());
+                // Set the export group to inactive
+                exportGroup.setInactive(true);
+                _dbClient.updateAndReindexObject(exportGroup);
+            }
+            _log.info("Ending export group create scheduling thread...");
         }
-        return toTask(exportGroup, task, op);
     }
 
     /**

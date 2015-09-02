@@ -18,10 +18,6 @@ public class RescanHBAsCommand extends LinuxCommand {
     public RescanHBAsCommand() {
         StringBuilder sb = new StringBuilder();
         sb.append("for host in ${hosts}; do ");
-        sb.append("  echo 1 > /sys/class/fc_host/$host/issue_lip; ");
-        sb.append("done; ");
-        sb.append("sleep ${sleepTime}; ");
-        sb.append("for host in ${hosts}; do ");
         sb.append("  echo \"- - -\" > /sys/class/scsi_host/$host/scan; ");
         sb.append("done; ");
         setCommand(sb.toString());

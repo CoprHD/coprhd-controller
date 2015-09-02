@@ -177,45 +177,6 @@ public class VirtualNasServers extends AbstractCoreBulkResources<VirtualNASRestR
         return getByRefs(refs, filter);
     }
     
-    /**
-     * Lists the vNAS servers for the given virtual array by ID.
-     * <p>
-     * API Call: <tt>GET /vdc/vnasservers/project/{project-id}</tt>
-     * 
-     * @param virtualArrayId
-     *            the ID of the virtual array.
-     * @return the list of vNAS server references.
-     */
-    public List<NamedRelatedResourceRep> listByProject(URI projectId) {
-        return getList(PathConstants.VIRTUAL_NAS_SERVER_BY_PROJECT_URL, projectId);
-    }
-
-    /**
-     * Gets the list of vNAS servers for the given project by ID. This is a convenience method for:
-     * <tt>getByRefs(listByProject(projectId))</tt>
-     * 
-     * @param virtualArrayId
-     *            the ID of the virtual array.
-     * @return the list of vNAS servers.
-     */
-    public List<VirtualNASRestRep> getByProject(URI projectId) {
-        return getByProject(projectId, null);
-    }
-
-    /**
-     * Gets the list of vNAS servers for the given project by ID, optionally filtering the results. This is a
-     * convenience method for: <tt>getByRefs(listByProject(projectId), filter)</tt>
-     * 
-     * @param virtualArrayId
-     *            the ID of the virtual array.
-     * @param filter
-     *            the resource filter to apply to the results as they are returned (optional).
-     * @return the list of vNAS servers.
-     */
-    public List<VirtualNASRestRep> getByProject(URI projectId, ResourceFilter<VirtualNASRestRep> filter) {
-        List<NamedRelatedResourceRep> refs = listByProject(projectId);
-        return getByRefs(refs, filter);
-    }
     
     /**
      * Gets the base URL for assigning vNas servers to a Project: <tt>/projects/{project_id}/assign-vnas-servers</tt>
@@ -237,6 +198,7 @@ public class VirtualNasServers extends AbstractCoreBulkResources<VirtualNASRestR
 
     
     /**
+     * This method assign vNas Servers to a project.
      * POST /projects/{project_id}/assign-vnas-servers
      * @param projectId
      * @param vNasParam
@@ -248,7 +210,8 @@ public class VirtualNasServers extends AbstractCoreBulkResources<VirtualNASRestR
     }
     
     /**
-     * POST /projects/{project_id}/assign-vnas-servers
+     * This method unassign vNas Servers from a project.
+     * POST /projects/{project_id}/unassign-vnas-servers
      * @param projectId
      * @param vNasParam
      */

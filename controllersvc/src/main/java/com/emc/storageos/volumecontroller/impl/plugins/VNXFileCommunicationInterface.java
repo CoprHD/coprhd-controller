@@ -877,8 +877,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         _logger.info("Number unfiltered mover interfaces found: {}", allDmIntfs.size());
         _logger.info("Number mover interfaces found: {}", dmIntfs.size());
 
-        Map<String, List<String>> vnasPortList = new HashMap<String, List<String>>();
-
         // Create the list of storage ports.
         for (VNXDataMoverIntf intf : dmIntfs) {
             StoragePort port = null;

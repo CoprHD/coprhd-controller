@@ -186,10 +186,8 @@ public class RPProtectionRecommendation extends Recommendation {
     }
 	
 	
-    /** Returns list of already determined recommendations.
-     *  
-     * @param rpProtectionRecommendation - RP Protection recommendations
-     * @return - List of recommendations. 
+    /** Returns list of already determined recommendations. 
+     * @return - List of recommendations
      */
     public List<RPRecommendation> getPoolsInAllRecommendations()  {
     	List<RPRecommendation> poolsAlreadyInRecommendation = new ArrayList<RPRecommendation>();
@@ -210,8 +208,7 @@ public class RPProtectionRecommendation extends Recommendation {
     }
     
     /**
-     * Returns all recommendations corresponding to RP journals.
-     * @param rpProtectionRecommendation - RP Protection recommendations
+     * Returns all recommendations corresponding to RP journals.   
      * @return - List of recommendations
      */
     public List<RPRecommendation> getJournalPoolsInRecommendation() {
@@ -234,7 +231,6 @@ public class RPProtectionRecommendation extends Recommendation {
 
     /**
      * Returns all recommendations corresponding to RP source journals.
-     * @param rpProtectionRecommendation - RP Protection recommendations
      * @return - List of recommendations
      */
 	public RPRecommendation getSourceJournalPoolsInRecommendation() {
@@ -245,7 +241,6 @@ public class RPProtectionRecommendation extends Recommendation {
 	}
 	 /**
      * Returns all recommendations corresponding to RP stand-by journals, applies to only Metropoint.
-     * @param rpProtectionRecommendation - RP Protection recommendations
      * @return - List of recommendations
      */
 	public RPRecommendation getStandbyJournalPoolsInRecommendation() {
@@ -257,7 +252,6 @@ public class RPProtectionRecommendation extends Recommendation {
 	
 	 /**
      * Returns all recommendations corresponding to RP source.
-     * @param rpProtectionRecommendation - RP Protection recommendations
      * @return - List of recommendations
      */
 	public List<RPRecommendation> getSourcePoolsInRecommendation() {
@@ -275,7 +269,6 @@ public class RPProtectionRecommendation extends Recommendation {
 	
 	 /**
      * Returns all recommendations corresponding to RP target journals.
-     * @param rpProtectionRecommendation - RP Protection recommendations
      * @return - List of recommendations
      */
 	public List<RPRecommendation> getTargetJournalPoolsInRecommendation() {
@@ -290,7 +283,6 @@ public class RPProtectionRecommendation extends Recommendation {
 	
 	 /**
      * Returns all recommendations corresponding to RP targets.
-     * @param rpProtectionRecommendation - RP Protection recommendations
      * @return - List of recommendations
      */
 	public List<RPRecommendation> getTargetPoolsInRecommendation() {

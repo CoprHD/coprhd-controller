@@ -532,12 +532,12 @@ public class RecoverPointScheduler implements Scheduler {
     					}    					    				
     					 					    				                       
                         if ((totalSatisfiedCount >= totalRequestedCount)) {	
+                        	rpProtectionRecommendation.setResourceCount(totalSatisfiedCount);
                         	recommendations.add(rpProtectionRecommendation);
                         	for (Recommendation rec : recommendations) {
                         		 _log.info(String.format("RP Placement: Found a recommendation for the request: %s" , 
                         				 ((RPProtectionRecommendation)rec).toString(dbClient))); 
-                        	}
-                        	rpProtectionRecommendation.setResourceCount(totalSatisfiedCount);
+                        	}                        	
                         	return recommendations;
                         } else {
                         	break;
@@ -2193,7 +2193,7 @@ public class RecoverPointScheduler implements Scheduler {
             rpRecommendation.setVirtualVolumeRecommendation(virtualVolumeRecommendation);
         }
     	
-    	_log.info("RP Placement : Source Recommendation %s %n" + rpRecommendation.toString(dbClient, ps));
+    	_log.info(String.format("RP Placement : Source Recommendation %s %n", rpRecommendation.toString(dbClient, ps)));
 		return rpRecommendation;
     }
     
@@ -2312,12 +2312,12 @@ public class RecoverPointScheduler implements Scheduler {
     private String buildMetroProintPlacementStatusString() {
     	StringBuffer placementStatusBuf = new StringBuffer();
     	if (placementStatus != null) {
-	    	placementStatusBuf.append("%nPrimary Cluster");
+	    	placementStatusBuf.append(String.format("%nPrimary Cluster"));
 	    	placementStatusBuf.append(placementStatus.toString(dbClient));
     	}
     	
     	if (secondaryPlacementStatus != null) {
-	    	placementStatusBuf.append("%nSecondary Cluster");
+	    	placementStatusBuf.append(String.format("%nSecondary Cluster"));
 	    	placementStatusBuf.append(secondaryPlacementStatus.toString(dbClient));
     	}    	
     	return placementStatusBuf.toString();
@@ -2448,7 +2448,9 @@ public class RecoverPointScheduler implements Scheduler {
 
     /**
      * Returns a list of recommendations for storage pools that satisfy the request. 
-     * The return list is sorted in increasing order by the number of resources of size X that the pool can satisy. 
+     * The return list is sorted in increasing order by the number of resources of size X that the pool can satisy, 
+     * where X is the size of each resource in this request.
+     *  
      * @param rpProtectionRecommendation - RP protection recommendation
      * @param varray - Virtual Array
      * @param vpool - Virtual Pool
@@ -2473,6 +2475,7 @@ public class RecoverPointScheduler implements Scheduler {
     	long requestedCount = capabilities.getResourceCount();
     	VirtualPoolCapabilityValuesWrapper newCapabilities = new VirtualPoolCapabilityValuesWrapper(capabilities);
     	    	    	    
+    	//TODO: Joe will need to  check here for if its a journal add capacity and not set the resource count to 1. 
     	if (personality.equals(RPHelper.JOURNAL)) {    		
         	newCapabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, 1);       
         	sizeInBytes = RPHelper.getJournalSizeGivenPolicy(Long.toString(capabilities.getSize()), journalPolicy, capabilities.getResourceCount());
@@ -3017,20 +3020,18 @@ public class RecoverPointScheduler implements Scheduler {
      * with the remainder of the protectionVarrays.  If it fails to find a Protection for that protectionVarray, it returns failure and puts the 
      * protectionVarray back on the list.
      * 
-     * @param varrayOrderedPoolList the sorted protection varray pool mappings.
-     * @param recommendations the list of all recommendations.
-     * @param recommendation the recommendation for which we are attempting to find protection placement.
-     * @param varray the source virtual array.
-     * @param vpool the source virtual pool.
-     * @param protectionVarrays the list of protection virtual arrays.
-     * @param capabilities the capability params.
-     * @param requestedCount the resource count.
-     * @param metroPointType the MetroPoint type.
-     * @param primaryRecommendation the primary recommendation in the case of a MetroPoint request.  This will be populated only
-     *                              when the request pertains to the secondary recommendation, so we can pull information from the
-     *                              primary recommendation.
-     * @return true if a protection recommendation can be found, false otherwise.
-     */
+	 * @param rpProtectionRecommendation - Top level RP recommendation
+	 * @param rpRecommendation - Source Recommendation against which we need to find the solution for targets
+	 * @param varray - Source Virtual Array
+	 * @param vpool - Source Virtual Pool
+	 * @param protectionVarrays - List of protection Virtual Arrays
+	 * @param capabilities - Virtual Pool capabilities
+	 * @param requestedCount - Resource count desired
+	 * @param isMetroPoint - Boolean indicating whether this is Metropoint
+	 * @param primaryRecommendation - Primary Recommendation in case of Metropoint. This field is null except for when we are finding solution for MP standby
+	 * @param project - Project
+	 * @return - True if protection solution was found, false otherwise.
+	 */
 	private boolean findSolution(RPProtectionRecommendation rpProtectionRecommendation, RPRecommendation rpRecommendation,
 						VirtualArray varray, VirtualPool vpool, List<VirtualArray> protectionVarrays, 
 						VirtualPoolCapabilityValuesWrapper capabilities, 
@@ -3115,7 +3116,6 @@ public class RecoverPointScheduler implements Scheduler {
 	        	    
 	        	    ProtectionType protectionType = null;
 	        		if (!rpRecommendation.containsTargetInternalSiteName(targetInternalSiteName)) {        		
-	        		     protectionType = null;	        		    
 		    		    // MetroPoint has been specified so process the MetroPoint targets accordingly.
 		    		    if (isMetroPoint) {
 		                    if (targetInternalSiteName.equals(rpRecommendation.getInternalSiteName())) {
@@ -3155,8 +3155,7 @@ public class RecoverPointScheduler implements Scheduler {
 	    			if (!isRpSiteConnectedToVarray(
 					        targetStorageSystemURI, psUri, targetInternalSiteName, protectionVarray)) {
 							_log.info(String.format("RP Placement: Disqualified RP site [%s] because its initiators are not in a network "
-									+ "configured for use by the virtual array [%s]", targetInternalSiteName, protectionVarray.getLabel()));
-							//updatePoolList(candidateTargetPools, candidateTargetPool);;
+									+ "configured for use by the virtual array [%s]", targetInternalSiteName, protectionVarray.getLabel()));							
 		    				continue;
 	    			}
 	    			

@@ -84,7 +84,7 @@ public interface ComputeSystemController extends Controller {
 
     public void setHostSanBootTargets(URI hostId, URI volumeId) throws ControllerException;
 
-    public void synchronizeSharedExports(URI clusterId, boolean enablingAutoExports, String taskId)
+    public void synchronizeSharedExports(URI clusterId, String taskId)
             throws ControllerException;
 
 }

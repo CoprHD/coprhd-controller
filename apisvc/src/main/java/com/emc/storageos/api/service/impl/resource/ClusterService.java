@@ -127,7 +127,7 @@ public class ClusterService extends TaskResourceService {
         if (enablingAutoExports) {
             String taskId = UUID.randomUUID().toString();
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
-            controller.synchronizeSharedExports(cluster.getId(), enablingAutoExports, taskId);
+            controller.synchronizeSharedExports(cluster.getId(), taskId);
         }
 
         return map(queryObject(Cluster.class, id, false));

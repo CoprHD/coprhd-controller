@@ -667,13 +667,13 @@ public interface BadRequestExceptions {
     public BadRequestException invalidHostNamesAreNotUnique();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidNodeNamesAreNotUnique(String nodeName,String prop1, String prop2);
+    public BadRequestException invalidNodeNamesAreNotUnique(String nodeName, String prop1, String prop2);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidNodeShortNamesAreNotUnique(String shortName,String prop1, String prop2);
+    public BadRequestException invalidNodeShortNamesAreNotUnique(String shortName, String prop1, String prop2);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidNodeNameIsIdOfAnotherNode(String name,String value);
+    public BadRequestException invalidNodeNameIsIdOfAnotherNode(String name, String value);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterHostAlreadyHasOs(String os);
@@ -2343,13 +2343,13 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidEntryForProjectVNAS();
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException failedToAssignVNasToProject(final String assignVnasError);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException noVNasServersAssociatedToProject(final String project);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException vNasServersNotAssociatedToProject();
 }

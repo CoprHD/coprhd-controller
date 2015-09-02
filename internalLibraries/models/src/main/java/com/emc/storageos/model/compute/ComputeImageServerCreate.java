@@ -7,6 +7,8 @@ package com.emc.storageos.model.compute;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import org.codehaus.jackson.annotate.JsonProperty;
+
 @XmlRootElement(name = "compute_imageserver_create")
 public class ComputeImageServerCreate {
     private String imageServerIp;
@@ -42,6 +44,7 @@ public class ComputeImageServerCreate {
      * @return the imageServerIp
      */
     @XmlElement(required = true, name = "imageServerIp")
+    @JsonProperty("imageServerIp")
     public String getImageServerIp() {
         return imageServerIp;
     }
@@ -58,6 +61,7 @@ public class ComputeImageServerCreate {
      * @return the imageServerSecondIp
      */
     @XmlElement(required = true, name = "imageServerSecondIp")
+    @JsonProperty("imageServerSecondIp")
     public String getImageServerSecondIp() {
         return imageServerSecondIp;
     }
@@ -74,6 +78,7 @@ public class ComputeImageServerCreate {
      * @return the imageServerUser
      */
     @XmlElement(required = true, name = "imageServerUser")
+    @JsonProperty("imageServerUser")
     public String getImageServerUser() {
         return imageServerUser;
     }
@@ -90,6 +95,7 @@ public class ComputeImageServerCreate {
      * @return the password
      */
     @XmlElement(required = true)
+    @JsonProperty("imageServerPassword")
     public String getImageServerPassword() {
         return imageServerPassword;
     }
@@ -106,6 +112,7 @@ public class ComputeImageServerCreate {
      * @return the tftpbootDir
      */
     @XmlElement(required = true, name = "tftpbootDir")
+    @JsonProperty("tftpbootDir")
     public String getTftpbootDir() {
         return tftpbootDir;
     }
@@ -122,6 +129,7 @@ public class ComputeImageServerCreate {
      * @return the osInstallTimeoutMs
      */
     @XmlElement(required = true, name = "osInstallTimeoutMs")
+    @JsonProperty("osInstallTimeoutMs")
     public Integer getOsInstallTimeoutMs() {
         return osInstallTimeoutMs;
     }

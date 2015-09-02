@@ -958,8 +958,10 @@ public class ImageServerControllerImpl implements ImageServerController {
                 Workflow workflow = workflowService.getNewWorkflow(this, "ImportImages_WF", true, subTask._opId);
                 for (ComputeImage computeImage : imageList) {
                     if(computeImage.getComputeImageStatus().equals("AVAILABLE")) {
-                        workflow.createStep("ImportImage_Step", String.format(
-                                "Importing image for %s", imageServerID), null,
+                        StringBuilder msg = new StringBuilder("Importing image ");
+                        msg.append(computeImage.getLabel()).append(" on to imageServer - ");
+                        msg.append(imageServer.getImageServerIp()).append(".");
+                        workflow.createStep("ImportImage_Step", msg.toString(), null,
                                 imageServerID, imageServerID.toString(), this
                                         .getClass(), new Workflow.Method(
                                         "performImportImage", imageServer,

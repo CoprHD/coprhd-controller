@@ -13,6 +13,8 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import org.codehaus.jackson.annotate.JsonProperty;
+
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.RelatedResourceRep;
 
@@ -38,6 +40,7 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
      * @return the imageServerIp
      */
     @XmlElement(name = "imageServerIp")
+    @JsonProperty("imageServerIp")
     public String getImageServerIp() {
         return imageServerIp;
     }
@@ -54,6 +57,7 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
      * @return the imageServerSecondIp
      */
     @XmlElement(name = "imageServerSecondIp")
+    @JsonProperty("imageServerSecondIp")
     public String getImageServerSecondIp() {
         return imageServerSecondIp;
     }
@@ -71,6 +75,7 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
      */
     @XmlElementWrapper(name = "compute_image")
     @XmlElement(name = "compute_image")
+    @JsonProperty("compute_image")
     public List<RelatedResourceRep> getComputeImage() {
         if (null == computeImage) {
             computeImage = new ArrayList<RelatedResourceRep>();
@@ -90,6 +95,7 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
      * @return the tftpbootDir
      */
     @XmlElement(name = "tftpbootDir")
+    @JsonProperty("tftpbootDir")
     public String getTftpbootDir() {
         return tftpbootDir;
     }
@@ -103,6 +109,7 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
     }
 
     @XmlElement(name = "computeImageServerStatus")
+    @JsonProperty("computeImageServerStatus")
     public String getComputeImageServerStatus() {
         return computeImageServerStatus;
 

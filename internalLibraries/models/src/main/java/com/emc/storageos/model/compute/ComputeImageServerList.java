@@ -10,6 +10,8 @@ import java.util.List;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import org.codehaus.jackson.annotate.JsonProperty;
+
 import com.emc.storageos.model.NamedRelatedResourceRep;
 
 @XmlRootElement(name = "compute_imageservers")
@@ -31,6 +33,7 @@ public class ComputeImageServerList {
      * @valid none
      */
     @XmlElement(name = "compute_imageserver")
+    @JsonProperty("compute_imageserver")
     public List<NamedRelatedResourceRep> getComputeImageServers() {
         if (computeImageServers == null) {
             computeImageServers = new ArrayList<NamedRelatedResourceRep>();

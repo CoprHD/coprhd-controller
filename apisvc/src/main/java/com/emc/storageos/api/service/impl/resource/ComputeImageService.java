@@ -154,11 +154,15 @@ public class ComputeImageService extends TaskResourceService {
                 ci.getImageUrl(), ci.getComputeImageStatus());
         try {
         	List<URI> ids = _dbClient.queryByType(ComputeImageServer.class, true);
-            for (URI imageServerId : ids){
-            	ComputeImageServer imageServer = _dbClient.queryObject(ComputeImageServer.class,imageServerId);
-            	if (imageServer.getComputeImage() != null && !imageServer.getComputeImage().contains(ci.getId().toString())){
-            		taskList.addTask(doImportImage(ci,imageServer));
-            	}
+            for (URI imageServerId : ids) {
+                ComputeImageServer imageServer = _dbClient.queryObject(
+                        ComputeImageServer.class, imageServerId);
+                if (imageServer.getComputeImage() == null) {
+                    taskList.addTask(doImportImage(ci, imageServer));
+                } else if (!imageServer.getComputeImage().contains(
+                        ci.getId().toString())) {
+                    taskList.addTask(doImportImage(ci, imageServer));
+                }
             }
             return taskList;
         } catch (Exception e) {

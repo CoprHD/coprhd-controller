@@ -19,8 +19,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.api.mapper.functions.MapVirtualNas;
@@ -43,10 +41,8 @@ import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager
  */
 @Path("/vdc/vnas-servers")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class VirtualNasService extends TaggedResource {
-
-    private static Logger _log = LoggerFactory.getLogger(VirtualNasService.class);
 
     protected static final String EVENT_SERVICE_SOURCE = "VirtualNasService";
 
@@ -125,7 +121,7 @@ public class VirtualNasService extends TaggedResource {
             VirtualNAS vNas = _dbClient.queryObject(VirtualNAS.class, id);
             if ((vNas != null)) {
                 vNasList.getVNASServers().add(
-                        toNamedRelatedResource(vNas, vNas.getNativeGuid()));
+                        toNamedRelatedResource(vNas, vNas.getNasName()));
             }
         }
 

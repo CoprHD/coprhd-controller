@@ -57,12 +57,13 @@ public class VNXVdm extends VNXBaseClass {
     public List<String> getInterfaces() {
         return this._interfaces;
     }
+
     public String getState() {
         return _vdmState;
     }
 
-    public void setState(String _state) {
-        this._vdmState = _state;
+    public void setState(String state) {
+        this._vdmState = state;
     }
 
     public static String discoverVdm() {

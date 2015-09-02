@@ -8,8 +8,8 @@ import java.net.URI;
 
 /**
  * VirtualNAS Server will contain the details of NAS server depending on StorageArray type
- * eg. VDM, vFiler, vServer or AccessZone or NasServer.
- * It will hold information about the Ip interfaces, cifs Server & NFS servers mapped to NasServer
+ * e.g. VDM, vFiler, vServer or AccessZone or NasServer.
+ * It will hold information about the IP interfaces, CIFS Server & NFS servers mapped to NasServer
  * 
  * @author ganeso
  * 
@@ -140,8 +140,8 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable<
         return registrationStatus;
     }
 
-    public void setRegistrationStatus(String _registrationStatus) {
-        this.registrationStatus = _registrationStatus;
+    public void setRegistrationStatus(String registrationStatus) {
+        this.registrationStatus = registrationStatus;
         setChanged("registrationStatus");
     }
 
@@ -150,8 +150,8 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable<
         return compatibilityStatus;
     }
 
-    public void setCompatibilityStatus(String _compatibilityStatus) {
-        this.compatibilityStatus = _compatibilityStatus;
+    public void setCompatibilityStatus(String compatibilityStatus) {
+        this.compatibilityStatus = compatibilityStatus;
         setChanged("compatibilityStatus");
     }
 
@@ -160,8 +160,8 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable<
         return discoveryStatus;
     }
 
-    public void setDiscoveryStatus(String _discoveryStatus) {
-        this.discoveryStatus = _discoveryStatus;
+    public void setDiscoveryStatus(String discoveryStatus) {
+        this.discoveryStatus = discoveryStatus;
         setChanged("discoveryStatus");
     }
 
@@ -173,8 +173,8 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable<
         return metrics;
     }
 
-    public void setMetrics(StringMap _metrics) {
-        this.metrics = _metrics;
+    public void setMetrics(StringMap metrics) {
+        this.metrics = metrics;
         setChanged("metrics");
     }
 

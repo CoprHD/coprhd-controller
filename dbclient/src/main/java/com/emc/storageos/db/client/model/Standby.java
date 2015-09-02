@@ -24,6 +24,7 @@ public class Standby extends DataObject {
 
     public void setUuid(String uuid) {
         this.uuid = uuid;
+        setChanged("uuid");
     }
 
     @Name("name")
@@ -33,6 +34,7 @@ public class Standby extends DataObject {
 
     public void setName(String name) {
         this.name = name;
+        setChanged("name");
     }
 
     @Name("vip")
@@ -42,6 +44,7 @@ public class Standby extends DataObject {
 
     public void setVip(String vip) {
         this.vip = vip;
+        setChanged("vip");
     }
 
     @Name("hostIPv4AddressMap")
@@ -51,6 +54,7 @@ public class Standby extends DataObject {
 
     public void setHostIPv4AddressMap(StringMap hostIPv4AddressMap) {
         this.hostIPv4AddressMap = hostIPv4AddressMap;
+        setChanged("hostIPv4AddressMap");
     }
 
     @Name("hostIPv6AddressMap")
@@ -60,6 +64,7 @@ public class Standby extends DataObject {
 
     public void setHostIPv6AddressMap(StringMap hostIPv6AddressMap) {
         this.hostIPv6AddressMap = hostIPv6AddressMap;
+        setChanged("hostIPv6AddressMap");
     }
 
     @Override

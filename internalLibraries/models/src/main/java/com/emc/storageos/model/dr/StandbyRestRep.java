@@ -69,4 +69,21 @@ public class StandbyRestRep extends DataObjectRestRep {
         this.hostIPv6AddressMap = hostIPv6AddressMap;
     }
 
+    @Override
+    public String toString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("StandbyRestRep [uuid=");
+        builder.append(uuid);
+        builder.append(", name=");
+        builder.append(name);
+        builder.append(", vip=");
+        builder.append(vip);
+        builder.append(", hostIPv4AddressMap=");
+        builder.append(hostIPv4AddressMap);
+        builder.append(", hostIPv6AddressMap=");
+        builder.append(hostIPv6AddressMap);
+        builder.append("]");
+        return builder.toString();
+    }
+
 }

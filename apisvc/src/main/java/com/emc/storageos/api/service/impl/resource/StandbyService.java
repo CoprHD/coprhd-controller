@@ -11,6 +11,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -51,36 +52,27 @@ public class StandbyService extends TaggedResource{
     public StandbyRestRep addStandby(StandbyAddParam param){
         log.info("begin to add standby");
 
-        List<URI> ids = _dbClient.queryByType(VirtualDataCenter.class, true);
-        Iterator<VirtualDataCenter> iter = _dbClient.queryIterativeObjects(VirtualDataCenter.class, ids);
-        while (iter.hasNext()) {
-            VirtualDataCenter vdc = iter.next();
-            if (vdc.getLocal()){
-                log.info("find local vdc instance");
-                StringSet standbyIDs = vdc.getStandbyIDs();
-                
-                if (standbyIDs == null)
-                    standbyIDs = new StringSet();
-                
-                standbyIDs.add(param.getUuid());
-                
-                log.info("update vdc");
-                _dbClient.persistObject(vdc);
-                
-                log.info("return");
-                break;
-            }
+        VirtualDataCenter vdc = queryLocalVDC();
+        StringSet standbyIDs = vdc.getStandbyIDs();
+
+        if (standbyIDs == null) {
+            standbyIDs = new StringSet();
         }
         
+        standbyIDs.add(param.getUuid());
+
+        log.info("update vdc");
+        _dbClient.persistObject(vdc);
+            
         Standby standby = new Standby();
         standby.setId(URIUtil.createId(Standby.class));
         standby.setUuid(param.getUuid());
         standby.setName(param.getName());
         standby.setVip(param.getVip());
-        standby.setHostIPv4AddressMap(new StringMap(param.getHostIPv4AddressMap()));
-        standby.setHostIPv6AddressMap(new StringMap(param.getHostIPv6AddressMap()));
+        standby.getHostIPv4AddressMap().putAll(new StringMap(param.getHostIPv4AddressMap()));
+        standby.getHostIPv6AddressMap().putAll(new StringMap(param.getHostIPv6AddressMap()));
         
-        _dbClient.persistObject(standby);
+        _dbClient.createObject(standby);
         
         return StandbyMapper.map(standby);
     }
@@ -109,6 +101,23 @@ public class StandbyService extends TaggedResource{
         return StandbyMapper.map(standby);
     }
     
+    @DELETE
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}")
+    public StandbyRestRep removeStandby(@PathParam("id") URI id) {
+        ArgValidator.checkFieldUriType(id, Standby.class, "id");
+        Standby standby = queryResource(id);
+        
+        VirtualDataCenter vdc = queryLocalVDC();
+        StringSet standbyIDs = vdc.getStandbyIDs();
+        standbyIDs.remove(standby.getUuid());
+        
+        _dbClient.persistObject(vdc);
+        _dbClient.markForDeletion(standby);
+        
+        return StandbyMapper.map(standby);
+    }
+    
     @Override
     protected Standby queryResource(URI id) {
         ArgValidator.checkUri(id);
@@ -125,5 +134,19 @@ public class StandbyService extends TaggedResource{
     @Override
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.STANDBY;
+    }
+    
+    private VirtualDataCenter queryLocalVDC() {
+        List<URI> ids = _dbClient.queryByType(VirtualDataCenter.class, true);
+        Iterator<VirtualDataCenter> iter = _dbClient.queryIterativeObjects(VirtualDataCenter.class, ids);
+        while (iter.hasNext()) {
+            VirtualDataCenter vdc = iter.next();
+            if (vdc.getLocal()){
+                log.info("find local vdc instance");
+                return vdc;
+            }
+        }
+        
+        return null;
     }
 }

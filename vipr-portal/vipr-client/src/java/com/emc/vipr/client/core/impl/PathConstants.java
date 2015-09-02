@@ -139,4 +139,6 @@ public class PathConstants {
     public static final String USER_GROUP_URL = "/vdc/admin/user-groups";
     public static final String CHECK_COMPATIBLE_VDC_URL = "/vdc/check-compatibility";
     public static final String CHECK_IS_GEO_DISTRIBUTED_VDC_URL = "/vdc/check-geo-distributed";
+    
+    public static final String SITE_URL = "/site";
 }

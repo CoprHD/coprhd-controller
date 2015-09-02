@@ -47,6 +47,8 @@ public class VNXFileConstants {
     public static final String CONTROL_STATION_INFO = "controlStationInfo";
     public static final String STORAGE_PORT_GROUPS = "portGroups";
     public static final String STORAGE_PORTS = "ports";
+    public static final String INTREFACE_PORT_MAP = "logicalNetworkDevMap";
+    public static final String LOGICAL_NETWORK_SPEED_MAP = "portSpeedMap";
     public static final String FILESYSTEMS = "fileSystems";
     public static final String FILE_EXPORTS = "fileExports";
     public static final String VNX_FILE_SYSTEM_DISCOVERY = "vnxfileSystem";
@@ -112,5 +114,9 @@ public class VNXFileConstants {
     public static final String SHARE_UMASK = "umask";
     public static final String SHARE_MAXUSR = "maxusr";
     public static final String SHARE_NETBIOS = "netbios";
+    
+    //for totalcapacity filesystems on vdm
+    public static final String FILE_CAPACITY_MAP            = "filesystemCapacity";
+    public static final String SNAP_CAPACITY_MAP            = "snapshotCapacity";
 
 }

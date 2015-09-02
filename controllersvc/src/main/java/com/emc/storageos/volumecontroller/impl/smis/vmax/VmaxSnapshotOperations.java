@@ -73,14 +73,13 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYNC_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateCGSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateSnapshotJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockRestoreSnapshotJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResumeSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionCreateJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionDeleteJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionLinkTargetJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionRelinkTargetJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockRestoreSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionRestoreJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResumeSnapshotJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionUnlinkTargetJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVmaxCGTargetVolumesJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisDeleteVmaxCGTargetVolumesJob;
 import com.google.common.base.Predicate;
@@ -1344,17 +1343,20 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             // Only supported for VMAX3 storage systems.
             try {
                 _log.info("Unlink target {} from snapshot session {} START", snapshotURI, snapSessionURI);
+                CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
                 BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
-                if (deleteTarget) {
-                    _helper.removeVolumeFromParkingSLOStorageGroup(system, snapshot.getNativeId(), false);
-                    _log.info("Done invoking remove volume {} from parking SLO storage group", snapshot.getNativeId());
-                }
-                CIMArgument[] inArgs = _helper.getUnlinkBlockSnapshotSessionTargetInputArguments(system, snapshot, deleteTarget);
+                CIMArgument[] inArgs = _helper.getUnlinkBlockSnapshotSessionTargetInputArguments(system, snapshot);
                 CIMArgument[] outArgs = new CIMArgument[5];
-                _helper.callModifyReplica(system, inArgs, outArgs);
-                CIMObjectPath jobPath = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
-                ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockSnapshotSessionUnlinkTargetJob(jobPath,
-                        system.getId(), deleteTarget, completer)));
+                _helper.invokeMethodSynchronously(system, replicationSvcPath, SmisConstants.MODIFY_REPLICA_SYNCHRONIZATION, inArgs,
+                        outArgs, null);
+                if (deleteTarget) {
+                    String nativeId = snapshot.getNativeId();
+                    _log.info("Delete target device {}:{}", snapshot.getNativeId(), snapshotURI);
+                    List<String> targetDeviceIds = new ArrayList<String>();
+                    targetDeviceIds.add(nativeId);
+                    deleteTargetDevices(system, targetDeviceIds.toArray(new String[1]), completer);
+                    _log.info("Delete target device complete");
+                }
             } catch (Exception e) {
                 _log.info("Exception unlinking snapshot session target", e);
                 ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());

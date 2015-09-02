@@ -6168,12 +6168,10 @@ public class SmisCommandHelper implements SmisConstants {
      * 
      * @param storageSystem A reference to the storage system.
      * @param snapshot A reference to the BlockSnapshot instance representing the target to be unlinked.
-     * @param deleteTarget True if the target should not only be detached, but also deleted.
      * 
      * @return An array of CIMArgument
      */
-    public CIMArgument[] getUnlinkBlockSnapshotSessionTargetInputArguments(StorageSystem storageSystem, BlockSnapshot snapshot,
-            Boolean deleteTarget) {
+    public CIMArgument[] getUnlinkBlockSnapshotSessionTargetInputArguments(StorageSystem storageSystem, BlockSnapshot snapshot) {
         // Get the CIM object path of the CIM_StorageSynchronized representing the
         // association of a target to a source for a given array snapshot.
         CIMObjectPath syncObject;
@@ -6184,7 +6182,7 @@ public class SmisCommandHelper implements SmisConstants {
                     snapshot.getId()));
         }
 
-        int operation = (deleteTarget ? RETURN_TO_RESOURCE_POOL : DETACH_VALUE);
+        int operation = DETACH_VALUE;
         return new CIMArgument[] {
                 _cimArgument.uint16(CP_OPERATION, operation),
                 _cimArgument.reference(CP_SYNCHRONIZATION, syncObject)

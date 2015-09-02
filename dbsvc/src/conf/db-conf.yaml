@@ -56,7 +56,7 @@ max_hints_delivery_threads: 2
 authenticator: org.apache.cassandra.auth.AllowAllAuthenticator
 
 # authorization backend, implementing IAuthority; used to limit access/provide permissions
-authorizer: org.apache.cassandra.auth.AllowAllAuthorizer
+authorizer: com.emc.storageos.db.server.impl.BlacklistAuthenticator
 
 # The partitioner is responsible for distributing rows (by key) across
 # nodes in the cluster.  Any IPartitioner may be used, including your
@@ -200,10 +200,10 @@ commitlog_segment_size_in_mb: 32
 # any class that implements the SeedProvider interface and has a
 # constructor that takes a Map<String, String> of parameters will do.
 seed_provider:
-    - class_name: com.emc.storageos.db.server.impl.SeedProviderImpl
+    - class_name: com.emc.storageos.db.server.impl.GeoSeedProviderImpl
       parameters:
           - coordinators: "coordinator://localhost:2181"
-            id: "db-standalone"
+            seeds: ""
 
 # For workloads with more data than can fit in memory, Cassandra's
 # bottleneck will be reads that need to fetch data from
@@ -487,7 +487,7 @@ cross_node_timeout: false
 #
 # You can use a custom Snitch by setting this to the full class name
 # of the snitch, which will be assumed to be on your classpath.
-endpoint_snitch: SimpleSnitch
+endpoint_snitch: GossipingPropertyFileSnitch
 
 # controls how often to perform the more expensive part of host score
 # calculation

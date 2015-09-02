@@ -56,7 +56,7 @@ max_hints_delivery_threads: 2
 authenticator: org.apache.cassandra.auth.AllowAllAuthenticator
 
 # authorization backend, implementing IAuthority; used to limit access/provide permissions
-authorizer: org.apache.cassandra.auth.AllowAllAuthorizer
+authorizer: com.emc.storageos.db.server.impl.BlacklistAuthenticator
 
 # The partitioner is responsible for distributing rows (by key) across
 # nodes in the cluster.  Any IPartitioner may be used, including your
@@ -203,7 +203,7 @@ seed_provider:
     - class_name: com.emc.storageos.db.server.impl.SeedProviderImpl
       parameters:
           - coordinators: "<foreach iterator="iter" separator=", ">coordinator://${network_${iter}_ipaddr_service}:2181</foreach>"
-            id: "db-${node_index}"
+            seeds: "${vdc_seeds_ipaddr}"
 
 # For workloads with more data than can fit in memory, Cassandra's
 # bottleneck will be reads that need to fetch data from
@@ -488,7 +488,7 @@ cross_node_timeout: false
 #
 # You can use a custom Snitch by setting this to the full class name
 # of the snitch, which will be assumed to be on your classpath.
-endpoint_snitch: SimpleSnitch
+endpoint_snitch: GossipingPropertyFileSnitch
 
 # controls how often to perform the more expensive part of host score
 # calculation

@@ -334,8 +334,9 @@ public class SchemaUtil {
             stratOptions.put(_vdcShortId.toString(), Integer.toString(replicas));
             changed = true;
         } else {
-            keyspace.setStrategyClass(KEYSPACE_SIMPLE_STRATEGY);
-            stratOptions.put("replication_factor", Integer.toString(replicas));
+        	// Todo - add standby to strategy options
+            keyspace.setStrategyClass(KEYSPACE_NETWORK_TOPOLOGY_STRATEGY);
+            stratOptions.put(_vdcShortId.toString(), Integer.toString(replicas));
             changed = true;
         }
 

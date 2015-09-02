@@ -218,6 +218,7 @@ DefaultStorageProviderPortMap.ddmc=3009
 DefaultStorageProviderPortMap.ddmc_useSSL=3009
 DefaultStorageProviderPortMap.ibmxiv_useSSL=5989
 DefaultStorageProviderPortMap.ibmxiv=5989
+DefaultStorageProviderPortMap.xtremio=443
 
 DefaultSanSwitchPortMap.brocade_useSSL=5989
 DefaultSanSwitchPortMap.brocade=5988
@@ -1632,6 +1633,7 @@ storageProvider.interfaceType.cinder=Third-party block
 storageProvider.interfaceType.scaleio=ScaleIO CLI
 storageProvider.interfaceType.ddmc=Data Domain Management Center
 storageProvider.interfaceType.ibmxiv=SMI-S for IBM XIV
+storageProvider.interfaceType.xtremio=EMC XtremIO
 
 StorageSystems.list.title=Storage Systems
 StorageSystems.edit.title=Edit Storage System

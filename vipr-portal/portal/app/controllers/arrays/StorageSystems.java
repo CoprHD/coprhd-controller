@@ -146,6 +146,9 @@ public class StorageSystems extends ViprResourceController {
         if (storageSystem != null) {
             StorageSystemForm storageArray = new StorageSystemForm(storageSystem);
 
+            if (storageArray.type.equals("xtremio")) {
+            	renderArgs.put("storageArrayTypeList", Arrays.asList(StorageSystemTypes.NON_SMIS_OPTIONS));
+            }
             if (storageArray.unregistered) {
                 flash.put("warning", MessagesUtils.get(NOT_REGISTERED, storageArray.name));
             }

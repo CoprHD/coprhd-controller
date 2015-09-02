@@ -46,7 +46,6 @@ public class StorageSystemTypes {
             option(ISILON),
             option(VNX_FILE),
             option(NETAPP),
-            option(XTREMIO),
             option(VNXe),
             option(NETAPPC),
             new StringOption(VMAX, getDisplayValue(STORAGE_PROVIDER_VMAX)),

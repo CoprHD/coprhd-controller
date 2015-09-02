@@ -1041,7 +1041,7 @@ public class RecoverPointScheduler implements Scheduler {
     * @return list of Recommendation objects to satisfy the request
     */
    public List<Recommendation> scheduleStorageForVpoolChangeUnprotected(Volume changeVpoolVolume, VirtualPool newVpool,
-       List<VirtualArray> protectionVarrays) {
+       List<VirtualArray> protectionVarrays, VirtualPoolCapabilityValuesWrapper capabilities) {
        _log.info(String.format("Schedule storage for vpool change to vpool %s for volume %s.", 
                    newVpool.getLabel() + "[" + String.valueOf(newVpool.getId()) + "]", 
                    changeVpoolVolume.getLabel() + "[" + String.valueOf(changeVpoolVolume.getId()) + "]"));                         
@@ -1054,11 +1054,6 @@ public class RecoverPointScheduler implements Scheduler {
                
        CapacityMatcher capacityMatcher = new CapacityMatcher();
        Project project = dbClient.queryObject(Project.class, changeVpoolVolume.getProject());        
-       VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
-       capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, changeVpoolVolume.getCapacity());
-       capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, 1);
-     
-       capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, changeVpoolVolume.getConsistencyGroup());
        
        List<StoragePool> allMatchingPools = getCandidatePools(varray, newVpool, null, null, capabilities, RPHelper.SOURCE);
                

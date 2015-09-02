@@ -36,34 +36,22 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 
 @Path("/site")
-@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN},
-writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-public class StandbyService extends TaggedResource{
-    
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+public class StandbyService extends TaggedResource {
+
     private static final Logger log = LoggerFactory.getLogger(StandbyService.class);
-    
+
     public StandbyService() {
-        
+
     }
-    
+
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public StandbyRestRep addStandby(StandbyAddParam param){
+    public StandbyRestRep addStandby(StandbyAddParam param) {
         log.info("begin to add standby");
 
-        VirtualDataCenter vdc = queryLocalVDC();
-        StringSet standbyIDs = vdc.getStandbyIDs();
-
-        if (standbyIDs == null) {
-            standbyIDs = new StringSet();
-        }
-        
-        standbyIDs.add(param.getUuid());
-
-        log.info("update vdc");
-        _dbClient.persistObject(vdc);
-            
         Standby standby = new Standby();
         standby.setId(URIUtil.createId(Standby.class));
         standby.setUuid(param.getUuid());
@@ -71,22 +59,38 @@ public class StandbyService extends TaggedResource{
         standby.setVip(param.getVip());
         standby.getHostIPv4AddressMap().putAll(new StringMap(param.getHostIPv4AddressMap()));
         standby.getHostIPv6AddressMap().putAll(new StringMap(param.getHostIPv6AddressMap()));
-        
+
         _dbClient.createObject(standby);
         
+        VirtualDataCenter vdc = queryLocalVDC();
+        StringSet standbyIDs = vdc.getStandbyIDs();
+
+        if (standbyIDs == null) {
+            standbyIDs = new StringSet();
+        }
+
+        standbyIDs.add(standby.getId().toString());
+
+        log.info("update vdc");
+        _dbClient.persistObject(vdc);
+
         return StandbyMapper.map(standby);
     }
-    
-    
+
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public StandbyList getAllStandby() {
         StandbyList standbyList = new StandbyList();
 
+        VirtualDataCenter vdc = queryLocalVDC();
+
         List<URI> ids = _dbClient.queryByType(Standby.class, true);
         Iterator<Standby> iter = _dbClient.queryIterativeObjects(Standby.class, ids);
         while (iter.hasNext()) {
-            standbyList.getStandbys().add(toNamedRelatedResource(iter.next()));
+            Standby standby = iter.next();
+            if (vdc.getStandbyIDs().contains(standby.getId().toString())) {
+                standbyList.getStandbys().add(toNamedRelatedResource(standby));
+            }
         }
         return standbyList;
     }
@@ -96,28 +100,28 @@ public class StandbyService extends TaggedResource{
     @Path("/{id}")
     public StandbyRestRep getStandby(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, Standby.class, "id");
-        
+
         Standby standby = queryResource(id);
         return StandbyMapper.map(standby);
     }
-    
+
     @DELETE
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
     public StandbyRestRep removeStandby(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, Standby.class, "id");
         Standby standby = queryResource(id);
-        
+
         VirtualDataCenter vdc = queryLocalVDC();
         StringSet standbyIDs = vdc.getStandbyIDs();
-        standbyIDs.remove(standby.getUuid());
-        
+        standbyIDs.remove(standby.getId().toString());
+
         _dbClient.persistObject(vdc);
         _dbClient.markForDeletion(standby);
-        
+
         return StandbyMapper.map(standby);
     }
-    
+
     @Override
     protected Standby queryResource(URI id) {
         ArgValidator.checkUri(id);
@@ -130,23 +134,23 @@ public class StandbyService extends TaggedResource{
     protected URI getTenantOwner(URI id) {
         return null;
     }
-    
+
     @Override
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.STANDBY;
     }
-    
+
     private VirtualDataCenter queryLocalVDC() {
         List<URI> ids = _dbClient.queryByType(VirtualDataCenter.class, true);
         Iterator<VirtualDataCenter> iter = _dbClient.queryIterativeObjects(VirtualDataCenter.class, ids);
         while (iter.hasNext()) {
             VirtualDataCenter vdc = iter.next();
-            if (vdc.getLocal()){
+            if (vdc.getLocal()) {
                 log.info("find local vdc instance");
                 return vdc;
             }
         }
-        
+
         return null;
     }
 }

@@ -39,7 +39,7 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable<
     private StringSet storageDomain;
 
     private String registrationStatus = RegistrationStatus.REGISTERED.toString();
-    private String compatibilityStatus = CompatibilityStatus.UNKNOWN.name();
+    private String compatibilityStatus = CompatibilityStatus.COMPATIBLE.name();
     private String discoveryStatus = DiscoveryStatus.VISIBLE.name();
 
     // Place holder for Tag

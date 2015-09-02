@@ -71,9 +71,8 @@ public class ScaleIOCloneOperations implements CloneOperations {
                 dbClient.persistObject(clone);
             }
             log.error("Encountered an exception", e);
-            ServiceCoded code =
-                    DeviceControllerErrors.scaleio.
-                            encounteredAnExceptionFromScaleIOOperation("createSingleClone", e.getMessage());
+            ServiceCoded code = DeviceControllerErrors.scaleio.encounteredAnExceptionFromScaleIOOperation("createSingleClone",
+                    e.getMessage());
             taskCompleter.error(dbClient, code);
         }
     }
@@ -143,11 +142,14 @@ public class ScaleIOCloneOperations implements CloneOperations {
             ScaleIOSnapshotVolumeResponse result = scaleIOHandle.snapshotMultiVolume(parent2snap, systemId);
 
             List<String> nativeIds = result.getVolumeIdList();
-            Map<String, String> cloneNameIdMap = scaleIOHandle.getVolumes(nativeIds);
+            Map<String, ScaleIOVolume> cloneNameIdMap = scaleIOHandle.getVolumeNameMap(nativeIds);
             for (Volume clone : clones) {
                 String name = clone.getLabel();
-                String nativeId = cloneNameIdMap.get(name);
-                ScaleIOHelper.updateSnapshotWithSnapshotVolumeResult(dbClient, clone, systemId, nativeId);
+                ScaleIOVolume sioVolume = cloneNameIdMap.get(name);
+                ScaleIOHelper.updateSnapshotWithSnapshotVolumeResult(dbClient, clone, systemId, sioVolume.getId());
+                clone.setAllocatedCapacity(Long.parseLong(sioVolume.getSizeInKb()) * 1024L);
+                clone.setProvisionedCapacity(clone.getAllocatedCapacity());
+                clone.setCapacity(clone.getAllocatedCapacity());
                 clone.setReplicationGroupInstance(result.getSnapshotGroupId());
             }
             dbClient.persistObject(clones);
@@ -161,9 +163,8 @@ public class ScaleIOCloneOperations implements CloneOperations {
 
         } catch (Exception e) {
             log.error("Encountered an exception", e);
-            ServiceCoded code =
-                    DeviceControllerErrors.scaleio.
-                            encounteredAnExceptionFromScaleIOOperation("createGroupClone", e.getMessage());
+            ServiceCoded code = DeviceControllerErrors.scaleio.encounteredAnExceptionFromScaleIOOperation("createGroupClone",
+                    e.getMessage());
             taskCompleter.error(dbClient, code);
         }
     }

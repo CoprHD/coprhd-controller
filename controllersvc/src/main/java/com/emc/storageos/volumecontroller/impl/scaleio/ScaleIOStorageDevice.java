@@ -253,7 +253,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
         long remainder = volumeSize % 8;
         if (remainder != 0) {
             expandSize += (8-remainder);
-            log.info("The requested size is {} GB, increase it to {} GB, so that it is granularity fo 8", volumeSize, expandSize);
+            log.info("The requested size is {} GB, increase it to {} GB, so that it is granularity of 8", volumeSize, expandSize);
         }
         
         try {
@@ -588,7 +588,8 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doWaitForGroupSynchronized(StorageSystem storageObj, List<URI> target, TaskCompleter completer)
     {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+        log.info("Nothing to do here.  ScaleIO does not require a wait for synchronization");
+        completer.ready(dbClient);
 
     }
 

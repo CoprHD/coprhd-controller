@@ -839,10 +839,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                                  capabilities, consistencyGroup, param, 
                                                  rpVolumeName, size, descriptors, taskList, 
                                                  task, personalityType.name(), isChangeVpool, 
-                                                 changeVpoolVolume);
-                 if (isChangeVpool) {
-                     changeVpoolVolume = rpVolume;
-                 }
+                                                 changeVpoolVolume);                 
             }
             
             // Prepare specific volume info
@@ -922,7 +919,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                             vplexRecommendations, task, capabilities, taskList, volumes));
         }
         
-        Volume vplexVirtualVolume = this.getVPlexVirtualVolume(volumes);
+        Volume vplexVirtualVolume = null;
+        if (isChangeVpool) {
+            vplexVirtualVolume = changeVpoolVolume;
+        } else {
+            vplexVirtualVolume = this.getVPlexVirtualVolume(volumes);
+        }
         
         return vplexVirtualVolume;
     }
@@ -2116,7 +2118,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * Gets the non-HA side backing volume storage system for the given VPlex volume.
      * 
      * @param vplexVolume the VPlex volume. 
-     * @return the storage system URI corresonding to the backing volume.
+     * @return the storage system URI corresponding to the backing volume.
      */
     private URI getSourceBackingVolumeStorageSystem(Volume vplexVolume) {
         // Get the backing volume associated with the source side only

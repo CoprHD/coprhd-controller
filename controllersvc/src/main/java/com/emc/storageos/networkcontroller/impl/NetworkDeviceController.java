@@ -278,7 +278,7 @@ public class NetworkDeviceController implements NetworkController {
 
     @Override
     public List<Zoneset> getZonesets(URI uri, String fabricId, String fabricWwn, String zoneName, boolean excludeMembers,
-            boolean excludeAliases) throws ControllerException {
+    		 boolean excludeAliases) throws ControllerException {
         NetworkSystem device = getDeviceObject(uri);
         // Get the file device reference for the type of file device managed
         // by the controller.
@@ -1045,19 +1045,7 @@ public class NetworkDeviceController implements NetworkController {
                     ex.getMessage(), ex);
             WorkflowStepCompleter.stepFailed(token, svcError);
         }
-        //Check if Zoning needs to be checked from system config
-        //call the doZoneExportMasksCreate to check/create/remove zones with the flag
-        scope.put(CustomConfigConstants.GLOBAL_KEY, CustomConfigConstants.GLOBAL_KEY);
-        String addZoneWhileAddingVolume =  customConfigHandler.getCustomConfigValue(
-                CustomConfigConstants.ZONE_ADD_VOLUME, scope);
-        Boolean addZoneOnDeviceOperation = false;
-        if(addZoneWhileAddingVolume != null) {
-            addZoneOnDeviceOperation = Boolean.getBoolean(addZoneWhileAddingVolume);
-        }
-
-        _log.info("zoneExportAddVolumes checking for custome config value to skip zoning checks", addZoneOnDeviceOperation);
-
-        return doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token, addZoneOnDeviceOperation);
+        return doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token, true);
     }
 
     /**
@@ -1067,7 +1055,7 @@ public class NetworkDeviceController implements NetworkController {
      * @param exportMaskURIs
      * @param volumeURIs
      * @param token
-     * @param checkZones TODO
+     * @param checkZones  Flag to enable or disable zoning check on a Network System
      * @return
      */
     private boolean doZoneExportMasksCreate(ExportGroup exportGroup,
@@ -1168,7 +1156,24 @@ public class NetworkDeviceController implements NetworkController {
         _log.info(String.format
                 ("Entering zoneExportAddVolumes for ExportGroup: %s (%s) Volumes: %s",
                         exportGroup.getLabel(), exportGroup.getId(), volumeURIs.toString()));
-        return doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token, false);
+        //Check if Zoning needs to be checked from system config
+        //call the doZoneExportMasksCreate to check/create/remove zones with the flag
+        scope.put(CustomConfigConstants.GLOBAL_KEY, CustomConfigConstants.DEFAULT_KEY);
+        String addZoneWhileAddingVolume =  customConfigHandler.getCustomConfigValue(
+                CustomConfigConstants.ZONE_ADD_VOLUME, scope);
+        //Default behavior is we allow zoning checks against the Network System
+        Boolean addZoneOnDeviceOperation = true;
+        _log.info("zoneExportAddVolumes checking for custome config value to skip zoning checks : (Default) : {}",
+                addZoneOnDeviceOperation);
+        if(addZoneWhileAddingVolume != null) {
+            addZoneOnDeviceOperation = Boolean.getBoolean(addZoneWhileAddingVolume);
+        }
+
+        _log.info("zoneExportAddVolumes checking for custome config value to skip zoning checks : (Custom Config) : {}",
+                addZoneOnDeviceOperation);
+
+        return doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token,
+                addZoneOnDeviceOperation);
     }
 
     /**

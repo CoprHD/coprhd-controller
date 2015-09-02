@@ -108,7 +108,7 @@
         </property>
         <property name="defaultValues">
             <map>
-                <entry key="default" value="false"/>
+                <entry key="default" value="true"/>
             </map>
         </property>
     </bean>

@@ -54,6 +54,18 @@ public class ComputeImageServerService extends TaskResourceService {
 
     private static final String EVENT_SERVICE_TYPE = "ComputeImageServer";
 
+    private static final String IMAGESERVER_IP= "imageServerIp";
+
+    private static final String TFTPBOOTDIR = "tftpbootDir";
+
+    private static final String IMAGESERVER_SECONDARY_IP = "imageServerSecondIp";
+
+    private static final String IMAGESERVER_PASSWORD = "imageServerPassword";
+
+    private static final String IMAGESERVER_USER = "imageServerUser";
+
+    private static final String OS_INSTALL_TIMEOUT_MS = "osInstallTimeoutMs";
+
     @Override
     protected ComputeImageServer queryResource(URI id) {
         return queryObject(ComputeImageServer.class, id, false);
@@ -118,13 +130,11 @@ public class ComputeImageServerService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep createComputeImageServer(
             ComputeImageServerCreate createParams) {
-        // TODO:
-
         String imageServerAddress = createParams.getImageServerIp();
         ArgValidator.checkFieldNotEmpty(imageServerAddress,
-                "imageServerAddress");
+                IMAGESERVER_IP);
         checkDuplicateLabel(ComputeImageServer.class,
-                createParams.getImageServerIp(), "imageServerIp");
+                imageServerAddress, IMAGESERVER_IP);
 
         String bootDir = createParams.getTftpbootDir();
         String osInstallAddress = createParams.getImageServerSecondIp();
@@ -132,13 +142,12 @@ public class ComputeImageServerService extends TaskResourceService {
         String password = createParams.getImageServerPassword();
         Integer installTimeout = createParams.getOsInstallTimeoutMs();
 
-        ArgValidator.checkFieldNotEmpty(bootDir, "tftpbootDir");
+        ArgValidator.checkFieldNotEmpty(bootDir, TFTPBOOTDIR);
         ArgValidator
-                .checkFieldNotEmpty(osInstallAddress, "imageServerSecondIp");
-        ArgValidator.checkFieldNotEmpty(username, "imageServerPassword");
-        ArgValidator.checkFieldNotEmpty(password, "password");
-        ArgValidator.checkFieldNotNull(installTimeout, "osInstallTimeoutMs");
-
+                .checkFieldNotEmpty(osInstallAddress, IMAGESERVER_SECONDARY_IP);
+        ArgValidator.checkFieldNotEmpty(username, IMAGESERVER_USER);
+        ArgValidator.checkFieldNotEmpty(password, IMAGESERVER_PASSWORD);
+        ArgValidator.checkFieldNotNull(installTimeout, OS_INSTALL_TIMEOUT_MS);
 
         ComputeImageServer imageServer = new ComputeImageServer();
         imageServer.setId(URIUtil.createId(ComputeImageServer.class));
@@ -150,7 +159,7 @@ public class ComputeImageServerService extends TaskResourceService {
         imageServer.setOsInstallTimeoutMs((int) installTimeout);
         imageServer.setImageServerSecondIp(osInstallAddress);
 
-        auditOp(OperationTypeEnum.CREATE_COMPUTE_IMAGESERVER, true,
+        auditOp(OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES, true,
                 null, imageServer.getId().toString(),
                 imageServer.getImageServerIp());
 
@@ -161,7 +170,7 @@ public class ComputeImageServerService extends TaskResourceService {
         AsyncTask task = new AsyncTask(ComputeImageServer.class, imageServer.getId(), taskId);
         tasks.add(task);
         Operation op = new Operation();
-        op.setResourceType(ResourceOperationTypeEnum.CREATE_COMPUTE_IMAGE_SERVER);
+        op.setResourceType(ResourceOperationTypeEnum.CREATE_VERIFY_COMPUTE_IMAGE_SERVER);
         _dbClient.createTaskOpStatus(ComputeImageServer.class, imageServer.getId(), taskId, op);
 
         ImageServerController controller = getController(ImageServerController.class, null);
@@ -182,7 +191,6 @@ public class ComputeImageServerService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public ComputeImageServerRestRep getComputeImageServer(
             @PathParam("id") URI id) {
-
         ArgValidator.checkFieldUriType(id, ComputeImageServer.class, "id");
         ComputeImageServer imageServer = queryResource(id);
         return map(imageServer);
@@ -198,13 +206,8 @@ public class ComputeImageServerService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     public ComputeImageServerList getComputeImageServers() {
-
         List<URI> ids = _dbClient.queryByType(ComputeImageServer.class, true);
-        /*List<ComputeImageServer> computeImageServers = _dbClient.queryObject(ComputeImageServer.class, ids);
-        if (computeImageServers == null) {
-            //TODO: Need to throw appropriate exception...
-            throw APIException.badRequests.unableToFindStorageProvidersForIds(ids);
-        }*/
+
         ComputeImageServerList imageServerList = new ComputeImageServerList();
         Iterator<ComputeImageServer> iter = _dbClient.queryIterativeObjects(ComputeImageServer.class, ids);
         while (iter.hasNext()) {
@@ -242,12 +245,12 @@ public class ComputeImageServerService extends TaskResourceService {
             String password = param.getImageServerPassword();
             Integer installTimeout = param.getOsInstallTimeoutMs();
 
-            ArgValidator.checkFieldNotEmpty(bootDir, "tftpbootDir");
+            ArgValidator.checkFieldNotEmpty(bootDir, TFTPBOOTDIR);
             ArgValidator
-                    .checkFieldNotEmpty(osInstallAddress, "imageServerSecondIp");
-            ArgValidator.checkFieldNotEmpty(username, "imageServerPassword");
-            ArgValidator.checkFieldNotEmpty(password, "password");
-            ArgValidator.checkFieldNotNull(installTimeout, "osInstallTimeoutMs");
+                    .checkFieldNotEmpty(osInstallAddress, IMAGESERVER_SECONDARY_IP);
+            ArgValidator.checkFieldNotEmpty(username, IMAGESERVER_USER);
+            ArgValidator.checkFieldNotEmpty(password, IMAGESERVER_PASSWORD);
+            ArgValidator.checkFieldNotNull(installTimeout, OS_INSTALL_TIMEOUT_MS);
 
             imageServer.setLabel(imageServerAddress);
             imageServer.setImageServerIp(imageServerAddress);
@@ -257,7 +260,7 @@ public class ComputeImageServerService extends TaskResourceService {
             imageServer.setOsInstallTimeoutMs((int) installTimeout);
             imageServer.setImageServerSecondIp(osInstallAddress);
 
-            auditOp(OperationTypeEnum.UPDATE_COMPUTE_IMAGESERVER, true,
+            auditOp(OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES, true,
                     null, imageServer.getId().toString(),
                     imageServer.getImageServerIp());
 
@@ -268,7 +271,7 @@ public class ComputeImageServerService extends TaskResourceService {
             AsyncTask task = new AsyncTask(ComputeImageServer.class, imageServer.getId(), taskId);
             tasks.add(task);
             Operation op = new Operation();
-            op.setResourceType(ResourceOperationTypeEnum.UPDATE_COMPUTE_IMAGE_SERVER);
+            op.setResourceType(ResourceOperationTypeEnum.UPDATE_VERIFY_COMPUTE_IMAGE_SERVER);
             _dbClient.createTaskOpStatus(ComputeImageServer.class, imageServer.getId(), taskId, op);
 
             ImageServerController controller = getController(ImageServerController.class, null);

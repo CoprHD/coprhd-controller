@@ -78,6 +78,12 @@ public class ImageServerControllerImpl implements ImageServerController {
 
     private static final String TMP = "/tmp";
 
+    private static final String IMAGESERVER_VERIFY_IMPORT_IMAGE_WF = "IMAGESERVER_VERIFY_IMPORT_IMAGE_WF";
+
+    private static final String IMAGESERVER_VERIFICATION_STEP = "IMAGESERVER_VERIFICATION_STEP";
+
+    private static final String IMAGESERVER_IMPORT_IMAGES_STEP = "IMAGESERVER_IMPORT_IMAGES_STEP";
+
     private static final Logger log = LoggerFactory.getLogger(ImageServerControllerImpl.class);
 
     private DbClient dbClient;
@@ -296,7 +302,6 @@ public class ImageServerControllerImpl implements ImageServerController {
             completer = new ComputeImageCompleter(ciId, task._opId, OperationTypeEnum.CREATE_COMPUTE_IMAGE, EVENT_SERVICE_TYPE);
             boolean imageServerVerified = verifyImageServer(imageServer);
             if (!imageServerVerified) {
-
                 throw ImageServerControllerException.exceptions.imageServerNotSetup("Can't perform image import: "
                             + imageServerErrorMsg);
             }
@@ -906,18 +911,18 @@ public class ImageServerControllerImpl implements ImageServerController {
         TaskCompleter completer = null;
         try{
         URI computeImageServerID = task._id;
-        completer = new ComputeImageServerCompleter(computeImageServerID, task._opId, OperationTypeEnum.CREATE_COMPUTE_IMAGESERVER, EVENT_SERVICE_TYPE);
+        completer = new ComputeImageServerCompleter(computeImageServerID, task._opId, OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES, EVENT_SERVICE_TYPE);
 
-        Workflow workflow = workflowService.getNewWorkflow(this, "CreateImageServer_WF", true, task._opId);
-        workflow.createStep("CreateImageServer_Step",
+        Workflow workflow = workflowService.getNewWorkflow(this, IMAGESERVER_VERIFY_IMPORT_IMAGE_WF, true, task._opId);
+        workflow.createStep(IMAGESERVER_VERIFICATION_STEP,
                 String.format("Verfiying ImageServer %s", computeImageServerID), null,
                 computeImageServerID, computeImageServerID.toString(),
                 this.getClass(),
                 new Workflow.Method("verifyComputeImageServer", computeImageServerID),
                 null,
                 null);
-        workflow.createStep("ImportImagesToServer_Step",
-                String.format("Importing images for %s", computeImageServerID), "CreateImageServer_Step",
+        workflow.createStep(IMAGESERVER_IMPORT_IMAGES_STEP,
+                String.format("Importing images for %s", computeImageServerID), IMAGESERVER_VERIFICATION_STEP,
                 computeImageServerID, computeImageServerID.toString(),
                 this.getClass(),
                 new Workflow.Method("importImagesToServer", computeImageServerID),
@@ -955,13 +960,13 @@ public class ImageServerControllerImpl implements ImageServerController {
                 dbClient.createTaskOpStatus(ComputeImageServer.class, imageServerID, taskId, op);
                 AsyncTask subTask = new AsyncTask(ComputeImageServer.class, imageServerID, taskId);
                 TaskCompleter completer = new ComputeImageServerCompleter(imageServerID, subTask._opId, OperationTypeEnum.CREATE_COMPUTE_IMAGE, EVENT_SERVICE_TYPE);
-                Workflow workflow = workflowService.getNewWorkflow(this, "ImportImages_WF", true, subTask._opId);
+                Workflow workflow = workflowService.getNewWorkflow(this, IMPORT_IMAGE_WF, true, subTask._opId);
                 for (ComputeImage computeImage : imageList) {
                     if(computeImage.getComputeImageStatus().equals("AVAILABLE")) {
                         StringBuilder msg = new StringBuilder("Importing image ");
                         msg.append(computeImage.getLabel()).append(" on to imageServer - ");
                         msg.append(imageServer.getImageServerIp()).append(".");
-                        workflow.createStep("ImportImage_Step", msg.toString(), null,
+                        workflow.createStep(IMPORT_IMAGE_STEP, msg.toString(), null,
                                 imageServerID, imageServerID.toString(), this
                                         .getClass(), new Workflow.Method(
                                         "performImportImage", imageServer,
@@ -1029,7 +1034,7 @@ public class ImageServerControllerImpl implements ImageServerController {
                             stepId,
                             ImageServerControllerException.exceptions
                                     .unexpectedException(
-                                            OperationTypeEnum.CREATE_COMPUTE_IMAGESERVER.name(),
+                                            OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES.name(),
                                             new Exception(
                                                     "Unable to verify imageserver")));
         }

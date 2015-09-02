@@ -822,7 +822,7 @@ public class ProjectService extends TaggedResource {
             _dbClient.persistObject(project);
             _log.info("Successfully assigned the virtual NAS Servers to project : {} ", project.getLabel());
         } else {
-            _log.error("Failed to assigned the virtual NAS Servers to project : {} ", errorMsg.toString());
+            _log.error("Failed to assigned the virtual NAS Servers to project due to {} ", errorMsg.toString());
             throw APIException.badRequests.failedToAssignVNasToProject(errorMsg.toString());
         }
         return Response.ok().build();
@@ -868,8 +868,8 @@ public class ProjectService extends TaggedResource {
                 }
 
                 // Validate the vnas state !!!
-                if (vnas.getVNasState().equalsIgnoreCase(VirtualNasState.LOADED.getNasState())) {
-                    errorMsg.append(" vNas " + vnas.getNasName() + " not in Loaded state ");
+                if (!vnas.getVNasState().equalsIgnoreCase(VirtualNasState.LOADED.getNasState())) {
+                    errorMsg.append(" vNas " + vnas.getNasName() + " not in Loaded state");
                     _log.info(errorMsg.toString());
                     return null;
                 }
@@ -890,7 +890,7 @@ public class ProjectService extends TaggedResource {
                 }
 
                 if (!domainMatched) {
-                    errorMsg.append(" vNas " + vnas.getNasName() + " domain is not matched with project domain ");
+                    errorMsg.append(" vNas " + vnas.getNasName() + " domain is not matched with project domain");
                     _log.info(errorMsg.toString());
                     return null;
                 }
@@ -915,7 +915,7 @@ public class ProjectService extends TaggedResource {
                     }
                 }
                 if (!projectMatched) {
-                    errorMsg.append(" vNas " + vnas.getNasName() + " has file systems belongs to other project  ");
+                    errorMsg.append(" vNas " + vnas.getNasName() + " has file systems belongs to other project");
                     _log.info(errorMsg.toString());
                     return null;
                 }

@@ -1,4 +1,4 @@
-package com.emc.sa.service.vipr.block.consistency;
+package com.emc.sa.service.vipr.block;
 
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.addAffectedResources;
 import static com.emc.sa.service.vipr.ViPRExecutionUtils.execute;

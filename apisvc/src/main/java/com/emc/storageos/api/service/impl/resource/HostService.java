@@ -298,8 +298,8 @@ public class HostService extends TaskResourceService {
                     && !oldClusterURI.equals(host.getCluster())
                     && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
                     || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))
-                    && (oldCluster != null && oldCluster.isAutoExportEnabled()
-                            && newCluster != null && newCluster.isAutoExportEnabled())) {
+                    && ((oldCluster != null && oldCluster.isAutoExportEnabled())
+                    || (newCluster != null && newCluster.isAutoExportEnabled()))) {
                 // Clustered host being moved to another cluster
                 controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI);
             } else {

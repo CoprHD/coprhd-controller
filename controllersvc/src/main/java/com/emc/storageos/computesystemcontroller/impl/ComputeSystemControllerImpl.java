@@ -1004,7 +1004,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         }
                     }
 
-                    if (isMovedToDifferentCluster && (oldClusterRef.isAutoExportEnabled() && currentClusterRef.isAutoExportEnabled())) {
+                    if (isMovedToDifferentCluster && (oldClusterRef.isAutoExportEnabled() || currentClusterRef.isAutoExportEnabled())) {
                         for (ExportGroup export : getSharedExports(oldCluster)) {
                             ExportGroupState egh = getExportGroupState(exportGroups, export);
                             _log.info("Removing references to previous cluster. Export: " + export.getId() + " Remove Host: " + hostId

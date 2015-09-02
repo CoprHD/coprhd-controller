@@ -1908,7 +1908,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 if (totalVolumesDiscovered != 0) {
                     long averageTime = (System.currentTimeMillis() - startTime) / totalVolumesDiscovered;
                     long timeRemaining = averageTime * (totalVolumesFetched - totalVolumesDiscovered);
-                    return timeRemaining + "ms"; 
+                    return "about " + (timeRemaining / 1000 / 60) + " minutes"; 
                 }
             } catch (Exception ex) {
                 s_logger.warn("couldn't calculate discovery remaining time estimate: ", ex.getLocalizedMessage());

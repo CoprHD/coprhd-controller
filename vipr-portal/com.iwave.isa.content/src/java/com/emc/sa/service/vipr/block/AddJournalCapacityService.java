@@ -5,6 +5,7 @@
 package com.emc.sa.service.vipr.block;
 
 import static com.emc.sa.service.ServiceParams.CONSISTENCY_GROUP;
+import static com.emc.sa.service.ServiceParams.COPY_NAME;
 import static com.emc.sa.service.ServiceParams.NUMBER_OF_VOLUMES;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.SIZE_IN_GB;
@@ -32,6 +33,9 @@ public class AddJournalCapacityService extends ViPRService {
     @Param(VIRTUAL_ARRAY)
     protected URI virtualArray;
 
+    @Param(COPY_NAME)
+    protected String copyName;
+
     @Param(value = NUMBER_OF_VOLUMES, required = false)
     protected Integer count;
 
@@ -41,6 +45,6 @@ public class AddJournalCapacityService extends ViPRService {
     @Override
     public void execute() throws Exception {
         BlockStorageUtils.addJournalCapacity(project, virtualArray, virtualPool, sizeInGb, count,
-                consistencyGroup);
+                consistencyGroup, copyName);
     }
 }

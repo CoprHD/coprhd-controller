@@ -12,8 +12,12 @@
             required:false
         },
         
+        copyName:{
+            type:"assetType.vipr.journalCopyName"
+        },
+        
         virtualArray:{
-            type:"assetType.vipr.virtualArrayByConsistencyGroup",
+            type:"assetType.vipr.virtualArray",
             lockable: true
         },
 

@@ -259,6 +259,24 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return targets;
     }
 
+    @Asset("journalCopyName")
+    @AssetDependencies("rpConsistencyGroupByProject")
+    public List<AssetOption> getCopyNameByConsistencyGroup(AssetOptionsContext ctx, URI consistencyGroupId) {
+        ViPRCoreClient client = api(ctx);
+        List<RelatedResourceRep> volumes = client.blockConsistencyGroups().get(consistencyGroupId).getVolumes();
+        List<AssetOption> targets = Lists.newArrayList();
+
+        for (RelatedResourceRep volume : volumes) {
+            VolumeRestRep volumeRep = client.blockVolumes().get(volume);
+            if (volumeRep.getProtection() != null && volumeRep.getProtection().getRpRep() != null
+                    && volumeRep.getProtection().getRpRep().getCopyName() != null) {
+                String copyName = volumeRep.getProtection().getRpRep().getCopyName();
+                targets.add(newAssetOption(copyName, copyName));
+            }
+        }
+        return targets;
+    }
+
     @Asset("virtualArrayByConsistencyGroup")
     @AssetDependencies("rpConsistencyGroupByProject")
     public List<AssetOption> getVirtualArrayByConsistencyGroup(AssetOptionsContext ctx, URI consistencyGroupId) {

@@ -16,21 +16,22 @@ public class AddJournalCapacity extends WaitForTasks<VolumeRestRep> {
     private final URI varrayId;
     private final URI projectId;
     private final String size;
+    private final String copyName;
     private final Integer count;
     private final URI consistencyGroupId;
-    private final String NAME = "journal";
 
     public AddJournalCapacity(String vpoolId, String varrayId, String projectId, String size, Integer count,
-            String consistencyGroupId) {
-        this(uri(vpoolId), uri(varrayId), uri(projectId), size, count, uri(consistencyGroupId));
+            String consistencyGroupId, String copyName) {
+        this(uri(vpoolId), uri(varrayId), uri(projectId), size, count, uri(consistencyGroupId), copyName);
     }
 
     public AddJournalCapacity(URI vpoolId, URI varrayId, URI projectId, String size, Integer count,
-            URI consistencyGroupId) {
+            URI consistencyGroupId, String copyName) {
         this.vpoolId = vpoolId;
         this.varrayId = varrayId;
         this.projectId = projectId;
         this.size = size;
+        this.copyName = copyName;
         this.count = count;
         this.consistencyGroupId = consistencyGroupId;
         provideDetailArgs(size, vpoolId, varrayId, projectId);
@@ -42,7 +43,7 @@ public class AddJournalCapacity extends WaitForTasks<VolumeRestRep> {
         create.setVpool(vpoolId);
         create.setVarray(varrayId);
         create.setProject(projectId);
-        create.setName(NAME);
+        create.setName(copyName);
         create.setSize(size);
         int numberOfVolumes = 1;
         if ((count != null) && (count > 1)) {

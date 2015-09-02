@@ -155,8 +155,7 @@ public class RPRecommendation extends Recommendation {
     		}
     	}
     	
-    	RPRecommendation secondaryRecommendation = null;
-    	
+    	RPRecommendation secondaryRecommendation = null;    	
     	if (this.getHaRecommendation() != null ) {
     		// There will only ever be 1 secondary recommendation in a MetroPoint case.
         	secondaryRecommendation = 
@@ -201,11 +200,8 @@ public class RPRecommendation extends Recommendation {
     	if (secondaryLocalCopyCount == 1) {
     		secondaryLocalCopy = true;
     	}
-    	
-    	
-    	
-    	metroPointType = MetroPointType.INVALID;
-    	
+    	    	    	
+    	metroPointType = MetroPointType.INVALID;    	
     	if (singleRemoteCopy && primaryLocalCopy && secondaryLocalCopy) {
     		metroPointType = MetroPointType.TWO_LOCAL_REMOTE;
     	} else if (singleRemoteCopy && 
@@ -251,7 +247,8 @@ public class RPRecommendation extends Recommendation {
 		buff.append(printTabs + String.format("Virtual Array 	: %s %n", varray.getLabel()));
 		buff.append(printTabs + String.format("Virtual Pool  	: %s %n", vpool.getLabel()));
 		if (virtualVolumeRecommendation != null && virtualVolumeRecommendation.getVPlexStorageSystem() != null) {
-			StorageSystem vplexStorageSystem = dbClient.queryObject(StorageSystem.class, virtualVolumeRecommendation.getVPlexStorageSystem());
+			StorageSystem vplexStorageSystem = dbClient.queryObject(StorageSystem.class, 
+					virtualVolumeRecommendation.getVPlexStorageSystem());
 			buff.append(printTabs + String.format("VPLEX Storage	: %s %n", vplexStorageSystem.getLabel()));
 		}
 		buff.append(printTabs + String.format("Storage Pool 	: %s %n", storagePool.getLabel()));
@@ -261,7 +258,8 @@ public class RPRecommendation extends Recommendation {
 		if (this.getHaRecommendation() != null) {
 			buff.append(printTabs + String.format("High Availability Recommendation : %n"));
 			buff.append(getHaRecommendation().toString(dbClient, ps, 1));
-			if (this.getHaRecommendation().getTargetRecommendations() != null && !this.getHaRecommendation().getTargetRecommendations().isEmpty()){
+			if (this.getHaRecommendation().getTargetRecommendations() != null && 
+						!this.getHaRecommendation().getTargetRecommendations().isEmpty()){
 				buff.append(printTabs + String.format("High Availability Target : %n"));
 				for(RPRecommendation haTargetRec : this.getHaRecommendation().getTargetRecommendations()) {
 					buff.append(String.format("%s", haTargetRec.toString(dbClient, ps, 1)));

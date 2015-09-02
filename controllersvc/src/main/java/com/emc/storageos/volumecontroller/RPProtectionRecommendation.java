@@ -173,11 +173,13 @@ public class RPProtectionRecommendation extends Recommendation {
     		}    		
     	}
     	
-    	if (getSourceJournalRecommendation() != null && getSourceJournalRecommendation().getInternalSiteName().equals(internalSiteName)) {
+    	if (getSourceJournalRecommendation() != null && 
+    			getSourceJournalRecommendation().getInternalSiteName().equals(internalSiteName)) {
     		count += getSourceJournalRecommendation().getResourceCount();
     	}
     	
-    	if (getStandbyJournalRecommendation() != null && getStandbyJournalRecommendation().getInternalSiteName().equals(internalSiteName)) {
+    	if (getStandbyJournalRecommendation() != null && 
+    			getStandbyJournalRecommendation().getInternalSiteName().equals(internalSiteName)) {
     		count += getStandbyJournalRecommendation().getResourceCount();
     	}
     	

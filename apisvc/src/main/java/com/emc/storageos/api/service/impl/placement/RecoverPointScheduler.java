@@ -202,7 +202,8 @@ public class RecoverPointScheduler implements Scheduler {
         }
         public void setHaVpool(VirtualPool haVpool) {
             this.haVpool = haVpool;
-        }                       
+        } 
+        
     }
 
     /**
@@ -273,9 +274,8 @@ public class RecoverPointScheduler implements Scheduler {
         	haVpool = container.getHaVpool();        	
         }        
 
-        // Get all storage pools that match the passed CoS params and
-        // protocols. In addition, the pool must have enough capacity
-        // to hold at least one resource of the requested size.      
+        // Get all storage pools that match the passed Virtual Pool params and protocols. 
+        // In addition, the pool must have enough capacity to hold at least one resource of the requested size.      
         List<StoragePool> candidatePools = getCandidatePools(varray, vpool, haVarray, haVpool, capabilities, RPHelper.SOURCE);                               
         if (candidatePools == null || candidatePools.isEmpty()) {
         	_log.error(String.format("No matching storage pools found for the source varray: %s. There are no storage pools that " +
@@ -302,7 +302,7 @@ public class RecoverPointScheduler implements Scheduler {
 	        	// MetroPoint has been enabled so we need to obtain recommendations for the primary (active) and secondary (HA/Stand-by) 
 	            // VPlex clusters.
 	            recommendations = createMetroPointRecommendations(container.getSrcVarray(), protectionVarrays, container.getSrcVpool(), haVarray, 
-	            		haVpool, project, capabilities, candidatePools, haCandidateStoragePools, null);            
+	            						haVpool, project, capabilities, candidatePools, haCandidateStoragePools, null);            
 	        } else {
 	        	 // Schedule storage based on the source pool constraint.        	
 	            recommendations = scheduleStorageSourcePoolConstraint(varray, protectionVarrays, vpool, 
@@ -328,7 +328,8 @@ public class RecoverPointScheduler implements Scheduler {
      * @return list of Recommendation objects to satisfy the request
      */
     protected List<Recommendation> scheduleStorageSourcePoolConstraint(VirtualArray varray,
-    								List<VirtualArray> protectionVarrays, VirtualPool vpool, VirtualPoolCapabilityValuesWrapper capabilities,
+    								List<VirtualArray> protectionVarrays, VirtualPool vpool, 
+    								VirtualPoolCapabilityValuesWrapper capabilities,
     								List<StoragePool> candidatePools, Project project, Volume vpoolChangeVolume, 
 									Map<VirtualArray, List<StoragePool>> preSelectedCandidateProtectionPoolsMap) {
     	 // Initialize a list of recommendations to be returned.
@@ -1130,14 +1131,14 @@ public class RecoverPointScheduler implements Scheduler {
     * @return A list of matching storage pools and varray mapping
     */
    private Map<VirtualArray, List<StoragePool>> getTargetMatchingPools(List<VirtualArray> tgtVarrays,
-           VirtualPool srcVpool, Project project, VirtualPoolCapabilityValuesWrapper srcVpoolCapabilities, Volume vpoolChangeVolume) {
+           											VirtualPool srcVpool, Project project, VirtualPoolCapabilityValuesWrapper srcVpoolCapabilities, 
+           											Volume vpoolChangeVolume) {
        _log.info("Getting a list of pools matching each protection Virtual Array.");
        
        Map<VirtualArray, List<StoragePool>> tgtVarrayStoragePoolMap = new HashMap<VirtualArray, List<StoragePool>>();        
               
        for (VirtualArray tgtVarray : tgtVarrays) {
-    	   VirtualPool tgtVpool = getTargetVirtualPool(tgtVarray, srcVpool);
-           
+    	   VirtualPool tgtVpool = getTargetVirtualPool(tgtVarray, srcVpool);           
            List<StoragePool> tgtVarrayMatchingPools = new ArrayList<StoragePool>();
            
            // Check to see if this is a change vpool request for an existing RP+VPLEX/MetroPoint protected volume.
@@ -1169,10 +1170,7 @@ public class RecoverPointScheduler implements Scheduler {
            }         
            
            tgtVarrayMatchingPools = getCandidatePools(tgtVarray, tgtVpool, null, null, srcVpoolCapabilities, RPHelper.TARGET);                     
-           
-           _log.info(String.format("Matched pools for target virtual array %s and target virtual pool %s:%n", 
-                   tgtVarray.getLabel(), tgtVpool.getLabel()));           
-           
+                  
            if (VirtualPool.vPoolSpecifiesHighAvailability(tgtVpool)) {
                
                // Get all the VPLEX connected storage pools from the matched pools
@@ -2387,7 +2385,7 @@ public class RecoverPointScheduler implements Scheduler {
 		if (protectionSystems.isEmpty()) {
 			// TODO: for better performance, should we remove all storage pools that belong to the same array as this storage pool?
 			// Log message indicating this storage pool does not have protection capabilities
-			_log.info(String.format("RP Placement: Storage pool does not have connectivity to a protection system.", storagePool.getLabel()));
+			_log.info(String.format("RP Placement: Storage pool %s does not have connectivity to a protection system.", storagePool.getLabel()));
 			// Remove the pool we were trying to use.
 		} 
 		
@@ -2621,7 +2619,7 @@ public class RecoverPointScheduler implements Scheduler {
     		 }
     	}    	    	     	
     	
-	  Collections.sort(recommendations, new Comparator<Recommendation>(){      
+	  Collections.sort(recommendations, new Comparator<Recommendation>() {      
         @Override
         public int compare(Recommendation a1, Recommendation a2) {
              return ComparisonChain.start()
@@ -3773,7 +3771,7 @@ public class RecoverPointScheduler implements Scheduler {
     /**
      * Used in StoragePool selection.
      */	
-    class StoragePoolFreeCapacityComparator implements Comparator<StoragePool> {
+    public static class StoragePoolFreeCapacityComparator implements Comparator<StoragePool> {
         @Override
         public int compare(StoragePool rhs, StoragePool lhs) {
             int result;
@@ -3844,7 +3842,7 @@ public class RecoverPointScheduler implements Scheduler {
 	    return StringUtils.join(temp, ", ");
 	}   
 	    
-	private class PlacementStatus {
+	private static class PlacementStatus {
 		private String srcVArray;
 		private String srcVPool;
 		private HashMap<URI, Boolean> processedProtectionVArrays = new HashMap<URI, Boolean>();
@@ -3897,7 +3895,7 @@ public class RecoverPointScheduler implements Scheduler {
 		
 		public String toString(DbClient dbClient) {	
 			String NEW_LINE = String.format("--------------------------------------------------------------------------------------------------------------------------------------------------------%n");
-			StringBuffer buff = new StringBuffer(String.format("%n" + NEW_LINE));
+			StringBuffer buff = new StringBuffer(String.format("%n") + NEW_LINE);
 			 
 			buff.append(String.format("RecoverPoint-Protected Placement Error:  It is possible that other solutions were available and equal "
 					+ "in their level of success to the one listed below.%n"));

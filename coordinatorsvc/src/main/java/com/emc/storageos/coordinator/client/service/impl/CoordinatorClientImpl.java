@@ -628,65 +628,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
-    public boolean hasSite(String siteID) throws CoordinatorException {
-        String sitePath = String.format("%1$s/%2$s", ZkPath.SITES, siteID);
-        try {
-            Stat stat = _zkConnection.curator().checkExists().forPath(sitePath);
-            return stat != null;
-        } catch (Exception e) {
-            log.error("Failed to access the path {} e=", sitePath, e);
-            throw CoordinatorException.fatals.unableToAccessPath(sitePath, e);
-        }
-    }
-
-    /**
-     * Init site data in ZK
-     *
-     * @param siteID the site ID
-     * @param isPrimary  true if the site is a primary site
-     */
-    @Override
-    public void setSite(String siteID, boolean isPrimary) throws CoordinatorException {
-        String sitePath = String.format("%1$s/%2$s", ZkPath.SITES, siteID);
-        EnsurePath ensurePath = new EnsurePath(sitePath);
-        String beaconPath = sitePath+"/beacon";
-
-        try {
-            //create /sites/${siteID} path
-            ensurePath.ensure(_zkConnection.curator().getZookeeperClient());
-
-            //create /sites/${siteID}/beacon ephemeral node
-            _zkConnection.curator().create().withMode(CreateMode.EPHEMERAL).
-                    forPath(beaconPath);
-
-        }catch(Exception e) {
-            log.error("Failed to set site info of {}(isPrimary={})", sitePath, isPrimary);
-            log.error("e=", e);
-            throw CoordinatorException.fatals.unableToWriteSite(siteID, e);
-        }
-
-        // update /sites/primary
-        if (isPrimary) {
-            String primarySitePath = String.format("%1$s/primary", ZkPath.SITES);
-            EnsurePath ePath = new EnsurePath(primarySitePath);
-
-            try {
-                ePath.ensure(_zkConnection.curator().getZookeeperClient());
-            }catch(Exception e) {
-                log.error("Failed to ensure path {} e=", primarySitePath, e);
-            }
-
-            byte[] data = siteID.getBytes();
-            try {
-                _zkConnection.curator().setData().forPath(primarySitePath, data);
-            }catch(Exception e) {
-                log.error("Failed to persist {} to {}", siteID, primarySitePath);
-                throw CoordinatorException.fatals.failedToSerialize(e);
-            }
-        }
-    }
-
-    @Override
     public DistributedSemaphore getSemaphore(String name, int maxPermits)
             throws CoordinatorException {
         DistributedSemaphore semaphore = new DistributedSemaphoreImpl(_zkConnection, String.format(

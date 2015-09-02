@@ -15,6 +15,7 @@ import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO_L
 import static com.emc.storageos.systemservices.mapper.ClusterInfoMapper.toClusterInfo;
 import static com.emc.storageos.coordinator.client.model.Constants.DBSVC_NAME;
 
+import java.io.IOException;
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -32,6 +33,11 @@ import com.emc.storageos.coordinator.common.impl.ZkConnection;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.common.DbConfigConstants;
 
+import com.emc.storageos.services.util.PlatformUtils;
+import org.apache.curator.utils.EnsurePath;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.client.ZooKeeperSaslClient;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -1285,25 +1291,77 @@ public class CoordinatorClientExt {
         return null;
     }
 
-    public String getMySiteId() {
-        LocalRepository localRepository = new LocalRepository();
-        PropertyInfoExt property = localRepository.getOverrideProperties();
-        return property.getProperty("site_id");
+    private boolean isSiteInited(String siteID) throws Exception {
+        String sitePath = String.format("%1$s/%2$s", ZkPath.SITES, siteID);
+        try {
+            Stat stat = getZkConnection().curator().checkExists().forPath(sitePath);
+            return stat != null;
+        } catch (Exception e) {
+            _log.error("Failed to access the path {} e=", sitePath, e);
+            throw e;
+        }
     }
 
-    public void initSiteInfo() {
-        String mySiteId = getMySiteId();
+    private void initSiteSepecificSection(String siteID, boolean isPrimary) throws Exception {
+        String sitePath = String.format("%1$s/%2$s", ZkPath.SITES, siteID);
+        EnsurePath ensurePath = new EnsurePath(sitePath);
+        String beaconPath = sitePath+"/beacon";
 
+        ZkConnection zkConnection = getZkConnection();
+        try {
+            //create /sites/${siteID} path
+            _log.info("create ZK path {}", sitePath);
+            ensurePath.ensure(zkConnection.curator().getZookeeperClient());
+
+            //create /sites/${siteID}/beacon ephemeral node
+            _log.info("create ZK path {}", beaconPath);
+            zkConnection.curator().create().withMode(CreateMode.EPHEMERAL).
+                    forPath(beaconPath);
+
+        }catch(Exception e) {
+            _log.error("Failed to set site info of {}(isPrimary={})", sitePath, isPrimary);
+            _log.error("e=", e);
+            throw e;
+        }
+
+        // update /sites/primary
+        if (isPrimary) {
+            String primarySitePath = String.format("%1$s/primary", ZkPath.SITES);
+            EnsurePath ePath = new EnsurePath(primarySitePath);
+
+            _log.info("create ZK path {}", primarySitePath);
+            try {
+                ePath.ensure(zkConnection.curator().getZookeeperClient());
+            }catch(Exception e) {
+                _log.error("Failed to ensure path {} e=", primarySitePath, e);
+            }
+
+            byte[] data = siteID.getBytes();
+            try {
+                zkConnection.curator().setData().forPath(primarySitePath, data);
+            }catch(Exception e) {
+                _log.error("Failed to persist {} to {}", siteID, primarySitePath);
+                throw e;
+            }
+        }
+    }
+
+    public void initSiteSpecificSection() throws Exception {
+        String mySiteId = PlatformUtils.getSiteId();
+        _log.info("my site id: {}", mySiteId);
+
+        if ( (mySiteId != null) && isSiteInited(mySiteId)) {
+            return;
+        }
+
+        _log.info("The site has NOT been initialized");
         InterProcessLock lock = _coordinator.getLock(ZkPath.SITES.name());
         try {
             lock.acquire();
-            if (_coordinator.hasSite(mySiteId)) {
-                return;
-            }
-
-            _coordinator.setSite(mySiteId, true);
+            initSiteSepecificSection(mySiteId, true);
         }catch (Exception e) {
             _log.error("Failed to acquire the lock for {}", ZkPath.SITES);
+            throw e;
         } finally {
              try {
                  lock.release();

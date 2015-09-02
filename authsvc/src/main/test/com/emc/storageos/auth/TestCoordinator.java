@@ -432,15 +432,4 @@ public class TestCoordinator implements CoordinatorClient {
         // TODO Auto-generated method stub.
         return false;
     }
-
-    @Override
-    public boolean hasSite(String siteID) throws CoordinatorException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void setSite(String siteID, boolean isPrimary) throws CoordinatorException {
-        throw new UnsupportedOperationException();
-    }
-
 }

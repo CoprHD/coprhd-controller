@@ -142,7 +142,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
                 _clusterPoller.start();
             }
 
-            _coordinator.initSiteInfo();
+            _coordinator.initSiteSpecificSection();
 
             startNewVersionCheck();
             startUpgradeManager();

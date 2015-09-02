@@ -386,16 +386,6 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
-    public boolean hasSite(String siteID) throws CoordinatorException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public void setSite(String siteID, boolean isPrimary) throws CoordinatorException {
-        throw new UnsupportedOperationException();
-    }
-
-    @Override
     public String getDbConfigPath(String serviceName) {
         return DB_CONFIG;
     }

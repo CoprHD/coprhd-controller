@@ -154,22 +154,6 @@ public interface CoordinatorClient {
             throws CoordinatorException;
 
     /**
-     * Check if the site data exists in ZK
-     *
-     * @param siteID the site ID
-     * @return true if the site data exists in ZK
-     */
-    boolean hasSite(String siteID) throws CoordinatorException;
-
-    /**
-     * Init site data in ZK
-     *
-     * @param siteID the site ID
-     * @param isPrimary  true if the site is a primary site
-     */
-    void setSite(String siteID, boolean isPrimary) throws CoordinatorException;
-
-    /**
      * Retrieves/creates a distributed (counting) semaphore with given name.
      * 
      * @param name Semaphore name

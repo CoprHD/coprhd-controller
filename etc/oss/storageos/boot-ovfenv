@@ -80,13 +80,13 @@ _setBootmodeFlag() {
 # We choose to use the SHA1 checksums as the site id
 # The input to generate the checksum is network_vip or network_vip6 (if network_vip is not set)
 _gen_site_id() {
-    seed=`/etc/systool --getprops | grep 'network_vip='`
+    seed=$(/etc/systool --getprops | grep 'network_vip=')
     seed=${seed##*=}
     if [ "${vip}" == "" ] ; then
-       seed=`/etc/systool --getprops | grep 'network_vip6='`
+       seed=$(/etc/systool --getprops | grep 'network_vip6=')
     fi
 
-    local site_id=`echo "${seed}" | sha1sum | cut -d ' ' -f 1`
+    local site_id=$(echo "${seed}" | /usr/bin/sha1sum | /usr/bin/cut -d ' ' -f 1)
     echo "${site_id}"
 }
 
@@ -107,17 +107,10 @@ case ${1} in
 
         rc_status -v
 
-        # get property 'site_id=...'
-        site_id=`/etc/systool --getprops | grep site_id`
-        #Remove the leading 'site_id='
-        site_id=${site_id##*=}
-
-        if [ "${site_id}" == "" ] ; then
+        site_id_file="/data/mysite-id"
+        if [ ! -f "${site_id_file}" ] ; then
             site_id=$(_gen_site_id)
-            tmpfile=$(mktemp)
-            /etc/systool --getoverrides > ${tmpfile}
-            echo "site_id=${site_id}" >> ${tmpfile}
-            /etc/systool --setoverrides ${tmpfile}
+            echo "${site_id}" > ${site_id_file}
         fi
         ;;
     stop|status)

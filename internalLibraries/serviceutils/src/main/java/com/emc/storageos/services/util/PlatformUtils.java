@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.nio.file.NoSuchFileException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -26,6 +27,7 @@ public class PlatformUtils {
     private static final String SYSTOOL_CMD = "/etc/systool";
     private static final String IS_APPLIANCE = "--test";
     private static final String IS_APPLIANCE_OUTPUT = "Ok";
+    private static final String SITE_ID_FILE= "/data/mysite-id";
     private static final long CMD_TIMEOUT = 120 * 1000;
     private static final long CMD_PARTITION_TIMEOUT = 600 * 1000;    // 10 min
     private static String PID_DIR = "/var/run/storageos/";
@@ -311,7 +313,23 @@ public class PlatformUtils {
      * @return Product ident
      */
     public static String getProductIdent() throws IOException {
-        byte[] productIdent = FileUtils.readDataFromFile(PRODUCT_IDENT_PATH);
-        return new String(productIdent).trim();
+        return FileUtils.readStringFromFile(PRODUCT_IDENT_PATH);
+    }
+
+    /**
+     * Get the site ID (an UUID) of current site
+     */
+    public static String getSiteId() {
+        String id = null;
+        try {
+            id = FileUtils.readStringFromFile(SITE_ID_FILE);
+        }catch (NoSuchFileException e) {
+            // the file doesn't exist, this can happen when the site is booted for the first time
+            // or upgrade from darth (or earlier)
+            log.info("The file {} doesn't exist", SITE_ID_FILE);
+        }catch (IOException e) {
+            log.warn("Failed to read site fie {} e={}", SITE_ID_FILE, e);
+        }
+        return id;
     }
 }

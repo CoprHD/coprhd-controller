@@ -13,7 +13,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,17 +22,15 @@ import com.emc.storageos.api.service.impl.resource.VPlexBlockServiceApiImpl;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.resource.utils.PropertySetterUtil;
 import com.emc.storageos.api.service.impl.resource.utils.VolumeIngestionUtil;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.OpStatusMap;
@@ -46,15 +43,16 @@ import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
-import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.block.VolumeExportIngestParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 import com.google.common.base.Joiner;
 
@@ -88,6 +86,13 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         _tenantsService = tenantsService;
     }
 
+    private CoordinatorClient _coordinator;
+
+    public void setCoordinator(CoordinatorClient locator) {
+        _coordinator = locator;
+    }
+
+
     @Override
     public <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache, StorageSystem system,
             UnManagedVolume unManagedVolume,
@@ -118,13 +123,22 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 || vplexIngestionMethod.isEmpty() 
                 || (!vplexIngestionMethod.equals("VirtualVolumeOnly"));
         
+        
         VplexBackendIngestionContext context = null;
         
         if (ingestBackend) {
             context = new VplexBackendIngestionContext(unManagedVolume, _dbClient);
+            
+            String discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(
+                    _coordinator, VplexBackendIngestionContext.DISCOVERY_MODE);
+            if (VplexBackendIngestionContext.DISCOVERY_MODE_DISCOVERY_ONLY.equals(discoveryMode)) {
+                context.setInDiscoveryOnlyMode(true);
+            }
+
             Project vplexProject = VPlexBlockServiceApiImpl.getVplexProject(system, _dbClient, _tenantsService);
             context.setBackendProject(vplexProject);
             context.setFrontendProject(project);
+            context.setIngestionInProgress(true);
     
             try {
                 List<UnManagedVolume> unmanagedBackendVolumes = context.getUnmanagedBackendVolumes();
@@ -209,6 +223,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             }
         }
         
+        // validate backend volumes for various requirements
         List<URI> unManagedBackendVolumeUris = new ArrayList<URI>();
         for (UnManagedVolume vol : unManagedBackendVolumes) {
             unManagedBackendVolumeUris.add(vol.getId());
@@ -232,7 +247,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             }
         }
         
-        // TODO more validation - needs further analysis
         // check that vpool supports mirrors
         int mirrorCount = context.getUnmanagedMirrors().size();
         if (mirrorCount > 0) {

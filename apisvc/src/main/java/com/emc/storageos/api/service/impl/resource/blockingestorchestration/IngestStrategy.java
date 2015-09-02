@@ -46,6 +46,5 @@ public class IngestStrategy {
         return ingestResourceOrchestrator.ingestBlockObjects(systemCache, poolCache, system, unManagedVolume, vPool, virtualArray,
                 project, tenant, unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap, unManagedVolumeExported, clazz,
                 taskStatusMap, vplexIngestionMethod);
-
     }
 }

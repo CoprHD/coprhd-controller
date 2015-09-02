@@ -238,6 +238,7 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="ingestStrategyFactory" ref="ingestStrategyFactory"/>
         <property name="tenantsService" ref="tenantsService"/>
+        <property name="coordinator" ref="coordinator"/>
     </bean>
     
     <bean id ="maskPerHostIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.MaskPerHostIngestOrchestrator">

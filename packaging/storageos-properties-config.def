@@ -1537,10 +1537,10 @@
     },
     {
         key : "controller_vplex_volume_discovery_mode",
-        label : "VPLEX volume discovery mode",
-        description : "Faster Ingestion mode will collect as much VPLEX API data as possible during unmanaged volume discovery, while Faster Discovery mode will delay discovery of some VPLEX API data until ingestion time.  Faster Discovery is recommend if ingesting only a few specific volumes, while Faster Ingestion is better for batch ingestion of many volumes.",
+        label : "VPLEX backend volume discovery mode",
+        description : "'Only During Discovery' mode will collect all VPLEX backend volume data during Unmanaged Volume discovery (this mode is the default and is recommended for ingesting large numbers of volumes at once, and full ingestion will fail on an individual volume if any data is missing from the database). 'Only During Ingestion' mode will delay discovery of backend volumes until ingestion time (this mode is recommended for ingesting a few specific volumes at once so that discovery will run faster).  'During Discovery and Ingestion' will attempt to collect as much data as possible during discovery, and will check again during ingestion if any needed backend volume data is missing from the database (this mode is the most flexible, but may exhibit somewhat unpredictable performance).",
         type : "string",
-        allowedValues : ( "Faster Discovery", "Faster Ingestion" ),
+        allowedValues : ( "Only During Discovery", "Only During Ingestion", "During Discovery and Ingestion" ),
         userConfigurable : false,
         userMutable : true,
         advanced : true,
@@ -1548,7 +1548,7 @@
         reconfigRequired : false,
         rebootRequired : false,
         controlNodeOnly : true,
-        value : "Faster Ingestion",
+        value : "Only During Discovery",
     },
     {
         key : "controller_vplex_volume_discovery_filter",

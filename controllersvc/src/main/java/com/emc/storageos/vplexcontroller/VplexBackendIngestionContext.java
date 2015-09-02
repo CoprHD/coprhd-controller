@@ -40,13 +40,20 @@ public class VplexBackendIngestionContext {
 
     public static final String UNMANAGEDVOLUME = "UNMANAGEDVOLUME";
     public static final String VOLUME = "VOLUME";
+    public static final String DISCOVERY_MODE = "controller_vplex_volume_discovery_mode";
+    public static final String DISCOVERY_MODE_DISCOVERY_ONLY = "Only During Discovery";
+    public static final String DISCOVERY_MODE_INGESTION_ONLY = "Only During Ingestion";
+    public static final String DISCOVERY_MODE_HYBRID = "During Discovery and Ingestion";
+    public static final String DISCOVERY_FILTER = "controller_vplex_volume_discovery_filter";
+    public static final String DISCOVERY_KILL_SWITCH = "controller_vplex_volume_discovery_kill_switch";
     
     private static Logger _logger = LoggerFactory.getLogger(VplexBackendIngestionContext.class);
     private DbClient _dbClient;
     private UnManagedVolume _unmanagedVirtualVolume;
 
-    private boolean _isDirty = false;
-    private boolean _inDiscoveryMode = false;
+    private boolean _discoveryInProgress = false;
+    private boolean _ingestionInProgress = false;
+    private boolean _inDiscoveryOnlyMode = false;
     private boolean _shouldCheckForMirrors = false;
     
     private VPlexResourceInfo topLevelDevice;
@@ -74,16 +81,8 @@ public class VplexBackendIngestionContext {
         this._tracker = new BackendDiscoveryPerformanceTracker();
     }
 
-    public void load() {
-        String contextString = this.toStringDebug();
-        _logger.info("ingestion context: " + contextString);
-//        if (this._unmanagedVirtualVolume != null) {
-//             throw new Exception("HALTING FOR TESTING ONLY");
-//        }
-    }
-    
     public void discover() {
-        this.setInDiscoveryMode(true);
+        this.setDiscoveryInProgress(true);
         this.getUnmanagedBackendVolumes();
         this.getUnmanagedFullClones();
         this.getUnmanagedMirrors();
@@ -112,7 +111,7 @@ public class VplexBackendIngestionContext {
             return unmanagedBackendVolumes;
         }
         
-        if (!isInDiscoveryMode()) {
+        if (!isDiscoveryInProgress()) {
             // first check the database for this unmanaged volume's backend volumes
             StringSet dbBackendVolumes = extractValuesFromStringSet(
                     SupportedVolumeInformation.VPLEX_BACKEND_VOLUMES.toString(),
@@ -146,6 +145,12 @@ public class VplexBackendIngestionContext {
         long start = System.currentTimeMillis();
         _logger.info("getting unmanaged backend volumes");
         unmanagedBackendVolumes = new ArrayList<UnManagedVolume>();
+        
+        // if we're in discovery only mode, don't check again during ingestion
+        if (isIngestionInProgress() && isInDiscoveryOnlyMode()) {
+            return unmanagedBackendVolumes;
+        }
+        
         List<URI> associatedVolumeUris = new ArrayList<URI>();
         
         if (!getBackendVolumeWwnToInfoMap().isEmpty()) {
@@ -167,24 +172,31 @@ public class VplexBackendIngestionContext {
         }
         
         unmanagedBackendVolumes = _dbClient.queryObject(UnManagedVolume.class, associatedVolumeUris);
+        _logger.info("for VPLEX UnManagedVolume {}, found these associated volumes: " + unmanagedBackendVolumes, _unmanagedVirtualVolume.getLabel());
+        updateUnmanagedBackendVolumesInParent();
         
-        if (null != unmanagedBackendVolumes && !unmanagedBackendVolumes.isEmpty()) {
-            _logger.info("for VPLEX UnManagedVolume {}, found these associated volumes: " + unmanagedBackendVolumes, _unmanagedVirtualVolume.getLabel());
+        _tracker.fetchBackendVolumes = System.currentTimeMillis() - start;
+        
+        return unmanagedBackendVolumes;
+    }
+    
+    private void updateUnmanagedBackendVolumesInParent() {
+        if (!getUnmanagedBackendVolumes().isEmpty()) {
             StringSet bvols = new StringSet();
             for (UnManagedVolume backendVol : unmanagedBackendVolumes) {
                 bvols.add(backendVol.getNativeGuid());
+                StringSet parentVol = new StringSet();
+                parentVol.add(_unmanagedVirtualVolume.getNativeGuid());
+                backendVol.putVolumeInfo(SupportedVolumeInformation.VPLEX_PARENT_VOLUME.name(), parentVol);
+                _dbClient.persistObject(backendVol);
             }
             if (bvols != null && !bvols.isEmpty()) {
                 _logger.info("setting VPLEX_BACKEND_VOLUMES: " + unmanagedBackendVolumes);
                 _unmanagedVirtualVolume.putVolumeInfo(SupportedVolumeInformation.VPLEX_BACKEND_VOLUMES.name(), bvols);
-                _isDirty = true;
             }
         } else {
             _logger.warn("no backend volumes were found for {}, have the backend storage arrays already been discovered?", _unmanagedVirtualVolume.getLabel());
         }
-        _tracker.fetchBackendVolumes = System.currentTimeMillis() - start;
-        
-        return unmanagedBackendVolumes;
     }
     
     private Map<String, VPlexStorageVolumeInfo> getBackendVolumeWwnToInfoMap() {
@@ -303,7 +315,7 @@ public class VplexBackendIngestionContext {
             return unmanagedFullClones;
         }
 
-        if (!isInDiscoveryMode()) {
+        if (!isDiscoveryInProgress()) {
             // first check the database for this unmanaged volume's backend full clones
             StringSet fullCloneMap = extractValuesFromStringSet(
                     SupportedVolumeInformation.VPLEX_FULL_CLONE_MAP.toString(),
@@ -343,6 +355,11 @@ public class VplexBackendIngestionContext {
         long start = System.currentTimeMillis();
         _logger.info("getting unmanaged full clones");
         unmanagedFullClones = new HashMap<UnManagedVolume, UnManagedVolume>();
+        
+        // if we're in discovery only mode, don't check again during ingestion
+        if (isIngestionInProgress() && isInDiscoveryOnlyMode()) {
+            return unmanagedFullClones;
+        }
         
         List<UnManagedVolume> backendClonesFound = new ArrayList<UnManagedVolume>();
         for (UnManagedVolume sourceVolume : getUnmanagedBackendVolumes()) {
@@ -405,7 +422,6 @@ public class VplexBackendIngestionContext {
             if (cloneEntries != null && !cloneEntries.isEmpty()) {
                 _logger.info("setting VPLEX_FULL_CLONE_MAP: " + cloneEntries);
                 _unmanagedVirtualVolume.putVolumeInfo(SupportedVolumeInformation.VPLEX_FULL_CLONE_MAP.name(), cloneEntries);
-                _isDirty = true;
             }
         }
         
@@ -418,7 +434,7 @@ public class VplexBackendIngestionContext {
             return unmanagedMirrors;
         }
 
-        if (!isInDiscoveryMode()) {
+        if (!isDiscoveryInProgress()) {
             // first check the database for this unmanaged volume's backend mirrors
             StringSet mirrorMap = extractValuesFromStringSet(
                     SupportedVolumeInformation.VPLEX_MIRROR_MAP.toString(),
@@ -462,6 +478,10 @@ public class VplexBackendIngestionContext {
             return unmanagedMirrors;
         }
         
+        // if we're in discovery only mode, don't check again during ingestion
+        if (isIngestionInProgress() && isInDiscoveryOnlyMode()) {
+            return unmanagedMirrors;
+        }
 
         // if they couldn't be found in the database,
         // we will query the VPLEX API for this information
@@ -495,7 +515,13 @@ public class VplexBackendIngestionContext {
                         set.add(associatedVolumeMirror.getNativeGuid());
                         _logger.info("adding mirror set {} to source unmanaged volume {}", set, associatedVolumeSource);
                         associatedVolumeSource.putVolumeInfo(SupportedVolumeInformation.MIRRORS.toString(), set);
+                        associatedVolumeSource.putVolumeInfo(SupportedVolumeInformation.VPLEX_NATIVE_MIRROR_TARGET_VOLUME.toString(), set);
+                        set = new StringSet();
+                        set.add(associatedVolumeSource.getNativeGuid());
+                        associatedVolumeMirror.putVolumeInfo(SupportedVolumeInformation.VPLEX_NATIVE_MIRROR_SOURCE_VOLUME.toString(), set);
+                        // need to go ahead and persist any changes to backend volume info
                         _dbClient.persistObject(associatedVolumeSource);
+                        _dbClient.persistObject(associatedVolumeMirror);
                     } else {
                         // TODO: create exception
                         String message = "couldn't find all associated device components in mirror device: ";
@@ -518,8 +544,9 @@ public class VplexBackendIngestionContext {
             if (mirrorEntries != null && !mirrorEntries.isEmpty()) {
                 _logger.info("setting VPLEX_MIRROR_MAP: " + mirrorEntries);
                 _unmanagedVirtualVolume.putVolumeInfo(SupportedVolumeInformation.VPLEX_MIRROR_MAP.name(), mirrorEntries);
-                _isDirty = true;
             }
+            // need to update the backend volumes because a mirror target shouldn't be considered a direct backend volume
+            updateUnmanagedBackendVolumesInParent();
         }
         return unmanagedMirrors;
     }
@@ -708,22 +735,43 @@ public class VplexBackendIngestionContext {
     /**
      * @return true if in discovery mode (gets everything fresh)
      */
-    public boolean isInDiscoveryMode() {
-        return _inDiscoveryMode;
+    public boolean isDiscoveryInProgress() {
+        return _discoveryInProgress;
     }
 
     /**
      * @param set the discovery mode
      */
-    public void setInDiscoveryMode(boolean inDiscoveryMode) {
-        this._inDiscoveryMode = inDiscoveryMode;
+    public void setDiscoveryInProgress(boolean inDiscoveryInProgress) {
+        this._discoveryInProgress = inDiscoveryInProgress;
+    }
+    
+    /**
+     * @return the inDiscoveryOnlyMode
+     */
+    public boolean isInDiscoveryOnlyMode() {
+        return _inDiscoveryOnlyMode;
     }
 
     /**
-     * @return true if the vvol should be persisted for changes
+     * @param inDiscoveryOnlyMode the inDiscoveryOnlyMode to set
      */
-    public boolean isDirty() {
-        return _isDirty;
+    public void setInDiscoveryOnlyMode(boolean inDiscoveryOnlyMode) {
+        this._inDiscoveryOnlyMode = inDiscoveryOnlyMode;
+    }
+    
+    /**
+     * @return the ingestionInProgress
+     */
+    public boolean isIngestionInProgress() {
+        return _ingestionInProgress;
+    }
+
+    /**
+     * @param ingestionInProgress the ingestionInProgress to set
+     */
+    public void setIngestionInProgress(boolean ingestionInProgress) {
+        this._ingestionInProgress = ingestionInProgress;
     }
 
     /**

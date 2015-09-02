@@ -18,7 +18,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
@@ -97,10 +96,6 @@ import com.google.common.collect.Sets.SetView;
 public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceImpl {
 
     // string constants
-    private static final String DISCOVERY_MODE = "controller_vplex_volume_discovery_mode";
-    private static final String DISCOVERY_MODE_FASTER_DISCOVERY = "Faster Discovery";
-    private static final String DISCOVERY_FILTER = "controller_vplex_volume_discovery_filter";
-    private static final String DISCOVERY_KILL_SWITCH = "controller_vplex_volume_discovery_kill_switch";
     private final String ISCSI_PATTERN = "^(iqn|IQN|eui).*$";
     protected static int BATCH_SIZE = Constants.DEFAULT_PARTITION_SIZE;
     private static final String TRUE = "true";
@@ -557,7 +552,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     s_logger.info("Looking at Virtual Volume {}", name);
                     
                     String discoveryKillSwitch = ControllerUtils
-                            .getPropertyValueFromCoordinator(_coordinator, DISCOVERY_KILL_SWITCH);
+                            .getPropertyValueFromCoordinator(_coordinator, VplexBackendIngestionContext.DISCOVERY_KILL_SWITCH);
                     // TODO just for testing to speed up discovery some
                     if ("stop".equals(discoveryKillSwitch)) {
                         s_logger.warn("discovery kill switch was set to stop, so discontinuing unmanaged volume discovery");
@@ -565,7 +560,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     }
                     
                     String discoveryFilter = ControllerUtils
-                            .getPropertyValueFromCoordinator(_coordinator, DISCOVERY_FILTER);
+                            .getPropertyValueFromCoordinator(_coordinator, VplexBackendIngestionContext.DISCOVERY_FILTER);
                     // TODO just for testing to speed up discovery some
                     if ((discoveryFilter != null && !discoveryFilter.isEmpty()) 
                             && !(name.matches(discoveryFilter))) {
@@ -915,8 +910,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         volume.setVolumeCharacterstics(unManagedVolumeCharacteristics);
         volume.addVolumeInformation(unManagedVolumeInformation);
         
-        String discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(_coordinator, DISCOVERY_MODE);
-        if (!DISCOVERY_MODE_FASTER_DISCOVERY.equals(discoveryMode)) {
+        String discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(
+                _coordinator, VplexBackendIngestionContext.DISCOVERY_MODE);
+        if (!VplexBackendIngestionContext.DISCOVERY_MODE_INGESTION_ONLY.equals(discoveryMode)) {
             try {
                 VplexBackendIngestionContext context = new VplexBackendIngestionContext(volume, _dbClient);
                 context.discover();
@@ -1868,14 +1864,18 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         public long consistencyGroupFetch = 0;
         public long unmanagedVolumeProcessing = 0;
         public int totalVolumesFetched = 0;
-        public int totalVolumesDiscovered = 1;
+        public int totalVolumesDiscovered = 0;
         
         public String getPerformanceReport() {
             StringBuilder report = new StringBuilder("\n\nVolume Discovery Performance Report\n");
             report.append("\ttotal discovery time: ").append(System.currentTimeMillis() - startTime).append("ms\n");
             report.append("\ttotal volumes fetched: ").append(totalVolumesFetched).append("\n");
             report.append("\ttotal volumes discovered: ").append(totalVolumesDiscovered).append("\n");
-            report.append("\taverage time per volume: ").append((System.currentTimeMillis() - startTime)/totalVolumesDiscovered).append("ms\n");
+            long averageTime = 0;
+            if (totalVolumesDiscovered != 0) {
+                averageTime = (System.currentTimeMillis() - startTime) / totalVolumesDiscovered;
+            }
+            report.append("\taverage time per volume: ").append(averageTime).append("ms\n");
             report.append("\tvirtual volume data fetch: ").append(virtualVolumeFetch).append("ms\n");
             report.append("\tstorage view data fetch: ").append(storageViewFetch).append("ms\n");
             report.append("\tconsistency group data fetch: ").append(consistencyGroupFetch).append("ms\n");

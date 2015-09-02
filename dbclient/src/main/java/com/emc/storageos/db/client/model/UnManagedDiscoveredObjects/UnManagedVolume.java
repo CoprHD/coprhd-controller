@@ -49,6 +49,7 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         IS_AUTO_TIERING_ENABLED("PolicyRuleName", "PolicyRuleName"),
         IS_FULL_COPY("FullCopy", "FullCopy"),
         IS_LOCAL_MIRROR("LocalMirror", "LocalMirror"),
+        IS_VPLEX_NATIVE_MIRROR("VplexNativeMirror", "VplexNativeMirror"),
         IS_SNAP_SHOT("Snapshot", "Snapshot"),
         IS_THINLY_PROVISIONED("EMCSVThinlyProvisioned", "ThinlyProvisioned"),
         IS_BOUND("EMCSVIsBound", "EMCIsBound"),
@@ -114,10 +115,14 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         VPLEX_CLUSTER_IDS("vplexClusters", "vplexClusters"),
         // unmanaged volume native GUIDs for the vplex backend volumes
         VPLEX_BACKEND_VOLUMES("vplexBackendVolumes", "vplexBackendVolumes"),
+        // native GUID of the VPLEX virtual volume containing this volume
+        VPLEX_PARENT_VOLUME("vplexParentVolume", "vplexParentVolume"),
         // map of backend clone volume GUID to virtual volume GUID 
         VPLEX_FULL_CLONE_MAP("vplexFullCloneMap", "vplexFullCloneMap"),
         // map of unmanaged volume GUID mirror to vplex device info context path
         VPLEX_MIRROR_MAP("vplexMirrorMap", "vplexMirrorMap"),
+        VPLEX_NATIVE_MIRROR_TARGET_VOLUME("vplexNativeMirrorTargetVolume", "vplexNativeMirrorTargetVolume"),
+        VPLEX_NATIVE_MIRROR_SOURCE_VOLUME("vplexNativeMirrorSourceVolume", "vplexNativeMirrorSourceVolume"),
         META_MEMBER_SIZE("metaMemberSize", "metaMemberSize"),
         META_MEMBER_COUNT("metaMemberCount", "metaMemberCount"),
         META_VOLUME_TYPE("compositeType", "compositeType"),

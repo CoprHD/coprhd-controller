@@ -4,19 +4,9 @@
  */
 package com.emc.storageos.api.mapper.functions;
 
-import java.net.URI;
-
-import org.apache.commons.lang.StringUtils;
-
 import com.emc.storageos.api.mapper.SystemsMapper;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.FCEndpoint;
-import com.emc.storageos.db.client.model.StorageHADomain;
-import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.VirtualNAS;
-import com.emc.storageos.model.ports.StoragePortRestRep;
 import com.emc.storageos.model.vnas.VirtualNASRestRep;
 import com.google.common.base.Function;
 
@@ -40,8 +30,7 @@ public class MapVirtualNas implements Function<VirtualNAS, VirtualNASRestRep> {
 
     @Override
     public VirtualNASRestRep apply(VirtualNAS resource) {
-    	VirtualNASRestRep vNasRestRep = SystemsMapper.map(resource);
-        return vNasRestRep;
+        return SystemsMapper.map(resource);
     }
 
     /**
@@ -54,6 +43,4 @@ public class MapVirtualNas implements Function<VirtualNAS, VirtualNASRestRep> {
         return apply(vNas);
     }
 
-    
-    
 }

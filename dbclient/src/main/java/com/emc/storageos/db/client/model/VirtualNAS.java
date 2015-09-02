@@ -11,8 +11,8 @@ import com.emc.storageos.model.valid.EnumType;
 
 /**
  * VirtualNAS Server will contain the details of NAS server depending on StorageArray type
- * eg. VDM, vFiler, vServer or AccessZone or NasServer.
- * It will hold information about the Ip interfaces, cifs Server & NFS servers mapped to NasServer
+ * e.g. VDM, vFiler, vServer or AccessZone or NasServer.
+ * It will hold information about the IP interfaces, CIFS Server & NFS servers mapped to NasServer
  * 
  * @author ganeso
  * 
@@ -51,7 +51,7 @@ public class VirtualNAS extends NASServer {
     }
 
     @Name("vNasState")
-    @EnumType(vNasState.class)
+    @EnumType(VirtualNasState.class)
     public String getVNasState() {
         return this.getNasState();
     }
@@ -72,7 +72,7 @@ public class VirtualNAS extends NASServer {
     }
 
     // Defines different States of the NAS server.
-    public static enum vNasState {
+    public static enum VirtualNasState {
         LOADED("loaded"),
         MOUNTED("mounted"),
         TEMP_LOADED("tempunloaded"),
@@ -81,7 +81,7 @@ public class VirtualNAS extends NASServer {
 
         private final String vNasState;
 
-        private vNasState(String state) {
+        private VirtualNasState(String state) {
             vNasState = state;
         }
 
@@ -89,10 +89,10 @@ public class VirtualNAS extends NASServer {
             return vNasState;
         }
 
-        private static vNasState[] copyValues = values();
+        private static VirtualNasState[] copyValues = values();
 
         public static String getNasState(String name) {
-            for (vNasState type : copyValues) {
+            for (VirtualNasState type : copyValues) {
                 if (type.getNasState().equalsIgnoreCase(name)) {
                     return type.name();
                 }

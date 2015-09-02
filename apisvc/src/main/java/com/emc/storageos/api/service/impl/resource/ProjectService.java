@@ -47,7 +47,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualNAS;
-import com.emc.storageos.db.client.model.VirtualNAS.vNasState;
+import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -123,8 +123,8 @@ public class ProjectService extends TaggedResource {
 
     @Override
     protected Project queryResource(URI id) {
-        Project project = getProjectById(id, false);
-        return project;
+        return getProjectById(id, false);
+
     }
 
     @Override
@@ -616,7 +616,7 @@ public class ProjectService extends TaggedResource {
             long quota_gb = (param.getQuotaInGb() != null) ? param.getQuotaInGb() : project.getQuota();
             ArgValidator.checkFieldMinimum(quota_gb, 0, "quota_gb", "GB");
 
-            // Verify that the quota of this project does not exit quota for its tenant;
+            // Verify that the quota of this project does not exit quota for its tenant
             TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
             if (tenant.getQuotaEnabled()) {
                 long totalProjects = CapacityUtils.totalProjectQuota(_dbClient, tenant.getId()) -
@@ -859,7 +859,7 @@ public class ProjectService extends TaggedResource {
                 ArgValidator.checkEntity(vnas, vnasURI, isIdEmbeddedInURL(vnasURI));
 
                 // VNAS server should not associated with any project and should be in loaded state
-                if (vnas.isNotAssignedToProject() && vnas.getVNasState().equalsIgnoreCase(vNasState.LOADED.getNasState())) {
+                if (vnas.isNotAssignedToProject() && vnas.getVNasState().equalsIgnoreCase(VirtualNasState.LOADED.getNasState())) {
 
                     // Get list of domains associated with a VNAS server and validate with project's domain
                     boolean domainMatched = false;
@@ -918,7 +918,8 @@ public class ProjectService extends TaggedResource {
      * @brief Unassigns VNAS servers from project
      * @return No data returned in response body
      */
-    @POST
+    @PUT
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/unassign-vnas-servers")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ALL, ACL.OWN })

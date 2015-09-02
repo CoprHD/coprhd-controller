@@ -333,7 +333,10 @@ public class VcenterService extends TaskResourceService {
 
             auditOp(OperationTypeEnum.DELETE_VCENTER, true, null, vcenter.auditParameters());
 
-            return toTask(vcenter, taskId, op);
+            TaskResourceRep taskResourceRep = toTask(vcenter, taskId, op);
+            updateTaskTenant(taskResourceRep);
+
+            return taskResourceRep;
         }
     }
 

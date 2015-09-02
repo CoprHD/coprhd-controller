@@ -318,11 +318,10 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
         for (int i = 1; i <= newTargetCount; i++) {
             // Create distinct snapset and instance labels for each snapshot
             String snapsetLabel = newTargetsName;
-            String snapshotLabel = snapsetLabel;
             if (newTargetCount > 1) {
                 snapsetLabel = String.format("%s-%s", newTargetsName, i);
-                snapshotLabel = String.format("%s-%s", snapsetLabel, sourceCount);
             }
+            String snapshotLabel = (sourceCount > 0 ? String.format("%s-%s", snapsetLabel, sourceCount) : snapsetLabel);
 
             BlockSnapshot snapshot = new BlockSnapshot();
             snapshot.setId(URIUtil.createId(BlockSnapshot.class));

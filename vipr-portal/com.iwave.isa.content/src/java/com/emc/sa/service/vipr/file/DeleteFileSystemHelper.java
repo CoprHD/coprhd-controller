@@ -4,6 +4,7 @@
  */
 package com.emc.sa.service.vipr.file;
 
+import static com.emc.sa.service.ServiceParams.DELETION_TYPE;
 import static com.emc.sa.service.ServiceParams.FILESYSTEMS;
 
 import java.net.URI;
@@ -11,6 +12,7 @@ import java.util.List;
 
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
+import com.emc.storageos.model.file.FileDeleteTypeEnum;
 import com.emc.storageos.model.file.FileShareRestRep;
 
 public class DeleteFileSystemHelper {
@@ -18,6 +20,9 @@ public class DeleteFileSystemHelper {
     protected List<String> fileSystemIds;
 
     private List<FileShareRestRep> fileSystems;
+    
+    @Param(DELETION_TYPE)
+    protected FileDeleteTypeEnum fileDeletionType;
 
     public void precheck() {
         fileSystems = FileStorageUtils.getFileSystems(ViPRExecutionTask.uris(fileSystemIds));
@@ -26,7 +31,7 @@ public class DeleteFileSystemHelper {
     public void deleteFileSystems() {
         for (FileShareRestRep fs : fileSystems) {
             URI fsId = fs.getId();
-            FileStorageUtils.deleteFileSystem(fsId);
+            FileStorageUtils.deleteFileSystem(fsId, fileDeletionType);
         }
     }
 }

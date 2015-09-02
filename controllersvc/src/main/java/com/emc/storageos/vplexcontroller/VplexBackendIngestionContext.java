@@ -214,8 +214,8 @@ public class VplexBackendIngestionContext {
                                 getSupportingDeviceName(), getLocality(), getClusterName(), getMirrorMap(),
                                 _unmanagedVirtualVolume.getStorageSystemUri(), _dbClient);
             } catch (VPlexApiException ex) {
-                _logger.error("could not determine backend storage volumes for {}: ", 
-                        _unmanagedVirtualVolume.getLabel(), ex);
+                _logger.error("could not determine backend storage volumes for {}: {}", 
+                        _unmanagedVirtualVolume.getLabel(), ex.getLocalizedMessage());
                 // TODO: exception
                 throw new RuntimeException(
                         getSupportingDeviceName() + ": " +

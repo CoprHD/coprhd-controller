@@ -922,8 +922,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 context.discover();
                 s_logger.info(context.getPerformanceReport());
             } catch (Exception ex) {
-                s_logger.warn("error discovering backend structure for {}: {}", 
-                        volume.getNativeGuid(), ex.getLocalizedMessage());
+                s_logger.warn("error discovering backend structure for {}: ", 
+                        volume.getNativeGuid(), ex);
                 // no need to throw further
             }
         }

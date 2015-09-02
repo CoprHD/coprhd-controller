@@ -34,7 +34,6 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatu
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportMask;
-import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -49,7 +48,6 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
-import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.google.common.collect.Sets;
@@ -484,7 +482,7 @@ public class PortMetricsProcessor {
 
     /**
      * Compute DataMover or Virtual Data Mover average port metrics. The answer is in percent.
-     * This is averaged over all the usable port in a VirtualNAS or PhysicalNAS.The Computed
+     * This is averaged over all the usable port in a VirtualNAS .The Computed
      * value get stored in DB.
      * 
      * @param storageSystemURI -- URI for the storage system.
@@ -506,20 +504,15 @@ public class PortMetricsProcessor {
             for (VirtualNAS vNAS : virtualNAS) {
 
                 if (vNAS != null && !vNAS.getInactive()) {
-
                     storagePorts = vNAS.getStoragePorts();
-                    if (storagePorts != null) {
-                        Set<String> ports = storagePorts.getAddedSet();
-                        for (String interfaceIP : ports) {
-                            // get the port information
-                            String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(
-                                    storageSystem, interfaceIP, NativeGUIDGenerator.PORT);
-                            StoragePort storagePort = findExistingPort(portNativeGuid, _dbClient);
+                    if (storagePorts != null && !storagePorts.isEmpty()) {
+                        for (String sp : storagePorts) {
+
+                            StoragePort storagePort = _dbClient.queryObject(StoragePort.class, URI.create(sp));
                             portPercentBusy = portPercentBusy
                                     + MetricsKeys.getDouble(MetricsKeys.avgPortPercentBusy, storagePort.getMetrics());
-
                         }
-                        noOfInterface = ports.size();
+                        noOfInterface = storagePorts.size();
                         if (noOfInterface != 0) {
 
                             avgPortPercentBusy = portPercentBusy / noOfInterface;
@@ -532,46 +525,6 @@ public class PortMetricsProcessor {
                 }
 
             }
-            // do same operation for phyicalNAS too
-            storagePorts = null;
-            portPercentBusy = 0.0;
-            avgPortPercentBusy = 0.0;
-            noOfInterface = 0;
-            URIQueryResultList pNASURIs = new URIQueryResultList();
-            _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceVirtualNasConstraint(storageSystemURI),
-                    pNASURIs);
-            List<PhysicalNAS> physicalNAS = _dbClient.queryObject(PhysicalNAS.class, pNASURIs);
-
-            for (PhysicalNAS pNAS : physicalNAS) {
-
-                if (pNAS != null && !pNAS.getInactive()) {
-
-                    storagePorts = pNAS.getStoragePorts();
-                    if (storagePorts != null) {
-                        Set<String> ports = storagePorts.getAddedSet();
-                        for (String interfaceIP : ports) {
-                            // get the port information
-                            String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(
-                                    storageSystem, interfaceIP, NativeGUIDGenerator.PORT);
-                            StoragePort storagePort = findExistingPort(portNativeGuid, _dbClient);
-                            portPercentBusy = portPercentBusy
-                                    + MetricsKeys.getDouble(MetricsKeys.avgPortPercentBusy, storagePort.getMetrics());
-
-                        }
-                        noOfInterface = ports.size();
-                        if (noOfInterface != 0) {
-
-                            avgPortPercentBusy = portPercentBusy / noOfInterface;
-                        }
-                        StringMap dbMetrics = pNAS.getMetrics();
-                        MetricsKeys.putDouble(MetricsKeys.avgPortPercentBusy, avgPortPercentBusy, dbMetrics);
-                        _dbClient.persistObject(pNAS);
-
-                    }
-
-                }
-            }
-
         }
 
     }

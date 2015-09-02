@@ -1877,7 +1877,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         public String getPerformanceReport() {
             StringBuilder report = new StringBuilder("\n\nVolume Discovery Performance Report\n");
             report.append("\tdiscovery mode: ").append(discoveryMode).append("\n");
-            report.append("\ttotal discovery time: ").append(System.currentTimeMillis() - startTime).append("ms\n");
+            long totalDiscoveryTime = System.currentTimeMillis() - startTime;
+            report.append("\ttotal discovery time: ").append(totalDiscoveryTime);
+            report.append(" (about ").append(totalDiscoveryTime / 1000 / 60).append(" minutes)\n");
             report.append("\ttotal volumes fetched: ").append(totalVolumesFetched).append("\n");
             report.append("\ttotal volumes discovered: ").append(totalVolumesDiscovered).append("\n");
             long averageTime = 0;
@@ -1908,7 +1910,11 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 if (totalVolumesDiscovered != 0) {
                     long averageTime = (System.currentTimeMillis() - startTime) / totalVolumesDiscovered;
                     long timeRemaining = averageTime * (totalVolumesFetched - totalVolumesDiscovered);
-                    return "about " + (timeRemaining / 1000 / 60) + " minutes"; 
+                    timeRemaining = (timeRemaining / 1000 / 60);
+                    if (timeRemaining < 1) {
+                        return "less than a minute";
+                    }
+                    return "about " + timeRemaining + " minutes"; 
                 }
             } catch (Exception ex) {
                 s_logger.warn("couldn't calculate discovery remaining time estimate: ", ex.getLocalizedMessage());

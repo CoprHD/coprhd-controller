@@ -121,7 +121,7 @@ class VnasServer(object):
         #query for Project ID 
         request = dict()
         #request['name'] = name
-        request['vnas-server'] = vnasserver_id
+        request['vnas_server'] = vnasserver_id
         
 
         if(project):
@@ -168,7 +168,7 @@ class VnasServer(object):
         #query for Project ID 
         request = dict()
         #request['name'] = name
-        request['vnas-server'] = vnasserver_id
+        request['vnas_server'] = vnasserver_id
         
 
         if(project):

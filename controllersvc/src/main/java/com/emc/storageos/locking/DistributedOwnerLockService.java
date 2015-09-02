@@ -65,7 +65,7 @@ public interface DistributedOwnerLockService {
     public List<String> getLocksForOwner(String owner);
 
     /**
-     * Acquire the lock.
+     * Acquire the lock, with start time as the current time.
      * 
      * @param lockKey
      * @param owner
@@ -74,6 +74,18 @@ public interface DistributedOwnerLockService {
      */
     public abstract boolean acquireLock(String lockKey, String owner,
             long maxWaitSeconds);
+
+    /**
+     * Acquire the lock, with an explicit start time.
+     *
+     * @param lockKey
+     * @param owner
+     * @param lockingStartedTimeSeconds
+     * @param maxWaitSeconds
+     * @return
+     */
+    public abstract boolean acquireLock(String lockKey, String owner,
+                                        long lockingStartedTimeSeconds, long maxWaitSeconds);
 
     /**
      * Release the lock.

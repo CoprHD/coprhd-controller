@@ -64,7 +64,7 @@ public class DistributedOwnerLockServiceImpl implements DistributedOwnerLockServ
         Collections.sort(lockKeys);
         for (int i=0; i < lockKeys.size(); i++) {
             // Poll, since we are going to throw an exception if cannot get lock.
-            boolean wasLocked = acquireLock(lockKeys.get(i), owner, 0);
+            boolean wasLocked = acquireLock(lockKeys.get(i), owner, lockingStartedTimeSeconds, 0);
             if (wasLocked == false) {
                 String lockPath = getLockDataPath(lockKeys.get(i));
                 lockRetryThrowable = new LockRetryException(lockPath, remainingTimeSeconds);
@@ -135,15 +135,19 @@ public class DistributedOwnerLockServiceImpl implements DistributedOwnerLockServ
         return new ArrayList<String>();
     }
 
+    @Override
+    public boolean acquireLock(String lockKey, String owner, long maxWaitSeconds) {
+        return acquireLock(lockKey, owner, (System.currentTimeMillis() / 1000), maxWaitSeconds);
+    }
+
     /*
      * (non-Javadoc)
      * 
      * @see com.emc.storageos.volumecontroller.impl.DistributedOwnerLock#acquireLock(java.lang.String, java.lang.String, long)
      */
     @Override
-    public boolean acquireLock(String lockKey, String owner, long maxWaitSeconds) {
+    public boolean acquireLock(String lockKey, String owner, long lockingStartedTimeSeconds, long maxWaitSeconds) {
         boolean acquired = false;
-        long startTime = System.currentTimeMillis() / 1000;		// start time in seconds
         long waitTime = 0;
         InterProcessLock lock = null;
         boolean reportedLongLock = false;
@@ -176,7 +180,8 @@ public class DistributedOwnerLockServiceImpl implements DistributedOwnerLockServ
             }
             // Report the time to acquire the lock if acquired.
             if (acquired) {
-                log.info(String.format("Lock %s owner %s acquired after %d seconds", lockKey, owner, currentTime / 1000 - startTime));
+                log.info(String.format("Lock %s owner %s acquired after %d seconds", lockKey, owner,
+                        (currentTime / 1000) - lockingStartedTimeSeconds));
             }
             // Sleep if we did not acquire the lock and want to block
             else if (maxWaitSeconds > 0) {
@@ -190,7 +195,7 @@ public class DistributedOwnerLockServiceImpl implements DistributedOwnerLockServ
                     log.error(ex.getMessage(), ex);
                 }
             }
-            waitTime = System.currentTimeMillis() / 1000 - startTime;
+            waitTime = (System.currentTimeMillis() / 1000) - lockingStartedTimeSeconds;
         } while (!acquired && waitTime < maxWaitSeconds);
         if (!acquired && maxWaitSeconds > 0 && waitTime >= maxWaitSeconds) {
             log.info("Timeout waiting on lock: " + lockKey + " owner: " + owner);
@@ -301,7 +306,7 @@ public class DistributedOwnerLockServiceImpl implements DistributedOwnerLockServ
     /**
      * Return the path for the owner
      * 
-     * @param lockKey
+     * @param owner
      * @return
      */
     private String getOwnerPath(String owner) {

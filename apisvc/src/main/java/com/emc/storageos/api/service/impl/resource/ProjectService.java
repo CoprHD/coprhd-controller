@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
@@ -41,6 +42,7 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.NasCifsServer;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -836,8 +838,8 @@ public class ProjectService extends TaggedResource {
         StringSet validNas = new StringSet();
         if (vNasIds != null && !vNasIds.isEmpty() && project != null) {
 
-            // Get list of domain associated with the project
-            Set<String> projectDomain = new HashSet<String>();
+            // Get list of domains associated with the project
+            Set<String> projectDomains = new HashSet<String>();
             NamedURI tenantUri = project.getTenantOrg();
             TenantOrg tenant = _permissionsHelper.getObjectById(tenantUri, TenantOrg.class);
             if (tenant != null && tenant.getUserMappings() != null) {
@@ -845,7 +847,7 @@ public class ProjectService extends TaggedResource {
                     for (String existingMapping : userMappingSet) {
                         UserMappingParam userMap = BasePermissionsHelper.UserMapping.toParam(
                                 BasePermissionsHelper.UserMapping.fromString(existingMapping));
-                        projectDomain.add(userMap.getDomain());
+                        projectDomains.add(userMap.getDomain());
                     }
                 }
             }
@@ -858,25 +860,41 @@ public class ProjectService extends TaggedResource {
                 // VNAS server should not associated with any project and should be in loaded state
                 if (vnas.getProject() == null && vnas.getVNasState().equalsIgnoreCase(vNasState.LOADED.getNasState())) {
 
-                    StringSet vnasDomain = vnas.getStorageDomain();
+                    // Get list of domains associated with a VNAS server and validate with project's domain
+                    boolean domainMatched = false;
+                    Set<Entry<String, NasCifsServer>> nasCifsServers = vnas.getCifsServersMap().entrySet();
+                    for (Entry<String, NasCifsServer> nasCifsServer : nasCifsServers) {
+                        NasCifsServer cifsServer = nasCifsServer.getValue();
+                        if (projectDomains.contains(cifsServer.getDomain())) {
+                            domainMatched = true;
+                            break;
+                        }
+                    }
 
-                    // Get list of file systems and associated project of VNAS server
+                    // Get list of file systems and associated project of VNAS server and validate with Project
                     URIQueryResultList fsList = new URIQueryResultList();
                     boolean projectMatched = true;
-                    _dbClient.queryByConstraint(
-                            ContainmentConstraint.Factory.getStorageDeviceFileshareConstraint(vnas.getStorageDeviceURI()), fsList);
-                    Iterator<URI> fsItr = fsList.iterator();
-                    while (fsItr.hasNext()) {
-                        FileShare fileShare = _dbClient.queryObject(FileShare.class, fsItr.next());
-                        if (fileShare != null && !fileShare.getInactive() && !fileShare.getProject().equals(project)) {
-                            projectMatched = false;
+                    for (String storagePort : vnas.getStoragePorts()) {
+                        _dbClient.queryByConstraint(
+                                ContainmentConstraint.Factory.getStoragePortFileshareConstraint(URI.create(storagePort)), fsList);
+                        Iterator<URI> fsItr = fsList.iterator();
+                        while (fsItr.hasNext()) {
+                            FileShare fileShare = _dbClient.queryObject(FileShare.class, fsItr.next());
+                            if (fileShare != null && !fileShare.getInactive() && !fileShare.getProject().equals(project)) {
+                                projectMatched = false;
+                                break;
+                            }
+                        }
+                        if (!projectMatched) {
                             break;
                         }
                     }
 
                     // VNAS server and project should be in same domain
                     // VNAS server should not have file systems associated to a different project
-                    if (projectDomain.contains(vnasDomain) && projectMatched) {
+                    if (projectDomains != null && projectDomains.isEmpty()) {
+                        validNas.add(id);
+                    } else if (domainMatched && projectMatched) {
                         validNas.add(id);
                     }
                 }

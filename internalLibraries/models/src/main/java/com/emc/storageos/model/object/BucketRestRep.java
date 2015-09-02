@@ -48,7 +48,7 @@ public class BucketRestRep extends DataObjectRestRep {
      * 
      * @valid none
      */
-    @XmlElement(name = "softQuota")
+    @XmlElement(name = "soft_quota")
     public String getSoftQuota() {
         return softQuota;
     }
@@ -62,7 +62,7 @@ public class BucketRestRep extends DataObjectRestRep {
      * 
      * @valid none
      */
-    @XmlElement(name = "hardQuota")
+    @XmlElement(name = "hard_quota")
     public String getHardQuota() {
         return hardQuota;
     }

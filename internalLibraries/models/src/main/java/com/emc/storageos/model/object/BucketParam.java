@@ -55,7 +55,7 @@ public class BucketParam {
      * 
      * @valid none
      */
-    @XmlElement(required = true)
+    @XmlElement(required = true, name = "soft_quota")
     public String getSoftQuota() {
         return softQuota;
     }
@@ -69,7 +69,7 @@ public class BucketParam {
      * 
      * @valid none
      */
-    @XmlElement(required = true)
+    @XmlElement(required = true, name = "hard_quota")
     public String getHardQuota() {
         return hardQuota;
     }

@@ -1894,6 +1894,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             return report.toString();
         }
         
+        // NOTE: this method is totally ripped from this stackoverflow question:
+        // http://stackoverflow.com/questions/109383/how-to-sort-a-mapkey-value-on-the-values-in-java
+        // answer by Carter Page (http://stackoverflow.com/users/309596/carter-page)
         public <K, V extends Comparable<? super V>> Map<K, V> sortByValue( Map<K, V> map )
         {
             List<Map.Entry<K, V>> list =

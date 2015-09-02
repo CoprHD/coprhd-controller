@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
@@ -861,21 +862,26 @@ public class VplexBackendIngestionContext {
             fields.add("volumeInformation");
             allUnmanagedVolumes = _dbClient.queryIterativeObjectFields(UnManagedVolume.class, fields, ids);
         } catch (Throwable t) {
-            // TODO: remove this, but having trouble with dbclient not logging in testing
+            // TODO: remove this, but having trouble with dbclient not logging errors in testing
             _logger.error("Throwable caught!!!!!!!!!!!!!! ");
             _logger.error("Throwable caught: " + t.toString());
         }
         if (null != allUnmanagedVolumes) {
             while (allUnmanagedVolumes.hasNext()) {
-                UnManagedVolume vol = allUnmanagedVolumes.next();
-                if (vol.getStorageSystemUri().equals(vplexUri)) {
-                    String supportingDeviceName = 
-                            extractValueFromStringSet(
-                                    SupportedVolumeInformation.VPLEX_SUPPORTING_DEVICE_NAME.toString(), 
-                                    vol.getVolumeInformation());
-                    if (null != supportingDeviceName) {
-                        deviceToUnManagedVolumeMap.put(supportingDeviceName, vol.getId());
+                try {
+                    UnManagedVolume vol = allUnmanagedVolumes.next();
+                    if (vol.getStorageSystemUri().equals(vplexUri)) {
+                        String supportingDeviceName = 
+                                extractValueFromStringSet(
+                                        SupportedVolumeInformation.VPLEX_SUPPORTING_DEVICE_NAME.toString(), 
+                                        vol.getVolumeInformation());
+                        if (null != supportingDeviceName) {
+                            deviceToUnManagedVolumeMap.put(supportingDeviceName, vol.getId());
+                        }
                     }
+                } catch (NoSuchElementException ex) {
+                    _logger.warn("for some reason the database returned nonsense: " 
+                                + ex.getLocalizedMessage());
                 }
             }
         } else {

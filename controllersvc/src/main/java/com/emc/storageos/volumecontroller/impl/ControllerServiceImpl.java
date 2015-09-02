@@ -547,26 +547,30 @@ public class ControllerServiceImpl implements ControllerService {
     }
 
     private void startLockQueueService() {
+        // Configure coordinator with the owner lock around-hook.
         DistributedAroundHook aroundHook = _distributedOwnerLockService.getDistributedOwnerLockAroundHook();
         _coordinator.setDistributedOwnerLockAroundHook(aroundHook);
 
+        // Start lock queue task consumer, for sending queued requests back to the Dispatcher
         _controlRequestTaskConsumer.start();
+        // Gets a started lock queue manager
         _lockQueueManager = _coordinator.getLockQueue(_controlRequestTaskConsumer);
 
+        // Set lock queue manager where appropriate
         _dispatcher.setLockQueueManager(_lockQueueManager);
         _distributedOwnerLockService.setLockQueueManager(_lockQueueManager);
 
-        // TODO Spring config
+        // Configure how lock queue manager should generate item names.
         _lockQueueManager.setNameGenerator(new ControlRequestLockQueueItemName());
 
-        // TODO Spring config
+        // Configure lock queue scheduler
         DistributedLockQueueScheduler dlqScheduler = new DistributedLockQueueScheduler();
         dlqScheduler.setCoordinator(_coordinator);
         dlqScheduler.setLockQueue(_lockQueueManager);
         dlqScheduler.setValidator(new OwnerLockValidator(_distributedOwnerLockService));
         dlqScheduler.start();
 
-        // TODO Spring config
+        // Configure lock queue listeners
         ControlRequestLockQueueListener controlRequestLockQueueListener = new ControlRequestLockQueueListener();
         controlRequestLockQueueListener.setDbClient(_dbClient);
         controlRequestLockQueueListener.setWorkflowService(_workflowService);

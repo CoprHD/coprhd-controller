@@ -13,31 +13,31 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
-import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
-import com.emc.storageos.db.client.model.Project;
-import com.emc.storageos.db.client.model.StorageProtocol;
-import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
-import com.emc.storageos.db.client.model.VirtualNAS.vNasState;
+import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * StorageScheduler service for block and file storage. StorageScheduler is done
@@ -483,7 +483,7 @@ public class FileStorageScheduler {
 						virtualNAS.getRegistrationStatus())
 				|| !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
 						.equals(virtualNAS.getCompatibilityStatus())
-				|| !vNasState.LOADED.name().equals(virtualNAS.getVNasState())
+				|| !VirtualNasState.LOADED.getNasState().equals(virtualNAS.getVNasState())
 				|| !DiscoveryStatus.VISIBLE.name().equals(
 						virtualNAS.getDiscoveryStatus())) {
 			return false;

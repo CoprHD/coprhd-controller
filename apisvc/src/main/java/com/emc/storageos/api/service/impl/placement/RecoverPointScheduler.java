@@ -1230,19 +1230,9 @@ public class RecoverPointScheduler implements Scheduler {
    						secondaryRecommendationSolution = false;
 
    						// Get the candidate secondary cluster source pools - sets secondarySourcePoolURIs.
-   						List<Recommendation> secondaryPoolsRecommendation = new ArrayList<Recommendation>();
-   						if (vpoolChangeVolume != null) {
-   							// If this is a change vpool operation, the source has already been placed and there is only 1
-   							// valid pool for the secondary side, the existing one. This is just to used to pass through the placement code.
-   							URI existingSecondarySourcePoolUri = candidateStandbySourcePools.iterator().next().getId();
-   							_log.info(String.format("RP Placement : Secondary Source Pool already exists, reuse pool: [%s].", 
-   									existingSecondarySourcePoolUri.toString()));
-   							standbySourcePoolUris.add(existingSecondarySourcePoolUri);
-   						} else {
-   							secondaryPoolsRecommendation = getRecommendedPools(rpProtectionRecommendation, haVarray, haVpool, null, null, 
-   																capabilities, null, RPHelper.TARGET, null);
-   						}                        	    
-
+   						List<Recommendation> secondaryPoolsRecommendation = getRecommendedPools(rpProtectionRecommendation, haVarray, haVpool, null, null, 
+   																				capabilities, null, RPHelper.TARGET, null);
+   			
    						secondaryPlacementStatus.setSrcVArray(haVarray.getLabel());
    						secondaryPlacementStatus.setSrcVPool(haVpool.getLabel());
 

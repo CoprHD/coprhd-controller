@@ -39,13 +39,14 @@ public class StorageSystemTypes {
 
     public static final String[] BLOCK_TYPES = { VMAX, VNX_BLOCK, VPLEX, HITACHI, OPENSTACK, SCALEIO, SCALEIOAPI, XTREMIO, VNXe, IBMXIV };
     public static final String[] FILE_TYPES = { ISILON, VNX_FILE, NETAPP, DATA_DOMAIN, VNXe, NETAPPC };
-    public static final String[] STORAGE_PROVIDER_TYPES = { VMAX, VNX_BLOCK, HITACHI, VPLEX, OPENSTACK, SCALEIO, SCALEIOAPI, DATA_DOMAIN, IBMXIV };
+    public static final String[] STORAGE_PROVIDER_TYPES = { VMAX, VNX_BLOCK, HITACHI, VPLEX, OPENSTACK, SCALEIO, SCALEIOAPI, DATA_DOMAIN, IBMXIV, XTREMIO };
     public static final String[] NON_SMIS_TYPES = { ISILON, VNX_FILE, NETAPP, XTREMIO, VNXe, NETAPPC };
 
     public static final StringOption[] OPTIONS = {
             option(ISILON),
             option(VNX_FILE),
             option(NETAPP),
+            option(XTREMIO),
             option(VNXe),
             option(NETAPPC),
             new StringOption(VMAX, getDisplayValue(STORAGE_PROVIDER_VMAX)),

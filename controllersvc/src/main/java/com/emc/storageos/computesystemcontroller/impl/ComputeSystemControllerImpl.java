@@ -913,7 +913,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 Host host = _dbClient.queryObject(Host.class, deletedHost);
                 if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
                     Cluster cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
-                    if (!cluster.isAutoExportEnabled()) {
+                    if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId()) && !cluster.isAutoExportEnabled()) {
                         _log.info(String.format("Unable to delete host %s. Belongs to cluster %s which has auto export disabled.",
                                 host.getId(),
                                 cluster.getId()));
@@ -956,11 +956,9 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                                 newInitiatorObjects);
                         Collection<URI> validInitiatorIds = Collections2.transform(validInitiators,
                                 CommonTransformerFunctions.fctnDataObjectToID());
-                        if (currentClusterRef != null) {
-                            if (currentClusterRef.isAutoExportEnabled()) {
-                                egh.addInitiators(validInitiatorIds);
-                                egh.removeInitiators(change.getOldInitiators());
-                            }
+                        if (currentClusterRef != null && currentClusterRef.isAutoExportEnabled()) {
+                            egh.addInitiators(validInitiatorIds);
+                            egh.removeInitiators(change.getOldInitiators());
                         }
                     }
                 }
@@ -971,7 +969,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         && ComputeSystemHelper.isClusterInExport(_dbClient, oldCluster);
 
                 // being removed from a cluster and no longer in a cluster
-                if (isRemovedFromCluster && !oldClusterRef.isAutoExportEnabled()) {
+                if (isRemovedFromCluster && oldClusterRef.isAutoExportEnabled()) {
                     for (ExportGroup export : getSharedExports(oldCluster)) {
                         ExportGroupState egh = getExportGroupState(exportGroups, export);
                         _log.info("Host removed from cluster and no longer in a cluster. Export: " + export.getId() + " Remove Host: "
@@ -991,7 +989,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             && (ComputeSystemHelper.isClusterInExport(_dbClient, oldCluster)
                             || ComputeSystemHelper.isClusterInExport(_dbClient, currentCluster));
 
-                    if ((isAddedToCluster || isMovedToDifferentCluster) && currentClusterRef.isAutoExportEnabled()) {
+                    if ((isAddedToCluster && currentClusterRef.isAutoExportEnabled())
+                            || (isMovedToDifferentCluster && currentClusterRef.isAutoExportEnabled() && oldClusterRef.isAutoExportEnabled())) {
                         for (ExportGroup export : getSharedExports(currentCluster)) {
                             ExportGroupState egh = getExportGroupState(exportGroups, export);
                             _log.info("Non-clustered being added to a cluster. Export: " + export.getId() + " Add Host: " + hostId
@@ -1005,7 +1004,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                         }
                     }
 
-                    if (isMovedToDifferentCluster && oldClusterRef.isAutoExportEnabled()) {
+                    if (isMovedToDifferentCluster && (oldClusterRef.isAutoExportEnabled() && currentClusterRef.isAutoExportEnabled())) {
                         for (ExportGroup export : getSharedExports(oldCluster)) {
                             ExportGroupState egh = getExportGroupState(exportGroups, export);
                             _log.info("Removing references to previous cluster. Export: " + export.getId() + " Remove Host: " + hostId

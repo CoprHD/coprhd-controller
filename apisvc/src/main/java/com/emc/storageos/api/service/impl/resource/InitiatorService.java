@@ -37,12 +37,14 @@ import com.emc.storageos.api.service.impl.response.SearchedResRepList;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.util.EndpointUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -179,9 +181,13 @@ public class InitiatorService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Initiator.class, initiator.getId(), taskId,
                 ResourceOperationTypeEnum.DELETE_INITIATOR);
 
+        Cluster cluster = getInitiatorCluster(initiator);
+
         if (ComputeSystemHelper.isInitiatorInUse(_dbClient, id.toString())) {
-            ComputeSystemController controller = getController(ComputeSystemController.class, null);
-            controller.removeInitiatorFromExport(initiator.getHost(), initiator.getId(), taskId);
+            if (cluster == null || cluster.isAutoExportEnabled()) {
+                ComputeSystemController controller = getController(ComputeSystemController.class, null);
+                controller.removeInitiatorFromExport(initiator.getHost(), initiator.getId(), taskId);
+            }
         } else {
             _dbClient.ready(Initiator.class, initiator.getId(), taskId);
             _dbClient.markForDeletion(initiator);
@@ -373,6 +379,17 @@ public class InitiatorService extends TaskResourceService {
             Host host = queryObject(Host.class, initiator.getHost(), false);
             verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
         }
+    }
+
+    private Cluster getInitiatorCluster(Initiator initiator) {
+        URI hostId = initiator.getHost();
+        Cluster cluster = null;
+        if (!NullColumnValueGetter.isNullURI(hostId)) {
+            Host host = _dbClient.queryObject(Host.class, hostId);
+            URI clusterId = host.getCluster();
+            cluster = _dbClient.queryObject(Cluster.class, clusterId);
+        }
+        return cluster;
     }
 
     /**

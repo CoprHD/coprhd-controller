@@ -297,14 +297,11 @@ public class HostService extends TaskResourceService {
                     && !NullColumnValueGetter.isNullURI(host.getCluster())
                     && !oldClusterURI.equals(host.getCluster())
                     && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
-                    || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))) {
+                    || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))
+                    && (oldCluster != null && oldCluster.isAutoExportEnabled()
+                            && newCluster != null && newCluster.isAutoExportEnabled())) {
                 // Clustered host being moved to another cluster
-                if (oldCluster != null && !oldCluster.isAutoExportEnabled()) {
-                    // Don't unexport from the old cluster
-                    controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, null);
-                } else {
-                    controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI);
-                }
+                controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI);
             } else {
                 ComputeSystemHelper.updateInitiatorClusterName(_dbClient, host.getCluster(), host.getId());
             }
@@ -705,7 +702,7 @@ public class HostService extends TaskResourceService {
 
         // if host in use. update export with new initiator
         if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId())
-                && (cluster != null && cluster.isAutoExportEnabled())) {
+                && (cluster == null || cluster.isAutoExportEnabled())) {
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
             controller.addInitiatorsToExport(initiator.getHost(), Arrays.asList(initiator.getId()), taskId);
         } else {

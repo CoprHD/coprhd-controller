@@ -1237,7 +1237,7 @@ public class RPHelper {
      * returns the list of copies residing on the standby varray given the active production volume in a
      * Metropoint environment
      * 
-     * @param volume the active produciton volume
+     * @param volume the active production volume
      * @return
      */
     public List<Volume> getMetropointStandbyCopies(Volume volume) {

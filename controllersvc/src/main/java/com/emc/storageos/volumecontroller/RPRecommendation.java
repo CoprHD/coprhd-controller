@@ -22,6 +22,9 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.MetroPointType;
 
+/*
+ * Represents recommendation for an RP protected volume.  
+ */
 @SuppressWarnings("serial")
 public class RPRecommendation extends Recommendation {
     public static enum ProtectionType {
@@ -100,6 +103,7 @@ public class RPRecommendation extends Recommendation {
 	}
 		
 	/**
+	 * Returns true of the specified internal site is already part of this recommendation
 	 * @param destInternalSiteName
 	 * @return
 	 */
@@ -151,8 +155,7 @@ public class RPRecommendation extends Recommendation {
     		}
     	}
     	
-    	RPRecommendation secondaryRecommendation = null;
-    	
+    	RPRecommendation secondaryRecommendation = null;    	
     	if (this.getHaRecommendation() != null ) {
     		// There will only ever be 1 secondary recommendation in a MetroPoint case.
         	secondaryRecommendation = 
@@ -197,7 +200,8 @@ public class RPRecommendation extends Recommendation {
     	if (secondaryLocalCopyCount == 1) {
     		secondaryLocalCopy = true;
     	}
-    	
+    	    	    	
+    	metroPointType = MetroPointType.INVALID;    	
     	if (singleRemoteCopy && primaryLocalCopy && secondaryLocalCopy) {
     		metroPointType = MetroPointType.TWO_LOCAL_REMOTE;
     	} else if (singleRemoteCopy && 
@@ -207,9 +211,7 @@ public class RPRecommendation extends Recommendation {
     		metroPointType = MetroPointType.SINGLE_REMOTE;
     	} else if (!singleRemoteCopy && primaryLocalCopy && secondaryLocalCopy) {
     		metroPointType = MetroPointType.LOCAL_ONLY;
-    	} else {
-    		metroPointType = MetroPointType.INVALID;
-    	}
+    	} 
     	
     	return metroPointType;
 	}
@@ -229,36 +231,39 @@ public class RPRecommendation extends Recommendation {
     			printTabs += TAB;
     		}
     	}
-    	
-		final String SPACE = " ";
+   	    			
 		VirtualArray varray = dbClient.queryObject(VirtualArray.class, getVirtualArray());
 		VirtualPool vpool = getVirtualPool();
 		StoragePool storagePool = dbClient.queryObject(StoragePool.class, getSourceStoragePool());
 		StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, getSourceStorageSystem());		
-		buff.append(printTabs + "Resource Count	: " + this.getResourceCount() + "\n");
+		buff.append(printTabs + String.format("Resource Count	: %s %n", this.getResourceCount()));
 		String siteName = ((ps.getRpSiteNames() != null) ? ps.getRpSiteNames().get(this.getInternalSiteName()) : "");	
 		String siteId =  this.getInternalSiteName();
 		if (this.getInternalSiteName() == null) {
 			siteName = "(no RP protection specified)";
 			siteId = "";
 		}
-		buff.append(printTabs +"Internal Site	: " + siteName + SPACE + siteId + "\n");
-		buff.append(printTabs + "Virtual Array 	: " + varray.getLabel() + "\n");
-		buff.append(printTabs + "Virtual Pool  	: " + vpool.getLabel() + "\n");
+		buff.append(printTabs + String.format("Internal Site	: %s %s %n", siteName, siteId));
+		buff.append(printTabs + String.format("Virtual Array 	: %s %n", varray.getLabel()));
+		buff.append(printTabs + String.format("Virtual Pool  	: %s %n", vpool.getLabel()));
 		if (virtualVolumeRecommendation != null && virtualVolumeRecommendation.getVPlexStorageSystem() != null) {
-			StorageSystem vplexStorageSystem = dbClient.queryObject(StorageSystem.class, virtualVolumeRecommendation.getVPlexStorageSystem());
-			buff.append(printTabs + "VPLEX Storage	: " + vplexStorageSystem.getLabel() + "\n");
+			StorageSystem vplexStorageSystem = dbClient.queryObject(StorageSystem.class, 
+					virtualVolumeRecommendation.getVPlexStorageSystem());
+			buff.append(printTabs + String.format("VPLEX Storage	: %s %n", vplexStorageSystem.getLabel()));
 		}
-		buff.append(printTabs + "Storage Pool 	: " + storagePool.getLabel() + "\n");
-		buff.append(printTabs + "Storage System	: " + storageSystem.getLabel() + "\n");				
-		buff.append("----------------------\n");
-		
+		buff.append(printTabs + String.format("Storage Pool 	: %s %n", storagePool.getLabel()));
+		buff.append(printTabs + String.format("Storage System	: %s %n", storageSystem.getLabel()));				
+		buff.append(String.format("----------------------%n"));
+
 		if (this.getHaRecommendation() != null) {
-			buff.append(printTabs + "High Availability Recommendation :" + "\n");
+			buff.append(printTabs + String.format("High Availability Recommendation : %n"));
 			buff.append(getHaRecommendation().toString(dbClient, ps, 1));
-			if (this.getHaRecommendation().getTargetRecommendations() != null && !this.getHaRecommendation().getTargetRecommendations().isEmpty()){
-				buff.append(printTabs + "HA target :" + "\n");
-				buff.append(this.getHaRecommendation().getTargetRecommendations().get(0).toString(dbClient, ps, 1));
+			if (this.getHaRecommendation().getTargetRecommendations() != null && 
+						!this.getHaRecommendation().getTargetRecommendations().isEmpty()){
+				buff.append(printTabs + String.format("High Availability Target : %n"));
+				for(RPRecommendation haTargetRec : this.getHaRecommendation().getTargetRecommendations()) {
+					buff.append(String.format("%s", haTargetRec.toString(dbClient, ps, 1)));
+				}
 			}
 		}
 		return buff.toString();

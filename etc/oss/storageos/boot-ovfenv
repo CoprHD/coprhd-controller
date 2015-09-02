@@ -75,21 +75,6 @@ _setBootmodeFlag() {
    touch ${run_root_dir}/bootmode_normal
 }
 
-# Generate the unique site_id
-# To generate the same unique site_id on all nodes,
-# We choose to use the SHA1 checksums as the site id
-# The input to generate the checksum is network_vip or network_vip6 (if network_vip is not set)
-_gen_site_id() {
-    seed=$(/etc/systool --getprops | grep 'network_vip=')
-    seed=${seed##*=}
-    if [ "${vip}" == "" ] ; then
-       seed=$(/etc/systool --getprops | grep 'network_vip6=')
-    fi
-
-    local site_id=$(echo "${seed}" | /usr/bin/sha1sum | /usr/bin/cut -d ' ' -f 1)
-    echo "${site_id}"
-}
-
 case ${1} in
     start|restart|reload)
         echo -n "Initializing storageos environment variables"
@@ -104,14 +89,7 @@ case ${1} in
         rc_status -v
         echo -n "Generating configuration files"
         /etc/systool --getprops | /etc/genconfig --test 2>>/var/log/genconfig.log || rc_failed 1
-
         rc_status -v
-
-        site_id_file="/data/mysite-id"
-        if [ ! -f "${site_id_file}" ] ; then
-            site_id=$(_gen_site_id)
-            echo "${site_id}" > ${site_id_file}
-        fi
         ;;
     stop|status)
         rc_failed 0

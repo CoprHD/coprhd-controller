@@ -5,6 +5,8 @@
 
 package com.emc.storageos.db.client.model;
 
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.collectionString;
+
 import java.net.URI;
 import java.util.Collection;
 import java.util.HashSet;
@@ -15,8 +17,6 @@ import java.util.Set;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.google.common.collect.Collections2;
-
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.collectionString;
 
 /**
  * Export mask on a storage-system - represents a lun masking setup on a storage system.
@@ -414,6 +414,7 @@ public class ExportMask extends DataObject {
     }
 
     @Name("existingInitiators")
+    @AlternateId("ExportMaskExistingInitiators")
     public StringSet getExistingInitiators() {
         return _existingInitiators;
     }

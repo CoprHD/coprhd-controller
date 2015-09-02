@@ -1962,6 +1962,27 @@ public class SmisCommandHelper implements SmisConstants {
     }
 
     /**
+     * Helper method to set/unset the volume with the "RecoverPoint" tag.
+     * The boolean parameter flag determines if the operation is to set or unset the flag on the volume.
+     *
+     * @param storageSystem
+     * @param volume
+     * @param flag
+     * @throws Exception
+     */
+    public void doApplyRecoverPointTag(final StorageSystem storageSystem,
+            Volume volume, boolean flag) throws Exception {
+        // Set/Unset the RP tag (if applicable)
+        if (volume.checkForRp() && storageSystem.getSystemType() != null
+                && storageSystem.getSystemType().equalsIgnoreCase(DiscoveredDataObject.Type.vmax.toString())) {
+            List<CIMObjectPath> volumePathList = new ArrayList<CIMObjectPath>();
+            volumePathList.add(_cimPath.getBlockObjectPath(storageSystem, volume));
+
+            setRecoverPointTag(storageSystem, volumePathList, flag);
+        }
+    }
+
+    /**
      * Method will add or remove the EMCRecoverPointEnabled flag from the device masking group for
      * VMAX.
      *

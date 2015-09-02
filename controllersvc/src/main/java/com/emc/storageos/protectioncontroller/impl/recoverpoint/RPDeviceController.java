@@ -10,6 +10,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collection;
 import java.util.Date;
@@ -62,6 +63,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.VirtualPool.SystemType;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
@@ -156,6 +158,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     // Various steps for workflows
     private static final String STEP_CG_CREATION = "cgCreation";
     private static final String STEP_CG_UPDATE = "cgUpdate";
+
     private static final String STEP_EXPORT_GROUP = "exportGroup";
     private static final String STEP_DV_REMOVE_CG = "dvRemoveCG";
     private static final String STEP_DV_REMOVE_VOLUME_EXPORT = "dvRemoveVolumeExport";
@@ -170,6 +173,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     private static final String STEP_PRE_VOLUME_EXPAND = "preVolumeExpand";
     private static final String STEP_POST_VOLUME_EXPAND = "postVolumeExpand";
+
+    private static final String STEP_PRE_VOLUME_RESTORE = "preVolumeRestore";
+    private static final String STEP_POST_VOLUME_RESTORE = "postVolumeRestore";
 
     // Methods in the create workflow. Constants helps us avoid step dependency flubs.
     private static final String METHOD_CG_CREATE_STEP = "cgCreateStep";
@@ -191,6 +197,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     // Methods in the export group remove volume workflow
     private static final String METHOD_DISABLE_IMAGE_ACCESS_SINGLE_STEP = "disableImageAccessSingleStep";
+
+    // Methods in restore volume from snapshot workflow
+    private static final String METHOD_RESTORE_VOLUME_STEP = "restoreVolume";
 
     // Methods in the expand volume workflow
     private static final String METHOD_DELETE_RSET_STEP = "deleteRSetStep";
@@ -222,6 +231,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String STEP_EXPORT_ORCHESTRATION = "exportOrchestration";
 
     private static final String EXPORT_ORCHESTRATOR_WF_NAME = "RP_EXPORT_ORCHESTRATION_WORKFLOW";
+    private static final String ROLLBACK_METHOD_NULL = "rollbackMethodNull";
 
     private static DbClient _dbClient = null;
     protected CoordinatorClient _coordinator;
@@ -2085,24 +2095,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupCreate()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to create an export based on
      * a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportgroupID The export group
-     * 
+     *
      * @param snapshots snapshot list
-     * 
+     *
      * @param initatorURIs initiators to send to the block controller
-     * 
+     *
      * @param token The task object
      */
     @Override
@@ -2286,19 +2296,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportGroupDelete()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to delete an export group.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Call the block controller to delete the export of the target volumes
      * - Disable the bookmarks associated with the snapshots.
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportgroupID The export group
-     * 
+     *
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -2411,15 +2421,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * Method that adds the steps to the workflow to disable image access (for BLOCK snapshots)
-     * 
+     *
      * @param workflow Workflow
-     * 
+     *
      * @param waitFor waitFor step id
-     * 
+     *
      * @param snapshots list of snapshot to disable
-     * 
+     *
      * @param rpSystem RP system
-     * 
+     *
      * @throws InternalException
      */
     private void addBlockSnapshotDisableImageAccessStep(Workflow workflow, String waitFor, List<URI> snapshots, ProtectionSystem rpSystem)
@@ -2587,24 +2597,24 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportAddVolume()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to add a volume to an export group
      * that is based on a Bourne Snapshot object associated with a RecoverPoint bookmark.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Enable the volumes to a specific bookmark.
      * - Call the block controller to export the target volume
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportGroupID The export group
-     * 
+     *
      * @param snapshot RP snapshot
-     * 
+     *
      * @param lun HLU
-     * 
+     *
      * @param token The task object associated with the volume creation task that we piggy-back our events on
      */
     @Override
@@ -2702,21 +2712,21 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * RPDeviceController.exportRemoveVolume()
-     * 
+     *
      * This method is a mini-orchestration of all of the steps necessary to remove an RP volume from an export group.
-     * 
+     *
      * This controller does not service block devices for export, only RP bookmark snapshots.
-     * 
+     *
      * The method is responsible for performing the following steps:
      * - Call the block controller to delete the export of the target volume
      * - Disable the bookmarks associated with the snapshot.
-     * 
+     *
      * @param protectionDevice The RP System used to manage the protection
-     * 
+     *
      * @param exportgroupID The export group
-     * 
+     *
      * @param snapshotID snapshot ID to remove
-     * 
+     *
      * @param token The task object
      */
     @Override
@@ -2904,7 +2914,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             ProtectionSystem rp = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
             String stepId = workflow.createStepId();
             Workflow.Method deleteRsetExecuteMethod = new Workflow.Method(METHOD_DELETE_RSET_STEP,
-                    rpSystem.getId(), volURI);
+                    rpSystem.getId(), Arrays.asList(volURI));
 
             workflow.createStep(STEP_PRE_VOLUME_EXPAND, "Pre volume expand, delete replication set subtask for RP: " + volURI.toString(),
                     null, rpSystem.getId(), rp.getSystemType(), this.getClass(),
@@ -2912,9 +2922,18 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
             _log.info("addPreVolumeExpandSteps Replication Set in workflow");
         }
+
         return STEP_PRE_VOLUME_EXPAND;
     }
 
+    /**
+     * Gets the replication settings from RP for a given volume.
+     *
+     * @param rpSystem the RecoverPoint system.
+     * @param volumeId the volume ID.
+     * @return the replication set params to perform a recreate operation
+     * @throws RecoverPointException
+     */
     private RecreateReplicationSetRequestParams getReplicationSettings(ProtectionSystem rpSystem, URI volumeId)
             throws RecoverPointException {
         RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);
@@ -2951,12 +2970,16 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         for (VolumeDescriptor descriptor : volumeDescriptorsTypeFilter) {
             Volume volume = _dbClient.queryObject(Volume.class, descriptor.getVolumeURI());
             ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
-            // Get the replication set settings
-            RecreateReplicationSetRequestParams rsetParams = getReplicationSettings(rpSystem, volume.getId());
+
+            Map<String, RecreateReplicationSetRequestParams> rsetParams =
+                    new HashMap<String, RecreateReplicationSetRequestParams>();
+
+            RecreateReplicationSetRequestParams rsetParam = getReplicationSettings(rpSystem, volume.getId());
+            rsetParams.put(volume.getWWN(), rsetParam);
 
             String stepId = workflow.createStepId();
             Workflow.Method recreateRSetExecuteMethod = new Workflow.Method(METHOD_RECREATE_RSET_STEP,
-                    rpSystem.getId(), volume.getId(), rsetParams);
+                    rpSystem.getId(), Arrays.asList(volume.getId()), rsetParams);
 
             workflow.createStep(STEP_POST_VOLUME_EXPAND,
                     "Post volume Expand, Recreate replication set subtask for RP: " + volume.toString(),
@@ -2977,19 +3000,37 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @return
      * @throws InternalException
      */
-    public boolean deleteRSetStep(URI rpSystemId, URI volumeId, String token) throws InternalException {
-        Volume volume = _dbClient.queryObject(Volume.class, volumeId);
-
+    public boolean deleteRSetStep(URI rpSystemId, List<URI> volumeIds, String token) throws InternalException {
+        List<String> replicationSetNames = new ArrayList<String>();
         try {
+            List<RecoverPointVolumeProtectionInfo> volumeProtectionInfoList =
+                    new ArrayList<RecoverPointVolumeProtectionInfo>();
+
             ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
             RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);
-            RecoverPointVolumeProtectionInfo volumeProtectionInfo = rp.getProtectionInfoForVolume(volume.getWWN());
-            rp.deleteReplicationSet(volumeProtectionInfo);
+
+            for (URI volumeId : volumeIds) {
+                Volume volume = _dbClient.queryObject(Volume.class, volumeId);
+                RecoverPointVolumeProtectionInfo volumeProtectionInfo = rp.getProtectionInfoForVolume(volume.getWWN());
+                // Get the volume's source volume in order to determine if we are dealing with a MetroPoint
+                // configuration.
+                Volume sourceVolume = RPHelper.getRPSourceVolume(_dbClient, volume);
+                VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool());
+                // Set the MetroPoint flag
+                volumeProtectionInfo.setMetroPoint(VirtualPool.vPoolSpecifiesMetroPoint(virtualPool));
+                volumeProtectionInfoList.add(volumeProtectionInfo);
+
+                replicationSetNames.add(volume.getRSetName());
+            }
+
+            if (!volumeProtectionInfoList.isEmpty()) {
+                rp.deleteReplicationSets(volumeProtectionInfoList);
+            }
 
             // Update the workflow state.
             WorkflowStepCompleter.stepSucceded(token);
         } catch (Exception e) {
-            _log.error(String.format("deleteRSetStep Failed - Replication Set: %s", volume.getRSetName()));
+            _log.error(String.format("deleteRSetStep Failed - Replication Sets: %s", replicationSetNames.toString()));
             return stepFailed(token, e, "deleteRSetStep");
         }
         return true;
@@ -3004,26 +3045,34 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @return
      * @throws InternalException
      */
-    public boolean recreateRSetStep(URI rpSystemId, URI volumeId, RecreateReplicationSetRequestParams rsetParams, String token)
+    public boolean recreateRSetStep(URI rpSystemId, List<URI> volumeIds, Map<String, RecreateReplicationSetRequestParams> rsetParams,
+            String token)
             throws InternalException {
-        Volume volume = _dbClient.queryObject(Volume.class, volumeId);
+
+        List<String> replicationSetNames = new ArrayList<String>();
 
         try {
             ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
+
+            for (URI volumeId : volumeIds) {
+                Volume volume = _dbClient.queryObject(Volume.class, volumeId);
+                replicationSetNames.add(volume.getRSetName());
+            }
+
             RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);
-            _log.info("Sleeping for 15 seconds before rescanning bus to account for latencies after expanding volume");
+            _log.info("Sleeping for 15 seconds before rescanning bus to account for latencies.");
             try {
                 Thread.sleep(15000);
             } catch (InterruptedException e) {
                 _log.warn("Thread sleep interrupted.  Allowing to continue without sleep");
             }
 
-            rp.recreateReplicationSet(volume.getWWN(), rsetParams);
+            rp.recreateReplicationSets(rsetParams);
 
             // Update the workflow state.
             WorkflowStepCompleter.stepSucceded(token);
         } catch (Exception e) {
-            _log.error(String.format("recreateRSetStep Failed - Replication Set: %s", volume.getRSetName()));
+            _log.error(String.format("recreateRSetStep Failed - Replication Set(s): %s", replicationSetNames.toString()));
             return stepFailed(token, e, "recreateRSetStep");
         }
         return true;
@@ -3271,7 +3320,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.volumecontroller.RPController#stopProtection(java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
@@ -3668,7 +3717,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
     /*
      * (non-Javadoc)
-     * 
+     *
      * @see com.emc.storageos.protectioncontroller.RPController#createSnapshot(java.net.URI, java.net.URI, java.util.List,
      * java.lang.Boolean, java.lang.String)
      */
@@ -4029,11 +4078,279 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         return;
     }
 
+    /**
+     * Gets a list of volume IDs to be restored. If the snapshot corresponds to
+     * a consistency group, we must get all the volumes associated to other
+     * BlockSnapshots that share the same snapset label. Secondly, if the snapshot's
+     * parent volume is a VPlex backing volume, we must lookup the associated
+     * VPlex volume and use that.
+     *
+     * @param snapshot the snapshot to restore.
+     * @param volume the volume to be restored.
+     * @return a list of volume IDs to be restored.
+     */
+    private List<URI> getVolumesForRestore(BlockSnapshot snapshot, Volume volume) {
+        List<URI> volumeURIs = new ArrayList<URI>();
+
+        URI cgURI = snapshot.getConsistencyGroup();
+        if (NullColumnValueGetter.isNullURI(cgURI)) {
+            // If the snapshot is not in a CG, delete the replication set
+            // for only the requested volume.
+            volumeURIs.add(volume.getId());
+        } else {
+            // Otherwise, get all snapshots in the snapset, get the parent volume for each
+            // snapshot. If the parent is a VPlex backing volume, get the VLPEX volume
+            // using the snapshot parent.
+            List<BlockSnapshot> cgSnaps = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshot, _dbClient);
+            for (BlockSnapshot cgSnapshot : cgSnaps) {
+                URIQueryResultList queryResults = new URIQueryResultList();
+                _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                        .getVolumeByAssociatedVolumesConstraint(cgSnapshot.getParent().getURI()
+                                .toString()), queryResults);
+                URI vplexVolumeURI = queryResults.iterator().next();
+
+                if (vplexVolumeURI != null) {
+                    volumeURIs.add(vplexVolumeURI);
+                } else {
+                    volumeURIs.add(cgSnapshot.getParent().getURI());
+                }
+            }
+        }
+
+        return volumeURIs;
+    }
+
+    /**
+     * Adds the necessary RecoverPoint controller steps that need to be executed prior
+     * to restoring a volume from snapshot. The pre-restore step is required if we
+     * are restoring a native array snapshot of the following parent volumes:
+     * <ul>
+     * <li>A BlockSnapshot parent volume that is a regular RP source/target residing on a VMAX.</li>
+     * <li>A BlockSnapshot parent volume that is a backing volume to a VPlex distributed volume.</li>
+     * </ul>
+     *
+     * @param workflow the Workflow being constructed
+     * @param storageSystemURI the URI of storage controller
+     * @param volumeURI the URI of volume to be restored
+     * @param snapshotURI the URI of snapshot used for restoration
+     * @param taskId the top level operation's taskId
+     * @return A waitFor key that can be used by subsequent controllers to wait on
+     */
+    public String addPreRestoreVolumeSteps(Workflow workflow,
+            URI storageSystemURI, URI volumeURI, URI snapshotURI, String taskId) {
+
+        String waitFor = null;
+        BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+
+        // Only consider native snapshots
+        if (snapshot != null && NullColumnValueGetter.isNotNullValue(snapshot.getTechnologyType()) &&
+                snapshot.getTechnologyType().equals(TechnologyType.NATIVE.toString())) {
+
+            Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
+
+            if (volume != null && storageSystem != null) {
+                boolean vplexDistBackingVolume = false;
+                Volume associatedVPlexVolume =
+                        Volume.fetchVplexVolume(_dbClient, volume);
+                if (associatedVPlexVolume != null &&
+                        associatedVPlexVolume.getAssociatedVolumes() != null &&
+                        associatedVPlexVolume.getAssociatedVolumes().size() == 2) {
+                    vplexDistBackingVolume = true;
+                }
+
+                if (vplexDistBackingVolume) {
+                    volume = associatedVPlexVolume;
+                }
+
+                // Only add the pre-restore step if we are restoring a native snapshot who's parent
+                // volume is:
+                // 1 - A regular RP source/target residing on a VMAX.
+                // 2 - A backing volume to a VPlex distributed volume. Non-distributed VPlex volumes
+                // do not require this step because there is not cleanup on the VPlex required
+                // before performing the native block restore.
+                if (!NullColumnValueGetter.isNullURI(volume.getProtectionController()) &&
+                        (vplexDistBackingVolume ||
+                        (storageSystem != null && NullColumnValueGetter.isNotNullValue(storageSystem.getSystemType()) &&
+                        storageSystem.getSystemType().equals(SystemType.vmax.toString())))) {
+
+                    ProtectionSystem rpSystem = null;
+                    rpSystem = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
+                    if (rpSystem == null) {
+                        // Verify non-null storage device returned from the database client.
+                        throw DeviceControllerExceptions.recoverpoint.failedConnectingForMonitoring(volume.getProtectionController());
+                    }
+
+                    List<URI> volumeURIs = getVolumesForRestore(snapshot, volume);
+
+                    Map<String, RecreateReplicationSetRequestParams> rsetParams =
+                            new HashMap<String, RecreateReplicationSetRequestParams>();
+
+                    for (URI volumeId : volumeURIs) {
+                        Volume vol = _dbClient.queryObject(Volume.class, volumeId);
+                        RecreateReplicationSetRequestParams rsetParam = getReplicationSettings(rpSystem, vol.getId());
+                        rsetParams.put(vol.getWWN(), rsetParam);
+                    }
+
+                    String stepId = workflow.createStepId();
+                    Workflow.Method deleteRsetExecuteMethod = new Workflow.Method(METHOD_DELETE_RSET_STEP,
+                            rpSystem.getId(), volumeURIs);
+
+                    Workflow.Method recreateRSetExecuteMethod = new Workflow.Method(METHOD_RECREATE_RSET_STEP,
+                            rpSystem.getId(), volumeURIs, rsetParams);
+
+                    waitFor = workflow.createStep(STEP_PRE_VOLUME_RESTORE,
+                            "Pre volume restore from snapshot, delete replication set step for RP: " + volumeURI.toString(),
+                            null, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(),
+                            deleteRsetExecuteMethod, recreateRSetExecuteMethod, stepId);
+
+                    _log.info(String.format("Created workflow step to delete replication set for volume %s.", volume.getId().toString()));
+                }
+            }
+        }
+
+        return waitFor;
+    }
+
+    /**
+     * Adds the necessary RecoverPoint controller steps that need to be executed after
+     * restoring a volume from snapshot. The post-restore step is required if we
+     * are restoring a native array snapshot of the following parent volumes:
+     * <ul>
+     * <li>A BlockSnapshot parent volume that is a regular RP source/target residing on a VMAX.</li>
+     * <li>A BlockSnapshot parent volume that is a backing volume to a VPlex distributed volume.</li>
+     * </ul>
+     *
+     * @param workflow the Workflow being constructed
+     * @param storageSystemURI the URI of storage controller
+     * @param volumeURI the URI of volume to be restored
+     * @param snapshotURI the URI of snapshot used for restoration
+     * @param taskId the top level operation's taskId
+     * @return A waitFor key that can be used by subsequent controllers to wait on
+     */
+    public String addPostRestoreVolumeSteps(Workflow workflow,
+            String waitFor, URI storageSystemURI, URI volumeURI, URI snapshotURI, String taskId) {
+
+        BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+
+        // Only consider native snapshots
+        if (snapshot != null && NullColumnValueGetter.isNotNullValue(snapshot.getTechnologyType()) &&
+                snapshot.getTechnologyType().equals(TechnologyType.NATIVE.name())) {
+
+            Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
+
+            if (volume != null && storageSystem != null) {
+                boolean vplexDistBackingVolume = false;
+                Volume associatedVPlexVolume =
+                        Volume.fetchVplexVolume(_dbClient, volume);
+                if (associatedVPlexVolume != null &&
+                        associatedVPlexVolume.getAssociatedVolumes() != null &&
+                        associatedVPlexVolume.getAssociatedVolumes().size() == 2) {
+                    vplexDistBackingVolume = true;
+                }
+
+                if (vplexDistBackingVolume) {
+                    volume = associatedVPlexVolume;
+                }
+
+                // Only add the pre-restore step if we are restoring a native snapshot who's parent
+                // volume is:
+                // 1 - A regular RP source/target residing on a VMAX.
+                // 2 - A backing volume to a VPlex distributed volume
+                if (!NullColumnValueGetter.isNullURI(volume.getProtectionController()) &&
+                        (vplexDistBackingVolume ||
+                        (storageSystem != null && NullColumnValueGetter.isNotNullValue(storageSystem.getSystemType()) &&
+                        storageSystem.getSystemType().equals(SystemType.vmax.name())))) {
+
+                    ProtectionSystem rpSystem = null;
+                    rpSystem = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
+                    if (rpSystem == null) {
+                        // Verify non-null storage device returned from the database client.
+                        throw DeviceControllerExceptions.recoverpoint.failedConnectingForMonitoring(volume.getProtectionController());
+                    }
+
+                    List<URI> volumeURIs = getVolumesForRestore(snapshot, volume);
+
+                    Map<String, RecreateReplicationSetRequestParams> rsetParams =
+                            new HashMap<String, RecreateReplicationSetRequestParams>();
+
+                    for (URI volumeId : volumeURIs) {
+                        Volume vol = _dbClient.queryObject(Volume.class, volumeId);
+                        RecreateReplicationSetRequestParams rsetParam = getReplicationSettings(rpSystem, vol.getId());
+                        rsetParams.put(vol.getWWN(), rsetParam);
+                    }
+
+                    String stepId = workflow.createStepId();
+                    Workflow.Method recreateRSetExecuteMethod = new Workflow.Method(METHOD_RECREATE_RSET_STEP,
+                            rpSystem.getId(), volumeURIs, rsetParams);
+
+                    waitFor = workflow.createStep(STEP_POST_VOLUME_RESTORE,
+                            "Post volume restore from snapshot, re-create replication set step for RP: " + volume.toString(),
+                            waitFor, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(),
+                            recreateRSetExecuteMethod, rollbackMethodNullMethod(), stepId);
+
+                    _log.info(String.format("Created workflow step to re-create replication set for volume %s.", volume.getId().toString()));
+                }
+            }
+        }
+
+        return waitFor;
+    }
+
     @Override
-    public void restoreVolume(URI protectionDevice, URI storageDevice, URI snapshotID, String opId) throws InternalException {
-        TaskLockingCompleter completer = null;
+    public String addStepsForRestoreVolume(Workflow workflow,
+            String waitFor, URI storage, URI pool, URI volume, URI snapshot,
+            Boolean updateOpStatus, String taskId, BlockSnapshotRestoreCompleter completer) throws InternalException {
+
+        BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapshot);
+
+        if (snap != null && NullColumnValueGetter.isNotNullValue(snap.getTechnologyType())) {
+            Volume vol = _dbClient.queryObject(Volume.class, volume);
+
+            if (vol != null) {
+                if (snap.getTechnologyType().equals(TechnologyType.RP.toString())) {
+                    // Perform an RP controller restore operation only if restoring from an RP BlockSnapshot.
+                    ProtectionSystem rpSystem = null;
+                    rpSystem = _dbClient.queryObject(ProtectionSystem.class, vol.getProtectionController());
+                    if (rpSystem == null) {
+                        // Verify non-null storage device returned from the database client.
+                        throw DeviceControllerExceptions.recoverpoint.failedConnectingForMonitoring(vol.getProtectionController());
+                    }
+
+                    String stepId = workflow.createStepId();
+                    Workflow.Method restoreVolumeFromSnapshotMethod = new Workflow.Method(METHOD_RESTORE_VOLUME_STEP,
+                            rpSystem.getId(), storage, snapshot, completer);
+
+                    waitFor = workflow.createStep(null, "Restore volume from RP snapshot: " + volume.toString(),
+                            waitFor, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(),
+                            restoreVolumeFromSnapshotMethod, rollbackMethodNullMethod(), stepId);
+
+                    _log.info(String.format("Created workflow step to restore RP volume %s from snapshot %s.", volume, snapshot));
+                }
+            }
+        }
+
+        return waitFor;
+    }
+
+    /**
+     * Restore an RP bookmark. This will enable the specified bookmark on the CG if the CG is not already enabled. This step is
+     * required for RP bookmark restores.
+     *
+     * @param protectionDevice RP protection system URI
+     * @param storageDevice storage device of the volume
+     * @param snapshotId snapshot URI
+     * @param task task ID
+     * @return true if the step completed successfully, false otherwise.
+     * @throws InternalException
+     */
+    public boolean restoreVolume(URI protectionDevice, URI storageDevice, URI snapshotID, BlockSnapshotRestoreCompleter completer,
+            String stepId) throws InternalException {
         try {
-            _log.info("Restoring  bookmark on the RP CG");
+            _log.info("Restoring bookmark on the RP CG");
+
+            WorkflowStepCompleter.stepExecuting(stepId);
 
             ProtectionSystem system = null;
             system = _dbClient.queryObject(ProtectionSystem.class, protectionDevice);
@@ -4051,7 +4368,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 emName = snapshot.getEmName();
             }
 
-            completer = new BlockSnapshotRestoreCompleter(snapshot, opId);
             Volume volume = _dbClient.queryObject(Volume.class, snapshot.getParent().getURI());
 
             // Lock the CG or fail
@@ -4075,24 +4391,20 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 throw DeviceControllerExceptions.recoverpoint.failedToImageAccessBookmark();
             }
 
-            completer.ready(_dbClient, _locker);
-
+            // Update the workflow state.
+            WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException e) {
             _log.error("Operation failed with Exception: ", e);
-            if (completer != null) {
-                completer.error(_dbClient, _locker, e);
-            }
+            return stepFailed(stepId, (ServiceCoded) e, "restoreVolumeStep");
         } catch (URISyntaxException e) {
             _log.error("Operation failed with Exception: ", e);
-            if (completer != null) {
-                completer.error(_dbClient, _locker, DeviceControllerException.errors.invalidURI(e));
-            }
+            return stepFailed(stepId, e, "restoreVolumeStep");
         } catch (Exception e) {
             _log.error("Operation failed with Exception: ", e);
-            if (completer != null) {
-                completer.error(_dbClient, _locker, DeviceControllerException.errors.jobFailed(e));
-            }
+            return stepFailed(stepId, e, "restoreVolumeStep");
         }
+
+        return true;
     }
 
     /**
@@ -4924,5 +5236,25 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             AuditBlockUtil.auditBlock(_dbClient, OperationTypeEnum.CHANGE_VOLUME_VPOOL, true, AuditLogManager.AUDITOP_END, token);
         }
         stepFailed(token, e, "cgUpdateStep");
+    }
+
+    /**
+     * Creates a rollback workflow method that does nothing, but allows rollback
+     * to continue to prior steps back up the workflow chain.
+     *
+     * @return A workflow method
+     */
+    private Workflow.Method rollbackMethodNullMethod() {
+        return new Workflow.Method(ROLLBACK_METHOD_NULL);
+    }
+
+    /**
+     * The null rollback method. Simply marks the step as succeeded.
+     *
+     * @param stepId the step id.
+     * @throws WorkflowException
+     */
+    public void rollbackMethodNull(String stepId) throws WorkflowException {
+        WorkflowStepCompleter.stepSucceded(stepId);
     }
 }

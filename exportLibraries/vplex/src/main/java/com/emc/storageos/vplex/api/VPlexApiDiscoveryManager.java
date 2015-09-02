@@ -453,8 +453,6 @@ public class VPlexApiDiscoveryManager {
 
         return storageVolumeInfoMap;
     }
-    
-    
     /**
      * Attempts to find the storage volume with the passed name.
      * 
@@ -500,13 +498,12 @@ public class VPlexApiDiscoveryManager {
      * 
      * @throws VPlexApiException When an error occurs finding the extents.
      */
-    <T extends VPlexStorageVolumeInfo>List<VPlexExtentInfo> findExtents(
-            List<T> storageVolumeInfoList) throws VPlexApiException {
+    List<VPlexExtentInfo> findExtents(List<VPlexStorageVolumeInfo> storageVolumeInfoList) throws VPlexApiException {
 
         List<VPlexExtentInfo> extentInfoList = new ArrayList<VPlexExtentInfo>();
-        Iterator<T> storageVolumeIter = storageVolumeInfoList.iterator();
+        Iterator<VPlexStorageVolumeInfo> storageVolumeIter = storageVolumeInfoList.iterator();
         while (storageVolumeIter.hasNext()) {
-            T storageVolumeInfo = storageVolumeIter.next();
+            VPlexStorageVolumeInfo storageVolumeInfo = storageVolumeIter.next();
             boolean extentFound = false;
             int retryCount = 0;
             while (++retryCount <= VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES) {
@@ -1251,7 +1248,6 @@ public class VPlexApiDiscoveryManager {
 
         return storageVolumeInfoList;
     }
-    
     
     /**
      * Get the system volume info for the cluster with the passed name.

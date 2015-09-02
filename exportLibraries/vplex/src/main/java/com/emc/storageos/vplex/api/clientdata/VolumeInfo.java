@@ -86,9 +86,7 @@ public class VolumeInfo implements Serializable {
      */
     public void setITLs(List<String> iTLs) {
         _itls = iTLs;
-    }
-
-	
+    }	
 
     /**
      * Getter for the storage system native guid.

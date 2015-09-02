@@ -413,9 +413,7 @@ public class CinderExportOperations implements ExportMaskOperations {
             
             //After the successful export, create or modify the storage ports
             CinderStoragePortOperations storagePortOperationsInstance = CinderStoragePortOperations.getInstance(storage, dbClient);
-            storagePortOperationsInstance.invoke(attachResponse);
-            
-            
+            storagePortOperationsInstance.invoke(attachResponse);            
         }
         
         //Add ITLs to volume objects
@@ -644,7 +642,7 @@ public class CinderExportOperations implements ExportMaskOperations {
         }
         exportMask.setStoragePorts(null);
         
-        //Clean the existing zoning map
+        // Clean the existing zoning map
         for (String initiatorURIStr : exportMask.getZoningMap().keySet()) {
             exportMask.removeZoningMapEntry(initiatorURIStr);
         }

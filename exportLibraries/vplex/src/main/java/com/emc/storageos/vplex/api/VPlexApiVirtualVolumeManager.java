@@ -678,8 +678,7 @@ public class VPlexApiVirtualVolumeManager {
                     s_logger.info("Executing storage volume discovery try {} of {}",
                             retryCount, VPlexApiConstants.FIND_STORAGE_VOLUME_RETRY_COUNT);
                     List<String> storageSystemGuids = new ArrayList<String>();
-                    for (VolumeInfo nativeVolumeInfo : nativeVolumeInfoList) {
-                        
+                    for (VolumeInfo nativeVolumeInfo : nativeVolumeInfoList) {         
                         String storageSystemGuid = nativeVolumeInfo.getStorageSystemNativeGuid();
                         if (!storageSystemGuids.contains(storageSystemGuid)) {
                             

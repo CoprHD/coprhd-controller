@@ -9,7 +9,12 @@ import static com.emc.storageos.api.mapper.HostMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
-import java.util.*;
+import java.util.UUID;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Iterator;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -22,8 +27,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
-import com.emc.storageos.api.mapper.TaskMapper;
-import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.*;
@@ -63,8 +66,8 @@ import org.springframework.util.CollectionUtils;
  * data centers.
  * 
  */
-@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN,
-        Role.RESTRICTED_SYSTEM_ADMIN, Role.SECURITY_ADMIN },
+@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN },
+        readAcls = { ACL.USE },
         writeRoles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN })
 @Path("/compute/vcenters")
 public class VcenterService extends TaskResourceService {
@@ -422,12 +425,17 @@ public class VcenterService extends TaskResourceService {
         verifyAuthorizedSystemOrTenantOrgUser(_permissionsHelper.convertToACLEntries(vcenter.getAcls()), getUserFromContext());
 
         URI tenantId;
-        if (isSecurityAdmin() || isSystemOrRestrictedSystemAdmin()) {
+        if (isSecurityAdmin() || isSystemAdmin()) {
             tenantId = tid;
         } else {
-            // check the user permissions for this tenant org
-            tenantId = URI.create(getUserFromContext().getTenantId());
+            if (shouldTenantAdminUseTenantParam(tid)){
+                tenantId = tid;
+            } else {
+                // check the user permissions for this tenant org
+                tenantId = URI.create(getUserFromContext().getTenantId());
+            }
         }
+
         _log.debug("Fetching the vCenterDataCenters for the tenant {}", tenantId);
 
         // get the vcenters
@@ -454,12 +462,14 @@ public class VcenterService extends TaskResourceService {
         addVcenterAclIfTenantAdmin(tenant, vcenter);
         populateVcenterData(vcenter, param);
         if (isSystemAdmin()) {
-            //Since, the creating user is either SysAdmin or Restricted SysAdmin or
-            //TenantAdmin use the "shared" parameter from the api payload.
+            //Since, the creating user is either SysAdmin make the tenantCreated
+            //flag to false.
             vcenter.setTenantCreated(Boolean.FALSE);
         } else {
-            //Since the creating user is a TenantAdmin, dont make the vCenter
-            //as a shared resource by default.
+            //Since the creating user is a TenantAdmin, just make the vCenter
+            //as a tenant created resource by default. When the SecAdmin or
+            //SysAdmin adds any new tenant then the vCenter will be shared
+            //across those tenants.
             _log.debug("Tenant admin creates the vCenter {}", param.getName());
             vcenter.setTenantCreated(Boolean.TRUE);
         }
@@ -567,7 +577,7 @@ public class VcenterService extends TaskResourceService {
                 return false;
             }
             if (obj.getTenant().toString().equals(_user.getTenantId()) ||
-                    isSystemOrRestrictedSystemAdmin() || isSecurityAdmin()) {
+                    isSystemAdmin() || isSecurityAdmin()) {
                 return true;
             }
             ret = isTenantAccessible(obj.getTenant());
@@ -616,9 +626,11 @@ public class VcenterService extends TaskResourceService {
 
     /**
      * Lists the id and name of all the vCenters that belong to the given
-     * tenant organization if the requesting user is a SysAdmin, Restricted SysAdmin
-     * or SecAdmin. If the requested user is a TenantAdmin, the "tenant" query param
-     * is ignored and returned only the vCenters that the user's tenant shares.
+     * tenant organization if the requesting user is a SysAdmin or
+     * SecAdmin. If the requested user is a TenantAdmin and user is
+     * a tenant of the "tenant" given in the query param then all the
+     * vCenters of the tenant query param will be returned otherwise
+     * returned only the vCenters that the user's tenant shares.
      *
      * @param tid tenant to filter the vCenters.
      *
@@ -631,7 +643,7 @@ public class VcenterService extends TaskResourceService {
         VcenterList list = new VcenterList();
         List<Vcenter> vcenters = null;
 
-        if (isSecurityAdmin() || isSystemOrRestrictedSystemAdmin()) {
+        if (isSecurityAdmin() || isSystemAdmin()) {
             _log.debug("Fetching vCenters for {}", tid);
             if ( NullColumnValueGetter.isNullURI(tid)||
                     Vcenter.ALL_TENANT_RESOURCES.equalsIgnoreCase(tid.toString())) {
@@ -649,21 +661,29 @@ public class VcenterService extends TaskResourceService {
 
         vcenters = getDataObjects(Vcenter.class);
         if (!CollectionUtils.isEmpty(vcenters)) {
-            //Get the vCenters based on the User's tenant org. If the user is not a tenant admin, insufficient
-            //permission exception will be thrown.
-            List<Vcenter> tenantVcenterList = filterVcentersByTenant(vcenters, NullColumnValueGetter.getNullURI());
+            List<Vcenter> tenantVcenterList = null;
+            if (shouldTenantAdminUseTenantParam(tid)) {
+                //If the tenant admin can use the tid query param, then the filtering should
+                //happen based on the tenant query param.
+                tenantVcenterList = filterVcentersByTenant(vcenters, tid);
+            } else {
+                //Get the vCenters based on the User's tenant org. If the user is not a tenant admin, insufficient
+                //permission exception will be thrown.
+                tenantVcenterList = filterVcentersByTenant(vcenters, NullColumnValueGetter.getNullURI());
+            }
             list.setVcenters(map(ResourceTypeEnum.VCENTER, getNamedElementsList(Vcenter.class, DATAOBJECT_NAME_FIELD, tenantVcenterList)));
         }
         return list;
     }
 
     /**
-     * Get vCenter ACLs
+     * Get vCenter Access Control List (ACLs)
      *
      * @param id the URN of a ViPR vCenter
      * @prereq none
-     * @brief Show vCenter ACL
-     * @return ACL Assignment details
+     * @brief Show vCenter Access Control List
+     *
+     * @return Access Control List Assignment details
      */
     @GET
     @Path("/{id}/acl")
@@ -673,18 +693,20 @@ public class VcenterService extends TaskResourceService {
     }
 
     /**
-     * Add or remove individual ACL entry(s). When the vCenter is created
+     * Add or remove individual Access Control List entry(s). When the vCenter is created
      * with no shared access (Vcenter.shared = Boolean.FALSE), there cannot
-     * be multiple ACL Entries associated with this vCenter.
+     * be multiple Access Control List Entries associated with this vCenter.
      *
-     * @param changes ACL assignment changes. Request body must include at least one add or remove operation
-     * @param id the URN of a ViPR Project
-     * @return No data returned in response body
+     * @param changes Access Control List assignment changes. Request body must include
+     *                at least one add or remove operation
+     * @param id the URN of a ViPR Project.
+     *
+     * @return the vCenter discovery async task.
      */
     @PUT
     @Path("/{id}/acl")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN })
     public TaskResourceRep updateAclAssignments(@PathParam("id") URI id,
                                                 ACLAssignmentChanges changes) {
         //Make sure the vCenter is a valid one.
@@ -926,14 +948,14 @@ public class VcenterService extends TaskResourceService {
     /**
      * Checks if the user is authorized to view the vCenter.
      * Authorized if,
-     * The user has SysAdmin or Restricted SysAdmin or SecAdmin role.
+     * The user has SysAdmin or SecAdmin role.
      * The user is a TenantAdmin of one of the that shares the vCenter.
      *
      * @param aclEntries the tenants list that shares the vCenter.
      * @param user the user to validated for authorization.
      */
     protected void verifyAuthorizedSystemOrTenantOrgUser(List<ACLEntry> aclEntries, StorageOSUser user) {
-        if (isSystemOrRestrictedSystemAdmin() || isSecurityAdmin()) {
+        if (isSystemAdmin() || isSecurityAdmin()) {
             return;
         }
 
@@ -954,7 +976,7 @@ public class VcenterService extends TaskResourceService {
         Iterator<ACLEntry> aclEntriesIterator = aclEntries.iterator();
         while (aclEntriesIterator.hasNext()) {
             ACLEntry aclEntry = aclEntriesIterator.next();
-            if (aclEntry == null || !aclEntry.getTenant().equals(user.getTenantId())) {
+            if (aclEntry == null) {
                 continue;
             }
 
@@ -1056,5 +1078,15 @@ public class VcenterService extends TaskResourceService {
 
             _log.info("Update the task {} with the user's {} tenant {}", traceParams);
         }
+    }
+
+    private boolean shouldTenantAdminUseTenantParam (URI tid) {
+        if (!NullColumnValueGetter.isNullURI(tid) &&
+                !TenantResource.TENANT_RESOURCES_WITH_NO_TENANTS.equalsIgnoreCase(tid.toString()) &&
+                !TenantResource.ALL_TENANT_RESOURCES.equalsIgnoreCase(tid.toString()) &&
+                _permissionsHelper.userHasGivenRole(getUserFromContext(), tid, Role.TENANT_ADMIN)) {
+            return true;
+        }
+        return false;
     }
 }

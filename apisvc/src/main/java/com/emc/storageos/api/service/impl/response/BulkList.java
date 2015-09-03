@@ -5,7 +5,12 @@
 package com.emc.storageos.api.service.impl.response;
 
 import java.net.URI;
-import java.util.*;
+import java.util.Collection;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Iterator;
+import java.util.ListIterator;
 
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -444,7 +449,7 @@ public class BulkList<T> implements List<T> {
         public boolean isAccessible(TenantOrg resource) {
             return _permissionsHelper.userHasGivenRole(
                     _user, resource.getId(), Role.TENANT_ADMIN, Role.SECURITY_ADMIN,
-                    Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN);
+                    Role.SYSTEM_ADMIN);
         }
     }
 
@@ -520,7 +525,7 @@ public class BulkList<T> implements List<T> {
         @Override
         public boolean isAccessible(Vcenter resource) {
             if (_permissionsHelper.userHasGivenRole(_user, null,
-                    Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
+                    Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN)) {
                 return true;
             }
 
@@ -559,7 +564,7 @@ public class BulkList<T> implements List<T> {
         @Override
         public boolean isAccessible(VcenterDataCenter resource) {
             if (_permissionsHelper.userHasGivenRole(_user, null,
-                    Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
+                    Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN)) {
                 return true;
             }
 

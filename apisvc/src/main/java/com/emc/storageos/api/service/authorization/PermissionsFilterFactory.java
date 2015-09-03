@@ -6,6 +6,7 @@ package com.emc.storageos.api.service.authorization;
 
 import java.net.URI;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.ws.rs.core.Context;
@@ -298,6 +299,22 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                 }
             }
             return acls;
+        }
+
+        /**
+         * Get tenant ids from the uri
+         *
+         * @return
+         */
+        @Override
+        protected Set<URI> getTenantIdsFromURI(UriInfo uriInfo) {
+            if (_resourceClazz.isAssignableFrom(VcenterService.class)) {
+                String uriStr = uriInfo.getPathParameters().getFirst("id");
+                if (uriStr != null && !uriStr.isEmpty()) {
+                    return _permissionsHelper.getTenantResourceTenantIds(uriStr);
+                }
+            }
+            return null;
         }
     }
 

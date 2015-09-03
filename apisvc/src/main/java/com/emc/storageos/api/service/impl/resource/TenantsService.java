@@ -107,8 +107,7 @@ public class TenantsService extends TaggedResource {
     @GET
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN, Role.SECURITY_ADMIN,
-            Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN, Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN})
     public TenantOrgRestRep getTenant(@PathParam("id") URI id) {
         return map(getTenantById(id, false));
     }
@@ -392,8 +391,7 @@ public class TenantsService extends TaggedResource {
         }
         NamedElementQueryResultList subtenants = new NamedElementQueryResultList();
         if (_permissionsHelper.userHasGivenRole(user, tenant.getId(),
-                Role.SYSTEM_MONITOR, Role.TENANT_ADMIN, Role.SECURITY_ADMIN,
-                Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN)) {
+                Role.SYSTEM_MONITOR, Role.TENANT_ADMIN, Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN)) {
             _dbClient.queryByConstraint(ContainmentConstraint.Factory
                     .getTenantOrgSubTenantConstraint(tenant.getId()), subtenants);
         } else {

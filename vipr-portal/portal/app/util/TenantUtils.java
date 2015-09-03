@@ -34,7 +34,7 @@ public class TenantUtils {
 
     public static boolean canReadAllTenantsForVcenters() {
         return Security.hasAnyRole(Security.ROOT_TENANT_ADMIN, Security.SECURITY_ADMIN,
-                Security.SYSTEM_MONITOR, Security.SYSTEM_ADMIN, Security.RESTRICTED_SYSTEM_ADMIN);
+                Security.SYSTEM_MONITOR, Security.SYSTEM_ADMIN);
     }
 
     public static List<TenantOrgRestRep> getAllTenants() {

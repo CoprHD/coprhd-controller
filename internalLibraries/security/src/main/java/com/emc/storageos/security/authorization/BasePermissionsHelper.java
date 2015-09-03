@@ -2114,4 +2114,27 @@ public class BasePermissionsHelper {
 
         return aclEntry;
     }
+
+    /**
+     * Get tenant id from a project id retrieved from uri
+     *
+     * @param childId
+     * @return
+     */
+    public Set<URI> getTenantResourceTenantIds(String childId) {
+        if (childId == null) {
+            return null;
+        }
+
+        try {
+            URI id = URI.create(childId);
+            Vcenter ret = null;
+            if (URIUtil.isType(id, Vcenter.class)) {
+                ret = getObjectById(id, Vcenter.class);
+            }
+            return getUsageURIsFromAcls(ret.getAcls());
+        } catch (DatabaseException ex) {
+            throw SecurityException.fatals.failedGettingTenant(ex);
+        }
+    }
 }

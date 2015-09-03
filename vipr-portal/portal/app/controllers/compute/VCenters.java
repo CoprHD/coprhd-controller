@@ -8,7 +8,11 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
 
 import java.net.URI;
-import java.util.*;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Iterator;
 
 import com.emc.storageos.model.auth.ACLAssignmentChanges;
 import com.emc.storageos.model.auth.ACLEntry;
@@ -31,7 +35,10 @@ import play.data.validation.MinSize;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.mvc.With;
-import util.*;
+import util.MessagesUtils;
+import util.TenantUtils;
+import util.VCenterUtils;
+import util.VcenterDataCenterUtils;
 import util.builders.ACLUpdateBuilder;
 import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddress;
@@ -50,7 +57,7 @@ import controllers.util.ViprResourceController;
 
 @With(Common.class)
 @Restrictions({ @Restrict("TENANT_ADMIN"), @Restrict("SECURITY_ADMIN"),
-        @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
+        @Restrict("SYSTEM_ADMIN") })
 public class VCenters extends ViprResourceController {
 
     protected static final String SAVED = "VCenters.saved";
@@ -187,7 +194,7 @@ public class VCenters extends ViprResourceController {
     }
 
     public static void save(VCenterForm vCenter) {
-        if (!vCenter.canEditVcenter()) {
+        if (!vCenter.canOnlyUpdateVcenterAcls()) {
             VcenterRestRep dbVCenter = VCenterUtils.getVCenter(uri(vCenter.id));
             if (dbVCenter != null) {
                 vCenter.name = dbVCenter.getName();
@@ -395,11 +402,15 @@ public class VCenters extends ViprResourceController {
             VcenterCreateParam vcenterCreateParam = new VcenterCreateParam();
             doWriteTo(vcenterCreateParam);
 
-            return VCenterUtils.createVCenter(vcenterCreateParam, validateConnection, getAclAssignmentChanges());
+            if (Security.isSystemAdmin()) {
+                return VCenterUtils.createVCenter(vcenterCreateParam, validateConnection, getAclAssignmentChanges());
+            }
+
+            return VCenterUtils.createVCenter(uri(Models.currentAdminTenantForVcenter()), vcenterCreateParam, validateConnection);
         }
 
         protected Task<VcenterRestRep> updateVCenter(boolean validateConnection) {
-            if (canEditVcenter()) {
+            if (canOnlyUpdateVcenterAcls()) {
                 VcenterUpdateParam vcenterUpdateParam = new VcenterUpdateParam();
                 doWriteTo(vcenterUpdateParam);
                 return VCenterUtils.updateVCenter(uri(id), vcenterUpdateParam, validateConnection,
@@ -413,8 +424,8 @@ public class VCenters extends ViprResourceController {
             return StringUtils.isBlank(id);
         }
 
-        public boolean canEditVcenter() {
-            if ((Security.isRestrictedSystemAdmin() || Security.isSecurityAdmin()) &&
+        public boolean canOnlyUpdateVcenterAcls() {
+            if (Security.isSecurityAdmin() &&
                     !(Security.isSystemAdmin() || Security.isTenantAdmin() || isNew())) {
                 return false;
             }

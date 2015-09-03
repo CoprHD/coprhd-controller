@@ -21,12 +21,21 @@ import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.services.util.EnvConfig;
 import com.sun.jersey.api.client.ClientResponse;
 import org.apache.commons.httpclient.HttpStatus;
-import org.junit.*;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Test;
+import org.junit.Assert;
+
 import org.springframework.util.CollectionUtils;
 
 import java.net.URI;
 import java.security.NoSuchAlgorithmException;
-import java.util.*;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.Iterator;
 
 /**
  * A test class to validate the vCenter discovery and sharing functionality

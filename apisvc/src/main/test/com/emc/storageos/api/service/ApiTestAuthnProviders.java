@@ -17,7 +17,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.net.URI;
-import java.util.*;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.LinkedHashSet;
 
 /**
  * 

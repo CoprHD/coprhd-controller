@@ -71,9 +71,10 @@ public class TenantSelector extends Controller {
      */
     @Util
     public static void addRenderArgsForVcenterObjects() {
-        if (Security.isSecurityAdmin() || Security.isSystemAdmin() ||
-                Security.isRestrictedSystemAdmin()) {
+        if (Security.isSecurityAdmin() || Security.isSystemAdmin()) {
             renderArgs.put("tenants", TenantUtils.getSubTenantOptionsWithAdditionalTenants());
+        } else if (Security.isTenantAdmin()) {
+            renderArgs.put("tenants", TenantUtils.getUserSubTenantOptions());
         }
 
         String tenantId = Models.currentAdminTenantForVcenter();
@@ -81,7 +82,7 @@ public class TenantSelector extends Controller {
 
         // Add currently selected tenant information
         if (Security.isSystemMonitor() || Security.isTenantAdmin() ||
-                Security.isSecurityAdmin() || Security.isSystemAdminOrRestrictedSystemAdmin()) {
+                Security.isSecurityAdmin() || Security.isSystemAdmin()) {
             try {
                 tenantId = Models.currentAdminTenantForVcenter();
                 if (TenantUtils.ALL_TENANT_RESOURCES.equalsIgnoreCase(tenantId) ||

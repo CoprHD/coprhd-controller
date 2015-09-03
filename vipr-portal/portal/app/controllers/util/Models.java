@@ -194,7 +194,7 @@ public class Models extends Controller {
     public static boolean canSelectTenantForVcenters(String tenantId) {
         UserInfo info = Security.getUserInfo();
         if ((info.getTenant().equals(tenantId) && isAdministrator()) ||
-                Security.isSecurityAdmin() || Security.isSystemAdminOrRestrictedSystemAdmin()) {
+                Security.isSecurityAdmin() || Security.isSystemAdmin()) {
             return true;
         }
         return info.hasSubTenantRole(tenantId, Security.TENANT_ADMIN);

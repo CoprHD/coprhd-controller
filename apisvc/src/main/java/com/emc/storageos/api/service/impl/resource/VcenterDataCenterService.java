@@ -9,7 +9,12 @@ import static com.emc.storageos.api.mapper.HostMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
-import java.util.*;
+import java.util.UUID;
+import java.util.Collection;
+import java.util.Set;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Iterator;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -65,9 +70,8 @@ import org.springframework.util.CollectionUtils;
  * Service providing APIs for vcenterdatacenter.
  */
 @Path("/compute/vcenter-data-centers")
-@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN,
-        Role.RESTRICTED_SYSTEM_ADMIN, Role.SECURITY_ADMIN },
-        writeRoles = { Role.TENANT_ADMIN, Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SECURITY_ADMIN })
+@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN },
+        writeRoles = { Role.TENANT_ADMIN, Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN })
 public class VcenterDataCenterService extends TaskResourceService {
     private static Logger _log = LoggerFactory.getLogger(VcenterDataCenter.class);
 
@@ -124,7 +128,7 @@ public class VcenterDataCenterService extends TaskResourceService {
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SECURITY_ADMIN, Role.TENANT_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN, Role.TENANT_ADMIN })
     @Path("/{id}")
     public VcenterDataCenterRestRep updateVcenterDataCenter(@PathParam("id") URI id,
             VcenterDataCenterUpdate updateParam) throws DatabaseException {
@@ -320,7 +324,7 @@ public class VcenterDataCenterService extends TaskResourceService {
                 return false;
             }
             if (obj.getTenant().toString().equals(_user.getTenantId()) ||
-                    isSecurityAdmin() || isSystemOrRestrictedSystemAdmin()) {
+                    isSecurityAdmin() || isSystemAdmin()) {
                 return true;
             }
             ret = isTenantAccessible(obj.getTenant());
@@ -502,7 +506,7 @@ public class VcenterDataCenterService extends TaskResourceService {
      * The user can see resources if:
      *
      * The user is in the tenant organization.
-     * The user has SysAdmin, SysMonitor, Restricted SysAdmin role.
+     * The user has SysAdmin, SysMonitor, SecAdmin role.
      * The user has TenantAdmin role to this tenant organization even
      * if the user is in another tenant org
      *
@@ -510,7 +514,7 @@ public class VcenterDataCenterService extends TaskResourceService {
      * @param user the user to validated for tenant org privileges.
      */
     protected void verifyAuthorizedSystemOrTenantOrgUser(URI tenantId, StorageOSUser user) {
-        if (isSystemOrRestrictedSystemAdmin() || isSecurityAdmin()) {
+        if (isSystemAdmin() || isSecurityAdmin()) {
             return;
         }
 
@@ -548,7 +552,7 @@ public class VcenterDataCenterService extends TaskResourceService {
      * @param dataCenter
      */
     private void checkUserPrivileges(VcenterDataCenterUpdate updateParam, VcenterDataCenter dataCenter) {
-        if(!(isSecurityAdmin() || isSystemOrRestrictedSystemAdmin())) {
+        if(!(isSecurityAdmin() || isSystemAdmin())) {
             if(updateParam.getTenant() != null &&
                     dataCenter.getTenant() != null &&
                     !URIUtil.identical(updateParam.getTenant(), dataCenter.getTenant())) {

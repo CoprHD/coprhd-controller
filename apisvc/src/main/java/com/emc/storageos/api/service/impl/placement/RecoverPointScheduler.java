@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import com.emc.fapiclient.ws.TargetVmCandidates;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
@@ -46,6 +47,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
+import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
@@ -1040,106 +1042,127 @@ public class RecoverPointScheduler implements Scheduler {
 												Map<VirtualArray, List<StoragePool>> candidateProtectionPools, 
 										        Volume vpoolChangeVolume, Project project) {
    	    	
-   	// Initialize a list of recommendations to be returned.    	
-   	Set<ProtectionSystem> secondaryProtectionSystems = null;
-   	placementStatus = new PlacementStatus();
-   	secondaryPlacementStatus = new PlacementStatus();
-
-   	int requestedResourceCount = capabilities.getResourceCount();
-   	int totalSatisfiedCount = 0;
-
-   	List<URI> protectionVarrayURIs = new ArrayList<URI>();
-   	for (VirtualArray vArray : protectionVarrays) {
-   		protectionVarrayURIs.add(vArray.getId());
-   		placementStatus.getProcessedProtectionVArrays().put(vArray.getId(), false);
-   	}
-
-   	List<URI> activeSourcePoolUris = new ArrayList<URI>();    	
-   	List<URI> standbySourcePoolUris = new ArrayList<URI>(); 
-   	RPRecommendation activeJournalRecommendation = null;
-		RPRecommendation standbyJournalRecommendation = null;
-		    
-   	// Sort the primary source candidate pools.
-   	VirtualArray activeJournalVarray = varray;
-   	VirtualPool activeJournalVpool = vpool;    
-
-		if (NullColumnValueGetter.isNotNullValue(vpool.getJournalVarray())) {
-			activeJournalVarray = dbClient.queryObject(VirtualArray.class, URI.create(vpool.getJournalVarray()));
-		}
-		 activeJournalVpool = (vpool.getJournalVpool() != null ?
-				dbClient.queryObject(VirtualPool.class, URI.create(vpool.getJournalVpool())) : vpool);
-   
-   	// Sort the secondary source candidate pools.
-   	VirtualArray standbyJournalVarray = haVarray;
-   	VirtualPool standbyJournalVpool = haVpool;
-		if (NullColumnValueGetter.isNotNullValue(vpool.getStandbyJournalVarray())) {
-			standbyJournalVarray = dbClient.queryObject(VirtualArray.class, URI.create(vpool.getStandbyJournalVarray()));
-		}
-
-		standbyJournalVpool = (vpool.getStandbyJournalVpool() != null ?
-				dbClient.queryObject(VirtualPool.class, URI.create(vpool.getStandbyJournalVpool())) : haVpool);
+	   	// Initialize a list of recommendations to be returned.    	
+	   	Set<ProtectionSystem> secondaryProtectionSystems = null;
+	   	placementStatus = new PlacementStatus();
+	   	secondaryPlacementStatus = new PlacementStatus();
 	
-   	List<VirtualArray> activeProtectionVarrays = new ArrayList<VirtualArray>();
-   	if (haVarray != null) {
-   		// Build the list of protection virtual arrays to consider for determining a
-   		// primary placement solution.  Add all virtual arrays from the source virtual
-   		// pool list of protection virtual arrays, except for the HA virtual array.  
-   		// In the case of local and/or remote protection, the HA virtual array should 
-   		// never be considered as a valid protection target for primary placement.
-   		for (VirtualArray protectionVarray : protectionVarrays) {
-   			if (!protectionVarray.getId().equals(haVarray.getId())) {
-   				activeProtectionVarrays.add(protectionVarray);
-   			}
-   		}
-   	}
-
-   	List<VirtualArray> standbyProtectionVarrays = new ArrayList<VirtualArray>();
-   	// Build the list of protection virtual arrays to consider for determining a
-   	// secondary placement solution.  Add all virtual arrays from the source virtual
-   	// pool list of protection virtual arrays, except for the source virtual array.  
-   	// In the case of local and/or remote protection, the source virtual array should 
-   	// never be considered as a valid protection target for secondary placement.
-   	for (VirtualArray protectionVarray : protectionVarrays) {
-   		if (!protectionVarray.getId().equals(varray.getId())) {
-   			standbyProtectionVarrays.add(protectionVarray);
-   		}
-   	}
-
-   	// The attributes below will not change throughout the placement process
-   	placementStatus.setSrcVArray(varray.getLabel());
-   	placementStatus.setSrcVPool(vpool.getLabel());
-   	
-   	RPProtectionRecommendation rpProtectionRecommendation = new RPProtectionRecommendation();        
+	   	int requestedResourceCount = capabilities.getResourceCount();
+	   	int totalSatisfiedCount = 0;
+	
+	   	List<URI> protectionVarrayURIs = new ArrayList<URI>();
+	   	for (VirtualArray vArray : protectionVarrays) {
+	   		protectionVarrayURIs.add(vArray.getId());
+	   		placementStatus.getProcessedProtectionVArrays().put(vArray.getId(), false);
+	   	}
+		   
+	   	RPRecommendation activeJournalRecommendation = null;
+		RPRecommendation standbyJournalRecommendation = null;
+			    
+	   	// Sort the primary source candidate pools.
+	   	VirtualArray activeJournalVarray = varray;
+	   	VirtualPool activeJournalVpool = vpool;    
+	
+			if (NullColumnValueGetter.isNotNullValue(vpool.getJournalVarray())) {
+				activeJournalVarray = dbClient.queryObject(VirtualArray.class, URI.create(vpool.getJournalVarray()));
+			}
+			 activeJournalVpool = (vpool.getJournalVpool() != null ?
+					dbClient.queryObject(VirtualPool.class, URI.create(vpool.getJournalVpool())) : vpool);
+	   
+	   	// Sort the secondary source candidate pools.
+	   	VirtualArray standbyJournalVarray = haVarray;
+	   	VirtualPool standbyJournalVpool = haVpool;
+			if (NullColumnValueGetter.isNotNullValue(vpool.getStandbyJournalVarray())) {
+				standbyJournalVarray = dbClient.queryObject(VirtualArray.class, URI.create(vpool.getStandbyJournalVarray()));
+			}
+	
+			standbyJournalVpool = (vpool.getStandbyJournalVpool() != null ?
+					dbClient.queryObject(VirtualPool.class, URI.create(vpool.getStandbyJournalVpool())) : haVpool);
+		
+	   	List<VirtualArray> activeProtectionVarrays = new ArrayList<VirtualArray>();
+	   	if (haVarray != null) {
+	   		// Build the list of protection virtual arrays to consider for determining a
+	   		// primary placement solution.  Add all virtual arrays from the source virtual
+	   		// pool list of protection virtual arrays, except for the HA virtual array.  
+	   		// In the case of local and/or remote protection, the HA virtual array should 
+	   		// never be considered as a valid protection target for primary placement.
+	   		for (VirtualArray protectionVarray : protectionVarrays) {
+	   			if (!protectionVarray.getId().equals(haVarray.getId())) {
+	   				activeProtectionVarrays.add(protectionVarray);
+	   			}
+	   		}
+	   	}
+	
+	   	List<VirtualArray> standbyProtectionVarrays = new ArrayList<VirtualArray>();
+	   	// Build the list of protection virtual arrays to consider for determining a
+	   	// secondary placement solution.  Add all virtual arrays from the source virtual
+	   	// pool list of protection virtual arrays, except for the source virtual array.  
+	   	// In the case of local and/or remote protection, the source virtual array should 
+	   	// never be considered as a valid protection target for secondary placement.
+	   	for (VirtualArray protectionVarray : protectionVarrays) {
+	   		if (!protectionVarray.getId().equals(varray.getId())) {
+	   			standbyProtectionVarrays.add(protectionVarray);
+	   		}
+	   	}
+	
+	   	// The attributes below will not change throughout the placement process
+	   	placementStatus.setSrcVArray(varray.getLabel());
+	   	placementStatus.setSrcVPool(vpool.getLabel());
+	   	
+	   	boolean secondaryRecommendationSolution = false;
+		int satisfiedSourceVolCount = 0;
+		int totalRequestedResourceCount = capabilities.getResourceCount();
+		boolean isChangeVpool = (vpoolChangeVolume != null);
+	   	
+	   	RPProtectionRecommendation rpProtectionRecommendation = new RPProtectionRecommendation();        
 		rpProtectionRecommendation.setVpoolChangeVolume(vpoolChangeVolume != null ? vpoolChangeVolume.getId() : null);
 		rpProtectionRecommendation.setVpoolChangeVpool(vpoolChangeVolume != null ? vpoolChangeVolume.getVirtualPool() : null);
 		rpProtectionRecommendation.setVpoolChangeProtectionAlreadyExists(vpoolChangeVolume != null ? vpoolChangeVolume.checkForRp() : false);	
-
-   	Map<URI, Set<ProtectionSystem>> standbyStoragePoolsToProtectionSystems = new HashMap<URI, Set<ProtectionSystem>>();
-   	List<Recommendation> recommendedPools = getRecommendedPools(rpProtectionRecommendation, varray, vpool, null, null, 
-   												capabilities, RPHelper.SOURCE, null);
-   	if (recommendedPools == null || recommendedPools.isEmpty()) {
-   		_log.error(String.format("RP Placement : No matching storage pools found for the source varray: {%s}. "
-   				+ "There are no storage pools that match the passed vpool parameters and protocols and/or there are "
-   				+ "no pools that have enough capacity to hold at least one resource of the requested size.",varray.getLabel()));
-       	throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId()); 
-   	}
-   	
-		boolean secondaryRecommendationSolution = false;
-		int satisfiedSourceVolCount = 0;
-		int totalRequestedResourceCount = capabilities.getResourceCount();
-
-		int remainingPossiblePrimarySrcPoolSolutions = activeSourcePoolUris.size();
+		
+		Recommendation changeVpoolSourceRecommendation = new Recommendation();
+		Recommendation changeVpoolStandbyRecommendation = new Recommendation();
+	
+	   	Map<URI, Set<ProtectionSystem>> standbyStoragePoolsToProtectionSystems = new HashMap<URI, Set<ProtectionSystem>>();
+	   	List<Recommendation> sourcePoolRecommendations = new ArrayList<Recommendation>();
+	   	if (isChangeVpool) {
+				// If this is a change vpool operation, the source has already been placed and there is only 1
+				// valid pool, the existing ones for active and standby. This is just to used to pass through the placement code.
+	   		    for(String associatedVolume : vpoolChangeVolume.getAssociatedVolumes()) {
+	   		    	Volume assocVol = dbClient.queryObject(Volume.class, URI.create(associatedVolume));
+	   		    	if (assocVol.getVirtualArray().equals(varray.getId())) {
+	   		    		//This is the existing active source backing volume
+	   		    		changeVpoolSourceRecommendation.setSourceStoragePool(assocVol.getPool());
+	   		    		StoragePool pool = dbClient.queryObject(StoragePool.class, assocVol.getPool());
+	   		    		changeVpoolSourceRecommendation.setSourceStorageSystem(pool.getStorageDevice());
+	   		    		changeVpoolSourceRecommendation.setResourceCount(1);
+	   					sourcePoolRecommendations.add(changeVpoolSourceRecommendation);
+	   					_log.info(String.format("RP Placement : Change Virtual Pool - Active source pool already exists, reuse pool: [%s] [%s].", pool.getLabel().toString(), pool.getId().toString()));
+	   		    	} else if (assocVol.getVirtualArray().equals(haVarray.getId())) {
+	   		    		//This is the existing standby source backing volume
+	   		    		changeVpoolStandbyRecommendation.setSourceStoragePool(assocVol.getPool());
+	   		    		StoragePool pool = dbClient.queryObject(StoragePool.class, assocVol.getPool());
+	   		    		changeVpoolStandbyRecommendation.setSourceStorageSystem(pool.getStorageDevice());
+	   		    		changeVpoolStandbyRecommendation.setResourceCount(1);	   		
+	   		    		_log.info(String.format("RP Placement : Change Virtual Pool - Standby source pool already exists, reuse pool: [%s] [%s].",
+	   		    				pool.getLabel().toString(), pool.getId().toString()));	   		    	
+   		    		}
+	   		    }			
+	   		    satisfiedSourceVolCount = 1;				
+		} else {
+			sourcePoolRecommendations = getRecommendedPools(rpProtectionRecommendation, varray, vpool, null, null, 
+	   												capabilities, RPHelper.SOURCE, null);
+		}
+	   	
+	   	if (sourcePoolRecommendations == null || sourcePoolRecommendations.isEmpty()) {
+	   		_log.error(String.format("RP Placement : No matching storage pools found for the source varray: [%s. "
+	   				+ "There are no storage pools that match the passed vpool parameters and protocols and/or there are "
+	   				+ "no pools that have enough capacity to hold at least one resource of the requested size.",varray.getLabel()));
+	       	throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId()); 
+	   	}
+	   			
+		int remainingPossiblePrimarySrcPoolSolutions = sourcePoolRecommendations.size();
    		_log.info(String.format("RP Placement : Determining RP placement for the primary (active) MetroPoint cluster for %s resources.", totalRequestedResourceCount));
-   		for (Recommendation recommendedPool : recommendedPools) {
-   			if (vpoolChangeVolume != null) {
-       			// If this is a change vpool operation, the source has already been placed and there is only 1
-       			// valid pool, the existing one. This is just to used to pass through the placement code.
-       			URI existingPrimarySourcePoolUri = candidateActiveSourcePools.iterator().next().getId();
-       			_log.info(String.format("RP Placement : Primary Source Pool already exists, reuse pool: [%s].", existingPrimarySourcePoolUri.toString()));
-       			activeSourcePoolUris.add(existingPrimarySourcePoolUri);        	    
-       			satisfiedSourceVolCount = 1;
-       		}
-   			
+   		for (Recommendation recommendedPool : sourcePoolRecommendations) {   			   		
    			satisfiedSourceVolCount = (recommendedPool.getResourceCount() >= requestedResourceCount) ? 
    										requestedResourceCount : recommendedPool.getResourceCount();     		
    			--remainingPossiblePrimarySrcPoolSolutions;
@@ -1227,8 +1250,13 @@ public class RecoverPointScheduler implements Scheduler {
    						secondaryRecommendationSolution = false;
 
    						// Get the candidate secondary cluster source pools - sets secondarySourcePoolURIs.
-   						List<Recommendation> secondaryPoolsRecommendation = getRecommendedPools(rpProtectionRecommendation, haVarray, haVpool, null, null, 
-   																				capabilities, RPHelper.TARGET, null);
+   						List<Recommendation> secondaryPoolsRecommendation = new ArrayList<Recommendation>();
+   						if (isChangeVpool) {
+   			       			secondaryPoolsRecommendation.add(changeVpoolStandbyRecommendation);
+   			       		} else {
+		       				secondaryPoolsRecommendation = getRecommendedPools(rpProtectionRecommendation, haVarray, haVpool, null, null,   			       					
+																	capabilities, RPHelper.TARGET, null);
+   			       		}
    			
    						secondaryPlacementStatus.setSrcVArray(haVarray.getLabel());
    						secondaryPlacementStatus.setSrcVPool(haVpool.getLabel());
@@ -1829,6 +1857,10 @@ public class RecoverPointScheduler implements Scheduler {
 	 * @return true or false depending whether the storage pools are available
 	 */
 	private boolean verifyExistingSourceProtectionPools(Volume srcVolume, VirtualPool vpool, String cgName) {
+		
+		//TODO: incorrect to get the pool information directly off of the srcVolume. If this is a VPLEX volume, srcVolume will 
+		//not contain the pool information and we would need to fetch it from the backing volumes. 
+		//JIRA -  https://coprhd.atlassian.net/browse/COP-16684
     	// Check if the storage pools used by the existing source and its journal are available in the current vpool
     	if (!verifyStoragePoolAvailability(vpool, srcVolume.getPool())) {
     		_log.warn(String.format("Unable to fully align placement with existing volumes in RecoverPoint consistency group %s.  " +
@@ -1892,7 +1924,7 @@ public class RecoverPointScheduler implements Scheduler {
             return recommendations;
         }
         
-        // Verify that all the underlying protection storage pools used by the existing source volume are available to this request
+        // Verify that all the underlying protection storage pools used by the existing source volume are available to this request        
         if (!verifyExistingSourceProtectionPools(sourceVolumes.get(0), vpool, cg.getLabel())) {
         	return recommendations;
         }
@@ -1924,31 +1956,45 @@ public class RecoverPointScheduler implements Scheduler {
         
         //Build source journal
         Volume sourceJournal = dbClient.queryObject(Volume.class, sourceVolume.getRpJournalVolume());
-        RPRecommendation sourceJournalRecommendation = new RPRecommendation();        
+        RPRecommendation sourceJournalRecommendation = new RPRecommendation();      
+        VirtualPool sourceJournalVpool = dbClient.queryObject(VirtualPool.class, sourceJournal.getVirtualPool());
         sourceJournalRecommendation.setSourceStorageSystem(sourceJournal.getStorageController());
         sourceJournalRecommendation.setSourceStoragePool(sourceJournal.getPool());        
         sourceJournalRecommendation.setVirtualArray(sourceJournal.getVirtualArray());       
-        sourceJournalRecommendation.setVirtualPool(dbClient.queryObject(VirtualPool.class, sourceJournal.getVirtualPool())); 
+        sourceJournalRecommendation.setVirtualPool(sourceJournalVpool); 
         sourceJournalRecommendation.setInternalSiteName(sourceJournal.getInternalSiteName());
+        
+        if (VirtualPool.vPoolSpecifiesHighAvailability(sourceJournalVpool)) {
+        	VPlexRecommendation vplexRec = new VPlexRecommendation();
+        	vplexRec.setVPlexStorageSystem(sourceJournal.getStorageController());
+        	vplexRec.setVirtualArray(sourceJournal.getVirtualArray());
+        	vplexRec.setVirtualPool(sourceJournalVpool);
+        	sourceJournalRecommendation.setVirtualVolumeRecommendation(vplexRec);
+        }        
         recommendation.setSourceJournalRecommendation(sourceJournalRecommendation);
         
         //Build standby journal
-        if (!NullColumnValueGetter.isNullURI(sourceVolume.getSecondaryRpJournalVolume())){
-	        Volume standbyJournal = dbClient.queryObject(Volume.class, sourceVolume.getSecondaryRpJournalVolume());
-	        RPRecommendation standbyJournalRec = new RPRecommendation();        
-	        standbyJournalRec.setSourceStorageSystem(standbyJournal.getStorageController());
-	        standbyJournalRec.setSourceStoragePool(standbyJournal.getPool());        
-	        standbyJournalRec.setVirtualArray(standbyJournal.getVirtualArray());       
-	        standbyJournalRec.setVirtualPool(dbClient.queryObject(VirtualPool.class, standbyJournal.getVirtualPool())); 
-	        standbyJournalRec.setInternalSiteName(standbyJournal.getInternalSiteName());
-	        recommendation.setStandbyJournalRecommendation(standbyJournalRec);
-        }
-       
-        //Build targets
-       for (VirtualArray protectionVarray : protectionVarrays) {                           
-            // Find the existing source volume target that corresponds to this protection
-            // virtual array.  We need to see if the storage pool has capacity for another
-            // target volume.
+        if (!NullColumnValueGetter.isNullURI(sourceVolume.getSecondaryRpJournalVolume())) {        	
+        	Volume standbyJournal = dbClient.queryObject(Volume.class, sourceVolume.getSecondaryRpJournalVolume());
+            RPRecommendation standbyJournalRecommendation = new RPRecommendation();      
+            VirtualPool standbyJournalVpool = dbClient.queryObject(VirtualPool.class, standbyJournal.getVirtualPool());
+            standbyJournalRecommendation.setSourceStorageSystem(standbyJournal.getStorageController());
+            standbyJournalRecommendation.setSourceStoragePool(standbyJournal.getPool());        
+            standbyJournalRecommendation.setVirtualArray(standbyJournal.getVirtualArray());       
+            standbyJournalRecommendation.setVirtualPool(standbyJournalVpool); 
+            standbyJournalRecommendation.setInternalSiteName(standbyJournal.getInternalSiteName());
+            
+            if (VirtualPool.vPoolSpecifiesHighAvailability(standbyJournalVpool)) {
+            	VPlexRecommendation vplexRec = new VPlexRecommendation();
+            	vplexRec.setVPlexStorageSystem(sourceJournal.getStorageController());
+            	vplexRec.setVirtualArray(sourceJournal.getVirtualArray());
+            	vplexRec.setVirtualPool(sourceJournalVpool);
+            	standbyJournalRecommendation.setVirtualVolumeRecommendation(vplexRec);
+            }        	
+	        recommendation.setStandbyJournalRecommendation(standbyJournalRecommendation);
+        }      
+ 
+    	   //Build the source
     	   	RPRecommendation rpRecommendation = new RPRecommendation();    	  
     	    rpRecommendation.setSourceStoragePool(sourceVolume.getPool());
     	    rpRecommendation.setSourceStorageSystem(sourceVolume.getStorageController());
@@ -1956,43 +2002,90 @@ public class RecoverPointScheduler implements Scheduler {
     	    rpRecommendation.setVirtualArray(sourceVolume.getVirtualArray());
     	    rpRecommendation.setVirtualPool(dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool()));
     	    
-    	    //TODO Bharath : Need to populate VPLEX information appropriately. And also the HA information. The below code is useless.
-    	    if (rpRecommendation.getHaRecommendation() != null) {
-    	    	RPRecommendation haRecommendation = new RPRecommendation();
-    	    	haRecommendation.setSourceStoragePool(rpRecommendation.getHaRecommendation().getSourceStoragePool());
-    	    	haRecommendation.setSourceStorageSystem(rpRecommendation.getHaRecommendation().getSourceStorageSystem());
-    	    	haRecommendation.setVirtualArray(rpRecommendation.getHaRecommendation().getVirtualArray());
-    	    	haRecommendation.setVirtualPool(rpRecommendation.getHaRecommendation().getVirtualPool());
-    	    	haRecommendation.setVirtualVolumeRecommendation(rpRecommendation.getHaRecommendation().getVirtualVolumeRecommendation());
-    	    	if (rpRecommendation.getTargetRecommendations() != null) {
-    	    		haRecommendation.setTargetRecommendations(new ArrayList<RPRecommendation>());
-    	    		haRecommendation.getTargetRecommendations().addAll(rpRecommendation.getTargetRecommendations());
+    	    //Build vplex recommendation of the source if specified
+    	    VirtualPool sourceVirtualPool = dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool());
+    	    if (VirtualPool.vPoolSpecifiesHighAvailability(sourceVirtualPool)) {
+    	    	VPlexRecommendation virtualVolumeRecommendation = new VPlexRecommendation();
+    	    	virtualVolumeRecommendation.setVPlexStorageSystem(sourceVolume.getStorageController());
+    	    	virtualVolumeRecommendation.setVirtualArray(sourceVolume.getVirtualArray());
+    	    	virtualVolumeRecommendation.setVirtualPool(sourceVirtualPool);
+    	    	for (String associatedVolume : sourceVolume.getAssociatedVolumes()) {    	    		
+    	    		Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolume));
+    	    		if (backingVolume.getVirtualArray().equals(sourceVolume.getVirtualArray())) {
+	    	    		rpRecommendation.setSourceStoragePool(backingVolume.getPool());
+	    	    		rpRecommendation.setSourceStorageSystem(dbClient.queryObject(StoragePool.class, backingVolume.getPool()).getStorageDevice());
+    	    		}    	    		
     	    	}
-    	    }    	    
-    	    
-    	    RPRecommendation targetRecommendation = new RPRecommendation();     	
-            Volume targetVolume = getTargetVolumeForProtectionVirtualArray(sourceVolume, protectionVarray);
-            targetRecommendation.setInternalSiteName(targetVolume.getInternalSiteName());
-            targetRecommendation.setVirtualArray(targetVolume.getVirtualArray());
-            targetRecommendation.setVirtualPool(dbClient.queryObject(VirtualPool.class, targetVolume.getVirtualPool()));
-            StoragePool targetPool = dbClient.queryObject(StoragePool.class, targetVolume.getPool());
-            targetRecommendation.setSourceStoragePool(targetPool.getId());
-            targetRecommendation.setSourceStorageSystem(targetPool.getStorageDevice());
-                                            
-            RPRecommendation journalRecommendation = new RPRecommendation();
-            Volume targetJournal = dbClient.queryObject(Volume.class, targetVolume.getRpJournalVolume());
-            journalRecommendation.setSourceStoragePool(targetJournal.getPool());
-            journalRecommendation.setSourceStorageSystem(targetJournal.getStorageController());
-            journalRecommendation.setVirtualPool(dbClient.queryObject(VirtualPool.class, targetJournal.getVirtualPool()));
-            journalRecommendation.setVirtualArray(targetJournal.getVirtualArray());
-            
-            if (rpRecommendation.getTargetRecommendations() == null) {
-            	rpRecommendation.setTargetRecommendations(new ArrayList<RPRecommendation>());
-            }
-            rpRecommendation.getTargetRecommendations().add(targetRecommendation);            
-            recommendation.getSourceRecommendations().add(rpRecommendation);
-        }
-    
+    	    	rpRecommendation.setVirtualVolumeRecommendation(virtualVolumeRecommendation);
+    	    }
+	    	    
+	    	//build HA recommendation if specified.
+	    	if (VirtualPool.vPoolSpecifiesMetroPoint(sourceVirtualPool) || VirtualPool.vPoolSpecifiesHighAvailabilityDistributed(sourceVirtualPool)) {	    	    	    	    	
+	    		RPRecommendation haRec = new RPRecommendation();
+	    		for (String associatedVolume : sourceVolume.getAssociatedVolumes()) {
+	    			Volume haVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolume));
+	    			if (!haVolume.getVirtualArray().equals(sourceVolume.getVirtualArray())){
+	    				VPlexRecommendation haVirtualRecommendation = new VPlexRecommendation();
+	    				haVirtualRecommendation.setVPlexStorageSystem(sourceVolume.getStorageController());
+	    				haVirtualRecommendation.setVirtualArray(sourceVolume.getVirtualArray());
+	    				haVirtualRecommendation.setVirtualPool(sourceVirtualPool);
+	    				haVirtualRecommendation.setSourceStoragePool(haVolume.getPool());
+	    				haVirtualRecommendation.setSourceStorageSystem(haVolume.getStorageController());
+	    				haRec.setVirtualVolumeRecommendation(haVirtualRecommendation);
+	    			}
+	    		}
+	    		rpRecommendation.setHaRecommendation(haRec);
+	    	}
+    	    		    	
+	        //Build targets
+	        for (VirtualArray protectionVarray : protectionVarrays) {                           	     
+	        	 RPRecommendation targetRecommendation = new RPRecommendation();     	
+	             Volume targetVolume = getTargetVolumeForProtectionVirtualArray(sourceVolume, protectionVarray);
+	             VirtualPool targetVpool = dbClient.queryObject(VirtualPool.class, targetVolume.getVirtualPool());
+	             targetRecommendation.setInternalSiteName(targetVolume.getInternalSiteName());
+	             targetRecommendation.setVirtualArray(targetVolume.getVirtualArray());
+	             targetRecommendation.setVirtualPool(targetVpool);
+	             StoragePool targetPool = dbClient.queryObject(StoragePool.class, targetVolume.getPool());
+	             targetRecommendation.setSourceStoragePool(targetPool.getId());
+	             targetRecommendation.setSourceStorageSystem(targetPool.getStorageDevice());
+	             
+	             if (VirtualPool.vPoolSpecifiesHighAvailability(targetVpool)) {
+	            	 VPlexRecommendation targetVplexRec = new VPlexRecommendation();
+	            	 targetVplexRec.setVPlexStorageSystem(targetVolume.getStorageController());
+	            	 targetVplexRec.setVirtualArray(targetVolume.getVirtualArray());
+	            	 targetVplexRec.setVirtualPool(targetVpool);
+	            	 targetRecommendation.setVirtualVolumeRecommendation(targetVplexRec);
+	             }
+	             
+	             if(rpRecommendation.getTargetRecommendations() == null) {
+	            	 rpRecommendation.setTargetRecommendations(new ArrayList<RPRecommendation>());
+	             }
+	             rpRecommendation.getTargetRecommendations().add(targetRecommendation);
+	             
+	             
+	             //Build target Journals
+	             RPRecommendation journalRecommendation = new RPRecommendation();
+	             Volume targetJournal = dbClient.queryObject(Volume.class, targetVolume.getRpJournalVolume());
+	             VirtualPool targetJournalVpool = dbClient.queryObject(VirtualPool.class, targetJournal.getVirtualPool());
+	             journalRecommendation.setSourceStoragePool(targetJournal.getPool());
+	             journalRecommendation.setSourceStorageSystem(targetJournal.getStorageController());
+	             journalRecommendation.setVirtualPool(targetJournalVpool);
+	             journalRecommendation.setVirtualArray(targetJournal.getVirtualArray());
+	             	             
+	             if (VirtualPool.vPoolSpecifiesHighAvailability(targetJournalVpool)) {
+	            	 VPlexRecommendation targetJournalVplexRec = new VPlexRecommendation();
+	            	 targetJournalVplexRec.setVPlexStorageSystem(targetJournal.getStorageController());
+	            	 targetJournalVplexRec.setVirtualArray(targetJournal.getVirtualArray());
+	            	 targetJournalVplexRec.setVirtualPool(targetJournalVpool);
+	            	 journalRecommendation.setVirtualVolumeRecommendation(targetJournalVplexRec);
+	             }
+	             
+	             if (recommendation.getTargetJournalRecommendations() == null) {
+	            	 recommendation.setTargetJournalRecommendations(new ArrayList<RPRecommendation>());
+	             }
+	             recommendation.getTargetJournalRecommendations().add(journalRecommendation);
+	        }
+ 
         _log.info(String.format("Produced recommendation based on existing source volume %s from " +
                 "RecoverPoint consistency group %s: %n %s", sourceVolume.getLabel(), cg.getLabel(), 
                 recommendation.toString(dbClient)));

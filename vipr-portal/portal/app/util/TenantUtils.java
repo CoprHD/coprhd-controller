@@ -13,6 +13,7 @@ import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.google.common.collect.Lists;
 
 import controllers.security.Security;
+import org.apache.commons.lang.StringUtils;
 
 import java.net.URI;
 import java.util.Collections;
@@ -23,9 +24,20 @@ import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static util.BourneUtil.getViprClient;
 
 public class TenantUtils {
+    //To represent the two additional options in the
+    //tenant selector.
+    public static String NO_TENANT_SELECTOR = "[No-Filter]";
+    public static String TENANT_SELECTOR_FOR_UNASSIGNED = "[Not-Assigned]";
+    public static String API_NO_TENANT_SELECTOR = "No-Filter";
+    public static String API_TENANT_SELECTOR_FOR_UNASSIGNED = "Not-Assigned";
 
     public static boolean canReadAllTenants() {
         return Security.hasAnyRole(Security.ROOT_TENANT_ADMIN, Security.SECURITY_ADMIN, Security.SYSTEM_MONITOR);
+    }
+
+    public static boolean canReadAllTenantsForVcenters() {
+        return Security.hasAnyRole(Security.ROOT_TENANT_ADMIN, Security.SECURITY_ADMIN,
+                Security.SYSTEM_MONITOR, Security.SYSTEM_ADMIN);
     }
 
     public static List<TenantOrgRestRep> getAllTenants() {
@@ -152,5 +164,67 @@ public class TenantUtils {
 
     private static StringOption createTenantOption(TenantOrgRestRep tenant) {
         return new StringOption(tenant.getId().toString(), tenant.getName());
+    }
+
+    private static StringOption createTenantOption(String tenantId, String name) {
+        return new StringOption(tenantId, name);
+    }
+
+    /**
+     * Creates a list tenant selector options. But these options are
+     * not the actual tenants. They are just added to filter the
+     * vCenters, Clusters and Hosts in the UI.
+     *
+     * @return list of additional tenant selector options.
+     */
+    public static List<StringOption> getAdditionalTenantOptions() {
+        List<StringOption> options = Lists.newArrayList();
+        options.add(createTenantOption(NO_TENANT_SELECTOR, NO_TENANT_SELECTOR));
+        options.add(createTenantOption(TENANT_SELECTOR_FOR_UNASSIGNED, TENANT_SELECTOR_FOR_UNASSIGNED));
+
+        Collections.sort(options);
+
+        return options;
+    }
+
+    /**
+     * Creates a list tenant selector options. This includes both
+     * the actual tenants an the additional tenant options.
+     *
+     * @return list of tenant with additional tenant selector options.
+     */
+    public static List<StringOption> getSubTenantOptionsWithAdditionalTenants() {
+        List<StringOption> options = getAdditionalTenantOptions();
+        options.addAll(getSubTenantOptions());
+
+        return options;
+    }
+
+    /**
+     * Converts the portal tenant filter to match the API tenant
+     * filter. In portal the tenant filter are
+     * "[No Filter]" - to list all the vCenters in the system.
+     * "[Not Assigned]" - to list all the vCenters with no tenants assigned.
+     * But, in API, they are slightly different.
+     * "ALL" - to list all the vCenters in the system.
+     * "NONE" - to list all the vCenters with no tenants assigned.
+     *
+     * @param tenantId to be converted to the api level filter.
+     *
+     * @return returns the corresponding api level filter to the tenantId.
+     */
+    public static URI getTenantFilter(String tenantId) {
+        URI tenantFilter;
+        if (StringUtils.isNotBlank(tenantId) &&
+                tenantId.toString().equalsIgnoreCase(NO_TENANT_SELECTOR)) {
+            tenantFilter = uri(API_NO_TENANT_SELECTOR);
+        } else if (StringUtils.isNotBlank(tenantId) &&
+                tenantId.toString().equalsIgnoreCase(TENANT_SELECTOR_FOR_UNASSIGNED)){
+            tenantFilter = uri(API_TENANT_SELECTOR_FOR_UNASSIGNED);
+        } else {
+            tenantFilter = uri(tenantId);
+        }
+
+        return tenantFilter;
     }
 }

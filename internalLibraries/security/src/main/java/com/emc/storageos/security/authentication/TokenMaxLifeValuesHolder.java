@@ -114,7 +114,9 @@ public class TokenMaxLifeValuesHolder {
         @Override
         public void connectionStateChanged(State state) {
             _log.info("connection state changed to {}", state);
-            // do nothing
+            if (state.equals(State.CONNECTED)) {
+                loadParameterFromZK();
+            }
         }
     }
 

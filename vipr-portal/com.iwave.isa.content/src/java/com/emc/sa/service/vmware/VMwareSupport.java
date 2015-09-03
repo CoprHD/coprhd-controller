@@ -416,20 +416,6 @@ public class VMwareSupport {
     }
 
     /**
-     * Enable or Disable Storage IO Control for a Datastore
-     * 
-     * @param datastore
-     * @param enabled
-     */
-    private void setStorageIOControl(Datastore datastore, boolean enabled) {
-        if (datastore.getCapability().storageIORMSupported) {
-            execute(new SetStorageIOControl(datastore, enabled));
-        } else {
-            logWarn("vmware.support.storage.io.control.not.supported", datastore.getName());
-        }
-    }
-
-    /**
      * Gets the hosts for the given datastore.
      * 
      * @param datastore

@@ -801,8 +801,8 @@ public class HostStorageAPI {
     /**
      * Detach all of the disks associated with the datastore on this host
      * 
-     * @param datastore
-     * @throws Exception
+     * @param datastore the datastore
+     * @throws VMWareException
      */
     public void detachDatastore(Datastore datastore) {
         for (HostScsiDisk disk : listDisks(datastore)) {
@@ -814,16 +814,27 @@ public class HostStorageAPI {
         }
     }
 
+    /**
+     * Unmount Vmfs datastore from this host storage system
+     * 
+     * @param datastore the datastore
+     */
     public void unmountVmfsDatastore(Datastore datastore) {
         try {
-            String vmfsUuid = getVmfsVolumeUuid(host, datastore);
+            String vmfsUuid = getVmfsVolumeUuid(datastore);
             host.getHostStorageSystem().unmountVmfsVolume(vmfsUuid);
         } catch (RemoteException e) {
             throw new VMWareException(e);
         }
     }
 
-    private String getVmfsVolumeUuid(HostSystem host, Datastore datastore) {
+    /**
+     * Get the Vmfs volume uuid from the datastore on this host
+     * 
+     * @param datastore the datastore
+     * @return
+     */
+    private String getVmfsVolumeUuid(Datastore datastore) {
         String uuid = null;
         for (HostFileSystemMountInfo mount : new HostStorageAPI(host)
                 .getStorageSystem().getFileSystemVolumeInfo().getMountInfo()) {

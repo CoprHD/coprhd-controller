@@ -20,9 +20,10 @@ public class RescanHBAsCommand extends LinuxCommand {
         sb.append("for host in ${hosts}; do ");
         sb.append("  echo \"- - -\" > /sys/class/scsi_host/$host/scan; ");
         sb.append("done; ");
+        sb.append("sleep ${sleepTime}; ");
         setCommand(sb.toString());
-        // Default sleep time to 5s
-        setSleepTime(5);
+        // Default sleep time to 10s
+        setSleepTime(10);
         setRunAsRoot(true);
     }
 

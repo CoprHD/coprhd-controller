@@ -48,11 +48,13 @@ import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssignerFactory;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.workflow.Workflow;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -216,7 +218,7 @@ public class VPlexBackendManager {
      * @param vplex [IN] - VPlex storage system
      * @param array [IN] - Storage Array storage system
      * @param varrayURI [IN] - Virtual array
-     * @param volumeMap [IN] - Map of URI to their corresponding Volume object 
+     * @param volumeMap [IN] - Map of URI to their corresponding Volume object
      * @param stepId the workflow step id
      * @return ExportMaskPlacementDescriptor - data structure that will indicate the mapping of ExportMasks to
      *         ExportGroups and ExportMasks to Volumes.
@@ -269,14 +271,14 @@ public class VPlexBackendManager {
                 // Did not find any reusable ExportMasks. Either there were some that matched initiators, but did not meeting the
                 // VPlex criteria, or there were no existing masks for the backend at all.
                 Map<URI, Volume> volumesToPlace = placementDescriptor.getVolumesToPlace();
-                createVPlexBackendExportMasksForVolumes(vplex, array, varrayURI, placementDescriptor, invalidMasks, volumesToPlace);
+                createVPlexBackendExportMasksForVolumes(vplex, array, varrayURI, placementDescriptor, invalidMasks, volumesToPlace, stepId);
             } else if (placementDescriptor.hasUnPlacedVolumes()) {
                 // There were some matching ExportMasks found on the backend array, but we also have some unplaced
                 // volumes. We need to create new ExportMasks to hold these unplaced volumes.
 
                 // We will leave the placement hint to whatever was determined by the suggestExportMasksForPlacement call
                 Map<URI, Volume> unplacedVolumes = placementDescriptor.getUnplacedVolumes();
-                createVPlexBackendExportMasksForVolumes(vplex, array, varrayURI, placementDescriptor, invalidMasks, unplacedVolumes);
+                createVPlexBackendExportMasksForVolumes(vplex, array, varrayURI, placementDescriptor, invalidMasks, unplacedVolumes, stepId);
             }
 
             // At this point, we have:
@@ -1312,10 +1314,12 @@ public class VPlexBackendManager {
      * @param placementDescriptor [IN/OUT] - The output of calling VPlexBackendMaskingOrchestrator.suggestExportMasksForPlacement
      * @param invalidMasks [IN] - List of Masks that match the initiator list, but do not meet VPlex reuse criteria
      * @param volumes [IN] - List of volumes to map to the new ExportMasks
+     * @param stepId TODO
      * @throws VPlexApiException
      */
     private void createVPlexBackendExportMasksForVolumes(StorageSystem vplex, StorageSystem array, URI varrayURI,
-            ExportMaskPlacementDescriptor placementDescriptor, Set<URI> invalidMasks, Map<URI, Volume> volumes) throws VPlexApiException {
+            ExportMaskPlacementDescriptor placementDescriptor, Set<URI> invalidMasks, Map<URI, Volume> volumes,
+            String stepId) throws VPlexApiException {
         Map<URI, ExportMask> maskSet = placementDescriptor.getMasks();
 
         if (!invalidMasks.isEmpty()) {
@@ -1325,7 +1329,7 @@ public class VPlexBackendManager {
             _log.info("Did not find any existing export masks");
         }
         _log.info("Attempting to generate ExportMasks...");
-        Map<ExportMask, ExportGroup> generatedMasks = generateExportMasks(varrayURI, vplex, array);
+        Map<ExportMask, ExportGroup> generatedMasks = generateExportMasks(varrayURI, vplex, array, stepId);
         if (generatedMasks.isEmpty()) {
             _log.info("Unable to generate any ExportMasks");
             throw VPlexApiException.exceptions.couldNotGenerateArrayExportMask(

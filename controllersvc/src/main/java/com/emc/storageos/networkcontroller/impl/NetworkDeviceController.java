@@ -102,7 +102,6 @@ public class NetworkDeviceController implements NetworkController {
     private NetworkScheduler _networkScheduler;
     private static final String EVENT_SERVICE_TYPE = "network";
     private static final String EVENT_SERVICE_SOURCE = "NetworkDeviceController";
-    private static final StringMap scope = new StringMap();
 
     @Autowired
     private AuditLogManager _auditMgr;

@@ -231,10 +231,12 @@ public class NetworkScheduler {
             FCZoneReference refTemplate = DataObjectUtils.findByProperty(fcZoneRefs, "groupUri", exportGroupUri);
             if (refTemplate != null) {
                 _log.info("Already existing FCZoneReferencesfor initiator {} and port {} will be replicated for new volumes.",
-                        new Object[]{initiatorPort, storagePortWwn});
+                        initiatorPort, storagePortWwn);
                 return createZoneInfoForRef(refTemplate, null, initiatorPort, storagePortWwn,
                         NetworkUtil.getEndpointNetworkLite(initiatorPort, _dbClient));
             } else {
+                _log.info("FCZoneReferencesfor doesnt exist for initiator {} and port {} for replication.",
+                        initiatorPort, storagePortWwn);
                 return null;
             }
         } else {

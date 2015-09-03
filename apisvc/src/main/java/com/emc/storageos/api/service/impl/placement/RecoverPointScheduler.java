@@ -2180,11 +2180,13 @@ public class RecoverPointScheduler implements Scheduler {
 								    		VirtualPoolCapabilityValuesWrapper capabilities,
 								    		int requestedResourceCount, Volume vpoolChangeVolume, boolean isMPStandby) {
     	
-    	//TODO: Joe will need to  check here for if its a journal add capacity and not set the resource count to 1 or calculate the size based on policy    	
-    	VirtualPoolCapabilityValuesWrapper newCapabilities = new VirtualPoolCapabilityValuesWrapper(capabilities);	    
-    	newCapabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, 1);       
-    	Long sizeInBytes = RPHelper.getJournalSizeGivenPolicy(Long.toString(capabilities.getSize()), journalPolicy, requestedResourceCount);
-    	newCapabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, sizeInBytes);    	       
+    	VirtualPoolCapabilityValuesWrapper newCapabilities = new VirtualPoolCapabilityValuesWrapper(capabilities);	        	
+    	// only update the count and size of journal volumes if this is not an add journal operation
+    	if (!capabilities.getAddJournalCapacity()) {
+    		newCapabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, 1);       
+        	Long sizeInBytes = RPHelper.getJournalSizeGivenPolicy(Long.toString(capabilities.getSize()), journalPolicy, requestedResourceCount);
+        	newCapabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, sizeInBytes);
+    	}    	    	       
     
     	boolean foundJournal = false;
 		List<Recommendation> journalRec = getRecommendedPools(rpProtectionRecommendation, journalVarray, journalVpool, null, null, 

@@ -92,15 +92,11 @@ public class Cluster extends AbstractTenantResource {
      */
     @Name("autoExportEnabled")
     public Boolean getAutoExportEnabled() {
-        return autoExportEnabled;
+        return autoExportEnabled == null || autoExportEnabled;
     }
 
     public void setAutoExportEnabled(Boolean autoExportEnabled) {
         this.autoExportEnabled = autoExportEnabled;
         setChanged("autoExportEnabled");
-    }
-
-    public Boolean isAutoExportEnabled() {
-        return this.autoExportEnabled == null || this.autoExportEnabled;
     }
 }

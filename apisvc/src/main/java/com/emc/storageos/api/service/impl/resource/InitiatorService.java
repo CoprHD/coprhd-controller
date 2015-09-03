@@ -184,7 +184,7 @@ public class InitiatorService extends TaskResourceService {
         Cluster cluster = getInitiatorCluster(initiator);
 
         if (ComputeSystemHelper.isInitiatorInUse(_dbClient, id.toString())) {
-            if (cluster == null || cluster.isAutoExportEnabled()) {
+            if (cluster == null || cluster.getAutoExportEnabled()) {
                 ComputeSystemController controller = getController(ComputeSystemController.class, null);
                 controller.removeInitiatorFromExport(initiator.getHost(), initiator.getId(), taskId);
             } else {

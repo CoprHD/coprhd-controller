@@ -4210,6 +4210,8 @@ public class BlockService extends TaskResourceService {
     public TaskList addJournalCapacity(VolumeCreate param) throws InternalException {
         ArgValidator.checkFieldNotNull(param, "volume_create");
         
+        ArgValidator.checkFieldNotNull(param.getName(), "name");
+        
         ArgValidator.checkFieldNotNull(param.getSize(), "size");
         
         ArgValidator.checkFieldNotNull(param.getCount(), "count");

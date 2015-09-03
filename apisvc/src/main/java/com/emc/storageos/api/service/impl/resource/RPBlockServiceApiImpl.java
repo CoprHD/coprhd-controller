@@ -87,6 +87,7 @@ import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.recoverpoint.impl.RecoverPointClient.RecoverPointCGCopyType;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestExceptions;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.ConnectivityUtil.StorageSystemType;
@@ -699,12 +700,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             }
         }
         
-        // Only need to add to the source journals map if we are NOT doing an add journal operation
-        //if (!journalOnlyCreate) {
-            // Add the source journals at the specified indices 
-            sourceJournals.add(0, sourceJournal);
-            sourceJournals.add(1, standbyJournal);
-        //}
+        
+        // Add the source journals at the specified indices        
+        sourceJournals.add(0, sourceJournal);
+        if (standbyJournal != null) {
+        	sourceJournals.add(1, standbyJournal);
+        }
         
         ///////// TARGET JOURNAL(s) /////////// 
         if (rpProtectionRec.getTargetJournalRecommendations() != null
@@ -726,6 +727,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     targetCopyVarray = targetJournalVarray;
                 }                               
                 
+                // only need to enter his block if we already have existing journals in the CG
+                // and we want to see if more space is required or if we are performing an add
+                // journal volume operation
                 if (!cgTargetVolumes.isEmpty() && !capabilities.getAddJournalCapacity()) {
                     VpoolProtectionVarraySettings protectionSettings = _rpHelper.getProtectionSettings(originalVpool, targetCopyVarray);
                     boolean isAdditionalTargetJournalRequired = _rpHelper.isAdditionalJournalRequiredForCG(protectionSettings.getJournalSize(), consistencyGroup, param.getSize(), 
@@ -766,10 +770,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     volumeURIs.add(targetJournalVolume.getId());                        
                     volumeInfoBuffer.append(logVolumeInfo(targetJournalVolume));
                     
-                    // Only need to add to the target journals map if we are NOT doing an add journal operation
-                    //if (!journalOnlyCreate) {
-                        targetJournals.put(targetCopyVarray.getId(), targetJournalVolume);
-                    //}
+                    targetJournals.put(targetCopyVarray.getId(), targetJournalVolume);                    
                 }
             }
         }
@@ -3073,6 +3074,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             _log.info(
                     "Narrowing down placement to use protection system {}, which is currently used by RecoverPoint consistency group {}.",
                     protectionSystem.getLabel(), consistencyGroup);
+        } else {
+        	throw APIException.badRequests.noProtectionSystemAssociatedWithTheCG();
         }
         
         String copyName = param.getName();
@@ -3082,13 +3085,20 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         boolean isMPStandby = false;
         boolean isTarget = false;
         List<Volume> cgVolumes = _rpHelper.getCgVolumes(consistencyGroup.getId());
+        if (cgVolumes.isEmpty()) {
+        	throw APIException.badRequests.noExistingVolumesInCG();
+        }
         
         for (Volume cgVolume : cgVolumes) {
         	if (cgVolume.getPersonality().equals((Volume.PersonalityTypes.SOURCE.name()))) {
         		sourceInternalSiteName = cgVolume.getInternalSiteName();
         		break;
         	}
-        }         
+        }
+        
+        if (sourceInternalSiteName == null) {
+        	throw APIException.badRequests.noSourceVolumesInCG();
+        }
         
         int copyType = RecoverPointCGCopyType.PRODUCTION.getCopyNumber();
         for (Volume cgVolume : cgVolumes) {        	
@@ -3121,11 +3131,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         
         RPRecommendation journalRecommendation = getBlockScheduler().buildJournalRecommendation(rpProtectionRecommendation, internalSiteName,
         		new Long(capabilities.getSize()).toString(), journalVarray, journalVpool, 
-        		protectionSystem, capabilities, capabilities.getResourceCount(), null, false);
-        // TODO: Need to talk to Bharath and Brad, what would cause this to be null or bad looks like
-        // it would only be null if we already had a recommendation which should not happen in our case
+        		protectionSystem, capabilities, capabilities.getResourceCount(), null, false);        
         if (journalRecommendation == null) {
-        	throw new UnsupportedOperationException();
+        	throw APIException.badRequests.unableToFindSuitableJournalRecommendation();
         }
         
         if (isSource) {

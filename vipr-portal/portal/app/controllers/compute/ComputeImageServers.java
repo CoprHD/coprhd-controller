@@ -5,19 +5,14 @@
 package controllers.compute;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
+import static controllers.Common.backToReferrer;
 
-import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URL;
 import java.util.List;
 
 import models.datatable.ComputeImageServersDataTable;
 import models.datatable.ComputeImageServersDataTable.ComputeImageServerInfo;
 
-/*import models.ComputeImageServerTypes;
- import models.datatable.ComputeImageServersDataTable;
- import models.datatable.ComputeImageServersDataTable.ComputeImageServerInfo;
- */
 import org.apache.commons.lang.StringUtils;
 
 import play.data.binding.As;
@@ -28,8 +23,12 @@ import play.data.validation.Validation;
 import play.mvc.With;
 import util.ComputeImageServerUtils;
 import util.MessagesUtils;
+import util.validation.HostNameOrIpAddressCheck;
 
+import com.emc.storageos.model.compute.ComputeImageServerCreate;
 import com.emc.storageos.model.compute.ComputeImageServerRestRep;
+import com.emc.storageos.model.compute.ComputeImageServerUpdate;
+import com.emc.vipr.client.Task;
 
 import controllers.Common;
 import controllers.deadbolt.Restrict;
@@ -86,26 +85,28 @@ public class ComputeImageServers extends ViprResourceController {
     public static void create() {
         addReferenceData();
         ComputeImageServerForm ComputeImageServer = new ComputeImageServerForm();
+        // ComputeImageServer.tftpBootDir = MessagesUtils.get("ComputeImageServer.default.tftpBootDir");
+        // ComputeImageServer.osInstallTimeOut = Integer.parseInt(MessagesUtils.get("ComputeImageServer.default.installTimeout"));
+        System.out
+                .println("ComputeImageServer tftpboot " + ComputeImageServer.tftpBootDir + " osTO " + ComputeImageServer.osInstallTimeOut);
         render("@edit", ComputeImageServer);
     }
 
-    /*
-     * public static void createClone(@As(",") String[] ids) {
-     * if (ids != null && ids.length > 0) {
-     * String imageId = ids[0];
-     * createAClone(imageId);
-     * }
-     * }
-     * 
-     * public static void createAClone(String ImageServerId) {
-     * addReferenceData();
-     * 
-     * ComputeImageServerRestRep computeImageServer = ComputeImageServerUtils
-     * .getComputeImageServer(ImageServerId);
-     * ComputeImageServerForm ComputeImageServer = new ComputeImageServerForm(computeImageServer, true);
-     * render("@edit", ComputeImageServer);
-     * }
-     */
+    public static void createClone(@As(",") String[] ids) {
+        if (ids != null && ids.length > 0) {
+            String imageId = ids[0];
+            createAClone(imageId);
+        }
+    }
+
+    public static void createAClone(String ImageServerId) {
+        addReferenceData();
+
+        ComputeImageServerRestRep computeImageServer = ComputeImageServerUtils
+                .getComputeImageServer(ImageServerId);
+        ComputeImageServerForm ComputeImageServer = new ComputeImageServerForm(computeImageServer, true);
+        render("@edit", ComputeImageServer);
+    }
 
     @FlashException("list")
     public static void edit(String id) {
@@ -114,9 +115,9 @@ public class ComputeImageServers extends ViprResourceController {
         ComputeImageServerRestRep computeImageServer = ComputeImageServerUtils
                 .getComputeImageServer(id);
         if (computeImageServer != null) {
-            ComputeImageServerForm ComputeImageServer = new ComputeImageServerForm(
+            ComputeImageServerForm computeImageServers = new ComputeImageServerForm(
                     computeImageServer);
-            render("@edit", ComputeImageServer);
+            render("@edit", computeImageServers);
         }
         else {
             flash.error(MessagesUtils.get(UNKNOWN, id));
@@ -124,38 +125,38 @@ public class ComputeImageServers extends ViprResourceController {
         }
     }
 
-    /*
-     * @FlashException(keep = true, referrer = { "create", "edit" })
-     * public static void save(ComputeImageServerForm ComputeImageServer) {
-     * 
-     * ComputeImageServer.validate("ComputeImageServers");
-     * 
-     * if (Validation.hasErrors()) {
-     * handleError(ComputeImageServer);
-     * }
-     * ComputeImageServer.save();
-     * String name = ComputeImageServers.name;
-     * flash.success(MessagesUtils.get(SAVED, name));
-     * backToReferrer();
-     * list();
-     * }
-     * 
-     * private static void handleError(ComputeImageServerForm ComputeImageServers) {
-     * params.flash();
-     * Validation.keep();
-     * if (ComputeImageServers.isNew()) {
-     * if (ComputeImageServers.ImageServerId == null) {
-     * create();
-     * }
-     * else {
-     * createAClone(ComputeImageServers.ImageServerId.toString());
-     * }
-     * }
-     * else {
-     * edit(ComputeImageServers.id);
-     * }
-     * }
-     */
+    @FlashException(keep = true, referrer = { "create", "edit" })
+    public static void save(ComputeImageServerForm computeImageServers) {
+        if (computeImageServers != null) {
+            System.out.println("computeImageSErvers not null");
+        }
+        computeImageServers.validate("computeImageServers");
+
+        if (Validation.hasErrors()) {
+            handleError(computeImageServers);
+        }
+        computeImageServers.save();
+        flash.success(MessagesUtils.get(SAVED, computeImageServers.name));
+        backToReferrer();
+        list();
+    }
+
+    private static void handleError(ComputeImageServerForm computeImageServers) {
+        params.flash();
+        Validation.keep();
+        if (computeImageServers.isNew()) {
+            if (computeImageServers.id == null) {
+                create();
+            }
+            else {
+                createAClone(computeImageServers.id.toString());
+            }
+        }
+        else {
+            edit(computeImageServers.id);
+        }
+    }
+
     @FlashException("list")
     public static void delete(@As(",") String[] ids) {
         delete(uris(ids));
@@ -181,98 +182,114 @@ public class ComputeImageServers extends ViprResourceController {
         public String name;
 
         @MaxSize(2048)
-        public String ImageServerUrl;
+        public String imageServerIp;
 
-        public URI ImageServerId;
+        public URI imageServerId;
 
-        public String ImageServerName;
+        @MaxSize(2048)
+        public String imageServerSecondIp;
 
-        public String ImageServerType;
+        public String imageServerName;
 
-        public String ComputeImageServerStatus;
+        public String osInstallNetworkAddress;
 
-        public String lastImageServerStatusMessage;
+        public Integer osInstallTimeOut;
+
+        public String status;
+
+        public String tftpBootDir;
+
+        @MaxSize(2048)
+        @Required
+        public String userName;
+
+        @MaxSize(2048)
+        public String password = "";// NOSONAR ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.")
+
+        @MaxSize(2048)
+        public String confirmPassword = "";// NOSONAR ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.")
 
         public String cloneName;
-        public String cloneExtractedName;
-        public String cloneType;;
         public String cloneUrl;
 
         public ComputeImageServerForm() {
+            System.out.println("ComputeImageserverForm without");
         }
 
         public ComputeImageServerForm(ComputeImageServerRestRep computeImageServer) {
             this.id = computeImageServer.getId().toString();
             this.name = computeImageServer.getName();
-            /*
-             * this.ImageServerName = computeImageServer.getImageServerName();
-             * this.ImageServerType = ComputeImageServerTypes.getDisplayValue(computeImageServer.getImageServerType());
-             * this.ImageServerUrl = computeImageServer.getImageServerUrl();
-             * this.ComputeImageServerStatus = computeImageServer.getComputeImageServerStatus();
-             * this.lastImageServerStatusMessage = computeImageServer.getLastImportStatusMessage();
-             */}
+            this.imageServerIp = computeImageServer.getImageServerIp();
+            this.status = computeImageServer.getComputeImageServerStatus();
+            this.tftpBootDir = computeImageServer.getTftpbootDir();
+            System.out.println("ComputeImageserverForm " + this.tftpBootDir + " this.name " + this.name);
+        }
 
         public ComputeImageServerForm(ComputeImageServerRestRep computeImageServer, boolean clone) {
             this.cloneName = computeImageServer.getName();
-            /*
-             * this.ImageServerId = computeImageServer.getImageServerId();
-             * this.cloneExtractedName = computeImageServer.getImageServerName();
-             * this.cloneType = ComputeImageServerTypes.getDisplayValue(computeImageServer.getImageServerType());
-             * this.cloneUrl = computeImageServer.getImageServerUrl();
-             */}
+            this.imageServerId = computeImageServer.getId();
+            this.cloneUrl = computeImageServer.getImageServerIp();
+        }
 
         public boolean isNew() {
             return StringUtils.isBlank(this.id);
         }
 
         public boolean isCreate() {
-            return StringUtils.isBlank(this.id) && this.ImageServerId == null;
+            return StringUtils.isBlank(this.id) && this.imageServerId == null;
         }
 
         public void validate(String fieldName) {
             Validation.valid(fieldName, this);
             Validation.required(fieldName + ".name", this.name);
             if (isCreate()) {
-                Validation.required(fieldName + ".ImageServerUrl", this.ImageServerUrl);
-                try {
-                    new URL(this.ImageServerUrl);// NOSONAR
-                    // ("Suppressing Sonar violation of Object being dropped without using it. Object is used for validation purpose")
-                } catch (MalformedURLException e) {
-                    Validation.addError(fieldName + ".ImageServerUrl",
-                            MessagesUtils.get("computeImageServer.invalid.url"));
+                Validation.required(fieldName + ".imageServerIp", this.imageServerIp);
+                if (!HostNameOrIpAddressCheck.isValidIp(imageServerIp)) {
+                    Validation.addError(fieldName + ".imageServerIp",
+                            MessagesUtils.get("computeSystem.invalid.ipAddress"));
                 }
             }
 
         }
 
-        /*
-         * public Task<ComputeImageServerRestRep> save() {
-         * if (isNew()) {
-         * return create();
-         * } else {
-         * return update();
-         * }
-         * }
-         * 
-         * private Task<ComputeImageServerRestRep> create() {
-         * ComputeImageServerCreate createParam = new ComputeImageServerCreate();
-         * // createParam.setName(this.name);
-         * // createParam.setImageServerUrl(this.ImageServerUrl);
-         * return ComputeImageServerUtils.create(createParam);
-         * }
-         * 
-         * private Task<ComputeImageServerRestRep> update() {
-         * ComputeImageServerUpdate updateParam = new ComputeImageServerUpdate();
-         * 
-         * updateParam.setName(this.name);
-         * 
-         * if (this.ComputeImageServerStatus.equals("NOT_AVAILABLE") && this.ImageServerUrl != null && this.ImageServerUrl.length() > 0)
-         * {
-         * updateParam.setImageServerUrl(this.ImageServerUrl);
-         * }
-         * return ComputeImageServerUtils.update(id, updateParam);
-         * }
-         */
+        public URI save() {
+            if (isNew()) {
+                return create().getResourceId();
+            }
+            else {
+                return update().getId();
+            }
+        }
+
+        private Task<ComputeImageServerRestRep> create() {
+            ComputeImageServerCreate createParam = new ComputeImageServerCreate();
+            createParam.setImageServerIp(this.imageServerIp);
+            createParam.setImageServerUser(this.userName);
+            createParam.setImageServerPassword(this.password);
+            createParam.setOsInstallTimeoutMs(this.osInstallTimeOut);
+            createParam.setTftpbootDir(this.tftpBootDir);
+            createParam.setImageServerSecondIp(this.osInstallNetworkAddress);
+            System.out.println("createP " + createParam.getTftpbootDir() + " this tftp " + this.tftpBootDir);
+            System.out.println("createP " + createParam.getOsInstallTimeoutMs() + "osTO " + this.osInstallTimeOut.toString());
+            return ComputeImageServerUtils.create(createParam);
+        }
+
+        private ComputeImageServerRestRep update() {
+            ComputeImageServerUpdate updateParam = new ComputeImageServerUpdate();
+            ComputeImageServerRestRep originalCIS = ComputeImageServerUtils.getComputeImageServer(this.id);
+            // ComputeImageServerRestRep originalCIS = new ComputeImageServerRestRep();
+
+            updateParam.setImageServerIp(this.imageServerIp);
+            updateParam.setTftpbootDir(this.tftpBootDir);
+            updateParam.setOsInstallTimeoutMs(this.osInstallTimeOut);
+            updateParam.setImageServerUser(this.userName);
+            updateParam.setImageServerSecondIp(this.osInstallNetworkAddress);
+            if (this.password != null && this.password.length() > 0) {
+                updateParam.setImageServerPassword(this.password);
+            }
+
+            return ComputeImageServerUtils.update(id, updateParam);
+        }
     }
 
     protected static class JsonItemOperation implements

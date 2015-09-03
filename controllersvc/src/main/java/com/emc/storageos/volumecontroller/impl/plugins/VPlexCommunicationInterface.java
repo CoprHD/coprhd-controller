@@ -45,8 +45,8 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.UnManagedVolume.SupportedVolumeCharacterstics;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.WWNUtility;
@@ -131,6 +131,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      * 
      * @param partitionManager
      */
+    @Override
     public void setPartitionManager(PartitionManager partitionManager) {
         _partitionManager = partitionManager;
     }
@@ -522,7 +523,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
             // set batch size for persisting unmanaged volumes
             int batchSize = Constants.DEFAULT_PARTITION_SIZE;
-            Map<String, String> props = (Map<String, String>) accessProfile.getProps();
+            Map<String, String> props = accessProfile.getProps();
             if (null != props && null != props.get(Constants.METERING_RECORDS_PARTITION_SIZE)) {
                 batchSize = Integer.parseInt(props.get(Constants.METERING_RECORDS_PARTITION_SIZE));
             }
@@ -855,26 +856,14 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             }
         }
 
-        if (unManagedVolumeInformation
-                .containsKey(SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())) {
-
-            if (null != matchedVPools && matchedVPools.isEmpty()) {
-                // replace with empty string set doesn't work, hence added explicit code to remove all
-                unManagedVolumeInformation.get(
-                        SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).clear();
-                s_logger.info("No matching VPOOLS found for unmanaged volume " + volume.getLabel());
-            } else {
-                // replace with new StringSet
-                unManagedVolumeInformation.get(
-                        SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).replace(matchedVPools);
-                s_logger.info("Replaced Pools :" + Joiner.on("\t").join(unManagedVolumeInformation.get(
-                        SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())));
-            }
+        if (null == matchedVPools || matchedVPools.isEmpty()) {
+            // clean all supported vpools.
+            volume.getSupportedVpoolUris().clear();
+            s_logger.info("No matching VPOOLS found for unmanaged volume " + volume.getLabel());
         } else {
-            unManagedVolumeInformation.put(
-                    SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString(), matchedVPools);
-            s_logger.info("Matching VPOOLS found for unmanaged volume " + volume.getLabel()
-                    + " are " + matchedVPools.toString());
+            // replace with new StringSet
+            volume.getSupportedVpoolUris().replace(matchedVPools);
+            s_logger.info("Replaced Pools : {}", volume.getSupportedVpoolUris());
         }
 
         // add this info to the unmanaged volume object
@@ -936,7 +925,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         }
         if (null != unManagedVolumesToUpdate) {
             if (flush || (unManagedVolumesToUpdate.size() > BATCH_SIZE)) {
-                _partitionManager.updateInBatches(unManagedVolumesToUpdate,
+                _partitionManager.updateAndReIndexInBatches(unManagedVolumesToUpdate,
                         BATCH_SIZE, _dbClient, UNMANAGED_VOLUME);
                 unManagedVolumesToUpdate.clear();
             }

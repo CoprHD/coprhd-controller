@@ -276,8 +276,7 @@ public class FileService extends TaskResourceService {
         Collections.shuffle(placement);
         FileRecommendation recommendation = placement.get(0);
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceStorageSystem());
-        
-        
+
         // List the FileSystesm with the label received.
         List<FileShare> objectList = listFileSystemsWithLabelName(param.getLabel(), FileShare.class, null, null);
         _log.debug("No of FileSystems found {} with the label {}", objectList.size(), param.getLabel());
@@ -297,7 +296,7 @@ public class FileService extends TaskResourceService {
 
         _log.info(String.format(
                 "createFileSystem --- FileShare: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
-                fs.getId(), recommendation.getSourceStoragePool(),  recommendation.getSourceStorageSystem()));
+                fs.getId(), recommendation.getSourceStoragePool(), recommendation.getSourceStorageSystem()));
         try {
             controller.createFS(recommendation.getSourceStorageSystem(), recommendation.getSourceStoragePool(), fs.getId(),
                     suggestedNativeFsId, task);
@@ -402,7 +401,9 @@ public class FileService extends TaskResourceService {
      * @Deprecated use @Path("/{id}/export") instead.
      *             Get list of file system exports
      * @param id the URN of a ViPR File system
-     * @brief List file system exports. <p> Use /file/filesystems/{id}/export instead
+     * @brief List file system exports.
+     *        <p>
+     *        Use /file/filesystems/{id}/export instead
      * @return File system exports list.
      */
     @Deprecated
@@ -649,7 +650,9 @@ public class FileService extends TaskResourceService {
      * @param securityType Security type valid values - sys,krb5,krb5i,krb5p
      * @param permissions Permissions valid values - ro,rw,root
      * @param rootUserMapping Root user mapping
-     * @brief Update file system export. <p> Use /file/filesystems/{id}/export instead
+     * @brief Update file system export.
+     *        <p>
+     *        Use /file/filesystems/{id}/export instead
      * @return Task resource representation
      * @throws InternalException
      */
@@ -727,7 +730,7 @@ public class FileService extends TaskResourceService {
 
     /**
      * @Deprecated use @Path("/{id}/export") instead
-     *             Delete file system export.
+     * 
      *             <p>
      *             NOTE: This is an asynchronous operation.
      * @param id the URN of a ViPR Project
@@ -735,7 +738,9 @@ public class FileService extends TaskResourceService {
      * @param securityType Security type valid values - sys,krb5,krb5i,krb5p
      * @param permissions Permissions valid values - ro,rw,root
      * @param rootUserMapping Root user mapping
-     * @brief Delete file system export.<p> Use /file/filesystems/{id}/export instead
+     * @brief Delete file system export.
+     *        <p>
+     *        Use /file/filesystems/{id}/export instead
      * @return Task resource representation
      * @throws InternalException
      */
@@ -1265,7 +1270,7 @@ public class FileService extends TaskResourceService {
     }
 
     // Counts and returns the number of snapshots on a filesystem
-            Integer getNumSnapshots(FileShare fs) {
+    Integer getNumSnapshots(FileShare fs) {
         Integer numSnapshots = 0;
         URI fsId = fs.getId();
         URIQueryResultList snapIDList = new URIQueryResultList();
@@ -1395,8 +1400,7 @@ public class FileService extends TaskResourceService {
         }
         fs.setTenant(new NamedURI(tenantOrg.getId(), param.getLabel()));
         fs.setVirtualArray(neighborhood.getId());
-        
-        
+
         if (null != placement.getSourceStoragePool()) {
             pool = _dbClient.queryObject(StoragePool.class, placement.getSourceStoragePool());
             if (null != pool) {
@@ -1404,7 +1408,7 @@ public class FileService extends TaskResourceService {
                 fs.getProtocol().addAll(VirtualPoolUtil.getMatchingProtocols(vpool.getProtocols(), pool.getProtocols()));
             }
         }
-        
+
         fs.setStorageDevice(placement.getSourceStorageSystem());
         fs.setPool(placement.getSourceStoragePool());
         if (placement.getStoragePorts() != null && !placement.getStoragePorts().isEmpty()) {

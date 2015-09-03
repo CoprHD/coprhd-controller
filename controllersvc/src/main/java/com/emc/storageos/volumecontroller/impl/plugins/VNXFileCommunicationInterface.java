@@ -54,7 +54,6 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBFileShare;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
@@ -1517,7 +1516,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             if (!existingUnManagedFileSystems.isEmpty()) {
                 // Update UnManagedFilesystem
-                _dbClient.persistObject(existingUnManagedFileSystems);
+                _dbClient.updateAndReindexObject(existingUnManagedFileSystems);
             }
 
             // discovery succeeds
@@ -3310,24 +3309,15 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             // We should check matched vpool based on storagepool of type for given fs.
             // In vipr, storagepool of thin is taken as THICK
             StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(_dbClient, pool.getId());
-            if (unManagedFileSystemInformation.containsKey(UnManagedFileSystem.SupportedFileSystemInformation.
-                    SUPPORTED_VPOOL_LIST.toString())) {
-
-                if (null != matchedVPools && matchedVPools.isEmpty()) {
-                    // replace with empty string set doesn't work, hence added explicit code to remove all
-                    unManagedFileSystemInformation.get(
-                            SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).clear();
-                } else {
-                    // replace with new StringSet
-                    unManagedFileSystemInformation.get(
-                            SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).replace(matchedVPools);
-                    _logger.info("Replaced Pools :" + Joiner.on("\t").join(unManagedFileSystemInformation.get(
-                            SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())));
-                }
+            _logger.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
+            if (null == matchedVPools || matchedVPools.isEmpty()) {
+                // clear all existing supported vpools.
+                unManagedFileSystem.getSupportedVpoolUris().clear();
             } else {
-                unManagedFileSystemInformation
-                        .put(UnManagedFileSystem.SupportedFileSystemInformation.SUPPORTED_VPOOL_LIST
-                                .toString(), matchedVPools);
+                // replace with new StringSet
+                unManagedFileSystem.getSupportedVpoolUris().replace(matchedVPools);
+                _logger.info("Replaced Pools :"
+                        + Joiner.on("\t").join(unManagedFileSystem.getSupportedVpoolUris()));
             }
 
         }

@@ -36,6 +36,7 @@ import com.emc.sa.machinetags.KnownMachineTags;
 import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
 import com.emc.sa.util.ResourceType;
+import com.emc.sa.util.StringComparator;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
@@ -135,6 +136,15 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return createVolumeOptions(null, listSourceVolumes(api(ctx), project));
     }
 
+    @Asset("sourceBlockVolumeInConsistencyGroup")
+    @AssetDependencies({ "project", "consistencyGroup" })
+    public List<AssetOption> getSourceVolumesWithoutConsistencyGroup(AssetOptionsContext ctx, URI project, URI consistencyGroup) {
+        debug("getting source block volumes in consistency group or no consistency group (project=%s, consistency group=%s)", project,
+                consistencyGroup);
+        return createVolumeOptions(null,
+                listSourceVolumes(api(ctx), project, new BlockVolumeConsistencyGroupFilter(consistencyGroup, true)));
+    }
+
     /**
      * Get source volumes for a specific project. If the deletionType is VIPR_ONLY, create
      * a filter that only retrieves Volumes with Host Exports
@@ -226,11 +236,13 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("vplexMigrationChangeOperation")
     public List<AssetOption> getVplexMigrationChangeOperations(AssetOptionsContext ctx) {
         List<AssetOption> options = Lists.newArrayList();
-        options.add(newAssetOption(VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION.name(), "virtualPoolChange.operation." + VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION.name()));
-        options.add(newAssetOption(VirtualPoolChangeOperationEnum.VPLEX_LOCAL_TO_DISTRIBUTED.name(), "virtualPoolChange.operation." + VirtualPoolChangeOperationEnum.VPLEX_LOCAL_TO_DISTRIBUTED.name()));
+        options.add(newAssetOption(VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION.name(), "virtualPoolChange.operation."
+                + VirtualPoolChangeOperationEnum.VPLEX_DATA_MIGRATION.name()));
+        options.add(newAssetOption(VirtualPoolChangeOperationEnum.VPLEX_LOCAL_TO_DISTRIBUTED.name(), "virtualPoolChange.operation."
+                + VirtualPoolChangeOperationEnum.VPLEX_LOCAL_TO_DISTRIBUTED.name()));
         return options;
     }
-    
+
     @Asset("virtualPoolChangeOperation")
     public List<AssetOption> getVirtualPoolchangeOperations(AssetOptionsContext ctx) {
         List<AssetOption> options = Lists.newArrayList();
@@ -244,6 +256,25 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @AssetDependencies({ "project", "blockVirtualPool" })
     public List<AssetOption> getVpoolChangeVolumes(AssetOptionsContext ctx, URI projectId, URI virtualPoolId) {
         return createVolumeOptions(api(ctx), listSourceVolumes(api(ctx), projectId, new VirtualPoolFilter(virtualPoolId)));
+    }
+
+    @Asset("virtualPoolChangeVolumeWithSourceFilter")
+    @AssetDependencies({ "project", "blockVirtualPool", "sourceVolumeFilter" })
+    public List<AssetOption> getVpoolChangeVolumes(AssetOptionsContext ctx, URI projectId, URI virtualPoolId, int volumePage) {
+        List<AssetOption> options = createVolumeOptions(api(ctx),
+                listSourceVolumes(api(ctx), projectId, new VirtualPoolFilter(virtualPoolId)));
+        return VirtualDataCenterProvider.getVolumeSublist(volumePage, options);
+    }
+
+    @Asset("sourceVolumeFilter")
+    @AssetDependencies({ "project", "blockVirtualPool" })
+    public List<AssetOption> getVolumeFilter(AssetOptionsContext ctx, URI projectId, URI virtualPoolId) {
+        List<String> volumeNames = Lists.newArrayList();
+        for (VolumeRestRep volume : listSourceVolumes(api(ctx), projectId, new VirtualPoolFilter(virtualPoolId))) {
+            volumeNames.add(volume.getName());
+        }
+        Collections.sort(volumeNames, new StringComparator(false));
+        return VirtualDataCenterProvider.getVolumeFilterOptions(volumeNames);
     }
 
     @Asset("virtualArrayChangeVolume")
@@ -265,10 +296,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
         return targets;
     }
-    
+
     @Asset("migrationTargetVirtualPool")
-    @AssetDependencies({"project", "blockVirtualPool", "vplexMigrationChangeOperation"})
-    public List<AssetOption> getMigrationTargetVirtualPools(AssetOptionsContext ctx, URI projectId, URI virtualPoolId, String vpoolChangeOperation) {
+    @AssetDependencies({ "project", "blockVirtualPool", "vplexMigrationChangeOperation" })
+    public List<AssetOption> getMigrationTargetVirtualPools(AssetOptionsContext ctx, URI projectId, URI virtualPoolId,
+            String vpoolChangeOperation) {
         return getTargetVirtualPoolsForVpool(ctx, projectId, virtualPoolId, vpoolChangeOperation);
     }
 
@@ -916,7 +948,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
         List<AssetOption> options = Lists.newArrayList();
         for (VolumeDetail detail : volumeDetails) {
-            if (isLocalMirrorSupported(detail.vpool) && detail.volume.getConsistencyGroup() == null) {
+            if (isLocalMirrorSupported(detail.vpool)) {
                 options.add(createVolumeOption(client, null, detail.volume, volumeNames));
             }
         }

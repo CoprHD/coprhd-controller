@@ -29,6 +29,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -36,8 +37,8 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.UnManagedVolume.SupportedVolumeCharacterstics;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
@@ -47,6 +48,7 @@ import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.StorageProcessor;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
@@ -155,17 +157,20 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             volumeInstanceChunks = (EnumerateResponse<CIMInstance>) resultObj;
             volumeInstances = volumeInstanceChunks.getResponses();
 
+            Set<URI> srdfEnabledTargetVPools = SRDFUtils.fetchSRDFTargetVirtualPools(_dbClient);
             processVolumes(volumeInstances, keyMap, operation, pool, system, exportedVolumes,
-                    existingVolumesInCG, volumeToRAGroupMap, volumeToLocalReplicaMap, poolSupportedSLONames, boundVolumes);
+                    existingVolumesInCG, volumeToRAGroupMap, volumeToLocalReplicaMap, poolSupportedSLONames, boundVolumes,
+                    srdfEnabledTargetVPools);
             while (!volumeInstanceChunks.isEnd()) {
                 _logger.info("Processing Next Volume Chunk of size {}", BATCH_SIZE);
                 volumeInstanceChunks = client.getInstancesWithPath(storagePoolPath,
                         volumeInstanceChunks.getContext(), new UnsignedInteger32(BATCH_SIZE));
                 processVolumes(volumeInstanceChunks.getResponses(), keyMap, operation, pool, system, exportedVolumes,
-                        existingVolumesInCG, volumeToRAGroupMap, volumeToLocalReplicaMap, poolSupportedSLONames, boundVolumes);
+                        existingVolumesInCG, volumeToRAGroupMap, volumeToLocalReplicaMap, poolSupportedSLONames, boundVolumes,
+                        srdfEnabledTargetVPools);
             }
             if (null != _unManagedVolumesUpdate && !_unManagedVolumesUpdate.isEmpty()) {
-                _partitionManager.updateInBatches(_unManagedVolumesUpdate, getPartitionSize(keyMap),
+                _partitionManager.updateAndReIndexInBatches(_unManagedVolumesUpdate, getPartitionSize(keyMap),
                         _dbClient, UNMANAGED_VOLUME);
             }
 
@@ -175,7 +180,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             }
 
             if (null != _unManagedExportMasksUpdate && !_unManagedExportMasksUpdate.isEmpty()) {
-                _partitionManager.updateInBatches(_unManagedExportMasksUpdate, getPartitionSize(keyMap),
+                _partitionManager.updateAndReIndexInBatches(_unManagedExportMasksUpdate, getPartitionSize(keyMap),
                         _dbClient, UNMANAGED_EXPORT_MASK);
             }
 
@@ -215,12 +220,13 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
      * @param volumeToRAGroupMap
      * @param poolSupportedSLONames
      * @param boundVolumes
+     * @param srdfEnabledTargetVPools
      */
     private void processVolumes(Iterator<CIMInstance> it, Map<String, Object> keyMap, Operation operation,
             StoragePool pool, StorageSystem system, Map<String, VolHostIOObject> exportedVolumes,
             Set<String> existingVolumesInCG, Map<String, RemoteMirrorObject> volumeToRAGroupMap,
             Map<String, LocalReplicaObject> volumeToLocalReplicaMap,
-            Set<String> poolSupportedSLONames, Set<String> boundVolumes) {
+            Set<String> poolSupportedSLONames, Set<String> boundVolumes, Set<URI> srdfEnabledTargetVPools) {
 
         List<CIMObjectPath> metaVolumes = new ArrayList<CIMObjectPath>();
         List<CIMObjectPath> metaVolumeViews = new ArrayList<CIMObjectPath>();
@@ -231,7 +237,11 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 String volumeNativeGuid = getVolumeViewNativeGuid(volumeViewInstance.getObjectPath(), keyMap);
 
                 Volume volume = checkStorageVolumeExistsInDB(volumeNativeGuid, _dbClient);
-                if (null != volume) {
+                // don't delete UnManaged volume object for volumes ingested with NO Public access.
+                // check for all 3 flags, just checking NO_PUBLIC_ACCESS/INTERNAL_OBJECT flag may
+                // create UnManaged Volume object for VPLEX VMAX backend volume.
+                if (null != volume && !volume.checkInternalFlags(Flag.NO_PUBLIC_ACCESS)
+                        && !volume.checkInternalFlags(Flag.INTERNAL_OBJECT) && !volume.checkInternalFlags(Flag.NO_METERING)) {
                     _logger.debug("Skipping discovery, as this Volume {} is already being managed by ViPR.",
                             volumeNativeGuid);
                     continue;
@@ -261,7 +271,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 unManagedVolume = createUnManagedVolume(unManagedVolume, volumeViewInstance,
                         unManagedVolumeNativeGuid, pool, system, volumeNativeGuid,
                         exportedVolumes, existingVolumesInCG, volumeToRAGroupMap,
-                        volumeToLocalReplicaMap, poolSupportedSLONames, keyMap);
+                        volumeToLocalReplicaMap, poolSupportedSLONames, keyMap, srdfEnabledTargetVPools);
 
                 // set up UnManagedExportMask information
 
@@ -279,7 +289,9 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                                     uem.getMaskingViewPath());
                             unManagedVolume.getUnmanagedExportMasks().add(uem.getId().toString());
                             uem.getUnmanagedVolumeUris().add(unManagedVolume.getId().toString());
-                            _unManagedExportMasksUpdate.add(uem);
+                            if (!_unManagedExportMasksUpdate.contains(uem)) {
+                                _unManagedExportMasksUpdate.add(uem);
+                            }
 
                             // add the known initiators, too
                             for (String initUri : uem.getKnownInitiatorUris()) {
@@ -336,19 +348,19 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
 
                 // if volumes size reaches 200 , then dump to Db.
                 if (_unManagedVolumesInsert.size() > BATCH_SIZE) {
-                    _partitionManager.insertInBatches(_unManagedVolumesInsert, getPartitionSize(keyMap),
+                    _partitionManager.insertInBatches(_unManagedVolumesInsert, BATCH_SIZE,
                             _dbClient, UNMANAGED_VOLUME);
                     _unManagedVolumesInsert.clear();
                 }
 
                 if (_unManagedVolumesUpdate.size() > BATCH_SIZE) {
-                    _partitionManager.updateInBatches(_unManagedVolumesUpdate, getPartitionSize(keyMap),
+                    _partitionManager.updateAndReIndexInBatches(_unManagedVolumesUpdate, BATCH_SIZE,
                             _dbClient, UNMANAGED_VOLUME);
                     _unManagedVolumesUpdate.clear();
                 }
 
                 if (_unManagedExportMasksUpdate.size() > BATCH_SIZE) {
-                    _partitionManager.updateInBatches(_unManagedExportMasksUpdate, getPartitionSize(keyMap),
+                    _partitionManager.updateAndReIndexInBatches(_unManagedExportMasksUpdate, BATCH_SIZE,
                             _dbClient, UNMANAGED_EXPORT_MASK);
                     _unManagedExportMasksUpdate.clear();
                 }
@@ -484,6 +496,15 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
      * @param volumeInstance
      * @param unManagedVolumeNativeGuid
      * @param pool
+     * @param system
+     * @param volumeNativeGuid
+     * @param exportedVolumes
+     * @param existingVolumesInCG
+     * @param volumeToRAGroupMap
+     * @param volumeToLocalReplicaMap
+     * @param poolSupportedSLONames
+     * @param keyMap
+     * @param srdfEnabledTargetVPools
      * @return
      */
     private UnManagedVolume createUnManagedVolume(UnManagedVolume unManagedVolume,
@@ -497,9 +518,10 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
             Map<String, VolHostIOObject> exportedVolumes,
             Set<String> existingVolumesInCG, Map<String, RemoteMirrorObject> volumeToRAGroupMap,
             Map<String, LocalReplicaObject> volumeToLocalReplicaMap,
-            Set<String> poolSupportedSLONames, Map<String, Object> keyMap) {
+            Set<String> poolSupportedSLONames, Map<String, Object> keyMap, Set<URI> srdfEnabledTargetVPools) {
         _logger.info("Process UnManagedVolume {}", unManagedVolumeNativeGuid);
         try {
+            String volumeType = Types.REGULAR.toString();
             boolean created = false;
             if (null == unManagedVolume) {
                 unManagedVolume = new UnManagedVolume();
@@ -721,6 +743,7 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                                     rmObj.getTargetVolumenativeGuids());
                         }
                     }
+                    volumeType = Types.SOURCE.toString();
                 } else if (RemoteMirrorObject.Types.TARGET.toString().equalsIgnoreCase(rmObj.getType())) {
 
                     _logger.info("Found Target {}, updating copyMode {}, RA Group",
@@ -733,7 +756,15 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
 
                     // setting RAGroup
                     StringSet raGroup = new StringSet();
-                    raGroup.add(rmObj.getRaGroupUri().toString());
+
+                    // set Source array's RA group URI in Target volume
+                    if (rmObj.getTargetRaGroupUri() != null) {
+                        raGroup.add(rmObj.getTargetRaGroupUri().toString());
+                    } else {
+                        _logger.warn("Source Array's RA Group is not populated. Check if Source array is discovered."
+                                + " Target: {}", unManagedVolume.getNativeGuid());
+                    }
+                    volumeType = Types.TARGET.toString();
                     unManagedVolumeInformation.put(
                             SupportedVolumeInformation.REMOTE_MIRROR_RDF_GROUP.toString(), raGroup);
 
@@ -750,10 +781,10 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 }
                 // setting Volume Type
 
-                StringSet volumeType = new StringSet();
-                volumeType.add(rmObj.getType());
+                StringSet remoteVolumeType = new StringSet();
+                remoteVolumeType.add(rmObj.getType());
                 unManagedVolumeInformation.put(SupportedVolumeInformation.REMOTE_VOLUME_TYPE.toString(),
-                        volumeType);
+                        remoteVolumeType);
 
                 unManagedVolumeCharacteristics.put(SupportedVolumeCharacterstics.REMOTE_MIRRORING.toString(),
                         TRUE);
@@ -913,30 +944,17 @@ public class StorageVolumeInfoProcessor extends StorageProcessor {
                 }
                 StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(_dbClient, pool
                         .getId(), unManagedVolumeCharacteristics
-                        .get(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()));
-                if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.SUPPORTED_VPOOL_LIST
-                        .toString())) {
+                        .get(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()), srdfEnabledTargetVPools, volumeType);
+                _logger.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
 
-                    _logger.debug("Matched Pools :" + Joiner.on("\t").join(matchedVPools));
-                    if (null != matchedVPools && matchedVPools.isEmpty()) {
-                        // replace with empty string set doesn't work, hence
-                        // added explicit code to remove all
-                        unManagedVolumeInformation.get(
-                                SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).clear();
-                    } else {
-                        // replace with new StringSet
-                        unManagedVolumeInformation.get(
-                                SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).replace(
-                                matchedVPools);
-                        _logger.info("Replaced Pools :"
-                                + Joiner.on("\t").join(
-                                        unManagedVolumeInformation
-                                                .get(SupportedVolumeInformation.SUPPORTED_VPOOL_LIST
-                                                        .toString())));
-                    }
+                if (null == matchedVPools || matchedVPools.isEmpty()) {
+                    // clear all existing supported vpools.
+                    unManagedVolume.getSupportedVpoolUris().clear();
                 } else {
-                    unManagedVolumeInformation.put(
-                            SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString(), matchedVPools);
+                    // replace with new StringSet
+                    unManagedVolume.getSupportedVpoolUris().replace(matchedVPools);
+                    _logger.info("Replaced Pools :"
+                            + Joiner.on("\t").join(unManagedVolume.getSupportedVpoolUris()));
                 }
             }
 

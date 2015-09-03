@@ -16,7 +16,7 @@
     },
 
     virtualPool:{
-      type:"assetType.vipr.unmanagedBlockVirtualPool",
+      type:"assetType.vipr.blockVirtualPool",
       lockable: true
     },
 
@@ -24,9 +24,14 @@
       type:"assetType.vipr.project",
       lockable: true
     },
+    
+    volumeFilter:{
+      type:"assetType.vipr.volumeFilter",
+      default: 0
+    },
 
     volumes: {
-      type: "assetType.vipr.unmanagedVolumeByStorageSystem",
+      type: "assetType.vipr.unmanagedVolumeByStorageSystemVirtualPool",
       select: "many"
     }
   }

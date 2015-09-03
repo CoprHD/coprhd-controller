@@ -1496,7 +1496,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             volume.setConsistencyGroup(consistencyGroup.getId());
         }
         
-        if (null != vpool.getAutoTierPolicyName()) {
+        if (NullColumnValueGetter.isNotNullValue(vpool.getAutoTierPolicyName())) {
             URI autoTierPolicyUri = StorageScheduler.getAutoTierPolicy(volume.getPool(),
                     vpool.getAutoTierPolicyName(), _dbClient);
             if (null != autoTierPolicyUri) {
@@ -1720,7 +1720,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     }
 
     @Override
-    public TaskResourceRep deactivateMirror(StorageSystem device, URI mirror, String task) {
+    public TaskList deactivateMirror(StorageSystem device, URI mirror, String task) {
         throw APIException.methodNotAllowed.notSupported();
     }
 

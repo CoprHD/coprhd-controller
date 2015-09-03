@@ -533,9 +533,7 @@ public class VolumeIngestionUtil {
      */
     private static void checkVPoolValidForGivenUnManagedVolumeUris(
             StringSetMap preExistVolumeInformation, UnManagedVolume unManagedVolume, URI vpoolUri) {
-        StringSet supportedVPoolUris = preExistVolumeInformation
-                .get(SupportedVolumeInformation.SUPPORTED_VPOOL_LIST
-                        .toString());
+        StringSet supportedVPoolUris = unManagedVolume.getSupportedVpoolUris();
         if (null == supportedVPoolUris) {
             if (isVplexVolume(unManagedVolume)) {
                 throw APIException.internalServerErrors.noMatchingVplexVirtualPool(unManagedVolume.getLabel(), unManagedVolume.getId());

@@ -513,7 +513,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      */
     @Override
-    public void restoreSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void restoreSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         Volume vol = _dbClient.queryObject(Volume.class, volume);
         try {
             _helper.doApplyRecoverPointTag(storage, vol, false);
@@ -911,7 +912,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 
             final CIMObjectPath[] theElements = _cimPath.getVolumePaths(storageSystem, deviceIds);
 
-            final CIMArgument[] inArgs = _helper.getReturnElementsToStoragePoolArguments(storageSystem, theElements, 2);
+            final CIMArgument[] inArgs = _helper.getReturnElementsToStoragePoolArguments(storageSystem, theElements,
+                    SmisConstants.CONTINUE_ON_NONEXISTENT_ELEMENT);
             final CIMArgument[] outArgs = new CIMArgument[5];
 
             final SmisDeleteVmaxCGTargetVolumesJob job = new SmisDeleteVmaxCGTargetVolumesJob(

@@ -4,16 +4,63 @@
  */
 package com.emc.storageos.api.service.impl.response;
 
-import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
-import com.emc.storageos.model.ResourceTypeEnum;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashMap;
-import java.util.Map;
-import static com.emc.storageos.model.ResourceTypeEnum.*;
+import com.emc.storageos.db.client.model.AuthnProvider;
+import com.emc.storageos.db.client.model.AutoTieringPolicy;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.ComputeElement;
+import com.emc.storageos.db.client.model.ComputeImage;
+import com.emc.storageos.db.client.model.ComputeSystem;
+import com.emc.storageos.db.client.model.ComputeVirtualPool;
+import com.emc.storageos.db.client.model.CustomConfig;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.FCEndpoint;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.HostingDeviceInfo;
+import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.model.Migration;
+import com.emc.storageos.db.client.model.Network;
+import com.emc.storageos.db.client.model.NetworkSystem;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.ProtectionSet;
+import com.emc.storageos.db.client.model.ProtectionSystem;
+import com.emc.storageos.db.client.model.QuotaDirectory;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
+import com.emc.storageos.db.client.model.SMISProvider;
+import com.emc.storageos.db.client.model.Snapshot;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageProvider;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StorageTier;
+import com.emc.storageos.db.client.model.SysEvent;
+import com.emc.storageos.db.client.model.Task;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.UserGroup;
+import com.emc.storageos.db.client.model.Vcenter;
+import com.emc.storageos.db.client.model.VcenterDataCenter;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VplexMirror;
+import com.emc.storageos.db.client.model.Workflow;
+import com.emc.storageos.db.client.model.WorkflowStep;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.model.ResourceTypeEnum;
 
 public class ResourceTypeMapping {
     private static final Logger _log = LoggerFactory.getLogger(ResourceTypeMapping.class);
@@ -36,6 +83,7 @@ public class ResourceTypeMapping {
         classMapping.put(STORAGE_POOL, StoragePool.class);
         classMapping.put(STORAGE_TIER, StorageTier.class);
         classMapping.put(STORAGE_PORT, StoragePort.class);
+        classMapping.put(RDF_GROUP, RemoteDirectorGroup.class);
         classMapping.put(PROTECTION_SYSTEM, ProtectionSystem.class);
         classMapping.put(PROTECTION_SET, ProtectionSet.class);
         classMapping.put(FILE_SNAPSHOT, Snapshot.class);

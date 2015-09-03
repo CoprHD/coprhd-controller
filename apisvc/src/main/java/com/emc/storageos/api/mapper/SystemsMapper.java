@@ -12,6 +12,7 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -19,6 +20,7 @@ import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.model.DecommissionedResource;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProvider;
@@ -108,6 +110,29 @@ public class SystemsMapper {
         to.setRegistrationStatus(from.getRegistrationStatus());
         to.setSecondaryUsername(from.getSecondaryUsername());
         to.setElementManagerURL(from.getElementManagerURL());
+        return to;
+    }
+
+    public static RDFGroupRestRep map(RemoteDirectorGroup from, List<URI> volumeURIList) {
+        if (from == null) {
+            return null;
+        }
+        RDFGroupRestRep to = new RDFGroupRestRep();
+        mapDiscoveredDataObjectFields(from, to);
+        to.setActive(from.getActive());
+        to.setConnectivityStatus(from.getConnectivityStatus());
+        to.setSupportedCopyMode(from.getSupportedCopyMode());
+        to.setCopyState(from.getCopyState());
+        to.setRemoteGroupId(from.getRemoteGroupId());
+        to.setRemotePort(from.getRemotePort());
+        to.setSourceGroupId(from.getSourceGroupId());
+        to.setSourcePort(from.getSourcePort());
+        to.setSourceReplicationGroupName(from.getSourceReplicationGroupName());
+        to.setSupported(from.getSupported());
+        to.setTargetReplicationGroupName(from.getTargetReplicationGroupName());
+        to.setSourceStorageSystemUri(from.getSourceStorageSystemUri());
+        to.setRemoteStorageSystemUri(from.getRemoteStorageSystemUri());
+        to.setVolumes(volumeURIList);
         return to;
     }
 

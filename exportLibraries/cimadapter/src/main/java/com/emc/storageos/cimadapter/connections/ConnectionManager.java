@@ -219,7 +219,7 @@ public class ConnectionManager {
             if (connection != null) {
                 s_logger.info("Closing connection to the CIM provider on host/port {}", hostAndPort);
                 connection.close();
-                _connections.remove(connection);
+                _connections.remove(hostAndPort);
             }
         } catch (ConnectionManagerException e) {
             throw e;

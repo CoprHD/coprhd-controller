@@ -228,7 +228,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             
         } catch (Exception ex) {
             _log.error("Failed to validate export mask for cinder: ", ex);
-            VPlexApiException vplexex = DeviceControllerExceptions.vplex.addStepsForCreateVolumesFailed(ex);
+            VPlexApiException vplexex = DeviceControllerExceptions.vplex.failedToValidateExportMask(exportMaskURI, ex);
             WorkflowStepCompleter.stepFailed(stepId, vplexex);
         }
         
@@ -410,7 +410,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
                 device.doExportRemoveVolumes(array, exportMask, volumes, completer);
             }
         } catch (Exception ex) {
-            _log.error("Failed to delete or remove volumes to export mask for vmax: ", ex);
+            _log.error("Failed to delete or remove volumes to export mask for cinder: ", ex);
             VPlexApiException vplexex = DeviceControllerExceptions.vplex.addStepsForDeleteVolumesFailed(ex);
             WorkflowStepCompleter.stepFailed(stepId, vplexex);
         }

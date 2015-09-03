@@ -659,7 +659,7 @@ public class CinderExportOperations implements ExportMaskOperations {
             }
             
             String initiatorURIString = initiatorURI.toString();
-            log.info("Adding zoning map entry Initiator is %s and its targetPorts %", initiatorURIString, targetPortURIStrings.toString());
+            log.info(String.format("Adding zoning map entry - Initiator is %s and its targetPorts %s", initiatorURIString, targetPortURIStrings.toString()));
             exportMask.addZoningMapEntry(initiatorURIString, targetPortURIStrings);
         }
 

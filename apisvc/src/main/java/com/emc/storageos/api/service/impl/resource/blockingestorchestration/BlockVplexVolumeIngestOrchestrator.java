@@ -297,10 +297,15 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 
                 IngestStrategy ingestStrategy =  ingestStrategyFactory.buildIngestStrategy(associatedVolume);
                 
+                // backend vols have the vplex backend project, 
+                // the rest have the same as the user's project
+                Project project = context.getUnmanagedBackendVolumes().contains(associatedVolume) ? 
+                        context.getBackendProject() : context.getFrontendProject();
+                
                 @SuppressWarnings("unchecked")
                 BlockObject blockObject = ingestStrategy.ingestBlockObjects(systemCache, poolCache, 
                         associatedSystem, associatedVolume, vPool, virtualArray, 
-                        context.getBackendProject(), tenant, unManagedVolumesToBeDeleted, context.getCreatedObjectMap(), 
+                        project, tenant, unManagedVolumesToBeDeleted, context.getCreatedObjectMap(), 
                         context.getUpdatedObjectMap(), true, 
                         VolumeIngestionUtil.getBlockObjectClass(associatedVolume), taskStatusMap, vplexIngestionMethod);
                 
@@ -338,7 +343,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             _logger.info("ingesting export mask(s) for unmanaged volume " + processedUnManagedVolume);
 
             try {
-                if(processedBlockObject == null) {
+                if (processedBlockObject == null) {
                     _logger.warn("The ingested block object is null. Skipping ingestion of export masks for unmanaged volume {}", unManagedVolumeGUID);
                     throw IngestionException.exceptions.generalVolumeException(
                             processedUnManagedVolume.getLabel(), "check the logs for more details");

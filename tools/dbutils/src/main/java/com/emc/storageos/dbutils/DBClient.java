@@ -155,7 +155,7 @@ public class DBClient {
      * @param clazz
      * @param <T>
      */
-    private <T extends DataObject> int queryAndPrintRecords(List<URI> ids, Class<T> clazz)
+    private <T extends DataObject> int queryAndPrintRecords(List<URI> ids, Class<T> clazz, Map<String, String> criterias)
             throws Exception {
 
         Iterator<T> objects;
@@ -163,15 +163,18 @@ public class DBClient {
         int countAll = 0;
         String input;
         BufferedReader buf = new BufferedReader(new InputStreamReader(System.in));
+        boolean isPrint = true;
 
         try {
             objects = _dbClient.queryIterativeObjects(clazz, ids);
             while (objects.hasNext()) {
                 T object = (T) objects.next();
-                printBeanProperties(clazz, object);
+                isPrint = printBeanProperties(clazz, object, criterias);
+                if (isPrint) {
+                    countLimit++;
+                    countAll++;
+                }
                 
-                countLimit++;
-                countAll++;
                 if (!turnOnLimit || countLimit != listLimit) {
                     continue;
                 }
@@ -219,15 +222,22 @@ public class DBClient {
     }
 
     /**
-     * Print the contents in human readable format
      * 
-     * @param pds
+     * @param clazz
      * @param object
+     * @param criterias
+     *            Filter with some verify simple criteria
+     * @return Whether this record is print out
      * @throws Exception
      */
-    private <T extends DataObject> void printBeanProperties(Class<T> clazz, T object)
+    private <T extends DataObject> boolean printBeanProperties(Class<T> clazz, T object, Map<String, String> criterias)
             throws Exception {
-        System.out.println("id: " + object.getId().toString());
+        Map<String, String> localCriterias = new HashMap<>(criterias);
+        
+        StringBuilder record = new StringBuilder();
+        record.append("id: " + object.getId().toString() + "\n");
+        boolean isPrint = true;
+        
         BeanInfo bInfo;
         try {
             bInfo = Introspector.getBeanInfo(clazz);
@@ -239,54 +249,94 @@ public class DBClient {
         PropertyDescriptor[] pds = bInfo.getPropertyDescriptors();
         Object objValue;
         Class type;
+        Set<String> ignoreList = new HashSet<>();
         for (PropertyDescriptor pd : pds) {
             // skip class property
             if (pd.getName().equals("class") || pd.getName().equals("id")) {
                 continue;
             }
 
+            Name nameAnnotation = pd.getReadMethod().getAnnotation(Name.class);
+            String objKey;
+            if (nameAnnotation == null) {
+                objKey = pd.getName();
+            } else {
+                objKey = nameAnnotation.value();
+            }
+
             objValue = pd.getReadMethod().invoke(object);
+            
+            if(!localCriterias.isEmpty()) {
+                if(localCriterias.containsKey(objKey)) {
+                    if(!localCriterias.get(objKey).equalsIgnoreCase(String.valueOf(objValue))) {
+                        isPrint = false;
+                        break;
+                    }
+                    else {
+                        localCriterias.remove(objKey);
+                    }
+                }
+            }
+            
             if (objValue == null) {
+                ignoreList.add(objKey);
                 continue;
             }
 
             if (isEmptyStr(objValue)) {
+                ignoreList.add(objKey);
                 continue;
             }
             
-            Name nameAnnotation = pd.getReadMethod().getAnnotation(Name.class);
-            System.out.print("\t" + nameAnnotation.value() + " = ");
+            record.append("\t" + objKey + " = ");
 
             Encrypt encryptAnnotation = pd.getReadMethod().getAnnotation(Encrypt.class);
             if (encryptAnnotation != null) {
-                System.out.println("*** ENCRYPTED CONTENT ***");
+                record.append("*** ENCRYPTED CONTENT ***\n");
                 continue;
             }
 
             type = pd.getPropertyType();
             if (type == URI.class) {
-                System.out.println("URI: " + objValue);
+                record.append("URI: " + objValue + "\n");
             } else if (type == StringMap.class) {
-                System.out.println("StringMap " + objValue);
+                record.append("StringMap " + objValue + "\n");
             } else if (type == StringSet.class) {
-                System.out.println("StringSet " + objValue);
+                record.append("StringSet " + objValue + "\n");
             } else if (type == OpStatusMap.class) {
-                System.out.println("OpStatusMap " + objValue);
+                record.append("OpStatusMap " + objValue + "\n");
             } else {
-                System.out.println(objValue);
+                record.append(objValue + "\n");
             }
         }
         
         if (this.showModificationTime) {
-            Column<CompositeColumnName> latestField = _dbClient
-                    .getLatestModifiedField(TypeMap.getDoType(clazz),
-                            object.getId());
-            if (latestField != null)
-                System.out.println(String.format(
+            Column<CompositeColumnName> latestField = _dbClient.getLatestModifiedField(
+                    TypeMap.getDoType(clazz), object.getId(), ignoreList);
+            if (latestField != null) {
+                record.append(String.format(
                         "The latest modified time is %s on Field(%s).\n", new Date(
                                 latestField.getTimestamp() / 1000), latestField.getName()
                                 .getOne()));
+            }
         }
+        
+        if (isPrint) {
+            if (!localCriterias.isEmpty()) {
+                String errMsg = String.format(
+                        "The filters %s are not available for the CF %s",
+                        localCriterias.keySet(), clazz);
+                throw new IllegalArgumentException(errMsg);
+            }
+            System.out.println(record.toString());
+        }
+        
+        return isPrint;
+    }
+    
+    private <T extends DataObject> boolean printBeanProperties(Class<T> clazz, T object)
+            throws Exception {
+        return printBeanProperties(clazz, object, new HashMap<String, String>());
     }
 
     private boolean isEmptyStr(Object objValue) {
@@ -324,7 +374,7 @@ public class DBClient {
      * @throws Exception
      */
     @SuppressWarnings("unchecked")
-    public void listRecords(String cfName) throws Exception {
+    public void listRecords(String cfName, Map<String, String> criterias) throws Exception {
         final Class clazz = _cfMap.get(cfName); // fill in type from cfName
         if (clazz == null) {
             System.err.println("Unknown Column Family: " + cfName);
@@ -340,7 +390,7 @@ public class DBClient {
             System.out.println("No records found");
             return;
         }
-        int count = queryAndPrintRecords(uris, clazz);
+        int count = queryAndPrintRecords(uris, clazz, criterias);
         System.out.println("Number of All Records is: " + count);
     }
 

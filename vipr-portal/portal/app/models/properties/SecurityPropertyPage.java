@@ -8,6 +8,7 @@ import java.util.Map;
 
 public class SecurityPropertyPage extends CustomPropertyPage {
 
+    private Property ldapConnectionTimeout;
     private Property firewallEnabled;
     private Property sslCertificate;
     private Property rootSshKeys;
@@ -24,6 +25,7 @@ public class SecurityPropertyPage extends CustomPropertyPage {
     public SecurityPropertyPage(Map<String, Property> properties) {
         super("Security");
         setRenderTemplate("securityPage.html");
+        ldapConnectionTimeout = addCustomProperty(properties, "ldap_connection_timeout");
         firewallEnabled = addCustomProperty(properties, "system_enable_firewall");
         sslCertificate = addCustomProperty(properties, "system_ssl_cert_pem");
         rootSshKeys = addCustomProperty(properties, "system_root_authorizedkeys2");
@@ -36,6 +38,10 @@ public class SecurityPropertyPage extends CustomPropertyPage {
         authLockoutTime = addCustomProperty(properties, "auth_lockout_time_in_minutes");
         tokenLifeTime = addCustomProperty(properties, "token_life_time_in_minutes");
         tokenIdleTime = addCustomProperty(properties, "token_idle_time_in_minutes");
+    }
+
+    public Property getLdapConnectionTimeout() {
+        return ldapConnectionTimeout;
     }
 
     public Property getFirewallEnabled() {

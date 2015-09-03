@@ -70,7 +70,7 @@ public class FileUtils {
         }
     }
 
-    private static byte[] readDataFromFile(String name) throws IOException {
+    public static byte[] readDataFromFile(String name) throws IOException {
         Path path = Paths.get(name);
         return Files.readAllBytes(path);
     }

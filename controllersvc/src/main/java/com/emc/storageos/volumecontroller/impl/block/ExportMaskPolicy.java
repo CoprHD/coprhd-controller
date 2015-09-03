@@ -33,7 +33,7 @@ public class ExportMaskPolicy extends HostIOLimitsParam {
     public boolean simpleMask;
     public String sgName;
     public String igType;
-
+    public int maxVolumesAllowed;
     public String exportType;
 
     public static enum EXPORT_TYPE {
@@ -94,4 +94,11 @@ public class ExportMaskPolicy extends HostIOLimitsParam {
         return IG_TYPE.CASCADED.name().equalsIgnoreCase(getIgType());
     }
 
+    public int getMaxVolumesAllowed() {
+        return maxVolumesAllowed;
+    }
+
+    public void setMaxVolumesAllowed(int maxVolumesAllowed) {
+        this.maxVolumesAllowed = maxVolumesAllowed;
+    }
 }

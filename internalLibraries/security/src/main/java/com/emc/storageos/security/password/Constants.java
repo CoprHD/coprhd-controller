@@ -107,4 +107,7 @@ public class Constants {
     public static final int MIN_AUTH_LOCKOUT_TIME_IN_MINUTES = 0;
     public static final int MAX_AUTH_LOCKOUT_TIME_IN_MINUTES = 1440;
     public static final int DEFAULT_AUTH_LOCKOUT_TIME_IN_MINUTES = 10;
+
+    // Ldap connection timeout property name and default value (in seconds).
+    public static final String LDAP_CONNECTION_TIMEOUT = "ldap_connection_timeout";
 }

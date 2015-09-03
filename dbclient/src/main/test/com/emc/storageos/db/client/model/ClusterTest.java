@@ -13,11 +13,11 @@ public class ClusterTest {
     @Test
     public void testClusterAutoExportEnabled() {
         Cluster cluster = new Cluster();
-        Assert.assertTrue(cluster.isAutoExportEnabled());
+        Assert.assertTrue(cluster.getAutoExportEnabled());
         cluster.setAutoExportEnabled(true);
-        Assert.assertTrue(cluster.isAutoExportEnabled());
+        Assert.assertTrue(cluster.getAutoExportEnabled());
         cluster.setAutoExportEnabled(false);
-        Assert.assertFalse(cluster.isAutoExportEnabled());
+        Assert.assertFalse(cluster.getAutoExportEnabled());
     }
 
 }

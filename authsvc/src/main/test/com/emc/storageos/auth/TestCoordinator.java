@@ -17,6 +17,7 @@ import com.emc.storageos.coordinator.common.Service;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.model.property.PropertyInfo;
 import com.emc.vipr.model.sys.ClusterInfo;
+
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
@@ -431,5 +432,10 @@ public class TestCoordinator implements CoordinatorClient {
     public boolean isDbSchemaVersionChanged() {
         // TODO Auto-generated method stub.
         return false;
+    }
+    
+    @Override
+    public String getSiteId() {
+    	return "testsiteid";
     }
 }

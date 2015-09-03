@@ -1291,7 +1291,7 @@ public class CoordinatorClientExt {
         return null;
     }
 
-    private boolean isSiteInited(String siteID) throws Exception {
+    private boolean isSiteSpecificSectionInited(String siteID) throws Exception {
         String sitePath = String.format("%1$s/%2$s", ZkPath.SITES, siteID);
         try {
             Stat stat = getZkConnection().curator().checkExists().forPath(sitePath);
@@ -1302,63 +1302,58 @@ public class CoordinatorClientExt {
         }
     }
 
-    private void initSiteSepecificSection(String siteID, boolean isPrimary) throws Exception {
-        String sitePath = String.format("%1$s/%2$s", ZkPath.SITES, siteID);
-        EnsurePath ensurePath = new EnsurePath(sitePath);
-        String beaconPath = sitePath+"/beacon";
-
+    private void createSiteSpecificSection() throws Exception {
+    	String siteId = _coordinator.getSiteId();
+    	String sitePath = String.format("%1$s/%2$s", ZkPath.SITES, siteId);
         ZkConnection zkConnection = getZkConnection();
         try {
             //create /sites/${siteID} path
+            EnsurePath ensurePath = new EnsurePath(sitePath);
             _log.info("create ZK path {}", sitePath);
             ensurePath.ensure(zkConnection.curator().getZookeeperClient());
-
-            //create /sites/${siteID}/beacon ephemeral node
-            _log.info("create ZK path {}", beaconPath);
-            zkConnection.curator().create().withMode(CreateMode.EPHEMERAL).
-                    forPath(beaconPath);
-
         }catch(Exception e) {
-            _log.error("Failed to set site info of {}(isPrimary={})", sitePath, isPrimary);
+            _log.error("Failed to set site info of {}", sitePath);
             _log.error("e=", e);
             throw e;
         }
 
-        // update /sites/primary
-        if (isPrimary) {
-            String primarySitePath = String.format("%1$s/primary", ZkPath.SITES);
-            EnsurePath ePath = new EnsurePath(primarySitePath);
+        // update primary site pointer to /sites/primary
+        String primarySitePointer = String.format("%1$s/%2$s", ZkPath.SITES, Constants.SITE_PRIMARY_PTR);
+        EnsurePath ePath = new EnsurePath(primarySitePointer);
+        _log.info("create ZK path {}", primarySitePointer);
+        try {
+            ePath.ensure(zkConnection.curator().getZookeeperClient());
+        }catch(Exception e) {
+            _log.error("Failed to create ZK path {} e=", primarySitePointer, e);
+        }
 
-            _log.info("create ZK path {}", primarySitePath);
-            try {
-                ePath.ensure(zkConnection.curator().getZookeeperClient());
-            }catch(Exception e) {
-                _log.error("Failed to ensure path {} e=", primarySitePath, e);
-            }
-
-            byte[] data = siteID.getBytes();
-            try {
-                zkConnection.curator().setData().forPath(primarySitePath, data);
-            }catch(Exception e) {
-                _log.error("Failed to persist {} to {}", siteID, primarySitePath);
-                throw e;
-            }
+        byte[] data = siteId.getBytes();
+        try {
+            zkConnection.curator().setData().forPath(primarySitePointer, data);
+        }catch(Exception e) {
+            _log.error("Failed to persist {} to {}", siteId, primarySitePointer);
+            throw e;
         }
     }
 
-    public void initSiteSpecificSection() throws Exception {
-        String mySiteId = PlatformUtils.getSiteId();
-        _log.info("my site id: {}", mySiteId);
-
-        if ( (mySiteId != null) && isSiteInited(mySiteId)) {
+    /**
+     * Check and initialize site specific section for current site. If site specific section is empty,
+     * we always assume current site is primary site
+     * 
+     * @throws Exception
+     */
+    public void checkAndCreateSiteSpecificSection() throws Exception {
+    	String mySiteId = _coordinator.getSiteId();
+        if ( (mySiteId != null) && isSiteSpecificSectionInited(mySiteId)) {
+        	_log.info("Site specific section for {} initialized", mySiteId);
             return;
         }
 
-        _log.info("The site has NOT been initialized");
+        _log.info("The site specific section for {} has NOT been initialized", mySiteId);
         InterProcessLock lock = _coordinator.getLock(ZkPath.SITES.name());
         try {
             lock.acquire();
-            initSiteSepecificSection(mySiteId, true);
+            createSiteSpecificSection();
         }catch (Exception e) {
             _log.error("Failed to acquire the lock for {}", ZkPath.SITES);
             throw e;

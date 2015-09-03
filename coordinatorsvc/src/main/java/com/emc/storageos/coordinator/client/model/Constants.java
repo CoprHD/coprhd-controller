@@ -108,4 +108,6 @@ public interface Constants {
     // to notify portal service to update its cache after catalog acl change
     public static final String CATALOG_CONFIG = "catalog";
     public static final String CATALOG_ACL_CHANGE = "acl_change";
+    
+    public static final String SITE_PRIMARY_PTR = "primary";
 }

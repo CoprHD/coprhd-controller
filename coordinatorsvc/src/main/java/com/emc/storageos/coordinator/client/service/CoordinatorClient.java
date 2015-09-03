@@ -483,4 +483,11 @@ public interface CoordinatorClient {
      * @param listener
      */
     public void removeNodeListener(NodeListener listener);
+    
+    /**
+     * Get a unique id for current site, which is used to access site specific area in ZK
+     * @return site uuid
+     */
+    public String getSiteId();
+    
 }

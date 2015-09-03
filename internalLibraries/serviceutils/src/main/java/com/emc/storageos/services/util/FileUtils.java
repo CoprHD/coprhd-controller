@@ -75,11 +75,6 @@ public class FileUtils {
         return Files.readAllBytes(path);
     }
 
-    public static String readStringFromFile(String name) throws IOException {
-        byte[] data = readDataFromFile(name);
-        return new String(data).trim();
-    }
-
     private static byte[] serialize(Object o) throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
         ObjectOutputStream out = new ObjectOutputStream(bos);

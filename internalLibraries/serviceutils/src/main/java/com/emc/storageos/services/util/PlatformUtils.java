@@ -12,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
-import java.nio.file.NoSuchFileException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -313,23 +312,7 @@ public class PlatformUtils {
      * @return Product ident
      */
     public static String getProductIdent() throws IOException {
-        return FileUtils.readStringFromFile(PRODUCT_IDENT_PATH);
-    }
-
-    /**
-     * Get the site ID (an UUID) of current site
-     */
-    public static String getSiteId() {
-        String id = null;
-        try {
-            id = FileUtils.readStringFromFile(SITE_ID_FILE);
-        }catch (NoSuchFileException e) {
-            // the file doesn't exist, this can happen when the site is booted for the first time
-            // or upgrade from darth (or earlier)
-            log.info("The file {} doesn't exist", SITE_ID_FILE);
-        }catch (IOException e) {
-            log.warn("Failed to read site fie {} e={}", SITE_ID_FILE, e);
-        }
-        return id;
+    	byte[] productIdent = FileUtils.readDataFromFile(PRODUCT_IDENT_PATH);
+        return new String(productIdent).trim();
     }
 }

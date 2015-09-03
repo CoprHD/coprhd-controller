@@ -85,6 +85,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     private NodeCacheWatcher nodeWatcher = new NodeCacheWatcher();
 
+    private String siteId;
+    
     /**
      * Set ZK cluster connection. Connection must be built but not connected when this method is
      * called
@@ -1421,4 +1423,13 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             log.info("Removed the listener {}", listener.getPath());
         }
     }
+
+	public String getSiteId() {
+		return siteId;
+	}
+
+	public void setSiteId(String siteId) {
+		this.siteId = siteId;
+	}
+    
 }

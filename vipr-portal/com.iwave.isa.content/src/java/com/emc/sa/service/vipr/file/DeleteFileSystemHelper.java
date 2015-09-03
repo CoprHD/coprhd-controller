@@ -21,7 +21,7 @@ public class DeleteFileSystemHelper {
 
     private List<FileShareRestRep> fileSystems;
     
-    @Param(DELETION_TYPE)
+    @Param(value = DELETION_TYPE, required = false)
     protected FileControllerConstants.DeleteTypeEnum fileDeletionType;
 
     public void precheck() {
@@ -29,6 +29,10 @@ public class DeleteFileSystemHelper {
     }
 
     public void deleteFileSystems() {
+        if (fileDeletionType == null) {
+            fileDeletionType = FileControllerConstants.DeleteTypeEnum.FULL;
+        }
+        
         for (FileShareRestRep fs : fileSystems) {
             URI fsId = fs.getId();
             FileStorageUtils.deleteFileSystem(fsId, fileDeletionType);

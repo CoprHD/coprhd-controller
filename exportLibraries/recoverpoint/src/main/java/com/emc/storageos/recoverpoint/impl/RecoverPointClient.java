@@ -581,13 +581,15 @@ public class RecoverPointClient {
     }
 
     /**
+     * Operation to add journal volumes to an existing recoverpoint consistency group
      * 
      * @param request - contains both the consistency group
      *                  and the journals to add to the consistency group
      * @param copyType - indicates whether the copy is production, local or remote
+     * @return boolean indicating the result of the operation
+     *
      */
     public boolean addJournalVolumesToCG(CGRequestParams request, int copyType) {
-
     	// Make sure the CG name is unique.
     	ConsistencyGroupUID cgUID = null;
     	List<ConsistencyGroupUID> allCgs;
@@ -607,7 +609,7 @@ public class RecoverPointClient {
     		
     		List<CreateCopyParams> copyParams = request.getCopies();
     		
-    		// this is new from last night
+    		// determine if the volumes are visible to the recoverpoint appliance
     		Set<RPSite> allSites = scan(copyParams, null);
 
     		for (CreateCopyParams copyParam : copyParams) {
@@ -620,12 +622,10 @@ public class RecoverPointClient {
     		}
     	}
     	catch (FunctionalAPIActionFailedException_Exception e) {
-    		// TODO Auto-generated catch block
-    		e.printStackTrace();
+    		logger.warn("Exception in call to addJournalVolume");
     		return false;
     	} catch (FunctionalAPIInternalError_Exception e) {
-    		// TODO Auto-generated catch block
-    		e.printStackTrace();
+    		logger.warn("Exception in call to addJournalVolume");
     		return false;
     	}
     	return true;        

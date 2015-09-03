@@ -270,7 +270,7 @@ public class ConnectionManager {
      * @param port port number
      * @return a hash of the two
      */
-    private String generateConnectionCacheKey(String host, int port) {
+    public static String generateConnectionCacheKey(String host, int port) {
         return host + HOST_PORT_SEPARATOR + port;
     }
 

@@ -9,9 +9,11 @@ import static util.BourneUtil.getSysClient;
 import java.util.Date;
 import java.util.Map;
 
-import org.joda.time.DateTime;
 import jobs.PoweroffJob;
 import jobs.RebootNodeJob;
+
+import org.joda.time.DateTime;
+
 import play.Logger;
 import play.data.validation.Required;
 import play.i18n.Messages;
@@ -81,6 +83,7 @@ public class AdminDashboard extends Controller {
         promises.put("fabricManagerCount", AdminDashboardUtils.fabricManagerCount());
         promises.put("computeSystemCount", AdminDashboardUtils.computeSystemCount());
         promises.put("computeImageCount", AdminDashboardUtils.computeImageCount());
+        promises.put("computeImageServerCount", AdminDashboardUtils.computeImageServerCount());
         promises.put("networksCount", AdminDashboardUtils.networksCount());
         promises.put("hostCount", AdminDashboardUtils.hostCount());
         promises.put("vcenterCount", AdminDashboardUtils.vCenterCount());

@@ -3192,14 +3192,13 @@ public class PlacementTests extends DbsvcTestBase {
 	    mpActiveTgtVpool.setLabel("mpTargetVpool");
 	    mpActiveTgtVpool.setSupportedProvisioningType(VirtualPool.ProvisioningType.Thin.name());
 	    mpActiveTgtVpool.setDriveType(SupportedDriveTypes.FC.name());
-	    //mpTgtVpool.setHighAvailability(VirtualPool.HighAvailabilityType.vplex_local.name());
+	    mpActiveTgtVpool.setHighAvailability(VirtualPool.HighAvailabilityType.vplex_local.name());
 	    matchedPools = new StringSet();
 	    matchedPools.add(tgtPool7.getId().toString());
 	    matchedPools.add(tgtPool8.getId().toString());
 	    mpActiveTgtVpool.setMatchedStoragePools(matchedPools);
 	    mpActiveTgtVpool.setUseMatchedPools(true);
 	    StringSet activeTgtVarrays = new StringSet();
-	    //activeTgtVarrays.add(activeTgtVarray.getId().toString());
 	    activeTgtVarrays.add(srcVarray.getId().toString());
 	    mpActiveTgtVpool.setVirtualArrays(activeTgtVarrays);
 	    _dbClient.createObject(mpActiveTgtVpool);
@@ -3217,7 +3216,6 @@ public class PlacementTests extends DbsvcTestBase {
 	    mpStandbyTgtVpool.setMatchedStoragePools(matchedPools);
 	    mpStandbyTgtVpool.setUseMatchedPools(true);
 	    StringSet standbyTgtVarrays = new StringSet();
-	    //standbyTgtVarrays.add(standbyTgtVarray.getId().toString());
 	    standbyTgtVarrays.add(haVarray.getId().toString());
 	    mpStandbyTgtVpool.setVirtualArrays(standbyTgtVarrays);
 	    _dbClient.createObject(mpStandbyTgtVpool);
@@ -3310,8 +3308,9 @@ public class PlacementTests extends DbsvcTestBase {
 	        	assertNotNull(rpRec.getSourceStoragePool());
 	        	assertTrue("site1".equals(rpRec.getInternalSiteName()));
 		        assertTrue(vmaxStorageSystem1.getId().toString().equals(rpRec.getSourceStorageSystem().toString()));		        
-		        assertTrue((srcPool1.getId().toString().equals(rpRec.getSourceStoragePool().toString())) || (srcPool2.getId().toString().equals(rpRec.getSourceStoragePool().toString())) 
-		        		|| (srcPool3.getId().toString().equals(rpRec.getSourceStoragePool().toString())));	
+		        assertTrue((srcPool1.getId().toString().equals(rpRec.getSourceStoragePool().toString())) || 
+		        		(srcPool2.getId().toString().equals(rpRec.getSourceStoragePool().toString())) ||
+		        		(srcPool3.getId().toString().equals(rpRec.getSourceStoragePool().toString())));	
 		        
 		        assertNotNull(rpRec.getVirtualVolumeRecommendation());
 		        assertNotNull(rpRec.getVirtualVolumeRecommendation().getVPlexStorageSystem());
@@ -3322,10 +3321,12 @@ public class PlacementTests extends DbsvcTestBase {
 		        assertTrue("vplex1".equals(rpRec.getHaRecommendation().getVirtualVolumeRecommendation().getVPlexStorageSystem().toString()));
 		        assertTrue("site2".equals(rpRec.getHaRecommendation().getInternalSiteName()));
 		        assertTrue(haVarray.getId().toString().equals(rpRec.getHaRecommendation().getVirtualArray().toString()));
-		        assertTrue("urn:storageos:VirtualPool:11111111-2222-3333-4444-555555555555:vdc1".equals(rpRec.getHaRecommendation().getVirtualPool().getId().toString()));
+		        assertTrue("urn:storageos:VirtualPool:11111111-2222-3333-4444-555555555555:vdc1".equals(
+		        				rpRec.getHaRecommendation().getVirtualPool().getId().toString()));
 		        assertTrue(vmaxStorageSystem2.getId().toString().equals(rpRec.getHaRecommendation().getSourceStorageSystem().toString()));
-		        assertTrue((haPool4.getId().toString().equals(rpRec.getHaRecommendation().getSourceStoragePool().toString())) || (haPool5.getId().toString().equals(rpRec.getHaRecommendation().getSourceStoragePool().toString()))
-		        			|| (haPool6.getId().toString().equals(rpRec.getHaRecommendation().getSourceStoragePool().toString())));	       
+		        assertTrue((haPool4.getId().toString().equals(rpRec.getHaRecommendation().getSourceStoragePool().toString())) || 
+		        				(haPool5.getId().toString().equals(rpRec.getHaRecommendation().getSourceStoragePool().toString())) || 
+		        				(haPool6.getId().toString().equals(rpRec.getHaRecommendation().getSourceStoragePool().toString())));	       
 		        	        
 		        assertNotNull(rpRec.getTargetRecommendations());
 		        assertNotNull(rpRec.getTargetRecommendations().size() > 0);
@@ -3339,26 +3340,28 @@ public class PlacementTests extends DbsvcTestBase {
 		        	if (VirtualPool.vPoolSpecifiesHighAvailability(mpActiveTgtVpool)) {
 		        		assertNotNull(targetRec.getVirtualVolumeRecommendation());
 		        		assertNotNull(targetRec.getVirtualVolumeRecommendation().getVPlexStorageSystem());
-		        		assertTrue(vplexStorageSystem2.getId().toString().equals(targetRec.getVirtualVolumeRecommendation().getVPlexStorageSystem()));
+		        		assertTrue(vplexStorageSystem1.getId().toString().equals(
+		        					targetRec.getVirtualVolumeRecommendation().getVPlexStorageSystem().toString()));
 		        		assertTrue(vmaxStorageSystem3.getId().toString().equals(targetRec.getSourceStorageSystem().toString()));
-			        	assertTrue(activeTgtVarray.getId().toString().equals(targetRec.getVirtualArray().toString()));
+			        	assertTrue(srcVarray.getId().toString().equals(targetRec.getVirtualArray().toString()));
 				        assertTrue("site1".equals(targetRec.getInternalSiteName()));
 				        assertTrue(mpActiveTgtVpool.getId().toString().equals(targetRec.getVirtualPool().getId().toString()));
-				        assertTrue((tgtPool7.getId().toString().equals(targetRec.getSourceStoragePool().toString())) || (tgtPool8.getId().toString().equals(targetRec.getSourceStoragePool().toString())));
+				        assertTrue((tgtPool7.getId().toString().equals(targetRec.getSourceStoragePool().toString())) || 
+				        				(tgtPool8.getId().toString().equals(targetRec.getSourceStoragePool().toString())));
 		        	}
 		        	
 		        	if (VirtualPool.vPoolSpecifiesHighAvailability(mpStandbyTgtVpool)) {
 		        		assertNotNull(targetRec.getVirtualVolumeRecommendation());
 		        		assertNotNull(targetRec.getVirtualVolumeRecommendation().getVPlexStorageSystem());
-		        		assertTrue(vplexStorageSystem2.getId().toString().equals(targetRec.getVirtualVolumeRecommendation().getVPlexStorageSystem()));
+		        		assertTrue(vplexStorageSystem2.getId().toString().equals(
+		        						targetRec.getVirtualVolumeRecommendation().getVPlexStorageSystem().toString()));
 		        		assertTrue(vmaxStorageSystem3.getId().toString().equals(targetRec.getSourceStorageSystem().toString()));
 			        	assertTrue(standbyTgtVarray.getId().toString().equals(targetRec.getVirtualArray().toString()));
 				        assertTrue("site2".equals(targetRec.getInternalSiteName()));
 				        assertTrue(mpActiveTgtVpool.getId().toString().equals(targetRec.getVirtualPool().getId().toString()));
-				        assertTrue((tgtPool7.getId().toString().equals(targetRec.getSourceStoragePool().toString())) || (tgtPool8.getId().toString().equals(targetRec.getSourceStoragePool().toString())));
-		        	}
-		        	
-		        	
+				        assertTrue((tgtPool7.getId().toString().equals(targetRec.getSourceStoragePool().toString())) || 
+				        				(tgtPool8.getId().toString().equals(targetRec.getSourceStoragePool().toString())));
+		        	}		        	
 		        }	        	        	      
 	        }
 	        
@@ -3375,7 +3378,8 @@ public class PlacementTests extends DbsvcTestBase {
 	        if (VirtualPool.vPoolSpecifiesHighAvailability(srcJournalVpool)) {
         		assertNotNull(rec.getSourceJournalRecommendation().getVirtualVolumeRecommendation());
         		assertNotNull(rec.getSourceJournalRecommendation().getVirtualVolumeRecommendation().getVPlexStorageSystem());
-        		assertTrue(vplexStorageSystem1.getId().toString().equals(rec.getSourceJournalRecommendation().getVirtualVolumeRecommendation().getVPlexStorageSystem()));
+        		assertTrue(vplexStorageSystem1.getId().toString().equals(
+        				rec.getSourceJournalRecommendation().getVirtualVolumeRecommendation().getVPlexStorageSystem()));
         	}
 	        	        
 	        //Source HA journal
@@ -3391,7 +3395,8 @@ public class PlacementTests extends DbsvcTestBase {
 	        if (VirtualPool.vPoolSpecifiesHighAvailability(haJournalVpool)) {
         		assertNotNull(rec.getStandbyJournalRecommendation().getVirtualVolumeRecommendation());
         		assertNotNull(rec.getStandbyJournalRecommendation().getVirtualVolumeRecommendation().getVPlexStorageSystem());
-        		assertTrue(vplexStorageSystem1.getId().toString().equals(rec.getStandbyJournalRecommendation().getVirtualVolumeRecommendation().getVPlexStorageSystem()));
+        		assertTrue(vplexStorageSystem1.getId().toString().equals(
+        				rec.getStandbyJournalRecommendation().getVirtualVolumeRecommendation().getVPlexStorageSystem()));
         	}
 	        
 	        //TargetJournal
@@ -3405,18 +3410,36 @@ public class PlacementTests extends DbsvcTestBase {
 		        assertNotNull(targetJournalRec.getVirtualArray());
 		        assertNotNull(targetJournalRec.getVirtualPool());
 		        
-		        assertTrue("site1".equals(targetJournalRec.getInternalSiteName()) || "site2".equals(targetJournalRec.getInternalSiteName()));
-		        assertTrue(vmaxStorageSystem2.getId().toString().equals(targetJournalRec.getSourceStorageSystem().toString()) || vmaxStorageSystem3.getId().toString().equals(targetJournalRec.getSourceStorageSystem().toString()));
-		        assertTrue((tgtPool7.getId().toString().equals(targetJournalRec.getSourceStoragePool().toString())) || haPool4.getId().toString().equals(targetJournalRec.getSourceStoragePool().toString()));
+		        if (targetJournalRec.getVirtualArray().toString().equals(srcVarray.getId().toString())) {
+		        	 assertTrue("site1".equals(targetJournalRec.getInternalSiteName()));
+		        	 assertTrue(mpActiveTgtVpool.getId().toString().equals(targetJournalRec.getVirtualPool().getId().toString()));
+		        	 assertTrue((tgtPool7.getId().toString().equals(targetJournalRec.getSourceStoragePool().toString())) || 
+		        				haPool4.getId().toString().equals(targetJournalRec.getSourceStoragePool().toString()));
+		        	 assertTrue(vmaxStorageSystem3.getId().toString().equals(targetJournalRec.getSourceStorageSystem().toString()));
+		        	
+		        	 if (VirtualPool.vPoolSpecifiesHighAvailability(mpActiveTgtVpool)) {		        	
+			        		assertNotNull(targetJournalRec.getVirtualVolumeRecommendation());
+			        		assertNotNull(targetJournalRec.getVirtualVolumeRecommendation().getVPlexStorageSystem());
+			        		 assertTrue(vplexStorageSystem1.getId().toString().equals(
+				        				targetJournalRec.getVirtualVolumeRecommendation().getVPlexStorageSystem().toString()));
+			        		
+			        	}
+		        }
 		        
-		        assertTrue(mpStandbyTgtVpool.getId().toString().equals(targetJournalRec.getVirtualPool().getId().toString()) 
-		        		|| mpActiveTgtVpool.getId().toString().equals(targetJournalRec.getVirtualPool().getId().toString()));
-		        		
-		        if (VirtualPool.vPoolSpecifiesHighAvailability(mpStandbyTgtVpool) || VirtualPool.vPoolSpecifiesHighAvailability(mpActiveTgtVpool)) {		        	
-	        		assertNotNull(targetJournalRec.getVirtualVolumeRecommendation());
-	        		assertNotNull(targetJournalRec.getVirtualVolumeRecommendation().getVPlexStorageSystem());
-	        		assertTrue(vplexStorageSystem2.getId().toString().equals(targetJournalRec.getVirtualVolumeRecommendation().getVPlexStorageSystem()));
-	        	}
+		        if (targetJournalRec.getVirtualArray().toString().equals(haVarray.getId().toString())) {
+		        	 assertTrue("site2".equals(targetJournalRec.getInternalSiteName()));
+		        	 assertTrue(mpStandbyTgtVpool.getId().toString().equals(targetJournalRec.getVirtualPool().getId().toString()));
+		        	 assertTrue((haPool4.getId().toString().equals(targetJournalRec.getSourceStoragePool().toString())));
+		        	 assertTrue(vmaxStorageSystem2.getId().toString().equals(targetJournalRec.getSourceStorageSystem().toString()));
+		        	 
+		        	 if (VirtualPool.vPoolSpecifiesHighAvailability(mpStandbyTgtVpool)) {		        	
+			        		assertNotNull(targetJournalRec.getVirtualVolumeRecommendation());
+			        		assertNotNull(targetJournalRec.getVirtualVolumeRecommendation().getVPlexStorageSystem());
+			        		 assertTrue(vplexStorageSystem2.getId().toString().equals(
+				        				targetJournalRec.getVirtualVolumeRecommendation().getVPlexStorageSystem().toString()));
+			        		
+			        	}
+		        }		        		     
 	        }	        
 	        _log.info(String.format("Placement results (#%s) : \n %s",i, rec.toString(_dbClient)));
         }	    

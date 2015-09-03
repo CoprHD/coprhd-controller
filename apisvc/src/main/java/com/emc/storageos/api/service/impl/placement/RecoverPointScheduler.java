@@ -412,7 +412,7 @@ public class RecoverPointScheduler implements Scheduler {
         // If we get through the process and couldn't achieve full protection, we should try with the next pool in the list until
         // we either find a successful solution or failure.
         List<Recommendation> sourcePoolRecommendations =  getRecommendedPools(rpProtectionRecommendation, varray, 
-        													vpool, null, null, capabilities, null, RPHelper.SOURCE, null);        
+        													vpool, null, null, capabilities, RPHelper.SOURCE, null);        
         if (sourcePoolRecommendations == null || sourcePoolRecommendations.isEmpty()) {        	
         	_log.error(String.format("RP Placement : No matching storage pools found for the source varray: [%s]. "
         			+ "There are no storage pools that " + "match the passed vpool parameters and protocols and/or there are "
@@ -737,6 +737,7 @@ public class RecoverPointScheduler implements Scheduler {
         rpHaRecommendation.setVirtualPool(vplexRec.getVirtualPool());
         rpHaRecommendation.setVirtualVolumeRecommendation(vplexRec);
         rpHaRecommendation.setResourceCount(capabilities.getResourceCount());
+        rpHaRecommendation.setSize(capabilities.getSize());
         return rpHaRecommendation;             
 	}
 	
@@ -1119,7 +1120,7 @@ public class RecoverPointScheduler implements Scheduler {
 
    	Map<URI, Set<ProtectionSystem>> standbyStoragePoolsToProtectionSystems = new HashMap<URI, Set<ProtectionSystem>>();
    	List<Recommendation> recommendedPools = getRecommendedPools(rpProtectionRecommendation, varray, vpool, null, null, 
-   												capabilities, null, RPHelper.SOURCE, null);
+   												capabilities, RPHelper.SOURCE, null);
    	if (recommendedPools == null || recommendedPools.isEmpty()) {
    		_log.error(String.format("RP Placement : No matching storage pools found for the source varray: {%s}. "
    				+ "There are no storage pools that match the passed vpool parameters and protocols and/or there are "
@@ -1132,7 +1133,7 @@ public class RecoverPointScheduler implements Scheduler {
 		int totalRequestedResourceCount = capabilities.getResourceCount();
 
 		int remainingPossiblePrimarySrcPoolSolutions = activeSourcePoolUris.size();
-   		_log.info("RP Placement : Determining RP placement for the primary (active) MetroPoint cluster.");
+   		_log.info(String.format("RP Placement : Determining RP placement for the primary (active) MetroPoint cluster for %s resources.", totalRequestedResourceCount));
    		for (Recommendation recommendedPool : recommendedPools) {
    			if (vpoolChangeVolume != null) {
        			// If this is a change vpool operation, the source has already been placed and there is only 1
@@ -1207,7 +1208,7 @@ public class RecoverPointScheduler implements Scheduler {
    						activeJournalRecommendation = buildJournalRecommendation(rpProtectionRecommendation, 
    														primaryRpRecommendation.getInternalSiteName(), vpool.getJournalSize(), 
    														activeJournalVarray, activeJournalVpool, primaryProtectionSystem,
-        			    									capabilities, requestedResourceCount, vpoolChangeVolume, false);
+        			    									capabilities, totalRequestedResourceCount, vpoolChangeVolume, false);
        					rpProtectionRecommendation.setSourceJournalRecommendation(activeJournalRecommendation);
        				}
    					    				    				    					
@@ -1231,7 +1232,7 @@ public class RecoverPointScheduler implements Scheduler {
 
    						// Get the candidate secondary cluster source pools - sets secondarySourcePoolURIs.
    						List<Recommendation> secondaryPoolsRecommendation = getRecommendedPools(rpProtectionRecommendation, haVarray, haVpool, null, null, 
-   																				capabilities, null, RPHelper.TARGET, null);
+   																				capabilities, RPHelper.TARGET, null);
    			
    						secondaryPlacementStatus.setSrcVArray(haVarray.getLabel());
    						secondaryPlacementStatus.setSrcVPool(haVpool.getLabel());
@@ -1317,11 +1318,9 @@ public class RecoverPointScheduler implements Scheduler {
    								for (String secondaryAssociatedStorageSystem : sortedSecondaryAssociatedStorageSystems) {    									    									
    									RPRecommendation secondaryRpRecommendation = buildSourceRecommendation(secondaryAssociatedStorageSystem, 
    																					haVarray, haVpool, 
-   																					selectedSecondaryProtectionSystem, 
-										    											standbySourcePool,  
-										    											capabilities,
-										    											satisfiedSourceVolCount, secondaryPlacementStatus, 
-										    											null, true);                       									
+   																					selectedSecondaryProtectionSystem, standbySourcePool, capabilities, satisfiedSourceVolCount, 
+   																					secondaryPlacementStatus, 
+										    										null, true);                       									
    									if (secondaryRpRecommendation == null) {
    										// No source placement found for the secondaryAssociatedStorageSystem, so continue.
    										_log.info(String.format("RP Placement : HA solution not found using %s, continuing with "
@@ -1334,7 +1333,7 @@ public class RecoverPointScheduler implements Scheduler {
    										standbyJournalRecommendation = buildJournalRecommendation(rpProtectionRecommendation, 
    																			secondarySourceInternalSiteName, vpool.getJournalSize(), 
    																			standbyJournalVarray, standbyJournalVpool, primaryProtectionSystem,
-   																			capabilities,requestedResourceCount, vpoolChangeVolume, true);
+   																			capabilities, totalRequestedResourceCount, vpoolChangeVolume, true);
    			        					rpProtectionRecommendation.setStandbyJournalRecommendation(standbyJournalRecommendation);
    			        				}    									    									    							
    									primaryRpRecommendation.setHaRecommendation(secondaryRpRecommendation);    									
@@ -2156,32 +2155,12 @@ public class RecoverPointScheduler implements Scheduler {
 		StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemUri);
 		String type = storageSystem.getSystemType();		
 				
-		RPRecommendation rpRecommendation = new RPRecommendation();		
-		rpRecommendation.setRpSiteAssociateStorageSystem(associatedStorageSystem);		
-		rpRecommendation.setSourceStoragePool(sourcePool.getId());
-		rpRecommendation.setSourceStorageSystem(sourcePool.getStorageDevice());								
-    	rpRecommendation.setResourceCount(satisfiedSourceVolCount);
-    	rpRecommendation.setVirtualArray(varray.getId());
-    	rpRecommendation.setVirtualPool(vpool);    	 
-    	rpRecommendation.setInternalSiteName(sourceInternalSiteName);
-    	
-    	// Set the virtualVolumeRecommendation with the same info if this is for VPLEX.
-    	// VPLEX will consume this to create the virtual volumes.
-    	if (DiscoveredDataObject.Type.vplex.name().equals(type)) {
-            VPlexRecommendation virtualVolumeRecommendation = new VPlexRecommendation();
-            virtualVolumeRecommendation.setVirtualArray(rpRecommendation.getVirtualArray());
-            virtualVolumeRecommendation.setVirtualPool(rpRecommendation.getVirtualPool());
-            virtualVolumeRecommendation.setVPlexStorageSystem((sourceStorageSytemUri));
-            virtualVolumeRecommendation.setSourceStoragePool(sourcePool.getId());
-            virtualVolumeRecommendation.setSourceStorageSystem(sourcePool.getStorageDevice());
-            virtualVolumeRecommendation.setResourceCount(1);
-            rpRecommendation.setVirtualVolumeRecommendation(virtualVolumeRecommendation);
-        }
-    	
-    	_log.info(String.format("RP Placement : Source Recommendation %s %n", rpRecommendation.toString(dbClient, ps)));
+		RPRecommendation rpRecommendation = buildRpRecommendation(associatedStorageSystem, varray, vpool, sourcePool,
+												capabilities, satisfiedSourceVolCount, sourceInternalSiteName,
+												sourceStorageSytemUri, type, ps);    	
 		return rpRecommendation;
     }
-    
+
 	/**
      * Builds the journal placement recommendation
      *            
@@ -2192,7 +2171,7 @@ public class RecoverPointScheduler implements Scheduler {
      * @param journalVpool - Virtual Pool
      * @param ps - Protection system
      * @param capabilities - Virtual Pool capabilities
-     * @param satisfiedSourceVolCount - Resource count satisfied in this recommendation. 
+     * @param requestedResourceCount - Resource count satisfied in this recommendation. 
      * 									For journals, it is always 1 as we dont fragment journal over multiple pools.
      * @param vpoolChangeVolume - change Virtual Pool param
      * @param isMPStandby - indicates if this a metropoint and if this is a recommendation for the standy-site
@@ -2201,12 +2180,18 @@ public class RecoverPointScheduler implements Scheduler {
     private RPRecommendation buildJournalRecommendation(RPProtectionRecommendation rpProtectionRecommendation, String internalSiteName, 
     										String journalPolicy, VirtualArray journalVarray, VirtualPool journalVpool, ProtectionSystem ps, 
 								    		VirtualPoolCapabilityValuesWrapper capabilities,
-								    		int satisfiedSourceVolCount, Volume vpoolChangeVolume, boolean isMPStandby) {
-	   	    		
+								    		int requestedResourceCount, Volume vpoolChangeVolume, boolean isMPStandby) {
+    	
+    	//TODO: Joe will need to  check here for if its a journal add capacity and not set the resource count to 1 or calculate the size based on policy    	
+    	VirtualPoolCapabilityValuesWrapper newCapabilities = new VirtualPoolCapabilityValuesWrapper(capabilities);	    
+    	newCapabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, 1);       
+    	Long sizeInBytes = RPHelper.getJournalSizeGivenPolicy(Long.toString(capabilities.getSize()), journalPolicy, requestedResourceCount);
+    	newCapabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, sizeInBytes);    	       
+    
 		List<Recommendation> journalRec = getRecommendedPools(rpProtectionRecommendation, journalVarray, journalVpool, null, null, 
-											capabilities, journalPolicy, RPHelper.JOURNAL, internalSiteName);			     
-        boolean foundJournalPool = false;	        
-        //Represents the journal storage pool or backing array storage pool in case of VPLEX
+												newCapabilities, RPHelper.JOURNAL, internalSiteName);			     
+
+		//Represents the journal storage pool or backing array storage pool in case of VPLEX
 		StoragePool journalStoragePool = null;
 		//Represents the journal storage system
 		 URI storageSystemURI = null;
@@ -2255,40 +2240,62 @@ public class RecoverPointScheduler implements Scheduler {
     					continue;
     				}
     				
-    				//Found a journal pool
-    				foundJournalPool = true;
-    				break;
-				} 				
-				if (foundJournalPool) {
-					break;
-				}
+    				//If we got here, it means that we found a valid storage pool for journal, return back the recommendation 
+    				return buildRpRecommendation(associatedStorageSystem, journalVarray, journalVpool, journalStoragePool, 
+								newCapabilities, 1, internalSiteName, 
+								storageSystemURI, storageSystem.getSystemType(), ps);
+				} 						
 			}    
-		}
-				
-		RPRecommendation rpJournalRecommendation = new RPRecommendation();	
-		rpJournalRecommendation.setSourceStoragePool(journalStoragePool.getId());				
-		rpJournalRecommendation.setSourceStorageSystem(journalStoragePool.getStorageDevice());		
-		rpJournalRecommendation.setInternalSiteName(internalSiteName);
-		rpJournalRecommendation.setResourceCount(1);			
-		rpJournalRecommendation.setVirtualArray(journalVarray.getId());
-		rpJournalRecommendation.setVirtualPool(journalVpool);		      		
-		StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemURI);		
-		if (storageSystem.getSystemType().equals(DiscoveredDataObject.Type.vplex.name())) {
-			VPlexRecommendation virtualVolumeRecommendation = new VPlexRecommendation();
-			virtualVolumeRecommendation.setVirtualArray(rpJournalRecommendation.getVirtualArray());
-			virtualVolumeRecommendation.setVirtualPool(rpJournalRecommendation.getVirtualPool());
-			virtualVolumeRecommendation.setVPlexStorageSystem(storageSystem.getId());
-			virtualVolumeRecommendation.setResourceCount(1);
-			virtualVolumeRecommendation.setSourceStoragePool(journalStoragePool.getId());
-			virtualVolumeRecommendation.setSourceStorageSystem(journalStoragePool.getStorageDevice());
-			
-			rpJournalRecommendation.setVirtualVolumeRecommendation(virtualVolumeRecommendation);
-		}
-		_log.info(String.format("RP Placement : Journal Recommendation %s %n", rpJournalRecommendation.toString(dbClient, ps)));
-    	return rpJournalRecommendation;
+		}					
+    	return null;
     }
-	
-	
+    
+	/**
+	 * Construct RP Recommendation object
+	 * @param associatedStorageSystem - Associated Storage System
+	 * @param varray - Virtual Array
+	 * @param vpool - Virtual Pool 
+	 * @param sourcePool - Storage Pool
+	 * @param capabilities - VirtualPool capabilities
+	 * @param satisfiedSourceVolCount - resource count
+	 * @param sourceInternalSiteName - Internal site name
+	 * @param sourceStorageSytemUri - Storage System URI
+	 * @param type - StorageSystem Type
+	 * @param ps - Protection System
+	 * @return
+	 */
+	private RPRecommendation buildRpRecommendation(String associatedStorageSystem, VirtualArray varray,
+								VirtualPool vpool, StoragePool sourcePool,
+								VirtualPoolCapabilityValuesWrapper capabilities,
+								int satisfiedSourceVolCount, String sourceInternalSiteName,
+								URI sourceStorageSytemUri, String type, ProtectionSystem ps) {
+			RPRecommendation rpRecommendation = new RPRecommendation();		
+			rpRecommendation.setRpSiteAssociateStorageSystem(associatedStorageSystem);		
+			rpRecommendation.setSourceStoragePool(sourcePool.getId());
+			rpRecommendation.setSourceStorageSystem(sourcePool.getStorageDevice());								
+			rpRecommendation.setResourceCount(satisfiedSourceVolCount);
+			rpRecommendation.setVirtualArray(varray.getId());
+			rpRecommendation.setVirtualPool(vpool);    	 
+			rpRecommendation.setInternalSiteName(sourceInternalSiteName);
+			rpRecommendation.setSize(capabilities.getSize());
+			
+			// Set the virtualVolumeRecommendation with the same info if this is for VPLEX.
+			// VPLEX will consume this to create the virtual volumes.
+			if (DiscoveredDataObject.Type.vplex.name().equals(type)) {
+				VPlexRecommendation virtualVolumeRecommendation = new VPlexRecommendation();
+				virtualVolumeRecommendation.setVirtualArray(rpRecommendation.getVirtualArray());
+				virtualVolumeRecommendation.setVirtualPool(rpRecommendation.getVirtualPool());
+				virtualVolumeRecommendation.setVPlexStorageSystem((sourceStorageSytemUri));
+				virtualVolumeRecommendation.setSourceStoragePool(sourcePool.getId());
+				virtualVolumeRecommendation.setSourceStorageSystem(sourcePool.getStorageDevice());
+				virtualVolumeRecommendation.setResourceCount(1);
+				rpRecommendation.setVirtualVolumeRecommendation(virtualVolumeRecommendation);
+			}
+			
+			_log.info(String.format("RP Placement : Recommendation %s %n", rpRecommendation.toString(dbClient, ps)));
+			return rpRecommendation;
+	}
+
     /**
      * Builds the PlacementStatus string for MetroPoint.  Includes the primary and secondary
      * PlacementStatus objects.
@@ -2449,8 +2456,7 @@ public class RecoverPointScheduler implements Scheduler {
      */
     private List<Recommendation> getRecommendedPools(RPProtectionRecommendation rpProtectionRecommendation, VirtualArray varray, 
     								VirtualPool vpool, VirtualArray haVarray, VirtualPool haVpool,
-    								VirtualPoolCapabilityValuesWrapper capabilities, 
-    								String journalPolicy, String personality, String internalSiteName) {  
+    								VirtualPoolCapabilityValuesWrapper capabilities, String personality, String internalSiteName) {  
     	
     	//TODO (Brad/Bharath): ChangeVPool doesnt add any new targets. If new targets are requested as part of the changeVpool, 
     	// then this code needs to be enhanced to be able to handle that.
@@ -2458,14 +2464,7 @@ public class RecoverPointScheduler implements Scheduler {
     	_log.info("RP Placement : Fetching pool recommendations for : " + personality);
     	long sizeInBytes = capabilities.getSize();    	
     	long requestedCount = capabilities.getResourceCount();
-    	VirtualPoolCapabilityValuesWrapper newCapabilities = new VirtualPoolCapabilityValuesWrapper(capabilities);
-    	    	    	    
-    	//TODO: Joe will need to  check here for if its a journal add capacity and not set the resource count to 1. 
-    	if (personality.equals(RPHelper.JOURNAL)) {    		
-        	newCapabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, 1);       
-        	sizeInBytes = RPHelper.getJournalSizeGivenPolicy(Long.toString(capabilities.getSize()), journalPolicy, capabilities.getResourceCount());
-        	newCapabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, sizeInBytes);    	       
-    	} 
+    	
     	
     	long sizeInKB = getSizeInKB(sizeInBytes);
     	List<Recommendation> recommendations = new ArrayList<Recommendation>();
@@ -2473,7 +2472,7 @@ public class RecoverPointScheduler implements Scheduler {
     			SizeUtil.translateSize(sizeInBytes, SizeUtil.SIZE_GB)));
     	
     	//Fetch candidate storage pools
-    	List<StoragePool> candidatePools = getCandidatePools(varray, vpool, haVarray, haVpool, newCapabilities, personality);
+    	List<StoragePool> candidatePools = getCandidatePools(varray, vpool, haVarray, haVpool, capabilities, personality);
     	
     	//Get all the pools already recommended
     	List<RPRecommendation> poolsInAllRecommendations = rpProtectionRecommendation.getPoolsInAllRecommendations();
@@ -3057,7 +3056,7 @@ public class RecoverPointScheduler implements Scheduler {
         } else {
         	// Get pool recommendations. each recommendation also specifies the resource count that the pool can satisfy based on the size requested.
         	targetPoolRecommendations = getRecommendedPools(rpProtectionRecommendation, protectionVarray, 
-        									protectionVpool, null, null, newCapabilities, null, RPHelper.TARGET, null);
+        									protectionVpool, null, null, newCapabilities, RPHelper.TARGET, null);
         }
                 
        	if (targetPoolRecommendations.isEmpty()) {
@@ -3146,43 +3145,28 @@ public class RecoverPointScheduler implements Scheduler {
 	    			
 					_log.info(String.format("RP Placement : Choosing RP Site %s for target on varray %s", 
 								targetInternalSiteName, protectionVarray.getLabel()));	    			
-	    			// Maybe make a topology check in here?  Or is the source topology check enough?        				    		
-	    			RPRecommendation targetRecommendation = new RPRecommendation();
+	    			// Maybe make a topology check in here?  Or is the source topology check enough?       
+					StorageSystem targetStorageSystem = dbClient.queryObject(StorageSystem.class, targetStorageSystemURI);
+					ProtectionSystem ps = dbClient.queryObject(ProtectionSystem.class, psUri);
+					
+					//Construct the target recommendation object
+	    			RPRecommendation targetRecommendation =  buildRpRecommendation(associatedStorageSystem, protectionVarray, protectionVpool, 
+	    														candidateTargetPool, newCapabilities, requestedCount, targetInternalSiteName, 
+	    														targetStorageSystemURI, targetStorageSystem.getSystemType(), ps);
 	    			if (protectionType != null) {
 	    				targetRecommendation.setProtectionType(protectionType);
 	    			}
 	    			
-	    			targetRecommendation.setVirtualPool(protectionVpool);
-	    			targetRecommendation.setVirtualArray(protectionVarray.getId());
-	    			targetRecommendation.setInternalSiteName(targetInternalSiteName);
-	    			StorageSystem targetStorageSystem = dbClient.queryObject(StorageSystem.class, targetStorageSystemURI);	    			
-	    			targetRecommendation.setInternalSiteStorageSystem(targetStorageSystemURI);
-	    			targetRecommendation.setSourceStoragePool(candidateTargetPool.getId());
-	    			targetRecommendation.setSourceStorageSystem(candidateTargetPool.getStorageDevice());
-	    			targetRecommendation.setResourceCount(requestedCount);
-	    			
-	    			if (targetStorageSystem.getSystemType().equals(DiscoveredDataObject.Type.vplex.name())) {
-	    				VPlexRecommendation virtualVolumeRecommendation = new VPlexRecommendation();
-	    				virtualVolumeRecommendation.setVirtualArray(targetRecommendation.getVirtualArray());
-	    				virtualVolumeRecommendation.setVirtualPool(targetRecommendation.getVirtualPool());
-	    				virtualVolumeRecommendation.setVPlexStorageSystem(targetStorageSystemURI);
-	    				virtualVolumeRecommendation.setSourceStoragePool(candidateTargetPool.getId());
-	    				virtualVolumeRecommendation.setSourceStorageSystem(candidateTargetPool.getStorageDevice());
-	    				virtualVolumeRecommendation.setResourceCount(1);
-	    				targetRecommendation.setVirtualVolumeRecommendation(virtualVolumeRecommendation);
-	    			}
 	    			if (rpRecommendation.getTargetRecommendations() == null) {	    				
 	    				rpRecommendation.setTargetRecommendations(new ArrayList<RPRecommendation>());;
     				}	
 	    			rpRecommendation.getTargetRecommendations().add(targetRecommendation);	 
 	    			
-	    			ProtectionSystem ps = dbClient.queryObject(ProtectionSystem.class, psUri);
-	    			_log.info(String.format("RP Placement : Target Recommendation %n %s", targetRecommendation.toString(dbClient, ps)));
-	    				    			 		    			
+	    			//Build the target journal recommendation
 	    			RPRecommendation targetJournalRecommendation = buildJournalRecommendation(rpProtectionRecommendation, targetInternalSiteName,
     																	protectionSettings.getJournalSize(), targetJournalVarray, 
     																	targetJournalVpool, ps, newCapabilities, 
-    																	newCapabilities.getResourceCount(), null, false);
+    																	capabilities.getResourceCount(), null, false);
 	    			if (targetJournalRecommendation != null){	    				    			
 	    				_log.info(String.format("RP Placement : Journal Recommendation %n %s", targetJournalRecommendation.toString(dbClient, ps)));
 	    				rpProtectionRecommendation.getTargetJournalRecommendations().add(targetJournalRecommendation);

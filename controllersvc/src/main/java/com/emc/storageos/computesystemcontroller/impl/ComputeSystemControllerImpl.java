@@ -353,8 +353,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             for (URI hostId : clusterHostIds) {
                 List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
                 for (ExportGroup exportGroup : getExportGroups(hostId, hostInitiators)) {
-                    if (exportGroup.getType() != null && exportGroup.getType().equals(ExportGroupType.Cluster)) {
+                    if (exportGroup.forCluster()) {
                         if (exportGroup.getClusters() != null && !exportGroup.getClusters().contains(clusterId.toString())) {
+                            _log.info("Export " + exportGroup.getId() + " contains reference to host " + hostId
+                                    + ". Will remove this host from the export");
                             exportGroups.add(exportGroup.getId());
                         }
                     }
@@ -548,6 +550,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             // 1. Add all hosts in clusters that are not in the cluster's export groups
             for (URI clusterHost : clusterHostIds) {
                 if (!updatedHosts.contains(clusterHost)) {
+                    _log.info("Adding host " + clusterHost + " to cluster export group " + export.getId());
                     updatedHosts.add(clusterHost);
                     List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, clusterHost);
                     for (Initiator initiator : hostInitiators) {
@@ -562,6 +565,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                 URI hostId = updatedHostsIterator.next();
                 if (!clusterHostIds.contains(hostId)) {
                     updatedHostsIterator.remove();
+                    _log.info("Removing host " + hostId + " from shared export group " + export.getId()
+                            + " because this host does not belong to the cluster");
                     List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
                     for (Initiator initiator : hostInitiators) {
                         updatedInitiators.remove(initiator.getId());

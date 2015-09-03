@@ -50,7 +50,6 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVol
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.model.block.VolumeExportIngestParam;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.vplexcontroller.VplexBackendIngestionContext;
 import com.google.common.base.Joiner;
@@ -268,7 +267,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     throw IngestionException.exceptions.validationException(reason);
                 }
             } else {
-                String reason = "vpool does not allow continuous copies, but volume has" + mirrorCount + " mirror(s)";
+                String reason = "vpool does not allow continuous copies, but volume has " + mirrorCount + " mirror(s)";
                 _logger.error(reason);
                 throw IngestionException.exceptions.validationException(reason);
             }

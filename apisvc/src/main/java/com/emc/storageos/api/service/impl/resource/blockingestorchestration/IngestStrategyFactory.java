@@ -191,7 +191,6 @@ public class IngestStrategyFactory {
         LOCAL_CLONE,
         REMOTE_VOLUME,
         VPLEX_VOLUME,
-        VPLEX_BACKEND,
         NONE;
 
         public static IngestStrategyEnum getIngestStrategy(String strategyName) {
@@ -264,7 +263,6 @@ public class IngestStrategyFactory {
 
             case LOCAL_CLONE:
             case LOCAL_VOLUME:
-            case VPLEX_BACKEND:
                 ingestStrategy.setIngestResourceOrchestrator(blockVolumeIngestOrchestrator);
                 break;
 
@@ -307,9 +305,6 @@ public class IngestStrategyFactory {
         } else if (VolumeIngestionUtil.isMirror(unManagedVolume)) {
             volumeType = VolumeType.MIRROR.name();
         }
-//        else if (VolumeIngestionUtil.isVplexBackendVolume(unManagedVolume)) {
-//            volumeType = VolumeType.BACKEND.name();
-//        }
 
         String strategyKey = replicationStrategy + "_" + volumeType;
         _logger.info("strategy key is " + strategyKey);

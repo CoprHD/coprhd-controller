@@ -603,14 +603,17 @@ public class RecoverPointClient {
     		if (cgUID == null) {
     			// The CG does not exist so we cannot add replication sets
     			throw RecoverPointException.exceptions.failedToAddReplicationSetCgDoesNotExist(request.getCgName());
-    		}
-
+    		}    		
+    		
     		List<CreateCopyParams> copyParams = request.getCopies();
+    		
+    		// this is new from last night
+    		Set<RPSite> allSites = scan(copyParams, null);
 
     		for (CreateCopyParams copyParam : copyParams) {
     			for (CreateVolumeParams journalVolume: copyParam.getJournals()) {
     				ClusterUID clusterId = RecoverPointUtils.getRPSiteID(functionalAPI, journalVolume.getInternalSiteName()); 
-    				Set<RPSite> allSites = getAssociatedRPSites();    
+    				//Set<RPSite> allSites = getAssociatedRPSites();    
     				ConsistencyGroupCopyUID copyUID = getCGCopyUid(clusterId, getCopyType(copyType), cgUID);    				
     				functionalAPI.addJournalVolume(copyUID, RecoverPointUtils.getDeviceID(allSites, journalVolume.getWwn()));        		
     			}    			
@@ -1046,6 +1049,10 @@ public class RecoverPointClient {
                 }
             }
 
+            // When adding new journal volumes only no need to look at source and target volumes
+            if (rSets == null || rSets.isEmpty()) {
+            	continue;
+            }
             //
             // Walk through the source/target volumes to see where our WWNs lie
             //

@@ -859,7 +859,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                          sourceVolume, journalVolume, standbyJournalVolume, vplex, 
                                          changeVpoolVolume);
             
-            boolean createTask = isTaskRequired(rpVolume, vplex, isChangeVpool);
+            boolean createTask = isTaskRequired(rpVolume, capabilities, vplex, isChangeVpool);
             if (createTask) {
                 // Create a task for this volume
                 createTaskForVolume(rpVolume, taskList, task, isChangeVpool);
@@ -872,14 +872,16 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * Determines whether or not we need to generate a task for this operation.
      * 
      * @param rpVolume Volume to check
+     * @param capabilities 
      * @param vplex VPLEX flag
      * @param isChangeVpool Change vpool flag
      * @return True is task is needed, false otherwise.
      */
-    private boolean isTaskRequired(Volume rpVolume, boolean vplex, boolean isChangeVpool) {
+    private boolean isTaskRequired(Volume rpVolume, VirtualPoolCapabilityValuesWrapper capabilities, boolean vplex, boolean isChangeVpool) {
         boolean rpNonVplexSourceVolume = (Volume.PersonalityTypes.SOURCE.name().equals(rpVolume.getPersonality()) && !vplex);
         boolean rpVplexSourceVolumeAndChangeVpool = (Volume.PersonalityTypes.SOURCE.name().equals(rpVolume.getPersonality()) && vplex && isChangeVpool);
-        boolean createTask = rpNonVplexSourceVolume || rpVplexSourceVolumeAndChangeVpool;
+        boolean addJournalVolume = capabilities.getAddJournalCapacity();
+        boolean createTask = rpNonVplexSourceVolume || rpVplexSourceVolumeAndChangeVpool || addJournalVolume;
         return createTask;
     }
 

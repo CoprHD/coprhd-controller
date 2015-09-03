@@ -84,7 +84,7 @@ nav.systemNodeRecovery=Recovery
 nav.properties=General Configuration
 nav.clusterInfo=Network Configuration
 nav.adminDashboard=System
-nav.dbHealthDashboard=Database Consistency Status
+nav.dbHealthDashboard=Database Housekeeping Status
 nav.adminDashboardPage=Dashboard
 nav.localPasswords=Local Passwords
 nav.keystores=Keystore
@@ -199,6 +199,8 @@ DefaultStorageArrayPortMap.openstack=22
 DefaultStorageArrayPortMap.openstack_useSSL=22
 DefaultStorageArrayPortMap.scaleio=22
 DefaultStorageArrayPortMap.scaleio_useSSL=22
+DefaultStorageArrayPortMap.scaleioapi=80
+DefaultStorageArrayPortMap.scaleioapi_useSSL=443
 DefaultStorageArrayPortMap.datadomain=3009
 DefaultStorageArrayPortMap.datadomain_useSSL=3009
 
@@ -212,6 +214,8 @@ DefaultStorageProviderPortMap.cinder_useSSL=22
 DefaultStorageProviderPortMap.cinder=22
 DefaultStorageProviderPortMap.scaleio=22
 DefaultStorageProviderPortMap.scaleio_useSSL=22
+DefaultStorageProviderPortMap.scaleioapi=80
+DefaultStorageProviderPortMap.scaleioapi_useSSL=443
 DefaultStorageProviderPortMap.ddmc=3009
 DefaultStorageProviderPortMap.ddmc_useSSL=3009
 DefaultStorageProviderPortMap.ibmxiv_useSSL=5989
@@ -263,10 +267,12 @@ StorageSystemType.hds=Hitachi
 StorageSystemType.ibmxiv=IBM XIV
 StorageSystemType.openstack=Third-party block
 StorageSystemType.scaleio=Block Storage Powered by ScaleIO
+StorageSystemType.scaleioapi=ScaleIO Gateway
 StorageSystemType.xtremio=EMC XtremIO
 StorageSystemType.vnxe=EMC VNXe
 StorageSystemType.datadomain=Data Domain
 StorageSystemType.STORAGE_PROVIDER.vmax=Storage Provider for EMC VMAX, VNX Block
+StorageSystemType.STORAGE_PROVIDER.scaleioapi=ScaleIO Gateway
 StorageSystemType.STORAGE_PROVIDER.hds=Storage Provider for Hitachi storage systems
 StorageSystemType.STORAGE_PROVIDER.vplex=Storage Provider for EMC VPLEX
 StorageSystemType.STORAGE_PROVIDER.cinder=Storage Provider for Third-party block storage systems
@@ -666,6 +672,7 @@ CustomConfigs.configType.HDSHostStorageDomainNickName=Host Group Nick Name
 CustomConfigs.configType.HDSHostModeOption=Host Mode Option
 CustomConfigs.configType.VPlexStorageViewName=Storage View Name
 CustomConfigs.configType.VPlexMigrationSpeed=Data Migration Speed
+CustomConfigs.configType.VPlexVMAXMaskingViewMaximumVolumes=Max Volumes In VPlex Backend MaskingView
 CustomConfigs.scopeType.global=Global
 CustomConfigs.scopeType.systemType=System Type
 CustomConfigs.scopeType.hostType=Host Type
@@ -804,7 +811,7 @@ system.about.support.title=Support
 system.about.license=Licenses
 
 #Database Consistency Page
-db.healthdashboard.title=Database Consistency Check
+db.healthdashboard.title=Database Housekeeping Status
 
 # System Node Recovery
 system.noderecovery.title=Node Recovery
@@ -825,6 +832,8 @@ health.end=End time
 dbstatus.lastCompletionTime=Last Completed Database Check: 
 dbstatus.progress=Percentage completed: 
 dbstatus.startTime=Start Time of Database Repair: 
+dbstatus.status=Status
+dbstatus.inprogress.info=Normal Provisioning is not affected when Database Housekeeping status is "In Progress"
 
 system.nodes.total=Total Nodes
 system.stats.node.status=Node Status
@@ -837,6 +846,7 @@ system.node.stats.root=Root Storage
 system.node.error=Cannot access %s's health information. Node may be unavailable or restarting
 system.node.services.error=Cannot access the services of %s. Node may be unavailable or restarting
 systemNodes.name=Name
+systemNodes.id=Id
 systemNodes.status=Status
 systemNodes.type=Type
 systemNodes.ip=IP Address
@@ -883,7 +893,8 @@ system.stats.diagnostics.status=Status
 
 # System Logs
 system.logs.title=System Logs <small>All times are displayed in <span style="font-weight: bold;">local time</span>.</small>
-system.logs.node=Node
+system.logs.nodeId=Node Id
+system.logs.nodeName=Node Name
 system.logs.service=Service
 system.logs.minseverity=Level
 system.logs.minseverity.help=Return all logs with the selected level and above.
@@ -1619,9 +1630,10 @@ smisProvider.elementManagerURL=Element Manager URL
 
 storageProvider.interfaceType.hicommand=Hitachi HiCommand
 storageProvider.interfaceType.smis=SMI-S for EMC VMAX, VNX Block
+storageProvider.interfaceType.scaleioapi=ScaleIO Gateway
 storageProvider.interfaceType.vplex=VPLEX
 storageProvider.interfaceType.cinder=Third-party block
-storageProvider.interfaceType.scaleio=Block Storage Powered by ScaleIO
+storageProvider.interfaceType.scaleio=ScaleIO CLI
 storageProvider.interfaceType.ddmc=Data Domain Management Center
 storageProvider.interfaceType.ibmxiv=SMI-S for IBM XIV
 
@@ -3726,6 +3738,7 @@ systemHealth.message.parseError=Requested JSON parse failed.
 systemHealth.message.timeout=Operation timed out.
 systemHealth.message.abort=Ajax request aborted.
 systemHealth.message.uncaught=Uncaught Error. Status: %s. %s
+systemHealth.message.reboot.unavailable=%s is unavailable for reboot.
 
 fileUpload.button.browse=Browse...
 

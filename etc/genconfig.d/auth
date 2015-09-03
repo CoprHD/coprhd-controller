@@ -10,7 +10,7 @@
 # it is provided by or on behalf of EMC.
 
 _get_auth_props() {
-    _get_props node_index node_name
+    _get_props node_index node_id
 }
 
 _genconfig_exec _gen_template_cluster    /opt/storageos/conf/auth-var.xml    $(_get_auth_props)

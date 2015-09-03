@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
-	xsi:schemaLocation="http://www.springframework.org/schema/beans
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:util="http://www.springframework.org/schema/util"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans
        http://www.springframework.org/schema/beans/spring-beans.xsd
        http://www.springframework.org/schema/util
        http://www.springframework.org/schema/util/spring-util-3.0.xsd">
@@ -323,17 +323,17 @@
 
     <bean id="scaleioSnapshotOperations" class="com.emc.storageos.volumecontroller.impl.scaleio.ScaleIOSnapshotOperations">
         <property name="dbClient" ref="dbclient"/>
-        <property name="scaleIOCLIFactory" ref="scaleIOCLIFactory"/>
+        <property name="scaleIOHandleFactory" ref="scaleIOHandleFactory"/>
     </bean>
 
     <bean id="scaleioCloneOperations" class="com.emc.storageos.volumecontroller.impl.scaleio.ScaleIOCloneOperations">
         <property name="dbClient" ref="dbclient"/>
-        <property name="scaleIOCLIFactory" ref="scaleIOCLIFactory"/>
+        <property name="scaleIOHandleFactory" ref="scaleIOHandleFactory"/>
     </bean>
 
     <bean id="scaleioStorageDevice" class="com.emc.storageos.volumecontroller.impl.scaleio.ScaleIOStorageDevice">
         <property name="dbClient" ref="dbclient"/>
-        <property name="scaleIOCLIFactory" ref="scaleIOCLIFactory"/>
+        <property name="scaleIOHandleFactory" ref="scaleIOHandleFactory"/>
         <property name="snapshotOperations" ref="scaleioSnapshotOperations"/>
         <property name="cloneOperations" ref="scaleioCloneOperations"/>
     </bean>

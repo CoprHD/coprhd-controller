@@ -11,10 +11,11 @@
 #
 
 _usage() {
-    echo "Usage: $0 [-help] [-mode install | redeploy] [options]
+    echo "Usage: $0 [-help] [-mode install | redeploy | install-vmx] [options]
            -mode:
-              install            install a new cluster
-              redeploy           redeploy a VM in a cluster
+              install            Install a new cluster
+              redeploy           Redeploy a VM in a cluster
+              install-vmx        Create a VM at VMware workstation
 
            Install mode options:
                -vip              Public virtual IPv4 address
@@ -41,17 +42,17 @@ _usage() {
 
                -ds               Data store name
                -net              Network name
-               -vmprefix         (Optional) prefix of virtual machine name
-               -vmname           (Optional) virtual machine name
-               -vmfolder         (Optional) target virtual machine folder
-               -dm               (Optional) disk format:thin, lazyzeroedthick, zeroedthick (default)
+               -vmprefix         (Optional) Prefix of virtual machine name
+               -vmname           (Optional) Virtual machine name
+               -vmfolder         (Optional) Target virtual machine folder
+               -dm               (Optional) Disk format:thin, lazyzeroedthick, zeroedthick (default)
 			   -cpucount:        (Optional) Number of virtual CPUs for each VM (default is 2)
 			   -memory:          (Optional) Amount of memory for each VM (default is 8192)
-               -poweron          (Optional) auto power on the VM after deploy, (no power on by default)
+               -poweron          (Optional) Auto power on the VM after deploy, (no power on by default)
 			   -file:            (Optional) The settings file
-               -username         (Optional) username of vSphere client
-               -password         (Optional) password of vSphere client
-               -interactive      (Optional) interactive way to deploy
+               -username         (Optional) Username of vSphere client
+               -password         (Optional) Password of vSphere client
+               -interactive      (Optional) Interactive way to deploy
 
            example: $0 -mode install -vip 1.2.3.0 -ipaddr_1 1.2.3.1 -ipaddr_2 1.2.3.2 -ipaddr_3 1.2.3.3 -gateway 1.1.1.1 -netmask 255.255.255.0 -nodeid 1 -nodecount 3 -targeturi vi://username:password@vsphere_host_url -ds datastore_name -net network_name -vmprefix vmprefix- -vmfolder vm_folder -dm zeroedthick -cpucount 2 -memory 8192 -poweron
 
@@ -61,16 +62,27 @@ _usage() {
                -targeturi        Target locator
                -ds               Data store name
                -net              Network name
-               -vmprefix         (Optional) prefix of virtual machine name
-               -vmname           (Optional) virtual machine name
-               -vmfolder         (Optional) target virtual machine folder
-               -dm               (Optional) disk format:thin, lazyzeroedthick, zeroedthick (default)
+               -vmprefix         (Optional) Prefix of virtual machine name
+               -vmname           (Optional) Virtual machine name
+               -vmfolder         (Optional) Target virtual machine folder
+               -dm               (Optional) Disk format:thin, lazyzeroedthick, zeroedthick (default)
 			   -cpucount:        (Optional) Number of virtual CPUs for each VM (default is 2)
 			   -memory:          (Optional) Amount of memory for each VM (default is 8192)
-               -poweron          (Optional) auto power on the VM after deploy, (no power on by default)
-               -interactive      (Optional) interactive way to redeploy
+               -poweron          (Optional) Auto power on the VM after deploy, (no power on by default)
+               -interactive      (Optional) Interactive way to redeploy
 
-           example: $0 -mode redeploy -file your_setting_file_path -nodeid 1 -targeturi vi://username:password@vsphere_host_url -ds datastore_name -net network_name -vmprefix vmprefix- -vmfolder vm_folder -dm zeroedthick -cpucount 2 -memory 8192 -poweron"
+           example: $0 -mode redeploy -file your_setting_file_path -nodeid 1 -targeturi vi://username:password@vsphere_host_url -ds datastore_name -net network_name -vmprefix vmprefix- -vmfolder vm_folder -dm zeroedthick -cpucount 2 -memory 8192 -poweron
+
+           Install-vmx mode options:
+               -nodecount          Node counts of the cluster (valid value is 1 or 3 or 5), please note 1+0 cluster is a evaluation variant with no production support
+               -nodeid:            Specific node to be deployed, for VMX, nodeid is only support 1 node
+               -vmfolder:          Virtual Machine location
+               -net:               Network mode, bridged | nat
+               -vmprefix:          (Optional) Prefix of virtual machine name
+               -vmname             (Optional) Virtual machine name
+               -interactive        (Optional) Interactive way to deploy
+
+           example: $0 -mode install-vmx -vip 1.2.3.0 -ipaddr_1 1.2.3.1 -gateway 1.1.1.1 -netmask 255.255.255.0 -vmprefix vmprefix- -vmfolder vm_location -net network_mode -nodecount 1 -nodeid 1"
 
     exit 2
 }
@@ -190,7 +202,7 @@ _generate_disk4() {
 }
 
 _generate_ovf_file() {
-   cat > "${1}" <<EOF
+    cat > "${1}" <<EOF
 ${include="storageos-vsphere-template.xml"}
 EOF
 }
@@ -250,10 +262,10 @@ _set_common_ovftool_options() {
 }
 
 # $1=node id
-_deploy_vm() {
+_deploy_vm_to_vsphere() {
     cd "${vmdk_dir}/${vmname}"
 
-    echo -e "\n****** Deploying ${vmname} ******\n"
+    echo -e "\n****** Deploying ${vmname} to vsphere ******\n"
     node_options="${common_ovftool_options}"
     node_options+=" --name=${vmname} "
 
@@ -294,6 +306,61 @@ _deploy_vm() {
     fi
 
     return "${ret}"
+}
+
+_deploy_vm_to_workstation() {
+    local acc_eulas="--acceptAllEulas "
+    echo -e "\n****** Deploying ${vmname} to workstation ******\n"
+
+    # convert OVF file to VMX file
+    local vipr_vmx_file="${vmdk_dir}/${vmname}/${vmname}.vmx"
+    eval ovftool ${acc_eulas} ${vipr_ovf_file} ${vipr_vmx_file}
+    if [ $? -ne 0 ] ; then
+        _fatal "Failed to convert ${vipr_ovf_file} to ${vipr_vmx_file}"
+    fi
+
+    # append disk infos to VMX file
+    local vmx_content="$(cat ${vipr_vmx_file})"
+    vmx_content+="
+scsi0:0.present = \"TRUE\"
+scsi0:0.deviceType = \"disk\"
+scsi0:0.fileName = \"${vmdk_dir}/vipr-${release}-disk1.vmdk\"\n
+scsi0:0.mode = \"persistent\"
+scsi0:1.present = \"TRUE\"
+scsi0:1.deviceType = \"disk\"
+scsi0:1.fileName = \"${vmdk_dir}/vipr-${release}-disk2.vmdk\"
+scsi0:2.present = \"TRUE\"
+scsi0:2.deviceType = \"disk\"
+scsi0:2.fileName = \"${vmdk_dir}/vipr-${release}-disk3.vmdk\"
+scsi0:3.present = \"TRUE\"
+scsi0:3.deviceType = \"disk\"
+scsi0:3.fileName = \"${vmdk_dir}/${vmname}/${vmname}-disk4.vmdk\"
+scsi0.virtualDev = \"lsilogic\"
+scsi0.present = \"TRUE\"
+vmci0.unrestricted = \"false\""
+
+    if [ "${net}" == "nat" ] ; then
+        # change connectionType to nat
+        origin_con_type='ethernet0.connectionType = "bridged"'
+        new_con_type='ethernet0.connectionType = "nat"'
+        vmx_content="${vmx_content/${origin_con_type}/${new_con_type}}"
+    fi
+    echo -e "${vmx_content}" > ${vipr_vmx_file}
+
+    # convert VMX to OVF
+    eval ovftool ${acc_eulas} ${vipr_vmx_file} ${tmpdir}
+    if [ $? -ne 0 ] ; then
+        _fatal "Failed to convert ${vipr_vmx_file} to ${tmpdir}/${vmname}/${vmname}.ovf"
+    fi
+
+    # Deploy OVF
+    eval ovftool ${acc_eulas} "${tmpdir}/${vmname}/${vmname}.ovf" ${vm_folder}
+    ret=$?
+    if [ "${ret}" -ne 0 ] ; then
+        _fatal "Failed to deploy ${tmpdir}/${vmname}/${vmname}.ovf to ${vm_folder}"
+    fi
+
+    echo "Done"
 }
 
 # functions to check parameters
@@ -417,12 +484,28 @@ _check_nodeid() {
 }
 
 _check_dm() {
+    if [ "${isvmx}" = true ] ; then
+        return 0
+    fi
+
     if [ "$1" == "thin" -o "$1" == "lazyzeroedthick" -o "$1" == "zeroedthick" ] ; then
         return 0
     fi
 
     error_message="The valid value should be thin, lazyzeroedthick or zeroedthick"
     return 1
+}
+
+_check_ds() {
+    if [ "${isvmx}" = true ] ; then
+        return 0
+    fi
+
+    if [ "$1" == "" ] ; then
+        error_message="Please enter a non empty value"
+        return 1
+    fi
+    return 0
 }
 
 _check_number() {
@@ -436,6 +519,10 @@ _check_number() {
 }
 
 _check_nodecount() {
+    if [ "${isvmx}" = true -a "$1" -ne 1 ] ; then
+        error_message="The node count should be 1 in install-vmx mode"
+        return 1
+    fi
     if [ "$1" -eq 3 -o "$1" -eq 5 -o "$1" -eq 1 ] ; then
         return 0
     fi
@@ -445,6 +532,18 @@ _check_nodecount() {
 }
 
 _check_target_uri() {
+    return 0
+}
+
+_check_net() {
+    if [ "${isvmx}" = false -a "$1" == "" ] ; then
+        error_message="Please enter a non empty value"
+        return 1
+    fi
+    if [ "${isvmx}" = true -a "$1" != "nat" -a "$1" != "bridged" ] ; then
+        error_message="The valid values for option net is nat or bridged in install-vmx mode"
+        return 1
+    fi
     return 0
 }
 
@@ -602,7 +701,7 @@ _set_dm() {
 }
 
 _set_ds() {
-    _set_parameter "${ds_label}" ds _check_no_empty
+    _set_parameter "${ds_label}" ds _check_ds
 }
 
 _set_cpucount() {
@@ -620,7 +719,8 @@ _set_vmname() {
 }
 
 _set_net() {
-    _set_parameter "${net_label}" net _check_no_empty
+    _set_parameter "${net_label}" net _check_net
+
 }
 
 _set_vmfolder() {
@@ -682,16 +782,23 @@ _check_missing_vm_parameters() {
         parameters_to_set+="nodeid "
     fi
 
-    if [ "${ds}" == "" ] ; then
-        parameters_to_set+="ds "
-    fi
+    if [ "${isvmx}" = false ] ; then
+        if [ "${ds}" == "" ] ; then
+            parameters_to_set+="ds "
+        fi
 
-    if [ "${net}" == "" ] ; then
-        parameters_to_set+="net "
-    fi
+        if [ "${net}" == "" ] ; then
+            parameters_to_set+="net "
+        fi
 
-    if [ "${target_uri}" == "" ] ; then
-        parameters_to_set+="target_uri "
+        if [ "${target_uri}" == "" ] ; then
+            parameters_to_set+="target_uri "
+        fi
+    else
+        # install-vmx mode, only need to check net
+        if [ "${net}" != "nat" -a "${net}" != "bridged" ] ; then
+            parameters_to_set+="net "
+        fi
     fi
 }
 
@@ -737,17 +844,24 @@ _show_vm_settings() {
     vm_options_summary="\nVM Settings
        ${mode_label}: ${mode}
        ${node_id_label}: ${node_id}
-       ${vmname_label}: ${vmname}
+       ${vmname_label}: ${vmname}"
+    if [ "${isvmx}" = false ] ; then
+        vm_options_summary+="
        ${ds_label}: ${ds}
-       ${dm_label}: ${dm}
+       ${dm_label}: ${dm}"
+    fi
+    vm_options_summary+="
        ${net_label}: ${net}
        ${vm_folder_label}: ${vm_folder}
        ${cpu_count_label}: ${cpu_count}
-       ${memory_label}: ${memory}
+       ${memory_label}: ${memory}"
+    
+    if [ "${isvmx}" = false ] ; then
+        vm_options_summary+="
        ${poweron_label}: ${poweron}
-
        ${username_label}: ${username}
        ${target_uri_label}: ${target_uri}"
+    fi
 
     echo -e "${vm_options_summary}" | more
 }
@@ -1002,8 +1116,34 @@ _set_settings_interactive() {
 }
 
 _set_vm_parameters() {
-    parameters_to_set="nodeid vmname ds dm net vmfolder cpucount memory poweron target_uri username password"
+    if [ "${isvmx}" = false ] ; then
+        parameters_to_set="nodeid vmname ds dm net vmfolder cpucount memory poweron target_uri username password"
+    else
+        parameters_to_set="nodeid vmname net vmfolder cpucount memory"
+    fi
     _set_parameters
+}
+
+_init_nodecount() {
+    if [ "${node_count}" = "" ] ; then
+        node_count=1
+        if [ "${isvmx}" = false ] ; then
+            node_count=3
+            if [ "${ipv4_addresses[4]}" != "" -o "${ipv4_addresses[5]}" != "" \
+                -o "${ipv6_addresses[4]}" != "" -o "${ipv6_addresses[5]}" != "" ] ; then
+                node_count=5
+            fi
+        fi
+        _set_nodecount
+        interactive=true
+    else
+        _check_nodecount "${node_count}"
+        if [ $? -ne 0 ] ; then
+            echo "${error_message}"
+            _set_nodecount
+            interactive=true
+        fi
+    fi
 }
 
 _init_parameters() {
@@ -1334,7 +1474,7 @@ _check_missing_parameters() {
     _check_missing_network_parameters
     _check_missing_vm_parameters
 
-    if [ "${target_uri}" != "" ] ; then
+    if [ "${isvmx}" = false -a "${target_uri}" != "" ] ; then
         # Extract the username and password from the target uri
         # and save them in ${username} and ${password} if they are
         # not set from the command line
@@ -1357,32 +1497,13 @@ _check_parameters() {
         _fatal "-mode option is missing"
     fi
 
-    if [ "${mode}" != "install" -a "${mode}" != "redeploy" ] ; then
-        _fatal "Invalid mode ${mode} which should be 'install' or 'redeploy'"
+    if [ "${mode}" != "install" -a "${mode}" != "redeploy" -a "${mode}" != "install-vmx" ] ; then
+        _fatal "Invalid mode ${mode} which should be 'install' or 'redeploy' or 'install-vmx'"
     fi
 
     if [ "${mode}" == "install" ] ; then
-        if [ "${node_count}" = "" ] ; then
-            node_count=3
-            if [ "${ipv4_addresses[4]}" != "" -o "${ipv4_addresses[5]}" != "" \
-                 -o "${ipv6_addresses[4]}" != "" -o "${ipv6_addresses[5]}" != "" ] ; then
-                node_count=5
-            fi
-
-            _set_nodecount
-
-            interactive=true
-        else
-            _check_nodecount "${node_count}"
-
-            if [ $? -ne 0 ] ; then
-                echo "${error_message}"
-                _set_nodecount
-
-                interactive=true
-            fi
-        fi
-    else
+        _init_nodecount
+    elif [ "${mode}" == "redeploy" ] ; then
         # redeploy mode
         if [ "${config_file}" = "" ] ; then
             _set_file
@@ -1390,6 +1511,13 @@ _check_parameters() {
             _init_parameters
             interactive=true
         fi
+    else
+        # install-vmx mode
+        isvmx=true
+        vsphere_only=""
+        node_count_label="Node count [ 1 (Node count can only be 1 in install-vmx mode) ]"
+        net_label="Network mode [bridged | nat]"
+        _init_nodecount
     fi
 
     _check_missing_parameters
@@ -1610,7 +1738,7 @@ ipv6_addresses_labels=([1]="IPv6 address of node 1" [2]="IPv6 address of node 2"
 
 # Other settings
 mode=""
-mode_label="Mode [ install | redeploy ]"
+mode_label="Mode [ install | redeploy | install-vmx]"
 
 node_count=
 node_count_label="Node count [ 1 (evaluation only) | 3 | 5 ]"
@@ -1630,6 +1758,7 @@ ds_label="Datastore"
 
 net=""
 net_label="Network name"
+
 
 vm_folder=""
 vm_folder_label="Folder"
@@ -1684,6 +1813,15 @@ common_ovftool_options="--acceptAllEulas "
 confirmed="x"
 error_message=""
 show_summary=true
+isvmx=false
+vsphere_only="<Item>
+        <rasd:Address>0</rasd:Address>
+        <rasd:Description>SCSI Controller</rasd:Description>
+        <rasd:ElementName>SCSI Controller 0</rasd:ElementName>
+        <rasd:InstanceID>3</rasd:InstanceID>
+        <rasd:ResourceSubType>VirtualSCSI</rasd:ResourceSubType>
+        <rasd:ResourceType>6</rasd:ResourceType>
+      </Item>"
 
 # If no arguments are given
 # print the usage
@@ -1702,7 +1840,7 @@ if [ ! -f "${setting_file}" ] ; then
 fi
 
 #if -file is given, use it to initalize the settings again.
-if [ "${config_file}" != ""  ] ; then
+if [ "${config_file}" != "" ] ; then
     _parse_setting_file "${config_file}"
     _init_parameters
 fi
@@ -1742,4 +1880,8 @@ fi
 _generate_node_files "${node_id}"
 
 # Deploy vipr VM
-_deploy_vm "${node_id}"
+if [ "${isvmx}" = true ] ; then
+    _deploy_vm_to_workstation
+else
+    _deploy_vm_to_vsphere "${node_id}"
+fi

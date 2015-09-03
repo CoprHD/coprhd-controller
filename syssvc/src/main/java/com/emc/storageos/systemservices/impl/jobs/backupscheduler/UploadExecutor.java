@@ -57,6 +57,8 @@ public abstract class UploadExecutor {
             this.cfg.reload();
             cleanupCompletedTags();
             upload();
+        } catch (Exception e) {
+            log.error("Fail to run upload backup", e);
         }
     }
 
@@ -118,10 +120,11 @@ public abstract class UploadExecutor {
         for (String tag : toUpload) {
             String errMsg = tryUpload(tag);
             if (errMsg == null) {
-                log.info("Backup {} is successfully uploaded", tag);
+                log.info("Upload backup {} successfully", tag);
                 this.cfg.uploadedBackups.add(tag);
                 succUploads.add(tag);
             } else {
+                log.info("Upload backup {} failed", tag);
                 failureUploads.add(tag);
                 errMsgs.add(errMsg);
             }
@@ -130,16 +133,22 @@ public abstract class UploadExecutor {
         this.cfg.persist();
 
         if (!succUploads.isEmpty()) {
-            List<String> descParams = this.cli.getDescParams(Strings.join(", ", succUploads.toArray(new String[succUploads.size()])));
-            this.cli.auditBackup(OperationTypeEnum.UPLOAD_BACKUP, AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
+            List<String> descParams = this.cli.getDescParams(
+                    Strings.join(", ", succUploads.toArray(new String[succUploads.size()])));
+            this.cli.auditBackup(OperationTypeEnum.UPLOAD_BACKUP,
+                    AuditLogManager.AUDITLOG_SUCCESS, null, descParams.toArray());
         }
         if (!failureUploads.isEmpty()) {
             String failureTags = Strings.join(", ", failureUploads.toArray(new String[failureUploads.size()]));
             List<String> descParams = this.cli.getDescParams(failureTags);
             descParams.add(Strings.join(", ", errMsgs.toArray(new String[errMsgs.size()])));
-            this.cli.auditBackup(OperationTypeEnum.UPLOAD_BACKUP, AuditLogManager.AUDITLOG_FAILURE, null, descParams.toArray());
-            this.cfg.sendUploadFailureToRoot(failureTags, Strings.join("\r\n", errMsgs.toArray(new String[errMsgs.size()])));
+            this.cli.auditBackup(OperationTypeEnum.UPLOAD_BACKUP,
+                    AuditLogManager.AUDITLOG_FAILURE, null, descParams.toArray());
+            log.info("Sending update failures to root user");
+            this.cfg.sendUploadFailureToRoot(failureTags,
+                    Strings.join("\r\n", errMsgs.toArray(new String[errMsgs.size()])));
         }
+        log.info("Finish upload");
     }
 
     private List<String> getIncompleteUploads() {

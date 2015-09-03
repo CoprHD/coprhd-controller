@@ -72,8 +72,8 @@ import static com.emc.storageos.api.mapper.HostMapper.map;
  */
 
 @Path("/tenants")
-@DefaultPermissions(read_roles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR },
-        write_roles = { Role.TENANT_ADMIN })
+@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR },
+        writeRoles = { Role.TENANT_ADMIN })
 public class TenantsService extends TaggedResource {
     private static final String EVENT_SERVICE_TYPE = "tenant";
     private static final String EVENT_SERVICE_SOURCE = "TenantManager";
@@ -499,7 +499,7 @@ public class TenantsService extends TaggedResource {
     @Path("/{id}/role-assignments")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.TENANT_ADMIN },
-            block_proxies = true)
+            blockProxies = true)
     public RoleAssignments updateRoleAssignments(@PathParam("id") URI id,
             RoleAssignmentChanges changes) {
         TenantOrg tenant = getTenantById(id, true);

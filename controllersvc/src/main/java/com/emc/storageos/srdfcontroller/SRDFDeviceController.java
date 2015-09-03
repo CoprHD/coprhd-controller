@@ -1489,11 +1489,20 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return waitFor;
     }
 
-    public void setUtils(SRDFUtils utils) {
-        this.utils = utils;
+    @Override
+    public String addStepsForRestoreVolume(Workflow workflow, String waitFor, 
+                                                URI storage, URI pool, URI volume, URI snapshot,
+                                                Boolean updateOpStatus, String taskId,
+                                                BlockSnapshotRestoreCompleter completer) throws InternalException {
+        // Nothing to do, no steps to add
+        return waitFor;
     }
-
-    /**
+    
+	public void setUtils(SRDFUtils utils) {
+		this.utils = utils;
+	}
+	
+	/**
      * Creates a rollback workflow method that does nothing, but allows rollback
      * to continue to prior steps back up the workflow chain.
      * 

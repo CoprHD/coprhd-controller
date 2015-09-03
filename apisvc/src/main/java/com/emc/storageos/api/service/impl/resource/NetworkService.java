@@ -79,8 +79,8 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
  * 
  */
 @Path("/vdc/networks")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class NetworkService extends TaggedResource {
 
     private static Logger _log = LoggerFactory.getLogger(NetworkService.class);

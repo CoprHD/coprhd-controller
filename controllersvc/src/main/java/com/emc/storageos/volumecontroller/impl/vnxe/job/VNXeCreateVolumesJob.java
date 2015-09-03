@@ -30,8 +30,8 @@ public class VNXeCreateVolumesJob extends VNXeJob {
 
     private static final long serialVersionUID = 485930354573814000L;
     private static final Logger _logger = LoggerFactory.getLogger(VNXeCreateFileSystemJob.class);
-    private URI storagePool;
-    private boolean isConsistencyGroup;
+    private final URI storagePool;
+    private final boolean isConsistencyGroup;
 
     public VNXeCreateVolumesJob(List<String> jobIds, URI storageSystemUri, TaskCompleter taskCompleter,
             URI storagePoolUri, boolean isConsistencyGroup) {
@@ -42,7 +42,7 @@ public class VNXeCreateVolumesJob extends VNXeJob {
 
     /**
      * Called to update the job status when the volumes create job completes.
-     * 
+     *
      * @param jobContext The job context.
      */
     @Override
@@ -141,7 +141,7 @@ public class VNXeCreateVolumesJob extends VNXeJob {
             if (group == null) {
                 group = dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
             }
-            String deviceName = group.fetchArrayCgName(volume.getStorageController());
+            String deviceName = group.getCgNameOnStorageSystem(volume.getStorageController());
             VNXeLun vnxeLun = apiClient.getLunByLunGroup(deviceName, volume.getNativeGuid());
             if (vnxeLun != null) {
                 updateVolume(volume, vnxeLun, dbClient);

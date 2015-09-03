@@ -15,6 +15,11 @@
   </table>
   </div>
 </div>
+
+#{if dbstatus.status.toString() =='IN_PROGRESS'}
+<div class="alert alert-info">{{'dbstatus.inprogress.info' | t}}</div>
+#{/if}
+
 <div class="col-md-1 ">
     <knob warn="value < (max * 0.1)" danger="value < (max * 0.3)" value="progress" max ="100" ></knob>
  </div>
@@ -24,6 +29,12 @@
     <div class="dbstats">
       <table class="table table-condensed table-striped">
         <tbody>
+        <tr>
+        <tr>
+          <td class="status">{{'dbstatus.status' |t}}</td>
+          <td id="health" class="time">${health}</td></div>
+        </tr>  
+        </tr>
         #{if dbstatus.status.toString()!='NOT_STARTED'}
         #{if startTime} 
           <tr>                  
@@ -31,8 +42,8 @@
             <td id="start" class="time"></td>
           </tr>
            	<script>
-        		var starttime = '${startTime}';
-   				$('#start').append(formatDate(Date.parse(starttime), 'YYYY-MM-DD HH:mm:ss'));
+        		var starttime = '${startTime}';        		
+        		$('#start').append(formatLocalDateTime(new Date(starttime)));
  			</script>
           #{/if}
           #{/if}
@@ -44,7 +55,7 @@
           </tr>
           	<script>
         		var endtime = '${endTime}';
-   				$('#end').append(formatDate(Date.parse(endtime), 'YYYY-MM-DD HH:mm:ss'));
+        		$('#end').append(formatLocalDateTime(new Date(endtime)));
  		  </script>
           #{/if}
           #{/if}

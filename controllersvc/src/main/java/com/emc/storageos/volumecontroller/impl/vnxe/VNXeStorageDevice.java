@@ -236,7 +236,7 @@ public class VNXeStorageDevice extends VNXeOperations
      * ServiceError error = DeviceControllerErrors.vnxe.jobFailed("DeleteFileSystem", "No Job returned from deleteFileSystem");
      * return BiosCommandResult.createErrorResult(error);
      * }
-     * 
+     *
      * }catch (VNXeException e) {
      * _logger.error("Delete file system got the exception", e);
      * if (completer != null) {
@@ -930,7 +930,7 @@ public class VNXeStorageDevice extends VNXeOperations
                 URI cg = vol.getConsistencyGroup();
                 BlockConsistencyGroup cgObj = _dbClient.queryObject(BlockConsistencyGroup.class, cg);
 
-                String cgId = cgObj.fetchArrayCgName(storage.getId());
+                String cgId = cgObj.getCgNameOnStorageSystem(storage.getId());
                 VNXeCommandJob job = apiClient.createLunsInLunGroup(volNames, storagePool.getNativeId(), vol.getCapacity(),
                         vol.getThinlyProvisioned(), autoTierPolicyName, cgId);
                 jobs.add(job.getId());
@@ -983,7 +983,7 @@ public class VNXeStorageDevice extends VNXeOperations
             BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
                     consistencyGroupURI);
             if (consistencyGroup != null) {
-                consistencyGroupId = consistencyGroup.fetchArrayCgName(storage.getId());
+                consistencyGroupId = consistencyGroup.getCgNameOnStorageSystem(storage.getId());
             }
         }
 
@@ -1013,7 +1013,7 @@ public class VNXeStorageDevice extends VNXeOperations
      * MetaVolumeRecommendation recommendation,
      * TaskCompleter volumeCompleter) throws DeviceControllerException {
      * // TODO Auto-generated method stub
-     * 
+     *
      * }
      */
 
@@ -1030,10 +1030,10 @@ public class VNXeStorageDevice extends VNXeOperations
                 if (volume.getConsistencyGroup() != null) {
                     BlockConsistencyGroup consistencyGroupObj = _dbClient.queryObject(BlockConsistencyGroup.class,
                             volume.getConsistencyGroup());
-                    List<String> lunIds = consistencyGroupMap.get(consistencyGroupObj.fetchArrayCgName(storageSystem.getId()));
+                    List<String> lunIds = consistencyGroupMap.get(consistencyGroupObj.getCgNameOnStorageSystem(storageSystem.getId()));
                     if (lunIds == null) {
                         lunIds = new ArrayList<String>();
-                        consistencyGroupMap.put(consistencyGroupObj.fetchArrayCgName(storageSystem.getId()), lunIds);
+                        consistencyGroupMap.put(consistencyGroupObj.getCgNameOnStorageSystem(storageSystem.getId()), lunIds);
                     }
                     lunIds.add(volume.getNativeId());
                 } else {
@@ -1372,12 +1372,12 @@ public class VNXeStorageDevice extends VNXeOperations
         BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
                 consistencyGroupId);
         // check if lungroup has been created in the array
-        String lunGroupId = consistencyGroup.fetchArrayCgName(storage.getId());
+        String lunGroupId = consistencyGroup.getCgNameOnStorageSystem(storage.getId());
         if (lunGroupId == null || lunGroupId.isEmpty()) {
             _logger.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                     .consistencyGroupNotFound(consistencyGroup.getLabel(),
-                            consistencyGroup.fetchArrayCgName(storage.getId())));
+                            consistencyGroup.getCgNameOnStorageSystem(storage.getId())));
             return;
 
         }
@@ -1386,7 +1386,7 @@ public class VNXeStorageDevice extends VNXeOperations
             apiClient.deleteLunGroup(lunGroupId, false, false);
             URI systemURI = storage.getId();
             consistencyGroup.removeSystemConsistencyGroup(systemURI.toString(),
-                    consistencyGroup.fetchArrayCgName(systemURI));
+                    consistencyGroup.getCgNameOnStorageSystem(systemURI));
             if (markInactive) {
                 consistencyGroup.setInactive(true);
             }
@@ -1479,13 +1479,13 @@ public class VNXeStorageDevice extends VNXeOperations
         BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
                 consistencyGroupId);
         // check if lungroup has been created in the array
-        String lunGroupId = consistencyGroup.fetchArrayCgName(storage.getId());
+        String lunGroupId = consistencyGroup.getCgNameOnStorageSystem(storage.getId());
         if (lunGroupId == null || lunGroupId.isEmpty()) {
             // lun group has not created yet. return error
             _logger.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                     .consistencyGroupNotFound(consistencyGroup.getLabel(),
-                            consistencyGroup.fetchArrayCgName(storage.getId())));
+                            consistencyGroup.getCgNameOnStorageSystem(storage.getId())));
             return;
 
         }
@@ -1518,7 +1518,7 @@ public class VNXeStorageDevice extends VNXeOperations
             }
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                     .failedToAddMembersToConsistencyGroup(consistencyGroup.getLabel(),
-                            consistencyGroup.fetchArrayCgName(storage.getId()), e.getMessage()));
+                            consistencyGroup.getCgNameOnStorageSystem(storage.getId()), e.getMessage()));
         }
 
     }
@@ -1530,13 +1530,13 @@ public class VNXeStorageDevice extends VNXeOperations
         BlockConsistencyGroup consistencyGroup = _dbClient.queryObject(BlockConsistencyGroup.class,
                 consistencyGroupId);
         // check if lungroup has been created in the array
-        String lunGroupId = consistencyGroup.fetchArrayCgName(storage.getId());
+        String lunGroupId = consistencyGroup.getCgNameOnStorageSystem(storage.getId());
         if (lunGroupId == null || lunGroupId.isEmpty()) {
             // lun group has not created yet. return error
             _logger.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                     .consistencyGroupNotFound(consistencyGroup.getLabel(),
-                            consistencyGroup.fetchArrayCgName(storage.getId())));
+                            consistencyGroup.getCgNameOnStorageSystem(storage.getId())));
             return;
 
         }
@@ -1561,7 +1561,7 @@ public class VNXeStorageDevice extends VNXeOperations
             _logger.error("Exception caught when removing volumes from the consistency group ", e);
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                     .failedToRemoveMembersToConsistencyGroup(consistencyGroup.getLabel(),
-                            consistencyGroup.fetchArrayCgName(storage.getId()), e.getMessage()));
+                            consistencyGroup.getCgNameOnStorageSystem(storage.getId()), e.getMessage()));
         }
 
     }
@@ -1576,7 +1576,7 @@ public class VNXeStorageDevice extends VNXeOperations
     /**
      * Given a list of BlockSnapshot objects, determine if they were created as part of a
      * consistency group.
-     * 
+     *
      * @param snapshotList
      *            [required] - List of BlockSnapshot objects
      * @return true iff the BlockSnapshots were created as part of volume consistency group.

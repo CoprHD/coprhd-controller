@@ -74,7 +74,7 @@ public class VCenters extends ViprResourceController {
     }
 
     public static void listJson() {
-        URI tenantId = URI.create(Models.currentAdminTenantForVcenter());
+        URI tenantId = TenantUtils.getTenantFilter(Models.currentAdminTenantForVcenter());
         List<VcenterRestRep> vcenters = VCenterUtils.getVCenters(tenantId);
         List<VCenterInfo> vcenterInfos = Lists.newArrayList();
         for (VcenterRestRep vcenter : vcenters) {
@@ -102,7 +102,7 @@ public class VCenters extends ViprResourceController {
     public static void itemDetails(String id) {
         VcenterRestRep vcenter = VCenterUtils.getVCenter(uri(id));
         List<VcenterDataCenterRestRep> dataCenters = VCenterUtils.getDataCentersInVCenter(vcenter,
-                URI.create(Models.currentAdminTenantForVcenter()));
+                TenantUtils.getTenantFilter(Models.currentAdminTenantForVcenter()));
         render(vcenter, dataCenters);
     }
 
@@ -338,7 +338,7 @@ public class VCenters extends ViprResourceController {
             vCenter.setName(this.name);
             vCenter.setUserName(this.username);
             if (StringUtils.isNotBlank(this.password)) {
-                vCenter.setPassword(this.password);
+                vCenter.setPassword(StringUtils.trimToNull(this.password));
             }
             vCenter.setPortNumber(this.port);
         }
@@ -406,7 +406,8 @@ public class VCenters extends ViprResourceController {
                 return VCenterUtils.createVCenter(vcenterCreateParam, validateConnection, getAclAssignmentChanges());
             }
 
-            return VCenterUtils.createVCenter(uri(Models.currentAdminTenantForVcenter()), vcenterCreateParam, validateConnection);
+            return VCenterUtils.createVCenter(TenantUtils.getTenantFilter(Models.currentAdminTenantForVcenter()),
+                    vcenterCreateParam, validateConnection);
         }
 
         protected Task<VcenterRestRep> updateVCenter(boolean validateConnection) {
@@ -435,10 +436,9 @@ public class VCenters extends ViprResourceController {
         private void setTenantsForCreation() {
             this.tenants = new HashSet<String>();
             if (StringUtils.isNotBlank(Models.currentAdminTenantForVcenter()) &&
-                    Models.currentAdminTenantForVcenter().equalsIgnoreCase(TenantUtils.TENANT_RESOURCES_WITH_NO_TENANTS)) {
-
+                    Models.currentAdminTenantForVcenter().equalsIgnoreCase(TenantUtils.TENANT_SELECTOR_FOR_UNASSIGNED)) {
             } else if (StringUtils.isNotBlank(Models.currentAdminTenantForVcenter()) &&
-                    Models.currentAdminTenantForVcenter().equalsIgnoreCase(TenantUtils.ALL_TENANT_RESOURCES)) {
+                    Models.currentAdminTenantForVcenter().equalsIgnoreCase(TenantUtils.NO_TENANT_SELECTOR)) {
                 List<TenantOrgRestRep> tenants = TenantUtils.getAllTenants();
                 Iterator<TenantOrgRestRep> tenantsIterator = tenants.iterator();
                 while (tenantsIterator.hasNext()) {

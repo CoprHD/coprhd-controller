@@ -619,12 +619,12 @@ public abstract class ResourceService {
 
         //The the requested tenant is null or ALL, return all the vCenters.
         if (NullColumnValueGetter.isNullURI(tenantId) ||
-                AbstractTenantResource.ALL_TENANT_RESOURCES.equalsIgnoreCase(tenantId.toString())) {
+                AbstractTenantResource.NO_TENANT_SELECTOR.equalsIgnoreCase(tenantId.toString())) {
             return elements;
         }
 
         //If the filter tenantId is "NONE" modify the search tenantId to null.
-        if (AbstractDiscoveredTenantResource.TENANT_RESOURCES_WITH_NO_TENANTS.equalsIgnoreCase(tenantId.toString())) {
+        if (AbstractDiscoveredTenantResource.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(tenantId.toString())) {
             tenantId = NullColumnValueGetter.getNullURI();
         }
 
@@ -668,12 +668,12 @@ public abstract class ResourceService {
 
         //The the requested tenant is null or ALL, return all the vCenters.
         if (NullColumnValueGetter.isNullURI(tenantId) ||
-                AbstractDiscoveredTenantResource.ALL_TENANT_RESOURCES.equalsIgnoreCase(tenantId.toString())) {
+                AbstractDiscoveredTenantResource.NO_TENANT_SELECTOR.equalsIgnoreCase(tenantId.toString())) {
             return elements;
         }
 
         //If the filter tenantId is "NONE" modify the search tenantId to null.
-        if (AbstractDiscoveredTenantResource.TENANT_RESOURCES_WITH_NO_TENANTS.equalsIgnoreCase(tenantId.toString())) {
+        if (AbstractDiscoveredTenantResource.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(tenantId.toString())) {
             tenantId = NullColumnValueGetter.getNullURI();
         }
 
@@ -716,13 +716,13 @@ public abstract class ResourceService {
 
         //The the requested tenant is null or ALL, return all the vCenters.
         if (NullColumnValueGetter.isNullURI(tenantId) ||
-                AbstractDiscoveredTenantResource.ALL_TENANT_RESOURCES.equalsIgnoreCase(tenantId.toString())) {
+                AbstractDiscoveredTenantResource.NO_TENANT_SELECTOR.equalsIgnoreCase(tenantId.toString())) {
             elements = listDataObjects(clazz, nameField);
             return elements;
         }
 
         //If the filter tenantId is "NONE" modify the search tenantId to null.
-        if (AbstractDiscoveredTenantResource.TENANT_RESOURCES_WITH_NO_TENANTS.equalsIgnoreCase(tenantId.toString())) {
+        if (AbstractDiscoveredTenantResource.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(tenantId.toString())) {
             tenantId = NullColumnValueGetter.getNullURI();
         }
 

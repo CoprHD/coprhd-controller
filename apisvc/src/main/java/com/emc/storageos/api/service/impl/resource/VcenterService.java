@@ -204,6 +204,13 @@ public class VcenterService extends TaskResourceService {
         if (vcenter == null || (param.getName() != null && !param.getName().equals(vcenter.getLabel()))) {
             checkDuplicateLabel(Vcenter.class, param.getName(), "vcenter");
         }
+        if (StringUtils.isBlank(param.getPassword()) && vcenter != null) {
+            param.setPassword(StringUtils.trimToNull(vcenter.getPassword()));
+        }
+
+        ArgValidator.checkFieldNotNull(param.getUserName(), "username");
+        ArgValidator.checkFieldNotNull(param.getPassword(), "password");
+
         if (validateConnection != null && validateConnection == true) {
             String errorMessage = VCenterConnectionValidator.isVCenterConnectionValid(param);
             if (StringUtils.isNotBlank(errorMessage)) {
@@ -250,7 +257,6 @@ public class VcenterService extends TaskResourceService {
         // check the user permissions for this tenant org
         verifyAuthorizedInTenantOrg(_permissionsHelper.convertToACLEntries(vcenter.getAcls()), getUserFromContext());
 
-        // check the user permissions for this tenant org
         URI tenantId = URI.create(getUserFromContext().getTenantId());
 
         List<NamedElementQueryResultList.NamedElement> vCentersDataCenters = filterTenantResourcesByTenant(tenantId,
@@ -431,7 +437,6 @@ public class VcenterService extends TaskResourceService {
             if (shouldTenantAdminUseTenantParam(tid)){
                 tenantId = tid;
             } else {
-                // check the user permissions for this tenant org
                 tenantId = URI.create(getUserFromContext().getTenantId());
             }
         }
@@ -646,10 +651,10 @@ public class VcenterService extends TaskResourceService {
         if (isSecurityAdmin() || isSystemAdmin()) {
             _log.debug("Fetching vCenters for {}", tid);
             if ( NullColumnValueGetter.isNullURI(tid)||
-                    Vcenter.ALL_TENANT_RESOURCES.equalsIgnoreCase(tid.toString())) {
+                    Vcenter.NO_TENANT_SELECTOR.equalsIgnoreCase(tid.toString())) {
                 vcenters = getDataObjects(Vcenter.class);
                 list.setVcenters(map(ResourceTypeEnum.VCENTER, getNamedElementsList(Vcenter.class, DATAOBJECT_NAME_FIELD, vcenters)));
-            } else if (Vcenter.TENANT_RESOURCES_WITH_NO_TENANTS.equalsIgnoreCase(tid.toString())) {
+            } else if (Vcenter.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(tid.toString())) {
                 vcenters = getDataObjects(Vcenter.class);
                 list.setVcenters(map(ResourceTypeEnum.VCENTER, getNamedElementsWithNoAcls(Vcenter.class, DATAOBJECT_NAME_FIELD, vcenters)));
             } else {
@@ -1082,8 +1087,8 @@ public class VcenterService extends TaskResourceService {
 
     private boolean shouldTenantAdminUseTenantParam (URI tid) {
         if (!NullColumnValueGetter.isNullURI(tid) &&
-                !TenantResource.TENANT_RESOURCES_WITH_NO_TENANTS.equalsIgnoreCase(tid.toString()) &&
-                !TenantResource.ALL_TENANT_RESOURCES.equalsIgnoreCase(tid.toString()) &&
+                !TenantResource.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(tid.toString()) &&
+                !TenantResource.NO_TENANT_SELECTOR.equalsIgnoreCase(tid.toString()) &&
                 _permissionsHelper.userHasGivenRole(getUserFromContext(), tid, Role.TENANT_ADMIN)) {
             return true;
         }

@@ -205,8 +205,8 @@ public class Models extends Controller {
         String sessionTenant = session.get(TENANT_ID);
         if (sessionTenant != null && canSelectTenantForVcenters(sessionTenant)) {
             try{
-                if (!(TenantUtils.ALL_TENANT_RESOURCES.equalsIgnoreCase(sessionTenant) ||
-                        TenantUtils.TENANT_RESOURCES_WITH_NO_TENANTS.equalsIgnoreCase(sessionTenant))) {
+                if (!(TenantUtils.NO_TENANT_SELECTOR.equalsIgnoreCase(sessionTenant) ||
+                        TenantUtils.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(sessionTenant))) {
                     if (getViprClient().tenants().get(uri(sessionTenant)).getInactive()) {
                         Models.resetAdminTenantId();
                         sessionTenant = Models.currentAdminTenantForVcenter();

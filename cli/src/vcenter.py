@@ -38,8 +38,8 @@ class VCenter(object):
     URI_VCENTER_ACL = URI_VCENTERS + '/{0}/acl'
     URI_VCENTERS_WITH_TENANT_PARAM = URI_VCENTERS + '?tenant={0}'
     URI_WHO_AM_I = "/user/whoami";
-    VCENTERS_FROM_ALL_TENANTS = "ALL";
-    VCENTERS_WITH_NO_TENANTS = "NONE";
+    VCENTERS_FROM_ALL_TENANTS = "No-Filter";
+    VCENTERS_WITH_NO_TENANTS = "Not-Assigned";
     USER_ROLE_SYSTEM_ADMIN = "SYSTEM_ADMIN";
 
     def __init__(self, ipAddr, port):
@@ -130,7 +130,10 @@ class VCenter(object):
         '''
 
         uri = self.vcenter_query(label, tenantname)
-
+        if (tenantname is None or
+            tenantname == "") :
+            tenantname = VCenter.VCENTERS_FROM_ALL_TENANTS
+            
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "GET",
             VCenter.URI_VCENTER_DATACENTERS.format(uri, self.get_tenant_uri_from_name(tenantname)),

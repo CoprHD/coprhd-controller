@@ -34,6 +34,8 @@ class VcenterDatacenter(object):
                             URI_DATACENTERS + "/{0}/create-vcenter-cluster"
     URI_DATACENTERS_UPDATE_CLUSTER = \
                             URI_DATACENTERS + "/{0}/update-vcenter-cluster"
+    DATACENTERS_FROM_ALL_TENANTS = "No-Filter";
+    DATACENTERS_WITH_NO_TENANTS = "Not-Assigned";
 
     def __init__(self, ipAddr, port):
         '''
@@ -73,7 +75,7 @@ class VcenterDatacenter(object):
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "GET",
-            VcenterDatacenter.URI_VCENTER_DATACENTERS.format(uri), None)
+            VcenterDatacenter.URI_VCENTER_DATACENTERS.format(uri), VcenterDatacenter.DATACENTERS_FROM_ALL_TENANTS)
 
         o = common.json_decode(s)
 
@@ -285,7 +287,7 @@ class VcenterDatacenter(object):
         except SOSError as e:
             if(e.err_code == SOSError.NOT_FOUND_ERR):
 
-                uri = self.vcenterdatacenter_query(label, vcenter, "ALL")
+                uri = self.vcenterdatacenter_query(label, vcenter, VcenterDatacenter.DATACENTERS_FROM_ALL_TENANTS)
 
                 from tenant import Tenant
                 obj = Tenant(self.__ipAddr, self.__port)

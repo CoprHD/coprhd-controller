@@ -85,8 +85,8 @@ public class TenantSelector extends Controller {
                 Security.isSecurityAdmin() || Security.isSystemAdmin()) {
             try {
                 tenantId = Models.currentAdminTenantForVcenter();
-                if (TenantUtils.ALL_TENANT_RESOURCES.equalsIgnoreCase(tenantId) ||
-                        TenantUtils.TENANT_RESOURCES_WITH_NO_TENANTS.equalsIgnoreCase(tenantId)) {
+                if (TenantUtils.NO_TENANT_SELECTOR.equalsIgnoreCase(tenantId) ||
+                        TenantUtils.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(tenantId)) {
                     tenantName = tenantId;
                 } else {
                     tenantName = getViprClient().tenants().get(uri(tenantId)).getName();

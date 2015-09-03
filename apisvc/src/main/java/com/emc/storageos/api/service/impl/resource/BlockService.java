@@ -347,8 +347,13 @@ public class BlockService extends TaskResourceService {
         // Validate the source volume URI
         ArgValidator.checkFieldUriType(id, Volume.class, "id");
 
-        // Don't operate on ingested volumes.
         Volume volume = _dbClient.queryObject(Volume.class, id);
+        
+        // Make sure that we don't have some pending
+        // operation against the volume
+        checkForPendingTasks(Arrays.asList(volume.getTenant().getURI()), Arrays.asList(volume));
+
+        // Don't operate on ingested volumes.
         VolumeIngestionUtil.checkOperationSupportedOnIngestedVolume(volume,
                 ResourceOperationTypeEnum.CREATE_VOLUME_MIRROR, _dbClient);
 
@@ -423,6 +428,13 @@ public class BlockService extends TaskResourceService {
 
         // Validate the source volume URI
         ArgValidator.checkFieldUriType(id, Volume.class, "id");
+        
+        Volume volume = _dbClient.queryObject(Volume.class, id);
+        
+        // Make sure that we don't have some pending
+        // operation against the volume
+        checkForPendingTasks(Arrays.asList(volume.getTenant().getURI()), Arrays.asList(volume));
+        
         boolean vplexVolume = checkIfVolumeIsForVplex(id);
 
         // Validate the list of copies
@@ -2422,6 +2434,12 @@ public class BlockService extends TaskResourceService {
 
         // Validate the source volume URI
         ArgValidator.checkFieldUriType(id, Volume.class, "id");
+        
+        Volume volume = _dbClient.queryObject(Volume.class, id);
+        
+        // Make sure that we don't have some pending
+        // operation against the volume
+        checkForPendingTasks(Arrays.asList(volume.getTenant().getURI()), Arrays.asList(volume));
 
         // Validate the list of copies
         ArgValidator.checkFieldNotEmpty(param.getCopies(), "copies");

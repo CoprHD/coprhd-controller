@@ -32,7 +32,7 @@ public class ExportGroupState implements Serializable {
     private List<URI> clusters;
 
     /**
-     * Create an export group state with an id, list of initiators, hosts, clusters, and volumes.
+     * Create an export group state with an id.
      * 
      * @param id export group id
      */
@@ -49,6 +49,7 @@ public class ExportGroupState implements Serializable {
     }
 
     /**
+     * Gets the state of the export by removing initiators, hosts, and clusters from the state.
      * 
      * @param initiators list of initiators in the export
      * @param hosts list of hosts in the export
@@ -67,6 +68,7 @@ public class ExportGroupState implements Serializable {
     }
 
     /**
+     * Gets the state of the export by adding initiators, hosts, and clusters to the state.
      * 
      * @param initiators list of initiators in the export
      * @param hosts list of hosts in the export

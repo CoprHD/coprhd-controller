@@ -133,7 +133,7 @@ public class VcenterService extends TaskResourceService {
         validateVcenter(updateParam, vcenter, validateConnection);
 
         // check the user permissions for this tenant org
-        verifyAuthorizedSystemOrTenantOrgUser(_permissionsHelper.convertToACLEntries(vcenter.getAcls()), getUserFromContext());
+        verifyAuthorizedSystemOrTenantOrgUser(_permissionsHelper.convertToACLEntries(vcenter.getAcls()));
 
         populateVcenterData(vcenter, updateParam);
         _dbClient.persistObject(vcenter);
@@ -234,7 +234,7 @@ public class VcenterService extends TaskResourceService {
     public VcenterRestRep getVcenter(@PathParam("id") URI id) throws DatabaseException {
         Vcenter vcenter = queryObject(Vcenter.class, id, false);
         // check the user permissions for this tenant org
-        verifyAuthorizedSystemOrTenantOrgUser(_permissionsHelper.convertToACLEntries(vcenter.getAcls()), getUserFromContext());
+        verifyAuthorizedSystemOrTenantOrgUser(_permissionsHelper.convertToACLEntries(vcenter.getAcls()));
         return map(vcenter);
     }
 
@@ -255,7 +255,7 @@ public class VcenterService extends TaskResourceService {
         ArgValidator.checkEntity(vcenter, id, isIdEmbeddedInURL(id));
 
         // check the user permissions for this tenant org
-        verifyAuthorizedInTenantOrg(_permissionsHelper.convertToACLEntries(vcenter.getAcls()), getUserFromContext());
+        verifyAuthorizedInTenantOrg(_permissionsHelper.convertToACLEntries(vcenter.getAcls()));
 
         URI tenantId = URI.create(getUserFromContext().getTenantId());
 
@@ -290,7 +290,7 @@ public class VcenterService extends TaskResourceService {
         ArgValidator.checkEntity(vcenter, id, isIdEmbeddedInURL(id));
 
         // check the user permissions for this tenant org
-        verifyAuthorizedInTenantOrg(_permissionsHelper.convertToACLEntries(vcenter.getAcls()), getUserFromContext());
+        verifyAuthorizedInTenantOrg(_permissionsHelper.convertToACLEntries(vcenter.getAcls()));
 
         URI tenantId = URI.create(getUserFromContext().getTenantId());
 
@@ -329,7 +329,7 @@ public class VcenterService extends TaskResourceService {
             Vcenter vcenter = queryObject(Vcenter.class, id, true);
 
             // check the user permissions for this tenant org
-            verifyAuthorizedSystemOrTenantOrgUser(_permissionsHelper.convertToACLEntries(vcenter.getAcls()), getUserFromContext());
+            verifyAuthorizedSystemOrTenantOrgUser(_permissionsHelper.convertToACLEntries(vcenter.getAcls()));
 
             checkIfOtherTenantsUsingTheVcenter(vcenter);
 
@@ -415,8 +415,12 @@ public class VcenterService extends TaskResourceService {
      * List the vCenter data centers of the vCenter.
      * 
      * @param id the URN of a ViPR vCenter
+     * @param tid tenant to filter the vCenter data centers.
+     *            "No-Filter" or "null" indicates, listing all the vCenters in the system.
+     *            "Not-Assigned" indicates, list all the vCenters with no tenants assigned to it.
      * @prereq none
      * @brief List vCenter data centers
+     *
      * @return All the list of vCenter data centers.
      * @throws DatabaseException when a DB error occurs.
      */
@@ -428,7 +432,7 @@ public class VcenterService extends TaskResourceService {
         ArgValidator.checkEntity(vcenter, id, isIdEmbeddedInURL(id));
 
         // check the user permissions for this tenant org
-        verifyAuthorizedSystemOrTenantOrgUser(_permissionsHelper.convertToACLEntries(vcenter.getAcls()), getUserFromContext());
+        verifyAuthorizedSystemOrTenantOrgUser(_permissionsHelper.convertToACLEntries(vcenter.getAcls()));
 
         URI tenantId;
         if (isSecurityAdmin() || isSystemAdmin()) {
@@ -638,6 +642,8 @@ public class VcenterService extends TaskResourceService {
      * returned only the vCenters that the user's tenant shares.
      *
      * @param tid tenant to filter the vCenters.
+     *            "No-Filter" or "null" indicates, listing all the vCenters in the system.
+     *            "Not-Assigned" indicates, list all the vCenters with no tenants assigned to it.
      *
      * @return a list of vCenters that belong to the tenant organization.
      * @throws DatabaseException when a DB error occurs
@@ -957,14 +963,13 @@ public class VcenterService extends TaskResourceService {
      * The user is a TenantAdmin of one of the that shares the vCenter.
      *
      * @param aclEntries the tenants list that shares the vCenter.
-     * @param user the user to validated for authorization.
      */
-    protected void verifyAuthorizedSystemOrTenantOrgUser(List<ACLEntry> aclEntries, StorageOSUser user) {
+    protected void verifyAuthorizedSystemOrTenantOrgUser(List<ACLEntry> aclEntries) {
         if (isSystemAdmin() || isSecurityAdmin()) {
             return;
         }
 
-        verifyAuthorizedInTenantOrg(aclEntries, user);
+        verifyAuthorizedInTenantOrg(aclEntries);
     }
 
     /**
@@ -974,10 +979,10 @@ public class VcenterService extends TaskResourceService {
      * The user is a TenantAdmin of one of the tenant that shares the vCenter.
      *
      * @param aclEntries the tenants list that shares the vCenter.
-     * @param user the user to validated for authorization.
      */
-    private void verifyAuthorizedInTenantOrg(List<ACLEntry> aclEntries, StorageOSUser user) {
+    private void verifyAuthorizedInTenantOrg(List<ACLEntry> aclEntries) {
         boolean isUserAuthorized = false;
+        StorageOSUser user = getUserFromContext();
         Iterator<ACLEntry> aclEntriesIterator = aclEntries.iterator();
         while (aclEntriesIterator.hasNext()) {
             ACLEntry aclEntry = aclEntriesIterator.next();
@@ -1085,6 +1090,19 @@ public class VcenterService extends TaskResourceService {
         }
     }
 
+    /**
+     * Checks if the tenant admin can use the "tenant" query param while
+     * listing the vCenter and vCenter data centers.
+     * Tenant admin can list if the "tenant" query param is not equals to
+     * "No-Filter" or "Not-Assigned" or the tenant admin is a tenant admin of
+     * the tenant represented by the "tenant" query param.
+     *
+     * @param tid "tenant" query param to be validated if the tenant
+     *            admin can use that or not
+     *
+     * @return true if tenant admin can use the "tenant" query param to filter the
+     *          vCenters or vCenter data centers and false otherwise.
+     */
     private boolean shouldTenantAdminUseTenantParam (URI tid) {
         if (!NullColumnValueGetter.isNullURI(tid) &&
                 !TenantResource.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(tid.toString()) &&

@@ -110,7 +110,7 @@ public class VcenterDataCenterService extends TaskResourceService {
     public VcenterDataCenterRestRep getVcenterDataCenter(@PathParam("id") URI id) {
         VcenterDataCenter vcenterdatacenter = queryResource(id);
         // check the user permissions
-        verifyAuthorizedSystemOrTenantOrgUser(vcenterdatacenter.getTenant(), getUserFromContext());
+        verifyAuthorizedSystemOrTenantOrgUser(vcenterdatacenter.getTenant());
         return HostMapper.map(vcenterdatacenter);
     }
 
@@ -513,11 +513,12 @@ public class VcenterDataCenterService extends TaskResourceService {
      * @param tenantId the tenant organization URI
      * @param user the user to validated for tenant org privileges.
      */
-    protected void verifyAuthorizedSystemOrTenantOrgUser(URI tenantId, StorageOSUser user) {
+    protected void verifyAuthorizedSystemOrTenantOrgUser(URI tenantId) {
         if (isSystemAdmin() || isSecurityAdmin()) {
             return;
         }
 
+        StorageOSUser user = getUserFromContext();
         verifyAuthorizedInTenantOrg(tenantId, user);
     }
 

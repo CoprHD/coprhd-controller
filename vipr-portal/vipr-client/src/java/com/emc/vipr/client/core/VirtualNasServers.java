@@ -199,7 +199,7 @@ public class VirtualNasServers extends AbstractCoreBulkResources<VirtualNASRestR
     
     /**
      * This method assign vNas Servers to a project.
-     * POST /projects/{project_id}/assign-vnas-servers
+     * PUT /projects/{project_id}/assign-vnas-servers
      * @param projectId
      * @param vNasParam
      */
@@ -211,14 +211,14 @@ public class VirtualNasServers extends AbstractCoreBulkResources<VirtualNASRestR
     
     /**
      * This method unassign vNas Servers from a project.
-     * POST /projects/{project_id}/unassign-vnas-servers
+     * PUT /projects/{project_id}/unassign-vnas-servers
      * @param projectId
      * @param vNasParam
      */
     public Task<VirtualNASRestRep> unassignVnasServers(URI projectId, VirtualNasParam vNasParam){
         UriBuilder builder = client.uriBuilder(getVnasUnAssignUrl());
-        URI targetUri = builder.build(projectId);
-        return postTaskURI(vNasParam, targetUri);
+        URI targetUri = builder.build(projectId); 
+        return putTaskURI(vNasParam, targetUri);
     }
 
 }

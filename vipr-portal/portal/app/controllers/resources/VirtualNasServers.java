@@ -31,12 +31,18 @@ public class VirtualNasServers extends ResourceController{
     public static void virtualNasServersJson(String projectId){
         
         ProjectRestRep projRestRep = getViprClient().projects().get(uri(projectId));
+        List<VirtualNASRestRep> vNasServers = Lists.newArrayList();
         Set<String> vNasIds = projRestRep.getAssignedVNasServers();
         List<URI> vNasUris = Lists.newArrayList();
-        for(String id:vNasIds){
+        if (vNasIds!=null) {
+           for (String id:vNasIds) {
              vNasUris.add(uri(id));
+           }
+           if(!vNasUris.isEmpty()){
+           	vNasServers = getViprClient().virtualNasServers().getByIds(vNasUris);
+           }
         }
-        List<VirtualNASRestRep> vNasServers = getViprClient().virtualNasServers().getByIds(vNasUris);
+        
         renderJSON(DataTablesSupport.createJSON(vNasServers, params));
     }
     

@@ -56,7 +56,10 @@ max_hints_delivery_threads: 2
 authenticator: org.apache.cassandra.auth.AllowAllAuthenticator
 
 # authorization backend, implementing IAuthority; used to limit access/provide permissions
-authorizer: com.emc.storageos.db.server.impl.BlacklistAuthenticator
+authorizer: org.apache.cassandra.auth.AllowAllAuthorizer
+
+# authorization backend, implementing IInternodeAuthenticatorAuthority; used to limit node ip access
+internode_authenticator: com.emc.storageos.db.server.impl.BlacklistAuthenticator
 
 # The partitioner is responsible for distributing rows (by key) across
 # nodes in the cluster.  Any IPartitioner may be used, including your
@@ -203,7 +206,8 @@ seed_provider:
     - class_name: com.emc.storageos.db.server.impl.SeedProviderImpl
       parameters:
           - coordinators: "<foreach iterator="iter" separator=", ">coordinator://${network_${iter}_ipaddr_service}:2181</foreach>"
-            seeds: "${vdc_seeds_ipaddr}"
+            id: "db-${node_index}"
+            seeds: ""
 
 # For workloads with more data than can fit in memory, Cassandra's
 # bottleneck will be reads that need to fetch data from

@@ -96,6 +96,7 @@ public class SchemaUtil {
     private Properties _dbCommonInfo;
     private PasswordUtils _passwordUtils;
     private DbClientContext clientContext;
+    private boolean standbyMode = false;
 
     public void setClientContext(DbClientContext clientContext) {
         this.clientContext = clientContext;
@@ -162,6 +163,14 @@ public class SchemaUtil {
      */
     public void setVdcShortId(String vdcId) {
         _vdcShortId = vdcId;
+    }
+
+    public void setStandbyMode(boolean standbyMode) {
+        this.standbyMode = standbyMode;
+    }
+
+    public boolean isStandbyMode() {
+    	return standbyMode;
     }
 
     /**
@@ -262,11 +271,12 @@ public class SchemaUtil {
                     }
                 } else {
                     // this is an existing cluster
-                    checkStrategyOptions(kd, cluster, replicationFactor);
+                    if (!standbyMode)
+                        checkStrategyOptions(kd, cluster, replicationFactor);
                 }
 
                 // create CF's
-                if (kd != null) {
+                if (kd != null && !standbyMode) {
                     checkCf(kd, clusterContext);
                     _log.info("scan and setup db schema succeed");
                     return;
@@ -381,17 +391,6 @@ public class SchemaUtil {
             return;
         }
 
-        int currentFactor = Integer.parseInt(options.get(REPLICATION_FACTOR));
-        if (currentFactor < replicationFactor) {
-            // there must have been a new node addition since replication factor
-            // of our keyspace is less than configured replication factor.
-            // we update our keyspace to new replication factor. Note that we do not
-            // currently support shrinking db cluster
-            KeyspaceDefinition update = cluster.makeKeyspaceDefinition();
-            setStrategyOptions(update, replicationFactor);
-
-            waitForSchemaChange(cluster.updateKeyspace(update).getResult().getSchemaId(), cluster);
-        }
     }
 
     private Integer getIntProperty(String key, Integer defValue) {

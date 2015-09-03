@@ -564,13 +564,13 @@ public class DbServiceImpl implements DbService {
         _dbClient.start();
 
         // Setup the vdc information, so that login enabled before migration
-        if (!isGeoDbsvc()) {
+        if (!isGeoDbsvc() && !_schemaUtil.isStandbyMode()) {
             _schemaUtil.checkAndSetupBootStrapInfo(_dbClient);
         }
 
         if (_handler.run()) {
             // Setup the bootstrap info root tenant, if root tenant migrated from local db, then skip it
-            if (isGeoDbsvc()) {
+            if (isGeoDbsvc() && !_schemaUtil.isStandbyMode()) {
                 _schemaUtil.checkAndSetupBootStrapInfo(_dbClient);
             }
 

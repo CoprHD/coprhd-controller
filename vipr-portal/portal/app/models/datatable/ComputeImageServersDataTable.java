@@ -12,9 +12,8 @@ public class ComputeImageServersDataTable extends DataTable {
 
     public ComputeImageServersDataTable() {
         addColumn("name").setRenderFunction("renderLink");
-        addColumn("imageName");
-        addColumn("imageType");
-        addColumn("discoveryStatus").setRenderFunction("render.discoveryStatusIcon");
+        addColumn("imageServerIp");
+        addColumn("osInstallNetworkAddress");
         sortAll();
         setDefaultSort("name", "asc");
     }
@@ -22,23 +21,22 @@ public class ComputeImageServersDataTable extends DataTable {
     public static class ComputeImageServerInfo {
         public String id;
         public String name;
-        public String imageName;
-        public String imageType;
-        public String imageUrl;
-        public String computeImageStatus;
-        public String discoveryStatus;
+        public String userName;
+        public String password;
+        public String tftpbootDir;
+        public String osInstallNetworkAddress;
+        public String imageServerIp;
+        public Integer osInstallTimeOut;
 
         public ComputeImageServerInfo() {
         }
 
-        public ComputeImageServerInfo(ComputeImageServerRestRep computeImage) {
-            this.id = computeImage.getId().toString();
-            this.name = computeImage.getName();
-            /*
-             * this.imageName = computeImage.getImageName();
-             * this.imageType = ComputeImageTypes.getDisplayValue(computeImage.getImageType());
-             * this.imageUrl = computeImage.getImageUrl();
-             * this.computeImageStatus = computeImage.getComputeImageStatus();
-             */}
+        public ComputeImageServerInfo(ComputeImageServerRestRep computeImageServer) {
+            this.id = computeImageServer.getId().toString();
+            this.name = computeImageServer.getName();
+            this.imageServerIp = computeImageServer.getImageServerIp();
+            this.tftpbootDir = computeImageServer.getTftpbootDir();
+            this.osInstallNetworkAddress = computeImageServer.getImageServerSecondIp();
+        }
     }
 }

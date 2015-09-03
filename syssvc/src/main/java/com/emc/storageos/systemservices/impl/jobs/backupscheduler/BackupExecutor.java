@@ -38,14 +38,19 @@ public class BackupExecutor {
         if (this.cfg.schedulerEnabled) {
             try (AutoCloseable lock = this.cfg.lock()) {
                 this.cfg.reload();
-
+                
+                log.info("Start to remove deleted backups");
                 removeDeletedBackups();
 
+                log.info("Start to do backup job");
                 if (shouldDoBackup()) {
                     doBackup();
                 }
 
+                log.info("Start to delete expired backups");
                 deleteExpiredBackups();
+            } catch (Exception e) {
+                log.error("Fail to run schedule backup", e);
             }
         }
     }
@@ -62,6 +67,7 @@ public class BackupExecutor {
         boolean modified = false;
         for (String tag : new ArrayList<>(this.cfg.retainedBackups)) {
             if (!clusterTags.contains(tag)) {
+                log.info("Remove tag from retained backup {}", tag);
                 this.cfg.retainedBackups.remove(tag);
                 modified = true;
             }

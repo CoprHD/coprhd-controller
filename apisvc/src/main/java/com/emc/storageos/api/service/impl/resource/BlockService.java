@@ -4210,6 +4210,10 @@ public class BlockService extends TaskResourceService {
     public TaskList addJournalCapacity(VolumeCreate param) throws InternalException {
         ArgValidator.checkFieldNotNull(param, "volume_create");
         
+        ArgValidator.checkFieldNotNull(param.getSize(), "size");
+        
+        ArgValidator.checkFieldNotNull(param.getCount(), "count");
+        
         ArgValidator.checkFieldUriType(param.getProject(), Project.class, "project");
 
         // Get and validate the project.
@@ -4236,26 +4240,23 @@ public class BlockService extends TaskResourceService {
         //passed assume 1. 
         Integer volumeCount = 1;
         Long volumeSize = 0L;
-        if (param.getCount() != null) {
-            if (param.getCount() <= 0) {
-                throw APIException.badRequests.parameterMustBeGreaterThan("count", 0);
-            }
-            if (param.getCount() > MAX_VOLUME_COUNT) {
-                throw APIException.badRequests.exceedingLimit("count", MAX_VOLUME_COUNT);
-            }
-            volumeCount = param.getCount();
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, volumeCount);
+        
+        if (param.getCount() <= 0) {
+        	throw APIException.badRequests.parameterMustBeGreaterThan("count", 0);
         }
+        if (param.getCount() > MAX_VOLUME_COUNT) {
+        	throw APIException.badRequests.exceedingLimit("count", MAX_VOLUME_COUNT);
+        }
+        volumeCount = param.getCount();
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, volumeCount);        
 
-        if (param.getSize() != null) {
-            // Validate the requested volume size is greater then 0.
-            volumeSize = SizeUtil.translateSize(param.getSize());
-            // Validate the requested volume size is at least 1 GB.
-            if (volumeSize < GB) {
-                throw APIException.badRequests.leastVolumeSize("1");
-            }
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, volumeSize);
+        // Validate the requested volume size is greater then 0.
+        volumeSize = SizeUtil.translateSize(param.getSize());
+        // Validate the requested volume size is at least 1 GB.
+        if (volumeSize < GB) {
+        	throw APIException.badRequests.leastVolumeSize("1");
         }
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, volumeSize);        
         
         // verify quota
         long size = volumeCount * SizeUtil.translateSize(param.getSize());
@@ -4295,7 +4296,6 @@ public class BlockService extends TaskResourceService {
         // Create a unique task id if one is not passed in the request.
         String task = UUID.randomUUID().toString();
 
-        // TODO: create OperationTypeEnum.ADD_JOURNAL_CAPACITY (this is for logging)
         auditOp(OperationTypeEnum.ADD_JOURNAL_VOLUME, true, AuditLogManager.AUDITOP_BEGIN,
                 param.getName(), volumeCount, varray.getId().toString(), actualId.toString());
         

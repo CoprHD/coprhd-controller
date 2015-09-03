@@ -586,7 +586,7 @@ public class RecoverPointClient {
      *                  and the journals to add to the consistency group
      * @param copyType - indicates whether the copy is production, local or remote
      */
-    public void addJournalVolumesToCG(CGRequestParams request, int copyType) {
+    public boolean addJournalVolumesToCG(CGRequestParams request, int copyType) {
 
     	// Make sure the CG name is unique.
     	ConsistencyGroupUID cgUID = null;
@@ -602,7 +602,7 @@ public class RecoverPointClient {
     		}
     		if (cgUID == null) {
     			// The CG does not exist so we cannot add replication sets
-    			throw RecoverPointException.exceptions.failedToAddReplicationSetCgDoesNotExist(request.getCgName());
+    			throw RecoverPointException.exceptions.failedToAddReplicationSetCgDoesNotExist(request.getCgName());    			
     		}    		
     		
     		List<CreateCopyParams> copyParams = request.getCopies();
@@ -622,11 +622,13 @@ public class RecoverPointClient {
     	catch (FunctionalAPIActionFailedException_Exception e) {
     		// TODO Auto-generated catch block
     		e.printStackTrace();
+    		return false;
     	} catch (FunctionalAPIInternalError_Exception e) {
     		// TODO Auto-generated catch block
     		e.printStackTrace();
+    		return false;
     	}
-        
+    	return true;        
     }
     
     /**

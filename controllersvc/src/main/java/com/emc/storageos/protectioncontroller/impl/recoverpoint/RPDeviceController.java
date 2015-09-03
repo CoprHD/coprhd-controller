@@ -1230,12 +1230,17 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         }
     }
 
-    public boolean addJournalStep(URI rpSystemId, List<VolumeDescriptor> volumeDescriptors, String taskId) {
+    public boolean addJournalStep(URI rpSystemId, List<VolumeDescriptor> volumeDescriptors, String taskId) {    	
+    	WorkflowStepCompleter.stepExecuting(taskId);
     	ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);    	
     	RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);    	    	    	
     	CGRequestParams cgParams = this.getCGRequestParams(volumeDescriptors, rpSystem);
         updateCGParams(cgParams);    	
-    	rp.addJournalVolumesToCG(cgParams, volumeDescriptors.get(0).getCapabilitiesValues().getRPCopyType());
+    	if (rp.addJournalVolumesToCG(cgParams, volumeDescriptors.get(0).getCapabilitiesValues().getRPCopyType())) {    
+            WorkflowStepCompleter.stepSucceded(taskId); 
+    	} else {
+    		stepFailed(taskId, "addJournalStep");
+    	}    	   	    	
     	return true;
     }        
     

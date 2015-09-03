@@ -323,6 +323,7 @@ public class VMwareSupport {
             throw new IllegalStateException("Datastore is not mounted by any hosts");
         }
         enterMaintenanceMode(datastore);
+        setStorageIOControl(datastore, false);
         execute(new DetachDatastoreDevices(hosts.get(0), datastore));
         execute(new DeleteDatastore(hosts.get(0), datastore));
         removeVmfsDatastoreTag(volumes, hostOrClusterId);
@@ -398,11 +399,26 @@ public class VMwareSupport {
             throw new IllegalStateException("Datastore is not mounted by any hosts");
         }
         enterMaintenanceMode(datastore);
+        setStorageIOControl(datastore, false);
         for (HostSystem host : hosts) {
             execute(new DetachDatastoreDevices(host, datastore));
             execute(new DeleteDatastore(host, datastore));
         }
         removeNfsDatastoreTag(fileSystem, datacenterId, datastoreName);
+    }
+
+    /**
+     * Enable or Disable Storage IO Control for a Datastore
+     * 
+     * @param datastore
+     * @param enabled
+     */
+    private void setStorageIOControl(Datastore datastore, boolean enabled) {
+        if (datastore.getCapability().storageIORMSupported) {
+            execute(new SetStorageIOControl(datastore, enabled));
+        } else {
+            logWarn("vmware.support.storage.io.control.not.supported", datastore.getName());
+        }
     }
 
     /**

@@ -695,14 +695,6 @@ public class HDSMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     }
 
     @Override
-    public String checkForSnapshotsToCopyToTarget(Workflow workflow,
-            StorageSystem storage, String previousStep, Map<URI, Integer> volumeMap,
-            Collection<Map<URI, Integer>> values) {
-        // TODO Auto-generated method stub
-        return null;
-    }
-
-    @Override
     public String generateDeviceSpecificAddInitiatorWorkFlow(Workflow workflow,
             String previousStep, StorageSystem storage, ExportGroup exportGroup,
             ExportMask mask, List<URI> initiatorsURIs,

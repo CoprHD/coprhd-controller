@@ -56,6 +56,8 @@ public class VplexBackendIngestionContext {
     public static final String DISCOVERY_MODE_HYBRID = "During Discovery and Ingestion";
     public static final String DISCOVERY_FILTER = "controller_vplex_volume_discovery_filter";
     public static final String DISCOVERY_KILL_SWITCH = "controller_vplex_volume_discovery_kill_switch";
+    public static final String SLOT_0 = "0";
+    public static final String SLOT_1 = "1";
 
     private DbClient _dbClient;
     private UnManagedVolume _unmanagedVirtualVolume;
@@ -295,12 +297,10 @@ public class VplexBackendIngestionContext {
                                 getSupportingDeviceName(), getLocality(), getClusterName(), getMirrorMap(),
                                 _unmanagedVirtualVolume.getStorageSystemUri(), _dbClient);
             } catch (VPlexApiException ex) {
-                _logger.error("could not determine backend storage volumes for {}: {}",
-                        _unmanagedVirtualVolume.getLabel(), ex.getLocalizedMessage());
-                // TODO: exception
-                throw new RuntimeException(
-                        getSupportingDeviceName() + ": " +
-                                ex.getLocalizedMessage());
+                String reason = "could not determine backend storage volumes for " 
+                        + getSupportingDeviceName() + ": " + ex.getLocalizedMessage();
+                _logger.error(reason);
+                throw IngestionException.exceptions.generalException(reason);
             }
         }
 
@@ -632,12 +632,11 @@ public class VplexBackendIngestionContext {
                     UnManagedVolume associatedVolumeSource = null;
                     UnManagedVolume associatedVolumeMirror = null;
                     for (Entry<String, VPlexDeviceInfo> entry : slotToDeviceMap.entrySet()) {
-                        // TODO extract constants
-                        if ("0".equals(entry.getKey())) {
+                        if (SLOT_0.equals(entry.getKey())) {
                             _logger.info("looking at slot-0");
                             associatedVolumeSource = getAssociatedVolumeForComponentDevice(entry.getValue());
                         }
-                        if ("1".equals(entry.getKey())) {
+                        if (SLOT_1.equals(entry.getKey())) {
                             _logger.info("looking at slot-1");
                             associatedVolumeMirror = getAssociatedVolumeForComponentDevice(entry.getValue());
                         }
@@ -650,21 +649,24 @@ public class VplexBackendIngestionContext {
                         unmanagedMirrors.put(associatedVolumeMirror, slotToDeviceMap.get("1").getPath());
                         StringSet set = new StringSet();
                         set.add(associatedVolumeMirror.getNativeGuid());
-                        _logger.info("adding mirror set {} to source unmanaged volume {}", set, associatedVolumeSource);
+                        _logger.info("adding mirror set {} to source unmanaged volume {}", 
+                                set, associatedVolumeSource);
                         associatedVolumeSource.putVolumeInfo(SupportedVolumeInformation.MIRRORS.toString(), set);
-                        associatedVolumeSource.putVolumeInfo(SupportedVolumeInformation.VPLEX_NATIVE_MIRROR_TARGET_VOLUME.toString(), set);
+                        associatedVolumeSource.putVolumeInfo(
+                                SupportedVolumeInformation.VPLEX_NATIVE_MIRROR_TARGET_VOLUME.toString(), set);
                         set = new StringSet();
                         set.add(associatedVolumeSource.getNativeGuid());
-                        associatedVolumeMirror.putVolumeInfo(SupportedVolumeInformation.VPLEX_NATIVE_MIRROR_SOURCE_VOLUME.toString(), set);
+                        associatedVolumeMirror.putVolumeInfo(
+                                SupportedVolumeInformation.VPLEX_NATIVE_MIRROR_SOURCE_VOLUME.toString(), set);
                         // need to go ahead and persist any changes to backend volume info
                         _dbClient.persistObject(associatedVolumeSource);
                         _dbClient.persistObject(associatedVolumeMirror);
                     } else {
-                        // TODO: create exception
-                        String message = "couldn't find all associated device components in mirror device: ";
-                        message += " associatedVolumeSource is " + associatedVolumeSource;
-                        message += " and associatedVolumeMirror is " + associatedVolumeMirror;
-                        throw new RuntimeException(message);
+                        String reason = "couldn't find all associated device components in mirror device: ";
+                        reason += " associatedVolumeSource is " + associatedVolumeSource;
+                        reason += " and associatedVolumeMirror is " + associatedVolumeMirror;
+                        _logger.error(reason);
+                        throw IngestionException.exceptions.generalException(reason);
                     }
                 }
             }
@@ -1069,7 +1071,7 @@ public class VplexBackendIngestionContext {
             List<URI> cloneUris = new ArrayList<URI>();
             if (null != cloneNativeIds && !cloneNativeIds.isEmpty()) {
                 for (String nativeId : cloneNativeIds) {
-                    _logger.info("   found clone native id " + nativeId);
+                    _logger.info("\tfound clone native id " + nativeId);
                     URIQueryResultList unManagedVolumeList = new URIQueryResultList();
                     _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                             .getVolumeInfoNativeIdConstraint(nativeId), unManagedVolumeList);
@@ -1080,7 +1082,7 @@ public class VplexBackendIngestionContext {
             }
             if (!cloneUris.isEmpty()) {
                 clones = _dbClient.queryObject(UnManagedVolume.class, cloneUris, true);
-                _logger.info("   returning clone objects: " + clones);
+                _logger.info("\treturning clone objects: " + clones);
             }
 
         }
@@ -1107,26 +1109,32 @@ public class VplexBackendIngestionContext {
         return false;
     }
 
+    /**
+     * Returns a Map of backend supporting device name
+     * to the UnManagedVolume that contains it.  This is 
+     * necessary because there is no way to query the values
+     * in a StringSetMap in the database.  This is used for
+     * Full clone (i.e. virtual volume clone) detection.
+     * 
+     * @return a Map of backend supporting device name to its UnManagedVolume
+     */
     public Map<String, URI> getVplexDeviceToUnManagedVolumeMap() {
         URI vplexUri = _unmanagedVirtualVolume.getStorageSystemUri();
         Iterator<UnManagedVolume> allUnmanagedVolumes = null;
-        _logger.info("about to start dingle timer");
         long dingleTimer = new Date().getTime();
         Map<String, URI> deviceToUnManagedVolumeMap = new HashMap<String, URI>();
         List<URI> storageSystem = new ArrayList<URI>();
         storageSystem.add(vplexUri);
         try {
-            // TODO how long will this nonsense take? no way to query StringSetMap values with dbClient
-            _logger.info("about to query for ids");
             List<URI> ids = _dbClient.queryByType(UnManagedVolume.class, true);
             List<String> fields = new ArrayList<String>();
             fields.add("storageDevice");
             fields.add("volumeInformation");
             allUnmanagedVolumes = _dbClient.queryIterativeObjectFields(UnManagedVolume.class, fields, ids);
         } catch (Throwable t) {
-            // TODO: remove this, but having trouble with dbclient not logging errors in testing
-            _logger.error("Throwable caught!!!!!!!!!!!!!! ");
-            _logger.error("Throwable caught: " + t.toString());
+            // have to do this because the database sometimes returns UnManagedVolume 
+            // objects that no longer exist and are null
+            _logger.warn("Throwable caught: " + t.toString());
         }
         if (null != allUnmanagedVolumes) {
             while (allUnmanagedVolumes.hasNext()) {
@@ -1142,14 +1150,14 @@ public class VplexBackendIngestionContext {
                         }
                     }
                 } catch (NoSuchElementException ex) {
+                    // have to do this because the database sometimes returns UnManagedVolume 
+                    // objects that no longer exist and are null
                     _logger.warn("for some reason the database returned nonsense: "
                             + ex.getLocalizedMessage());
                 }
             }
         } else {
-            // :(
-            // TODO create exception
-            throw new RuntimeException("could not load deviceToUnManagedVolumeMap");
+            throw IngestionException.exceptions.generalException("could not load deviceToUnManagedVolumeMap");
         }
         _logger.info("creating deviceToUnManagedVolumeMap took {} ms", new Date().getTime() - dingleTimer);
         return deviceToUnManagedVolumeMap;

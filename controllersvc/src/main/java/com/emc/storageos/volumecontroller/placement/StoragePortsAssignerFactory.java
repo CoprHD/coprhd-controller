@@ -29,6 +29,10 @@ public class StoragePortsAssignerFactory {
      * @return StoragePortsAssigner
      */
     public static StoragePortsAssigner getAssignerForZones(String deviceType, Map<NetworkLite, StringSetMap> zonesByNetwork) {
-        return new ZonedPortsStoragePortsAssigner(zonesByNetwork);
+        if (zonesByNetwork == null || zonesByNetwork.isEmpty()) {
+            return getAssigner(deviceType);
+        } else {
+            return new ZonedPortsStoragePortsAssigner(zonesByNetwork);
+        }
     }
 }

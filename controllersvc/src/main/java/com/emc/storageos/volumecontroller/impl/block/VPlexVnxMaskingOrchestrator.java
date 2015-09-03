@@ -36,6 +36,7 @@ import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskCreateCompleter;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowService;
@@ -188,16 +189,12 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
     @Override
     public StringSetMap configureZoning(Map<URI, List<StoragePort>> portGroup,
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup,
-            Map<URI, NetworkLite> networkMap) {
+            Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner) {
         StringSetMap zoningMap = new StringSetMap();
-        // Set up indexes for each of the Networks for SP-A ports and
-        // a separate index for SP-B ports.
-        Map<URI, Integer> networkAIndexes = new HashMap<URI, Integer>();
-        Map<URI, Integer> networkBIndexes = new HashMap<URI, Integer>();
-        for (URI networkURI : portGroup.keySet()) {
-            networkAIndexes.put(networkURI, new Integer(0));
-            networkBIndexes.put(networkURI, new Integer(0));
-        }
+
+        // Set up a map to track port usage so that we can use all ports more or less equally.
+        Map<StoragePort, Integer> portAUsage = new HashMap<StoragePort, Integer>();
+        Map<StoragePort, Integer> portBUsage = new HashMap<StoragePort, Integer>();
 
         // Iterate through each of the directors, matching each of its initiators
         // with one port.
@@ -214,13 +211,15 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
                     StringSet ports = new StringSet();
                     // Get an A Port
                     String aPortName = " ", bPortName = " ";
-                    StoragePort portA = getAPort(portGroup, networkAIndexes, networkURI, false);
+                    StoragePort portA = VPlexBackEndOrchestratorUtil.assignPortToInitiator(
+                            assigner, portGroup.get(net), net, initiator, portAUsage, "SP_A");
                     if (portA != null) {
                         aPortName = portA.getPortName();
                         ports.add(portA.getId().toString());
                     }
                     // Get a B Port
-                    StoragePort portB = getAPort(portGroup, networkBIndexes, networkURI, true);
+                    StoragePort portB = VPlexBackEndOrchestratorUtil.assignPortToInitiator(
+                            assigner, portGroup.get(net), net, initiator, portBUsage, "SP_B");
                     if (portB != null) {
                         bPortName = portB.getPortName();
                         ports.add(portB.getId().toString());
@@ -233,35 +232,6 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
             }
         }
         return zoningMap;
-    }
-
-    /**
-     * Returns an SP-A or SP-B port as desired.
-     * 
-     * @param portGroup
-     * @param networkIndexes
-     * @param networkURI
-     * @param spb
-     * @return
-     */
-    private StoragePort getAPort(
-            Map<URI, List<StoragePort>> portGroup, Map<URI, Integer> networkIndexes,
-            URI networkURI, boolean spb) {
-        StoragePort storagePort = null;
-        int size = portGroup.get(networkURI).size();
-        String groupId = spb ? "SP_B" : "SP_A";
-        for (int i = 0; i < size; i++) {
-            Integer index = networkIndexes.get(networkURI);
-            storagePort = portGroup.get(networkURI).get(index);
-            if (++index >= size) {
-                index = 0;
-            }
-            networkIndexes.put(networkURI, index);
-            if (storagePort.getPortGroup().equals(groupId)) {
-                return storagePort;
-            }
-        }
-        return null;
     }
 
     @Override

@@ -129,6 +129,10 @@ public class NetworkDeviceController implements NetworkController {
         _networkScheduler = networkScheduler;
     }
 
+    public NetworkScheduler getNetworkScheduler() {
+        return _networkScheduler;
+    }
+
     /**
      * Returns the NetworkDevice from the db
      * 

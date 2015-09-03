@@ -1198,29 +1198,36 @@ public class ExportUtils {
     }
 
     /**
-     * Consolidate the assignments made from pre-zoned ports to those made by ordinary port assignment.
-     * The list should not contain any initiators in the mask existing zoning map. This list is
-     * used to determine how to update the export mask and is expected to have new assignments only.
+     * Consolidate the assignments made from pre-zoned ports with those made by ordinary port assignment.
+     * existingAndPrezonedZoningMap contains all pre-existing assignments plus those made from pre-zoned
+     * ports. exportMask.zoningMap contains all pre-existing assignments, and 'assignments' has all ports
+     * made by ordinary assignment.
      * 
-     * @param exportMask -- the export mask to be updated
+     * The function consolidate the targets to be added to the masking view by adding those taken from
+     * pre-zoned ports to those taken from the other set of ports. The way ports taken from pre-zoned
+     * ports are identified is by comparing existingAndPrezonedZoningMap to exportMask.zoningMap, these
+     * are ports assigned to initiators found in existingAndPrezonedZoningMap but not in exportMask.zoningMap.
+     * This is because the port assignment never adds new ports to already used initiators.
+     * 
+     * @param exportMaskZoningMap -- the export mask zoningMap before any assignments are made
      * @param assignments -- assignments made from all ports not based on what is pre-zoned.
-     * @param existingAndPrezonedZoningMap -- assignments made from pre-zoned ports.
+     * @param existingAndPrezonedZoningMap -- assignments made from pre-zoned ports plus all pre-existing assignments.
      */
-    public static void addPrezonedAssignments(ExportMask exportMask, Map<URI, List<URI>> assignments,
+    public static void addPrezonedAssignments(StringSetMap exportMaskZoningMap, Map<URI, List<URI>> assignments,
             StringSetMap existingAndPrezonedZoningMap) {
         for (String iniUriStr : existingAndPrezonedZoningMap.keySet()) {
             StringSet iniPorts = new StringSet(existingAndPrezonedZoningMap.get(iniUriStr));
-            if (exportMask.getZoningMap() != null) {
-                if (exportMask.getZoningMap().containsKey(iniUriStr)) {
-                    iniPorts.removeAll(exportMask.getZoningMap().get(iniUriStr));
+            if (exportMaskZoningMap != null) {
+                if (exportMaskZoningMap.containsKey(iniUriStr)) {
+                    iniPorts.removeAll(exportMaskZoningMap.get(iniUriStr));
                 }
-                if (!iniPorts.isEmpty()) {
-                    URI iniUri = URI.create(iniUriStr);
-                    if (!assignments.containsKey(iniUri)) {
-                        assignments.put(iniUri, new ArrayList<URI>());
-                    }
-                    assignments.get(URI.create(iniUriStr)).addAll(StringSetUtil.stringSetToUriList(iniPorts));
+            }
+            if (!iniPorts.isEmpty()) {
+                URI iniUri = URI.create(iniUriStr);
+                if (!assignments.containsKey(iniUri)) {
+                    assignments.put(iniUri, new ArrayList<URI>());
                 }
+                assignments.get(iniUri).addAll(StringSetUtil.stringSetToUriList(iniPorts));
             }
         }
     }

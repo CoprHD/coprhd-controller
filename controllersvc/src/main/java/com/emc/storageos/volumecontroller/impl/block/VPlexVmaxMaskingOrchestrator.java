@@ -36,6 +36,7 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskCreateCompleter;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowService;
@@ -314,42 +315,8 @@ public class VPlexVmaxMaskingOrchestrator extends VmaxMaskingOrchestrator
     @Override
     public StringSetMap configureZoning(Map<URI, List<StoragePort>> portGroup,
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup,
-            Map<URI, NetworkLite> networkMap) {
-        StringSetMap zoningMap = new StringSetMap();
-        // Set up indexes for each of the Networks.
-        Map<URI, Integer> networkIndexes = new HashMap<URI, Integer>();
-        for (URI networkURI : portGroup.keySet()) {
-            networkIndexes.put(networkURI, new Integer(0));
-        }
-        // Iterate through each of the directors, matching each of its initiators
-        // with one port. This will ensure not to violate four paths per director.
-        for (String director : initiatorGroup.keySet()) {
-            for (URI networkURI : initiatorGroup.get(director).keySet()) {
-                NetworkLite net = networkMap.get(networkURI);
-                for (Initiator initiator : initiatorGroup.get(director).get(networkURI)) {
-                    // If there are no ports on the initiators network, too bad...
-                    if (portGroup.get(networkURI) == null) {
-                        _log.info(String.format("%s -> no ports in network",
-                                initiator.getInitiatorPort()));
-                        continue;
-                    }
-                    // Round robin through the ports.
-                    Integer index = networkIndexes.get(networkURI);
-                    StoragePort storagePort = portGroup.get(networkURI).get(index);
-                    _log.info(String.format("%s %s   %s -> %s  %s",
-                            director, net.getLabel(), initiator.getInitiatorPort(),
-                            storagePort.getPortNetworkId(), storagePort.getPortName()));
-                    StringSet ports = new StringSet();
-                    ports.add(storagePort.getId().toString());
-                    zoningMap.put(initiator.getId().toString(), ports);
-                    if (++index >= portGroup.get(networkURI).size()) {
-                        index = 0;
-                    }
-                    networkIndexes.put(networkURI, index);
-                }
-            }
-        }
-        return zoningMap;
+            Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner) {
+        return VPlexBackEndOrchestratorUtil.configureZoning(portGroup, initiatorGroup, networkMap, assigner);
     }
 
     @Override

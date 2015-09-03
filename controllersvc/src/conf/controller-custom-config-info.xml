@@ -22,7 +22,6 @@
     	<property name="customConfigTypes">
             <list>
                 <ref bean="sanZoneName"/>
-                <ref bean="sanZoneUsePrezonedPortsFe"/>
                 <ref bean="vnxHostStorageGroupName"/>
                 <ref bean="vmaxHostMaskingViewName"/>
                 <ref bean="vmaxClusterMaskingViewName"/>
@@ -43,6 +42,8 @@
                 <ref bean="portAllocationDaysToAverageUtilization"/>
                 <ref bean="portAllocationEmaFactor"/>
                 <ref bean="portAllocationMetricsEnabled"/>
+                <ref bean="portAllocationUsePrezonedPortsBe"/>
+                <ref bean="portAllocationUsePrezonedPortsFe"/>
                 <ref bean="xtremIOVolumeFolderName"/>
                 <ref bean="xtremIOInitiatorGroupName"/>
                 <ref bean="xtremIOHostInitiatorGroupFolderName"/>
@@ -929,8 +930,8 @@
         </property>
     </bean>
 
-    <!--bean id="sanZoneUsePrezonedPortsBe" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
-        <property name="name" value="SanZoneUsePrezonedPortsBackEnd"/>
+    <bean id="portAllocationUsePrezonedPortsBe" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="PortAllocationUsePrezonedPortsBackEnd"/>
         <property name="configType" value="SimpleValue"/>
         <property name="type" value="Boolean"/>
         <property name="scope">
@@ -944,10 +945,10 @@
                 <entry key="default" value="false"/>
             </map>
         </property>
-    </bean-->
+    </bean>
 
-    <bean id="sanZoneUsePrezonedPortsFe" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
-        <property name="name" value="SanZoneUsePrezonedPortsFrontEnd"/>
+    <bean id="portAllocationUsePrezonedPortsFe" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="PortAllocationUsePrezonedPortsFrontEnd"/>
         <property name="configType" value="SimpleValue"/>
         <property name="type" value="Boolean"/>
         <property name="scope">

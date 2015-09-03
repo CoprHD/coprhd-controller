@@ -221,12 +221,13 @@ public class VPlexBackendManager {
      * @param array Storage Array storage system
      * @param varrayURI - Virtual array
      * @param exportGroup OUT: ExportGroup to be used
+     * @param stepId the workflow step id
      * @return Export Mask chosen, null if none were available to be used (in which case calling
      *         code should create an Export Mask)
      * @throws ControllerException
      */
     public ExportMask chooseBackendExportMask(
-            StorageSystem vplex, StorageSystem array, URI varrayURI, ExportGroup[] exportGroup)
+            StorageSystem vplex, StorageSystem array, URI varrayURI, ExportGroup[] exportGroup, String stepId)
             throws ControllerException {
         _log.info(String.format("Searching for existing ExportMasks between Vplex %s (%s) and Array %s (%s) in Varray %s",
                 vplex.getLabel(), vplex.getNativeGuid(), array.getLabel(), array.getNativeGuid(), varrayURI));
@@ -310,7 +311,7 @@ public class VPlexBackendManager {
                     _log.info("Did not find any existing export masks");
                 }
                 _log.info("Attempting to generate ExportMasks...");
-                Map<ExportMask, ExportGroup> generatedMasks = generateExportMasks(varrayURI, vplex, array);
+                Map<ExportMask, ExportGroup> generatedMasks = generateExportMasks(varrayURI, vplex, array, stepId);
                 if (generatedMasks.isEmpty()) {
                     _log.info("Unable to generate any ExportMasks");
                     throw VPlexApiException.exceptions.couldNotGenerateArrayExportMask(
@@ -936,15 +937,29 @@ public class VPlexBackendManager {
     /**
      * Returns a list of all possible allocatable ports on an array for a given set of Networks.
      * 
-     * @param arrayURI -- URI of storage array (VMAX, VNX, ...)
-     * @param networkURI -- Set<URI> of networks
+     * @param array the storage array
      * @param varray -- URI of varray
+     * @param networkURI -- Set<URI> of networks
+     * @param zonesByNetwork an OUT param to collect the zones found grouped by network
+     * @param token the workflow step id
+     * 
      * @return
      */
-    public Map<URI, List<StoragePort>> getAllocatablePorts(URI arrayURI, Set<URI> networkURIs, URI varray) {
+    public Map<URI, List<StoragePort>> getAllocatablePorts(StorageSystem array, Set<URI> networkURIs, URI varray,
+            Map<NetworkLite, StringSetMap> zonesByNetwork, String stepId) {
         Collection<NetworkLite> networks = NetworkUtil.queryNetworkLites(networkURIs, _dbClient);
         Map<URI, List<StoragePort>> map = new HashMap<URI, List<StoragePort>>();
-        Map<NetworkLite, List<StoragePort>> tempMap = _blockStorageScheduler.selectStoragePortsInNetworks(arrayURI, networks, varray);
+
+        // find all the available storage ports
+        Map<NetworkLite, List<StoragePort>> tempMap = _blockStorageScheduler.selectStoragePortsInNetworks(array.getId(), networks, varray);
+
+        // if the user requests to use only pre-zoned ports, then filter to pre-zoned ports only
+        if (_networkDeviceController.getNetworkScheduler().portAllocationUseExistingZones(array.getSystemType(), true)) {
+            Map<NetworkLite, List<Initiator>> initiatorsByNetwork = NetworkUtil.getInitiatorsByNetwork(_initiators, _dbClient);
+            tempMap = _blockStorageScheduler.getPrezonedPortsForInitiators(_networkDeviceController,
+                    tempMap, initiatorsByNetwork, zonesByNetwork, stepId);
+        }
+
         for (NetworkLite network : tempMap.keySet()) {
             map.put(network.getId(), tempMap.get(network));
         }
@@ -1099,7 +1114,7 @@ public class VPlexBackendManager {
     }
 
     public Map<ExportMask, ExportGroup> generateExportMasks(
-            URI varrayURI, StorageSystem vplex, StorageSystem array) {
+            URI varrayURI, StorageSystem vplex, StorageSystem array, String stepId) {
         // Build the data structures used for analysis and validation.
         buildDataStructures(vplex, array, varrayURI);
 
@@ -1111,14 +1126,20 @@ public class VPlexBackendManager {
 
         // First we must determine the Initiator Groups and PortGroups to be used.
         VplexBackEndMaskingOrchestrator orca = getOrch(array);
+
+        // get the allocatable ports - if the custom config requests pre-zoned ports to be used
+        // get the existing zones in zonesByNetwork
+        Map<NetworkLite, StringSetMap> zonesByNetwork = new HashMap<NetworkLite, StringSetMap>();
         Map<URI, List<StoragePort>> allocatablePorts =
-                getAllocatablePorts(array.getId(), _networkMap.keySet(), varrayURI);
+                getAllocatablePorts(array, _networkMap.keySet(), varrayURI, zonesByNetwork, stepId);
         Set<Map<URI, List<StoragePort>>> portGroups =
                 orca.getPortGroups(allocatablePorts, _networkMap, varrayURI, initiatorGroups.size());
 
         // Now generate the Masking Views that will be needed.
         Map<ExportMask, ExportGroup> exportMasksMap = new HashMap<ExportMask, ExportGroup>();
         Iterator<Map<String, Map<URI, Set<Initiator>>>> igIterator = initiatorGroups.iterator();
+        // get the assigner needed - it is with a pre-zoned ports assigner or the default
+        StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssignerForZones(array.getSystemType(), zonesByNetwork);
         for (Map<URI, List<StoragePort>> portGroup : portGroups) {
             String maskName = clusterName.replaceAll("[^A-Za-z0-9_]", "_");
             _log.info("Generating ExportMask: " + maskName);
@@ -1126,7 +1147,7 @@ public class VPlexBackendManager {
                 igIterator = initiatorGroups.iterator();
             }
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup = igIterator.next();
-            StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, _networkMap);
+            StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, _networkMap, assigner);
             ExportMask exportMask = generateExportMask(array.getId(), maskName, portGroup, initiatorGroup, zoningMap);
 
             // Set a flag indicating that we do not want to remove zoningMap entries

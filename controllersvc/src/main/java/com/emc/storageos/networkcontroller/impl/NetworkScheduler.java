@@ -1314,11 +1314,20 @@ public class NetworkScheduler {
      * consider existing zones in port allocation logic or if it should proceed with allocations using
      * port metrics and hard redundancy only as criteria.
      * 
+     * @param storageSystemType the type storage system of the ports
+     * @param backend a flag to indicate if this is a host or backend export
+     * 
      * @return true/false
      */
-    public boolean hostPortAllocationUseExistingZones() {
-        return customConfigHandler.getComputedCustomConfigBooleanValue(
-                CustomConfigConstants.ZONE_USE_PREZONED_PORT_FRONTEND,
-                CustomConfigConstants.DEFAULT_KEY, null);
+    public boolean portAllocationUseExistingZones(String storageSystemType, boolean backend) {
+        if (backend) {
+            return customConfigHandler.getComputedCustomConfigBooleanValue(
+                    CustomConfigConstants.PORT_ALLOCATION_USE_PREZONED_PORT_BACKEND,
+                    storageSystemType, null);
+        } else {
+            return customConfigHandler.getComputedCustomConfigBooleanValue(
+                    CustomConfigConstants.PORT_ALLOCATION_USE_PREZONED_PORT_FRONTEND,
+                    CustomConfigConstants.DEFAULT_KEY, null);
+        }
     }
 }

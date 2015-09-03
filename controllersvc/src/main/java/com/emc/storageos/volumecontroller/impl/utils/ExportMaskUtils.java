@@ -517,7 +517,6 @@ public class ExportMaskUtils {
      * @param volumeMap - Map of Volume URIs to Integer HLUs
      * @param targets List<URI> of StoragePorts
      * @param zoneAssignments - Map from InitiatorURI to List of assigned port URIs.
-     * @param zoningMap a zoning map that has the zoning from all pre-zoned ports
      * @param maskName the mask name
      * @param dbClient an instance of DbClient
      * @return new ExportMask object, persisted in database
@@ -526,7 +525,7 @@ public class ExportMaskUtils {
     static public ExportMask initializeExportMask(
             StorageSystem storage, ExportGroup exportGroup,
             List<Initiator> initiators, Map<URI, Integer> volumeMap,
-            List<URI> targets, Map<URI, List<URI>> zoneAssignments, StringSetMap zoningMap, String maskName, DbClient dbClient)
+            List<URI> targets, Map<URI, List<URI>> zoneAssignments, String maskName, DbClient dbClient)
             throws Exception {
         if (maskName == null) {
             maskName = ExportMaskUtils.getMaskName(dbClient, initiators, exportGroup, storage);
@@ -550,7 +549,7 @@ public class ExportMaskUtils {
         exportMask.setCreatedBySystem(true);
         exportMaskUpdate(exportMask, volumeMap, initiators, targets);
         if (!exportGroup.getZoneAllInitiators() && null != zoneAssignments) {
-            StringSetMap zoneMap = getZoneMapFromAssignments(zoneAssignments, zoningMap);
+            StringSetMap zoneMap = getZoneMapFromAssignments(zoneAssignments);
             if (!zoneMap.isEmpty()) {
                 exportMask.setZoningMap(zoneMap);
             }
@@ -723,14 +722,10 @@ public class ExportMaskUtils {
      * Returns a StringSetMap containing the Initiator to StoragePort URIs from zoning assignments.
      * 
      * @param assignments Map<URI, List<URI>> of zoning assignments.
-     * @param existingZones the zone map created from pre-zoned ports 
      * @return StringSetMap with same information encoded as
      */
-    static public StringSetMap getZoneMapFromAssignments(Map<URI, List<URI>> assignments, StringSetMap existingZones) {
+    static public StringSetMap getZoneMapFromAssignments(Map<URI, List<URI>> assignments) {
         StringSetMap zoneMap = new StringSetMap();
-        if (existingZones != null) {
-            zoneMap.putAll(existingZones);
-        }
         for (URI initiatorURI : assignments.keySet()) {
             StringSet portIds = new StringSet();
             List<URI> portURIs = assignments.get(initiatorURI);

@@ -126,13 +126,10 @@ public class VnxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
         if (exportGroup.getType() != null) {
             pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
         }
-        StringSetMap existingAndPrezonedZoningMap = _blockScheduler.assignPrezonedStoragePorts(storage, exportGroup, initiators,
+        Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup, initiators,
                 exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, exportGroup.getVirtualArray(), token);
-        Map<URI, List<URI>> assignments =
-                _blockScheduler.assignStoragePorts(storage, exportGroup.getVirtualArray(), initiators,
-                        pathParams, existingAndPrezonedZoningMap, null);
-        newTargetURIs = BlockStorageScheduler.getTargetURIsFromAssignments(assignments, existingAndPrezonedZoningMap);
-        exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments, existingAndPrezonedZoningMap));
+        newTargetURIs = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
+        exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments));
         _dbClient.persistObject(exportMask);
 
         String maskingStep = workflow.createStepId();

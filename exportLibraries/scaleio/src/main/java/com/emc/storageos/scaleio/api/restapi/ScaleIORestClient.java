@@ -522,4 +522,23 @@ public class ScaleIORestClient extends StandardRestClient {
         }
         return result;
     }
+    
+    /**
+     * Get the volumes for the given volume Ids
+     * 
+     * @param volumeIds The list of volume IDs
+     * @return The map of the ScaleIO volume and volume ID
+     * @throws Exception
+     */
+    public Map<String, ScaleIOVolume> getVolumeNameMap(List<String> volumeIds) throws Exception {
+        Map<String, ScaleIOVolume> result = new HashMap<String, ScaleIOVolume>();
+        ScaleIOVolumeList parm = new ScaleIOVolumeList();
+        parm.setIds(volumeIds);
+        ClientResponse response = post(URI.create(ScaleIOConstants.GET_VOLUMES_BYIDS_URI), getJsonForEntity(parm));
+        List<ScaleIOVolume> volumes = getResponseObjects(ScaleIOVolume.class, response);
+        for (ScaleIOVolume volume : volumes) {
+            result.put(volume.getName(), volume);
+        }
+        return result;
+    }
 }

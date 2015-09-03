@@ -3233,7 +3233,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         if (clone != null) {
             URI systemURI = clone.getStorageController();
             StorageSystem storage = dbClient.queryObject(StorageSystem.class, systemURI);
-            if (storage.deviceIsType(Type.ibmxiv) || storage.deviceIsType(Type.scaleio)) {
+            if (storage.deviceIsType(Type.ibmxiv)) {
                 return isCG;
             }
             URI source = clone.getAssociatedSourceVolume();

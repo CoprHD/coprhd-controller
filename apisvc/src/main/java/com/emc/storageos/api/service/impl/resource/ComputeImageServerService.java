@@ -25,10 +25,12 @@ import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.ComputeImageServer;
+import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.imageservercontroller.ImageServerController;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -105,6 +107,23 @@ public class ComputeImageServerService extends TaskResourceService {
         ComputeImageServer imageServer = _dbClient.queryObject(
                 ComputeImageServer.class, id);
         ArgValidator.checkEntityNotNull(imageServer, id, isIdEmbeddedInURL(id));
+
+        //Remove the association with the ComputeSystem and then delete the imageServer
+        List<URI> computeSystemURIList = _dbClient.queryByType(ComputeSystem.class, true);
+        if (computeSystemURIList != null
+                && computeSystemURIList.iterator().hasNext()) {
+            List<ComputeSystem> computeSystems = _dbClient.queryObject(
+                    ComputeSystem.class, computeSystemURIList);
+            if (!CollectionUtils.isEmpty(computeSystems)) {
+                for (ComputeSystem computeSystem : computeSystems) {
+                    if (computeSystem.getComputeImageServer() != null
+                            && computeSystem.getComputeImageServer().equals(id)) {
+                        computeSystem.setComputeImageServer(null);
+                        _dbClient.persistObject(computeSystem);
+                    }
+                }
+            }
+        }
 
         // Set to inactive.
         _dbClient.markForDeletion(imageServer);

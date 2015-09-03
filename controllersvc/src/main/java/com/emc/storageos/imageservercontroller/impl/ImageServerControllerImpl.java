@@ -21,7 +21,6 @@ import java.net.URL;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
-import java.util.UUID;
 
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
@@ -33,12 +32,12 @@ import com.emc.storageos.computecontroller.impl.ComputeDeviceController;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeImage;
+import com.emc.storageos.db.client.model.ComputeImage.ComputeImageStatus;
 import com.emc.storageos.db.client.model.ComputeImageJob;
 import com.emc.storageos.db.client.model.ComputeImageJob.JobStatus;
 import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.imageservercontroller.ComputeImageCompleter;
@@ -901,7 +900,7 @@ public class ImageServerControllerImpl implements ImageServerController {
     }
 
     /**
-     * Method to verify and impport images on the imageserver
+     * Method to verify and import images on the imageserver
      *
      * @param task {@link AsyncTask} instance
      *
@@ -909,75 +908,71 @@ public class ImageServerControllerImpl implements ImageServerController {
     @Override
     public void verifyImageServerAndImportImages(AsyncTask task) {
         TaskCompleter completer = null;
-        try{
-        URI computeImageServerID = task._id;
-        completer = new ComputeImageServerCompleter(computeImageServerID, task._opId, OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES, EVENT_SERVICE_TYPE);
+        try {
+            URI computeImageServerID = task._id;
+            completer = new ComputeImageServerCompleter(computeImageServerID,
+                    task._opId,
+                    OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES,
+                    EVENT_SERVICE_TYPE);
 
-        Workflow workflow = workflowService.getNewWorkflow(this, IMAGESERVER_VERIFY_IMPORT_IMAGE_WF, true, task._opId);
-        workflow.createStep(IMAGESERVER_VERIFICATION_STEP,
-                String.format("Verfiying ImageServer %s", computeImageServerID), null,
-                computeImageServerID, computeImageServerID.toString(),
-                this.getClass(),
-                new Workflow.Method("verifyComputeImageServer", computeImageServerID),
-                null,
-                null);
-        workflow.createStep(IMAGESERVER_IMPORT_IMAGES_STEP,
-                String.format("Importing images for %s", computeImageServerID), IMAGESERVER_VERIFICATION_STEP,
-                computeImageServerID, computeImageServerID.toString(),
-                this.getClass(),
-                new Workflow.Method("importImagesToServer", computeImageServerID),
-                null,
-                null);
-        workflow.executePlan(completer, "Success");
-        }catch(Exception ex)
-        {
-            log.error("Unexpected exception waiting for finish: " + ex.getMessage(), ex);
-            //TODO: Need to decide if we need to throw a ServiceError.
+            Workflow workflow = workflowService.getNewWorkflow(this,
+                    IMAGESERVER_VERIFY_IMPORT_IMAGE_WF, true, task._opId);
+            workflow.createStep(IMAGESERVER_VERIFICATION_STEP, String.format(
+                    "Verfiying ImageServer %s", computeImageServerID), null,
+                    computeImageServerID, computeImageServerID.toString(), this
+                            .getClass(), new Workflow.Method(
+                            "verifyComputeImageServer", computeImageServerID),
+                    null, null);
+            List<ComputeImage> computeImageList = getAllComputeImages();
+            if (!CollectionUtils.isEmpty(computeImageList)) {
+                ComputeImageServer imageServer = dbClient.queryObject(
+                        ComputeImageServer.class, computeImageServerID);
+                for (ComputeImage computeImage : computeImageList) {
+                    if (computeImage.getComputeImageStatus().equals(
+                            ComputeImageStatus.AVAILABLE.name())) {
+                        StringBuilder msg = new StringBuilder(
+                                "Importing image ");
+                        msg.append(computeImage.getLabel()).append(
+                                " on to imageServer - ");
+                        msg.append(imageServer.getImageServerIp()).append(".");
+
+                        workflow.createStep(IMAGESERVER_IMPORT_IMAGES_STEP, msg
+                                .toString(), IMAGESERVER_VERIFICATION_STEP,
+                                computeImageServerID, computeImageServerID
+                                        .toString(), this.getClass(),
+                                new Workflow.Method("performImportImage",
+                                        imageServer, computeImage), null, null);
+                    }
+                }
+            }
+            workflow.executePlan(completer, "Success");
+        } catch (Exception ex) {
+            log.error(
+                    "Unexpected exception waiting for finish: "
+                            + ex.getMessage(), ex);
+            // TODO: Need to decide if we need to throw a ServiceError.
         }
     }
 
     /**
-     * This method imports all exisiting images to the given Image server
-     * @param imageServerID {@link URI} imageServer URI
-     * @param stepId workflow step id
+     * Method to fetch all compute images present in the db.
+     * @return {@link List<ComputeImage>}
      */
-    public void importImagesToServer(URI imageServerID, String stepId) {
-        WorkflowStepCompleter.stepExecuting(stepId);
-        log.info("Executing method importImagesToServer");
-        ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class, imageServerID);
-
+    private List<ComputeImage> getAllComputeImages()
+    {
+        List<ComputeImage> imageList = null;
         List<URI> imageURIList = dbClient.queryByType(ComputeImage.class, true);
         if (imageURIList == null || !imageURIList.iterator().hasNext()) {
             log.info("There are no images to be imported.");
-        }else {
-            List<ComputeImage> imageList = dbClient.queryObject(ComputeImage.class, imageURIList);
+        } else {
+            imageList = dbClient.queryObject(ComputeImage.class, imageURIList);
             if (CollectionUtils.isEmpty(imageList)) {
-                log.error("Could not find the ComputeImage's for the Ids {}", imageList.toString());
-            } else {
-                String taskId = UUID.randomUUID().toString();
-                Operation op = new Operation();
-                op.setResourceType(ResourceOperationTypeEnum.IMPORT_IMAGE);
-                dbClient.createTaskOpStatus(ComputeImageServer.class, imageServerID, taskId, op);
-                AsyncTask subTask = new AsyncTask(ComputeImageServer.class, imageServerID, taskId);
-                TaskCompleter completer = new ComputeImageServerCompleter(imageServerID, subTask._opId, OperationTypeEnum.CREATE_COMPUTE_IMAGE, EVENT_SERVICE_TYPE);
-                Workflow workflow = workflowService.getNewWorkflow(this, IMPORT_IMAGE_WF, true, subTask._opId);
-                for (ComputeImage computeImage : imageList) {
-                    if(computeImage.getComputeImageStatus().equals("AVAILABLE")) {
-                        StringBuilder msg = new StringBuilder("Importing image ");
-                        msg.append(computeImage.getLabel()).append(" on to imageServer - ");
-                        msg.append(imageServer.getImageServerIp()).append(".");
-                        workflow.createStep(IMPORT_IMAGE_STEP, msg.toString(), null,
-                                imageServerID, imageServerID.toString(), this
-                                        .getClass(), new Workflow.Method(
-                                        "performImportImage", imageServer,
-                                        computeImage), null, null);
-                    }
-                }
-                workflow.executePlan(completer, "Success");
+                log.error("Could not find the ComputeImage's for the Ids {}",
+                        imageURIList.toString());
             }
         }
-        WorkflowStepCompleter.stepSucceded(stepId);
-        log.info("exiting method importImagesToServer");
+
+        return imageList;
     }
 
     /**
@@ -986,8 +981,7 @@ public class ImageServerControllerImpl implements ImageServerController {
      * @param image {@link ComputeImage} instance
      * @param stepId workflow stepid being executed.
      */
-    public void performImportImage(ComputeImageServer imageServer, ComputeImage image, String stepId)
-    {
+    public void performImportImage(ComputeImageServer imageServer, ComputeImage image, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);
         log.info("Executing method performImportImage");
         ImageServerDialog d = null;
@@ -998,9 +992,13 @@ public class ImageServerControllerImpl implements ImageServerController {
             log.error("Exception importing image: " + e.getMessage(), e);
             WorkflowStepCompleter.stepFailed(stepId, e);
         } catch (Exception e) {
-            log.error("Unexpected exception importing image: " + e.getMessage(), e);
-            String opName = ResourceOperationTypeEnum.IMPORT_IMAGE.getName();
-            WorkflowStepCompleter.stepFailed(stepId, ImageServerControllerException.exceptions.unexpectedException(opName, e));
+            log.error(
+                    "Unexpected exception importing image: " + e.getMessage(),
+                    e);
+            String opName = ResourceOperationTypeEnum.CREATE_VERIFY_COMPUTE_IMAGE_SERVER.getName();
+            WorkflowStepCompleter.stepFailed(stepId,
+                    ImageServerControllerException.exceptions
+                            .unexpectedException(opName, e));
         } finally {
             try {
                 if (d != null && d.isConnected()) {

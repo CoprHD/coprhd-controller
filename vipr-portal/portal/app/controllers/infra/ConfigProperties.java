@@ -110,9 +110,15 @@ public class ConfigProperties extends Controller {
             if (!updated.isEmpty()) {
                 // If reboot is required, submit as a job and go to maintenance page. The cluster reboots immediately
                 if (rebootRequired) {
-                    new UpdatePropertiesJob(getSysClient(), updated).in(3);
-                    flash.success(MessagesUtils.get("configProperties.submittedReboot"));
-                    Maintenance.maintenance(Common.reverseRoute(ConfigProperties.class, "properties"));
+                    try{
+                        ConfigPropertyUtils.saveProperties(updated);
+                        flash.success(MessagesUtils.get("configProperties.submittedReboot"));
+                        Maintenance.maintenance(Common.reverseRoute(ConfigProperties.class,"properties"));
+                    } catch(Exception e) {
+                        Logger.error("reboot exception - ",e);
+                        flashException(e);
+                        handleError(updated);
+                    }
                 }
 
                 try {

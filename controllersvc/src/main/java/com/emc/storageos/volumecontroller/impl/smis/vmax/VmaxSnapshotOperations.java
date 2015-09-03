@@ -36,6 +36,7 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResumeSnapshotJ
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVmaxCGTargetVolumesJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisDeleteVmaxCGTargetVolumesJob;
 import com.google.common.base.Predicate;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -44,6 +45,7 @@ import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
+
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -490,9 +492,10 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      */
     @Override
-    public void restoreSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
+    public void restoreSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {
+        Volume vol = _dbClient.queryObject(Volume.class, volume);
         try {
+            _helper.doApplyRecoverPointTag(storage, vol, false);
             callEMCRefreshIfRequired(_dbClient, _helper, storage, Arrays.asList(snapshot));
             BlockSnapshot from = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             CIMObjectPath syncObjectPath = _cimPath.getSyncObject(storage, from);
@@ -513,12 +516,26 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             String message = String.format("Error encountered when trying to restore from snapshot %s on array %s",
                     snapshot.toString(), storage.getSerialNumber());
             _log.error(message, e);
+            try {
+                // Re-enable the RP tag.
+                _log.info(String.format("Enabling the RecoverPoint tag on volume %s", volume.toString()));
+                _helper.doApplyRecoverPointTag(storage, vol, true);
+            } catch (Exception ex) {
+                _log.error(String.format("An error has occured trying to enable the RecoverPoint tag on volume %s."), ex);
+            }
             ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
             taskCompleter.error(_dbClient, error);
         } catch (Exception e) {
             String message = String.format("Generic exception when trying to restore from snapshot %s on array %s",
                     snapshot.toString(), storage.getSerialNumber());
             _log.error(message, e);
+            try {
+                // Re-enable the RP tag.
+                _log.info(String.format("Enabling the RecoverPoint tag on volume %s", volume.toString()));
+                _helper.doApplyRecoverPointTag(storage, vol, true);
+            } catch (Exception ex) {
+                _log.error(String.format("An error has occured trying to enable the RecoverPoint tag on volume %s."), ex);
+            }
             ServiceError error = DeviceControllerErrors.smis.methodFailed("restoreSingleVolumeSnapshot", e.getMessage());
             taskCompleter.error(_dbClient, error);
         }

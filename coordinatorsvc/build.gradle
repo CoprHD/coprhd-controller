@@ -10,8 +10,6 @@ scripts {
     }
 }
 
-sourceSets.test.java.srcDir 'src/' + buildType + '/conf'
-
 dependencies {
 
     compile library(commons_logging),

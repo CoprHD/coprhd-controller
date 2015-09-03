@@ -91,6 +91,7 @@ import com.emc.storageos.model.project.ProjectParam;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.systems.StorageSystemConnectivityRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
+import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -3027,21 +3028,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId) {
-
-        // Get the VLPEX volume for this backend volume.
-        URI parentVolumeURI = parentVolume.getId();
-        URIQueryResultList queryResults = new URIQueryResultList();
-        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getVolumeByAssociatedVolumesConstraint(parentVolumeURI.toString()),
-                queryResults);
-        URI vplexVolumeURI = queryResults.iterator().next();
-        Volume vplexVolume = _dbClient.queryObject(Volume.class, vplexVolumeURI);
-
-        // Get the VPLEX controller and restore the backend snapshot.
-        URI vplexSystemURI = vplexVolume.getStorageController();
-        StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class, vplexSystemURI);
-        VPlexController controller = getController(VPlexController.class, vplexSystem.getSystemType());
-        controller.restoreVolume(vplexSystemURI, snapshot.getId(), taskId);
+        s_logger.info(String.format("Request to restore VPlex volume %s from snapshot %s.", 
+                parentVolume.getId().toString(), snapshot.getId().toString()));
+        super.restoreSnapshot(snapshot, parentVolume, taskId);
     }
 
     /**

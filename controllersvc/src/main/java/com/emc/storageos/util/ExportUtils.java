@@ -13,25 +13,29 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.http.conn.util.InetAddressUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.HostInterface.Protocol;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
@@ -1111,5 +1115,121 @@ public class ExportUtils {
         }
 
         dbClient.updateAndReindexObject(updatedObjects);
+    }
+
+    /**
+     * Gets the ExportGroup to be used for VPlex when reusing an ExportMask.
+     * Will find the ExportGroup containing the mask, or it will create a new one if necessary.
+     *
+     * @param vplex - VPlex StorageSystem
+     * @param array - Backend StorageSystem
+     * @param virtualArrayURI - VirtualArray to which the VPlex and backend StorageSystem apply
+     * @param mask - ExportMask that is being reused
+     * @param initiators - Collection<Initiator> VPLEX initiators to array
+     * @param tenantURI - Tenant URI
+     * @param projectURI - Project URI
+     * @return ExportGroup that is applicable for the Vplex and backend array
+     */
+    public static ExportGroup getVPlexExportGroup(DbClient dbClient, StorageSystem vplex, StorageSystem array, URI virtualArrayURI,
+            ExportMask mask, Collection<Initiator> initiators, URI tenantURI, URI projectURI) {
+        // Determine all the possible existing Export Groups
+        Map<String, ExportGroup> possibleExportGroups = new HashMap<String, ExportGroup>();
+        for (Initiator initiator : initiators) {
+            List<ExportGroup> groups = ExportUtils.getInitiatorExportGroups(initiator, dbClient);
+            for (ExportGroup group : groups) {
+                if (!possibleExportGroups.containsKey(group.getId().toString())) {
+                    possibleExportGroups.put(group.getId().toString(), group);
+                }
+            }
+        }
+
+        // If there are possible Export Groups, look for one with this mask.
+        for (ExportGroup group : possibleExportGroups.values()) {
+            if (group.hasMask(mask.getId())) {
+                _log.info(String.format("Returning ExportGroup %s", group.getLabel()));
+                return group;
+            }
+        }
+
+        return createVplexExportGroup(dbClient, vplex, array, initiators, virtualArrayURI, projectURI, tenantURI, 0, mask);
+    }
+
+    /**
+     * Create an ExportGroup.
+     *
+     * @param vplex -- VPLEX StorageSystem
+     * @param array -- Array StorageSystem
+     * @param initiators -- Collection<Initiator> representing VPLEX back-end ports.
+     * @param virtualArrayURI
+     * @param projectURI
+     * @param tenantURI
+     * @param numPaths Value of maxPaths to be put in ExportGroup
+     * @param exportMask IFF non-null, will add the exportMask to the Export Group.
+     * @return newly created ExportGroup persisted in DB.
+     */
+    public static ExportGroup createVplexExportGroup(DbClient dbClient, StorageSystem vplex, StorageSystem array,
+            Collection<Initiator> initiators, URI virtualArrayURI, URI projectURI, URI tenantURI, int numPaths, ExportMask exportMask) {
+        String groupName = getExportGroupName(vplex, array)
+                + "_" + UUID.randomUUID().toString().substring(28);
+        if (exportMask != null) {
+            String arrayName = array.getSystemType().replace("block", "")
+                    + array.getSerialNumber().substring(array.getSerialNumber().length() - 4);
+            groupName = exportMask.getMaskName() + "_" + arrayName;
+        }
+
+        // No existing group has the mask, let's create one.
+        ExportGroup exportGroup = new ExportGroup();
+        exportGroup.setId(URIUtil.createId(ExportGroup.class));
+        exportGroup.setLabel(groupName);
+        exportGroup.setProject(new NamedURI(projectURI, exportGroup.getLabel()));
+        exportGroup.setVirtualArray(vplex.getVirtualArray());
+        exportGroup.setTenant(new NamedURI(tenantURI, exportGroup.getLabel()));
+        exportGroup.setGeneratedName(groupName);
+        exportGroup.setVolumes(new StringMap());
+        exportGroup.setOpStatus(new OpStatusMap());
+        exportGroup.setVirtualArray(virtualArrayURI);
+        exportGroup.setNumPaths(numPaths);
+
+        // Add the initiators into the ExportGroup.
+        for (Initiator initiator : initiators) {
+            exportGroup.addInitiator(initiator);
+        }
+
+        // If we have an Export Mask, add it into the Export Group.
+        if (exportMask != null) {
+            exportGroup.addExportMask(exportMask.getId());
+        }
+
+        // Persist the ExportGroup
+        dbClient.createObject(exportGroup);
+        _log.info(String.format("Returning new ExportGroup %s", exportGroup.getLabel()));
+        return exportGroup;
+    }
+
+    /**
+     * Returns the ExportGroup name to be used between a particular VPlex and underlying Storage Array.
+     * It is based on the serial numbers of the Vplex and Array. Therefore the same ExportGroup name
+     * will always be used, and it always starts with "VPlex".
+     *
+     * @param vplex [IN] - VPlex StorageArray
+     * @param array [IN] - Backend StorageArray
+     * @return String that represents the unique combination of Vplex-to-backend array
+     */
+    public static String getExportGroupName(StorageSystem vplex, StorageSystem array) {
+        // Unfortunately, using the full VPlex serial number with the Array serial number
+        // proves to be quite lengthy! We can run into issues on SMIS where
+        // max length (represented as STOR_DEV_GROUP_MAX_LEN) is 64 characters.
+        // Not to mention, other steps append to this name too.
+        // So lets chop everything but the last 4 digits from both serial numbers.
+        // This should be unique enough.
+        int endIndex = vplex.getSerialNumber().length();
+        int beginIndex = endIndex - 4;
+        String modfiedVPlexSerialNumber = vplex.getSerialNumber().substring(beginIndex, endIndex);
+
+        endIndex = array.getSerialNumber().length();
+        beginIndex = endIndex - 4;
+        String modfiedArraySerialNumber = array.getSerialNumber().substring(beginIndex, endIndex);
+
+        return String.format("VPlex_%s_%s", modfiedVPlexSerialNumber, modfiedArraySerialNumber);
     }
 }

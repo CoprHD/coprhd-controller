@@ -24,6 +24,10 @@ public class LogMessage {
     // serialized in LogNetworkWriter.
     private byte[] nodeId;// node id
 
+    // nodeName and service are not set in the parser, and nodeName doesn't need to be
+    // serialized in LogNetworkWriter.
+    private byte[] nodeName;// node name
+
     // the following fields need to be serialized in LogNetworkWriter
     private byte[] service;
     private long time;
@@ -98,6 +102,17 @@ public class LogMessage {
 
     public void setNodeId(byte[] nodeId) {
         this.nodeId = nodeId;
+    }
+
+    public byte[] getNodeName() {
+        if (nodeName == null)
+            return NULL_BYTES;
+
+        return nodeName;
+    }
+
+    public void setNodeName(byte[] nodeName) {
+        this.nodeName = nodeName;
     }
 
     public void setService(byte[] service) {

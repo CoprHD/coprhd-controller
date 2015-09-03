@@ -29,6 +29,9 @@ import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.ComputeImageJob;
 import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.Operation;
@@ -108,8 +111,25 @@ public class ComputeImageServerService extends TaskResourceService {
                 ComputeImageServer.class, id);
         ArgValidator.checkEntityNotNull(imageServer, id, isIdEmbeddedInURL(id));
 
-        //Remove the association with the ComputeSystem and then delete the imageServer
-        List<URI> computeSystemURIList = _dbClient.queryByType(ComputeSystem.class, true);
+        // make sure there are no active jobs associated with this imageserver
+        URIQueryResultList computeImageJobsUriList = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getComputeImageJobsByComputeImageServerConstraint(id),
+                computeImageJobsUriList);
+        Iterator<URI> iterator = computeImageJobsUriList.iterator();
+        while (iterator.hasNext()) {
+            ComputeImageJob job = _dbClient.queryObject(ComputeImageJob.class,
+                    iterator.next());
+            if (job.getJobStatus().equals(
+                    ComputeImageJob.JobStatus.CREATED.name())) {
+                throw APIException.badRequests.cannotDeleteComputeWhileInUse();
+            }
+        }
+
+        // Remove the association with the ComputeSystem and then delete the
+        // imageServer
+        List<URI> computeSystemURIList = _dbClient.queryByType(
+                ComputeSystem.class, true);
         if (computeSystemURIList != null
                 && computeSystemURIList.iterator().hasNext()) {
             List<ComputeSystem> computeSystems = _dbClient.queryObject(

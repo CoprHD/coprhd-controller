@@ -213,7 +213,7 @@ public class ComputeImageServerService extends TaskResourceService {
         _dbClient.createTaskOpStatus(ComputeImageServer.class, imageServer.getId(), taskId, op);
 
         ImageServerController controller = getController(ImageServerController.class, null);
-        controller.verifyImageServerAndImportImages(task);
+        controller.verifyImageServerAndImportExistingImages(task);
         return toTask(imageServer, taskId, op);
     }
 
@@ -314,7 +314,7 @@ public class ComputeImageServerService extends TaskResourceService {
             _dbClient.createTaskOpStatus(ComputeImageServer.class, imageServer.getId(), taskId, op);
 
             ImageServerController controller = getController(ImageServerController.class, null);
-            controller.verifyImageServerAndImportImages(task);
+            controller.verifyImageServerAndImportExistingImages(task);
         }
         return map(imageServer);
     }

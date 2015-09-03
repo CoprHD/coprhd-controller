@@ -35,7 +35,6 @@ import com.emc.storageos.db.client.model.ComputeImage.ComputeImageStatus;
 import com.emc.storageos.db.client.model.ComputeImageJob;
 import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.imageservercontroller.ImageServerController;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -46,6 +45,7 @@ import com.emc.storageos.model.compute.ComputeImageCreate;
 import com.emc.storageos.model.compute.ComputeImageList;
 import com.emc.storageos.model.compute.ComputeImageRestRep;
 import com.emc.storageos.model.compute.ComputeImageUpdate;
+import com.emc.storageos.imageservercontroller.ImageServerController;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -71,7 +71,7 @@ public class ComputeImageService extends TaskResourceService {
 
     /**
      * Show compute image attribute.
-     *
+     * 
      * @param id
      *            the URN of compute image
      * @brief Show compute image
@@ -88,7 +88,7 @@ public class ComputeImageService extends TaskResourceService {
 
     /**
      * Returns a list of all compute images.
-     *
+     * 
      * @brief Show compute images
      * @return List of all compute images.
      */
@@ -118,7 +118,7 @@ public class ComputeImageService extends TaskResourceService {
 
     /**
      * Create compute image from image URL or existing installable image URN.
-     *
+     * 
      * @param param
      *            The ComputeImageCreate object contains all the parameters for
      *            creation.
@@ -129,7 +129,7 @@ public class ComputeImageService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskList createComputeImage(ComputeImageCreate param) {
+    public TaskResourceRep createComputeImage(ComputeImageCreate param) {
         log.info("createComputeImage");
         TaskList taskList = new TaskList();
         // unique name required
@@ -153,18 +153,8 @@ public class ComputeImageService extends TaskResourceService {
         auditOp(OperationTypeEnum.CREATE_COMPUTE_IMAGE, true, AuditLogManager.AUDITOP_BEGIN, ci.getId().toString(),
                 ci.getImageUrl(), ci.getComputeImageStatus());
         try {
-        	List<URI> ids = _dbClient.queryByType(ComputeImageServer.class, true);
-            for (URI imageServerId : ids) {
-                ComputeImageServer imageServer = _dbClient.queryObject(
-                        ComputeImageServer.class, imageServerId);
-                if (imageServer.getComputeImage() == null) {
-                    taskList.addTask(doImportImage(ci, imageServer));
-                } else if (!imageServer.getComputeImage().contains(
-                        ci.getId().toString())) {
-                    taskList.addTask(doImportImage(ci, imageServer));
-                }
-            }
-            return taskList;
+        	
+            return doImportImage(ci);
         } catch (Exception e) {
             ci.setComputeImageStatus(ComputeImageStatus.NOT_AVAILABLE.name());
             _dbClient.persistObject(ci);
@@ -190,21 +180,22 @@ public class ComputeImageService extends TaskResourceService {
     /*
      * Schedules the import task.
      */
-    private TaskResourceRep doImportImage(ComputeImage ci, ComputeImageServer imageServer) {
+    private TaskResourceRep doImportImage(ComputeImage ci) {
         log.info("doImportImage");
         ImageServerController controller = getController(ImageServerController.class, null);
         AsyncTask task = new AsyncTask(ComputeImage.class, ci.getId(), UUID.randomUUID().toString());
-
+     
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.IMPORT_IMAGE);
         _dbClient.createTaskOpStatus(ComputeImage.class, ci.getId(), task._opId, op);
-        controller.importImage(task,imageServer.getId());
+        controller.importImageToServers(task);
+        //controller.importImage(task,imageServer.getId());
         return TaskMapper.toTask(ci, task._opId, op);
     }
 
     /**
      * Updates an already present compute image.
-     *
+     * 
      * @param id
      *            compute image URN.
      * @param param
@@ -217,7 +208,7 @@ public class ComputeImageService extends TaskResourceService {
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskList updateComputeImage(@PathParam("id") URI id, ComputeImageUpdate param) {
+    public TaskResourceRep updateComputeImage(@PathParam("id") URI id, ComputeImageUpdate param) {
         log.info("updateComputeImage: {}, new name: {}", id, param.getName());
         TaskList taskList = new TaskList();
         ArgValidator.checkFieldUriType(id, ComputeImage.class, "id");
@@ -252,35 +243,37 @@ public class ComputeImageService extends TaskResourceService {
 
         auditOp(OperationTypeEnum.UPDATE_COMPUTE_IMAGE, true, null,
                 ci.getId().toString(), ci.getImageUrl());
-
-
+        
+        
         boolean hasImportTask = false;
-        try {
-
+        try {         
+            
             List<URI> ids = _dbClient.queryByType(ComputeImageServer.class, true);
             for (URI imageServerId : ids){
-
+            	
             	ComputeImageServer imageServer = _dbClient.queryObject(ComputeImageServer.class,imageServerId);
-
+           
             	if (reImport || !imageServer.getComputeImage().contains(ci.getId().toString())){
-            		taskList.addTask(doImportImage(ci,imageServer));
+            		
             		hasImportTask = true;
             	}
+            }
+            if (hasImportTask){
+            	return doImportImage(ci);
+            }else{
+            	return getReadyOp(ci, ResourceOperationTypeEnum.UPDATE_IMAGE);
             }
         } catch (Exception e) {
             ci.setComputeImageStatus(ComputeImageStatus.NOT_AVAILABLE.name());
             _dbClient.persistObject(ci);
             throw e;
         }
-        if (!hasImportTask) {
-            taskList.addTask(getReadyOp(ci, ResourceOperationTypeEnum.UPDATE_IMAGE));
-        }
-        return taskList;
+        
     }
 
     /**
      * Delete existing compute image.
-     *
+     * 
      * @param id
      *            compute image URN.
      * @brief Delete compute image
@@ -322,7 +315,7 @@ public class ComputeImageService extends TaskResourceService {
             		taskList.addTask(doRemoveImage(ci,imageServer));
             	}
             }
-
+            
         } else if (ComputeImage.ComputeImageStatus.IN_PROGRESS.name().equals(ci.getComputeImageStatus())) {
             if (force == null || !force.equals("true")) {
                 throw APIException.badRequests.resourceCannotBeDeleted(ci.getLabel());
@@ -346,23 +339,23 @@ public class ComputeImageService extends TaskResourceService {
     private TaskResourceRep doRemoveImage(ComputeImage ci,ComputeImageServer imageServer) {
         log.info("doRemoveImage");
         ImageServerController controller = getController(ImageServerController.class, null);
-
+       
 		AsyncTask task = new AsyncTask(ComputeImage.class, ci.getId(), UUID.randomUUID().toString());
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.REMOVE_IMAGE);
-
+        
         _dbClient.createTaskOpStatus(ComputeImage.class, ci.getId(), task._opId, op);
         controller.deleteImage(task,imageServer.getId());
-
+        
         log.info("Removing image "+ci.getImageName()+ " from server "+ imageServer.getImageServerIp());
-
-
+        
+        
         return TaskMapper.toTask(ci, task._opId, op);
     }
 
     /**
      * List data of compute images based on input ids.
-     *
+     * 
      * @param param
      *            POST data containing the id list.
      * @prereq none

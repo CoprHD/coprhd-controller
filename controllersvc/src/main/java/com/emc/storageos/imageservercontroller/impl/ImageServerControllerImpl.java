@@ -289,7 +289,40 @@ public class ImageServerControllerImpl implements ImageServerController {
         }
         return imageServerVerified;
     }
-
+    @Override
+    public void importImageToServers(AsyncTask task) throws InternalException {
+        log.info("importImage");
+        URI ciId = task._id;       
+        boolean  wfHasSteps = false;
+        Workflow workflow = workflowService.getNewWorkflow(this, "ImportImage_WF", true, task._opId);
+        TaskCompleter completer = new ComputeImageCompleter(ciId, task._opId, OperationTypeEnum.CREATE_COMPUTE_IMAGE, EVENT_SERVICE_TYPE);
+        try{
+	        List<URI> ids = dbClient.queryByType(ComputeImageServer.class, true);
+	        for (URI imageServerId : ids){
+	        	ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class,imageServerId);
+	        	if (!imageServer.getComputeImage().contains(ciId.toString())){
+	        		 boolean imageServerVerified = verifyImageServer(imageServer);
+	                 if (!imageServerVerified) {	
+	                     throw ImageServerControllerException.exceptions.imageServerNotSetup("Can't perform image import: "
+	                                 + imageServerErrorMsg);
+	                 }	                 
+	                 workflow.createStep("ImportImageToServer_Step",
+	                         String.format("Importing image for %s", imageServerId), null,
+	                         imageServerId, imageServerId.toString(),
+	                         this.getClass(),new Workflow.Method("importImageMethod", ciId, imageServerId),
+	                         null,null);
+	                 wfHasSteps = true;	                 
+	        	}
+	        }	        
+	        if (wfHasSteps){
+	        	workflow.executePlan(completer, "Success");
+	        }
+        } catch (Exception e) {
+            log.error("importImage caught an exception.", e);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            completer.error(dbClient, serviceError);
+        }
+    }
     @Override
     public void importImage(AsyncTask task,URI imageServerId) throws InternalException {
         log.info("importImage");
@@ -906,7 +939,7 @@ public class ImageServerControllerImpl implements ImageServerController {
      *
      */
     @Override
-    public void verifyImageServerAndImportImages(AsyncTask task) {
+    public void verifyImageServerAndImportExistingImages(AsyncTask task) {
         TaskCompleter completer = null;
         try {
             URI computeImageServerID = task._id;

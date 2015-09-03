@@ -18,6 +18,8 @@ public interface ImageServerController extends Controller {
 
     public void installOperatingSystem(AsyncTask task, URI computeImageJob) throws InternalException;
 
-    public void verifyImageServerAndImportImages(AsyncTask task);
+    public void verifyImageServerAndImportExistingImages(AsyncTask task);
+
+	public void importImageToServers(AsyncTask task) throws InternalException;
 
 }

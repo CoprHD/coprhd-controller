@@ -12,12 +12,15 @@ import com.vmware.vim25.ResourceInUse;
 import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.HostSystem;
 
-public class DetachDatastoreDevices extends RetryableTask<Void> {
+public class UnmountDatastore extends RetryableTask<Void> {
+
     private final Datastore datastore;
+
     private final Collection<HostSystem> hosts;
 
-    public DetachDatastoreDevices(Collection<HostSystem> hosts, Datastore datastore) {
+    public UnmountDatastore(Collection<HostSystem> hosts, Datastore datastore) {
         this.datastore = datastore;
+
         this.hosts = hosts;
         List<String> names = Lists.newArrayList();
         for (HostSystem host : hosts) {
@@ -29,10 +32,9 @@ public class DetachDatastoreDevices extends RetryableTask<Void> {
 
     @Override
     protected Void tryExecute() {
-        debug("Executing: %s", getDetail());
         for (HostSystem host : hosts) {
             HostStorageAPI storageAPI = new HostStorageAPI(host);
-            storageAPI.detachDatastore(datastore);
+            storageAPI.unmountVmfsDatastore(datastore);
         }
         return null;
     }

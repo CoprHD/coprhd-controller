@@ -50,6 +50,7 @@ import com.emc.sa.service.vmware.tasks.FindDatastore;
 import com.emc.sa.service.vmware.tasks.FindESXHost;
 import com.emc.sa.service.vmware.tasks.GetVcenter;
 import com.emc.sa.service.vmware.tasks.GetVcenterDataCenter;
+import com.emc.sa.service.vmware.tasks.UnmountDatastore;
 import com.emc.sa.service.vmware.tasks.VerifyDatastoreDoesNotExist;
 import com.emc.sa.service.vmware.tasks.VerifyDatastoreForRemoval;
 import com.emc.sa.service.vmware.tasks.VerifySupportedMultipathPolicy;
@@ -323,10 +324,18 @@ public class VMwareSupport {
             throw new IllegalStateException("Datastore is not mounted by any hosts");
         }
         enterMaintenanceMode(datastore);
-        setStorageIOControl(datastore, false);
-        execute(new DetachDatastoreDevices(hosts.get(0), datastore));
-        execute(new DeleteDatastore(hosts.get(0), datastore));
-        removeVmfsDatastoreTag(volumes, hostOrClusterId);
+
+        try {
+            // recommended approach is to turn off Storage IO, unmount and detach Datastore devices
+            setStorageIOControl(datastore, false);
+            execute(new UnmountDatastore(hosts, datastore));
+            execute(new DetachDatastoreDevices(hosts, datastore));
+        } catch (VMWareException e) {
+            // if the recommended approach fails, go with the tried and true method
+            execute(new DeleteDatastore(hosts.get(0), datastore));
+        }
+
+        execute(new RefreshStorage(hosts));
     }
 
     /**
@@ -401,7 +410,6 @@ public class VMwareSupport {
         enterMaintenanceMode(datastore);
         setStorageIOControl(datastore, false);
         for (HostSystem host : hosts) {
-            execute(new DetachDatastoreDevices(host, datastore));
             execute(new DeleteDatastore(host, datastore));
         }
         removeNfsDatastoreTag(fileSystem, datacenterId, datastoreName);

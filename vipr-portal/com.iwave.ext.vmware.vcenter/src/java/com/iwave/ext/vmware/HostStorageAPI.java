@@ -20,6 +20,7 @@ import com.vmware.vim25.DuplicateName;
 import com.vmware.vim25.HostConfigFault;
 import com.vmware.vim25.HostFibreChannelHba;
 import com.vmware.vim25.HostFibreChannelTargetTransport;
+import com.vmware.vim25.HostFileSystemMountInfo;
 import com.vmware.vim25.HostHostBusAdapter;
 import com.vmware.vim25.HostInternetScsiHba;
 import com.vmware.vim25.HostInternetScsiHbaSendTarget;
@@ -811,6 +812,30 @@ public class HostStorageAPI {
                 throw new VMWareException(e);
             }
         }
+    }
+
+    public void unmountVmfsDatastore(Datastore datastore) {
+        try {
+            String vmfsUuid = getVmfsVolumeUuid(host, datastore);
+            host.getHostStorageSystem().unmountVmfsVolume(vmfsUuid);
+        } catch (RemoteException e) {
+            throw new VMWareException(e);
+        }
+    }
+
+    private String getVmfsVolumeUuid(HostSystem host, Datastore datastore) {
+        String uuid = null;
+        for (HostFileSystemMountInfo mount : new HostStorageAPI(host)
+                .getStorageSystem().getFileSystemVolumeInfo().getMountInfo()) {
+
+            if (mount.getVolume() instanceof HostVmfsVolume
+                    && datastore.getName().equals(mount.getVolume().getName())) {
+                HostVmfsVolume volume = (HostVmfsVolume) mount.getVolume();
+                uuid = volume.getUuid();
+            }
+
+        }
+        return uuid;
     }
 
     /**

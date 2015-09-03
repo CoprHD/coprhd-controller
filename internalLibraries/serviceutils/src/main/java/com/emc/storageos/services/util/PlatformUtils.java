@@ -26,7 +26,6 @@ public class PlatformUtils {
     private static final String SYSTOOL_CMD = "/etc/systool";
     private static final String IS_APPLIANCE = "--test";
     private static final String IS_APPLIANCE_OUTPUT = "Ok";
-    private static final String SITE_ID_FILE= "/data/mysite-id";
     private static final long CMD_TIMEOUT = 120 * 1000;
     private static final long CMD_PARTITION_TIMEOUT = 600 * 1000;    // 10 min
     private static String PID_DIR = "/var/run/storageos/";

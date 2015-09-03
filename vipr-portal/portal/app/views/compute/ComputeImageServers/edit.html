@@ -69,6 +69,7 @@
     #{field 'computeImageServers.osInstallNetworkAddress'}
         #{Form.inputTextControlGroup field:field, required:false /}
     #{/field}
+
     #{field 'computeImageServers.userName'}
       #{Form.inputTextControlGroup field:field, required:!editMode /}
     #{/field}
@@ -78,12 +79,12 @@
     #{/field}
 
     #{field 'computeImageServers.tftpBootDir'}
-      #{Form.inputPasswordControlGroup field:field, required:!editMode /}
-    #{/field}    
+      #{Form.inputTextControlGroup field:field, required:!editMode /}
+    #{/field}
 
-    #{field 'computeImageServers.osInstallTimeout'}
-      #{Form.inputPasswordControlGroup field:field, required:!editMode /}
-    #{/field}    
+    #{field 'computeImageServers.osInstallTimeOut'}
+      #{Form.inputTextControlGroup field:field, required:!editMode /}
+    #{/field}
 
     #{if computeImageServers?.id}
         #{field 'computeImageServers.id'}

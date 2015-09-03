@@ -532,12 +532,8 @@ public class RecoverPointScheduler implements Scheduler {
     					}    					    				
     					 					    				                       
                         if ((totalSatisfiedCount >= totalRequestedCount)) {	
-                        	rpProtectionRecommendation.setResourceCount(totalSatisfiedCount);
+                        	rpProtectionRecommendation.setResourceCount(totalSatisfiedCount); 
                         	recommendations.add(rpProtectionRecommendation);
-                        	for (Recommendation rec : recommendations) {
-                        		 _log.info(String.format("RP Placement: Found a recommendation for the request: %s" , 
-                        				 ((RPProtectionRecommendation)rec).toString(dbClient))); 
-                        	}                        	
                         	return recommendations;
                         } else {
                         	break;
@@ -1959,6 +1955,8 @@ public class RecoverPointScheduler implements Scheduler {
     	    rpRecommendation.setInternalSiteName(sourceVolume.getInternalSiteName());
     	    rpRecommendation.setVirtualArray(sourceVolume.getVirtualArray());
     	    rpRecommendation.setVirtualPool(dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool()));
+    	    
+    	    //TODO Bharath : Need to populate VPLEX information appropriately. And also the HA information. The below code is useless.
     	    if (rpRecommendation.getHaRecommendation() != null) {
     	    	RPRecommendation haRecommendation = new RPRecommendation();
     	    	haRecommendation.setSourceStoragePool(rpRecommendation.getHaRecommendation().getSourceStoragePool());
@@ -2188,6 +2186,7 @@ public class RecoverPointScheduler implements Scheduler {
     	Long sizeInBytes = RPHelper.getJournalSizeGivenPolicy(Long.toString(capabilities.getSize()), journalPolicy, requestedResourceCount);
     	newCapabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, sizeInBytes);    	       
     
+    	boolean foundJournal = false;
 		List<Recommendation> journalRec = getRecommendedPools(rpProtectionRecommendation, journalVarray, journalVpool, null, null, 
 												newCapabilities, RPHelper.JOURNAL, internalSiteName);			     
 
@@ -2207,9 +2206,10 @@ public class RecoverPointScheduler implements Scheduler {
 		if (vpoolChangeVolume != null 
 			        && !NullColumnValueGetter.isNullURI(vpoolChangeVolume.getRpJournalVolume()) 
 			        && !isMPStandby) {
-			Volume existingJournalVolume = dbClient.queryObject(Volume.class, vpoolChangeVolume.getRpJournalVolume());
+			Volume existingJournalVolume = dbClient.queryObject(Volume.class, vpoolChangeVolume.getRpJournalVolume());			
 			storageSystemURI = existingJournalVolume.getPool();
 			journalStoragePool = dbClient.queryObject(StoragePool.class, existingJournalVolume.getPool());
+			foundJournal = true;
 		} else {
 			for (Recommendation journalStoragePoolRec : journalRec) {    		
 				journalStoragePool = dbClient.queryObject(StoragePool.class, journalStoragePoolRec.getSourceStoragePool());
@@ -2228,9 +2228,9 @@ public class RecoverPointScheduler implements Scheduler {
 				_log.info(String.format("RP Journal Placement : Associated storage systems for pool [%s] : [%s]", journalStoragePool.getLabel(), 
 						Joiner.on("-").join(associatedStorageSystems)));    				    
 			
-				for (String associatedStorageSystem : associatedStorageSystems) {
+				for (String associateStorageSystem : associatedStorageSystems) {
 					  storageSystemURI = ConnectivityUtil.findStorageSystemBySerialNumber(
-							 						ProtectionSystem.getAssociatedStorageSystemSerialNumber(associatedStorageSystem), 
+							 						ProtectionSystem.getAssociatedStorageSystemSerialNumber(associateStorageSystem), 
 							 						dbClient, StorageSystemType.BLOCK);
 					 StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemURI);
 		                
@@ -2239,15 +2239,26 @@ public class RecoverPointScheduler implements Scheduler {
     											storageSystem.getLabel(), internalSiteName));
     					continue;
     				}
-    				
-    				//If we got here, it means that we found a valid storage pool for journal, return back the recommendation 
-    				return buildRpRecommendation(associatedStorageSystem, journalVarray, journalVpool, journalStoragePool, 
-								newCapabilities, 1, internalSiteName, 
-								storageSystemURI, storageSystem.getSystemType(), ps);
-				} 						
+    				//Found a solution
+    				foundJournal = true;
+    				break;
+				} 			
+				
+				if (foundJournal) {
+					break;
+				}
 			}    
-		}					
-    	return null;
+		}		
+		
+		if (foundJournal) {
+			 StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemURI);
+			//If we got here, it means that we found a valid storage pool for journal, return back the recommendation 
+			return buildRpRecommendation(storageSystem.getLabel(), journalVarray, journalVpool, journalStoragePool, newCapabilities, 1, internalSiteName, 
+						storageSystemURI, storageSystem.getSystemType(), ps);
+		} else {
+			//Couldnt find a journal recommendation, handle appropriately.
+			return null;
+		}
     }
     
 	/**

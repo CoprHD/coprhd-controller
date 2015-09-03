@@ -278,6 +278,7 @@ StorageSystemType.STORAGE_PROVIDER.cinder=Storage Provider for Third-party block
 StorageSystemType.STORAGE_PROVIDER.scaleio=Block Storage Powered by ScaleIO
 StorageSystemType.STORAGE_PROVIDER.ddmc=Storage Provider for Data Domain Management Center
 StorageSystemType.STORAGE_PROVIDER.ibmxiv=Storage Provider for IBM XIV
+StorageSystemType.STORAGE_PROVIDER.ibmxiv=Storage Provider for EMC XtremIO
 
 HostType.Linux=Linux
 HostType.Windows=Windows

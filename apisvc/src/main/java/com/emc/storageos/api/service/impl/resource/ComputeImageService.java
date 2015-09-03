@@ -129,7 +129,7 @@ public class ComputeImageService extends TaskResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskList createComputeImage(ComputeImageCreate param) {
+    public TaskResourceRep createComputeImage(ComputeImageCreate param) {
         log.info("createComputeImage");
         TaskList taskList = new TaskList();
         // unique name required
@@ -153,14 +153,8 @@ public class ComputeImageService extends TaskResourceService {
         auditOp(OperationTypeEnum.CREATE_COMPUTE_IMAGE, true, AuditLogManager.AUDITOP_BEGIN, ci.getId().toString(),
                 ci.getImageUrl(), ci.getComputeImageStatus());
         try {
-        	List<URI> ids = _dbClient.queryByType(ComputeImageServer.class, true);
-            for (URI imageServerId : ids){
-            	ComputeImageServer imageServer = _dbClient.queryObject(ComputeImageServer.class,imageServerId);
-            	if (!imageServer.getComputeImage().contains(ci.getId().toString())){
-            		taskList.addTask(doImportImage(ci,imageServer));
-            	}
-            }
-            return taskList;
+        	
+            return doImportImage(ci);
         } catch (Exception e) {
             ci.setComputeImageStatus(ComputeImageStatus.NOT_AVAILABLE.name());
             _dbClient.persistObject(ci);
@@ -186,7 +180,7 @@ public class ComputeImageService extends TaskResourceService {
     /*
      * Schedules the import task.
      */
-    private TaskResourceRep doImportImage(ComputeImage ci, ComputeImageServer imageServer) {
+    private TaskResourceRep doImportImage(ComputeImage ci) {
         log.info("doImportImage");
         ImageServerController controller = getController(ImageServerController.class, null);
         AsyncTask task = new AsyncTask(ComputeImage.class, ci.getId(), UUID.randomUUID().toString());
@@ -194,7 +188,8 @@ public class ComputeImageService extends TaskResourceService {
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.IMPORT_IMAGE);
         _dbClient.createTaskOpStatus(ComputeImage.class, ci.getId(), task._opId, op);
-        controller.importImage(task,imageServer.getId());
+        controller.importImageToServers(task);
+        //controller.importImage(task,imageServer.getId());
         return TaskMapper.toTask(ci, task._opId, op);
     }
 
@@ -213,7 +208,7 @@ public class ComputeImageService extends TaskResourceService {
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskList updateComputeImage(@PathParam("id") URI id, ComputeImageUpdate param) {
+    public TaskResourceRep updateComputeImage(@PathParam("id") URI id, ComputeImageUpdate param) {
         log.info("updateComputeImage: {}, new name: {}", id, param.getName());
         TaskList taskList = new TaskList();
         ArgValidator.checkFieldUriType(id, ComputeImage.class, "id");
@@ -259,19 +254,21 @@ public class ComputeImageService extends TaskResourceService {
             	ComputeImageServer imageServer = _dbClient.queryObject(ComputeImageServer.class,imageServerId);
            
             	if (reImport || !imageServer.getComputeImage().contains(ci.getId().toString())){
-            		taskList.addTask(doImportImage(ci,imageServer));
+            		
             		hasImportTask = true;
             	}
+            }
+            if (hasImportTask){
+            	return doImportImage(ci);
+            }else{
+            	return getReadyOp(ci, ResourceOperationTypeEnum.UPDATE_IMAGE);
             }
         } catch (Exception e) {
             ci.setComputeImageStatus(ComputeImageStatus.NOT_AVAILABLE.name());
             _dbClient.persistObject(ci);
             throw e;
         }
-        if (!hasImportTask) {
-            taskList.addTask(getReadyOp(ci, ResourceOperationTypeEnum.UPDATE_IMAGE));
-        }
-        return taskList;
+        
     }
 
     /**

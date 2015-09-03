@@ -15,7 +15,10 @@ import com.emc.storageos.model.valid.EnumType;
  */
 @Cf("ComputeImageServer")
 public class ComputeImageServer extends DataObject {
-
+	public static enum ComputeImageServerStatus {
+        AVAILABLE, NOT_AVAILABLE
+    }
+	
     private String imageServerIp;
     private String imageServerUser;
     private String imageServerPassword;
@@ -33,9 +36,7 @@ public class ComputeImageServer extends DataObject {
 
     private String computeImageServerStatus = ComputeImageServerStatus.NOT_AVAILABLE.name();
 
-    public static enum ComputeImageServerStatus {
-        AVAILABLE, NOT_AVAILABLE
-    }
+    
 	@CustomMigrationCallback(callback = ComputeImageServerMigration.class)
     @Name("imageServerIp")
     public String getImageServerIp() {

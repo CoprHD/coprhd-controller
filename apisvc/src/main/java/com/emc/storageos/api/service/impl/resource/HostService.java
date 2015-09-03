@@ -67,6 +67,7 @@ import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeImage;
 import com.emc.storageos.db.client.model.ComputeImage.ComputeImageStatus;
 import com.emc.storageos.db.client.model.ComputeImageJob;
+import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.DataObject;
@@ -143,7 +144,7 @@ import com.sun.jersey.api.NotFoundException;
 /**
  * A service that provides APIs for viewing, updating and removing hosts and their
  * interfaces by authorized users.
- * 
+ *
  */
 @DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
         writeRoles = { Role.TENANT_ADMIN },
@@ -195,7 +196,7 @@ public class HostService extends TaskResourceService {
 
     /**
      * Gets the information for one host.
-     * 
+     *
      * @param id the URN of a ViPR Host
      * @brief Show Host
      * @return All the non-null attributes of the host.
@@ -213,7 +214,7 @@ public class HostService extends TaskResourceService {
 
     /**
      * Lists the id and name for all the hosts that belong to the given tenant organization.
-     * 
+     *
      * @param tid the URN of a ViPR tenant organization
      * @prereq none
      * @brief List hosts
@@ -245,7 +246,7 @@ public class HostService extends TaskResourceService {
     /**
      * Updates one or more of the host attributes. Discovery is initiated
      * after the host is updated.
-     * 
+     *
      * @param id the URN of a ViPR Host
      * @param updateParam the parameter that has the attributes to be
      *            updated.
@@ -323,7 +324,7 @@ public class HostService extends TaskResourceService {
 
     /**
      * Discovers (refreshes) a host. This is an asynchronous call.
-     * 
+     *
      * @param id The URI of the host.
      * @prereq none
      * @brief Discover host
@@ -342,7 +343,7 @@ public class HostService extends TaskResourceService {
 
     /**
      * Host Discovery
-     * 
+     *
      * @param the Host to be discovered.
      *            provided, a new taskId is generated.
      * @return the task used to track the discovery job
@@ -374,7 +375,7 @@ public class HostService extends TaskResourceService {
 
     /**
      * Validates the create/update host input data
-     * 
+     *
      * @param hostParam the input parameter
      * @param host the host being updated in case of update operation.
      *            This parameter must be null for create operations.n
@@ -487,7 +488,7 @@ public class HostService extends TaskResourceService {
 
     /**
      * Deactivates the host and all its interfaces.
-     * 
+     *
      * @param id the URN of a ViPR Host to be deactivated
      * @param detachStorage
      *            if true, will first detach storage.
@@ -544,7 +545,7 @@ public class HostService extends TaskResourceService {
     /**
      * Updates export groups and fileshare exports that are referenced by the given host by removing
      * the host reference, initiators and IP interfaces belonging to this host. Volumes are left intact.
-     * 
+     *
      * @param id the URN of a ViPR Host
      * @brief Detach storage from Host
      * @return OK if detaching completed successfully
@@ -573,7 +574,7 @@ public class HostService extends TaskResourceService {
 
     /**
      * Creates a new ip interface for a host.
-     * 
+     *
      * @param id the URN of a ViPR Host
      * @param createParam the details of the interfaces
      * @brief Create Host Interface Ip
@@ -602,7 +603,7 @@ public class HostService extends TaskResourceService {
 
     /**
      * Validates the create/update IP interface operation input data.
-     * 
+     *
      * @param param the input parameter
      * @param ipInterface the IP interface being updated in case of update operation.
      *            This parameter must be null for create operations.
@@ -633,7 +634,7 @@ public class HostService extends TaskResourceService {
 
     /**
      * Gets the id and name for all the interfaces of a host.
-     * 
+     *
      * @param id the URN of a ViPR Host
      * @brief List Host Interfaces
      * @return a list of interfaces that belong to the host
@@ -658,7 +659,7 @@ public class HostService extends TaskResourceService {
 
     /**
      * Creates a new initiator for a host.
-     * 
+     *
      * @param id the URN of a ViPR Host
      * @param createParam the details of the initiator
      * @brief Create Host Initiator
@@ -707,7 +708,7 @@ public class HostService extends TaskResourceService {
 
     /**
      * Validates the create/update initiator operation input data.
-     * 
+     *
      * @param param the input parameter
      * @param initiator the initiator being updated in case of update operation.
      *            This parameter must be null for create operations.n
@@ -757,7 +758,7 @@ public class HostService extends TaskResourceService {
 
     /**
      * Gets the id and name for all the host initiators of a host.
-     * 
+     *
      * @param id the URN of a ViPR Host
      * @brief List Host Initiators
      * @return a list of initiators that belong to the host
@@ -782,7 +783,7 @@ public class HostService extends TaskResourceService {
 
     /**
      * Populates the interface using values in the parameter
-     * 
+     *
      * @param param the interface creation/update parameter that contains all the attributes
      * @param the IP interface to be to be populated with data.
      */
@@ -806,7 +807,7 @@ public class HostService extends TaskResourceService {
 
     /**
      * Populates the initiator using values in the parameter
-     * 
+     *
      * @param param the initiator creation/update parameter that contains all the attributes
      * @param the initiator to be to be populated with data.
      */
@@ -825,7 +826,7 @@ public class HostService extends TaskResourceService {
 
     /**
      * Creates a new instance of host.
-     * 
+     *
      * @param tenant the host parent tenant organization
      * @param param the input parameter containing the host attributes
      * @return an instance of {@link Host}
@@ -850,7 +851,7 @@ public class HostService extends TaskResourceService {
 
     /**
      * Populate an instance of host with the provided host parameter
-     * 
+     *
      * @param host the host to be populated
      * @param param the parameter that contains the host attributes.
      */
@@ -917,7 +918,7 @@ public class HostService extends TaskResourceService {
      * Returns the instance of host for the given id. Throws {@link DatabaseException} when id is not a valid URI. Throws
      * {@link NotFoundException} when the host has
      * been delete.
-     * 
+     *
      * @param dbClient an instance of {@link DbClient}
      * @param id the URN of a ViPR Host to be fetched.
      * @return the instance of host for the given id.
@@ -929,11 +930,11 @@ public class HostService extends TaskResourceService {
 
     /**
      * Retrieve resource representations based on input ids.
-     * 
+     *
      * @param param POST data containing the id list.
      * @brief List data of host resources
      * @return list of representations.
-     * 
+     *
      * @throws DatabaseException When an error occurs querying the database.
      */
     @POST
@@ -1030,7 +1031,7 @@ public class HostService extends TaskResourceService {
 
     /**
      * Gets the UnManagedVolumes exposed to a Host.
-     * 
+     *
      * @param id the URI of a ViPR Host
      * @return a list of UnManagedVolumes exposed to this host
      * @throws DatabaseException when a database error occurs
@@ -1058,7 +1059,7 @@ public class HostService extends TaskResourceService {
 
     /**
      * Gets the UnManagedExportMasks found for a Host.
-     * 
+     *
      * @param id the URI of a ViPR Host
      * @return a list of UnManagedExportMasks found for the Host
      * @throws DatabaseException when a database error occurs
@@ -1087,7 +1088,7 @@ public class HostService extends TaskResourceService {
     /**
      * Creates a new host for the tenant organization. Discovery is initiated
      * after the host is created.
-     * 
+     *
      * @param createParam
      *            the parameter that has the type and attribute of the host to
      *            be created.
@@ -1124,7 +1125,7 @@ public class HostService extends TaskResourceService {
     /**
      * Provision bare metal hosts by taking compute elements from the compute
      * virtual pool.
-     * 
+     *
      * @param param
      *            parameter for multiple host creation
      * @brief Provision bare metal hosts
@@ -1361,6 +1362,7 @@ public class HostService extends TaskResourceService {
         List<Map.Entry<URI, Integer>> list = new LinkedList<Map.Entry<URI, Integer>>(
                 computeSystemToNumComputeElementsMap.entrySet());
         Collections.sort(list, new Comparator<Map.Entry<URI, Integer>>() {
+            @Override
             public int compare(Map.Entry<URI, Integer> o1, Map.Entry<URI, Integer> o2) {
                 return o1.getValue().compareTo(o2.getValue());
             }
@@ -1687,7 +1689,7 @@ public class HostService extends TaskResourceService {
                          * slotIdSet.add(slotId);
                          * slotIdAvailabilityMap.put(availabilityCount,slotIdSet);
                          * }
-                         * 
+                         *
                          * Iterator<Integer> iterator = slotIdAvailabilityMap.keySet().iterator();
                          * while(iterator.hasNext()){
                          * Integer availabilityCount = iterator.next();
@@ -1810,7 +1812,7 @@ public class HostService extends TaskResourceService {
 
     /**
      * Install operating system on the host.
-     * 
+     *
      * @param hostId
      *            host URI
      * @param param
@@ -1864,6 +1866,8 @@ public class HostService extends TaskResourceService {
 
         ComputeSystem cs = queryObject(ComputeSystem.class, ce.getComputeSystem(), true);
         ArgValidator.checkEntity(cs, ce.getComputeSystem(), isIdEmbeddedInURL(ce.getComputeSystem()));
+
+        verifyImagePresentOnImageServer(cs, img);
 
         if (!StringUtils.isNotBlank(cs.getOsInstallNetwork())) {
             throw APIException.badRequests.osInstallNetworkNotSet();
@@ -1952,5 +1956,34 @@ public class HostService extends TaskResourceService {
         }
 
         return toTask(host, taskId, op);
+    }
+
+    /**
+     * Method to check if the selected image is present on the
+     * ComputeImageServer which is associated with the CoputeSystem
+     *
+     * @param cs {@link  ComputeSystem}
+     * @param img {@link ComputeImage} instance selected
+     * @throws APIException
+     */
+    private void verifyImagePresentOnImageServer(ComputeSystem cs,
+            ComputeImage img) throws APIException {
+
+        URI imageServerURI = cs.getComputeImageServer();
+        if (imageServerURI == null) {
+            throw APIException.badRequests.invalidParameter(
+                    "Compute System does not have an Image Server associated.",
+                    cs.getLabel());
+        } else {
+            ComputeImageServer imageServer = queryObject(
+                    ComputeImageServer.class, imageServerURI, true);
+            StringSet computeImagesSet = imageServer.getComputeImage();
+            if (computeImagesSet == null
+                    || !computeImagesSet.contains(img.getId())) {
+                throw APIException.badRequests
+                        .imageNotPresentOnComputeImageServer(img.getLabel(),
+                                imageServer.getLabel());
+            }
+        }
     }
 }

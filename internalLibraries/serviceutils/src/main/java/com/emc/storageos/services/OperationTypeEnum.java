@@ -381,8 +381,8 @@ public enum OperationTypeEnum {
     UPDATE_USERGROUP("UPDATE USER GROUP", "", "operation to update a user group."),
     DELETE_USERGROUP("DELETE USER GROUP", "", "operation to delete a user group."),
     ArrayGeneric("", "", ""),
-    CREATE_COMPUTE_IMAGESERVER("CREATE COMPUTE IMAGE SERVER", "", "operation to create a compute image server."),
-    UPDATE_COMPUTE_IMAGESERVER("UPDATE COMPUTE IMAGE SERVER", "", "operation to update a compute image server."),
+    IMAGESERVER_VERIFY_IMPORT_IMAGES("IMAGESERVER_VERIFY_IMPORT_IMAGES", "", "operation to verify a compute image server and import images."),
+    UPDATE_VERIFY_COMPUTE_IMAGESERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER", "", "operation to update and verfiy a compute image server."),
     DELETE_COMPUTE_IMAGESERVER("DELETE COMPUTE IMAGE SERVER", "", "operation to delete a compute image server."),;
 
     private final String _evType;

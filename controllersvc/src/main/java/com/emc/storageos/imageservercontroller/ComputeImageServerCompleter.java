@@ -38,7 +38,7 @@ public class ComputeImageServerCompleter extends TaskCompleter{
         AuditLogManager auditMgr = new AuditLogManager();
         auditMgr.setDbClient(dbClient);
         if (status == Status.error) {
-            if (opType == OperationTypeEnum.CREATE_COMPUTE_IMAGESERVER) {
+            if (opType == OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES) {
                 imageServer.setComputeImageServerStatus(ComputeImageStatus.NOT_AVAILABLE.name());
                 //imageServer.setLastImportStatusMessage(coded.getMessage());
                 dbClient.persistObject(imageServer);
@@ -51,7 +51,7 @@ public class ComputeImageServerCompleter extends TaskCompleter{
         } else {
             if (opType == OperationTypeEnum.DELETE_COMPUTE_IMAGESERVER) {
                 dbClient.markForDeletion(imageServer);
-            } else if (opType == OperationTypeEnum.CREATE_COMPUTE_IMAGESERVER) {
+            } else if (opType == OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES) {
                 imageServer.setComputeImageServerStatus(ComputeImageStatus.AVAILABLE.name());
 
                 dbClient.persistObject(imageServer);

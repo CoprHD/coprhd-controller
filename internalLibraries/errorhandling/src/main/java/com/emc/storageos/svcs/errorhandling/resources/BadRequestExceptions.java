@@ -5,14 +5,14 @@
 
 package com.emc.storageos.svcs.errorhandling.resources;
 
-import com.emc.storageos.model.block.export.VolumeParam;
-import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
-import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
-
 import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+
+import com.emc.storageos.model.block.export.VolumeParam;
+import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
+import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 
 /**
  * This interface holds all the methods used to create an error condition that will be associated
@@ -795,8 +795,8 @@ public interface BadRequestExceptions {
     public BadRequestException failedToLoadKeyFromString(final Throwable e);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException truststoreUpdatePartialSuccess(
-            final List<String> failedParse, final List<String> notInTruststore);
+    public BadRequestException trustStoreUpdatePartialSuccess(
+            final List<String> failedParse, final List<String> expired, final List<String> notInTrustStore);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_URI)
     public BadRequestException invalidSeverityInURI(final String severity, final String severities);
@@ -2340,4 +2340,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException storagePoolsRequireVplexForProtection(final String personality, final String vpoolName);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException imageNotPresentOnComputeImageServer(final String computeImage, final String computeImageServer);
 }

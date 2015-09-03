@@ -21,7 +21,7 @@ import com.emc.vipr.client.Task;
 @Service("RestoreBlockSnapshot")
 public class RestoreBlockSnapshotService extends ViPRService {
 
-    @Param(STORAGE_TYPE)
+    @Param(value = STORAGE_TYPE, required = false)
     protected String storageType;
 
     @Param(CONSISTENCY_GROUP)

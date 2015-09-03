@@ -23,7 +23,7 @@ import com.google.common.collect.Lists;
 @Service("CreateBlockSnapshot")
 public class CreateBlockSnapshotService extends ViPRService {
 
-    @Param(STORAGE_TYPE)
+    @Param(value = STORAGE_TYPE, required = false)
     protected String storageType;
 
     @Param(VOLUMES)

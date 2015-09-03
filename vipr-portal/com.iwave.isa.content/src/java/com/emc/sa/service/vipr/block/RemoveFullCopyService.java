@@ -19,7 +19,7 @@ import com.emc.storageos.model.block.BlockObjectRestRep;
 @Service("RemoveFullCopy")
 public class RemoveFullCopyService extends ViPRService {
 
-    @Param(STORAGE_TYPE)
+    @Param(value = STORAGE_TYPE, required = false)
     protected String storageType;
 
     @Param(VOLUME)

@@ -21,7 +21,7 @@ import com.emc.vipr.client.Tasks;
 @Service("CreateFullCopy")
 public class CreateFullCopyService extends ViPRService {
 
-    @Param(STORAGE_TYPE)
+    @Param(value = STORAGE_TYPE, required = false)
     protected String storageType;
 
     @Param(VOLUMES)

@@ -615,7 +615,6 @@ public class RecoverPointClient {
     		for (CreateCopyParams copyParam : copyParams) {
     			for (CreateVolumeParams journalVolume: copyParam.getJournals()) {
     				ClusterUID clusterId = RecoverPointUtils.getRPSiteID(functionalAPI, journalVolume.getInternalSiteName()); 
-    				//Set<RPSite> allSites = getAssociatedRPSites();    
     				ConsistencyGroupCopyUID copyUID = getCGCopyUid(clusterId, getCopyType(copyType), cgUID);    				
     				functionalAPI.addJournalVolume(copyUID, RecoverPointUtils.getDeviceID(allSites, journalVolume.getWwn()));        		
     			}    			
@@ -691,6 +690,12 @@ public class RecoverPointClient {
         return null;
     }
 
+    /**
+     * Determines and creates RecoverPointCGCopyType type based on passed int value
+     * 
+     * @param type - the copy type
+     * @return RecoverPointCGCopyType representing the copy type
+     */
     private RecoverPointCGCopyType getCopyType(int type) {
     	RecoverPointCGCopyType copyType = RecoverPointCGCopyType.PRODUCTION;
     	if (type == RecoverPointCGCopyType.LOCAL.getCopyNumber()) {

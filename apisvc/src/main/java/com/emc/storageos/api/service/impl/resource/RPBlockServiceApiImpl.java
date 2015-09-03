@@ -796,12 +796,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             String rpInternalSiteName = rpRec.getInternalSiteName();
             URI storagePoolUri = rpRec.getSourceStoragePool();
             URI storageSystemUri = rpRec.getSourceStorageSystem();            
-            String size = param.getSize();            
-            
-            // Re-calculate size if this is a journal volume
-            if (personalityType.equals(Volume.PersonalityTypes.METADATA)) {
-                size = String.valueOf(RPHelper.getJournalSizeGivenPolicy(param.getSize(), vpool.getJournalSize(), rpRec.getResourceCount()));
-            }
+            String size = String.valueOf(rpRec.getSize());
                         
             // If the copy name was passed in as null, set it now using the varray label.
             copyName = ((copyName != null) ? copyName : varray.getLabel());
@@ -880,7 +875,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     }
 
     /**
-     * Call out to the VPLEX to prepare the Volume and add all VPLEX necesseary pieces
+     * Call out to the VPLEX to prepare the Volume and add all VPLEX necessary pieces
      * 
      * @param vplexRecommendations
      * @param singleRecommendation

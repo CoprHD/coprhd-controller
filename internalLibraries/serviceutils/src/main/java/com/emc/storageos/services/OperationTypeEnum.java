@@ -380,6 +380,7 @@ public enum OperationTypeEnum {
     CREATE_USERGROUP("CREATE USER GROUP", "", "operation to create a user group."),
     UPDATE_USERGROUP("UPDATE USER GROUP", "", "operation to update a user group."),
     DELETE_USERGROUP("DELETE USER GROUP", "", "operation to delete a user group."),
+    ADD_JOURNAL_VOLUME("ADD JOURNAL VOLUME", "", "operation to add a journal volume"),
     ArrayGeneric("", "", "");
 
     private final String _evType;

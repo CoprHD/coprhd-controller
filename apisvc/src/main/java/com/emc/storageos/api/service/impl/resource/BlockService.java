@@ -4216,6 +4216,8 @@ public class BlockService extends TaskResourceService {
         Project project = _permissionsHelper.getObjectById(param.getProject(), Project.class);
         ArgValidator.checkEntity(project, param.getProject(), isIdEmbeddedInURL(param.getProject()));
 
+        final URI actualId = project.getId();
+        
         // Verify the user is authorized.
         BlockServiceUtils.verifyUserIsAuthorizedForRequest(project, getUserFromContext(), _permissionsHelper);
 
@@ -4294,8 +4296,8 @@ public class BlockService extends TaskResourceService {
         String task = UUID.randomUUID().toString();
 
         // TODO: create OperationTypeEnum.ADD_JOURNAL_CAPACITY (this is for logging)
-        //auditOp(OperationTypeEnum.CREATE_BLOCK_VOLUME, true, AuditLogManager.AUDITOP_BEGIN,
-        //        param.getName(), volumeCount, varray.getId().toString(), actualId.toString());
+        auditOp(OperationTypeEnum.ADD_JOURNAL_VOLUME, true, AuditLogManager.AUDITOP_BEGIN,
+                param.getName(), volumeCount, varray.getId().toString(), actualId.toString());
         
         // add the journal capacity to the CG        
         RPBlockServiceApiImpl blockServiceImpl = (RPBlockServiceApiImpl)getBlockServiceImpl(DiscoveredDataObject.Type.rp.name());

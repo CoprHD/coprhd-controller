@@ -846,7 +846,8 @@ public class HostService extends TaskResourceService {
         host.setTenant(tenant.getId());
         populateHostData(host, param);
         if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
-            if (ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
+            Cluster cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
+            if (ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()) && cluster.isAutoExportEnabled()) {
                 String taskId = UUID.randomUUID().toString();
                 ComputeSystemController controller = getController(ComputeSystemController.class, null);
                 controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, null);

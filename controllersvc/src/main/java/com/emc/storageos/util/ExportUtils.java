@@ -1234,7 +1234,8 @@ public class ExportUtils {
                 assignments.get(iniUri).addAll(StringSetUtil.stringSetToUriList(iniPorts));
             }
         }
-     
+    }
+
     /**
      * Gets the ExportGroup to be used for VPlex when reusing an ExportMask.
      * Will find the ExportGroup containing the mask, or it will create a new one if necessary.

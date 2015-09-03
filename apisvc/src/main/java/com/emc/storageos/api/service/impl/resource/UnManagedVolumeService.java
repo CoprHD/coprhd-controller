@@ -208,10 +208,6 @@ public class UnManagedVolumeService extends TaskResourceService {
         if (param.getUnManagedVolumes().size() > getMaxBulkSize()) {
             throw APIException.badRequests.exceedingLimit("unmanaged volumes", getMaxBulkSize());
         }
-        
-        // TODO: temporary for UI testing
-        _logger.info("VPLEX ingestion method is " + param.getVplexIngestionMethod());
-        
         TaskList taskList = new TaskList();
         List<UnManagedVolume> unManagedVolumes = new ArrayList<UnManagedVolume>();
         Map<String, String> taskMap = new HashMap<String, String>();
@@ -275,7 +271,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                     BlockObject blockObject = ingestStrategy.ingestBlockObjects(full_systems, full_pools, system, unManagedVolume, vpool,
                             varray,
                             project, tenant, unManagedVolumes, createdObjectMap, updatedObjectMap, false,
-                            getBlockObjectClass(unManagedVolume), taskStatusMap, param.getVplexIngestionMethod());
+                            VolumeIngestionUtil.getBlockObjectClass(unManagedVolume), taskStatusMap, param.getVplexIngestionMethod());
                     _logger.info("Ingestion ended for unmanagedvolume {}", unManagedVolume.getNativeGuid());
                     if (null == blockObject) {
                         throw IngestionException.exceptions.generalVolumeException(
@@ -411,7 +407,7 @@ public class UnManagedVolumeService extends TaskResourceService {
                 BlockObject blockObject = ingestStrategy.ingestBlockObjects(systemCache, poolCache, system, unManagedVolume, vPool,
                         virtualArray,
                         project, tenant, unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap, true,
-                        getBlockObjectClass(unManagedVolume), taskStatusMap, vplexIngestionMethod);
+                        VolumeIngestionUtil.getBlockObjectClass(unManagedVolume), taskStatusMap, vplexIngestionMethod);
 
                 _logger.info("Ingestion ended for exported unmanagedvolume {}", unManagedVolume.getNativeGuid());
                 if (null == blockObject) {
@@ -543,10 +539,6 @@ public class UnManagedVolumeService extends TaskResourceService {
     @Path("/volumes/ingest-exported")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskList ingestExportedVolumes(VolumeExportIngestParam exportIngestParam) throws InternalException {
-        
-        // TODO: temporary for UI testing
-        _logger.info("VPLEX ingestion method is " + exportIngestParam.getVplexIngestionMethod());
-        
         TaskList taskList = new TaskList();
         Map<String, TaskResourceRep> taskMap = new HashMap<String, TaskResourceRep>();
         Map<String, StringBuffer> taskStatusMap = new HashMap<String, StringBuffer>();
@@ -664,18 +656,6 @@ public class UnManagedVolumeService extends TaskResourceService {
         }
 
         return taskList;
-    }
-
-    @SuppressWarnings("rawtypes")
-    private Class getBlockObjectClass(UnManagedVolume unManagedVolume) {
-        Class blockObjectClass = Volume.class;
-        if (VolumeIngestionUtil.isSnapshot(unManagedVolume)) {
-            blockObjectClass = BlockSnapshot.class;
-        } else if (VolumeIngestionUtil.isMirror(unManagedVolume)) {
-            blockObjectClass = BlockMirror.class;
-        }
-
-        return blockObjectClass;
     }
 
     /**

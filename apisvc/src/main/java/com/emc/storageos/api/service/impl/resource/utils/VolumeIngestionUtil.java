@@ -336,7 +336,7 @@ public class VolumeIngestionUtil {
             List<URI> targetUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeNativeGuidConstraint(targetId));
             if (null != targetUris && !targetUris.isEmpty()) {
                 BlockObject bo = (BlockObject) dbClient.queryObject(targetUris.get(0));
-                _logger.info("clone block object is: " + bo);
+                _logger.info("found clone block object: " + bo);
                 if (null != bo) {
                     targetUriList.add(bo);
                 }
@@ -359,7 +359,7 @@ public class VolumeIngestionUtil {
             List<URI> targetUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getMirrorByNativeGuid(targetId));
             if (null != targetUris && !targetUris.isEmpty()) {
                 BlockObject bo = (BlockObject) dbClient.queryObject(targetUris.get(0));
-                _logger.info("mirror block object is: " + bo);
+                _logger.info("found mirror block object: " + bo);
                 if (null != bo) {
                     targetUriList.add(bo);
                 }
@@ -382,7 +382,7 @@ public class VolumeIngestionUtil {
             List<URI> targetUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getBlockSnapshotsByNativeGuid(targetId));
             if (null != targetUris && !targetUris.isEmpty()) {
                 BlockObject bo = (BlockObject) dbClient.queryObject(targetUris.get(0));
-                _logger.info("snapshot block object is: " + bo);
+                _logger.info("found snapshot block object: " + bo);
                 if (null != bo) {
                     targetUriList.add(bo);
                 }
@@ -455,7 +455,7 @@ public class VolumeIngestionUtil {
         }
         return false;
     }
-    
+
     /**
      * check if unManagedVolume is already exported to Host
      * 
@@ -709,17 +709,6 @@ public class VolumeIngestionUtil {
         return TRUE.equals(status);
     }
 
-    public static boolean isSyncActive(UnManagedVolume volume) {
-        if (null == volume.getVolumeInformation()) {
-            return false;
-        }
-
-        String status = PropertySetterUtil.extractValueFromStringSet(
-                SupportedVolumeInformation.IS_SYNC_ACTIVE.toString(), 
-                volume.getVolumeInformation());
-        return TRUE.equals(status);
-    }
-
     /**
      * Determines if the varray specified in the ingestion request is valid for
      * the volume being ingested. Principally applies to VPLEX volumes, which
@@ -730,10 +719,11 @@ public class VolumeIngestionUtil {
      * @param varrayURI The URI of the varray into which it will be ingested.
      * @param dbClient A reference to a DB client.
      * 
-     * @return true if the unmanaged volume can be ingested into the varray, false otherwise.
+     * @throws IngestionException if varray is invalid for UnManagedVolume
      */
-    public static boolean checkValidVarrayForUnmanagedVolume(UnManagedVolume unmanagedVolume, URI varrayURI,
-            Map<String, String> clusterIdToNameMap, Map<String, String> varrayToClusterIdMap, DbClient dbClient) {
+    public static void checkValidVarrayForUnmanagedVolume(UnManagedVolume unmanagedVolume, URI varrayURI,
+            Map<String, String> clusterIdToNameMap, Map<String, String> varrayToClusterIdMap, DbClient dbClient) 
+            throws IngestionException {
         if (isVplexVolume(unmanagedVolume)) {
             StringSet unmanagedVolumeClusters = unmanagedVolume.getVolumeInformation().get(
                     SupportedVolumeInformation.VPLEX_CLUSTER_IDS.toString());
@@ -776,8 +766,6 @@ public class VolumeIngestionUtil {
                 throw IngestionException.exceptions.varrayIsInvalidForVplexVolume(unmanagedVolume.getLabel(), reason);
             }
         }
-
-        return true;
     }
 
     /**
@@ -1428,9 +1416,8 @@ public class VolumeIngestionUtil {
         for (Set<String> hostInitiatorsUri : initiatorUris) {
             List<Initiator> initiators = CustomQueryUtility.iteratorToList(dbModelClient.find(Initiator.class,
                     StringSetUtil.stringSetToUriList(hostInitiatorsUri)));
-            if (hasFCInitiators (initiators)) {
-                // TODO: revert, just for testing
-                // return verifyHostNumPath(pathParams, initiators, zoningMap);
+            if (hasFCInitiators(initiators)) {
+                return verifyHostNumPath(pathParams, initiators, zoningMap);
             }
         }
         return true;

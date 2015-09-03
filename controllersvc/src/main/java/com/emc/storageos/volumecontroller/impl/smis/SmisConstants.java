@@ -366,6 +366,7 @@ public interface SmisConstants {
     static final String CP_EMC_COLLECTIONS = "EMCCollections";
     static final String CP_COLLECTIONS = "Collections";
     static final String CP_EMC_FORCE = "EMCForce";
+    static final String CP_MAX_UNITS_CONTROLLED = "MaxUnitsControlled";
 
     // Host IO Limit for VMAX
     static final String EMC_MAX_BANDWIDTH = "EMCMaximumBandwidth";

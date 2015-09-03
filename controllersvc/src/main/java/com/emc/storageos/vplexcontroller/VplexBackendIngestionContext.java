@@ -38,8 +38,10 @@ import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
 
 public class VplexBackendIngestionContext {
 
-    public static final String UNMANAGEDVOLUME = "UNMANAGEDVOLUME";
     public static final String VOLUME = "VOLUME";
+    public static final String UNMANAGEDVOLUME = "UNMANAGEDVOLUME";
+    public static final String INGESTION_METHOD_FULL = "Full";
+    public static final String INGESTION_METHOD_VVOL_ONLY = "VirtualVolumeOnly";
     public static final String DISCOVERY_MODE = "controller_vplex_volume_discovery_mode";
     public static final String DISCOVERY_MODE_DISCOVERY_ONLY = "Only During Discovery";
     public static final String DISCOVERY_MODE_INGESTION_ONLY = "Only During Ingestion";
@@ -104,6 +106,14 @@ public class VplexBackendIngestionContext {
         allVolumes.addAll(getUnmanagedMirrors().keySet());
         _logger.info("collected all unmanaged volumes: " + allVolumes);
         return allVolumes;
+    }
+    
+    public List<URI> getAllUnManagedVolumeUris() {
+        List<URI> allUris = new ArrayList<URI>();
+        for (UnManagedVolume vol : getAllUnmanagedVolumes()) {
+            allUris.add(vol.getId());
+        }
+        return allUris;
     }
     
     public List<UnManagedVolume> getUnmanagedBackendVolumes() {
@@ -252,6 +262,17 @@ public class VplexBackendIngestionContext {
         return associatedVolumeGuids;
     }
 
+    public boolean isBackendVolume(UnManagedVolume volumeToCheck) {
+        String id = volumeToCheck.getId().toString();
+        for (UnManagedVolume vol : getUnmanagedBackendVolumes()) {
+            if (id.equals(vol.getId().toString())) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
     public List<UnManagedVolume> getUnmanagedSnapshots() {
         if (null != unmanagedSnapshots) {
             return unmanagedSnapshots;

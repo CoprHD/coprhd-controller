@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -104,7 +105,7 @@ public class VolumeIngestionUtil {
      */
     public static void checkIngestionRequestValidForUnManagedVolumes(
             List<URI> unManagedVolumes, VirtualPool vPool, DbClient dbClient)
-            throws Exception {
+            throws IngestionException {
 
         for (URI unManagedVolumeUri : unManagedVolumes) {
             UnManagedVolume unManagedVolume = dbClient.queryObject(UnManagedVolume.class,
@@ -114,15 +115,20 @@ public class VolumeIngestionUtil {
 
             StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
 
-            // a VPLEX volume and snapshot will not have an associated pool
-            if (!isVplexVolume(unManagedVolume) && !isSnapshot(unManagedVolume)) {
-                checkStoragePoolValidForUnManagedVolumeUri(unManagedVolumeInformation,
-                        dbClient, unManagedVolumeUri);
-            }
+            try {
+                // a VPLEX volume and snapshot will not have an associated pool
+                if (!isVplexVolume(unManagedVolume) && !isSnapshot(unManagedVolume)) {
+                    checkStoragePoolValidForUnManagedVolumeUri(unManagedVolumeInformation,
+                            dbClient, unManagedVolumeUri);
+                }
 
-            if (!isVplexBackendVolume(unManagedVolume)) {
-                checkVPoolValidForGivenUnManagedVolumeUris(unManagedVolumeInformation, unManagedVolume,
-                        vPool.getId());
+                if (!isVplexBackendVolume(unManagedVolume)) {
+                    checkVPoolValidForGivenUnManagedVolumeUris(unManagedVolumeInformation, unManagedVolume,
+                            vPool.getId());
+                }
+            } catch (APIException ex) {
+                _logger.error(ex.getLocalizedMessage());
+                throw IngestionException.exceptions.validationException(ex.getLocalizedMessage());
             }
         }
     }
@@ -528,7 +534,7 @@ public class VolumeIngestionUtil {
      */
     private static void checkStoragePoolValidForUnManagedVolumeUri(
             StringSetMap unManagedVolumeInformation, DbClient dbClient,
-            URI unManagedVolumeUri) throws Exception {
+            URI unManagedVolumeUri) throws APIException {
         String pool = PropertySetterUtil.extractValueFromStringSet(VolumeObjectProperties.STORAGE_POOL.toString(),
                 unManagedVolumeInformation);
         if (null == pool) {

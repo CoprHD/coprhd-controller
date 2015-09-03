@@ -270,19 +270,26 @@ public abstract class BlockIngestExportOrchestrator extends ResourceService {
                     }
                     boolean hostPartOfCluster = false;
 
-                    Map<String, Set<String>> iniByProtocol = VolumeIngestionUtil.groupInitiatorsByProtocol(initiatorSet,
-                            _dbClient);
-                    eligibleMasks = VolumeIngestionUtil.findMatchingExportMaskForHost(blockObject, unManagedMasks, initiatorSet,
-                            iniByProtocol, _dbClient, param.getVarray(), param.getVpool(), hostPartOfCluster,
+                    Map<String, Set<String>> iniByProtocol = 
+                            VolumeIngestionUtil.groupInitiatorsByProtocol(initiatorSet, _dbClient);
+                    eligibleMasks = VolumeIngestionUtil.findMatchingExportMaskForHost(
+                            blockObject, unManagedMasks, initiatorSet,
+                            iniByProtocol, _dbClient, param.getVarray(), 
+                            param.getVpool(), hostPartOfCluster,
                             getInitiatorsOfCluster(null, hostPartOfCluster), null);
                     if (!eligibleMasks.isEmpty()) {
-                        _logger.info("Eligible masks {} found for device initiators {}", Joiner.on(",").join(eligibleMasks), deviceInitiators);
+                        _logger.info("Eligible masks {} found for device initiators {}", 
+                                Joiner.on(",").join(eligibleMasks), deviceInitiators);
                     } else {
-                        _logger.info("No eligible unmanaged export masks found for device initiators {}", deviceInitiators);
+                        _logger.info("No eligible unmanaged export masks found for device initiators {}", 
+                                deviceInitiators);
                     }
                     for (UnManagedExportMask eligibleMask : eligibleMasks) {
-                        VolumeIngestionUtil.createExportMask(eligibleMask, system, unManagedVolume, exportGroup, blockObject,
-                                _dbClient, hosts, cluster, deviceInitiators.get(0).getHostName());
+                        // this getHostName will be the name of the VPLEX device
+                        VolumeIngestionUtil.createExportMask(eligibleMask, system, 
+                                unManagedVolume, exportGroup, blockObject,
+                                _dbClient, hosts, cluster, 
+                                deviceInitiators.get(0).getHostName());
                         uemsToPersist.add(eligibleMask);
                         masksIngestedCount.increment();
                     }

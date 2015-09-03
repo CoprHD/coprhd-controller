@@ -1244,7 +1244,8 @@ public class VPlexBackendManager {
         boolean externallyCreatedMasks = false;
         boolean viprCreatedMasks = false;
 
-        for (ExportMask mask : maskSet.values()) {
+        for (URI exportMaskURI : placementDescriptor.getPlacedMasks()) {
+            ExportMask mask = maskSet.get(exportMaskURI);
             _log.info(String.format("Validating ExportMask %s (%s) %s", mask.getMaskName(), mask.getId(),
                     (mask.getCreatedBySystem() ? "ViPR created" : "Externally created")));
             if (validateExportMask(varrayURI, _initiatorPortMap, mask, invalidMasks)) {

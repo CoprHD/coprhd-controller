@@ -2438,7 +2438,7 @@ public class BlockService extends TaskResourceService {
             // Validate a copy type was passed
             ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
-            if (copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
+            if (TechnologyType.NATIVE.toString().equalsIgnoreCase(copy.getType())) {
 
                 String task = UUID.randomUUID().toString();
 

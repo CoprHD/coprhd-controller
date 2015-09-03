@@ -37,14 +37,14 @@ public class ObjectDeviceController implements ObjectController {
 	@Override
 	public void connectStorage(URI storage) throws InternalException {
 		// TODO Auto-generated method stub
-		_log.info("ObjectDeviceController connectStorage");
+		_log.info("ObjectDeviceController:connectStorage");
 
 	}
 
 	@Override
 	public void disconnectStorage(URI storage) throws InternalException {
 		// TODO Auto-generated method stub
-		_log.info("ObjectDeviceController disconnectStorage");
+		_log.info("ObjectDeviceController:disconnectStorage");
 
 	}
 
@@ -52,7 +52,7 @@ public class ObjectDeviceController implements ObjectController {
 	public void discoverStorageSystem(AsyncTask[] tasks)
 			throws InternalException {
 		// TODO Auto-generated method stub
-		_log.info("ObjectDeviceController discoverStorageSystem");
+		_log.info("ObjectDeviceController:discoverStorageSystem");
 
 	}
 
@@ -60,7 +60,7 @@ public class ObjectDeviceController implements ObjectController {
 	public void scanStorageProviders(AsyncTask[] tasks)
 			throws InternalException {
 		// TODO Auto-generated method stub
-		_log.info("ObjectDeviceController scanStorageProviders");
+		_log.info("ObjectDeviceController:scanStorageProviders");
 
 	}
 
@@ -68,8 +68,11 @@ public class ObjectDeviceController implements ObjectController {
 	public void startMonitoring(AsyncTask task, Type deviceType)
 			throws InternalException {
 		// TODO Auto-generated method stub
-		_log.info("ObjectDeviceController startMonitoring");
+		_log.info("ObjectDeviceController:startMonitoring");
 
 	}
+	
+	//Implementation
+	//Create bucket and delete bucket
 
 }

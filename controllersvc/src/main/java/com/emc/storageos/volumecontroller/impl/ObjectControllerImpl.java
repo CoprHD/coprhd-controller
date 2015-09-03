@@ -43,7 +43,7 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
     
 	@Override
 	public void connectStorage(URI storage) throws InternalException {
-		_log.info("ObjectControllerImpl connectStorage");
+		_log.info("ObjectControllerImpl:connectStorage");
 		 execFS("connectStorage", storage);
 
 	}
@@ -57,7 +57,7 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
 	@Override
 	public void discoverStorageSystem(AsyncTask[] tasks)
 			throws InternalException {
-		_log.info("ObjectControllerImpl discoverStorageSystem");
+		_log.info("ObjectControllerImpl:discoverStorageSystem");
         try {
             ControllerServiceImpl.scheduleDiscoverJobs(tasks, Lock.DISCOVER_COLLECTION_LOCK, ControllerServiceImpl.DISCOVERY);
         } catch (Exception e) {
@@ -72,7 +72,7 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
 	@Override
 	public void scanStorageProviders(AsyncTask[] tasks)
 			throws InternalException {
-		_log.info("ObjectControllerImpl scanStorageProviders");
+		_log.info("ObjectControllerImpl:scanStorageProviders");
 		 throw ClientControllerException.fatals.unableToScanSMISProviders(tasks, "ObjectController", null);
 
 	}
@@ -81,6 +81,7 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
 	public void startMonitoring(AsyncTask task, Type deviceType)
 			throws InternalException {
         try {
+        	_log.info("ObjectControllerImpl:startMonitoring");
             MonitoringJob job = new MonitoringJob();
             job.setCompleter(new MonitorTaskCompleter(task));
             job.setDeviceType(deviceType);
@@ -93,7 +94,7 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
 	@Override
 	protected Controller lookupDeviceController(DiscoveredSystemObject device) {
         // dummy impl that returns the first one
-		_log.info("ObjectControllerImpl lookupDeviceController");
+		_log.info("ObjectControllerImpl:lookupDeviceController");
         return _deviceImpl.iterator().next();	
         }
 	

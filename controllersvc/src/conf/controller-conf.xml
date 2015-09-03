@@ -864,7 +864,6 @@
                 <entry key="vcenter" value="4"/>
                 <entry key="xtremio" value="4"/>
                 <entry key="ibmxiv" value="4"/>
-                <entry key="ecs" value="4"/>
             </map>
         </property>
     </bean>

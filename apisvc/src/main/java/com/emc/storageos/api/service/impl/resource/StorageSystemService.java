@@ -260,31 +260,37 @@ public class StorageSystemService extends TaskResourceService {
         auditOp(OperationTypeEnum.CREATE_STORAGE_SYSTEM, true, null, param.getSerialNumber(),
                 param.getSystemType(), param.getIpAddress(), param.getPortNumber());
 
-        //Temp code to be removed: Sreenidhi
-        if (system.getSystemType().equals("isilon"))
-        	system.setSystemType("ecs");
-        
-        system.setSystemType("ecs");
-
         startStorageSystem(system);
 
-        ObjectController controller = getController(ObjectController.class, param.getSystemType());
-        ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
-        String taskId = UUID.randomUUID().toString();
-        tasks.add(new AsyncTask(StorageSystem.class, system.getId(), taskId));
-        /**
-         * Creates MonitoringJob token on ZooKeeper for vnxfile/isilon device.
-         * Currently we are handling monitoring for vnxfile/vmax/vnxblock/isilon devices.
-         * We should not create MonitoringJob token for netapp/rp now.
-         */
-        if (StorageSystem.Type.vnxfile.toString().equals(system.getSystemType()) ||
-                StorageSystem.Type.isilon.toString().equals(system.getSystemType())) {
-            controller.startMonitoring(new AsyncTask(StorageSystem.class, system.getId(), taskId),
-                    StorageSystem.Type.valueOf(system.getSystemType()));
-        }
+        //Rather if else everywhere some code duplication with object and file
+        if (system.getSystemType().equals("ecs")) {
+            ObjectController controller = getController(ObjectController.class, param.getSystemType());
+            ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
+            String taskId = UUID.randomUUID().toString();
+            tasks.add(new AsyncTask(StorageSystem.class, system.getId(), taskId));
 
-        TaskList taskList = discoverStorageSystems(tasks, controller);
-        return taskList.getTaskList().listIterator().next();
+            TaskList taskList = discoverStorageSystems(tasks, controller);
+            return taskList.getTaskList().listIterator().next();
+            
+        } else {
+            FileController controller = getController(FileController.class, param.getSystemType());
+            ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
+            String taskId = UUID.randomUUID().toString();
+            tasks.add(new AsyncTask(StorageSystem.class, system.getId(), taskId));
+            /**
+             * Creates MonitoringJob token on ZooKeeper for vnxfile/isilon device.
+             * Currently we are handling monitoring for vnxfile/vmax/vnxblock/isilon devices.
+             * We should not create MonitoringJob token for netapp/rp now.
+             */
+            if (StorageSystem.Type.vnxfile.toString().equals(system.getSystemType()) ||
+                    StorageSystem.Type.isilon.toString().equals(system.getSystemType())) {
+                controller.startMonitoring(new AsyncTask(StorageSystem.class, system.getId(), taskId),
+                        StorageSystem.Type.valueOf(system.getSystemType()));
+            }
+
+            TaskList taskList = discoverStorageSystems(tasks, controller);
+            return taskList.getTaskList().listIterator().next();
+        }
     }
 
     /**
@@ -955,11 +961,7 @@ public class StorageSystemService extends TaskResourceService {
      */
     @SuppressWarnings("rawtypes")
     public static Class storageSystemClass(String systemType) {
-    	
-    	//Temp code sreenidhi
-    	if (systemType.equals(StorageSystem.Type.ecs.toString()))
-    			return ObjectController.class;
-    	
+    	  	
         if (systemType.equals(StorageSystem.Type.isilon.toString())
                 || systemType.equals(StorageSystem.Type.vnxfile.toString())
                 || systemType.equals(StorageSystem.Type.netapp.toString())
@@ -968,8 +970,10 @@ public class StorageSystemService extends TaskResourceService {
             return FileController.class;
         } else if (systemType.equals(StorageSystem.Type.rp.toString())) {
             return RPController.class;
+        } else  if (systemType.equals(StorageSystem.Type.ecs.toString())) {
+        	return ObjectController.class;
         }
-
+			
         return BlockController.class;
     }
 

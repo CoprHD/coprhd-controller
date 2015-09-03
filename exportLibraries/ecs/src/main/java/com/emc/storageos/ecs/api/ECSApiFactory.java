@@ -79,7 +79,7 @@ public class ECSApiFactory {
      * Initialize
      */
     public void init() {
-        _log.info(" ECSApiFactory ECSApi factory initialized");
+        _log.info(" ECSApiFactory:init ECSApi factory initialization");
         _clientMap = new ConcurrentHashMap<String, ECSApi>();
 
         HttpConnectionManagerParams params = new HttpConnectionManagerParams();

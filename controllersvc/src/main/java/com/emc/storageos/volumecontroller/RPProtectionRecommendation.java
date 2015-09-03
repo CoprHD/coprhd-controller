@@ -1,12 +1,6 @@
-/**
+/*
  * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller;
 
@@ -190,6 +184,120 @@ public class RPProtectionRecommendation extends Recommendation {
 
     	return count;
     }
+	
+	
+    /** Returns list of already determined recommendations. 
+     * @return - List of recommendations
+     */
+    public List<RPRecommendation> getPoolsInAllRecommendations()  {
+    	List<RPRecommendation> poolsAlreadyInRecommendation = new ArrayList<RPRecommendation>();
+    	
+    	poolsAlreadyInRecommendation.addAll(getJournalPoolsInRecommendation());
+  
+    	List<RPRecommendation> sourcePoolsInRecommendation = getSourcePoolsInRecommendation();
+    	if (!sourcePoolsInRecommendation.isEmpty()) {
+    		poolsAlreadyInRecommendation.addAll(getSourcePoolsInRecommendation());
+    	}
+    	
+    	List<RPRecommendation> targetPoolsInRecommendation = getTargetPoolsInRecommendation();
+    	if (!targetPoolsInRecommendation.isEmpty()) {
+    		poolsAlreadyInRecommendation.addAll(targetPoolsInRecommendation);
+    	}
+   	    
+    	return poolsAlreadyInRecommendation;
+    }
+    
+    /**
+     * Returns all recommendations corresponding to RP journals.   
+     * @return - List of recommendations
+     */
+    public List<RPRecommendation> getJournalPoolsInRecommendation() {
+    	List<RPRecommendation> journalRecs = new ArrayList<RPRecommendation>();
+    	
+    	if (getSourceJournalPoolsInRecommendation() != null) {
+    		journalRecs.add(getSourceJournalPoolsInRecommendation());
+    	}
+    	
+    	if (getStandbyJournalPoolsInRecommendation() != null) {
+    		journalRecs.add(getStandbyJournalPoolsInRecommendation());    		
+    	}
+    	
+    	List<RPRecommendation> targetJournalRecs = getTargetJournalPoolsInRecommendation();
+    	if (null != targetJournalRecs && !targetJournalRecs.isEmpty()) {
+    			journalRecs.addAll(targetJournalRecs);
+    		}    	
+    	return journalRecs;
+    }
+
+    /**
+     * Returns all recommendations corresponding to RP source journals.
+     * @return - List of recommendations
+     */
+	public RPRecommendation getSourceJournalPoolsInRecommendation() {
+		if (this.getSourceJournalRecommendation() != null) {
+    		return this.getSourceJournalRecommendation();
+    	}
+		return null;
+	}
+	 /**
+     * Returns all recommendations corresponding to RP stand-by journals, applies to only Metropoint.
+     * @return - List of recommendations
+     */
+	public RPRecommendation getStandbyJournalPoolsInRecommendation() {
+		if (this.getStandbyJournalRecommendation() != null) {
+    		return this.getStandbyJournalRecommendation();
+    	}
+		return null;
+	}
+	
+	 /**
+     * Returns all recommendations corresponding to RP source.
+     * @return - List of recommendations
+     */
+	public List<RPRecommendation> getSourcePoolsInRecommendation() {
+		List<RPRecommendation> sourcePoolsInRecommendation = new ArrayList<RPRecommendation>();
+		if (this.getSourceRecommendations() != null) {
+    		for(RPRecommendation srcRec : this.getSourceRecommendations()){
+    			sourcePoolsInRecommendation.add(srcRec);
+    			if (srcRec.getHaRecommendation() != null) {
+    				sourcePoolsInRecommendation.add(srcRec.getHaRecommendation());
+    			}
+    		}
+    	}
+		return sourcePoolsInRecommendation;
+	}
+	
+	 /**
+     * Returns all recommendations corresponding to RP target journals.
+     * @return - List of recommendations
+     */
+	public List<RPRecommendation> getTargetJournalPoolsInRecommendation() {
+		List<RPRecommendation> tgtJrnlPoolsInRecommendation = new ArrayList<RPRecommendation>();
+		if (this.getTargetJournalRecommendations() != null) {
+    		for(RPRecommendation tgtJrnlRec : this.getTargetJournalRecommendations()){
+    			tgtJrnlPoolsInRecommendation.add(tgtJrnlRec);
+    		}
+    	}
+		return tgtJrnlPoolsInRecommendation;
+	}
+	
+	 /**
+     * Returns all recommendations corresponding to RP targets.
+     * @return - List of recommendations
+     */
+	public List<RPRecommendation> getTargetPoolsInRecommendation() {
+		List<RPRecommendation> targetPoolsInRecommendation = new ArrayList<RPRecommendation>();
+		if (this.getSourceRecommendations() != null) {
+    		for(RPRecommendation srcRec : this.getSourceRecommendations()){
+    			if (srcRec.getTargetRecommendations() != null) {
+	    			for(RPRecommendation tgtRec : srcRec.getTargetRecommendations()) {
+	    				targetPoolsInRecommendation.add(tgtRec);
+	    			}
+    			}
+    		}
+    	}
+		return targetPoolsInRecommendation;
+	}        
     
     /**
      * @param dbClient

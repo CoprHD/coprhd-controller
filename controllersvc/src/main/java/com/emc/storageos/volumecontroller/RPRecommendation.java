@@ -1,12 +1,6 @@
-/**
+/*
  * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller;
@@ -21,6 +15,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.VirtualPool.MetroPointType;
+import com.emc.storageos.db.client.util.SizeUtil;
 
 /*
  * Represents recommendation for an RP protected volume.  
@@ -42,6 +37,8 @@ public class RPRecommendation extends Recommendation {
 	// This is the Storage System that was chosen by placement for connectivity/visibility to the RP Cluster
 	private URI internalSiteStorageSystem;	
 	private ProtectionType protectionType;
+	//Size in Bytes of each resource
+	private Long size;
 		 	 
 	public VPlexRecommendation getVirtualVolumeRecommendation() {
 		return virtualVolumeRecommendation;
@@ -101,6 +98,14 @@ public class RPRecommendation extends Recommendation {
 	public void setProtectionType(ProtectionType protectionType) {
 		this.protectionType = protectionType;
 	}
+	
+	public Long getSize() {
+		return size;
+	}
+
+	public void setSize(Long size) {
+		this.size = size;
+	}	
 		
 	/**
 	 * Returns true of the specified internal site is already part of this recommendation
@@ -252,7 +257,8 @@ public class RPRecommendation extends Recommendation {
 			buff.append(printTabs + String.format("VPLEX Storage	: %s %n", vplexStorageSystem.getLabel()));
 		}
 		buff.append(printTabs + String.format("Storage Pool 	: %s %n", storagePool.getLabel()));
-		buff.append(printTabs + String.format("Storage System	: %s %n", storageSystem.getLabel()));				
+		buff.append(printTabs + String.format("Storage System	: %s %n", storageSystem.getLabel()));
+		buff.append(printTabs + String.format("Resource Size	: %s GB %n", SizeUtil.translateSize(this.getSize(), SizeUtil.SIZE_GB)));
 		buff.append(String.format("----------------------%n"));
 
 		if (this.getHaRecommendation() != null) {
@@ -267,5 +273,5 @@ public class RPRecommendation extends Recommendation {
 			}
 		}
 		return buff.toString();
-	}	
+	}
 }

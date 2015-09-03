@@ -1291,13 +1291,14 @@ public class CoordinatorClientExt {
         return null;
     }
 
-    private boolean isSiteSpecificSectionInited(String siteID) throws Exception {
-        String sitePath = String.format("%1$s/%2$s", ZkPath.SITES, siteID);
+    private boolean isSiteSpecificSectionInited() throws Exception {
+        String siteId = _coordinator.getSiteId();
+        String sitePath = String.format("%1$s/%2$s", ZkPath.SITES, siteId);
         try {
             Stat stat = getZkConnection().curator().checkExists().forPath(sitePath);
             return stat != null;
         } catch (Exception e) {
-            _log.error("Failed to access the path {} e=", sitePath, e);
+            _log.error("Failed to access the path {}. Error {}", sitePath, e);
             throw e;
         }
     }
@@ -1312,24 +1313,21 @@ public class CoordinatorClientExt {
             _log.info("create ZK path {}", sitePath);
             ensurePath.ensure(zkConnection.curator().getZookeeperClient());
         }catch(Exception e) {
-            _log.error("Failed to set site info of {}", sitePath);
-            _log.error("e=", e);
+            _log.error("Failed to set site info of {}. Error {}", sitePath, e);
             throw e;
         }
 
-        // update primary site pointer to /sites/primary
+        // update primary site pointer to /sites/primary if it does not exists
         String primarySitePointer = String.format("%1$s/%2$s", ZkPath.SITES, Constants.SITE_PRIMARY_PTR);
-        EnsurePath ePath = new EnsurePath(primarySitePointer);
-        _log.info("create ZK path {}", primarySitePointer);
         try {
-            ePath.ensure(zkConnection.curator().getZookeeperClient());
-        }catch(Exception e) {
-            _log.error("Failed to create ZK path {} e=", primarySitePointer, e);
-        }
-
-        byte[] data = siteId.getBytes();
-        try {
-            zkConnection.curator().setData().forPath(primarySitePointer, data);
+            boolean notExists = getZkConnection().curator().checkExists().forPath(primarySitePointer) == null;
+            if (notExists) {
+                EnsurePath ePath = new EnsurePath(primarySitePointer);
+                _log.info("create ZK path {}", primarySitePointer);
+                ePath.ensure(zkConnection.curator().getZookeeperClient());
+                byte[] data = siteId.getBytes();
+                zkConnection.curator().setData().forPath(primarySitePointer, data);
+            }
         }catch(Exception e) {
             _log.error("Failed to persist {} to {}", siteId, primarySitePointer);
             throw e;
@@ -1344,7 +1342,7 @@ public class CoordinatorClientExt {
      */
     public void checkAndCreateSiteSpecificSection() throws Exception {
     	String mySiteId = _coordinator.getSiteId();
-        if ( (mySiteId != null) && isSiteSpecificSectionInited(mySiteId)) {
+        if (isSiteSpecificSectionInited()) {
         	_log.info("Site specific section for {} initialized", mySiteId);
             return;
         }
@@ -1353,15 +1351,16 @@ public class CoordinatorClientExt {
         InterProcessLock lock = _coordinator.getLock(ZkPath.SITES.name());
         try {
             lock.acquire();
-            createSiteSpecificSection();
+            if (!isSiteSpecificSectionInited())
+                createSiteSpecificSection();
         }catch (Exception e) {
-            _log.error("Failed to acquire the lock for {}", ZkPath.SITES);
+            _log.error("Failed to acquire the lock for {}. Error {}", ZkPath.SITES, e);
             throw e;
         } finally {
              try {
                  lock.release();
              }catch (Exception e) {
-                 _log.error("Failed to release the lock for {}", ZkPath.SITES);
+                 _log.error("Failed to release the lock for {}. Error {}", ZkPath.SITES, e);
              }
         }
     }

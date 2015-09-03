@@ -981,19 +981,22 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     throw DeviceControllerExceptions.recoverpoint.noInitiatorsFoundOnRPAs();
                 }
 
-                // Convert to initiator object
-                List<Initiator> initiators = new ArrayList<Initiator>();
-                for (String wwn : wwns.keySet()) {
-                    Initiator initiator = new Initiator();
-                    initiator.addInternalFlags(Flag.RECOVERPOINT);
-                    initiator.setHostName(rpSiteName);
-                    initiator.setInitiatorPort(wwn);
-                    initiator.setInitiatorNode(wwns.get(wwn));
-                    initiator.setProtocol("FC");
-                    initiator.setIsManualCreation(false);
-                    initiator = getInitiator(initiator);
-                    initiators.add(initiator);
-                }
+				// Convert to initiator object
+				List<Initiator> initiators = new ArrayList<Initiator>();
+				for (String wwn : wwns.keySet()) {
+					Initiator initiator = new Initiator();
+					initiator.addInternalFlags(Flag.RECOVERPOINT);
+					// Remove all non alpha-numeric characters, excluding "_", from the hostname
+					initiator.setHostName(rpSiteName.replaceAll("[^A-Za-z0-9_]", ""));
+					initiator.setInitiatorPort(wwn);
+					initiator.setInitiatorNode(wwns.get(wwn));
+					initiator.setProtocol("FC");
+					initiator.setIsManualCreation(false);              
+					
+					// Either get the existing initiator or create a new if needed
+					initiator = getOrCreateNewInitiator(initiator);
+					initiators.add(initiator);
+				}
 
                 // We need to find and distill only those RP initiators that correspond to the network of the storage system and
                 // that network has front end port from the storage system.
@@ -3301,8 +3304,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *
      * @throws InternalException When an error occurs querying the database.
      */
-    private Initiator getInitiator(Initiator initiatorParam)
-            throws InternalException {
+    private Initiator getOrCreateNewInitiator(Initiator initiatorParam)
+        throws InternalException {
         Initiator initiator = null;
         URIQueryResultList resultsList = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(
@@ -3310,11 +3313,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         Iterator<URI> resultsIter = resultsList.iterator();
         if (resultsIter.hasNext()) {
             initiator = _dbClient.queryObject(Initiator.class, resultsIter.next());
+            // If the hostname has been changed then we need to update the
+            // Initiator object to reflect that change.
+            if (NullColumnValueGetter.isNotNullValue(initiator.getHostName())
+                    && !initiator.getHostName().equals(initiatorParam.getHostName())) {                
+                initiator.setHostName(initiatorParam.getHostName());
+                _dbClient.persistObject(initiator);
+            }
         } else {
             initiatorParam.setId(URIUtil.createId(Initiator.class));
             _dbClient.createObject(initiatorParam);
             initiator = initiatorParam;
         }
+        
         return initiator;
     }
 

@@ -43,6 +43,7 @@ import com.emc.sa.service.vmware.file.tasks.TagDatastoreOnFilesystem;
 import com.emc.sa.service.vmware.file.tasks.UntagDatastoreOnFilesystem;
 import com.emc.sa.service.vmware.tasks.ConnectToVCenter;
 import com.emc.sa.service.vmware.tasks.DeleteDatastore;
+import com.emc.sa.service.vmware.tasks.DetachDatastoreDevices;
 import com.emc.sa.service.vmware.tasks.EnterMaintenanceMode;
 import com.emc.sa.service.vmware.tasks.FindCluster;
 import com.emc.sa.service.vmware.tasks.FindDatastore;
@@ -322,6 +323,7 @@ public class VMwareSupport {
             throw new IllegalStateException("Datastore is not mounted by any hosts");
         }
         enterMaintenanceMode(datastore);
+        execute(new DetachDatastoreDevices(hosts.get(0), datastore));
         execute(new DeleteDatastore(hosts.get(0), datastore));
         removeVmfsDatastoreTag(volumes, hostOrClusterId);
     }
@@ -397,6 +399,7 @@ public class VMwareSupport {
         }
         enterMaintenanceMode(datastore);
         for (HostSystem host : hosts) {
+            execute(new DetachDatastoreDevices(host, datastore));
             execute(new DeleteDatastore(host, datastore));
         }
         removeNfsDatastoreTag(fileSystem, datacenterId, datastoreName);

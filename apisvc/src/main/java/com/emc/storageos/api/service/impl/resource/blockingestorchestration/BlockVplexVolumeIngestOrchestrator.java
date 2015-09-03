@@ -150,14 +150,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
             } catch (Exception ex) {
                 _logger.error("error during VPLEX backend ingestion: ", ex);
-
-                // remove unmanaged backend vols from ones to be deleted in case
-                // they were marked inactive during export mask ingestion
-                if (null != context.getUnmanagedBackendVolumes()) {
-                    boolean removed = unManagedVolumesToBeDeleted.removeAll(context.getUnmanagedBackendVolumes());
-                    _logger.info("were backend volumes prevented for deletion? " + removed);
-                }
-
+                preventBackendUnmanagedVolumeDeletionOnError(unManagedVolumesToBeDeleted, context);
                 throw IngestionException.exceptions.failedToIngestVplexBackend(ex.getLocalizedMessage());
             }
         }
@@ -183,15 +176,24 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             return virtualVolume;
         } catch (Exception ex) {
             _logger.error("error during VPLEX backend ingestion wrap up: ", ex);
-
-            // remove unmanaged backend vols from ones to be deleted in case
-            // they were marked for deletion during export mask ingestion
-            if (null != context && null != context.getUnmanagedBackendVolumes()) {
-                boolean removed = unManagedVolumesToBeDeleted.removeAll(context.getUnmanagedBackendVolumes());
-                _logger.info("were backend unmanaged volumes prevented from deletion? " + removed);
-            }
-
+            preventBackendUnmanagedVolumeDeletionOnError(unManagedVolumesToBeDeleted, context);
             throw ex;
+        }
+    }
+
+    /**
+     * Remove unmanaged backend volumes from ones to be deleted in case
+     * they were marked for deletion during ingestion.
+     * 
+     * @param unManagedVolumesToBeDeleted the running list of unmanaged volume to be deleted
+     * @param context the VplexBackendIngestionContext
+     */
+    private void preventBackendUnmanagedVolumeDeletionOnError(
+            List<UnManagedVolume> unManagedVolumesToBeDeleted,
+            VplexBackendIngestionContext context) {
+        if (null != context && null != context.getUnmanagedBackendVolumes()) {
+            boolean removed = unManagedVolumesToBeDeleted.removeAll(context.getUnmanagedBackendVolumes());
+            _logger.info("were backend unmanaged volumes prevented from deletion? " + removed);
         }
     }
 

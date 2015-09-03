@@ -81,6 +81,13 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
     }
 
     @Override
+    public void suggestExportMasksForPlacement(
+            StorageSystem storage, BlockStorageDevice device, List<Initiator> initiators,
+            ExportMaskPlacementDescriptor placementDescriptor) {
+        super.suggestExportMasksForPlacement(storage, device, initiators, placementDescriptor);
+    }
+
+    @Override
     public Set<Map<URI, List<StoragePort>>> getPortGroups(
             Map<URI, List<StoragePort>> allocatablePorts, Map<URI, NetworkLite> networkMap,
             URI varrayURI, int nInitiatorGroups) {

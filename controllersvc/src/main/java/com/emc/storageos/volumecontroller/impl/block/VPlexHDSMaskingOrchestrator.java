@@ -82,6 +82,13 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
         return super.refreshExportMask(storage, device, mask);
     }
 
+    @Override
+    public void suggestExportMasksForPlacement(
+            StorageSystem storage, BlockStorageDevice device, List<Initiator> initiators,
+            ExportMaskPlacementDescriptor placementDescriptor) {
+        super.suggestExportMasksForPlacement(storage, device, initiators, placementDescriptor);
+    }
+
     static final Integer MAX_PORTS_PER_NETWORK = 24;
 
     @Override

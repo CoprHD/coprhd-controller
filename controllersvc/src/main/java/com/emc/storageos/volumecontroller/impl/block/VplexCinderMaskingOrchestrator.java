@@ -228,7 +228,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             
         } catch (Exception ex) {
             _log.error("Failed to validate export mask for cinder: ", ex);
-            VPlexApiException vplexex = DeviceControllerExceptions.vplex.failedToValidateExportMask(exportMaskURI, ex);
+            VPlexApiException vplexex = DeviceControllerExceptions.vplex.failedToValidateExportMask(exportMaskURI.toString(), ex);
             WorkflowStepCompleter.stepFailed(stepId, vplexex);
         }
         
@@ -333,6 +333,13 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
 
         _log.debug("END - createOrAddVolumesToExportMask");
 
+    }
+    
+    @Override
+    public void suggestExportMasksForPlacement(
+            StorageSystem storage, BlockStorageDevice device, List<Initiator> initiators,
+            ExportMaskPlacementDescriptor placementDescriptor) {
+        super.suggestExportMasksForPlacement(storage, device, initiators, placementDescriptor);
     }
 
     @Override

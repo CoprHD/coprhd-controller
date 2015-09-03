@@ -334,6 +334,7 @@ public class VPlexBackendManager {
             // For OpenStack systems, we do the validation later
             // after back-end volume has been exported and received the response
             maskSet.put(mask.getId(), mask);
+            placementDescriptor.placeVolumes(mask.getId(), volumeMap);
         }
     }
 

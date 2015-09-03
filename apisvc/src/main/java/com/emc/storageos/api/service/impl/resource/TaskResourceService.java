@@ -150,7 +150,7 @@ public abstract class TaskResourceService extends TaggedResource {
         // a pending task against them. Need to signal an error
         if (!pendingObjectLabels.isEmpty()) {
             String pendingListStr = Joiner.on(',').join(pendingObjectLabels);
-            _log.warn(String.format("Attempted to execute operation against these DataObjects while there are tasks pending against them: %s", 
+            _log.warn(String.format("Attempted to execute operation against these resources while there are tasks pending against them: %s", 
                     pendingListStr));
             throw APIException.badRequests.
                     cannotExecuteOperationWhilePendingTask(pendingListStr);

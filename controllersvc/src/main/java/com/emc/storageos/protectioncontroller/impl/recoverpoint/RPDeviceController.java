@@ -800,7 +800,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Set up the journal volumes in the copy objects
             if (volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_JOURNAL)
                     || volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_VPLEX_VIRT_JOURNAL)) {
-            	if (!extraParamsGathered) {
+            	if (cgName == null) {
             		project = _dbClient.queryObject(Project.class, volume.getProject());
             		cg = _dbClient.queryObject(BlockConsistencyGroup.class, volumeDescriptor.getCapabilitiesValues()
 	                        .getBlockConsistencyGroup());
@@ -1230,10 +1230,21 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         }
     }
 
+    /**
+     * This operation will add additional journal volumes to a recoverpoint consistency group
+     * 
+     * @param rpSystemId - recoverpoint system
+     * @param volumeDescriptors - journal volumes to add
+     * @param taskId - task tracking the operation
+     * @return boolean indicating the result of the operation
+     */
     public boolean addJournalStep(URI rpSystemId, List<VolumeDescriptor> volumeDescriptors, String taskId) {    	
     	WorkflowStepCompleter.stepExecuting(taskId);
+    	if (volumeDescriptors.isEmpty()) {
+    		stepFailed(taskId, "addJournalStep");
+    	}
     	ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);    	
-    	RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);    	    	    	
+    	RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);    	    	    	    	
     	CGRequestParams cgParams = this.getCGRequestParams(volumeDescriptors, rpSystem);
         updateCGParams(cgParams);    	
     	if (rp.addJournalVolumesToCG(cgParams, volumeDescriptors.get(0).getCapabilitiesValues().getRPCopyType())) {    

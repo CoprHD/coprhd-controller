@@ -248,7 +248,7 @@ public class RecoverPointBookmarkManagementUtils {
         RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
         for (ConsistencyGroupUID cgID : uniqueCGUIDlist) {
             // Make sure the CG is ready for enable
-            imageManager.waitForCGLinkState(impl, cgID, null, PipeState.ACTIVE);
+        	imageManager.waitForCGLinkState(impl, cgID, PipeState.ACTIVE);
         }
 
         try {

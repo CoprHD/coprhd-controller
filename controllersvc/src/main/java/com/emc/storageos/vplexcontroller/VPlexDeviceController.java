@@ -26,6 +26,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
+import com.emc.storageos.volumecontroller.impl.block.ExportMaskPlacementDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -4569,19 +4570,18 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
 
             // Select from an existing ExportMask if possible
-            ExportGroup[] returnedExportGroup = new ExportGroup[1];
-            ExportMask exportMask = backendMgr.chooseBackendExportMask(vplexSystem,
-                    storageSystem, varray, returnedExportGroup);
+            ExportMaskPlacementDescriptor descriptor = backendMgr.chooseBackendExportMask(vplexSystem, storageSystem, varray, volumeMap);
+            // For every ExportMask in the descriptor ...
+            for (URI exportMaskURI : descriptor.getPlacedMasks()) {
+                // Create steps to place each set of volumes into its assigned ExportMask
+                ExportGroup exportGroup = descriptor.getExportGroupForMask(exportMaskURI);
+                ExportMask exportMask = descriptor.getExportMask(exportMaskURI);
+                Map<URI, Volume> placedVolumes = descriptor.getPlacedVolumes(exportMaskURI);
 
-            ExportGroup exportGroup = null;
-            if (exportMask != null) {
-                exportGroup = returnedExportGroup[0];
+                // Add the workflow steps.
+                lastStep = backendMgr.addWorkflowStepsToAddBackendVolumes(workflow, lastStep, exportGroup, exportMask, placedVolumes,
+                        varray, vplexSystem, storageSystem);
             }
-            // Add the workflow steps.
-            lastStep = backendMgr.addWorkflowStepsToAddBackendVolumes(
-                    workflow, lastStep,
-                    exportGroup, exportMask,
-                    volumeMap, varray, vplexSystem, storageSystem);
         }
 
         return lastStep;

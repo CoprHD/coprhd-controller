@@ -18,6 +18,7 @@
             <a class="list-group-item" href="@{arrays.SanSwitches.list()}">&{'adminDashboard.fabricManagers'} #{badgeNumber fabricManagerCount/}</a>
             <a class="list-group-item" href="@{arrays.Networks.list()}">&{'adminDashboard.networks'} #{badgeNumber networksCount/}</a>
             <a class="list-group-item" href="@{compute.ComputeImages.list()}">&{'adminDashboard.computeImages'} #{badgeNumber computeImageCount/}</a>
+            <a class="list-group-item" href="@{compute.ComputeImageServers.list()}">&{'adminDashboard.computeImageServers'} #{badgeNumber computeImageServerCount/}</a>
             <a class="list-group-item" href="@{compute.ComputeSystems.list()}">&{'adminDashboard.computeSystems'} #{badgeNumber computeSystemCount/}</a>
             #{/license.ifController}
         #{/if}
@@ -29,6 +30,7 @@
             <li class="list-group-item">&{'adminDashboard.fabricManagers'} #{badgeNumber fabricManagerCount/}</li>
             <li class="list-group-item">&{'adminDashboard.networks'} #{badgeNumber networksCount/}</li>
             <li class="list-group-item">&{'adminDashboard.computeImages'} #{badgeNumber computeImageCount/}</a>
+            <li class="list-group-item">&{'adminDashboard.computeImageServers'} #{badgeNumber computeImageServerCount/}</a>
             <li class="list-group-item">&{'adminDashboard.computeSystems'} #{badgeNumber computeSystemCount/}</a>
           #{/license.ifController}
         #{/else}

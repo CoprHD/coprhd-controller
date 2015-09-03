@@ -1786,7 +1786,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     if (cgPathInstance == null) {
                         taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                                 .consistencyGroupNotFound(consistencyGroup.getLabel(),
-                                        consistencyGroup.fetchArrayCgName(storage.getId())));
+                                        consistencyGroup.getCgNameOnStorageSystem(storage.getId())));
                         return;
                     }
                 }

@@ -324,7 +324,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             Map<String, StorageSystemViewObject> scanCache) throws VPlexCollectionException {
         try {
             // Get the cluster info.
-            List<VPlexClusterInfo> clusterInfoList = client.getClusterInfo(true, false);
+            List<VPlexClusterInfo> clusterInfoList = client.getClusterInfo(true);
 
             // Get the cluster assembly identifiers and form the
             // system serial number based on these identifiers.
@@ -451,7 +451,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             }
 
             // Get the cluster information
-            List<VPlexClusterInfo> clusterInfoList = client.getClusterInfo(true, false);
+            List<VPlexClusterInfo> clusterInfoList = client.getClusterInfo(true);
 
             // Get the cluster assembly identifiers and form the
             // system serial number based on these identifiers.

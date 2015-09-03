@@ -409,7 +409,7 @@ public class CinderExportOperations implements ExportMaskOperations {
                                 
             }
 
-            volumeToTargetLunMap.put(volume.getId(), Integer.valueOf(targetLunId));
+            volumeToTargetLunMap.put(volume.getId(), targetLunId);
             
             //After the successful export, create or modify the storage ports
             CinderStoragePortOperations storagePortOperationsInstance = CinderStoragePortOperations.getInstance(storage, dbClient);
@@ -710,7 +710,7 @@ public class CinderExportOperations implements ExportMaskOperations {
 
         List<String> targetPortListFromResponse = initiatorTargetMap.get(initiatorKey);
         for (String portWWN : targetPortListFromResponse) {
-            // Some of the drivers returns ( for e.g NetApp unified driver ) returns
+            // Some of the drivers returns ( for e.g NetApp unified driver )
             // the response in lower case, hence it is required to do both checks.
             if (varrayTaggedPortWWNs.contains(portWWN)
                     || varrayTaggedPortWWNs.contains(portWWN.toUpperCase())) {

@@ -180,6 +180,21 @@ public class VPlexApiClient {
         s_logger.info("Request for cluster info for VPlex at {}", _baseURI);
         return _discoveryMgr.getClusterInfo(shallow, isStorageVolumeItlsFetch);
     }
+    
+    /**
+     * Gets information about the VPLEX clusters.
+     * 
+     * @param shallow true to get just the name and path for each cluster, false
+     *            to get additional info about the systems and volumes.
+     * 
+     * @return A list of VPlexClusterInfo instances.
+     * 
+     * @throws VPlexApiException When an error occurs querying the VPlex.
+     */
+    public List<VPlexClusterInfo> getClusterInfo(boolean shallow) throws VPlexApiException {
+        s_logger.info("Request for cluster info for VPlex at {}", _baseURI);
+        return _discoveryMgr.getClusterInfo(shallow, false);
+    }
 
     /**
      * Rediscovers the storage systems attached to the VPlex identified by the

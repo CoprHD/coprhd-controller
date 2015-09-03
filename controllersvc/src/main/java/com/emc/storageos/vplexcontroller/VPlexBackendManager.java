@@ -315,7 +315,7 @@ public class VPlexBackendManager {
      * @param invalidMasks
      * @param mask
      */
-    private void validateMaskForNonOpenStackSystems(StorageSystem array, URI varrayURI,
+    private void validateMaskAndPlaceVolumes(StorageSystem array, URI varrayURI,
             Map<URI, ExportMask> maskSet, Set<URI> invalidMasks,
             ExportMask mask, ExportMaskPlacementDescriptor placementDescriptor,
             Map<URI, Volume> volumeMap, String logMsg) {
@@ -1245,7 +1245,7 @@ public class VPlexBackendManager {
             // Add these into contention for lowest volume count.
             for (ExportMask mask : uninitializedMasks.keySet()) {
                 
-                validateMaskForNonOpenStackSystems(array, varrayURI, maskSet, invalidMasks, mask,
+                validateMaskAndPlaceVolumes(array, varrayURI, maskSet, invalidMasks, mask,
                         placementDescriptor, volumeMap, String.format("Validating uninitialized ViPR ExportMask %s (%s)",
                                 mask.getMaskName(), mask.getId()));
             }
@@ -1285,7 +1285,7 @@ public class VPlexBackendManager {
         }
         // Validate the generated masks too.
         for (ExportMask mask : generatedMasks.keySet()) {            
-            validateMaskForNonOpenStackSystems(array, varrayURI, maskSet, invalidMasks, mask,
+            validateMaskAndPlaceVolumes(array, varrayURI, maskSet, invalidMasks, mask,
                     placementDescriptor, volumes, String.format("Validating generated ViPR Export Mask %s (%s)",
                             mask.getMaskName(), mask.getId()));
         }

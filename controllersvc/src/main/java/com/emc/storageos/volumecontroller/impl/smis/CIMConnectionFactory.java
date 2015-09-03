@@ -149,7 +149,7 @@ public class CIMConnectionFactory {
             try {
                 CimConnection connection = getConnection(smisProvider.getIPAddress(), smisProvider.getPortNumber().toString());
                 if (null == connection) {
-                    _log.error("No CIMOM connection found for ip {}",
+                    _log.error("No CIMOM connection found for ip/port {}",
                             ConnectionManager.generateConnectionCacheKey(smisProvider.getIPAddress(), smisProvider.getPortNumber()));
                     // No need to add connection, as getConnection() called from any thread would create it.
                     continue;

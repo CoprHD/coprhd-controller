@@ -457,6 +457,14 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         }
     }
 
+    /**
+     * Create Virtual NAS for the specified VNX File storage array
+     * 
+     * @param system storage system information including credentials.
+     * @param discovered VDM of the specified VNX File storage array
+     * @return Virtual NAS Server
+     * @throws VNXFileCollectionException
+     */
     private VirtualNAS createVirtualNas(StorageSystem system, VNXVdm vdm) throws VNXFileCollectionException {
 
         VirtualNAS vNas = new VirtualNAS();
@@ -484,6 +492,14 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
     }
 
+    /**
+     * Create Physical NAS for the specified VNX File storage array
+     * 
+     * @param system storage system information including credentials.
+     * @param discovered DM of the specified VNX File storage array
+     * @return Physical NAS Server
+     * @throws VNXFileCollectionException
+     */
     private PhysicalNAS createPhysicalNas(StorageSystem system, VNXDataMover dm) throws VNXFileCollectionException {
 
         PhysicalNAS phyNas = new PhysicalNAS();
@@ -962,6 +978,13 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return storagePorts;
     }
 
+    /**
+     * Find the Virtual NAS by Native ID for the specified VNX File storage array
+     * 
+     * @param system storage system information including credentials.
+     * @param Native id of the specified Virtual NAS
+     * @return Virtual NAS Server
+     */
     private VirtualNAS findvNasByNativeId(StorageSystem system, String nativeId) {
         URIQueryResultList results = new URIQueryResultList();
         VirtualNAS vNas = null;
@@ -987,6 +1010,13 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
     }
 
+    /**
+     * Find the Physical NAS by Native ID for the specified VNX File storage array
+     * 
+     * @param system storage system information including credentials.
+     * @param Native id of the specified Physical NAS
+     * @return Physical NAS Server
+     */
     private PhysicalNAS findPhysicalNasByNativeId(StorageSystem system, String nativeId) {
         URIQueryResultList results = new URIQueryResultList();
         PhysicalNAS physicalNas = null;
@@ -1290,8 +1320,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             _logger.info("Modified VirtualNAS servers size {}", modifiedServers.size());
             _dbClient.persistObject(modifiedServers);
         }
-
-        // Remove the vNas which does not have any logical interfaces attached to it.
 
         _logger.info("Storage port discovery for storage system {} complete", system.getId());
         for (StoragePort newPort : newStoragePorts) {

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.vnas;
@@ -13,7 +13,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 import com.emc.storageos.model.BulkRestRep;
 
 /**
- * VirtualNASBulkRep will contain the list of Virtual NAS servers and return the bulk response.
+ * List of Virtual NAS servers and returned as a bulk response to a REST request.
  * 
  * @author prasaa9
  * 

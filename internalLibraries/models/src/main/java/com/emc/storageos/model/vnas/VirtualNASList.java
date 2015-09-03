@@ -4,12 +4,13 @@
  */
 package com.emc.storageos.model.vnas;
 
-import com.emc.storageos.model.NamedRelatedResourceRep;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-import java.util.ArrayList;
-import java.util.List;
+
+import com.emc.storageos.model.NamedRelatedResourceRep;
 
 /**
  * Class represents a return type that returns the id and self link for a
@@ -26,7 +27,7 @@ public class VirtualNASList {
         this.vnasservers = vnasservers;
     }
 
-    /**o
+    /**
      * List of Storage ports. A Storage port represents a
      * port of a storage device.
      * 

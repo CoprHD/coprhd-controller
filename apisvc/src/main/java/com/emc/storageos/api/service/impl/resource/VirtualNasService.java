@@ -76,9 +76,7 @@ public class VirtualNasService extends TaggedResource {
      * Gets the virtual NAS with the passed id from the database.
      * 
      * @param id the URN of a ViPR virtual NAS.
-     * 
      * @return A reference to the registered VirtualNAS.
-     * 
      * @throws BadRequestException When the vNAS is not registered.
      */
     protected VirtualNAS queryRegisteredResource(URI id) {

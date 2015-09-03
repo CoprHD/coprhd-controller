@@ -4,25 +4,25 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
 
-import java.util.Iterator;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.httpclient.Header;
+import org.apache.commons.httpclient.methods.PostMethod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.nas.vnxfile.xmlapi.ResponsePacket;
+import com.emc.nas.vnxfile.xmlapi.Status;
+import com.emc.nas.vnxfile.xmlapi.Vdm;
+import com.emc.nas.vnxfile.xmlapi.VdmState;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.plugins.metering.vnxfile.VNXFileConstants;
 import com.emc.storageos.vnx.xmlapi.VNXVdm;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileProcessor;
-import com.emc.nas.vnxfile.xmlapi.ResponsePacket;
-import com.emc.nas.vnxfile.xmlapi.Status;
-import com.emc.nas.vnxfile.xmlapi.Vdm;
-import com.emc.nas.vnxfile.xmlapi.VdmState;
 
 /**
  * VNXVDMProcessor is responsible to process the result received from XML API
@@ -57,11 +57,9 @@ public class VNXVDMProcessor extends VNXFileProcessor {
                     Object responseObj = queryRespItr.next();
                     if (responseObj instanceof Vdm) {
                         Vdm system = (Vdm) responseObj;
-                        // if((system.getInterfaces().getLi().size() > 0) &&
-                        // system.getState() == VdmState.LOADED) {
                         if (system.getState() == VdmState.LOADED) {
                             VNXVdm vdm = new VNXVdm(
-                                    system.getName(), system.getMover(), system.getVdm(),system.getState().name());
+                                    system.getName(), system.getMover(), system.getVdm(), system.getState().name());
                             vdm.setInterfaces(system.getInterfaces().getLi());
                             vdms.add(vdm);
                         } else {

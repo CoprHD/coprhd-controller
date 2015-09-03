@@ -57,11 +57,11 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePort.OperationalStatus;
+import com.emc.storageos.db.client.model.StoragePort.PortType;
 import com.emc.storageos.db.client.model.StoragePort.TransportType;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StoragePort.OperationalStatus;
-import com.emc.storageos.db.client.model.StoragePort.PortType;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
@@ -1043,16 +1043,15 @@ public class StorageSystemService extends TaskResourceService {
         while (vNasIter.hasNext()) {
             URI vNasURI = vNasIter.next();
             VirtualNAS vNas = _dbClient.queryObject(VirtualNAS.class,
-            		vNasURI);
+                    vNasURI);
             if (vNas != null && !vNas.getInactive()) {
-            	vNasList.getVNASServers().add(toNamedRelatedResource(vNas, vNas.getNativeGuid()));
-            	
+                vNasList.getVNASServers().add(toNamedRelatedResource(vNas, vNas.getNativeGuid()));
+
             }
         }
         return vNasList;
     }
-    
-    
+
     /**
      * Gets all storage pools for the registered storage system with the passed
      * id.
@@ -1089,8 +1088,6 @@ public class StorageSystemService extends TaskResourceService {
         }
         return poolList;
     }
-    
-    
 
     /**
      * Gets all AutoTier policies associated with registered storage system with the passed

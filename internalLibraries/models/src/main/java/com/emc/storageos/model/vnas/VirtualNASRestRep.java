@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2013 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 
@@ -18,21 +18,30 @@ import javax.xml.bind.annotation.XmlRootElement;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.varray.VirtualArrayResourceRestRep;
 
+/**
+ * Virtual NAS server and returned as a response to a REST request.
+ * 
+ * @author prasaa9
+ * 
+ */
+
 @XmlRootElement(name = "virtual_nas_server")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
 
     // NAS Server name
     private String nasName;
+
     // storageSystem, which it belongs
     private RelatedResourceRep storageDeviceURI;
 
+    // List of Protocols (CIFS/NFS) associated with Virtual NAS Server
     private Set<String> protocols;
 
     // Set of Authentication providers for the VNasServer - set values will of type AunthnProvider
     private Set<String> cifsServers;
 
-    // List of Storage Ports associated with this Nas Server
+    // List of Storage Ports associated with this NAS Server
     private List<RelatedResourceRep> storagePorts;
 
     // State of the NAS server
@@ -41,8 +50,13 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
     // Place holder for hosting storageDomain's information
     private Set<RelatedResourceRep> storageDomain;
 
+    // Registration status of Virtual NAS server
     private String registrationStatus;
+
+    // Compatibility status of Virtual NAS server
     private String compatibilityStatus;
+
+    // Discovery status of Virtual NAS server
     private String discoveryStatus;
 
     // Place holder for Tag

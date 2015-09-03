@@ -1354,13 +1354,13 @@ public class DbClientImpl implements DbClient {
                             .getKey(rowKey)
                             .autoPaginate(true)
                             .withColumnRange(type.getColumnRange(timeBucket, granularity, DEFAULT_TS_PAGE_SIZE));
-                    columns = query.execute().getResult();
-                    while (!columns.isEmpty()) {
+                    do {
+                        columns = query.execute().getResult();
                         for (Column<UUID> c : columns) {
                             result.data(type.getSerializer().deserialize(c.getByteArrayValue()),
                                     TimeUUIDUtils.getTimeFromUUID(c.getName()));
                         }
-                    }
+                    } while (!columns.isEmpty());
                     return null;
                 }
             }));

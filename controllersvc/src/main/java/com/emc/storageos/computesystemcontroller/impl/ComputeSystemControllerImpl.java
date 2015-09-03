@@ -1076,12 +1076,12 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             // Generate export removes first and then export adds
             for (ExportGroupState export : exportGroups.values()) {
                 if (export.hasRemoves()) {
-                    generateSteps(export, waitFor, workflow, false);
+                    waitFor = generateSteps(export, waitFor, workflow, false);
                 }
             }
             for (ExportGroupState export : exportGroups.values()) {
                 if (export.hasAdds()) {
-                    generateSteps(export, waitFor, workflow, true);
+                    waitFor = generateSteps(export, waitFor, workflow, true);
                 }
             }
 
@@ -1094,7 +1094,7 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         }
     }
 
-    private void generateSteps(ExportGroupState export, String waitFor, Workflow workflow, boolean add) {
+    private String generateSteps(ExportGroupState export, String waitFor, Workflow workflow, boolean add) {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class, export.getId());
 
         if (add) {
@@ -1128,6 +1128,8 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
                             export.getClusters(), export.getHosts(), export.getInitiators()),
                     null, null);
         }
+
+        return waitFor;
     }
 
     @Override

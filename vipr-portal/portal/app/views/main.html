@@ -95,6 +95,7 @@
           #{license.ifController}
             #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
               #{nav.item 'computeImages', href: @compute.ComputeImages.list()/}
+              #{nav.item 'computeImageServers', href: @compute.ComputeImageServers.list()/}
               #{nav.item 'computeSystems', href: @compute.ComputeSystems.list()/}
             #{/deadbolt.restrict}
             #{deadbolt.restrict roles:[['TENANT_ADMIN']]}

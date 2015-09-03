@@ -103,6 +103,7 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable<
     }
 
     @Name("storagePorts")
+    @AlternateId("AssignedPortsAltIdIndex")
     public StringSet getStoragePorts() {
         if (storagePorts == null) {
             storagePorts = new StringSet();

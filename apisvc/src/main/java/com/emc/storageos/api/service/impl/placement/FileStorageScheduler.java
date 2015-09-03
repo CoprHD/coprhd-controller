@@ -451,9 +451,9 @@ public class FileStorageScheduler {
 					_log.debug("Removing vNAS {} as it is inactive", virtualNAS.getId());
 					iterator.remove();
 				} else if (!virtualNAS.getAssignedVirtualArrays().contains(
-						varrayUri)) {
+						varrayUri.toString())) {
 					_log.debug("Removing vNAS {} as it is not part of varray: {}",
-							virtualNAS.getId(), varrayUri);
+							virtualNAS.getId(), varrayUri.toString());
 					iterator.remove();
 				} else if (MetricsKeys.getBoolean(MetricsKeys.overLoaded,
 						virtualNAS.getMetrics())) {
@@ -483,7 +483,7 @@ public class FileStorageScheduler {
 						virtualNAS.getRegistrationStatus())
 				|| !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()
 						.equals(virtualNAS.getCompatibilityStatus())
-				|| !VirtualNasState.LOADED.getNasState().equals(virtualNAS.getVNasState())
+				|| !VirtualNasState.LOADED.name().equals(virtualNAS.getVNasState())
 				|| !DiscoveryStatus.VISIBLE.name().equals(
 						virtualNAS.getDiscoveryStatus())) {
 			return false;

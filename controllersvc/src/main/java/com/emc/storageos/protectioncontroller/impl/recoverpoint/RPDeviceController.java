@@ -1230,9 +1230,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         }
     }
 
-    public boolean addJournalStep(URI rpSystemId, List<VolumeDescriptor> volumeDescriptors, CGRequestParams cgParams, String taskId) {
-    	ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
-    	RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);    	    	
+    public boolean addJournalStep(URI rpSystemId, List<VolumeDescriptor> volumeDescriptors, String taskId) {
+    	ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);    	
+    	RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);    	    	    	
+    	CGRequestParams cgParams = this.getCGRequestParams(volumeDescriptors, rpSystem);
+        updateCGParams(cgParams);    	
     	rp.addJournalVolumesToCG(cgParams, volumeDescriptors.get(0).getCapabilitiesValues().getRPCopyType());
     	return true;
     }        
@@ -1325,8 +1327,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         String stepId = workflow.createStepId();
         Workflow.Method addJournalExecuteMethod = new Workflow.Method(METHOD_ADD_JOURNAL_STEP,
                 rpSystem.getId(),
-                volumeDescriptors,
-                cgParams);
+                volumeDescriptors);
         Workflow.Method addJournalExecutionRollbackMethod = new Workflow.Method(METHOD_ADD_JOURNAL_ROLLBACK_STEP,
                 rpSystem.getId());
 

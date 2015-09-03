@@ -118,6 +118,10 @@ import com.emc.storageos.recoverpoint.utils.WwnUtils;
  *
  */
 
+/**
+ * @author jcondlin
+ *
+ */
 public class RecoverPointClient {
 
     // 10s, for RP between RP operations that adds/sets things on the RP. in RP 4.1 SP1 we started encountering an issue which resulted in
@@ -576,7 +580,13 @@ public class RecoverPointClient {
 
     }
 
-    public void addJournalVolumesToCG(CGRequestParams request) {
+    /**
+     * 
+     * @param request - contains both the consistency group
+     *                  and the journals to add to the consistency group
+     * @param copyType - indicates whether the copy is production, local or remote
+     */
+    public void addJournalVolumesToCG(CGRequestParams request, int copyType) {
 
     	// Make sure the CG name is unique.
     	ConsistencyGroupUID cgUID = null;
@@ -596,25 +606,14 @@ public class RecoverPointClient {
     		}
 
     		List<CreateCopyParams> copyParams = request.getCopies();
-    		// add journals
+
     		for (CreateCopyParams copyParam : copyParams) {
     			for (CreateVolumeParams journalVolume: copyParam.getJournals()) {
     				ClusterUID clusterId = RecoverPointUtils.getRPSiteID(functionalAPI, journalVolume.getInternalSiteName()); 
-    				Set<RPSite> allSites = getAssociatedRPSites();      		
-    				// caches site names to cluster id's to reduce calls to fapi for the same information
-    				Map<String, ClusterUID> clusterIdCache = new HashMap<String, ClusterUID>();
-    				// prodSites is used for logging and to determine if a non-production copy is local or remote
-    				List<ClusterUID> prodSites = getProdSites(request, clusterIdCache);
-    				RecoverPointCGCopyType copyType = getCopyType(copyParam, prodSites, clusterId);
-    				if (copyType != null) {
-    					logger.info(String.format("Configuring %s copy %s for CG %s", copyType.toString(), copyParam.getName(),
-    							request.getCgName()));
-    					ConsistencyGroupCopyUID copyUID = getCGCopyUid(clusterId, RecoverPointCGCopyType.LOCAL, null);
-    					logger.info("Adding Journal : " + journalVolume.toString() + " for copy : " + copyParam.getName());
-    					functionalAPI.addJournalVolume(copyUID, RecoverPointUtils.getDeviceID(allSites, journalVolume.getWwn()));        		
-    				}
-
-    			}
+    				Set<RPSite> allSites = getAssociatedRPSites();    
+    				ConsistencyGroupCopyUID copyUID = getCGCopyUid(clusterId, getCopyType(copyType), cgUID);    				
+    				functionalAPI.addJournalVolume(copyUID, RecoverPointUtils.getDeviceID(allSites, journalVolume.getWwn()));        		
+    			}    			
     		}
     	}
     	catch (FunctionalAPIActionFailedException_Exception e) {
@@ -687,6 +686,17 @@ public class RecoverPointClient {
         return null;
     }
 
+    private RecoverPointCGCopyType getCopyType(int type) {
+    	RecoverPointCGCopyType copyType = RecoverPointCGCopyType.PRODUCTION;
+    	if (type == RecoverPointCGCopyType.LOCAL.getCopyNumber()) {
+    		copyType = RecoverPointCGCopyType.LOCAL;
+    	}
+    	if (type == RecoverPointCGCopyType.REMOTE.getCopyNumber()) {
+    		copyType = RecoverPointCGCopyType.REMOTE;
+    	}
+    	return copyType;
+    }
+    
     /**
      * construct a CG copy UID
      *

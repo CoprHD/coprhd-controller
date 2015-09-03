@@ -81,6 +81,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.recoverpoint.impl.RecoverPointClient;
+import com.emc.storageos.recoverpoint.impl.RecoverPointClient.RecoverPointCGCopyType;
 import com.emc.storageos.recoverpoint.objectmodel.RPBookmark;
 import com.emc.storageos.recoverpoint.objectmodel.RPConsistencyGroup;
 import com.emc.storageos.recoverpoint.objectmodel.RPSite;
@@ -473,13 +474,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             
             if (isJournalAdd) {
             	lastStep = addAddJournalVolumesToCGStep(workflow, volumeDescriptors, params, rpSystem, taskId);
-            }
-            
-            int x = 1;
-            if (x == 1) {
-            	throw new UnsupportedOperationException();
-            }
-            
+            	return lastStep;
+            }            
             
             if (executeCreateSteps) {
                 _log.info("Adding steps for Create CG...");
@@ -808,7 +804,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             		project = _dbClient.queryObject(Project.class, volume.getProject());
             		cg = _dbClient.queryObject(BlockConsistencyGroup.class, volumeDescriptor.getCapabilitiesValues()
 	                        .getBlockConsistencyGroup());
-	                cgName = cg.getNameOnStorageSystem(rpSystem.getId());
+	                cgName = cg.getCgNameOnStorageSystem(rpSystem.getId());
 	                if (cgName == null) {
 	                    cgName = CG_NAME_PREFIX + cg.getLabel();
 	                }
@@ -1234,12 +1230,12 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         }
     }
 
-    public boolean addJournalStep(URI rpSystemId, List<VolumeDescriptor> volumeDescriptors, CGRequestParams cgParams) {
+    public boolean addJournalStep(URI rpSystemId, List<VolumeDescriptor> volumeDescriptors, CGRequestParams cgParams, String taskId) {
     	ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
-    	RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);
-    	rp.addJournalVolumesToCG(cgParams);
+    	RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);    	    	
+    	rp.addJournalVolumesToCG(cgParams, volumeDescriptors.get(0).getCapabilitiesValues().getRPCopyType());
     	return true;
-    }
+    }        
     
     /**
      * Recoverpoint specific workflow method for creating an Export Group
@@ -1315,12 +1311,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
     
     /**
-     * Method that adds the step to the workflow that creates the CG.
+     * Method that adds the step to the workflow for adding a journal volume to a CG.
      * 
      * @param workflow
      * @param recommendation
      * @param rpSystem
-     * @param protectionSet
      * @throws InternalException
      * @return the step group
      */
@@ -1330,7 +1325,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         String stepId = workflow.createStepId();
         Workflow.Method addJournalExecuteMethod = new Workflow.Method(METHOD_ADD_JOURNAL_STEP,
                 rpSystem.getId(),
-                volumeDescriptors);
+                volumeDescriptors,
+                cgParams);
         Workflow.Method addJournalExecutionRollbackMethod = new Workflow.Method(METHOD_ADD_JOURNAL_ROLLBACK_STEP,
                 rpSystem.getId());
 
@@ -1341,7 +1337,20 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         return STEP_ADD_JOURNAL_VOLUME;
     }
     
-
+    /**
+     * Workflow step method for rolling back adding journal volumes to CG.
+     *
+     * @param rpSystem RP system
+     * @param token the task
+     * @return
+     * @throws WorkflowException
+     */
+    public boolean addJournalRollbackStep(URI rpSystemId, String token) throws WorkflowException {
+        // nothing to do for now.
+        WorkflowStepCompleter.stepSucceded(token);
+        return true;
+    }
+    
     /**
      * Workflow step method for creating/updating a consistency group.
      *

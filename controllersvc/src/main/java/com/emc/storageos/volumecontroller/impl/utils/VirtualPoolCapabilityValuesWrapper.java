@@ -34,6 +34,7 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public static final String RP_RPO_TYPE = "rpRpoType";
     public static final String RP_COPY_MODE = "rpCopyMode";
     public static final String ADD_JOURNAL_CAPACITY = "add_journal_capacity";
+    public static final String RP_COPY_TYPE = "rp_copy_type";
     // meta volume capabilities
     public static final String IS_META_VOLUME = "isMetaVolume";
     public static final String META_VOLUME_MEMBER_SIZE = "metaVolumeMemberSize";
@@ -122,6 +123,11 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
         if (capabilities.contains(ADD_JOURNAL_CAPACITY)) {
             _vpoolCapabilities.put(ADD_JOURNAL_CAPACITY, capabilities.getAddJournalCapacity());
         }
+       
+        if (capabilities.contains(RP_COPY_TYPE)) {
+            _vpoolCapabilities.put(RP_COPY_TYPE, capabilities.getRPCopyType());
+        }
+        
         
         if (capabilities.contains(IS_META_VOLUME)) {
             _vpoolCapabilities.put(IS_META_VOLUME, capabilities.getIsMetaVolume());
@@ -222,6 +228,11 @@ public class VirtualPoolCapabilityValuesWrapper implements Serializable {
     public boolean getAddJournalCapacity() {
     	Object value = _vpoolCapabilities.get(ADD_JOURNAL_CAPACITY);
         return value != null ? (Boolean) value : false;
+	}
+    
+    public int getRPCopyType() {
+    	Object value = _vpoolCapabilities.get(RP_COPY_TYPE);
+        return value != null ? (int) value : 0;
 	}
 
     public String getSrdfSource() {

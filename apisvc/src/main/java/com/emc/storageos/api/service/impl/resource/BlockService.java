@@ -4191,6 +4191,17 @@ public class BlockService extends TaskResourceService {
         return map(protectionSet);
     }
     
+    /**
+     * This api allows the user to add new journal volume(s) to a recoverpoint
+     * consistency group copy
+     * 
+     * @param param POST data containing the journal volume(s) creation information.
+     * 
+     * @brief Add journal volume(s) to the exiting recoverpoint CG copy
+     * @return A reference to a BlockTaskList containing a list of
+     *         TaskResourceRep references specifying the task data for the
+     *         journal volume creation tasks.
+     */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -4262,12 +4273,7 @@ public class BlockService extends TaskResourceService {
         }
 
         // Get and validate the BlockConsistencyGroup
-        BlockConsistencyGroup consistencyGroup = null;
-        if (param.getConsistencyGroup() != null) {
-        	consistencyGroup = queryConsistencyGroup(param.getConsistencyGroup());
-        } else {
-        	// TODO: throw exception
-        }        
+        BlockConsistencyGroup consistencyGroup = queryConsistencyGroup(param.getConsistencyGroup());          
 
         // Check that the project and the CG project are the same
         final URI expectedId = consistencyGroup.getProject().getURI();
@@ -4291,9 +4297,7 @@ public class BlockService extends TaskResourceService {
         //auditOp(OperationTypeEnum.CREATE_BLOCK_VOLUME, true, AuditLogManager.AUDITOP_BEGIN,
         //        param.getName(), volumeCount, varray.getId().toString(), actualId.toString());
         
-        // TODO: Call below should return TaskList
-        // add the journal capacity to the CG
-        
+        // add the journal capacity to the CG        
         RPBlockServiceApiImpl blockServiceImpl = (RPBlockServiceApiImpl)getBlockServiceImpl(DiscoveredDataObject.Type.rp.name());
         return blockServiceImpl.addJournalCapacity(param, project, varray, vpool, consistencyGroup, capabilities, task);
     }

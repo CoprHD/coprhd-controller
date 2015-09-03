@@ -18,14 +18,14 @@ public class VNXCifsServer extends VNXBaseClass {
     private String _domain;
 
     public String getDomain() {
-		return _domain;
-	}
+        return _domain;
+    }
 
-	public void setDomain(String domain) {
-		this._domain = domain;
-	}
+    public void setDomain(String domain) {
+        this._domain = domain;
+    }
 
-	public void setName(String name) {
+    public void setName(String name) {
         _name = name;
     }
 
@@ -88,6 +88,4 @@ public class VNXCifsServer extends VNXBaseClass {
 
     }
 
-    // <CifsServer interfaces="10.247.27.32" type="W2K" localUsers="false" name="LOSAT032" mover="1" moverIdIsVdm="false">
-    // <CifsServer interfaces="10.247.27.31" type="W2K" localUsers="false" name="LOSAT031" mover="5" moverIdIsVdm="true">
 }

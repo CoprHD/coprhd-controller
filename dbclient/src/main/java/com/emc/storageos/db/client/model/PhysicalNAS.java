@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
@@ -31,7 +31,7 @@ public class PhysicalNAS extends NASServer {
         setChanged("containedVirtualNASservers");
     }
 
-    // Defines different States of the NAS server.
+    // Defines different States of the Physical NAS server.
     public static enum NasState {
         Active("Active"),
         Passive("Passive"),

@@ -392,12 +392,16 @@ public class StorageSystems extends ViprResourceController {
     	}
     }
     
+    @FlashException(keep = true, referrer = { "virtualNasServers"})
     public static void associateProject(String nasIds, String projectId, String storageId ) {
-       String proj = projectId;
+       
        Set<String> vnasServers = new TreeSet<String>();
        if (nasIds!=null && !nasIds.isEmpty()) {
           String[] nasArray = nasIds.split(",");
           Collections.addAll(vnasServers,nasArray);
+       }
+       if (projectId != null && !projectId.isEmpty()){
+    	   projectId = projectId.trim();
        }
        VirtualNasParam vNasParam = new VirtualNasParam();
        vNasParam.setVnasServers(vnasServers);
@@ -409,6 +413,7 @@ public class StorageSystems extends ViprResourceController {
 	   virtualNasServers(storageId);
     }
     
+    @FlashException(keep = true, referrer = { "virtualNasServers"})
     public static void dissociateProject(@As(",") String[] ids,String storageId) {
     	
     	List<URI> uris = Lists.newArrayList();

@@ -10,7 +10,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
 /**
- * VirtualNasParam will contain the list of Virtual NAS parameters assign to a project.
+ * List of Virtual NAS parameters for associate/dissociate to a project.
  * 
  * @author prasaa9
  * 

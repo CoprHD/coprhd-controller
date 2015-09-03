@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller.impl;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Hashtable;
@@ -18,12 +19,25 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.ComputeElement;
+import com.emc.storageos.db.client.model.ComputeElementHBA;
+import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.NetworkSystem;
+import com.emc.storageos.db.client.model.ProtectionSystem;
+import com.emc.storageos.db.client.model.QuotaDirectory;
+import com.emc.storageos.db.client.model.Snapshot;
+import com.emc.storageos.db.client.model.StorageHADomain;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
+import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.utility.CIMConstants;
-
-import java.net.URI;
 
 public class NativeGUIDGenerator {
 
@@ -74,9 +88,9 @@ public class NativeGUIDGenerator {
     private static final String REMOTE_GROUP = "REMOTEGROUP";
 
     private static final String UN_MANAGED_FILE_SHARE = "UNMANAGEDFILESHARE";
-    
+
     public static final String PHYSICAL_NAS = "PHYSICALNAS";
-    
+
     public static final String VIRTUAL_NAS = "VIRTUALNAS";
 
     static {
@@ -626,13 +640,27 @@ public class NativeGUIDGenerator {
         return String.format(INITIATOR + "+%s", initiatorId);
 
     }
-    
+
+    /**
+     * Generates the NativeGuid format as SystemNativeGuid+VirtualNasName for Virtual NAS.
+     * 
+     * @param System NativeGuid.
+     * @param vNasName : virtual NAS name.
+     * @return nativeGuid.
+     */
     public static String generateNativeGuidForVirtualNAS(String systemNativeGuid, String vNasName) {
-        return String.format("%s"+VIRTUAL_NAS+ "+%s", systemNativeGuid,vNasName);
+        return String.format("%s" + VIRTUAL_NAS + "+%s", systemNativeGuid, vNasName);
     }
-    
+
+    /**
+     * Generates the NativeGuid format as SystemNativeGuid+PhysicalNasName for Physical NAS.
+     * 
+     * @param System NativeGuid.
+     * @param pNasName : physical NAS name.
+     * @return nativeGuid.
+     */
     public static String generateNativeGuidForPhysicalNAS(String systemNativeGuid, String pNasName) {
-        return String.format("%s"+PHYSICAL_NAS+ "+%s",systemNativeGuid,pNasName);
+        return String.format("%s" + PHYSICAL_NAS + "+%s", systemNativeGuid, pNasName);
     }
 
     /**

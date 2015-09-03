@@ -39,6 +39,7 @@
         <property name="defaultProperties" ref="defaultProperties"/>
         <property name="ovfProperties" ref="ovfProperties"/>
         <property name="dbVersionInfo" ref="dbVersionInfo"/>
+        <property name="siteId" value="${site_id}"/>
     </bean>
 
     <bean id="nodeCount" class="java.lang.Integer">

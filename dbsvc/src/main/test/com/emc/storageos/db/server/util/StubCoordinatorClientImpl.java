@@ -396,4 +396,9 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
         String targetVersion = getTargetDbSchemaVersion();
         return !(currentVersion.equals(targetVersion));
     }
+    
+    @Override
+    public String getSiteId() {
+    	return "testsiteid";
+    }
 }

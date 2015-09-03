@@ -79,6 +79,12 @@ public class ExportGroupState implements Serializable {
         this.hosts = hosts;
         this.clusters = clusters;
         this.volumesMap = volumesMap;
+
+        // remove what should no longer be in the export group
+        this.initiators.removeAll(this.removedInitiators);
+        this.hosts.removeAll(this.removedHosts);
+        this.clusters.removeAll(this.removedClusters);
+
         this.initiators.addAll(this.addedInitiators);
         this.hosts.addAll(this.addedHosts);
         this.clusters.addAll(this.addedClusters);

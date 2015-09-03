@@ -34,7 +34,7 @@ public class RestoreBlockSnapshotService extends ViPRService {
     public void execute() {
         for (String snapshotId : snapshotIds) {
             Task<? extends DataObjectRestRep> task;
-            if ("volume".equals(storageType)) {
+            if (ConsistencyUtils.isVolumeStorageType(storageType)) {
                 task = execute(new RestoreBlockSnapshot(snapshotId));
             } else {
                 task = ConsistencyUtils.restoreSnapshot(consistencyGroupId, uri(snapshotId));

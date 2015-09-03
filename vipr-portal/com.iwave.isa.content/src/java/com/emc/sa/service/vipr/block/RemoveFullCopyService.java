@@ -32,7 +32,7 @@ public class RemoveFullCopyService extends ViPRService {
 
     @Override
     public void precheck() {
-        if ("volume".equals(storageType)) {
+        if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             volume = BlockStorageUtils.getBlockResource(volumeId);
             logInfo("remove.full.copy.service.precheck", volume.getName());
         }
@@ -40,7 +40,7 @@ public class RemoveFullCopyService extends ViPRService {
 
     @Override
     public void execute() {
-        if ("volume".equals(storageType)) {
+        if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             BlockStorageUtils.removeFullCopies(uris(copyIds));
         } else {
             for (URI copyId : uris(copyIds)) {

@@ -23,6 +23,12 @@ import com.emc.vipr.client.Tasks;
 
 final class ConsistencyUtils {
 
+    private static final String VOLUME_STORAGE_TYPE = "volume";
+
+    public static boolean isVolumeStorageType(String storageType) {
+        return VOLUME_STORAGE_TYPE.equals(storageType);
+    }
+
     public static Tasks<BlockConsistencyGroupRestRep> createFullCopy(URI consistencyGroupId, String name, Integer count) {
         int countValue = (count != null) ? count : 1;
         Tasks<BlockConsistencyGroupRestRep> copies = execute(new CreateConsistencyGroupFullCopy(consistencyGroupId, name, countValue));

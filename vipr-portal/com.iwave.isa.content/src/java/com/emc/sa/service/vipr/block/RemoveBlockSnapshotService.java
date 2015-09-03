@@ -34,7 +34,7 @@ public class RemoveBlockSnapshotService extends ViPRService {
     public void execute() {
         for (String snapshotId : snapshotIds) {
             Tasks<? extends DataObjectRestRep> tasks;
-            if ("volume".equals(storageType)) {
+            if (ConsistencyUtils.isVolumeStorageType(storageType)) {
                 tasks = execute(new DeactivateBlockSnapshot(snapshotId));
             } else {
                 tasks = ConsistencyUtils.removeSnapshot(consistencyGroupId, uri(snapshotId));

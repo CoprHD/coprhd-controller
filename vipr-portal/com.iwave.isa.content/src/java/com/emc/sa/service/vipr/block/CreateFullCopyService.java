@@ -36,7 +36,7 @@ public class CreateFullCopyService extends ViPRService {
     @Override
     public void precheck() throws Exception {
         super.precheck();
-        if ("volume".equals(storageType)) {
+        if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             BlockStorageUtils.getVolume(volumeId);
         }
     }
@@ -44,7 +44,7 @@ public class CreateFullCopyService extends ViPRService {
     @Override
     public void execute() throws Exception {
         Tasks<? extends DataObjectRestRep> copies;
-        if ("volume".equals(storageType)) {
+        if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             copies = BlockStorageUtils.createFullCopy(volumeId, name, count);
         } else {
             copies = ConsistencyUtils.createFullCopy(volumeId, name, count);

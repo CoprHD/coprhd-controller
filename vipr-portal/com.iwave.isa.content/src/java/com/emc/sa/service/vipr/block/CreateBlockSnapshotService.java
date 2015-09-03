@@ -50,7 +50,7 @@ public class CreateBlockSnapshotService extends ViPRService {
     @Override
     public void execute() {
         Tasks<? extends DataObjectRestRep> tasks;
-        if ("volume".equals(storageType)) {
+        if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             for (BlockObjectRestRep volume : volumes) {
                 tasks = execute(new CreateBlockSnapshot(volume.getId(), type, nameParam));
                 addAffectedResources(tasks);
@@ -62,4 +62,5 @@ public class CreateBlockSnapshotService extends ViPRService {
             }
         }
     }
+
 }

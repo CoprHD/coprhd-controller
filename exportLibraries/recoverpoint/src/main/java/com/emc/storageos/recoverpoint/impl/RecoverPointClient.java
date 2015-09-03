@@ -1662,13 +1662,7 @@ public class RecoverPointClient {
             cgUID.setId(volumeInfo.getRpVolumeGroupID());
             if (volumeInfo.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_SOURCE) {
                 // Disable the whole CG
-                functionalAPI.disableConsistencyGroup(cgUID);
-                String cgName = functionalAPI.getGroupName(cgUID);
-                logger.info("Protection disabled on CG: " + cgName);
-
-                // Weakness: When disabling the entire CG, we are not waiting for the link to be in a stopped (UNKNOWN) state.
-                RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
-                imageManager.waitForCGLinkState(functionalAPI, cgUID, PipeState.UNKNOWN);
+                disableConsistencyGroup(cgUID);                
             } else {
                 // Disable the CG copy associated with the target.
                 ConsistencyGroupCopyUID cgCopyUID = RecoverPointUtils.mapRPVolumeProtectionInfoToCGCopyUID(volumeInfo);
@@ -1706,7 +1700,7 @@ public class RecoverPointClient {
 
         // Make sure the CG is stopped
         RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
-        imageManager.waitForCGLinkState(functionalAPI, cgUID, null, PipeState.UNKNOWN);
+        imageManager.waitForCGLinkState(functionalAPI, cgUID, PipeState.UNKNOWN);
     }
 
     /**
@@ -1739,8 +1733,6 @@ public class RecoverPointClient {
             // Make sure the CG is ready
             RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
             imageManager.waitForCGLinkState(functionalAPI, cgUID, PipeState.ACTIVE);
-            String cgCopyName = functionalAPI.getGroupCopyName(cgCopyUID);
-            String cgName = functionalAPI.getGroupName(cgUID);
             logger.info("Protection enabled on CG copy " + cgCopyName + " on CG " + cgName);
         } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToEnableProtection(

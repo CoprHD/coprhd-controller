@@ -71,6 +71,7 @@ public enum OperationTypeEnum {
     SYNC_SRDF_LINK			("SRDFLinkSynced",		"SRDFLinkSyncFailed",		"SRDF Link Sync"),
     SWAP_SRDF_VOLUME		("SRDFVolumeSwapped",	"SRDFVolumeSwapFailed",		"SRDF Volume Swap"),
     STOP_SRDF_LINK			("SRDFLinkStopped",		"SRDFLinkStopFailed",		"SRDF Link Stop"),
+    CHANGE_SRDF_COPYMODE    ("SRDFCopyModeChanged", "SRDFCopyModeChangeFailed",	"SRDF Copy Mode Change"),
     
     START_RP_LINK		    ("RPLinkStarted",		"RPLinkStartFailed",		"RP Link Create"),
     STOP_RP_LINK            ("RPLinkStopped",       "RPLinkStopFailed",         "RP Link Stop"),
@@ -89,11 +90,14 @@ public enum OperationTypeEnum {
     DETACH_VOLUME_MIRROR    ("VolumeMirrorDetached",    "VolumeMirrorDetachFailed",     "VolumeMirror detach"),
     FRACTURE_VOLUME_MIRROR  ("VolumeMirrorFractured",   "VolumeMirrorFractureFailed",   "VolumeMirror fracture"),
     RESUME_VOLUME_MIRROR    ("VolumeMirrorResumed",   "VolumeMirrorResumeFailed",   "VolumeMirror resume"),
+    ESTABLISH_VOLUME_MIRROR ("VolumeMirrorGroupEstablished", "VolumeMirrorGroupEstablishFailed", "VolumeMirror GroupEstablish"),
     CREATE_VOLUME_FULL_COPY     ("VolumeFullCopyCreated",      "VolumeFullCopyCreateFailed",      "VolumeFullCopy Created"),
     DETACH_VOLUME_FULL_COPY     ("VolumeFullCopyDetached",     "VolumeFullCopyDetachFailed",      "VolumeFullCopy Detached"),
     ACTIVATE_VOLUME_FULL_COPY("VolumeFullCopyActivated", "VolumeFullCopyActivateFailed", "VolumeFullCopy Activated"),
     RESTORE_VOLUME_FULL_COPY("VolumeFullCopyRestored", "VolumeFullCopyRestoredFailed", "VolumeFullCopy Restored"),
     RESYNCHRONIZE_VOLUME_FULL_COPY("VolumeFullCopyResynchronized", "VolumeFullCopyResynchronizeFailed", "VolumeFullCopy Resynchronized"),
+    ESTABLISH_VOLUME_FULL_COPY("VolumeFullCopyGroupEstablished", "VolumeFullCopyGroupEstablishFailed", "VolumeFullCopy GroupEstablish"),
+
 
     CREATE_CONSISTENCY_GROUP_SNAPSHOT      ("ConsistencyGroupSnapshotCreated",   	"ConsistencyGroupSnapshotCreateFailed",       "ConsistencyGroupSnapshot Create"),
     DELETE_CONSISTENCY_GROUP_SNAPSHOT      ("ConsistencyGroupSnapshotDeleted",		"ConsistencyGroupSnapshotDeleteFailed",       "ConsistencyGroupSnapshot Delete"),

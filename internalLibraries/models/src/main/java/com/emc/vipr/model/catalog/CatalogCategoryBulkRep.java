@@ -24,7 +24,7 @@ public class CatalogCategoryBulkRep extends BulkRestRep {
     /**
      * List of catalog categories
      * @valid none
-     * @return
+     * @return List of catalog categories
      */
     @XmlElement(name = "catalog_category")
     public List<CatalogCategoryRestRep> getCatalogCategories() {

@@ -17,6 +17,7 @@ package com.emc.storageos.volumecontroller.impl;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.*;
@@ -25,17 +26,15 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.coordinator.client.service.*;
+import com.emc.storageos.locking.LockRetryException;
 import com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import org.apache.zookeeper.KeeperException;
 import com.emc.storageos.Controller;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.client.service.DistributedQueue;
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
-import com.emc.storageos.coordinator.client.service.DistributedQueueItemProcessedCallback;
-import com.emc.storageos.coordinator.client.service.DistributedSemaphore;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.exceptions.DeviceControllerException;
@@ -55,6 +54,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
     private static final int DEFAULT_METHOD_EXECUTOR_POOL_SIZE = 100;
     private static final int ACQUIRE_LEASE_WAIT_TIME_SECONDS = 10;
     private static final int ACQUIRE_LEASE_RETRY_WAIT_TIME__SECONDS = 10;
+    private static final int LOCK_RETRY_WAIT_TIME_SECONDS = 60;
     private static final int DEFAULT_CONTROLLER_MAX_ITEM = 1000;
     private static final int MAX_WORKFLOW_STEPS = 10000;
 
@@ -130,6 +130,8 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
     private int _acquireLeaseWaitTimeSeconds = ACQUIRE_LEASE_WAIT_TIME_SECONDS;
     private int _acquireLeaseRetryWaitTimeSeconds = ACQUIRE_LEASE_RETRY_WAIT_TIME__SECONDS;
 
+    private DistributedLockQueueManager<ControlRequest> _lockQueueManager;
+
     /**
      * This method implements the logic for acquiring a device-specific semaphore.
      * To get a semaphore, the device-specific configuration must include setting up maxConnections
@@ -170,6 +172,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
      * b) A semaphore is acquired, and a lease is acquired
      */
     private class DeviceMethodInvoker implements Runnable {
+        private final ControlRequest _item;
         private final DispatcherQueue _queue;
         private final Controller _innerController;
         private final Method _method;
@@ -179,6 +182,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
 
         public DeviceMethodInvoker(ControlRequest item,
                                    DistributedQueueItemProcessedCallback callback) throws DeviceControllerException {
+            _item = item;
             _queue = getQueue(item.getQueueName());
             final String targetClassName = item.getTargetClassName();
             _innerController = _controller.get(targetClassName);
@@ -197,6 +201,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
             Lease lease = null;
             boolean bRetryLease = false;
             boolean bInvocationProblem = false;
+            boolean bRetryLock = false;
             try {
                 // Reset the thread name temporarily so that the log lines don't
                 // reference a thread name that may have already completed its work.
@@ -243,6 +248,19 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
                         bRetryLease = true;
                     }
                 }
+            } catch (InvocationTargetException e) {
+                Throwable cause = e.getCause();
+                if (cause instanceof LockRetryException) {
+                    LockRetryException lockEx = (LockRetryException) cause;
+                    if (!addRequestToLockQueue(lockEx, _item)) {
+                        _log.warn("Rescheduling task {}: {}", _method.getName(), _args);
+                        _queue.getMethodPoolExecutor().schedule(this, LOCK_RETRY_WAIT_TIME_SECONDS, TimeUnit.SECONDS);
+                        bRetryLock = true;
+                    }
+                } else {
+                    _log.warn("Problem executing task: " + _method.getName() + "; {}", _args, e);
+                    bInvocationProblem = true;
+                }
             } catch(Exception e) {
                 _log.warn("Problem executing task: " + _method.getName() + "; {}", _args, e);
                 bInvocationProblem = true;
@@ -251,7 +269,7 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
                     if(_deviceSemaphore != null && lease != null) {
                         _deviceSemaphore.returnLease(lease);
                     }
-                    if(!bRetryLease && !bInvocationProblem) {
+                    if(!bRetryLease && !bInvocationProblem && !bRetryLock) {
                         //The method was invoked. Cleanup.
                         _callback.itemProcessed();
                         _log.info("Done with task {}: {}", _method.getName(), _args);
@@ -260,6 +278,24 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
                     _log.warn("Problem removing task from queue: " + _method.getName() + ", {}", _args, e);
                 }
             }
+        }
+    }
+
+    /**
+     * Attempt to push an item onto the lock queue.
+     *
+     * @param lockEx LockRetryException instance
+     * @param item Item to queue
+     * @return true if the lock is not available and queueing was successful
+     */
+    private boolean addRequestToLockQueue(LockRetryException lockEx, ControlRequest item) {
+        try {
+            _log.info(String.format("Dispatcher processing LockRetryException key %s remaining time %s",
+                    lockEx.getLockPath(), lockEx.getRemainingWaitTimeSeconds()));
+            return !_coordinator.isDistributedOwnerLockAvailable(lockEx.getLockPath()) &&
+                    _lockQueueManager.queue(lockEx.getLockIdentifier(), item);
+        } catch (Exception e) {
+            return false;
         }
     }
 
@@ -414,6 +450,34 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
         }
         _log.info("Queued task {}: {} ", method, args);
     }
+
+    /**
+     * Place back onto the Dispatcher an existing ControlRequest instance that would
+     * have been held in a lock queue.
+     *
+     * See {@link DistributedLockQueueManager}
+     *
+     * @param item          An existing ControlRequest
+     * @throws Exception
+     */
+    public void queue(ControlRequest item) throws Exception {
+        try {
+            if (QueueName.controller.toString().equalsIgnoreCase(item.getQueueName())) {
+                checkZkStepToWorkflowSize();
+            }
+            getQueue(item.getQueueName()).getQueue().put(item);
+        } catch (final CoordinatorException e) {
+            throw ClientControllerException.retryables.queueToBusy();
+        } catch (final ClientControllerException e) {
+            throw ClientControllerException.retryables.queueToBusy();
+        } catch (final KeeperException e) {
+            e.printStackTrace();
+            throw ClientControllerException.fatals.unableToQueueJob(item.getDeviceInfo().getURI());
+        } catch (final Exception e) {
+            throw ClientControllerException.fatals.unableToQueueJob(item.getDeviceInfo().getURI(), e);
+        }
+        _log.info("Queued existing task {}: {} ", item.getMethodName(), item.getArg());
+    }
     
     /**
      * This method checks the size of the total number of steps across all the running
@@ -528,5 +592,9 @@ public class Dispatcher extends DistributedQueueConsumer<ControlRequest> {
         // would get similar load naturally.  More nodes and longer running, more evenly.
         // If Dispatcher needs better load balance, it could enhance it from here.
         return false;
+    }
+
+    public void setLockQueueManager(DistributedLockQueueManager lockQueueManager) {
+        _lockQueueManager = lockQueueManager;
     }
 }

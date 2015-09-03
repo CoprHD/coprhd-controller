@@ -58,7 +58,7 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     
     /**
      * The adapter name of the Storage Port
-     * @return
+     * @return Adapter name of Storage Port
      */
     @XmlElement(name = "adapter_name")
     public String getAdapterName() {

@@ -60,6 +60,27 @@ public class BlockConsistencyGroupUpdateCompleter extends BlockConsistencyGroupT
     }
 
     @Override
+    protected void complete(DbClient dbClient, Status status, ServiceCoded coded)
+            throws DeviceControllerException {
+        try {
+            super.complete(dbClient, status, coded);
+            BlockConsistencyGroup consistencyGroup =
+                    dbClient.queryObject(BlockConsistencyGroup.class,
+                            getConsistencyGroupURI());
+
+            dbClient.ready(BlockConsistencyGroup.class, consistencyGroup.getId(),
+                    getOpId());
+
+            recordBourneBlockConsistencyGroupEvent(dbClient, consistencyGroup.getId(),
+                    eventType(Status.ready), Status.ready, eventMessage(Status.ready,
+                    consistencyGroup));
+        } catch (Exception e) {
+            _log.error("Failed updating status. BlockConsistencyGroupUpdate {}, for task "
+                    + getOpId(), getId(), e);
+        }
+    }
+
+    @Override
     public void error(DbClient dbClient, ServiceCoded serviceCoded) throws
             DeviceControllerException {
         try {

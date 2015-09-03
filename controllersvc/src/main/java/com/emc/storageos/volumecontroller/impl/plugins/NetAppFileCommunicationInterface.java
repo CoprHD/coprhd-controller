@@ -835,7 +835,7 @@ public class NetAppFileCommunicationInterface extends
 
             if(existingUnManagedFileSystems.size() > 0) {
                 //Update UnManagedFilesystem
-                _partitionManager.updateInBatches(existingUnManagedFileSystems,
+                _partitionManager.updateAndReIndexInBatches(existingUnManagedFileSystems,
                         Constants.DEFAULT_PARTITION_SIZE, _dbClient,
                         UNMANAGED_FILESYSTEM);
             }
@@ -1201,28 +1201,18 @@ public class NetAppFileCommunicationInterface extends
             StringSet pools = new StringSet();
             pools.add(pool.getId().toString());
             unManagedFileSystemInformation.put(
-                    UnManagedFileSystem.SupportedFileSystemInformation.STORAGE_POOL.toString(),
-                    pools);
+                    UnManagedFileSystem.SupportedFileSystemInformation.STORAGE_POOL.toString(), pools);
             unManagedFileSystem.setStoragePoolUri(pool.getId());
             StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(_dbClient, pool.getId());
-            if (unManagedFileSystemInformation.containsKey(UnManagedFileSystem.SupportedFileSystemInformation.
-                    SUPPORTED_VPOOL_LIST.toString())) {
-
-                if (null != matchedVPools && matchedVPools.size() == 0) {
-                    // replace with empty string set doesn't work, hence added explicit code to remove all
-                    unManagedFileSystemInformation.get(
-                            SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).clear();
-                } else {
-                    // replace with new StringSet
-                    unManagedFileSystemInformation.get(
-                            SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).replace(matchedVPools);
-                    _logger.info("Replaced Pools :"+Joiner.on("\t").join( unManagedFileSystemInformation.get(
-                            SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())));
-                }
+            _logger.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
+            if (null == matchedVPools || matchedVPools.isEmpty()) {
+                // clear all existing supported vpool list.
+                unManagedFileSystem.getSupportedVpoolUris().clear();
             } else {
-                unManagedFileSystemInformation
-                .put(UnManagedFileSystem.SupportedFileSystemInformation.SUPPORTED_VPOOL_LIST
-                        .toString(), matchedVPools);
+                // replace with new StringSet
+                unManagedFileSystem.getSupportedVpoolUris().replace(matchedVPools);
+                _logger.info("Replaced Pools :"
+                        + Joiner.on("\t").join(unManagedFileSystem.getSupportedVpoolUris()));
             }
         }
 

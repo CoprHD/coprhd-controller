@@ -8,11 +8,11 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
-import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 
-public class GetUnmanagedFilesystemsForStorageSystem extends ViPRExecutionTask<List<RelatedResourceRep>> {
-    private URI storageSystem;
-    
+public class GetUnmanagedFilesystemsForStorageSystem extends ViPRExecutionTask<List<NamedRelatedResourceRep>> {
+    private final URI storageSystem;
+
     public GetUnmanagedFilesystemsForStorageSystem(String storageSystem) {
         this(uri(storageSystem));
     }
@@ -23,7 +23,7 @@ public class GetUnmanagedFilesystemsForStorageSystem extends ViPRExecutionTask<L
     }
 
     @Override
-    public List<RelatedResourceRep> executeTask() throws Exception {
+    public List<NamedRelatedResourceRep> executeTask() throws Exception {
         return getClient().unmanagedFileSystems().listByStorageSystem(storageSystem);
     }
 }

@@ -24,7 +24,7 @@ public class ExecutionWindowBulkRep extends BulkRestRep {
     /**
      * List of execution windows
      * @valid none
-     * @return
+     * @return List of execution windows
      */
     @XmlElement(name = "execution_window")
     public List<ExecutionWindowRestRep> getExecutionWindows() {

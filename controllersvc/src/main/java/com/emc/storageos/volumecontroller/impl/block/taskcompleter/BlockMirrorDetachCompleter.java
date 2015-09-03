@@ -22,11 +22,15 @@ import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.util.List;
+
 import com.emc.storageos.services.OperationTypeEnum;
+import com.google.common.base.Joiner;
 
 public class BlockMirrorDetachCompleter extends BlockMirrorTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(BlockMirrorCreateCompleter.class);
@@ -37,40 +41,46 @@ public class BlockMirrorDetachCompleter extends BlockMirrorTaskCompleter {
         super(BlockMirror.class, mirror, opId);
     }
 
+    public BlockMirrorDetachCompleter(List<URI> mirrorList, String opId) {
+        super(BlockMirror.class, mirrorList, opId);
+    }
+
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded)
             throws DeviceControllerException {
         try {
             _log.info("START BlockMirrorDetachCompleter " + status);
             super.complete(dbClient, status, coded);
-            BlockMirror mirror = dbClient.queryObject(BlockMirror.class, getMirrorURI());
-            Volume volume = dbClient.queryObject(Volume.class, mirror.getSource());
+            List<BlockMirror> mirrorList = dbClient.queryObject(BlockMirror.class, getIds());
+            for (BlockMirror mirror : mirrorList) {
+                Volume volume = dbClient.queryObject(Volume.class, mirror.getSource());
 
-            if (status == Status.ready){
-                _log.info("Removing sync details for mirror " + mirror.getId());
-                mirror.setSynchronizedInstance(NullColumnValueGetter.getNullStr());
-                mirror.setSyncState(NullColumnValueGetter.getNullStr());
-                dbClient.persistObject(mirror);
-                _log.info("Removing mirror {} from source volume {}", mirror.getId().toString(),
-                        volume.getId().toString());
-                if(volume.getMirrors()!=null){
-                    volume.getMirrors().remove(mirror.getId().toString());
-                    dbClient.persistObject(volume);
+                if (status == Status.ready){
+                    _log.info("Removing sync details for mirror " + mirror.getId());
+                    mirror.setSynchronizedInstance(NullColumnValueGetter.getNullStr());
+                    mirror.setSyncState(NullColumnValueGetter.getNullStr());
+                    dbClient.persistObject(mirror);
+                    _log.info("Removing mirror {} from source volume {}", mirror.getId().toString(),
+                            volume.getId().toString());
+                    if(volume.getMirrors()!=null){
+                        volume.getMirrors().remove(mirror.getId().toString());
+                        dbClient.persistObject(volume);
+                    }
                 }
-            }
 
-            switch (status) {
-            case error:
-                dbClient.error(Volume.class, volume.getId(), getOpId(), coded);
-                break;
-            default:
-                dbClient.ready(Volume.class, volume.getId(), getOpId());
-            }
+                switch (status) {
+                case error:
+                    dbClient.error(Volume.class, volume.getId(), getOpId(), coded);
+                    break;
+                default:
+                    dbClient.ready(Volume.class, volume.getId(), getOpId());
+                }
 
-            recordBlockMirrorOperation(dbClient, OperationTypeEnum.DETACH_VOLUME_MIRROR,
-                    status, eventMessage(status, volume, mirror), mirror, volume);
+                recordBlockMirrorOperation(dbClient, OperationTypeEnum.DETACH_VOLUME_MIRROR,
+                        status, eventMessage(status, volume, mirror), mirror, volume);
+            }
         } catch (Exception e) {
-            _log.error("Failed updating status. BlockMirrorDetach {}, for task " + getOpId(), getId(), e);
+            _log.error("Failed updating status. BlockMirrorDetach {}, for task " + getOpId(), Joiner.on("\t").join(getIds()), e);
         }
     }
 

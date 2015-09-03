@@ -24,7 +24,6 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObject;
 @Cf("UnManagedVolume")
 public class UnManagedVolume extends UnManagedDiscoveredObject{
     
-    
     private StringSetMap _volumeInformation;
     
     private StringMap _volumeCharacterstics;
@@ -286,9 +285,22 @@ public class UnManagedVolume extends UnManagedDiscoveredObject{
     public void setStoragePortUris(StringSet storagePortUris) {
         this.storagePortUris = storagePortUris;
     }
-
+    
     public enum Types{
 		SOURCE,
-		TARGET
+		TARGET,
+		REGULAR;
+		
+        public static boolean isSourceVolume(Types types) {
+            return SOURCE == types;
+        }
+        
+        public static boolean isTargetVolume(Types types) {
+            return TARGET == types;
+        }
+        
+        public static boolean isRegularVolume(Types types) {
+            return REGULAR == types;
+        } 
 	}
 }

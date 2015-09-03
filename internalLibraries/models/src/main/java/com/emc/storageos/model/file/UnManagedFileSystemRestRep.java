@@ -16,6 +16,7 @@ package com.emc.storageos.model.file;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
@@ -40,6 +41,11 @@ public class UnManagedFileSystemRestRep extends DataObjectRestRep {
     private List<StringHashMapEntry> filesystemCharacteristics;
     private RelatedResourceRep storageSystem;
     private RelatedResourceRep storagePool;
+    
+    /**
+     * List of supported VPool URIs associated with this UnManagedVolume.
+     */
+    private List<String> supportedVPoolUris;
 
     /**
      * GUID associated with the unmanaged file system.
@@ -80,6 +86,19 @@ public class UnManagedFileSystemRestRep extends DataObjectRestRep {
 
     public void setStoragePool(RelatedResourceRep storagePool) {
         this.storagePool = storagePool;
+    }
+    
+    @XmlElementWrapper(name = "supported_virtual_pools")
+    @XmlElement(name = "virtual_pool")
+    public List<String> getSupportedVPoolUris() {
+        if (supportedVPoolUris == null) {
+            supportedVPoolUris = new ArrayList<String>();
+        }
+        return supportedVPoolUris;
+    }
+
+    public void setSupportedVPoolUris(List<String> supportedVPoolUris) {
+        this.supportedVPoolUris = supportedVPoolUris;
     }
 
     /**

@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.srdfcontroller;
 
+import com.emc.storageos.model.block.Copy;
 import com.emc.storageos.protectioncontroller.ProtectionController;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
@@ -18,13 +19,13 @@ public interface SRDFController extends ProtectionController {
      * Perform protection operation
      *
      * @param system SRDF protection system URI
-     * @param id volume ID
+     * @param copy volume 
      * @param op operation to perform
      * @param task task object
      *
      * @throws InternalException
      */
-    public void performProtectionOperation(URI system, URI id, String op, String task) throws InternalException;
+    public void performProtectionOperation(URI system, Copy copy, String op, String task) throws InternalException;
     
     /**
      * Expand SRDF Devices

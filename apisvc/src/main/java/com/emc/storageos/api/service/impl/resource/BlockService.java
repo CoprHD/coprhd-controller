@@ -88,6 +88,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProtectionSystem;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -167,6 +168,7 @@ import com.emc.storageos.vplexcontroller.VPlexDeviceController;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 
+
 @Path("/block/volumes")
 @DefaultPermissions( read_roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
         read_acls = {ACL.OWN, ACL.ALL},
@@ -200,6 +202,7 @@ public class BlockService extends TaskResourceService {
         PAUSE("pause", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_PAUSE),
         SUSPEND("suspend", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SUSPEND),
         RESUME("resume", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_RESUME),
+        CHANGE_COPY_MODE("change-copy-mode", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_CHANGE_COPY_MODE),
         UNKNOWN("unknown", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION);
 
         private String op;
@@ -379,10 +382,10 @@ public class BlockService extends TaskResourceService {
             // Validate a copy type was passed
             ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
             
+            URI copyID = copy.getCopyID();
             // If copyID is null all copies are started          
             if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
                 // If copyID is not set all copies are started
-                URI copyID = copy.getCopyID();
                 if (!URIUtil.isValid(copyID)) {
                     copyID = null;
                 }
@@ -396,16 +399,24 @@ public class BlockService extends TaskResourceService {
                 taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.START.getRestOp());
                 taskList.getTaskList().add(taskResp);
             } else if (copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
-                NativeContinuousCopyCreate mirror = new NativeContinuousCopyCreate(
-                        copy.getName(), copy.getCount());
-                taskList = startMirrors(id, mirror);
+                if (URIUtil.isValid(copyID) && URIUtil.isType(copyID, BlockMirror.class)) {
+                    /**
+                     * To establish group relationship between volume group and mirror group
+                     */
+                    taskResp = establishVolumeMirrorGroupRelation(id, copy, ProtectionOp.START.getRestOp());
+                    taskList.getTaskList().add(taskResp);
+                } else {
+                    NativeContinuousCopyCreate mirror = new NativeContinuousCopyCreate(
+                            copy.getName(), copy.getCount());
+                    taskList = startMirrors(id, mirror);
+                }
             } else {
                 throw APIException.badRequests.invalidCopyType(copy.getType());
             }                   
         }
         
         return taskList;
-    }    
+    }
 
     
     /**
@@ -492,7 +503,7 @@ public class BlockService extends TaskResourceService {
     		srdfVolumeURIList.add(id);
     		for (Copy copy : param.getCopies()) {
     			URI copyID = copy.getCopyID();          
-    			if (URIUtil.isValid(copyID)) {
+    			if (URIUtil.isType(copyID, Volume.class) && URIUtil.isValid(copyID)) {
     				srdfVolumeURIList.add(copyID);
     				break;
     			}
@@ -552,13 +563,15 @@ public class BlockService extends TaskResourceService {
     
     /**
      * Activate a full copy.
+     * <p>
+     * This method is deprecated. Use /block/full-copies/{id}/activate instead with {id} representing full copy URI id
      * 
      * @prereq Create full copy as inactive
      *
      * @param id the URN of a ViPR Source volume
      * @param fullCopyId Full copy URI
      *
-     * @brief Activate full copy
+     * @brief Activate full copy. This method is deprecated. Use /block/full-copies/{id}/activate instead with {id} representing full copy URI id
      * 
      * @return TaskResourceRep
      */
@@ -574,7 +587,8 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Show synchronization progress for a full copy.
-     * 
+     * <p>
+     * This method is deprecated. Use /block/full-copies/{id}/check-progress instead with {id} representing full copy URI id
      * @prereq none
      *
      * @param id the URN of a ViPR Source volume
@@ -596,7 +610,8 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Detach a full copy from its source volume.
-     * 
+     * <p>
+     * This method is deprecated. Use /block/full-copies/{id}/detach instead with {id} representing full copy URI id
      * @prereq Create full copy as inactive
      * @prereq Activate full copy
      *
@@ -1226,7 +1241,8 @@ public class BlockService extends TaskResourceService {
      * 
      * NOTE: This is an asynchronous operation.
      * 
-     * If volume is srdf protected, then invoking failover-test ends in  no-op
+     * If volume is srdf protected, then invoking failover-test ends in  no-op.
+     * failoverTest is being replaced by failover
      * 
      * @prereq none
      * 
@@ -1291,6 +1307,7 @@ public class BlockService extends TaskResourceService {
      * @return TaskList
      * 
      * @throws ControllerException
+     * 
      */
     @POST
     @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
@@ -1376,6 +1393,8 @@ public class BlockService extends TaskResourceService {
      * NOTE: This is an asynchronous operation.
      * 
      * If volume is srdf protected, then its a no-op
+     * <p>
+     * This method is deprecated. Use /block/volumes/{id}/protection/continuous-copies/failover-cancel instead.
      * 
      * @prereq none
      * 
@@ -1552,7 +1571,66 @@ public class BlockService extends TaskResourceService {
         }
         
         return taskList;
-    }    
+    }
+    
+    @POST
+    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Path("/{id}/protection/continuous-copies/copymode")
+    @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.OWN, ACL.ALL})
+    public TaskList changeCopyMode(@PathParam("id") URI id, CopiesParam param)
+        throws ControllerException {
+
+        TaskResourceRep taskResp = null;
+        TaskList taskList = new TaskList();
+        
+        // Validate the source volume URI
+        ArgValidator.checkFieldUriType(id, Volume.class, "id");
+        
+        // Validate the list of copies
+        ArgValidator.checkFieldNotEmpty(param.getCopies(), "copies");
+        
+        // Verify that the copy IDs are either all specified or none are specified
+        // for a particular protection type.  Combinations are not allowed
+        verifyCopyIDs(param);
+        
+        // Process the list of copies       
+        for (Copy copy : param.getCopies()) {
+            
+            // Validate a copy type was passed
+            ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
+            
+            String copyMode = copy.getCopyMode();
+            // Validate a copy mode was passed
+            ArgValidator.checkFieldNotEmpty(copyMode, "copyMode");
+            Volume volume = queryVolumeResource(id);
+            ArgValidator.checkEntity(volume, id, true);
+            
+            if(volume.hasConsistencyGroup()) {
+            	if (TechnologyType.SRDF.name().equalsIgnoreCase(copy.getType())) {
+                	
+                	if(RemoteDirectorGroup.SupportedCopyModes.ASYNCHRONOUS.name().equalsIgnoreCase(copyMode)
+                			|| RemoteDirectorGroup.SupportedCopyModes.SYNCHRONOUS.name().equalsIgnoreCase(copyMode)
+                			|| RemoteDirectorGroup.SupportedCopyModes.ADAPTIVECOPY.name().equalsIgnoreCase(copyMode)) {
+                		taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.CHANGE_COPY_MODE.getRestOp());
+                        taskList.getTaskList().add(taskResp);
+                	} else {
+                		throw APIException.badRequests.invalidSRDFCopyMode(copy.getType());
+                	}
+                    
+                } else {
+                    throw APIException.badRequests.invalidCopyType(copy.getType());
+                }   
+            } else {
+            	/**
+            	 * As of now ViPR supports change copy mode operations only for volumes with CG.
+            	 */
+            	throw APIException.badRequests.invalidSRDFCopyMode(volume.getNativeId());
+            }
+                            
+        }
+        
+        return taskList;
+    }
     
     /**
      * Get the details of a specific volume
@@ -2294,21 +2372,20 @@ public class BlockService extends TaskResourceService {
             
             // Validate a copy type was passed
             ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
-                            
             if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
                 taskResp = performProtectionAction(id, copyID, ProtectionOp.PAUSE.getRestOp());
+                taskList.getTaskList().add(taskResp);
             } else if (!vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
-                taskResp = pauseMirrors(id, copy.getSync(), copyID);
+                TaskList pauseTaskList = pauseMirrors(id, copy.getSync(), copyID);
+                taskList.getTaskList().addAll(pauseTaskList.getTaskList());
             } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
                 taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.PAUSE.getRestOp());
+                taskList.getTaskList().add(taskResp);
             } else if(vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())){
                 throw APIException.badRequests.actionNotApplicableForVplexVolumeMirrors(ProtectionOp.PAUSE.getRestOp());
             } else {
                 throw APIException.badRequests.invalidCopyType(copy.getType());
             }
-            
-            // Add the task for this copy
-            taskList.getTaskList().add(taskResp);
             
             // If copyID is null, we have already paused all copies
             if (copyID == null) {
@@ -2368,23 +2445,22 @@ public class BlockService extends TaskResourceService {
             
             // Validate a copy type was passed
             ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
-            
             // If copyID is null all copies are paused          
             if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
                 taskResp = performProtectionAction(id, copyID, ProtectionOp.RESUME.getRestOp());
+                taskList.getTaskList().add(taskResp);
             } else if (!vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
-                taskResp = resumeMirrors(id, copyID);
+                TaskList resumeTaskList = resumeMirrors(id, copyID);
+                taskList.getTaskList().addAll(resumeTaskList.getTaskList());
             } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
                 taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.RESUME.getRestOp());
+                taskList.getTaskList().add(taskResp);
             } else if(vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())){
                 throw APIException.badRequests.actionNotApplicableForVplexVolumeMirrors(ProtectionOp.RESUME.getRestOp());
             } else {
                 throw APIException.badRequests.invalidCopyType(copy.getType());
             }
-            
-            // Add task for this copy
-            taskList.getTaskList().add(taskResp);
-            
+
             // If copyID is null, we have already resumed all copies
             if (copyID == null) {
                 return taskList;
@@ -2417,7 +2493,6 @@ public class BlockService extends TaskResourceService {
     @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.OWN, ACL.ALL})
     public TaskList deactivateMirror(@PathParam("id")URI id, CopiesParam param) throws ControllerException {
         
-        TaskResourceRep taskResp = null;
         TaskList taskList = new TaskList();
         
         // Validate the source volume URI
@@ -2473,10 +2548,10 @@ public class BlockService extends TaskResourceService {
                 auditOp(OperationTypeEnum.DEACTIVATE_VOLUME_MIRROR, true, AuditLogManager.AUDITOP_BEGIN,
                         copyID.toString(), mirrorLabel);
 
-                taskResp = blockServiceApi.deactivateMirror(device, mirrorURI, task);
+                TaskList deactivateTaskList = blockServiceApi.deactivateMirror(device, mirrorURI, task);
 
                 // Add task for this copy
-                taskList.getTaskList().add(taskResp);
+                taskList.getTaskList().addAll(deactivateTaskList.getTaskList());
 
             } else {
                 throw APIException.badRequests.invalidCopyType(copy.getType());
@@ -2523,14 +2598,14 @@ public class BlockService extends TaskResourceService {
         _dbClient.createTaskOpStatus(Volume.class, volume.getId(), task, status);
 
         if (Volume.isSRDFProtectedTargetVolume(copyVolume)) {
-            
+        	
             if (op.equalsIgnoreCase(ProtectionOp.FAILOVER_TEST_CANCEL.getRestOp()) ||
                     op.equalsIgnoreCase(ProtectionOp.FAILOVER_TEST.getRestOp()))  {
                 _dbClient.ready(Volume.class, volume.getId(), task);
                 return toTask(volume, task, status);
             }
             
-            if (PersonalityTypes.SOURCE.toString().equalsIgnoreCase(
+            if (PersonalityTypes.SOURCE.name().equalsIgnoreCase(
                     copyVolume.getPersonality())) {
                 if (op.equalsIgnoreCase(ProtectionOp.FAILOVER_CANCEL.getRestOp()) || op.equalsIgnoreCase(ProtectionOp.FAILOVER.getRestOp()) || op.equalsIgnoreCase(ProtectionOp.SWAP.getRestOp())) {
                     throw new ServiceCodeException(
@@ -2544,7 +2619,13 @@ public class BlockService extends TaskResourceService {
                             "Target Volume Empty for a given source R1 {0}, hence cannot proceed with failover or failback.",
                             new Object[] { copyVolume.getNativeGuid() });
                 }
-            } 
+            }  else if (PersonalityTypes.TARGET.name().equalsIgnoreCase(copyVolume.getPersonality()) &&
+            		RemoteDirectorGroup.SupportedCopyModes.ADAPTIVECOPY.name().equalsIgnoreCase(copyVolume.getSrdfCopyMode())) {
+            	
+            		if(ProtectionOp.CHANGE_COPY_MODE.getRestOp().equalsIgnoreCase(op)){
+                		validateVpoolCopyModeSetting(volume, copy.getCopyMode());
+                	}
+            }
 
             /*
              * CTRL-6972: In the absence of a /restore API, we re-use /sync with a syncDirection parameter for
@@ -2563,13 +2644,72 @@ public class BlockService extends TaskResourceService {
                     copyVolume.getStorageController());
             SRDFController controller = getController(SRDFController.class,
                     system.getSystemType());
-            controller.performProtectionOperation(system.getId(), copyID, op, task);
+            controller.performProtectionOperation(system.getId(), copy, op, task);
         } else {
             throw new ServiceCodeException(ServiceCode.IO_ERROR,
                     "Volume {0} is not SRDF protected",
                     new Object[] { copyVolume.getNativeGuid() });
         }
         return toTask(volume, task, status);
+    }
+
+    private void validateVpoolCopyModeSetting(Volume srcVolume, String newCopyMode) {
+    	if(srcVolume != null){
+    		URI virtualPoolURI = srcVolume.getVirtualPool();
+    		VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, virtualPoolURI);
+    		if(virtualPool != null){
+    			StringMap remoteCopySettingsMap = virtualPool.getProtectionRemoteCopySettings();
+    			if(remoteCopySettingsMap != null){
+    				for(Map.Entry<URI, VpoolRemoteCopyProtectionSettings> entry: 
+    					    VirtualPool.getRemoteProtectionSettings(virtualPool, _dbClient).entrySet()){
+    					VpoolRemoteCopyProtectionSettings copySetting = entry.getValue();
+    					if(!newCopyMode.equalsIgnoreCase(copySetting.getCopyMode())){
+    						throw APIException.badRequests.invalidCopyModeOp(newCopyMode,copySetting.getCopyMode());
+    					}
+    				}
+    			}
+    		}
+    	}
+	}
+
+	private TaskResourceRep establishVolumeMirrorGroupRelation(URI id, Copy copy, String op)
+            throws InternalException {
+        URI copyID = copy.getCopyID();
+        ArgValidator.checkFieldUriType(copyID, BlockMirror.class, "copyID");
+        // Get the volume associated with the URI
+        Volume volume = queryVolumeResource(id);
+        BlockMirror mirror = queryMirror(copyID);
+
+        ArgValidator.checkEntity(volume, id, true);
+        ArgValidator.checkEntity(mirror, copyID, true);
+
+        StringSet mirrors = volume.getMirrors();        
+        if (mirrors == null || mirrors.isEmpty()) {
+            throw APIException.badRequests.invalidParameterVolumeHasNoContinuousCopies(id);
+        }
+
+        if (!mirror.getSource().getURI().equals(id)) {
+            throw APIException.badRequests.invalidParameterBlockCopyDoesNotBelongToVolume(copyID, id);
+        }
+
+        if (!volume.hasConsistencyGroup() ||
+                !mirror.hasConsistencyGroup()) {
+            throw APIException.badRequests.blockObjectHasNoConsistencyGroup();
+        }
+
+        String task = UUID.randomUUID().toString();
+        Operation status = new Operation();
+        status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
+        _dbClient.createTaskOpStatus(Volume.class, volume.getId(), task, status);
+
+        auditOp(OperationTypeEnum.ESTABLISH_VOLUME_MIRROR, true, AuditLogManager.AUDITOP_BEGIN,
+                mirrors);
+
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class,
+                volume.getStorageController());
+        BlockServiceApi blockServiceApi = getBlockServiceImpl("mirror");
+        return blockServiceApi.establishVolumeAndNativeContinuousCopyGroupRelation(system, volume,
+            mirror, task);
     }
 
     /**
@@ -2725,6 +2865,7 @@ public class BlockService extends TaskResourceService {
      * 
      * Change the virtual pool of a VMAX and VNX volume to allow change of Auto-tiering policy
      * associated with it.
+     * Since this method has been deprecated use POST /block/volumes/vpool-change
      * 
      * @brief Change the virtual pool for a volume.
      *
@@ -3102,7 +3243,7 @@ public class BlockService extends TaskResourceService {
      * 
      * @param projectURI
      * @param varrayURI
-     * @return
+     * @return Get Volume for Virtual Array Change
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -3172,7 +3313,8 @@ public class BlockService extends TaskResourceService {
      * Allows the caller to change the virtual array of the passed volume. Currently,
      * this is only possible for a local VPlex virtual volumes. Additionally, the 
      * volume must not be exported. The volume can be migrated to the other cluster
-     * in the VPlex Metro configuration or a new varray in the same cluster.
+     * in the VPlex Metro configuration or a new varray in the same cluster. Since this method has been
+     * deprecated use POST /block/volumes/varray-change
      * 
      * @prereq Volume must not be exported
      * 
@@ -4249,7 +4391,7 @@ public class BlockService extends TaskResourceService {
                 }
             }else{
                 BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, URI.create(mirrorURI));
-                if (!mirror.getInactive() &&
+                if (null != mirror && !mirror.getInactive() &&
                         ((count > 1 && mirror.getLabel().matches("^" + name + "\\-\\d+$")) ||
                                 (count == 1 && name.equals(mirror.getLabel())))) {
                     dupList.add(mirror.getLabel());
@@ -4450,9 +4592,9 @@ public class BlockService extends TaskResourceService {
      * @param sync flag for pause operation; true=split, false=fracture
      * @param copyID copyID Copy volume ID, none specified pauses all copies
      *
-     * @return TaskResourceRep
+     * @return TaskList
      */
-    private TaskResourceRep pauseMirrors(URI id, String sync, URI copyID) {
+    private TaskList pauseMirrors(URI id, String sync, URI copyID) {
         Volume sourceVolume = queryVolumeResource(id);
         ArgValidator.checkEntity(sourceVolume, id, true);
         
@@ -4497,9 +4639,9 @@ public class BlockService extends TaskResourceService {
      * @param id the URN of a ViPR Source volume
      * @param copyID Copy volume ID, none specified resumes all copies
      * 
-     * @return TaskResourceRep
+     * @return TaskList
      */
-    private TaskResourceRep resumeMirrors(URI id, URI copyID) {
+    private TaskList resumeMirrors(URI id, URI copyID) {
         ArgValidator.checkFieldUriType(id, Volume.class, "id");
         Volume sourceVolume = queryVolumeResource(id);
         ArgValidator.checkEntity(sourceVolume, id, true);

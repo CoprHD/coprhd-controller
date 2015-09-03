@@ -20,6 +20,9 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.coordinator.client.service.*;
+import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueItemNameGenerator;
+import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -28,10 +31,6 @@ import org.springframework.context.ApplicationContext;
 
 import com.emc.storageos.cinder.api.CinderApiFactory;
 import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
-import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.client.service.DistributedQueue;
-import com.emc.storageos.coordinator.client.service.LeaderSelectorListenerForPeriodicTask;
 import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
@@ -142,6 +141,8 @@ public class ControllerServiceImpl implements ControllerService {
     private MonitoringJobConsumer _monitoringJobConsumer;
     private ConnectionStateListener zkConnectionStateListenerForMonitoring;
     private DataObjectScanner _doScanner;
+    private DistributedLockQueueManager _lockQueueManager;
+    private ControlRequestTaskConsumer _controlRequestTaskConsumer;
     
     ManagedCapacityImpl _capacityCompute;
     LeaderSelector      _capacityService;
@@ -493,7 +494,8 @@ public class ControllerServiceImpl implements ControllerService {
         _jobScheduler.start();
 
         _svcBeacon.start();
-        
+
+        startLockQueueService();
 
         startCapacityService();
         loadCustomConfigDefaults();
@@ -502,6 +504,8 @@ public class ControllerServiceImpl implements ControllerService {
     @Override
     public void stop() throws Exception {
         _log.info("Stopping controller service");
+        _controlRequestTaskConsumer.stop();
+        _lockQueueManager.stop();
         _jobScheduler.stop();
         _discoverJobQueue.stop(120000);
         _computeDiscoverJobQueue.stop(120000);
@@ -549,6 +553,29 @@ public class ControllerServiceImpl implements ControllerService {
                                                           executor);
         _capacityService.autoRequeue();
         _capacityService.start();
+    }
+
+    private void startLockQueueService() {
+        _controlRequestTaskConsumer.start();
+        _lockQueueManager = _coordinator.getLockQueue(_controlRequestTaskConsumer);
+
+        _dispatcher.setLockQueueManager(_lockQueueManager);
+        _distributedOwnerLockService.setLockQueueManager(_lockQueueManager);
+
+        // TODO Spring config
+        _lockQueueManager.setNameGenerator(new ControlRequestLockQueueItemName());
+
+        // TODO Spring config
+        DistributedLockQueueScheduler dlqScheduler = new DistributedLockQueueScheduler();
+        dlqScheduler.setCoordinator(_coordinator);
+        dlqScheduler.setLockQueue(_lockQueueManager);
+        dlqScheduler.setValidator(new OwnerLockValidator(_distributedOwnerLockService));
+        dlqScheduler.start();
+
+        // TODO Spring config
+        ControlRequestLockQueueListener controlRequestLockQueueListener = new ControlRequestLockQueueListener();
+        controlRequestLockQueueListener.setDbClient(_dbClient);
+        _lockQueueManager.getListeners().add(controlRequestLockQueueListener);
     }
 
     private void loadCustomConfigDefaults() {
@@ -687,5 +714,9 @@ public class ControllerServiceImpl implements ControllerService {
 			DistributedOwnerLockServiceImpl _distributedOwnerLockService) {
 		this._distributedOwnerLockService = _distributedOwnerLockService;
 	}
+
+    public void setControlRequestTaskConsumer(ControlRequestTaskConsumer consumer) {
+        _controlRequestTaskConsumer = consumer;
+    }
     
 }

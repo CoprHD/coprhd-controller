@@ -45,6 +45,7 @@ task generateDynamicFiles(type: Javadoc, dependsOn: [jar]) {
     options.addStringOption("d", "${project.buildDir}")
     options.addStringOption("c", "${project.projectDir}/src/content")
     options.addStringOption("portalsrc", "${rootProject.projectDir}/vipr-portal/portal")
+    options.addStringOption("rootDirectory", "${rootProject.projectDir}/")
     options.addStringOption("build", "${rootProject.version}")
     options.quiet()
 }

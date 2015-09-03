@@ -1797,6 +1797,21 @@
         hidden : "true"
     },
     {
+        key : "controller_srdf_provisioning_lock_timeout",
+        label : "Timeout in sec",
+        description : "Timeout for SRDF Provisioning Locking",
+        type : "uint32",
+        userConfigurable : true,
+        userMutable : true,
+        advanced : true,
+        tag : "Controller",
+        reconfigRequired : false,
+        rebootRequired : false,
+        controlNodeOnly : false,
+        value : "300",
+        hidden : "true"
+    },
+    {
         key : "task_clean_interval",
         label : "Task Cleaning Interval",
         description : "Time interval in minutes between task cleaning operations. (Minimum 60 minutes)",

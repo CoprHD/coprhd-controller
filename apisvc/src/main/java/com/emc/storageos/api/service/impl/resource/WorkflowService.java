@@ -149,7 +149,7 @@ public class WorkflowService extends ResourceService {
      * Returns information about the specified workflow.
      * @param id the URN of a ViPR workflow
      * @brief Show workflow
-     * @return
+     * @return Information of Workflow
      */
     @GET
     @Path("/{id}")
@@ -166,7 +166,7 @@ public class WorkflowService extends ResourceService {
      * Gets a list of all the steps in a particular workflow.
      * @param id the URN of a ViPR workflow
      * @brief List workflow steps
-     * @return
+     * @return List of steps of a workflow
      */
     @GET
     @Path("/{id}/steps")
@@ -193,7 +193,7 @@ public class WorkflowService extends ResourceService {
      * Returns a single WorkflowStep.
      * @param stepId
      * @brief Show workflow step
-     * @return
+     * @return Single WorkflowStep
      */
     @GET
     @Path("/steps/{stepid}")

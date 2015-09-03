@@ -29,7 +29,12 @@
       type:"assetType.vipr.project",
       lockable: true
     },
-
+    
+    volumeFilter:{
+      type:"assetType.vipr.volumeFilter",
+      default: 0
+    },
+    
     volumes: {
       type: "assetType.vipr.unmanagedVolume",
       select: "many"

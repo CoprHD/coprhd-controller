@@ -134,7 +134,7 @@ public class StorageProviderCreateParam {
      * A command prefix to invoke the ScaleIO CLI. This is an optional parameter
      * and is only applicable for a ScaleIO StorageProvider.
      * @valid none
-     * @return
+     * @return ScaleIO cli
      */
     @XmlElement(required = false, name = "sio_cli")
     public String getSioCLI() {

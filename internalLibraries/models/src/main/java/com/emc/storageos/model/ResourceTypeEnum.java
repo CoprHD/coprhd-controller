@@ -34,6 +34,7 @@ public enum ResourceTypeEnum {
     STORAGE_POOL      ("storage_pool",  "/vdc/storage-systems/%1$s/storage-pools"),
     STORAGE_TIER      ("storage_tier",  "/vdc/storage-tiers"),
     STORAGE_PORT      ("storage_port",  "/vdc/storage-systems/%1$s/storage-ports"),
+    RDF_GROUP         ("rdf_group",  "/vdc/storage-systems/%1$s/rdf-groups"),
     PROTECTION_SYSTEM ("protection_system","/vdc/protection-systems"),
     PROTECTION_SET    ("protection_set","/block/volumes/%1$s/protection/protection-sets"),
     FILE_SNAPSHOT     ("snapshot",      "/file/snapshots"),

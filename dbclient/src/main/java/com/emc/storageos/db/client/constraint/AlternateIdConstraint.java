@@ -77,6 +77,16 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField("initiatorNetworkIds"), altId);
         }
         
+        public static AlternateIdConstraint getUnManagedVolumeSupportedVPoolConstraint(String altId) {
+            DataObjectType doType = TypeMap.getDoType(UnManagedVolume.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("supportedVpoolUris"), altId);
+        }
+        
+        public static AlternateIdConstraint getUnManagedFileSystemSupportedVPoolConstraint(String altId) {
+            DataObjectType doType = TypeMap.getDoType(UnManagedFileSystem.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("supportedVpoolUris"), altId);
+        }
+        
         public static AlternateIdConstraint getVolumeInfoNativeIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(UnManagedVolume.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("nativeGuid"), altId);
@@ -284,13 +294,21 @@ public interface AlternateIdConstraint extends Constraint {
             return new AlternateIdConstraintImpl(doType.getColumnField("providers"),
                     providerId);
         }
-        
+
         public static AlternateIdConstraint getCloneReplicationGroupInstanceConstraint(
                 String replicaGroupInstance) {
             DataObjectType doType = TypeMap.getDoType(Volume.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("replicationGroupInstance"),
                     replicaGroupInstance);
         }
+
+        public static AlternateIdConstraint getMirrorReplicationGroupInstanceConstraint(
+                String replicaGroupInstance) {
+            DataObjectType doType = TypeMap.getDoType(BlockMirror.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("replicationGroupInstance"),
+                    replicaGroupInstance);
+        }
+
         /**
          * Policy Names matching an Array will be returned.
          * Policy ID format : serialID-PolicyName

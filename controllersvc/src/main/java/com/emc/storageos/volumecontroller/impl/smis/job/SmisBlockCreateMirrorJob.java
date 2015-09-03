@@ -116,6 +116,7 @@ public class SmisBlockCreateMirrorJob extends SmisBlockMirrorJob {
             } else if (isJobInTerminalFailedState()) {
                 _log.info("Failed to create mirror");
                 completer.error(dbClient, DeviceControllerException.exceptions.attachVolumeMirrorFailed(getMessage()));
+                mirror.setInactive(true);
                 dbClient.persistObject(mirror);
             }
         } catch (Exception e) {

@@ -215,6 +215,12 @@ public class VnxExportOperations implements ExportMaskOperations {
                              TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} removeVolume START...", storage.getSerialNumber());
         try {
+        	if (null == volumeURIList || volumeURIList.isEmpty()) {
+				taskCompleter.ready(_dbClient);
+				_log.warn("{} removeVolume invoked with zero volumes, resulting in no-op....",
+						storage.getSerialNumber());
+				return;
+			}
             deleteOrShrinkStorageGroup(storage, exportMaskURI, volumeURIList, null);
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
@@ -305,10 +311,7 @@ public class VnxExportOperations implements ExportMaskOperations {
                 // Find out if the port is in this masking container
                 List<String> matchingInitiators = new ArrayList<String>();
                 for (String port : initiatorNames) {
-                    String normalizedName = port;
-                    if (WWNUtility.isValidWWN(port)) {
-                        normalizedName = WWNUtility.getUpperWWNWithNoColons(port);
-                    }
+                    String normalizedName = Initiator.normalizePort(port);
                     if (initiatorPorts.contains(normalizedName)) {
                         matchingInitiators.add(normalizedName);
                     }

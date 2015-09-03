@@ -541,7 +541,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * {@inheritDoc}
      */
     @Override
-    public TaskResourceRep deactivateMirror(StorageSystem vplexStorageSystem, URI mirrorURI,
+    public TaskList deactivateMirror(StorageSystem vplexStorageSystem, URI mirrorURI,
             String taskId) {
         VplexMirror mirror = _dbClient.queryObject(VplexMirror.class, mirrorURI);
         Volume sourceVolume = _dbClient.queryObject(Volume.class, mirror.getSource().getURI());
@@ -577,7 +577,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             _dbClient.error(Volume.class, mirror.getSource().getURI(), taskId, e);
         }
 
-        return toTask(sourceVolume, Arrays.asList(mirror), taskId, op);
+        TaskList taskList = new TaskList();
+        taskList.getTaskList().add(toTask(sourceVolume, Arrays.asList(mirror), taskId, op));
+        return taskList;
     }
 
     /**
@@ -2692,7 +2694,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * {@inheritDoc}
      */
     @Override
-    public TaskResourceRep pauseNativeContinuousCopies(StorageSystem storageSystem,
+    public TaskList pauseNativeContinuousCopies(StorageSystem storageSystem,
         Volume sourceVolume, List<BlockMirror> blockMirrors, Boolean sync, String taskId)
         throws ControllerException {
         throw APIException.methodNotAllowed.notSupportedForVplexVolumes();
@@ -2702,12 +2704,22 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * {@inheritDoc}
      */
     @Override
-    public TaskResourceRep resumeNativeContinuousCopies(StorageSystem storageSystem,
+    public TaskList resumeNativeContinuousCopies(StorageSystem storageSystem,
         Volume sourceVolume, List<BlockMirror> blockMirrors, String taskId)
         throws ControllerException {
         throw APIException.methodNotAllowed.notSupportedForVplexVolumes();
     }
-    
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public TaskResourceRep establishVolumeAndNativeContinuousCopyGroupRelation(
+            StorageSystem storageSystem, Volume sourceVolume,
+            BlockMirror blockMirror, String taskId) throws ControllerException {
+        throw APIException.methodNotAllowed.notSupportedForVplexVolumes();
+    }
+
     @Override
     protected Set<URI> getConnectedVarrays(URI varrayUID) {
 

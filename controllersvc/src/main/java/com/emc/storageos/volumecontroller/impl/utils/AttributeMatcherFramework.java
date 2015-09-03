@@ -82,12 +82,11 @@ public class AttributeMatcherFramework implements ApplicationContextAware {
             @SuppressWarnings("unchecked")
             List<AttributeMatcher> attrMatcherList = (List<AttributeMatcher>) getBeanFromContext(matcherGroupName);
             ObjectLocalCache cache = new ObjectLocalCache(dbClient);
+            initializeCommonReferencesForAllMatchers(cache, coordinator);
             for (AttributeMatcher matcher : attrMatcherList) {
                 int poolSizeAtTheStart = matchedPools.size();
                 if (0 < matchedPools.size()) {
                     _logger.debug("passing {} pools to match", matchedPools.size());
-                    matcher.setObjectCache(cache);
-                    matcher.setCoordinatorClient(coordinator);
                     matchedPools = matcher.runMatchStoragePools(matchedPools, attributeMap);
                     if (matchedPools.size() == 0) {
                         _logger.info(String.format("Failed to find match because of %s",
@@ -111,6 +110,42 @@ public class AttributeMatcherFramework implements ApplicationContextAware {
         }
         return matchedPools;
     }
+
+    /**
+     * Method will iterate through all AttributeMatchers (not a subset) and apply common references to them.
+     *
+     * @param cache [IN] - ObjectLocalCache to be applied to matchers
+     * @param coordinator [IN] - Coordinator reference to be applied to matchers
+     */
+    private void initializeCommonReferencesForAllMatchers(ObjectLocalCache cache, CoordinatorClient coordinator) {
+        Map<String, AttributeMatcher> uniqueMatcherMap = new HashMap<>();
+
+        @SuppressWarnings("unchecked")
+        List<AttributeMatcher> vpoolMatchers = (List<AttributeMatcher>) getBeanFromContext(AttributeMatcher.VPOOL_MATCHERS);
+        for (AttributeMatcher matcher : vpoolMatchers) {
+            uniqueMatcherMap.put(matcher.getClass().getSimpleName(), matcher);
+        }
+
+        @SuppressWarnings("unchecked")
+        List<AttributeMatcher> basicMatchers = (List<AttributeMatcher>) getBeanFromContext(AttributeMatcher.BASIC_PLACEMENT_MATCHERS);
+        for (AttributeMatcher matcher : basicMatchers) {
+            uniqueMatcherMap.put(matcher.getClass().getSimpleName(), matcher);
+        }
+
+        @SuppressWarnings("unchecked")
+        List<AttributeMatcher> placementMatchers = (List<AttributeMatcher>) getBeanFromContext(AttributeMatcher.PLACEMENT_MATCHERS);
+        for (AttributeMatcher matcher : placementMatchers) {
+            uniqueMatcherMap.put(matcher.getClass().getSimpleName(), matcher);
+        }
+
+        // The matchers have been gathered in the Map by class name, making it a unique list of
+        // matchers. Now iterate through them applying there references ...
+        for (AttributeMatcher matcher : uniqueMatcherMap.values()) {
+            matcher.setCoordinatorClient(coordinator);
+            matcher.setObjectCache(cache);
+        }
+    }
+
     /**
      * Sometimes context is not loading properly resulting the beanFactory to null.
      * To avoid this, we should reload the context using refresh.

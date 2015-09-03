@@ -867,26 +867,14 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             }
         }
         
-        if (unManagedVolumeInformation
-                .containsKey(SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())) {
-
-            if (null != matchedVPools && matchedVPools.size() == 0) {
-                // replace with empty string set doesn't work, hence added explicit code to remove all
-                unManagedVolumeInformation.get(
-                        SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).clear();
-                s_logger.info("No matching VPOOLS found for unmanaged volume " + volume.getLabel());
-            } else {
-                // replace with new StringSet
-                unManagedVolumeInformation.get(
-                        SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).replace( matchedVPools);
-                s_logger.info("Replaced Pools :"+Joiner.on("\t").join( unManagedVolumeInformation.get(
-                        SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())));
-            }
+        if (null == matchedVPools || matchedVPools.isEmpty()) {
+            // clean all supported vpools.
+            volume.getSupportedVpoolUris().clear();
+            s_logger.info("No matching VPOOLS found for unmanaged volume " + volume.getLabel());
         } else {
-            unManagedVolumeInformation.put(
-                    SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString(), matchedVPools);
-            s_logger.info("Matching VPOOLS found for unmanaged volume " + volume.getLabel() 
-                    + " are " + matchedVPools.toString());
+            // replace with new StringSet
+            volume.getSupportedVpoolUris().replace(matchedVPools);
+            s_logger.info("Replaced Pools : {}", volume.getSupportedVpoolUris());
         }
         
         // add this info to the unmanaged volume object
@@ -948,7 +936,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         }
         if (null != unManagedVolumesToUpdate) {
             if (flush || (unManagedVolumesToUpdate.size() > BATCH_SIZE)) {
-                _partitionManager.updateInBatches(unManagedVolumesToUpdate,
+                _partitionManager.updateAndReIndexInBatches(unManagedVolumesToUpdate,
                         BATCH_SIZE, _dbClient, UNMANAGED_VOLUME);
                 unManagedVolumesToUpdate.clear();
             }

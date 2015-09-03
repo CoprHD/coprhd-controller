@@ -312,7 +312,7 @@ public class ControlService {
      *   in which, they are free to power off
      * @brief Power off ViPR controller appliance
      * @prereq none
-     * @return
+     * @return Status of ViPR controller appliance
      * @throws Exception
      */
     @POST

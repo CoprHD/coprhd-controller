@@ -32,6 +32,7 @@ import com.emc.storageos.scaleio.api.ScaleIOSnapshotVolumeResult;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.CloneOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -180,6 +181,11 @@ public class ScaleIOCloneOperations implements CloneOperations {
     public void detachGroupClones(StorageSystem storageSystem, List<URI>clones,TaskCompleter completer) {
       //no support
         
+    }
+
+    @Override
+    public void establishVolumeCloneGroupRelation(StorageSystem storage, URI sourceVolume, URI clone, TaskCompleter completer) {
+        //no support
     }
     
 }

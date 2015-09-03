@@ -24,7 +24,7 @@ public class CatalogServiceBulkRep extends BulkRestRep {
     /**
      * List of catalog services
      * @valid none
-     * @return
+     * @return Catalog services list
      */
     @XmlElement(name = "catalog_service")
     public List<CatalogServiceRestRep> getCatalogServices() {

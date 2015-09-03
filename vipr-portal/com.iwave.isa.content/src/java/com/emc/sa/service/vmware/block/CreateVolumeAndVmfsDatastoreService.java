@@ -46,11 +46,13 @@ public class CreateVolumeAndVmfsDatastoreService extends VMwareHostService {
     public void init() throws Exception {
         super.init();
         
+        int hluIncrement = 0;
         // for each pair of datastore / volume, bind params to createBlockVolumeHelper
         for (DatastoreToVolumeTable dsToVol : datastoreToVolume) {
             CreateBlockVolumeHelper createBlockVolumeHelper = new CreateBlockVolumeHelper();
-            BindingUtils.bind(createBlockVolumeHelper, VMwareUtils.createDatastoreVolumeParam(dsToVol, datastoreToVolumeParams));
+            BindingUtils.bind(createBlockVolumeHelper, VMwareUtils.createDatastoreVolumeParam(dsToVol, datastoreToVolumeParams, hluIncrement));
             createBlockVolumeHelpers.add(createBlockVolumeHelper);
+            hluIncrement++;
         }
     }
 

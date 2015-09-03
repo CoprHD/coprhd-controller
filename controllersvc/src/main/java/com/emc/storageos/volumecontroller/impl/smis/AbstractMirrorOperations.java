@@ -11,6 +11,7 @@
 package com.emc.storageos.volumecontroller.impl.smis;
 
 import java.net.URI;
+import java.util.List;
 
 import javax.cim.CIMArgument;
 import javax.cim.CIMInstance;
@@ -113,7 +114,7 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
             taskCompleter.error(_dbClient, serviceError);
         }
     }
-    
+
     @Override
     public void fractureSingleVolumeMirror(StorageSystem storage, URI mirror, Boolean sync, TaskCompleter taskCompleter)
             throws DeviceControllerException {
@@ -182,8 +183,12 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
                 if (job != null) {
                     ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockResumeMirrorJob(job,
                             storage.getId(), taskCompleter)));
+                } else {
+                    CIMInstance syncObject = _helper.getInstance(storage, storageSync, false, false, new String[] {SmisConstants.CP_SYNC_STATE});
+                    mirrorObj.setSyncState(CIMPropertyFactory.getPropertyValue(syncObject, SmisConstants.CP_SYNC_STATE));
+                    _dbClient.persistObject(mirrorObj);
+                    taskCompleter.ready(_dbClient);
                 }
-                
             }
         } catch (Exception e) {
             _log.error("Failed to resume single volume mirror: {}", mirror);
@@ -194,6 +199,12 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
                 storageSyncRefs.close();
             }
         }
+    }
+
+    @Override
+    public void establishVolumeNativeContinuousCopyGroupRelation(StorageSystem storage, URI sourceVolume,
+            URI mirror, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
     
     @Override
@@ -213,7 +224,7 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
                 taskCompleter.error(_dbClient, DeviceControllerException.errors.smis.jobFailed(msg));
             }
         } catch (Exception e) {
-            _log.info("Problem making SMI-S call: ", e);
+            _log.error("Problem making SMI-S call: ", e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             taskCompleter.error(_dbClient, serviceError);
         }
@@ -269,5 +280,35 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
             }
         }
         return defaultInstance;
+    }
+
+    @Override
+    public void createGroupMirrors(StorageSystem storage, List<URI> mirrorList, Boolean createInactive, TaskCompleter taskCompleter) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void fractureGroupMirrors(StorageSystem storage, List<URI> mirrorList, Boolean sync, TaskCompleter taskCompleter) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void resumeGroupMirrors(StorageSystem storage, List<URI> mirrorList, TaskCompleter taskCompleter) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void detachGroupMirrors(StorageSystem storage, List<URI> mirrorList, Boolean deleteGroup, TaskCompleter taskCompleter) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void deleteGroupMirrors(StorageSystem storage, List<URI> mirrorList, TaskCompleter taskCompleter) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+    @Override
+    public void removeMirrorFromDeviceMaskingGroup(StorageSystem system, List<URI> mirrorList,
+			TaskCompleter completer) {
+    	 throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

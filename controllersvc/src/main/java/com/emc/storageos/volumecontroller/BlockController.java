@@ -42,7 +42,7 @@ public interface BlockController extends BlockStorageManagementController {
      * object state for all volumes to ready to signal volume creation
      * completion.
      *
-     * @param storage           URI of storage controller.
+     * @param storage           URI of storage controller
      * @param pool              URI of pool where the volume belongs.
      * @param volumeURIs        The URIs of the volumes to be created.
      * @param opId              The unique operation identifier.
@@ -191,22 +191,23 @@ public interface BlockController extends BlockStorageManagementController {
      * Create a mirror of a volume
      *
      * @param storage           URI of storage controller
-     * @param mirror            URI of block mirror
+     * @param mirrorList        List of URIs of block mirrors
      * @param createInactive    value of WaitForCopyState
      * @param opId              Operation ID
      * @throws InternalException When an exception occurs creating the mirror
      */
-    public void createMirror(URI storage, URI mirror, Boolean createInactive, String opId) throws InternalException;
+    public void createMirror(URI storage, List<URI> mirrorList, Boolean isCG, Boolean createInactive, String opId) throws InternalException;
 
     /**
      * Attach new mirror(s) for the given volume
      *
      * @param storage
      * @param sourceVolume
+     * @param mirrorList
      * @param opId
      * @throws InternalException
      */
-    public void attachNativeContinuousCopies(URI storage, URI sourceVolume, String opId) throws InternalException;
+    public void attachNativeContinuousCopies(URI storage, URI sourceVolume, List<URI> mirrorList, String opId) throws InternalException;
 
     /**
      * Detach the given mirrors
@@ -242,34 +243,46 @@ public interface BlockController extends BlockStorageManagementController {
     public void resumeNativeContinuousCopies(URI storage, List<URI> mirrors, String opId) throws InternalException;
 
     /**
+     * Establishes group relation between volume group and mirror group.
+     *
+     * @param storage the storage
+     * @param sourceVolume the source volume
+     * @param mirror the mirror
+     * @param opId the op id
+     * @throws ControllerException the controller exception
+     */
+    public void establishVolumeAndNativeContinuousCopyGroupRelation(URI storage, URI sourceVolume, URI mirror, String opId) throws ControllerException;
+
+    /**
      * Detach a mirror or mirrors of a volume or volumes.
      *
      * @param storage       URI of storage controller.
-     * @param mirror        URI of block mirror
+     * @param mirrorList    List of URIs of block mirrors
+     * @param deleteGroup   Flag for deleting replication group or not
      * @param opId          Operation ID
      * @throws InternalException When an exception occurs detaching the mirror
      */
-    public void detachMirror(URI storage, URI mirror, String opId) throws InternalException;
+    public void detachMirror(URI storage, List<URI> mirrorList, Boolean deleteGroup, String opId) throws InternalException;
 
     /**
      * Delete a mirror or mirrors of a volume or volumes.
      *
      * @param storage       URI of storage controller.
-     * @param mirror        URI of block mirror
+     * @param mirrorList    List of URIs of block mirrors
      * @param opId          Operation ID
      * @throws InternalException When an exception occurs deleting the mirror
      */
-    public void deleteMirror(URI storage, URI mirror, String opId) throws InternalException;
+    public void deleteMirror(URI storage, List<URI> mirrorList, String opId) throws InternalException;
 
     /**
      * Detach and delete a mirror or mirrors of a volume or volumes.
      *
      * @param storage       URI of storage controller.
-     * @param mirror        URI of block mirror
+     * @param mirrorList    List of URIs of block mirrors
      * @param opId          Operation ID
      * @throws InternalException When an exception occurs deactivating the mirror
      */
-    public void deactivateMirror(URI storage, URI mirror, String opId) throws InternalException;
+    public void deactivateMirror(URI storage, List<URI> mirrorList, String opId) throws InternalException;
 
     /**
      * Orchestrates the creation of full copy volumes 
@@ -321,6 +334,17 @@ public interface BlockController extends BlockStorageManagementController {
      * @param opId
      */
     public void detachFullCopy(URI storage, List<URI> fullCopy, String opId);
+
+    /**
+     * Establishes group relation between volume group and full copy group.
+     *
+     * @param storage the storage
+     * @param sourceVolume the source volume
+     * @param fullCopy the full copy
+     * @param opId the op id
+     * @throws ControllerException the controller exception
+     */
+    public void establishVolumeAndFullCopyGroupRelation(URI storage, URI sourceVolume, URI fullCopy, String opId) throws ControllerException;
 
     /**
      *   Rollback step for create meta volume

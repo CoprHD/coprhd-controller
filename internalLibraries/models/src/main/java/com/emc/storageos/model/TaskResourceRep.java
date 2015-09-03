@@ -137,6 +137,7 @@ public class TaskResourceRep extends DataObjectRestRep {
 
     /** 
      * The state of the task
+     * @valid queued = task is queued
      * @valid pending = task is pending 
      * @valid ready = task succeed
      * @valid error = task fails

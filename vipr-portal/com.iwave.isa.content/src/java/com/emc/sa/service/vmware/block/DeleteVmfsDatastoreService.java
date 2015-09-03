@@ -6,7 +6,6 @@ package com.emc.sa.service.vmware.block;
 
 import static com.emc.sa.service.ServiceParams.DATASTORE_NAME;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 

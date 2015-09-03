@@ -12,8 +12,10 @@ public class RemoteMirrorObject {
 
 	private String copyMode;
 	
-	private URI raGroupUri;
+	private URI sourceRaGroupUri;
 	
+    private URI targetRaGroupUri;
+    
 	//list of target volume uris
 	private StringSet targetVolumenativeGuids;
 	
@@ -35,13 +37,21 @@ public class RemoteMirrorObject {
 		this.copyMode = copyMode;
 	}
 
-	public URI getRaGroupUri() {
-		return raGroupUri;
+	public URI getSourceRaGroupUri() {
+		return sourceRaGroupUri;
 	}
 
-	public void setRaGroupUri(URI raGroupUri) {
-		this.raGroupUri = raGroupUri;
+	public void setSourceRaGroupUri(URI sourceRaGroupUri) {
+		this.sourceRaGroupUri = sourceRaGroupUri;
 	}
+
+    public URI getTargetRaGroupUri() {
+        return targetRaGroupUri;
+    }
+
+    public void setTargetRaGroupUri(URI targetRaGroupUri) {
+        this.targetRaGroupUri = targetRaGroupUri;
+    }
 
 	public StringSet getTargetVolumenativeGuids() {
 		return targetVolumenativeGuids;
@@ -69,8 +79,10 @@ public class RemoteMirrorObject {
 	
 	public String toString() {
 		StringBuffer buffer = new StringBuffer();
-		buffer.append("Remote Group :");
-		buffer.append(raGroupUri);
+		buffer.append("Source Remote Group :");
+		buffer.append(sourceRaGroupUri);
+        buffer.append(";Target Remote Group :");
+        buffer.append(targetRaGroupUri);
 		buffer.append(";Type :");
 		buffer.append(type);
 		buffer.append(";Mode :");

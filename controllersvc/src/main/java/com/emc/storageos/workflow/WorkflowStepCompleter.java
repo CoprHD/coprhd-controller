@@ -54,6 +54,16 @@ public class WorkflowStepCompleter implements Serializable {
     }
 
     /**
+     * Sets the step state to queued.
+     *
+     * @param stepId
+     * @throws WorkflowException
+     */
+    static public void stepQueued(String stepId) throws WorkflowException {
+        WorkflowService.completerStepQueued(stepId);
+    }
+
+    /**
      * Compatible call using status compatible with existing Tasks
      * @param taskId -- The UUID for the task
      * @param status -- Operation.status (ready, error)

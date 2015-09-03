@@ -108,6 +108,7 @@ public class VolumeToSynchronizedRefProcessor extends StorageProcessor {
     private boolean updateSupportedCopyMode(String copyMode) {
         return  null == copyMode
                 || SupportedCopyModes.UNKNOWN.toString().equalsIgnoreCase(copyMode)
+                || SupportedCopyModes.ALL.toString().equalsIgnoreCase(copyMode)
                 || SupportedCopyModes.ADAPTIVECOPY.toString().equalsIgnoreCase(copyMode);
     }
 }

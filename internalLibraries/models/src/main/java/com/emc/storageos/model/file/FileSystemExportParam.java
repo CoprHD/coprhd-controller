@@ -71,7 +71,7 @@ public class FileSystemExportParam {
 
     /**
      * Description of the operation
-     * @return
+     * @return The comments regarding the operation
      */
     
     @XmlElement(name="comments",required = false)

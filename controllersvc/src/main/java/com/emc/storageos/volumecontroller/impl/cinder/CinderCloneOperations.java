@@ -242,4 +242,10 @@ public class CinderCloneOperations implements CloneOperations
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
         
     }
+
+    @Override
+    public void establishVolumeCloneGroupRelation(StorageSystem storage, URI sourceVolume, URI clone, TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
 }

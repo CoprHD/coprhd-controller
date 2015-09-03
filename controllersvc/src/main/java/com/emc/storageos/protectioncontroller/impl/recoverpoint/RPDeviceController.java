@@ -1266,9 +1266,14 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             URI cgId = volumeDescriptors.iterator().next().getCapabilitiesValues().getBlockConsistencyGroup();
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgId);
 	        
+            boolean attachAsClean = true;
         	for (VolumeDescriptor sourceVolumedescriptor : sourceVolumeDescriptors) {
         		Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumedescriptor.getVolumeURI());
-        		metropoint = _rpHelper.isMetroPointVolume(sourceVolume);
+        		metropoint = _rpHelper.isMetroPointVolume(sourceVolume); 
+        		// if this is a change vpool, attachAsClean should be false so that source and target are synchronized
+        		if (VolumeDescriptor.Type.RP_EXISTING_SOURCE.equals(sourceVolumedescriptor.getType())) {
+        		    attachAsClean = false;
+        		}
         	}
         	        	
         	//Build the CG Request params
@@ -1298,9 +1303,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             _log.info("Submitting RP Request: " + cgParams);
             if (cg.nameExistsForStorageSystem(rpSystem.getId(), cgParams.getCgName()) && rp.doesCgExist(cgParams.getCgName())) {
                 // cg exists in both the ViPR db and on the RP system
-                response = rp.addReplicationSetsToCG(cgParams, metropoint);
+                response = rp.addReplicationSetsToCG(cgParams, metropoint, attachAsClean);
             } else {
-                response = rp.createCG(cgParams, metropoint);
+                response = rp.createCG(cgParams, metropoint, attachAsClean);
 
                 // "Turn-on" the consistency group
                 cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgParams.getCgUri());

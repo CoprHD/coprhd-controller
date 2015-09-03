@@ -219,7 +219,7 @@ public class VMwareUtils {
                     + ", HLU=" + hlu;
         }
         
-        public Map<String, Object> getParams() {
+        public Map<String, Object> getParams(int hluInc) {
             Map<String, Object> map = new HashMap<String, Object>();
             map.put(VIRTUAL_POOL, virtualPool);
             map.put(VIRTUAL_ARRAY, virtualArray);
@@ -227,7 +227,11 @@ public class VMwareUtils {
             map.put(HOST, hostId);
             map.put(NUMBER_OF_VOLUMES, count);
             map.put(CONSISTENCY_GROUP, consistencyGroup);
-            map.put(HLU, hlu);
+            if (hlu == -1) {
+                map.put(HLU, hlu);
+            } else {
+                map.put(HLU,  hlu + hluInc);
+            }
             return map;
         }
     }
@@ -266,10 +270,10 @@ public class VMwareUtils {
      * @param params for volume creation
      * @return Map of all params 
      */
-    public static Map<String, Object> createDatastoreVolumeParam(DatastoreToVolumeTable table, DatastoreToVolumeParams params) {
+    public static Map<String, Object> createDatastoreVolumeParam(DatastoreToVolumeTable table, DatastoreToVolumeParams params, int hluInc) {
         Map<String, Object> map = new HashMap<String, Object>();
         map.putAll(table.getParams());
-        map.putAll(params.getParams());
+        map.putAll(params.getParams(hluInc));
         return map;
     }
     

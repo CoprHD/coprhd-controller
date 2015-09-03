@@ -85,7 +85,7 @@ public class VmaxGroupOperationsUtils {
              CIMObjectPath replicationSvc = cimPath.getControllerReplicationSvcPath(storage);
              CIMInstance replicaSettingData = null;
 
-             if (storage.checkIfVmax3()) {
+             if (storage.checkIfVmax3() && syncType != SYNC_TYPE.MIRROR) {
                  String instanceId = targetGroupPath.getKey(SmisConstants.CP_INSTANCE_ID).getValue().toString();
                  replicaLabel = SmisUtils.getTargetGroupName(instanceId, storage.getUsingSmis80());
 
@@ -97,6 +97,8 @@ public class VmaxGroupOperationsUtils {
              } else if (syncType == SYNC_TYPE.CLONE) {
                  replicaSettingData = ReplicationUtils.getReplicationSettingForGroupClones(storage, helper,
                              cimPath, createInactive);
+             } else if (syncType == SYNC_TYPE.MIRROR) {
+                 replicaSettingData = ReplicationUtils.getReplicationSettingForGroupMirrors(storage, helper, cimPath);
              } else {
                  replicaSettingData = ReplicationUtils.getReplicationSettingForGroupSnapshots(storage, helper, cimPath, thinProvisioning);
              }

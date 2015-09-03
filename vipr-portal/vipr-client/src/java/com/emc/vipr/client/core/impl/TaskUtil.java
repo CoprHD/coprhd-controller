@@ -18,9 +18,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TaskUtil {
-    // TODO: Should introduce an enum into task object
-    public static final String PENDING_STATE = "pending";
-    public static final String ERROR_STATE = "error";
+
+    public enum State {
+        queued, pending, error
+    }
 
     public static TaskResourceRep refresh(RestClient client, TaskResourceRep task) {
         RestLinkRep link = task.getLink();
@@ -57,7 +58,12 @@ public class TaskUtil {
     }
 
     public static boolean isRunning(TaskResourceRep task) {
-        return PENDING_STATE.equalsIgnoreCase(task.getState());
+        return State.pending.name().equalsIgnoreCase(task.getState()) ||
+                State.queued.name().equalsIgnoreCase(task.getState());
+    }
+
+    public static boolean isQueued(TaskResourceRep task) {
+        return State.queued.name().equalsIgnoreCase(task.getState());
     }
 
     public static boolean isComplete(TaskResourceRep task) {
@@ -65,7 +71,7 @@ public class TaskUtil {
     }
 
     public static boolean isError(TaskResourceRep task) {
-        return task.getState() == null || ERROR_STATE.equalsIgnoreCase(task.getState());
+        return task.getState() == null || State.error.name().equalsIgnoreCase(task.getState());
     }
 
     /**

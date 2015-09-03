@@ -43,6 +43,7 @@ import com.emc.storageos.volumecontroller.impl.plugins.metering.file.FileZeroRec
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.UnManagedExportVerificationUtility;
+import com.google.common.base.Joiner;
 import com.google.common.collect.Sets;
 
 import org.slf4j.Logger;
@@ -656,7 +657,7 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
             }
 
             if(existingUnManagedFileSystems.size() > 0) {
-                _dbClient.persistObject(existingUnManagedFileSystems);
+                _dbClient.updateAndReindexObject(existingUnManagedFileSystems);
                 _log.info("{} {} Records updated to DB",existingUnManagedFileSystems.size(), UNMANAGED_FILESYSTEM);
             }
             storageSystem.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.COMPLETE.toString());
@@ -914,13 +915,13 @@ public class DataDomainCommunicationInterface extends ExtendedCommunicationInter
                     pools);
             unManagedFileSystem.setStoragePoolUri(pool.getId());
         }
+        _log.debug("Matched Pools : {}", Joiner.on("\t").join(vPools));
 
-        if (null == vPools || vPools.size() == 0) {
-            unManagedFileSystemInformation.put(
-                            UnManagedVolume.SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString(), new StringSet());
+        if (null == vPools || vPools.isEmpty()) {
+            unManagedFileSystem.getSupportedVpoolUris().clear();
         } else {
-            unManagedFileSystemInformation.put(
-                            UnManagedVolume.SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString(), vPools);
+            unManagedFileSystem.getSupportedVpoolUris().replace(vPools);
+            _log.info("Replaced Pools :" + Joiner.on("\t").join(unManagedFileSystem.getSupportedVpoolUris()));
         }
         
         List<StoragePort> ports = getPortFromDB(system);

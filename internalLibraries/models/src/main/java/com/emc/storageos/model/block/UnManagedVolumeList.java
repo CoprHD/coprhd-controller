@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.model.block;
 
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 
 import javax.xml.bind.annotation.XmlElement;
@@ -16,7 +17,9 @@ import java.util.List;
 public class UnManagedVolumeList {
 
     private List<RelatedResourceRep> unManagedVolumes;
-
+    
+    private List<NamedRelatedResourceRep> namedUnManagedVolumes;
+    
     public UnManagedVolumeList() {}
             
     public UnManagedVolumeList(List<RelatedResourceRep> unManagedVolumes) {
@@ -39,5 +42,22 @@ public class UnManagedVolumeList {
     public void setUnManagedVolumes(List<RelatedResourceRep> unManagedVolumes) {
         this.unManagedVolumes = unManagedVolumes;
     }
-    
+
+    /**
+     * The list of unmanaged volumes with name which are available in a storage system.  
+     * Used primarily to ingest volumes into ViPR.  
+     * @valid none
+     */ 
+    @XmlElement(name = "unmanaged_volume")
+    public List<NamedRelatedResourceRep> getNamedUnManagedVolumes() {
+        if (namedUnManagedVolumes == null) {
+            namedUnManagedVolumes = new ArrayList<NamedRelatedResourceRep>();
+        }
+        return namedUnManagedVolumes;
+    }
+
+    public void setNamedUnManagedVolumes(List<NamedRelatedResourceRep> namedUnManagedVolumes) {
+        this.namedUnManagedVolumes = namedUnManagedVolumes;
+    }
+
 }

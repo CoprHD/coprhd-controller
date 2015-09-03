@@ -21,6 +21,7 @@ import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.service.*;
 import com.emc.storageos.coordinator.client.service.WorkPool.WorkAssignmentListener;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
+import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueTaskConsumer;
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
@@ -85,6 +86,11 @@ public class TestCoordinator implements CoordinatorClient {
             DistributedQueueConsumer<T> consumer,
             QueueSerializer<T> serializer, int maxThreads) throws CoordinatorException {
         // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public <T> DistributedLockQueueManager getLockQueue(DistributedLockQueueTaskConsumer<T> consumer) throws CoordinatorException {
         return null;
     }
 
@@ -222,6 +228,11 @@ public class TestCoordinator implements CoordinatorClient {
 
     @Override
     public void removeNodeListener(NodeListener listener) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean isDistributedOwnerLockAvailable(String lockPath) throws Exception {
         throw new UnsupportedOperationException();
     }
 

@@ -918,13 +918,6 @@ public class RecoverPointImageManagementUtils {
 				// to get a cumulative status on all the links. 
 				//allLinksInDesiredState = true;
 				for (ConsistencyGroupLinkState linkstate : cgState.getLinksStates()) {						
-					if (cgCopyUID != null) {
-						if (!(RecoverPointUtils.cgCopyEqual(linkstate.getGroupLinkUID().getFirstCopy(), cgCopyUID.getGlobalCopyUID()) ||
-						   (RecoverPointUtils.cgCopyEqual(linkstate.getGroupLinkUID().getSecondCopy(), cgCopyUID.getGlobalCopyUID())))) {
-							// Looking for link state to/from a certain copy, and this isn't it
-							continue;
-						}
-					}
 					PipeState pipeState = linkstate.getPipeState();
 					logger.info("CG link state is " + pipeState.toString() + "; desired state is: " + desiredPipeState.toString());
 

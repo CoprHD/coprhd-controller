@@ -11,12 +11,14 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
 import java.util.Map;
 
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.model.DecommissionedResource;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProvider;
@@ -26,6 +28,7 @@ import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.adapters.StringMapAdapter;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
+import com.emc.storageos.model.rdfgroup.RDFGroupRestRep;
 import com.emc.storageos.model.smis.SMISProviderRestRep;
 import com.emc.storageos.model.smis.StorageProviderRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
@@ -106,7 +109,30 @@ public class SystemsMapper {
         to.setElementManagerURL(from.getElementManagerURL());
         return to;
     }
-
+    
+    public static RDFGroupRestRep map(RemoteDirectorGroup from, List<URI> volumeURIList){
+    	if (from == null) {
+            return null;
+        }
+    	RDFGroupRestRep to = new RDFGroupRestRep();
+    	mapDiscoveredDataObjectFields(from, to);
+    	to.setActive(from.getActive());
+    	to.setConnectivityStatus(from.getConnectivityStatus());
+    	to.setSupportedCopyMode(from.getSupportedCopyMode());
+    	to.setCopyState(from.getCopyState());
+    	to.setRemoteGroupId(from.getRemoteGroupId());
+    	to.setRemotePort(from.getRemotePort());
+    	to.setSourceGroupId(from.getSourceGroupId());
+    	to.setSourcePort(from.getSourcePort());
+    	to.setSourceReplicationGroupName(from.getSourceReplicationGroupName());
+    	to.setSupported(from.getSupported());
+    	to.setTargetReplicationGroupName(from.getTargetReplicationGroupName());
+    	to.setSourceStorageSystemUri(from.getSourceStorageSystemUri());
+    	to.setRemoteStorageSystemUri(from.getRemoteStorageSystemUri());
+    	to.setVolumes(volumeURIList);
+    	return to;
+    }
+    
     public static StoragePoolRestRep map(StoragePool from, Map<String, Long> capacityMetrics,
             boolean isBlockStoragePool, CoordinatorClient coordinatorClient) {
         if (from == null) {

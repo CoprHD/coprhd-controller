@@ -15,6 +15,7 @@
 
 package com.emc.storageos.model.block;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,6 +48,7 @@ public class VolumeRestRep extends BlockObjectRestRep {
     private String accessState;
     private String linkStatus;
     private RelatedResourceRep pool;
+
     
     // Fields in a Volume that are specific to RecoverPoint
     public static class RecoverPointRestRep {
@@ -258,6 +260,8 @@ public class VolumeRestRep extends BlockObjectRestRep {
         private RelatedResourceRep associatedSourceVolume;
         private List<VirtualArrayRelatedResourceRep> targetVolumes;
         private String personality;
+        private URI srdfGroup;
+        private String srdfCopyMode;
 
         @XmlElement(name = "associated_source_volume")
         public RelatedResourceRep getAssociatedSourceVolume() {
@@ -296,6 +300,24 @@ public class VolumeRestRep extends BlockObjectRestRep {
         public void setPersonality(String personality) {
         	this.personality = personality;
         }
+        
+        @XmlElement(name = "srdf_group_uri")
+        public URI getSrdfGroup() {
+    		return srdfGroup;
+    	}
+
+    	public void setSrdfGroup(URI srdfGroup) {
+    		this.srdfGroup = srdfGroup;
+    	}
+    	
+    	@XmlElement(name = "srdf_copy_mode")
+    	public String getSrdfCopyMode() {
+    		return srdfCopyMode;
+    	}
+
+    	public void setSrdfCopyMode(String srdfCopyMode) {
+    		this.srdfCopyMode = srdfCopyMode;
+    	}
     }
 
     // Fields specific to protection characteristics of the Volume
@@ -577,5 +599,7 @@ public class VolumeRestRep extends BlockObjectRestRep {
     public void setPool(RelatedResourceRep pool) {
         this.pool = pool;
     }
+
+	
 
 }

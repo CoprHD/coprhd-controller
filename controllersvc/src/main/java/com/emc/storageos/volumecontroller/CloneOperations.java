@@ -51,7 +51,7 @@ public interface CloneOperations
     public void resyncGroupClones(StorageSystem storageSystem, List<URI> clone, TaskCompleter completer);
     
     public void detachGroupClones(StorageSystem storageSystem, List<URI>clone, TaskCompleter completer);
-
     
+    public void establishVolumeCloneGroupRelation(StorageSystem storageSystem, URI sourceVolume, URI clone, TaskCompleter completer);
     
 }

@@ -62,8 +62,7 @@ public class VolumeDiscoveryPostProcessor extends StorageProcessor {
                     // check if unmanaged volume is created
                     UnManagedVolume unManagedVolume = checkUnManagedVolumeExistsInDB(srcNativeGuid, dbClient);
                     if (unManagedVolume != null) {
-                        vPools = unManagedVolume.getVolumeInformation().get(
-                                SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.name());
+                        vPools = unManagedVolume.getSupportedVpoolUris();
                     } else {
                         // check if it has already been ingested
                         String volumeNativeGuid = srcNativeGuid.replace(NativeGUIDGenerator.UN_MANAGED_VOLUME, NativeGUIDGenerator.VOLUME);
@@ -90,13 +89,13 @@ public class VolumeDiscoveryPostProcessor extends StorageProcessor {
 
             // if modifiedUnManagedVolumes size reaches BATCH_SIZE, persist to db
             if (modifiedUnManagedVolumes.size() >= BATCH_SIZE) {
-                _partitionManager.updateInBatches(modifiedUnManagedVolumes, BATCH_SIZE, dbClient, "UnManagedVolumes");
+                _partitionManager.updateAndReIndexInBatches(modifiedUnManagedVolumes, BATCH_SIZE, dbClient, "UnManagedVolumes");
                 modifiedUnManagedVolumes.clear();
             }
         }
 
         if (modifiedUnManagedVolumes.size() > 0) {
-            _partitionManager.updateInBatches(modifiedUnManagedVolumes, BATCH_SIZE, dbClient, "UnManagedVolumes");
+            _partitionManager.updateAndReIndexInBatches(modifiedUnManagedVolumes, BATCH_SIZE, dbClient, "UnManagedVolumes");
         }
     }
 
@@ -114,12 +113,10 @@ public class VolumeDiscoveryPostProcessor extends StorageProcessor {
                     // get UnManagedVolume of replica and set SUPPORTED_VPOOL_LIST
                     UnManagedVolume unManagedVolume = checkUnManagedVolumeExistsInDB(replica, dbClient);
                     if (unManagedVolume != null) {
-                        unManagedVolume
-                                .getVolumeInformation()
-                                .put(SupportedVolumeInformation.SUPPORTED_VPOOL_LIST
-                                        .name(), vPools);
+                        _logger.debug("{} matched vpools: {}", unManagedVolume.getNativeGuid(), vPools);
+                        unManagedVolume.getSupportedVpoolUris().replace(vPools);
                         unMangedVolumesUpdate.add(unManagedVolume);
-                        _logger.debug("Set VPools for {} to {}", replica, Joiner.on("\t").join(vPools));
+                        _logger.debug("Set VPools for {} to {}", replica, Joiner.on("\t").join(unManagedVolume.getSupportedVpoolUris()));
                         LocalReplicaObject replicaObj = volumeToReplicaMap.get(replica);
                         if (replicaObj.hasReplica()) {
                             // process dependents

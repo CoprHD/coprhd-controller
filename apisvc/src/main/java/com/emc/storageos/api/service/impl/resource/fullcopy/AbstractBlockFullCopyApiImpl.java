@@ -386,7 +386,15 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
     public TaskList resynchronizeCopy(Volume sourceVolume, Volume fullCopyVolume) {
         throw APIException.methodNotAllowed.notSupported();
     }
-    
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public TaskList establishVolumeAndFullCopyGroupRelation(Volume sourceVolume, Volume fullCopyVolume) {
+        throw APIException.methodNotAllowed.notSupported();
+    }
+
     /**
      * {@inheritDoc}
      */

@@ -84,7 +84,6 @@ import com.emc.storageos.db.common.DependencyChecker;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskList;
-import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.VirtualPoolChangeParam;
 import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
@@ -871,6 +870,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         volume.setPool(storagePoolUri);
         volume.setStorageController(_dbClient.queryObject(StoragePool.class, storagePoolUri).getStorageDevice());
         
+        if (NullColumnValueGetter.isNotNullValue(vpool.getAutoTierPolicyName())) {
+            URI autoTierPolicyUri = StorageScheduler.getAutoTierPolicy(volume.getPool(),
+                    vpool.getAutoTierPolicyName(), _dbClient);
+            if (null != autoTierPolicyUri) {
+                volume.setAutoTieringPolicyUri(autoTierPolicyUri);
+            }
+        }
+        
         volume.setOpStatus(new OpStatusMap());
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
@@ -1253,7 +1260,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     }
 
     @Override
-    public TaskResourceRep deactivateMirror(StorageSystem device, URI mirrorURI, String task) {
+    public TaskList deactivateMirror(StorageSystem device, URI mirrorURI, String task) {
         // FIXME Should use relevant ServiceCodeException here
         throw new UnsupportedOperationException();
     }

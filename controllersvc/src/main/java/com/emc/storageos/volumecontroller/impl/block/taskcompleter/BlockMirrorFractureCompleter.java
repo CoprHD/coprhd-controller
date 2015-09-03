@@ -21,11 +21,15 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Operation.Status;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.util.List;
+
 import com.emc.storageos.services.OperationTypeEnum;
+import com.google.common.base.Joiner;
 
 public class BlockMirrorFractureCompleter extends BlockMirrorTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(BlockMirrorCreateCompleter.class);
@@ -36,26 +40,32 @@ public class BlockMirrorFractureCompleter extends BlockMirrorTaskCompleter {
         super(BlockMirror.class, mirror, opId);
     }
 
+    public BlockMirrorFractureCompleter(List<URI> mirrorList, String opId) {
+        super(BlockMirror.class, mirrorList, opId);
+    }
+
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
             super.complete(dbClient, status, coded);
-            BlockMirror mirror = dbClient.queryObject(BlockMirror.class, getMirrorURI());
-            Volume volume = dbClient.queryObject(Volume.class, mirror.getSource());
+            List<BlockMirror> mirrorList = dbClient.queryObject(BlockMirror.class, getIds());
+            for (BlockMirror mirror : mirrorList) {
+                 Volume volume = dbClient.queryObject(Volume.class, mirror.getSource());
 
-            switch (status) {
-            case error:
-                dbClient.error(Volume.class, volume.getId(), getOpId(), coded);
-                break;
-            default:
-                mirror.setSyncState(BlockMirror.SynchronizationState.FRACTURED.toString());
-                dbClient.persistObject(mirror);
-                dbClient.ready(Volume.class, volume.getId(), getOpId());
+                 switch (status) {
+                 case error:
+                     dbClient.error(Volume.class, volume.getId(), getOpId(), coded);
+                     break;
+                 default:
+                     mirror.setSyncState(BlockMirror.SynchronizationState.FRACTURED.toString());
+                     dbClient.persistObject(mirror);
+                     dbClient.ready(Volume.class, volume.getId(), getOpId());
+                 }
+                 recordBlockMirrorOperation(dbClient, OperationTypeEnum.FRACTURE_VOLUME_MIRROR,
+                         Status.ready, eventMessage(status, volume, mirror), mirror, volume);
             }
-            recordBlockMirrorOperation(dbClient, OperationTypeEnum.FRACTURE_VOLUME_MIRROR,
-                    Status.ready, eventMessage(status, volume, mirror), mirror, volume);
         } catch (Exception e) {
-            _log.error("Failed updating status. BlockMirrorCreate {}, for task " + getOpId(), getId(), e);
+            _log.error("Failed updating status. BlockMirrorCreate {}, for task " + getOpId(), Joiner.on("\t").join(getIds()), e);
         }
     }
 

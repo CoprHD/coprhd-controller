@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.apache.zookeeper.data.Stat;
@@ -39,6 +40,7 @@ public class DistributedOwnerLockServiceImpl implements DistributedOwnerLockServ
     private static final Logger log = LoggerFactory.getLogger(DistributedOwnerLockServiceImpl.class);
 	private CoordinatorClient coordinator;
 	private DistributedDataManager dataManager;
+    private DistributedLockQueueManager lockQueueManager;
 	
 	@Override
     public boolean acquireLocks(List<String> lockKeys, String owner, long seconds) {
@@ -55,6 +57,34 @@ public class DistributedOwnerLockServiceImpl implements DistributedOwnerLockServ
     		}
     	}
     	return true;
+    }
+
+    @Override
+    public boolean acquireLocks(List<String> lockKeys, String owner,
+                                long lockingStartedTimeSeconds, long maxLockWaitSeconds)
+            throws LockRetryException {
+        Long currentTimeSeconds = System.currentTimeMillis() / 1000;
+        Long remainingTimeSeconds = lockingStartedTimeSeconds + maxLockWaitSeconds - currentTimeSeconds;
+        if (remainingTimeSeconds < 0) {
+            return false;      // We've waited the maximum amount of time
+        }
+        LockRetryException lockRetryThrowable = null;
+        // Sort the lockKeys to maintain the same lock order.
+        Collections.sort(lockKeys);
+        for (int i=0; i < lockKeys.size(); i++) {
+            // Poll, since we are going to throw an exception if cannot get lock.
+            boolean wasLocked = acquireLock(lockKeys.get(i), owner, 0);
+            if (wasLocked == false) {
+                String lockPath = getLockDataPath(lockKeys.get(i));
+                lockRetryThrowable = new LockRetryException(lockPath, remainingTimeSeconds);
+                log.error("Error - Releasing all previously acquired locks");
+                for (int j=0; j < i; j++) {
+                    releaseLock(lockKeys.get(j), owner);
+                }
+                throw lockRetryThrowable;
+            }
+        }
+        return true;
     }
     
     @Override
@@ -160,7 +190,7 @@ public class DistributedOwnerLockServiceImpl implements DistributedOwnerLockServ
 			} catch (Exception ex ){ }
 			waitTime = System.currentTimeMillis() / 1000 - startTime;
 		} while (!acquired && waitTime < maxWaitSeconds);
-		if (waitTime >= maxWaitSeconds) {
+        if (!acquired && maxWaitSeconds > 0 && waitTime >= maxWaitSeconds) {
 			log.info("Timeout waiting on lock: " + lockKey + " owner: " + owner);
 		}
 		return acquired;
@@ -192,11 +222,19 @@ public class DistributedOwnerLockServiceImpl implements DistributedOwnerLockServ
 			    log.info(String.format("unable to unlock lockname: %s owner: %s lock not found in zk", lockName, owner));
 			}
 			retval = true;
+
+            // Trigger a dequeue event for any items on the DistributedLockQueue waiting for this particular lock.
+            checkLockQueueAndDequeue(lockName);
 		} finally {
 			unlockIPL(lock);
 		}
 		return retval;
 	}
+
+    @Override
+    public boolean isDistributedOwnerLockAvailable(String lockName) throws Exception {
+        return coordinator.isDistributedOwnerLockAvailable(getLockDataPath(lockName));
+    }
 	
 	/**
 	 * Returns the path name for the distOwnerLock
@@ -227,7 +265,7 @@ public class DistributedOwnerLockServiceImpl implements DistributedOwnerLockServ
     
     /**
      * Return the path for the owner
-     * @param lockKey
+     * @param owner
      * @return
      */
     private String getOwnerPath(String owner) {
@@ -308,7 +346,7 @@ public class DistributedOwnerLockServiceImpl implements DistributedOwnerLockServ
      */
     private void persistLockData(String lockName, DistributedOwnerLockData data) {
     	String path = getLockDataPath(lockName);
-    	String ownerLockPath = getLockByOwnerPath(lockName, data.getOwner());
+        String ownerLockPath = getLockByOwnerPath(lockName, data.getOwner());
         try {
             // store a reference from the owner id to the lock id
             Stat stat = dataManager.checkExists(ownerLockPath);
@@ -332,7 +370,7 @@ public class DistributedOwnerLockServiceImpl implements DistributedOwnerLockServ
      */
     private void removeLockData(String lockName, String owner) {
     	try {
-    	    // remove the lock data
+            // remove the lock data
         	String path = getLockDataPath(lockName);
             Stat stat = dataManager.checkExists(path);
             if (stat != null) {
@@ -353,6 +391,16 @@ public class DistributedOwnerLockServiceImpl implements DistributedOwnerLockServ
     	} catch (Exception ex) {
     		log.error("Can't remove LockData: " + lockName, ex);
     	}
+    }
+
+    private void checkLockQueueAndDequeue(String lockKey) {
+        if (lockKey == null) {
+            return;
+        }
+        boolean wasDequeued = lockQueueManager.dequeue(lockKey);
+        if (wasDequeued) {
+            log.info("A task from lock group {} was dequeued.", lockKey);
+        }
     }
     
     /**
@@ -382,4 +430,8 @@ public class DistributedOwnerLockServiceImpl implements DistributedOwnerLockServ
 	public void setDataManager(DistributedDataManager dataManager) {
 		this.dataManager = dataManager;
 	}
+
+    public void setLockQueueManager(DistributedLockQueueManager lockQueueManager) {
+        this.lockQueueManager = lockQueueManager;
+    }
 }

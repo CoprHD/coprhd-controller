@@ -355,7 +355,7 @@ public class ConfigService {
      * Configure ConnectEMC FTPS transport related properties
      * @brief Configure ConnectEMC FTPS properties
      * @prereq Cluster state should be STABLE
-     * @return
+     * @return ConnectEMC FTPS related properties
      */
     @POST
     @Path("connectemc/ftps/")
@@ -374,7 +374,7 @@ public class ConfigService {
      * Configure ConnectEMC SMTP/Email transport related properties
      * @brief Configure ConnectEMC SMTP/Email properties
      * @prereq Cluster state should be STABLE
-     * @return
+     * @return Properties related to ConnectEMC Email
      */
     @POST
     @Path("connectemc/email/")

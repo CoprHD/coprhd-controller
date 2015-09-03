@@ -4,8 +4,13 @@
  */
 package com.emc.storageos.api.mapper;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.model.file.FileObjectRestRep;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileSnapshotRestRep;
@@ -21,6 +26,7 @@ import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.model.adapters.StringMapAdapter;
 import com.emc.storageos.model.adapters.StringSetMapAdapter;
+
 import static com.emc.storageos.api.mapper.DbObjectMapper.*;
 
 public class FileMapper {
@@ -84,6 +90,11 @@ public class FileMapper {
         to.setFileSystemCharacteristics(new StringMapAdapter().marshal(from.getFileSystemCharacterstics()));
         to.setStorageSystem(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageSystemUri()));
         to.setStoragePool(toRelatedResource(ResourceTypeEnum.STORAGE_POOL, from.getStoragePoolUri()));
+        if (null != from.getSupportedVpoolUris() && !from.getSupportedVpoolUris().isEmpty()) {
+            List<String> supportedVPoolList = new ArrayList<String>(from.getSupportedVpoolUris());
+            to.setSupportedVPoolUris(supportedVPoolList);
+        }
+        
         return to;
     }
     

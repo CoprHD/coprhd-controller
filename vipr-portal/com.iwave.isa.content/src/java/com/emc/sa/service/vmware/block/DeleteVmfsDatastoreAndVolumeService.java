@@ -24,7 +24,7 @@ import com.vmware.vim25.mo.Datastore;
 public class DeleteVmfsDatastoreAndVolumeService extends VMwareHostService {
 	@Param(DATASTORE_NAME)
     protected List<String> datastoreNames;
-
+	
 	private Map<Datastore, List<VolumeRestRep>> datastores;
 
     @Override
@@ -48,7 +48,7 @@ public class DeleteVmfsDatastoreAndVolumeService extends VMwareHostService {
        		Datastore datastore = entry.getKey();
     		List<VolumeRestRep> volumes = entry.getValue();
     		
-	        vmware.deleteVmfsDatastore(volumes, hostId, datastore);
+    		vmware.deleteVmfsDatastore(volumes, hostId, datastore);
 	
 	        if (volumes.size() > 0) {
 	            List<URI> volumeList = new ArrayList<URI>();

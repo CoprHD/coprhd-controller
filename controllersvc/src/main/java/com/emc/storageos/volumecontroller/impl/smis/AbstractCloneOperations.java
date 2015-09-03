@@ -247,7 +247,7 @@ public class AbstractCloneOperations implements CloneOperations {
                     CIMObjectPath syncObject = _cimPath.getStorageSynchronized(sourceSystem, sourceObj, storageSystem, clone); 
                     CIMInstance instance = _helper.checkExists(storageSystem, syncObject, false, false);
                     if (instance != null) {
-                        CIMArgument[] inArgs = _helper.getDetachCloneSynchronizationInputArguments(syncObject);
+                        CIMArgument[] inArgs = _helper.getDetachSynchronizationInputArguments(syncObject);
                         CIMArgument[] outArgs = new CIMArgument[5];
                         _helper.callModifyReplica(storageSystem, inArgs, outArgs);
                     } else {
@@ -488,7 +488,12 @@ public class AbstractCloneOperations implements CloneOperations {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
         
     }
-    
+
+    @Override
+    public void establishVolumeCloneGroupRelation(StorageSystem storage, URI sourceVolume, URI clone, TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
     /**
      * Implementation for restoring of a single volume clone restore. 
      *

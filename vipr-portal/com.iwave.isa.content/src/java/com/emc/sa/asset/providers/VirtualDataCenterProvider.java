@@ -12,6 +12,7 @@ import static com.emc.vipr.client.core.util.UnmanagedHelper.*;
 
 import java.net.URI;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -27,6 +28,7 @@ import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
+import com.emc.sa.util.StringComparator;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
 import com.emc.storageos.model.file.UnManagedFileSystemRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
@@ -41,6 +43,9 @@ import com.google.common.collect.Maps;
 @Component
 @AssetNamespace("vipr")
 public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
+
+    final static int VOLUME_PAGE_ALL = -1;
+    final static int VOLUME_PAGE_SIZE = 500;
 
     @Asset("blockStorageSystem")
     public List<AssetOption> getBlockStorageSystem(AssetOptionsContext ctx) {
@@ -115,10 +120,22 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
-    @Asset("unmanagedVolume")
-    @AssetDependencies({"host", "unmanagedBlockVirtualPool"})
-    public List<AssetOption> getUnmanagedVolume(AssetOptionsContext ctx, URI host, URI vpool) {
+    @Asset("volumeFilter")
+    @AssetDependencies({ "host", "unmanagedBlockVirtualPool" })
+    public List<AssetOption> getUnmanagedVolumeFilter(AssetOptionsContext ctx, URI host, URI vpool) {
+        List<String> volumeNames = Lists.newArrayList();
+        for (UnManagedVolumeRestRep volume : listUnmanagedVolumesByHost(ctx, host)) {
+            if (matchesVpool(volume, vpool)) {
+                volumeNames.add(getLabel(volume));
+            }
+        }
+        Collections.sort(volumeNames, new StringComparator(false));
+        return getVolumeFilterOptions(volumeNames);
+    }
 
+    @Asset("unmanagedVolume")
+    @AssetDependencies({ "host", "unmanagedBlockVirtualPool", "volumeFilter" })
+    public List<AssetOption> getUnmanagedVolume(AssetOptionsContext ctx, URI host, URI vpool, int volumePage) {
         List<AssetOption> options = Lists.newArrayList();
         for (UnManagedVolumeRestRep volume : listUnmanagedVolumesByHost(ctx, host)) {
             if (matchesVpool(volume, vpool)) {
@@ -127,9 +144,77 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         }
 
         AssetOptionsUtils.sortOptionsByLabel(options);
+        return getVolumeSublist(volumePage, options);
+    }
+
+    public static List<AssetOption> getVolumeFilterOptions(List<String> volumeNames) {
+        List<AssetOption> options = Lists.newArrayList();
+        int volumeNamesSize = volumeNames.size();
+        int currentPage = 0;
+
+        options.add(new AssetOption(new Integer(VOLUME_PAGE_ALL).toString(), "All Volumes"));
+        for (int i = 0; i < volumeNames.size(); i += VOLUME_PAGE_SIZE) {
+            if (i + VOLUME_PAGE_SIZE > (volumeNamesSize - 1)) {
+                options.add(new AssetOption(new Integer(currentPage).toString(), volumeNames.get(i) + " - "
+                        + volumeNames.get(volumeNamesSize - 1)));
+            } else {
+                options.add(new AssetOption(new Integer(currentPage).toString(), volumeNames.get(i) + " - "
+                        + volumeNames.get(i + VOLUME_PAGE_SIZE)));
+            }
+            currentPage++;
+        }
         return options;
     }
-    
+
+    public static List<AssetOption> getVolumeSublist(int volumePage, List<AssetOption> options) {
+        if (volumePage != VOLUME_PAGE_ALL) {
+            int optionsSize = options.size();
+            options = options.subList(VOLUME_PAGE_SIZE * volumePage, (VOLUME_PAGE_SIZE * (volumePage + 1)) >= optionsSize ? optionsSize
+                    : (VOLUME_PAGE_SIZE * (volumePage + 1)));
+        }
+        return options;
+    }
+
+    @Asset("volumeFilter")
+    @AssetDependencies({ "unmanagedBlockStorageSystem", "blockVirtualPool" })
+    public List<AssetOption> getVolumeFilter(AssetOptionsContext ctx, URI storageSystemId, URI vpool) {
+        List<String> volumeNames = Lists.newArrayList();
+        for (UnManagedVolumeRestRep volume : listUnmanagedVolumes(ctx, storageSystemId, vpool)) {
+            if (!isVolumeExported(volume.getVolumeCharacteristics())) {
+                volumeNames.add(getLabel(volume));
+            }
+        }
+        Collections.sort(volumeNames, new StringComparator(false));
+        return getVolumeFilterOptions(volumeNames);
+    }
+
+    @Asset("unmanagedVolumeByStorageSystemVirtualPool")
+    @AssetDependencies({ "unmanagedBlockStorageSystem", "blockVirtualPool" })
+    public List<AssetOption> getUnmanagedVolumeByStorageSystemVirtualPool(AssetOptionsContext ctx, URI storageSystemId, URI vpool) {
+        List<AssetOption> options = Lists.newArrayList();
+        for (UnManagedVolumeRestRep volume : listUnmanagedVolumes(ctx, storageSystemId, vpool)) {
+            if (!isVolumeExported(volume.getVolumeCharacteristics())) {
+                options.add(toAssetOption(volume));
+            }
+        }
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+
+    @Asset("unmanagedVolumeByStorageSystemVirtualPool")
+    @AssetDependencies({ "unmanagedBlockStorageSystem", "blockVirtualPool", "volumeFilter" })
+    public List<AssetOption> getUnmanagedVolumeByStorageSystemVirtualPool(AssetOptionsContext ctx, URI storageSystemId, URI vpool,
+            int volumePage) {
+        List<AssetOption> options = Lists.newArrayList();
+        for (UnManagedVolumeRestRep volume : listUnmanagedVolumes(ctx, storageSystemId, vpool)) {
+            if (!isVolumeExported(volume.getVolumeCharacteristics())) {
+                options.add(toAssetOption(volume));
+            }
+        }
+        AssetOptionsUtils.sortOptionsByLabel(options);
+        return getVolumeSublist(volumePage, options);
+    }
+
     @Asset("unmanagedVolumeByStorageSystem")
     @AssetDependencies({"unmanagedBlockStorageSystem", "unmanagedBlockVirtualPool"})
     public List<AssetOption> getUnmanagedVolumeByStorageSystem(AssetOptionsContext ctx, URI storageSystemId, URI vpool) {
@@ -215,6 +300,10 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         return api(ctx).unmanagedVolumes().getByStorageSystem(storageSystem);
     }
 
+    private List<UnManagedVolumeRestRep> listUnmanagedVolumes(AssetOptionsContext ctx, URI storageSystem, URI virtualPool) {
+        return api(ctx).unmanagedVolumes().getByStorageSystemVirtualPool(storageSystem, virtualPool);
+    }
+
     private List<UnManagedVolumeRestRep> listUnmanagedVolumesByHost(AssetOptionsContext ctx, URI host) {
         if (BlockStorageUtils.isHost(host)) {
             return api(ctx).unmanagedVolumes().getByHost(host);
@@ -230,14 +319,14 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
     }
 
     protected static boolean matchesVpool(UnManagedVolumeRestRep volume, URI vpool) {
-        Set<URI> vpools = getVpoolsForUnmanaged(volume.getVolumeInformation(), volume.getVolumeCharacteristics());
+        Set<URI> vpools = getVpoolsForUnmanaged(volume.getVolumeCharacteristics(), volume.getSupportedVPoolUris());
         return vpools.contains(vpool);
     }
 
     protected static Map<URI,Integer> getBlockVirtualPools(List<UnManagedVolumeRestRep> volumes) {
         Map<URI,Integer> map = Maps.newLinkedHashMap();
         for (UnManagedVolumeRestRep volume: volumes) {
-            Set<URI> vpools = getVpoolsForUnmanaged(volume.getVolumeInformation(), volume.getVolumeCharacteristics());
+            Set<URI> vpools = getVpoolsForUnmanaged(volume.getVolumeCharacteristics(), volume.getSupportedVPoolUris());
             for (URI vpool: vpools) {
                 if (map.containsKey(vpool)) {
                     map.put(vpool, map.get(vpool).intValue() + 1);
@@ -253,7 +342,7 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
     protected static Map<URI,Integer> getFileVirtualPools(List<UnManagedFileSystemRestRep> fileSystems) {
         Map<URI,Integer> map = Maps.newLinkedHashMap();
         for (UnManagedFileSystemRestRep fileSystem: fileSystems) {
-            Set<URI> vpools = getVpoolsForUnmanaged(fileSystem.getFileSystemInformation(), fileSystem.getFileSystemCharacteristics());
+            Set<URI> vpools = getVpoolsForUnmanaged(fileSystem.getFileSystemCharacteristics(), fileSystem.getSupportedVPoolUris());
             for (URI vpool: vpools) {
                 if (map.containsKey(vpool)) {
                     map.put(vpool, map.get(vpool).intValue() + 1);

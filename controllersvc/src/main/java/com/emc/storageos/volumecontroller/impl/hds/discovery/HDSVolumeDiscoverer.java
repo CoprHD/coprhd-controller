@@ -165,7 +165,7 @@ public class HDSVolumeDiscoverer {
         }
         if (!updateUnManagedVolumeList.isEmpty()
                 && updateUnManagedVolumeList.size() > limit) {
-            partitionManager.updateInBatches(updateUnManagedVolumeList,
+            partitionManager.updateAndReIndexInBatches(updateUnManagedVolumeList,
                     Constants.DEFAULT_PARTITION_SIZE, dbClient,
                     HDSConstants.UNMANAGED_VOLUME);
             updateUnManagedVolumeList.clear();
@@ -277,32 +277,16 @@ public class HDSVolumeDiscoverer {
                 pool.getId(), unManagedVolumeCharacteristics
                         .get(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED
                                 .name()).toString());
-        if (unManagedVolumeInformation
-                .containsKey(SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())) {
-
-            log.debug("Matched Pools :" + Joiner.on("\t").join(matchedVPools));
-            if (null != matchedVPools && matchedVPools.size() == 0) {
-                // replace with empty string set doesn't work, hence added
-                // explicit code to remove all
-                unManagedVolumeInformation.get(
-                        SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())
-                        .clear();
-            } else {
-                // replace with new StringSet
-                unManagedVolumeInformation.get(
-                        SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())
-                        .replace(matchedVPools);
-                log.info("Replaced Pools :"
-                        + Joiner.on("\t")
-                                .join(unManagedVolumeInformation
-                                        .get(SupportedVolumeInformation.SUPPORTED_VPOOL_LIST
-                                                .toString())));
-            }
+        log.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
+        if (null == matchedVPools || matchedVPools.isEmpty()) {
+            // clear all matched vpools
+            unManagedVolume.getSupportedVpoolUris().clear();
         } else {
-            unManagedVolumeInformation.put(
-                    SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString(),
-                    matchedVPools);
+            // replace with new StringSet
+            unManagedVolume.getSupportedVpoolUris().replace(matchedVPools);
+            log.info("Replaced Pools : {}", Joiner.on("\t").join(unManagedVolume.getSupportedVpoolUris()));
         }
+      
         unManagedVolume.addVolumeInformation(unManagedVolumeInformation);
         
         if (unManagedVolume.getVolumeCharacterstics() == null) {

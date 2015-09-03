@@ -868,7 +868,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 			
 			final CIMObjectPath[] theElements = _cimPath.getVolumePaths(storageSystem, deviceIds);
 			
-			final CIMArgument[] inArgs = _helper.getReturnElementsToStoragePoolArguments(storageSystem, theElements, 2);
+			final CIMArgument[] inArgs = _helper.getReturnElementsToStoragePoolArguments(storageSystem, theElements, SmisConstants.CONTINUE_ON_NONEXISTENT_ELEMENT);
 			final CIMArgument[] outArgs = new CIMArgument[5];
 
 			final SmisDeleteVmaxCGTargetVolumesJob job = new SmisDeleteVmaxCGTargetVolumesJob(

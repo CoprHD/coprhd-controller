@@ -28,6 +28,7 @@ public class ControlRequest implements Serializable {
     private static final String TARGET_CLASS_FIELD_NAME = "targettype"; 
     private static final String ARG_FIELD_NAME = "arguments";
     private static final String DEVICE_INFO_NAME = "deviceinfo";
+    private static final String TIMESTAMP = "timestamp";
 
     private Map<String, Object> _req = new HashMap<String, Object>();
 
@@ -39,6 +40,7 @@ public class ControlRequest implements Serializable {
         _req.put(DEVICE_INFO_NAME, info);
         _req.put(METHOD_FIELD_NAME, method);
         _req.put(TARGET_CLASS_FIELD_NAME, target.getClass().getName());
+        _req.put(TIMESTAMP, System.currentTimeMillis());
         _req.put(ARG_FIELD_NAME, Arrays.asList(args));
     }
 
@@ -61,6 +63,10 @@ public class ControlRequest implements Serializable {
     
     public String getQueueName() {
         return (String) _req.get(QUEUE_NAME);
+    }
+
+    public Long getTimestamp() {
+        return (Long) _req.get(TIMESTAMP);
     }
 
     public byte[] serialize() {

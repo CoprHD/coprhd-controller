@@ -11,10 +11,15 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 import java.net.URI;
+import java.util.List;
 
 public class BlockMirrorResumeCompleter extends BlockMirrorTaskCompleter {
     public BlockMirrorResumeCompleter(URI mirror, String opId) {
         super(Volume.class, mirror, opId);
+    }
+
+    public BlockMirrorResumeCompleter(List<URI> mirrorList, String opId) {
+        super(Volume.class, mirrorList, opId);
     }
 
     @Override

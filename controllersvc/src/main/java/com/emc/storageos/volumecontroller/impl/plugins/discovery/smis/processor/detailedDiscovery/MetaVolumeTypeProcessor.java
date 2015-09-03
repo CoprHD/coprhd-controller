@@ -133,8 +133,7 @@ public class MetaVolumeTypeProcessor extends StorageProcessor {
                         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemUri);
                         if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(storageSystem.getSystemType())) {
                             _logger.info("Check matched vpool list for vmax striped meta volume and remove fastExpansion vpools.");
-                            StringSet matchedVirtualPools = preExistingVolume.getVolumeInformation()
-                                    .get(UnManagedVolume.SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString());
+                            StringSet matchedVirtualPools = preExistingVolume.getSupportedVpoolUris();
                             if (matchedVirtualPools != null && !matchedVirtualPools.isEmpty()) {
                                 _logger.debug("Matched Pools :" + Joiner.on("\t").join(matchedVirtualPools));
                                 StringSet newMatchedPools = new StringSet();
@@ -151,15 +150,14 @@ public class MetaVolumeTypeProcessor extends StorageProcessor {
                                 }
                                 if (needToReplace) {
                                     matchedVirtualPools.replace(newMatchedPools);
-                                    _logger.info("Replaced VPools :" + Joiner.on("\t").join(preExistingVolume.getVolumeInformation().get(
-                                            UnManagedVolume.SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())));
+                                    _logger.info("Replaced VPools : {}", Joiner.on("\t").join(preExistingVolume.getSupportedVpoolUris()));
                                 }
                             }
                         }
                     }
 
                     // persist volume in db
-                    dbClient.persistObject(preExistingVolume);
+                    dbClient.updateAndReindexObject(preExistingVolume);
                 }
             }
         } catch (Exception e) {

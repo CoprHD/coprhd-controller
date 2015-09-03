@@ -336,7 +336,7 @@ public class FileSnapshotService extends TaskResourceService {
      * @Deprecated use {id}/export instead
      * Get file share snapshots exports
      * @param id the URN of a ViPR Snapshot 
-     * @brief List file snapshot exports
+     * @brief List file snapshot exports. This method is deprecated.<p> Use /file/snapshots/{id}/export instead.
      * @return List of file share snapshot exports
      */
     @Deprecated

@@ -342,6 +342,14 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      * {@inheritDoc}
      */
     @Override
+    public TaskList establishVolumeAndFullCopyGroupRelation(Volume sourceVolume, Volume fullCopyVolume) {
+        return super.establishVolumeAndFullCopyGroupRelation(sourceVolume, fullCopyVolume);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public VolumeRestRep checkProgress(URI sourceURI, Volume fullCopyVolume) {
         return super.checkProgress(sourceURI, fullCopyVolume);
     }
@@ -370,7 +378,7 @@ public class DefaultBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
      * @param sc A reference to the error.
      * @param markInactive true to mark the volumes inactive, false otherwise.
      */
-    private void handleFailedRequest(String taskId, TaskList taskList,
+    protected void handleFailedRequest(String taskId, TaskList taskList,
         List<Volume> volumes, ServiceCoded sc, boolean markInactive) {
         for (TaskResourceRep volumeTask :taskList.getTaskList()) {
             volumeTask.setState(Operation.Status.error.name());

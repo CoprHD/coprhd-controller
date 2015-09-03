@@ -69,6 +69,7 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
                 for (URI boURI : _volumeMap.keySet()) {
                     if(exportMask.getCreatedBySystem() && exportMask.getVolumes() != null) {
                         String hlu = exportMask.getVolumes().get(boURI.toString());
+                        _log.info("Volume {} , HLU : {}",boURI, hlu);
                         exportGroup.addVolume(boURI, Integer.parseInt(hlu));
                     }
                 }

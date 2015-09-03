@@ -1349,7 +1349,7 @@ public class RPVPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RPVP
     }
 
     @Override
-    public TaskResourceRep deactivateMirror(StorageSystem device, URI mirror, String task) {
+    public TaskList deactivateMirror(StorageSystem device, URI mirror, String task) {
         throw APIException.methodNotAllowed.notSupported();
     }
 

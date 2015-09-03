@@ -504,6 +504,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
 
     @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
+       xtremioExportOperationHelper.refreshExportMask(storage, mask);
        return mask;
     }
 

@@ -340,8 +340,8 @@ public interface BlockStorageDevice {
                                       TaskCompleter taskCompleter) throws DeviceControllerException;
     
     /**
-     * Create a mirror for a volume
-     * 
+     * Create a mirror for a volume.
+     *
      * @param storage
      * @param mirror
      * @param createInactive
@@ -352,7 +352,19 @@ public interface BlockStorageDevice {
             TaskCompleter taskCompleter) throws DeviceControllerException;
     
     /**
-     * Fracture a mirror or mirrors for a volume or volumes.
+     * Create group mirrors for volumes in a CG.
+     *
+     * @param storage
+     * @param mirrorList
+     * @param createInactive
+     * @param taskCompleter
+     * @throws DeviceControllerException
+     */
+    public void doCreateGroupMirrors(StorageSystem storage, List<URI> mirrorList, Boolean createInactive,
+            TaskCompleter taskCompleter) throws DeviceControllerException;
+
+    /**
+     * Fracture a mirror for a volume.
      * 
      * @param storage
      * @param mirror
@@ -361,9 +373,20 @@ public interface BlockStorageDevice {
      */
     public void doFractureMirror(StorageSystem storage, URI mirror, Boolean sync,
             TaskCompleter taskCompleter) throws DeviceControllerException;
-    
+
     /**
-     * Detach a mirror or mirrors for a volume or volumes.
+     * Fracture group mirrors for volumes in a CG.
+     *
+     * @param storage
+     * @param mirrorList
+     * @param taskCompleter
+     * @throws DeviceControllerException
+     */
+    public void doFractureGroupMirrors(StorageSystem storage, List<URI> mirrorList, Boolean sync,
+            TaskCompleter taskCompleter) throws DeviceControllerException;
+
+    /**
+     * Detach a mirror for a volume.
      * 
      * @param storage
      * @param mirror
@@ -372,9 +395,21 @@ public interface BlockStorageDevice {
      */
     public void doDetachMirror(StorageSystem storage, URI mirror, TaskCompleter taskCompleter)
             throws DeviceControllerException;
-    
+
     /**
-     * Resumes one or more mirrors.
+     * Detach group mirrors for volumes in a CG.
+     *
+     * @param storage
+     * @param mirrorList
+     * @param deleteGroup
+     * @param taskCompleter
+     * @throws DeviceControllerException
+     */
+    public void doDetachGroupMirrors(StorageSystem storage, List<URI> mirrorList, Boolean deleteGroup, TaskCompleter taskCompleter)
+            throws DeviceControllerException;
+
+    /**
+     * Resumes a mirror for a volume.
      * 
      * @param storage
      * @param mirror
@@ -383,9 +418,20 @@ public interface BlockStorageDevice {
      */
     public void doResumeNativeContinuousCopy(StorageSystem storage, URI mirror,
             TaskCompleter taskCompleter) throws DeviceControllerException;
+
+    /**
+     * Resumes group mirrors for volumes in a CG.
+     *
+     * @param storage
+     * @param mirrorList
+     * @param taskCompleter
+     * @throws DeviceControllerException
+     */
+    public void doResumeGroupNativeContinuousCopies(StorageSystem storage, List<URI> mirrorList,
+            TaskCompleter taskCompleter) throws DeviceControllerException;
     
     /**
-     * Delete a mirror or mirrors for a volume or volumes.
+     * Delete a mirror for a volume.
      * 
      * @param storage
      * @param mirror
@@ -393,6 +439,17 @@ public interface BlockStorageDevice {
      * @throws DeviceControllerException
      */
     public void doDeleteMirror(StorageSystem storage, URI mirror, TaskCompleter taskCompleter)
+            throws DeviceControllerException;
+
+    /**
+     * Delete group mirrors for volumes in a CG.
+     *
+     * @param storage
+     * @param mirrorList
+     * @param taskCompleter
+     * @throws DeviceControllerException
+     */
+    public void doDeleteGroupMirrors(StorageSystem storage, List<URI> mirrorList, TaskCompleter taskCompleter)
             throws DeviceControllerException;
     
     /**
@@ -436,6 +493,18 @@ public interface BlockStorageDevice {
      * @param taskCompleter
      */
     public void doDetachGroupClone(StorageSystem storage, List<URI> cloneVolume, TaskCompleter taskCompleter);
+    
+    /**
+     * Creates group relation between volume group and full copy group.
+     *
+     * @param storage the storage
+     * @param sourceVolume the source volume
+     * @param fullCopy the full copy
+     * @param taskCompleter the task completer
+     * @throws DeviceControllerException the device controller exception
+     */
+    public void doEstablishVolumeFullCopyGroupRelation(StorageSystem storage, URI sourceVolume,
+            URI fullCopy, TaskCompleter taskCompleter) throws DeviceControllerException;
     
     /**
      * Restore from a clone.
@@ -648,14 +717,14 @@ public interface BlockStorageDevice {
             List<URI> volumeURIs, VirtualPool newVpool, boolean rollback,
             TaskCompleter taskCompleter) throws Exception;
 
-	/**
-	 * Retrieves the export mask policies, in the case where this is one.
-	 * 
-	 * @param storage storage system
-	 * @param mask the export mask
-	 * @return export mask policy
-	 */
-	public ExportMaskPolicy getExportMaskPolicy(StorageSystem storage, ExportMask mask);
+    /**
+     * Retrieves the export mask policies, in the case where this is one.
+     * 
+     * @param storage storage system
+     * @param mask the export mask
+     * @return export mask policy
+     */
+    public ExportMaskPolicy getExportMaskPolicy(StorageSystem storage, ExportMask mask);
 
     /**
      * Terminate any restore sessions for the given source volume.
@@ -668,6 +737,28 @@ public interface BlockStorageDevice {
     public void doTerminateAnyRestoreSessions(StorageSystem storageDevice, URI source, BlockObject snapshot,
                                               TaskCompleter completer) throws Exception;
     
+    /**
+     * Creates group relation between volume group and mirror group.
+     *
+     * @param storage the storage
+     * @param sourceVolume the source volume
+     * @param mirror the mirror
+     * @param taskCompleter the task completer
+     * @throws DeviceControllerException the device controller exception
+     */
+    public void doEstablishVolumeNativeContinuousCopyGroupRelation(StorageSystem storage, URI sourceVolume,
+            URI mirror, TaskCompleter taskCompleter) throws DeviceControllerException;
+
+    /**
+     * For mirrors associated with SRDF volumes, remove the mirrors
+     *  from device masking group equivalent to its Replication group.
+     *
+     * @param system the system
+     * @param mirrors the mirror list
+     * @param completer the completer
+     */
+    public void doRemoveMirrorFromDeviceMaskingGroup(StorageSystem system, List<URI> mirrors, TaskCompleter completer);
+
     /**
      * Fracture clone.
      *

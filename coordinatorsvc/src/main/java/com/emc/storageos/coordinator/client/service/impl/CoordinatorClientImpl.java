@@ -617,6 +617,15 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
+    public <T> DistributedLockQueueManager getLockQueue(DistributedLockQueueTaskConsumer<T> consumer)
+            throws CoordinatorException {
+        DistributedLockQueueManager<T> lockQueue = new DistributedLockQueueManagerImpl<>(_zkConnection,
+                ZkPath.LOCKQUEUE.toString(), consumer);
+        lockQueue.start();
+        return lockQueue;
+    }
+
+    @Override
     public WorkPool getWorkPool(String name, WorkPool.WorkAssignmentListener listener)
             throws CoordinatorException {
         WorkPool pool = new WorkPoolImpl(_zkConnection, listener, String.format("%1$s/%2$s",
@@ -1292,7 +1301,13 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         nodeWatcher.removeListener(listener);
     }
 
-     /**
+    @Override
+    public boolean isDistributedOwnerLockAvailable(String lockPath) throws Exception {
+        Stat stat = _zkConnection.curator().checkExists().forPath(lockPath);
+        return stat == null;
+    }
+
+    /**
      * To share NodeCache for listeners listening same path.
      * The empty NodeCache (counter zero) means the NodeCache should be closed.
      * Note: it is not thread safe since we do synchronization at higher level

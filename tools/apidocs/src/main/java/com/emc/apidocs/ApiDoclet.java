@@ -15,6 +15,7 @@ import com.emc.apidocs.tools.MetaData;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.google.common.collect.Lists;
 import com.sun.javadoc.*;
+
 import org.apache.commons.io.IOUtils;
 
 import java.io.*;
@@ -29,7 +30,7 @@ public class ApiDoclet {
     private static final String CONTENT_OPTION = "-c";
     private static final String BUILD_OPTION = "-build";
     private static final String PORTAL_SRC_OPTION = "-portalsrc";
-
+    private static final String ROOT_DIRECTORY = "-rootDirectory";
     private static final String INTERNAL_PATH = "internal";
 
     private static final List<String> DATASERVICES_CLASSES = Lists.newArrayList("S3Service", "AtmosService", "SwiftService");
@@ -37,7 +38,7 @@ public class ApiDoclet {
     private static final String SYSTEM_SERVIES_PACKAGE = "com.emc.storageos.systemservices";
 
     private static String buildNumber = null;
-
+    private static String rootDirectory = null;
     private static String portalSource = null;
     private static String outputDirectory;
     private static String contentDirectory;
@@ -87,6 +88,9 @@ public class ApiDoclet {
             return 2;
         }
 
+        if (option.equals(ROOT_DIRECTORY)) {
+        	return 2;
+        }
         return 1;
     }
 
@@ -114,10 +118,14 @@ public class ApiDoclet {
                 portalsrcOptionFound = true;
                 valid = checkPortalSourceOption(options[i][1], reporter);
 
+            } else if (options[i][0].equals(ROOT_DIRECTORY)) {
+            	rootDirectory = options[i][1];
+            	reporter.printWarning(rootDirectory);
+
             } else if (options[i][0].equals(BUILD_OPTION)) {
                 buildNumber = options[i][1];
                 reporter.printWarning("Build "+buildNumber);
-            }
+            } 
         }
 
 
@@ -224,8 +232,16 @@ public class ApiDoclet {
     }
 
     private static ApiDifferences calculateDifferences(List<ApiService> apiServices) {
-        List<ApiService> oldServices = MetaData.load(KnownPaths.getMetaDataFile("MetaData-1.1.json"));
-
+    	Properties prop = new Properties();
+    	try {
+    		FileInputStream fileInput = new FileInputStream(rootDirectory+"gradle.properties");
+    		prop.load(fileInput);
+    	}
+    	catch (Exception e) {
+        	e.printStackTrace();
+        }
+    	String docsMetaVersion = prop.getProperty("apidocsComparisionVersion");
+        List<ApiService> oldServices = MetaData.load(KnownPaths.getMetaDataFile("MetaData-"+docsMetaVersion+".json"));
         DifferenceEngine differenceEngine = new DifferenceEngine();
         return differenceEngine.calculateDifferences(oldServices, apiServices);
     }

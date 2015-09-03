@@ -187,6 +187,8 @@ public class BlockMapper {
         	toSRDF = new SRDFRestRep();
             toSRDF.setPersonality(from.getPersonality());
             toSRDF.setAssociatedSourceVolume(toRelatedResource(ResourceTypeEnum.VOLUME, from.getSrdfParent().getURI()));
+            toSRDF.setSrdfCopyMode(from.getSrdfCopyMode());
+            toSRDF.setSrdfGroup(from.getSrdfGroup());
         }
         
 
@@ -470,6 +472,12 @@ public class BlockMapper {
             storagePortUris.add(uri);
         }
         to.setStoragePortUris(storagePortUris);
+        
+        List<String> supportedVPoolUris = new ArrayList<String>();
+        for (String uri : from.getSupportedVpoolUris()) {
+            supportedVPoolUris.add(uri);
+        }
+        to.setSupportedVPoolUris(supportedVPoolUris);
         
         return to;
     }

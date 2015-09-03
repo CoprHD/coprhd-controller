@@ -148,7 +148,7 @@ public class UserInfoPage {
      * It also returns a list of the virtual data center roles and tenant roles assigned to this user.
      * @brief Show my Tenant and assigned roles
      * @prereq none
-     * @return
+     * @return List of tenants user mappings,VDC role and tenant role of the user.
      */
     @GET
     @Path("/whoami")
@@ -232,7 +232,7 @@ public class UserInfoPage {
      * @brief Get the tenancies to which a user maps given the current mappings
      * @prereq none
      * @param username required The user name for which to retrieve the tenant list.
-     * @return
+     * @return User tenant list
      */
     @GET
     @Path("/tenant")

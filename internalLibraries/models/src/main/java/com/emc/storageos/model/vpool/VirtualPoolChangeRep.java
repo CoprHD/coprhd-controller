@@ -82,7 +82,7 @@ public class VirtualPoolChangeRep extends NamedRelatedVirtualPoolRep {
 
     /**
      * Get list of allowed change operations
-     * @return
+     * @return List of allowed change operations
      */
     @XmlElement(name = "allowed_change_operation")
     public List<StringHashMapEntry> getAllowedChangeOperations() {

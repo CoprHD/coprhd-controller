@@ -149,7 +149,8 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
         queryHostInitiatorsAndAddToList(portNames, portNameToInitiatorURI, initiatorURIs,
                 hostURIs);
-
+        //CTRL-13080 fix
+        refreshExportMask(storage, device, null);
         // Export Mask cannot be grouped to an individual construct in XtremIO.
         // Group of LunMaps contribute to a Export Mask, hence there is really no need to determine
         // create mask steps based on existing Masking information on Array.
@@ -179,6 +180,8 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,
                     exportGroup, storageURI);
+            //CTRL-13080 fix - Mask really not needed, this method has to get called on every export operation once.
+            refreshExportMask(storage, getDevice(), null);
             if (exportMasks != null) {
                 // Set up workflow steps.
                 Workflow workflow = _workflowService.getNewWorkflow(
@@ -189,6 +192,7 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                 List<ExportMask> masks = new ArrayList<ExportMask>();
                 for (ExportMask exportMask : exportMasks) {
                     if (exportMask.getStorageDevice().equals(storageURI)) {
+                    	 
                         _log.info("export_volume_add: adding volume to an existing export");
                         exportMask.addVolumes(volumeMap);
                         _dbClient.persistObject(exportMask);
@@ -285,6 +289,8 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
 
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient, exportGroup,
                     storageURI);
+            //CTRL-13080 fix - Mask really not needed, this method has to get called on every export operation once.
+            refreshExportMask(storage, getDevice(), null);
             if (exportMasks != null) {
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(), "exportGroupRemoveVolumes", true,
@@ -360,6 +366,8 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     exportGroup, storageURI);
             Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(
                     exportGroup, initiatorURIs);
+            //CTRL-13080 fix - Mask really not needed, this method has to get called on every export operation once.
+            refreshExportMask(storage, getDevice(), null);
             
             _log.info("initiators  : {}",Joiner.on(",").join(computeResourceToInitiators.entrySet()));
 
@@ -513,7 +521,8 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     exportGroup, storageURI);
             Map<String, List<URI>> computeResourceToInitiators = mapInitiatorsToComputeResource(
                     exportGroup, initiatorURIs);
-            
+            //CTRL-13080 fix - Mask really not needed, this method has to get called on every export operation once.
+            refreshExportMask(storage, getDevice(), null);
             _log.info("Host to initiators  : {}",Joiner.on(",").join(computeResourceToInitiators.entrySet()));
             
             if (exportMasks != null && exportMasks.size() > 0) {
@@ -612,7 +621,8 @@ public class XtremIOMaskingOrchestrator extends AbstractBasicMaskingOrchestrator
                     .queryObject(StorageSystem.class, storageURI);
             TaskCompleter taskCompleter = new ExportOrchestrationTask(exportGroupURI,
                     token);
-
+            //CTRL-13080 fix - Mask really not needed, this method has to get called on every export operation once.
+            refreshExportMask(storage, getDevice(), null);
             if (exportGroup == null || exportGroup.getInactive()) {
                 exportGroup.getVolumes().clear();
                 taskCompleter.ready(_dbClient);

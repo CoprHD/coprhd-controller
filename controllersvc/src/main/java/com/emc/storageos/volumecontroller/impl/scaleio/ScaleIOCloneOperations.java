@@ -20,12 +20,15 @@ import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.CloneOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -62,7 +65,10 @@ public class ScaleIOCloneOperations implements CloneOperations {
             // Snapshots result does not provide capacity info, so we need to perform a queryVolume
             updateCloneFromQueryVolume(scaleIOHandle, cloneObj);
             dbClient.persistObject(cloneObj);
-            ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, cloneObj);
+            
+            StoragePool pool = dbClient.queryObject(StoragePool.class, cloneObj.getPool());
+            pool.removeReservedCapacityForVolumes(Arrays.asList(cloneObj.getId().toString()));
+            ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, cloneObj); 
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             Volume clone = dbClient.queryObject(Volume.class, cloneVolume);
@@ -143,6 +149,7 @@ public class ScaleIOCloneOperations implements CloneOperations {
 
             List<String> nativeIds = result.getVolumeIdList();
             Map<String, ScaleIOVolume> cloneNameMap = scaleIOHandle.getVolumeNameMap(nativeIds);
+            Multimap<URI, String> poolToVolumesMap = ArrayListMultimap.create();
             for (Volume clone : clones) {
                 String name = clone.getLabel();
                 ScaleIOVolume sioVolume = cloneNameMap.get(name);
@@ -151,11 +158,13 @@ public class ScaleIOCloneOperations implements CloneOperations {
                 clone.setProvisionedCapacity(clone.getAllocatedCapacity());
                 clone.setCapacity(clone.getAllocatedCapacity());
                 clone.setReplicationGroupInstance(result.getSnapshotGroupId());
+                poolToVolumesMap.put(clone.getPool(), clone.getId().toString());
             }
             dbClient.persistObject(clones);
 
             List<StoragePool> pools = dbClient.queryObject(StoragePool.class, Lists.newArrayList(poolsToUpdate));
             for (StoragePool pool : pools) {
+                pool.removeReservedCapacityForVolumes(poolToVolumesMap.get(pool.getId()));
                 ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, pool, storage);
             }
 

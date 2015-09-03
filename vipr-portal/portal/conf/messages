@@ -130,6 +130,7 @@ nav.networks=Networks
 nav.LDAPsources=Authentication Providers
 nav.computeSystems=Vblock Compute Systems
 nav.computeImages=Compute Images
+nav.computeImageServers=Compute Image Servers
 nav.sites=Sites
 nav.userGroups=User Groups
 # Override messages in the Secure plugin
@@ -2279,6 +2280,7 @@ adminDashboard.dataProtectionSystems=Data Protection Systems
 adminDashboard.authenticationProviders=Authentication Providers
 adminDashboard.computeSystems=Vblock Compute Systems
 adminDashboard.computeImages=Compute Images
+adminDashboard.computeImageServers=Compute Image Servers
 adminDashboard.hosts=Hosts
 adminDashboard.clusters=Clusters
 adminDashboard.vcenters=VMware vCenters
@@ -2441,6 +2443,31 @@ ComputeImageType.esx=ESX
 ComputeImageType.linux=Linux
 computeImage.invalid.url=Invalid URL
 
+#Compute Image Servers
+ComputeImageServers.list.title=Compute Image Servers
+ComputeImageServers.edit.title=Edit Compute Image Server
+ComputeImageServers.create.title=Add Compute Image Server
+ComputeImageServers.description=Enter the information needed to add a Compute Image Server that can be used to provision the Operating System on the Vblock Compute Systems.
+ComputeImageServers.saved=Compute Image Server '%s' saved successfully
+ComputeImageServers.deleted.success=Deleted Successfully
+ComputeImageServers.deleted.error='%s' of '%s' selected Compute Image Server deleted: '%s'.  Please check server log for more details.
+ComputeImageServers.unknown=Unknown Compute Image Servers with ID '%s'
+ComputeImageServers.deleteConfirm=Are you sure you want to delete the selected Compute Image Server(s)?
+computeImageServers.name=Name
+computeImageServers.userName=Username
+computeImageServers.password=Password
+computeImageServers.imageServerIp=Image Server Address
+computeImageServers.tftpBootDir=TFTPBOOT Directory
+computeImageServers.osInstallNetworkAddress=OS Install Network Address
+computeImageServers.osInstallTimeOut=OS Install Timeout
+computeImageServers.imageUrl.help=URL can be HTTP or FTP. If credentials are required for FTP, they must be specified in the URL. Example: ftp://username:password@hostname/ESX/VMware-Installer-5.0-20.x86_64.iso
+computeImageServers.computeImageStatus=Status
+computeImageServers.url.not.valid=Image URL is not valid format
+computeImageServers.urls.pattern=^((ldaps?|ldap)://|(ldaps|ldap)\.)[a-z0-9-]+(\.[a-z0-9-]+)+([/?].*)?$
+ComputeImageServer.default.tftpBootDir=/opt/tftpboot/
+ComputeImageServer.default.installTimeout=3600
+
+# Compute Virtual Pools
 ComputeVirtualPools.list.title=Compute Virtual Pools
 ComputeVirtualPools.deleteConfirm=Are you sure you want to delete the selected Compute Virtual Pool?
 computeVirtualPools.name=Name

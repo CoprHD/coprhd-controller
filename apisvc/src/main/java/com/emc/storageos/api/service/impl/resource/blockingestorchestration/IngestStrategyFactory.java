@@ -133,7 +133,7 @@ public class IngestStrategyFactory {
     }
 
     public enum VolumeType {
-        VOLUME, SNAPSHOT, CLONE, MIRROR, BACKEND
+        VOLUME, SNAPSHOT, CLONE, MIRROR
     }
 
     public enum IngestExportStrategyEnum {

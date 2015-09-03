@@ -2363,14 +2363,17 @@ public interface BadRequestExceptions {
     public BadRequestException rpBlockApiImplPrepareVolumeException(final String volume);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException noExistingVolumesInCG();
+    public BadRequestException noExistingVolumesInCG(final String cgName);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException noSourceVolumesInCG();
+    public BadRequestException noSourceVolumesInCG(final String cgName);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException noProtectionSystemAssociatedWithTheCG();
+    public BadRequestException noProtectionSystemAssociatedWithTheCG(final String cgName);
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException unableToFindSuitableJournalRecommendation();  
+    public BadRequestException unableToFindSuitableJournalRecommendation();
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unableToFindTheSpecifiedCopy(final String copy);
 }

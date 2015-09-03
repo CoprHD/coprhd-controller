@@ -3075,7 +3075,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     "Narrowing down placement to use protection system {}, which is currently used by RecoverPoint consistency group {}.",
                     protectionSystem.getLabel(), consistencyGroup);
         } else {
-        	throw APIException.badRequests.noProtectionSystemAssociatedWithTheCG();
+        	throw APIException.badRequests.noProtectionSystemAssociatedWithTheCG(consistencyGroup.getId().toString());
         }
         
         String copyName = param.getName();
@@ -3086,7 +3086,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         boolean isTarget = false;
         List<Volume> cgVolumes = _rpHelper.getCgVolumes(consistencyGroup.getId());
         if (cgVolumes.isEmpty()) {
-        	throw APIException.badRequests.noExistingVolumesInCG();
+        	throw APIException.badRequests.noExistingVolumesInCG(consistencyGroup.getId().toString());
         }
         
         for (Volume cgVolume : cgVolumes) {
@@ -3097,12 +3097,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         }
         
         if (sourceInternalSiteName == null) {
-        	throw APIException.badRequests.noSourceVolumesInCG();
+        	throw APIException.badRequests.noSourceVolumesInCG(consistencyGroup.getId().toString());
         }
         
+        boolean foundCopy = false;
         int copyType = RecoverPointCGCopyType.PRODUCTION.getCopyNumber();
         for (Volume cgVolume : cgVolumes) {        	
         	if (!cgVolume.getPersonality().equals(Volume.PersonalityTypes.METADATA.name()) && cgVolume.getRpCopyName().equals(copyName)) {        		
+        		foundCopy = true;
         		internalSiteName = cgVolume.getInternalSiteName();;
         		if (cgVolume.getPersonality().equals((Volume.PersonalityTypes.SOURCE.name()))) {
         			if (cgVolume.getRpCopyName().contains("Standby")) {
@@ -3121,7 +3123,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         		}
         		break;
         	}
-        }                
+        }
+        
+        if (!foundCopy) {
+        	throw APIException.badRequests.unableToFindTheSpecifiedCopy(copyName);
+        }
         
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RP_COPY_TYPE, copyType);
         

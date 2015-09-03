@@ -188,7 +188,7 @@ public class InitiatorService extends TaskResourceService {
                 ComputeSystemController controller = getController(ComputeSystemController.class, null);
                 controller.removeInitiatorFromExport(initiator.getHost(), initiator.getId(), taskId);
             } else {
-                _log.info("Unable to delete initiator because host is in cluster {} with auto-export disabled", cluster.getLabel());
+                throw APIException.badRequests.initiatorInClusterWithAutoExportDisabled();
             }
         } else {
             _dbClient.ready(Initiator.class, initiator.getId(), taskId);

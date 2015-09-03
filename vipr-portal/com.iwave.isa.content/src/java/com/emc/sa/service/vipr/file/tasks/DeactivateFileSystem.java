@@ -24,7 +24,7 @@ public class DeactivateFileSystem extends WaitForTask<FileShareRestRep> {
     public DeactivateFileSystem(URI fileSystemId, FileDeleteTypeEnum fileDeletionType) {
         this.fileSystemId = fileSystemId;
         this.fileDeletionType = fileDeletionType;
-        provideDetailArgs(fileSystemId);
+        provideDetailArgs(fileSystemId, fileDeletionType.toString());
     }
 
     public URI getFileSystemId() {

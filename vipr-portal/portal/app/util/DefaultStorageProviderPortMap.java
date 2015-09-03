@@ -21,5 +21,6 @@ public enum DefaultStorageProviderPortMap {
     ddmc_useSSL,
     ibmxiv,
     ibmxiv_useSSL,
-    xtremio
+    xtremio,
+    xtremio_useSSL
 }

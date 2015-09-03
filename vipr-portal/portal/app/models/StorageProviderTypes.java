@@ -55,6 +55,7 @@ public class StorageProviderTypes {
             put(StorageSystemTypes.SCALEIOAPI, SCALEIOAPI);
             put(StorageSystemTypes.DATA_DOMAIN, DATA_DOMAIN);
             put(StorageSystemTypes.IBMXIV, IBMXIV);
+            put(StorageSystemTypes.XTREMIO, XTREMIO);
         }
     };
 

@@ -188,6 +188,7 @@ DefaultStorageArrayPortMap.netapp=443
 DefaultStorageArrayPortMap.netappc=443
 DefaultStorageArrayPortMap.vplex=443
 DefaultStorageArrayPortMap.xtremio=443
+DefaultStorageArrayPortMap.xtremio_useSSL=443
 DefaultStorageArrayPortMap.vplex_useSSL=443
 DefaultStorageArrayPortMap.vnxfile=443
 DefaultStorageArrayPortMap.vnxe=443

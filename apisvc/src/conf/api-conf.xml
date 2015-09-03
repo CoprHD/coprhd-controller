@@ -165,6 +165,17 @@
         <property name="fileScheduler" ref="filescheduler"/>
         <property name="nameGenerator" ref="defaultNameGenerator"/>
     </bean>
+    
+    <bean id="bucketService" class="com.emc.storageos.api.service.impl.resource.BucketService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="bucketScheduler" ref="bucketScheduler"/>
+    </bean>
+    
+    <bean id="bucketScheduler" class="com.emc.storageos.api.service.impl.placement.BucketScheduler">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="scheduleUtils" ref="storagescheduler" />
+    </bean>
 
     <bean id="tenantService" class="com.emc.storageos.api.service.impl.resource.TenantService">
         <property name="dbClient" ref="dbclient"/>
@@ -400,6 +411,7 @@
                     <property name="coordinator" ref="coordinator"/>
                 </bean>
                 <ref bean="fileService"/>
+                <ref bean="bucketService"/>
                 <bean class="com.emc.storageos.api.service.impl.resource.InternalFileResource">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>

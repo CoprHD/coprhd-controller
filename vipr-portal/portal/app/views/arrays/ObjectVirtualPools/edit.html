@@ -19,8 +19,8 @@ $(document).ready(function() {
     virtualPools.init('#virtualPool', emptyAttributes);
 	
 	var virtualArrayChanged = function() {
-	    var url = "@{listVirtualArrayAttributesJson()}";
-	    virtualPools.updateVirtualArrayAttributes(url, "#virtualPool form");
+	    //var url = "@{listVirtualArrayAttributesJson()}";
+	   // virtualPools.updateVirtualArrayAttributes(url, "#virtualPool form");
 	}
 	$('#vpool_virtualArrays').on('change', virtualArrayChanged);
 	virtualArrayChanged();
@@ -102,10 +102,12 @@ $(document).ready(function() {
   <div class="panel-group">
   <div class="storagePoolCriteria">
   #{collapse 'vpool.group.hardware', icon:'align-justify'}
-      #{field 'vpool.protocols'}
+       <input type="hidden" name="vpool.provisioningType" value="Thick">
+      #{field 'vpool.objectProtocols'}
         #{VirtualPools.locked locked:locked, field:field /}
-        #{Form.selectManyControlGroup field:field, options:protocolOptions, required:true /}
+        #{Form.selectManyControlGroup field:field, options:protocolOptions,  required:true /}
       #{/field}
+      
       #{field 'vpool.systemType'}
         #{VirtualPools.locked locked:locked, field:field /}
         #{Form.selectOneControlGroup field:field, options:systemTypeOptions, cssClass:'span4' /}

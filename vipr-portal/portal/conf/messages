@@ -1884,6 +1884,7 @@ vpool.poolAssignment.help=Choosing manual pool assignment allows selection of a 
 
 #Object Specefic
 vpool.maxRetention=Maximum Retention (Days)
+vpool.objectProtocols=Protocols
 
 # Block Specific
 vpool.minPaths=Minimum Paths

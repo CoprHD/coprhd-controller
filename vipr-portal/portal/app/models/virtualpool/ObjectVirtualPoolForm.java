@@ -15,6 +15,7 @@ import jobs.vipr.MatchingFileStoragePoolsCall;
 import jobs.vipr.MatchingObjectStoragePoolsCall;
 import play.Logger;
 import play.data.validation.Min;
+import play.data.validation.Required;
 import util.VirtualPoolUtils;
 import util.builders.ObjectVirtualPoolBuilder;
 import util.builders.ObjectVirtualPoolUpdateBuilder;
@@ -23,11 +24,15 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.vpool.ObjectVirtualPoolRestRep;
 import com.emc.vipr.client.core.ObjectVirtualPools;
 import com.emc.vipr.client.core.util.ResourceUtils;
+import com.google.common.collect.Sets;
 
 public class ObjectVirtualPoolForm extends VirtualPoolCommonForm<ObjectVirtualPoolRestRep> {
     @Min(0)
     public Integer maxRetention;
 
+    @Required
+    public Set<String> objectProtocols;
+    
     @Override
     public void load(ObjectVirtualPoolRestRep virtualPool) {
         doLoad(virtualPool);
@@ -39,6 +44,8 @@ public class ObjectVirtualPoolForm extends VirtualPoolCommonForm<ObjectVirtualPo
     protected void doLoad(ObjectVirtualPoolRestRep virtualPool) {
         loadCommon(virtualPool);
         maxRetention = virtualPool.getMaxRetention();
+        objectProtocols = Sets.newHashSet(virtualPool.getProtocols());
+        
     }
 
     @Override

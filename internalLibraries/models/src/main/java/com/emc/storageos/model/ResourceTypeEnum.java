@@ -13,6 +13,7 @@ public enum ResourceTypeEnum {
     /* type service */
     FILE("fileshare", "/file/filesystems"),
     VOLUME("volume", "/block/volumes"),
+    BUCKET("bucket", "/object/buckets"),
     PROJECT("project", "/projects"),
     TENANT("tenant", "/tenants"),
     VPOOL("vpool", "/"),

@@ -133,6 +133,9 @@ public enum OperationTypeEnum {
     ASSIGN_FILE_SNAPSHOT_TAG("TAG A FILESYSTEM SNAPSHOT", "", "tag a fileshare snapshot"),
     DELETE_FILE_SNAPSHOT_SHARE("FileSystemSnapshotShareDeleted", "FileSystemSnapshotShareDeleteFailed", "FileSystem snapshot share deleted"),
     RESTORE_FILE_SNAPSHOT("FileSystemRestored", "FileSystemRestoreFailed", "FileSystem restored"),
+    
+    CREATE_BUCKET("BucketCreated", "BucketCreateFailed", "Bucket created"),
+    DELETE_BUCKET("BucketDeleted", "BucketDeleteFailed", "Bucket deleted"),
 
     STORAGE_PORT_REGISTER("StoragePortRegistered", "", "Storage Port Registered"),
     STORAGE_PORT_DEREGISTER("StoragePortUnregistered", "", "Storage Port Unregistered"),

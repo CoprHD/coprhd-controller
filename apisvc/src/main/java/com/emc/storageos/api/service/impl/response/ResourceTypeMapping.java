@@ -25,6 +25,7 @@ public class ResourceTypeMapping {
     static {
         classMapping.put(FILE, FileShare.class);
         classMapping.put(VOLUME, Volume.class);
+        classMapping.put(BUCKET, Bucket.class);
         classMapping.put(PROJECT, Project.class);
         classMapping.put(TENANT, TenantOrg.class);
         // TODO: Conflict between VPOOL types

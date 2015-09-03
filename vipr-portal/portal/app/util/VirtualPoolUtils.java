@@ -238,6 +238,10 @@ public class VirtualPoolUtils {
         getViprClient().fileVpools().deactivate(id);
     }
 
+    public static void deactivateObject(URI id) {
+        getViprClient().objectVpools().deactivate(id);
+    }
+    
     public static QuotaInfo getBlockQuota(String id) {
         return getViprClient().blockVpools().getQuota(uri(id));
     }

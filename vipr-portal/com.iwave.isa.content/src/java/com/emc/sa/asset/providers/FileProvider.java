@@ -24,11 +24,11 @@ import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.sa.machinetags.MachineTagUtils;
 import com.emc.storageos.db.client.model.QuotaDirectory;
 import com.emc.storageos.model.file.CifsShareACLUpdateParams;
-import com.emc.storageos.model.file.FileDeleteTypeEnum;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.SmbShareResponse;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
+import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -450,8 +450,8 @@ public class FileProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getFileDeletionType(AssetOptionsContext ctx) {
         List<AssetOption> options = new ArrayList<>();
 
-        options.add(newAssetOption(FileDeleteTypeEnum.FULL.toString(), "file.deletion.type.full"));
-        options.add(newAssetOption(FileDeleteTypeEnum.VIPR_ONLY.toString(), "file.deletion.type.vipr_only"));
+        options.add(newAssetOption(FileControllerConstants.DeleteTypeEnum.FULL.toString(), "file.deletion.type.full"));
+        options.add(newAssetOption(FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString(), "file.deletion.type.vipr_only"));
 
         return options;
     }

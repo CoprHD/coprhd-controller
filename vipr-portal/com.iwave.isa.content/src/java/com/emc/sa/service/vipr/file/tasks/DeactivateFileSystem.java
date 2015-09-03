@@ -7,21 +7,21 @@ package com.emc.sa.service.vipr.file.tasks;
 import java.net.URI;
 
 import com.emc.sa.service.vipr.tasks.WaitForTask;
-import com.emc.storageos.model.file.FileDeleteTypeEnum;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileSystemDeleteParam;
+import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.vipr.client.Task;
 
 public class DeactivateFileSystem extends WaitForTask<FileShareRestRep> {
     private final URI fileSystemId;
     
-    private FileDeleteTypeEnum fileDeletionType;
+    private FileControllerConstants.DeleteTypeEnum fileDeletionType;
 
-    public DeactivateFileSystem(String fileSystemId, FileDeleteTypeEnum fileDeletionType) {
+    public DeactivateFileSystem(String fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
         this(uri(fileSystemId), fileDeletionType);
     }
 
-    public DeactivateFileSystem(URI fileSystemId, FileDeleteTypeEnum fileDeletionType) {
+    public DeactivateFileSystem(URI fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
         this.fileSystemId = fileSystemId;
         this.fileDeletionType = fileDeletionType;
         provideDetailArgs(fileSystemId, fileDeletionType.toString());

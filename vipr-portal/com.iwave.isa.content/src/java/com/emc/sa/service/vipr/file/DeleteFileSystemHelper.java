@@ -12,8 +12,8 @@ import java.util.List;
 
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
-import com.emc.storageos.model.file.FileDeleteTypeEnum;
 import com.emc.storageos.model.file.FileShareRestRep;
+import com.emc.storageos.volumecontroller.FileControllerConstants;
 
 public class DeleteFileSystemHelper {
     @Param(FILESYSTEMS)
@@ -22,7 +22,7 @@ public class DeleteFileSystemHelper {
     private List<FileShareRestRep> fileSystems;
     
     @Param(DELETION_TYPE)
-    protected FileDeleteTypeEnum fileDeletionType;
+    protected FileControllerConstants.DeleteTypeEnum fileDeletionType;
 
     public void precheck() {
         fileSystems = FileStorageUtils.getFileSystems(ViPRExecutionTask.uris(fileSystemIds));

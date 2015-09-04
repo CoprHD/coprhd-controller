@@ -206,8 +206,10 @@ public class FileStorageScheduler {
 					CustomConfigConstants.NAS_DYNAMIC_PERFORMANCE_PLACEMENT_ENABLED, "systemType", null);
 			
 			if(Boolean.valueOf(dynamicPerformanceEnabled)) {
+				_log.info("Considering dynamic load for placement procedure");
 				sortVNASListOnDyanamicLoad(vNASList);
 			} else {
+				_log.info("Considering static load for placement procedure");
 				sortVNASListOnStaticLoad(vNASList);
 			}
 			

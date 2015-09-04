@@ -534,14 +534,12 @@ public class VcenterDataCenterService extends TaskResourceService {
         ArgValidator.checkEntity(vcenter, dataCenter.getVcenter(), isIdEmbeddedInURL(dataCenter.getVcenter()));
 
         Set<URI> vcenterTenants = _permissionsHelper.getUsageURIsFromAcls(vcenter.getAcls());
-        if (!NullColumnValueGetter.isNullURI(updateParam.getTenant())) {
-            if (CollectionUtils.isEmpty(vcenterTenants) ||
-                    !vcenterTenants.contains(updateParam.getTenant())) {
-                //Since, the given tenant in the update param is not a null URI
-                //and it is not sharing the vCenter, return the error.
-                TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, updateParam.getTenant());
-                throw APIException.badRequests.tenantDoesNotShareTheVcenter(tenant.getLabel(), vcenter.getLabel());
-            }
+        if (!NullColumnValueGetter.isNullURI(updateParam.getTenant()) &&
+                (CollectionUtils.isEmpty(vcenterTenants) || !vcenterTenants.contains(updateParam.getTenant()))) {
+            //Since, the given tenant in the update param is not a null URI
+            //and it is not sharing the vCenter, return the error.
+            TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, updateParam.getTenant());
+            throw APIException.badRequests.tenantDoesNotShareTheVcenter(tenant.getLabel(), vcenter.getLabel());
         }
     }
 

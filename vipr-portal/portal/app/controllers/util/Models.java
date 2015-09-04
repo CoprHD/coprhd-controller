@@ -204,18 +204,7 @@ public class Models extends Controller {
     public static String currentAdminTenantForVcenter() {
         String sessionTenant = session.get(TENANT_ID);
         if (sessionTenant != null && canSelectTenantForVcenters(sessionTenant)) {
-            try{
-                if (!(TenantUtils.NO_TENANT_SELECTOR.equalsIgnoreCase(sessionTenant) ||
-                        TenantUtils.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(sessionTenant))) {
-                    if (getViprClient().tenants().get(uri(sessionTenant)).getInactive()) {
-                        Models.resetAdminTenantId();
-                        sessionTenant = Models.currentAdminTenantForVcenter();
-                    }
-                }
-            } catch (ServiceErrorException tenantNotFound) {
-                Models.resetAdminTenantId();
-                sessionTenant = Models.currentAdminTenantForVcenter();
-            }
+            sessionTenant = validateSessionTenant(sessionTenant);
             return sessionTenant;
         } else {
             session.remove(TENANT_ID);
@@ -231,6 +220,21 @@ public class Models extends Controller {
             // fallback to the home tenant if nothing else matches
             return info.getTenant();
         }
+    }
+
+    private static String validateSessionTenant(String sessionTenant) {
+        try{
+            if (!(TenantUtils.getNoTenantSelector().equalsIgnoreCase(sessionTenant) ||
+                    TenantUtils.getTenantSelectorForUnassigned().equalsIgnoreCase(sessionTenant)) &&
+                    getViprClient().tenants().get(uri(sessionTenant)).getInactive()) {
+                Models.resetAdminTenantId();
+                sessionTenant = Models.currentAdminTenantForVcenter();
+            }
+        } catch (ServiceErrorException tenantNotFound) {
+            Models.resetAdminTenantId();
+            sessionTenant = Models.currentAdminTenantForVcenter();
+        }
+        return sessionTenant;
     }
 
     @Util

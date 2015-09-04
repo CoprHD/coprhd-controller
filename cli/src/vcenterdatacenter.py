@@ -280,12 +280,12 @@ class VcenterDatacenter(object):
         '''
         try:
             check = self.vcenterdatacenter_show(label, vcenter, tenantname)
-            if(check):
+            if check:
                 raise SOSError(SOSError.NOT_FOUND_ERR,
                                "vcenterdatacenter " + label + ": found")
 
         except SOSError as e:
-            if(e.err_code == SOSError.NOT_FOUND_ERR):
+            if e.err_code == SOSError.NOT_FOUND_ERR:
 
                 uri = self.vcenterdatacenter_query(label, vcenter, VcenterDatacenter.DATACENTERS_FROM_ALL_TENANTS)
 
@@ -310,7 +310,7 @@ class VcenterDatacenter(object):
             else:
                 raise e
 
-        if(not check):
+        if not check:
             raise SOSError(SOSError.ENTRY_ALREADY_EXISTS_ERR,
                            "vcenterdatacenter with name " + label +
                            " dost not exist")

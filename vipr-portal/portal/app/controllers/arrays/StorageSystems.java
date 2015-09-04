@@ -167,6 +167,9 @@ public class StorageSystems extends ViprResourceController {
             if (storageArray.type.equals(SCALEIO)) {
             	renderArgs.put("storageArrayTypeList", Arrays.asList(StorageSystemTypes.SMIS_OPTIONS));
             }
+            if (storageArray.type.equals("xtremio")) {
+            	renderArgs.put("storageArrayTypeList", Arrays.asList(StorageSystemTypes.SMIS_OPTIONS));
+            }
             if (storageArray.unregistered) {
                 flash.put("warning", MessagesUtils.get(NOT_REGISTERED, storageArray.name));
             }

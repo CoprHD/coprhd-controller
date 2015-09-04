@@ -343,10 +343,17 @@
         <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory"/>
         <property name="xtremioExportOperationHelper" ref="xtremioExportOperationHelper"/>
         <property name="nameGenerator" ref="defaultNameGenerator"/>
+        <property name="snapshotOperations" ref="xtremioSnapshotOperations"/>
     </bean>
     
     <bean id="xtremioExportOperationHelper" class="com.emc.storageos.volumecontroller.impl.xtremio.XtremIOExportOperations">
         <property name="dbClient" ref="dbclient"/>
+        <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory"/>
+    </bean>
+    
+    <bean id="xtremioSnapshotOperations" class="com.emc.storageos.volumecontroller.impl.xtremio.XtremIOSnapshotOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
         <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory"/>
     </bean>
 

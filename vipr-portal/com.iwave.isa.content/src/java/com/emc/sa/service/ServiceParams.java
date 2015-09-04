@@ -40,6 +40,7 @@ public interface ServiceParams {
     public String COMPUTE_VIRTUAL_POOL = "computeVirtualPool";
     public String NAME = "name";
     public String TYPE = "type";
+    public String STORAGE_TYPE = "storageType";
     public String VOLUMES = "volumes";
     public String DELETION_TYPE = "deletionType";
     public String STORAGE_SYSTEMS = "storageSystems";
@@ -58,6 +59,7 @@ public interface ServiceParams {
     public String CONSISTENCY_GROUP = "consistencyGroup";
     public String HLU = "hlu";
     public String COPIES = "copies";
+    public String READ_ONLY = "readOnly";
 
     public String TARGET_VIRTUAL_POOL = "targetVirtualPool";
     public String TARGET_VIRTUAL_ARRAY = "targetVirtualArray";

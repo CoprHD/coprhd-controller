@@ -125,6 +125,11 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
         Boolean isSyncActive = (null != syncActive) ? Boolean.parseBoolean(syncActive) : false;
         snapShot.setIsSyncActive(isSyncActive);
 
+        String readOnly = PropertySetterUtil.extractValueFromStringSet(
+                SupportedVolumeInformation.IS_READ_ONLY.toString(), unManagedVolume.getVolumeInformation());
+        Boolean isReadOnly = (null != readOnly) ? Boolean.parseBoolean(readOnly) : false;
+        snapShot.setIsReadOnly(isReadOnly);
+
         String settingsInstance = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.SETTINGS_INSTANCE.toString(), unManagedVolume.getVolumeInformation());
         snapShot.setSettingsInstance(settingsInstance);

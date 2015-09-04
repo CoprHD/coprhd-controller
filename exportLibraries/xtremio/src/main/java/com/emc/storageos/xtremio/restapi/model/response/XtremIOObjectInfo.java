@@ -1,16 +1,16 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.xtremio.restapi.model.response;
 
 import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.annotate.JsonRootName;
 
+import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value = "xtremio_port_info")
-public class XtremIOPortInfo {
+public class XtremIOObjectInfo {
+
     @SerializedName("name")
     @JsonProperty(value = "name")
     private String name;
@@ -33,6 +33,11 @@ public class XtremIOPortInfo {
 
     public void setHref(String href) {
         this.href = href;
+    }
+
+    @Override
+    public String toString() {
+        return new Gson().toJson(this).toString();
     }
 
 }

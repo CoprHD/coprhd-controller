@@ -191,7 +191,6 @@ public interface VPlexController extends Controller {
      * @param vplexURI The URI of the VPLEX storage system.
      * @param snapshotURI The URI of the backend native block snapshot.
      * @param opId The unique task identifier.
-     * 
      * @throws InternalException When an error occurs configuring the snapshot
      *             restore workflow.
      */

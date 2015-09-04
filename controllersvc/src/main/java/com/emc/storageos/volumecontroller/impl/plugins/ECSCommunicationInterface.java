@@ -104,6 +104,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             	protocols.add("S3");
             	protocols.add("Swift");
             	protocols.add("Atmos");
+            	storagePool.setProtocols(protocols);
             	storagePool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THIN_AND_THICK.toString());
             	storagePool.setFreeCapacity((1024L*1024L*1024L)); // 1TB
             	storagePool.setTotalCapacity((1024L*1024L*1024L));  // 1TB

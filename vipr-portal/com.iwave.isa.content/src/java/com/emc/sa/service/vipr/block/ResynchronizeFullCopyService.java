@@ -17,7 +17,7 @@ import com.emc.sa.service.vipr.ViPRService;
 @Service("ResynchronizeFullCopy")
 public class ResynchronizeFullCopyService extends ViPRService {
 
-    @Param(VOLUME)
+    @Param(value = VOLUME, required = false)
     protected URI consistencyGroupId;
 
     @Param(COPIES)

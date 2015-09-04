@@ -16,7 +16,7 @@ import com.emc.sa.service.vipr.ViPRService;
 @Service("RestoreFromFullCopy")
 public class RestoreFromFullCopyService extends ViPRService {
 
-    @Param(VOLUME)
+    @Param(value = VOLUME, required = false)
     protected URI consistencyGroupId;
 
     @Param(COPIES)

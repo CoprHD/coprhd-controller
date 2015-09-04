@@ -543,6 +543,15 @@ public class VNXFileArgsCreator extends ArgsCreator {
         return iStream;
     }
 
+    /**
+     * create Mover stats query and returns its stream after marshalling.
+     * 
+     * @param argument
+     * @param keyMap
+     * @param index
+     * @return
+     * @throws VNXFilePluginException
+     */
     public InputStream fetchMoverStats(final Argument argument,
             final Map<String, Object> keyMap, int index)
             throws VNXFilePluginException {
@@ -573,6 +582,15 @@ public class VNXFileArgsCreator extends ArgsCreator {
         return iStream;
     }
 
+    /**
+     * create Mover interface info query and returns its stream after marshalling.
+     * 
+     * @param argument
+     * @param keyMap
+     * @param index
+     * @return
+     * @throws VNXFilePluginException
+     */
     public InputStream fetchMoverInterfacesInfo(final Argument argument,
             final Map<String, Object> keyMap,
             int index) throws VNXFilePluginException {

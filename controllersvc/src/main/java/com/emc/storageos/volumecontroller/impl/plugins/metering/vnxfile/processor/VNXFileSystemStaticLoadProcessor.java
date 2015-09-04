@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
 
 import java.net.URI;
@@ -34,6 +38,11 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileProcessor;
 
+/**
+ * VNXFileSystemStaticLoadProcessor is responsible to process the result received from XML API
+ * Server during VNX File System Static load stream processing.
+ * 
+ */
 public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
     private final Logger _logger = LoggerFactory.getLogger(VNXFileSystemStaticLoadProcessor.class);
 
@@ -192,7 +201,7 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
     }
 
     /**
-     * get the db metrics for each data mover or VDM
+     * get the DB metrics for each data mover or VDM
      * 
      * @param fsList
      * @param fsCapList
@@ -202,7 +211,7 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
     private void prepareDBMetrics(final List<String> fsList,
             final Map<String, Long> fsCapList,
             final Map<String, Map<String, Long>> snapCapFsMap, StringMap dbMetrics) {
-        // get the demetrics
+        // get the DB metrics
         long totalFSCap = 0; // in KB
         long totalSnapCap = 0;
         long fsCount = 0;
@@ -225,7 +234,7 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
                 totalFSCap = totalFSCap + fsCapList.get(fsId);
             }
         }
-        // no of fs on given mover
+        // no. of fs on given mover
         fsCount = fsCapList.size();
 
         // set the values in dbMetrics

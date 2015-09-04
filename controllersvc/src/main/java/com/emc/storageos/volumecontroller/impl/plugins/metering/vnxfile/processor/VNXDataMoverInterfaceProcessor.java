@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
 
 import java.util.ArrayList;
@@ -22,6 +26,11 @@ import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.plugins.metering.vnxfile.VNXFileConstants;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileProcessor;
 
+/**
+ * VNXDataMoverInterfaceProcessor is responsible to process the result received from XML API
+ * Server during VNX Data Mover Interface stream processing.
+ * 
+ */
 public class VNXDataMoverInterfaceProcessor extends VNXFileProcessor {
     private final Logger _logger = LoggerFactory.getLogger(VNXDataMoverInterfaceProcessor.class);
 
@@ -96,8 +105,13 @@ public class VNXDataMoverInterfaceProcessor extends VNXFileProcessor {
 
     }
 
-    // process the results
-    void processNetworkDevice(LogicalNetworkDevice logicalNetworkDevice,
+    /**
+     * Process the Network device which are received from XMLAPI server.
+     * 
+     * @param logicalNetworkDevice
+     * @param interfacePortMap
+     */
+    private void processNetworkDevice(LogicalNetworkDevice logicalNetworkDevice,
             Map<String, List<String>> interfacePortMap) {
 
         // get logical interfaces
@@ -113,7 +127,6 @@ public class VNXDataMoverInterfaceProcessor extends VNXFileProcessor {
                 }
 
                 // if virtual device for logicalNetwork device
-
                 if (logicalNetworkDevice.getType() != LogicalDeviceType.PHYSICAL_ETHERNET) {
                     // virtual device list
                     NameList nameList = logicalNetworkDevice.getVirtualDeviceData().getDevices();
@@ -137,6 +150,12 @@ public class VNXDataMoverInterfaceProcessor extends VNXFileProcessor {
         }
     }
 
+    /**
+     * Process the Port speed which are received from XMLAPI server.
+     * 
+     * @param logicalNetworkDevice
+     * @param portSpeedMap
+     */
     void processPortSpeed(LogicalNetworkDevice logicalNetworkDevice, Map<String, String> portSpeedMap) {
         List<String> logicalNetworkList = logicalNetworkDevice.getInterfaces();
         if (logicalNetworkList != null && !logicalNetworkList.isEmpty()) {
@@ -152,6 +171,5 @@ public class VNXDataMoverInterfaceProcessor extends VNXFileProcessor {
             _logger.info(
                     " logical device port{} and speed : {}", logicalNetworkDevice.getName(), deviceSpeed);
         }
-
     }
 }

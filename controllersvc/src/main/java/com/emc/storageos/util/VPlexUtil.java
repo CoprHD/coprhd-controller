@@ -984,6 +984,7 @@ public class VPlexUtil {
      * 
      * @param volumes The list of volumes to verify
      * @param cg The consistency group
+     * @return true or false
      */
     public static boolean verifyVolumesInCG(List<Volume> volumes, BlockConsistencyGroup cg, DbClient dbClient) {
         List<Volume> cgVolumes = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, dbClient, null);
@@ -995,11 +996,12 @@ public class VPlexUtil {
      * consistency group volumes.
      * 
      * @param volumes The list of volumes to verify
-     * @param cg The consistency group
+     * @param cgVolumes All the volumes in the consistency group
+     * @return true or false
      */
     public static boolean verifyVolumesInCG(List<Volume> volumes, List<Volume> cgVolumes, DbClient dbClient) {
         boolean result = true;
-        //Make sure all volumes from the same backend storage systems are selected
+        //sort all the volumes in the CG based on the backend volume's storage system.
         Map<String, List<String>> cgBackendSystemToVolumesMap = new HashMap<String, List<String>>();
         for (Volume cgVolume : cgVolumes) {
             Volume srcVolume = VPlexUtil.getVPLEXBackendVolume(cgVolume, true, dbClient);
@@ -1010,7 +1012,7 @@ public class VPlexUtil {
             }
             vols.add(cgVolume.getId().toString());
         }
-        // sort the passed volumes.
+        // sort the passed volumes, and make sure the volumes are in the CG.
         Map<String, List<String>> backendSystemToVolumesMap = new HashMap<String, List<String>>();
         for (Volume volume : volumes) {
             Volume srcVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
@@ -1031,6 +1033,7 @@ public class VPlexUtil {
                 return false;
             }
         }
+        //Make sure all volumes from the same backend storage systems are selected
         for (Entry<String, List<String>> entry : backendSystemToVolumesMap.entrySet()) {
             String systemId = entry.getKey();
             List<String> selectedVols = entry.getValue();

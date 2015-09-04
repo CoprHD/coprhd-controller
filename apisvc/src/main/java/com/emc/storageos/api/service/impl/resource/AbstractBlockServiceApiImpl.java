@@ -1476,6 +1476,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
                     .invalidParameterConsistencyGroupCannotAddProtectedVolume(volumeURI);
         }
 
+        // Verify that the volume is on the storage system for
+        // the consistency group.
         verifySystemForVolumeToBeAddedToCG(volume, cg, cgStorageSystem);
     }
 

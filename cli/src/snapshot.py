@@ -436,7 +436,7 @@ class Snapshot(object):
         )
 
     def snapshot_resync_uri(self, otype, typename, resourceUri, suri, sync):
-        ''' Makes REST API call to restore Snapshot under a shares or volumes
+        ''' Makes REST API call to resync Snapshot under a shares or volumes
             parameters:
                 otype    : either file or block or
                 object type should be provided
@@ -445,7 +445,7 @@ class Snapshot(object):
                 resourceUri: base resource uri
 
             returns:
-                restore the snapshot
+                
         '''
         if(resourceUri.find("BlockConsistencyGroup") > 0):
             (s, h) = common.service_json_request(

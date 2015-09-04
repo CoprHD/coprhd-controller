@@ -300,12 +300,10 @@ public class BlockStorageScheduler {
         // Make Net to Initiators Map and URI to Network map.
         Map<URI, List<Initiator>> net2InitiatorsMap = new HashMap<URI, List<Initiator>>();
         Map<URI, NetworkLite> networkMap = new HashMap<URI, NetworkLite>();
-        Collection<Initiator> allInitiators = new HashSet<Initiator>();
         for (NetworkLite network : initiatorsByNetwork.keySet()) {
             if (!networkMap.containsKey(network.getId())) {
                 networkMap.put(network.getId(), network);
                 net2InitiatorsMap.put(network.getId(), initiatorsByNetwork.get(network));
-                allInitiators.addAll(initiatorsByNetwork.get(network));
             }
         }
 
@@ -675,12 +673,13 @@ public class BlockStorageScheduler {
     private void addAssignmentsToZoningMap(Map<Initiator, List<StoragePort>> assignments, StringSetMap newZoningMap) {
         for (Initiator initiator : assignments.keySet()) {
             String key = initiator.getId().toString();
-            if (assignments.get(initiator) != null && !assignments.get(initiator).isEmpty()) {
+            List<StoragePort> ports = assignments.get(initiator);
+            if (ports != null && !ports.isEmpty()) {
                 if (newZoningMap.get(key) == null) {
                     newZoningMap.put(key, new StringSet());
                 }
-                if (assignments.get(initiator) != null) {
-                    for (StoragePort port : assignments.get(initiator)) {
+                if (ports != null) {
+                    for (StoragePort port : ports) {
                         newZoningMap.get(key).add(port.getId().toString());
                     }
                 }

@@ -1288,7 +1288,7 @@ public class VPlexBackendManager {
      * @param placementDescriptor [IN/OUT] - The output of calling VPlexBackendMaskingOrchestrator.suggestExportMasksForPlacement
      * @param invalidMasks [IN] - List of Masks that match the initiator list, but do not meet VPlex reuse criteria
      * @param volumes [IN] - List of volumes to map to the new ExportMasks
-     * @param stepId TODO
+     * @param stepId the workflow step id used to find the workflow to locate the zoning map stored in ZK
      * @throws VPlexApiException
      */
     private void createVPlexBackendExportMasksForVolumes(StorageSystem vplex, StorageSystem array, URI varrayURI,

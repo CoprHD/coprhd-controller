@@ -2124,7 +2124,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param exportMasksToUpdateOnDeviceWithStoragePorts Out Param to track exportMasks that needs to be updated with the storageports
      * @param inits List of initiators that needs to be added
      * @param sharedVplexExportMask ExportMask which represents multiple host.
-     * @param opId TODO
+     * @param opId the workflow step id used to find the workflow to locate the zoning map stored in ZK
      * @throws Exception
      */
     private void setupExistingExportMaskWithNewHost(Map<URI, Integer> blockObjectMap,

@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.networkcontroller.impl;
 
+import java.io.IOException;
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.ArrayList;
@@ -18,16 +19,15 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
-import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
-import com.emc.storageos.customconfigcontroller.DataSourceFactory;
-import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
-
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.DataSourceFactory;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.DbModelClient;
 import com.emc.storageos.db.client.URIUtil;
@@ -46,7 +46,6 @@ import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
-import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -92,7 +91,6 @@ import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.collect.Collections2;
-import com.rsa.cryptoj.o.in;
 
 public class NetworkDeviceController implements NetworkController {
 
@@ -2058,7 +2056,7 @@ public class NetworkDeviceController implements NetworkController {
      * 
      * @param network the network of the initiators
      * @param map an OUT parameter where ZoneInfoMap is stored
-     * @param initiators the initiators the initiators for which the zones will be read
+     * @param initiators the initiators for which the zones will be read
      * @param initiatorPortsMap the storage ports of interest in the networks.
      * @return the network system used to read the zones
      */

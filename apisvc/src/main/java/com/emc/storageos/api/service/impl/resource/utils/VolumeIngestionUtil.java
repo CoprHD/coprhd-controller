@@ -665,10 +665,10 @@ public class VolumeIngestionUtil {
 
     
     /**
-     * Returns true if the UnManagedVolume represents a VPLEX virtual volume.
+     * Returns true if the UnManagedVolume represents a VPLEX backend volume.
      * 
      * @param volume the UnManagedVolume in question
-     * @return true if the volume is a VPLEX virtual volume
+     * @return true if the volume is a VPLEX backend volume
      */
     public static boolean isVplexBackendVolume(UnManagedVolume volume) {
         if (null == volume.getVolumeCharacterstics()) {

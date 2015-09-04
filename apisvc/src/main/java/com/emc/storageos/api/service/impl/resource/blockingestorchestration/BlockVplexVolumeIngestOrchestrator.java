@@ -262,9 +262,12 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             _logger.info("{} native mirror(s) are present, validating vpool", mirrorCount);
             if (VirtualPool.vPoolSpecifiesMirrors(vpool, _dbClient)) {
                 if (mirrorCount > vpool.getMaxNativeContinuousCopies()) {
-                    String reason = "volume has more continuous copies (" + mirrorCount + ") than vpool allows";
-                    _logger.error(reason);
-                    throw IngestionException.exceptions.validationException(reason);
+                    StringBuilder reason = new StringBuilder("volume has more continuous copies (");
+                    reason.append(mirrorCount).append(" than vpool allows. mirrors found: ");
+                    reason.append(Joiner.on(", ").join(context.getUnmanagedMirrors().keySet()));
+                    String message = reason.toString();
+                    _logger.error(message);
+                    throw IngestionException.exceptions.validationException(message);
                 }
             } else {
                 String reason = "vpool does not allow continuous copies, but volume has " + mirrorCount + " mirror(s)";

@@ -711,7 +711,11 @@ public class VplexBackendIngestionContext {
                         unmanagedMirrors.put(associatedVolumeMirror, slotToDeviceMap.get("1").getPath());
                         
                         // 3. update the source volume with the target mirror information
-                        StringSet set = new StringSet();
+                        StringSet set = extractValuesFromStringSet(SupportedVolumeInformation.MIRRORS.toString(), 
+                                associatedVolumeSource.getVolumeInformation());
+                        if (null == set) {
+                            set = new StringSet();
+                        }
                         set.add(associatedVolumeMirror.getNativeGuid());
                         _logger.info("adding mirror set {} to source unmanaged volume {}", 
                                 set, associatedVolumeSource);

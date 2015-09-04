@@ -554,18 +554,23 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 for (String name : allVirtualVolumes.keySet()) {
                     timer = System.currentTimeMillis();
                     s_logger.info("Looking at Virtual Volume {}", name);
-                    
+
+                    // kill switch (system setting) can be used to stop
+                    // a long-running out control discovery session
                     String discoveryKillSwitch = ControllerUtils
-                            .getPropertyValueFromCoordinator(_coordinator, VplexBackendIngestionContext.DISCOVERY_KILL_SWITCH);
-                    // TODO just for testing to speed up discovery some
+                            .getPropertyValueFromCoordinator(
+                                    _coordinator, VplexBackendIngestionContext.DISCOVERY_KILL_SWITCH);
                     if ("stop".equals(discoveryKillSwitch)) {
-                        s_logger.warn("discovery kill switch was set to stop, so discontinuing unmanaged volume discovery");
+                        s_logger.warn("discovery kill switch was set to stop, "
+                                + "so discontinuing unmanaged volume discovery");
                         return;
                     }
                     
+                    // filters out volumes names that don't match the
+                    // discovery filter system setting
                     String discoveryFilter = ControllerUtils
-                            .getPropertyValueFromCoordinator(_coordinator, VplexBackendIngestionContext.DISCOVERY_FILTER);
-                    // TODO just for testing to speed up discovery some
+                            .getPropertyValueFromCoordinator(
+                                    _coordinator, VplexBackendIngestionContext.DISCOVERY_FILTER);
                     if ((discoveryFilter != null && !discoveryFilter.isEmpty()) 
                             && !(name.matches(discoveryFilter))) {
                         s_logger.warn("name {} doesn't match discovery filter {}", name, discoveryFilter);
@@ -1861,9 +1866,12 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             }
         }
     }
-    
+
+    /**
+     * Private inner class to track and report on discovery performance.
+     */
     private class UnmanagedDiscoveryPerformanceTracker {
-        
+
         public String discoveryMode = "Unknown";
         public Map<String, Long> volumeTimeResults = new TreeMap<String, Long>();
         public long startTime = new Date().getTime();
@@ -1873,7 +1881,12 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         public long unmanagedVolumeProcessing = 0;
         public int totalVolumesFetched = 0;
         public int totalVolumesDiscovered = 0;
-        
+
+        /**
+         * Returns a String containing details of the VPLEX UnManagedVolume discovery session.
+         * 
+         * @return a String that is text report on discovery performance
+         */
         public String getPerformanceReport() {
             StringBuilder report = new StringBuilder("\n\nVolume Discovery Performance Report\n");
             report.append("\tdiscovery mode: ").append(discoveryMode).append("\n");
@@ -1891,7 +1904,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             report.append("\tstorage view data fetch: ").append(storageViewFetch).append("ms\n");
             report.append("\tconsistency group data fetch: ").append(consistencyGroupFetch).append("ms\n");
             report.append("\tunmanaged volume processing time: ").append(unmanagedVolumeProcessing).append("ms\n");
-            
+
             volumeTimeResults = sortByValue(volumeTimeResults);
             report.append("\nTop 20 Longest-Running Volumes...\n");
             Object[] keys = volumeTimeResults.keySet().toArray();
@@ -1901,10 +1914,17 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     report.append("\t").append(key).append(": ").append(volumeTimeResults.get(key)).append("ms\n");
                 }
             }
-            
+
             return report.toString();
         }
-        
+
+        /**
+         * Returns an estimate of the time remaining for discovery based on the total
+         * number of volumes to be discovered and the average single volume discovery 
+         * time to the point this method is called.
+         * 
+         * @return an estimate of time remaining for discovery
+         */
         public String getDiscoveryTimeRemaining() {
             try {
                 if (totalVolumesDiscovered != 0) {
@@ -1914,36 +1934,35 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     if (timeRemaining < 1) {
                         return "less than a minute";
                     }
-                    return "about " + timeRemaining + " minutes"; 
+                    return "about " + timeRemaining + " minutes";
                 }
             } catch (Exception ex) {
                 s_logger.warn("couldn't calculate discovery remaining time estimate: ", ex.getLocalizedMessage());
             }
-            
+
             return "Unknown";
         }
-        
-        // NOTE: this method is totally ripped from this stackoverflow question:
-        // http://stackoverflow.com/questions/109383/how-to-sort-a-mapkey-value-on-the-values-in-java
-        // answer by Carter Page (http://stackoverflow.com/users/309596/carter-page)
-        public <K, V extends Comparable<? super V>> Map<K, V> sortByValue( Map<K, V> map )
-        {
-            List<Map.Entry<K, V>> list =
-                new LinkedList<Map.Entry<K, V>>( map.entrySet() );
-            Collections.sort( list, new Comparator<Map.Entry<K, V>>()
-            {
-                public int compare( Map.Entry<K, V> o1, Map.Entry<K, V> o2 )
-                {
-                    return (o1.getValue()).compareTo( o2.getValue() );
+
+        /**
+         * Sorts the given map by values rather than keys.
+         * 
+         * @param map the Map to sort
+         * @return the Map returned sorted by values
+         */
+        public <K, V extends Comparable<? super V>> Map<K, V> sortByValue(Map<K, V> map) {
+            List<Map.Entry<K, V>> listOfEntries = new LinkedList<Map.Entry<K, V>>(map.entrySet());
+            Collections.sort(listOfEntries, new Comparator<Map.Entry<K, V>>() {
+                public int compare(Map.Entry<K, V> o1, Map.Entry<K, V> o2) {
+                    return (o1.getValue()).compareTo(o2.getValue());
                 }
-            } );
-    
-            Map<K, V> result = new LinkedHashMap<K, V>();
-            for (Map.Entry<K, V> entry : list)
-            {
-                result.put( entry.getKey(), entry.getValue() );
+            });
+
+            Map<K, V> sortedMap = new LinkedHashMap<K, V>();
+            for (Map.Entry<K, V> entry : listOfEntries) {
+                sortedMap.put(entry.getKey(), entry.getValue());
             }
-            return result;
+            
+            return sortedMap;
         }
     }
 }

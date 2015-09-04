@@ -5,6 +5,7 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
+import java.util.Arrays;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -112,6 +113,11 @@ public class BlockFullCopyService extends TaskResourceService {
     public TaskList activateFullCopy(@PathParam("id") URI fullCopyURI)
             throws InternalException {
         Volume fullCopyVolume = queryFullCopy(fullCopyURI);
+        
+        // Make sure that we don't have some pending
+        // operation against the volume
+        checkForPendingTasks(Arrays.asList(fullCopyVolume.getTenant().getURI()), Arrays.asList(fullCopyVolume));
+
         return getFullCopyManager().activateFullCopy(
                 fullCopyVolume.getAssociatedSourceVolume(), fullCopyURI);
     }
@@ -164,6 +170,11 @@ public class BlockFullCopyService extends TaskResourceService {
     public TaskList restoreFullCopy(@PathParam("id") URI fullCopyURI)
             throws InternalException {
         Volume fullCopyVolume = queryFullCopy(fullCopyURI);
+        
+        // Make sure that we don't have some pending
+        // operation against the volume
+        checkForPendingTasks(Arrays.asList(fullCopyVolume.getTenant().getURI()), Arrays.asList(fullCopyVolume));
+        
         return getFullCopyManager().restoreFullCopy(
                 fullCopyVolume.getAssociatedSourceVolume(), fullCopyURI);
     }
@@ -190,6 +201,11 @@ public class BlockFullCopyService extends TaskResourceService {
     public TaskList resynchronizeFullCopy(@PathParam("id") URI fullCopyURI)
             throws InternalException {
         Volume fullCopyVolume = queryFullCopy(fullCopyURI);
+        
+        // Make sure that we don't have some pending
+        // operation against the volume
+        checkForPendingTasks(Arrays.asList(fullCopyVolume.getTenant().getURI()), Arrays.asList(fullCopyVolume));
+        
         return getFullCopyManager().resynchronizeFullCopy(
                 fullCopyVolume.getAssociatedSourceVolume(), fullCopyURI);
     }

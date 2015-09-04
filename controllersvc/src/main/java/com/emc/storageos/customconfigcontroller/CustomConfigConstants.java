@@ -16,6 +16,8 @@ public interface CustomConfigConstants {
     public String HOST_TYPE_SCOPE = "hostType";
     /** The config_name for zone name */
     public String ZONE_MASK_NAME = "SanZoneName";
+    /** The config_name for skipping zoning */
+    public String ZONE_ADD_VOLUME= "SanZoneAddVolumeCheckZoning";
 
     public String HDS_STORAGE_PORT_NUMBER = "hdsPortNumber";
     public String AUTO_TIERING_POLICY_NAME = "auto_tiering_policy_name";

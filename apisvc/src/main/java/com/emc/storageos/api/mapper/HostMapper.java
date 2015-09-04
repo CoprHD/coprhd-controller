@@ -169,7 +169,7 @@ public class HostMapper {
         to.setPortNumber(from.getPortNumber());
         to.setIpAddress(from.getIpAddress());
         to.setUseSsl(from.getUseSSL());
-        to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant()));
+        to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.findVcenterTenant()));
         to.setOsVersion(from.getOsVersion());
         return to;
     }

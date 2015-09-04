@@ -1252,10 +1252,10 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId) {
-        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, snapshot.getStorageController());
-        BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
-        controller.restoreVolume(storageSystem.getId(), parentVolume.getPool(),
-                parentVolume.getId(), snapshot.getId(), Boolean.TRUE, taskId);
+        BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
+                BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);                     
+        controller.restoreVolume(snapshot.getStorageController(), parentVolume.getPool(), 
+                parentVolume.getId(), snapshot.getId(), taskId);
     }
 
     /**

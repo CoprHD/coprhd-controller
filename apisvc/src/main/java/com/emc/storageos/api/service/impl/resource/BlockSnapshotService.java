@@ -201,10 +201,12 @@ public class BlockSnapshotService extends TaskResourceService {
             snapshots.add(snap);
         }
 
-        // Check that there are no pending tasks for these snapshots.
-        Volume volume = _permissionsHelper.getObjectById(snap.getParent(), Volume.class);
-        deleteCheckForPendingTasks(Arrays.asList(volume.getTenant().getURI()), snapshots);
-
+        // Get the block service API implementation for the snapshot parent volume.
+        Volume parentVolume = _permissionsHelper.getObjectById(snap.getParent(), Volume.class);
+        
+        // Check that there are no pending tasks for these snapshots.        
+        checkForPendingTasks(Arrays.asList(parentVolume.getTenant().getURI()), snapshots);
+        
         for (BlockSnapshot snapshot : snapshots) {
             Operation snapOp = _dbClient.createTaskOpStatus(BlockSnapshot.class, snapshot.getId(), task,
                     ResourceOperationTypeEnum.DELETE_VOLUME_SNAPSHOT);
@@ -215,7 +217,7 @@ public class BlockSnapshotService extends TaskResourceService {
         // snapshot is the source side backend volume, which will have the same
         // vpool as the VPLEX volume and therefore, the correct implementation
         // should be returned.
-        BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(volume, _dbClient);
+        BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(parentVolume, _dbClient);
 
         blockServiceApiImpl.deleteSnapshot(snap, task);
 
@@ -267,11 +269,16 @@ public class BlockSnapshotService extends TaskResourceService {
         // Validate an get the snapshot to be restored.
         ArgValidator.checkFieldUriType(id, BlockSnapshot.class, "id");
         BlockSnapshot snapshot = (BlockSnapshot) queryResource(id);
-
+        
         // Get the block service API implementation for the snapshot parent volume.
-        Volume volume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
+        Volume parentVolume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
+        
+        // Make sure that we don't have some pending
+        // operation against the parent volume      
+        checkForPendingTasks(Arrays.asList(parentVolume.getTenant().getURI()), Arrays.asList(parentVolume));
+
         // Get the storage system for the volume
-        StorageSystem storage = _permissionsHelper.getObjectById(volume.getStorageController(), StorageSystem.class);
+        StorageSystem storage = _permissionsHelper.getObjectById(parentVolume.getStorageController(), StorageSystem.class);
         if (storage.checkIfVmax3()) {
             if (snapshot.getSettingsInstance() == null) {
                 throw APIException.badRequests.snapshotNullSettingsInstance(snapshot.getLabel());
@@ -285,10 +292,10 @@ public class BlockSnapshotService extends TaskResourceService {
                     String.format("Snapshot restore is not possible on third-party storage systems"));
         }
 
-        BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(volume, _dbClient);
+        BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(parentVolume, _dbClient);
 
         // Validate the restore snapshot request.
-        blockServiceApiImpl.validateRestoreSnapshot(snapshot, volume);
+        blockServiceApiImpl.validateRestoreSnapshot(snapshot, parentVolume);
 
         // Create the task identifier.
         String taskId = UUID.randomUUID().toString();
@@ -300,11 +307,11 @@ public class BlockSnapshotService extends TaskResourceService {
         snapshot.getOpStatus().put(taskId, op);
 
         // Restore the snapshot.
-        blockServiceApiImpl.restoreSnapshot(snapshot, volume, taskId);
+        blockServiceApiImpl.restoreSnapshot(snapshot, parentVolume, taskId);
 
         // Create the audit log entry.
         auditOp(OperationTypeEnum.RESTORE_VOLUME_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
-                id.toString(), volume.getId().toString(), snapshot.getStorageController().toString());
+                id.toString(), parentVolume.getId().toString(), snapshot.getStorageController().toString());
 
         return toTask(snapshot, taskId, op);
     }
@@ -399,6 +406,14 @@ public class BlockSnapshotService extends TaskResourceService {
         op.setResourceType(ResourceOperationTypeEnum.ACTIVATE_VOLUME_SNAPSHOT);
         ArgValidator.checkFieldUriType(id, BlockSnapshot.class, "id");
         BlockSnapshot snapshot = (BlockSnapshot) queryResource(id);
+        
+        // Get the block service API implementation for the snapshot parent volume.
+        Volume parentVolume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
+        
+        // Make sure that we don't have some pending
+        // operation against the parent volume        
+        checkForPendingTasks(Arrays.asList(parentVolume.getTenant().getURI()), Arrays.asList(parentVolume));
+        
         StorageSystem device = _dbClient.queryObject(StorageSystem.class, snapshot.getStorageController());
         BlockController controller = getController(BlockController.class, device.getSystemType());
 
@@ -456,7 +471,16 @@ public class BlockSnapshotService extends TaskResourceService {
     @Path("/{id}/protection/full-copies")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskList createFullCopy(@PathParam("id") URI id,
-            VolumeFullCopyCreateParam param) throws InternalException {
+            VolumeFullCopyCreateParam param) throws InternalException {        
+        BlockSnapshot snapshot = (BlockSnapshot) queryResource(id);
+        
+        // Get the block service API implementation for the snapshot parent volume.
+        Volume parentVolume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
+        
+        // Make sure that we don't have some pending
+        // operation against the parent volume        
+        checkForPendingTasks(Arrays.asList(parentVolume.getTenant().getURI()), Arrays.asList(parentVolume));
+        
         return getFullCopyManager().createFullCopy(id, param);
     }
 

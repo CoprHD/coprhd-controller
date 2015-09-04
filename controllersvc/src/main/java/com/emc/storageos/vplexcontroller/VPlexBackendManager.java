@@ -4,20 +4,6 @@
  */
 package com.emc.storageos.vplexcontroller;
 
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -27,12 +13,9 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
-import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool.SystemType;
@@ -50,6 +33,7 @@ import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.block.AbstractDefaultMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
+import com.emc.storageos.volumecontroller.impl.block.ExportMaskPlacementDescriptor;
 import com.emc.storageos.volumecontroller.impl.block.VPlexHDSMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VPlexVmaxMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VPlexVnxMaskingOrchestrator;
@@ -64,6 +48,18 @@ import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssignerFactory;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.workflow.Workflow;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
 
 public class VPlexBackendManager {
     private DbClient _dbClient;
@@ -217,27 +213,22 @@ public class VPlexBackendManager {
      * which to place the volume to be exported to the VPlex. Otherwise ExportMask(s)
      * will be generated and one will be chosen from the generated set.
      * 
-     * @param vplex VPlex storage system
-     * @param array Storage Array storage system
-     * @param varrayURI - Virtual array
-     * @param exportGroup OUT: ExportGroup to be used
-     * @return Export Mask chosen, null if none were available to be used (in which case calling
-     *         code should create an Export Mask)
+     * @param vplex [IN] - VPlex storage system
+     * @param array [IN] - Storage Array storage system
+     * @param varrayURI [IN] - Virtual array
+     * @param volumeMap [IN] - Map of URI to their corresponding Volume object
+     * @return ExportMaskPlacementDescriptor - data structure that will indicate the mapping of ExportMasks to
+     *         ExportGroups and ExportMasks to Volumes.
      * @throws ControllerException
      */
-    public ExportMask chooseBackendExportMask(
-            StorageSystem vplex, StorageSystem array, URI varrayURI, ExportGroup[] exportGroup)
+    public ExportMaskPlacementDescriptor chooseBackendExportMask(StorageSystem vplex, StorageSystem array, URI varrayURI,
+            Map<URI, Volume> volumeMap)
             throws ControllerException {
         _log.info(String.format("Searching for existing ExportMasks between Vplex %s (%s) and Array %s (%s) in Varray %s",
                 vplex.getLabel(), vplex.getNativeGuid(), array.getLabel(), array.getNativeGuid(), varrayURI));
         long startTime = System.currentTimeMillis();
         // Build the data structures used for analysis and validation.
         buildDataStructures(vplex, array, varrayURI);
-
-        // Collect the potential ExportMasks in the maskSet, which is a map of URI to ExportMask.
-        // Collect the URIs of invalid Masks.
-        Map<URI, ExportMask> maskSet = new HashMap<URI, ExportMask>();
-        Set<URI> invalidMasks = new HashSet<URI>();
 
         VplexBackEndMaskingOrchestrator vplexBackendOrchestrator = getOrch(array);
         BlockStorageDevice storageDevice = _blockDeviceController.getDevice(array.getSystemType());
@@ -254,108 +245,53 @@ public class VPlexBackendManager {
                 }
             }
 
-            // Read existing export masks.
-            // We hold lock over reading export masks so as not to generate duplicate ExportMasks per
-            // masking view (CTRL 11999).
-            maskSet = vplexBackendOrchestrator.readExistingExportMasks(array, storageDevice, _initiators);
+            // Initialize the placement data structure
+            ExportMaskPlacementDescriptor placementDescriptor = ExportMaskPlacementDescriptor.create(_tenantURI, _projectURI, vplex,
+                    array, varrayURI, volumeMap, _idToInitiatorMap.values());
 
-            // Check if any export masks renamed
-            maskSet = checkForRenamedExportMasks(maskSet);
+            // VplexBackEndMaskingOrchestrator#suggestExportMasksForPlacement should fill in the rest of the
+            // placement data structures, such that decisions on how to reuse the ExportMasks can be done here.
+            // At a minimum, this placement is done based on reading the ExportMasks off the backend array based on the initiators.
+            // Customizations can be done per array based on other factors. Most notably, for the case of VMAX, this would
+            // place volumes in appropriate ExportMasks based on the volume's AutoTieringPolicy relationship.
+            vplexBackendOrchestrator.suggestExportMasksForPlacement(array, storageDevice, _initiators, placementDescriptor);
 
-            // Validate the Export Masks. The two booleans below indicate whether we found
-            // Externally Created Export Masks, and/or ViPR created Masks (by this ViPR instance).
-            boolean externallyCreatedMasks = false;
-            boolean viprCreatedMasks = false;
+            // Check if any export mask got renamed, if they did, change the name in the ViPR DB
+            checkForRenamedExportMasks(placementDescriptor.getMasks());
 
-            for (ExportMask mask : maskSet.values()) {
-                _log.info(String.format("Validating ExportMask %s (%s) %s", mask.getMaskName(), mask.getId(),
-                        (mask.getCreatedBySystem() ? "ViPR created" : "Externally created")));
-                if (validateExportMask(vplex, array, varrayURI, _initiatorPortMap, mask, invalidMasks)) {
-                    if (mask.getCreatedBySystem()) {
-                        viprCreatedMasks = true;
-                    }
-                    else {
-                        externallyCreatedMasks = true;
-                    }
-                }
-            }
-            for (URI invalidMask : invalidMasks) {
-                maskSet.remove(invalidMask);
-            }
-
-            // If there were no externallyCreatedMasks, or we have already created masks,
-            // search for ones that may not have yet been instantiated on the device.
-            // These will be in the database with zero volumes. Naturally, having the lowest
-            // volume count, they would be likely choices.
-            if (externallyCreatedMasks == false || viprCreatedMasks == true) {
-                Map<ExportMask, ExportGroup> uninitializedMasks =
-                        searchDbForExportMasks(array, _initiators, false);
-                // Add these into contention for lowest volume count.
-                for (ExportMask mask : uninitializedMasks.keySet()) {
-                    _log.info(String.format("Validating uninitialized ViPR ExportMask %s (%s)",
-                            mask.getMaskName(), mask.getId()));
-                    if (validateExportMask(vplex, array, varrayURI, _initiatorPortMap, mask, invalidMasks)) {
-                        maskSet.put(mask.getId(), mask);
-                    }
-                }
-            }
+            // Apply the filters that will remove any ExportMasks that do not fit the expected VPlex masking paradigm
+            Set<URI> invalidMasks = filterExportMasksByVPlexRequirements(vplex, array, varrayURI, placementDescriptor);
 
             // Check to see if there are any available ExportMasks that can be used.
             // If not, we will attempt to generate some.
-            if (maskSet.isEmpty()) {
-                if (!invalidMasks.isEmpty()) {
-                    _log.info(String.format("Found %d existing export masks, but all failed validation",
-                            invalidMasks.size()));
-                } else {
-                    _log.info("Did not find any existing export masks");
-                }
-                _log.info("Attempting to generate ExportMasks...");
-                Map<ExportMask, ExportGroup> generatedMasks = generateExportMasks(varrayURI, vplex, array);
-                if (generatedMasks.isEmpty()) {
-                    _log.info("Unable to generate any ExportMasks");
-                    throw VPlexApiException.exceptions.couldNotGenerateArrayExportMask(
-                            vplex.getNativeGuid(), array.getNativeGuid(), _cluster);
-                }
-                // Validate the generated masks too.
-                for (ExportMask mask : generatedMasks.keySet()) {
-                    _log.info(String.format("Validating generated ViPR Export Mask %s (%s)",
-                            mask.getMaskName(), mask.getId()));
-                    if (validateExportMask(vplex, array, varrayURI, _initiatorPortMap, mask, invalidMasks)) {
-                        maskSet.put(mask.getId(), mask);
-                    }
-                }
+            if (!placementDescriptor.hasMasks()) {
+                // Did not find any reusable ExportMasks. Either there were some that matched initiators, but did not meeting the
+                // VPlex criteria, or there were no existing masks for the backend at all.
+                Map<URI, Volume> volumesToPlace = placementDescriptor.getVolumesToPlace();
+                createVPlexBackendExportMasksForVolumes(vplex, array, varrayURI, placementDescriptor, invalidMasks, volumesToPlace);
+            } else if (placementDescriptor.hasUnPlacedVolumes()) {
+                // There were some matching ExportMasks found on the backend array, but we also have some unplaced
+                // volumes. We need to create new ExportMasks to hold these unplaced volumes.
+
+                // We will leave the placement hint to whatever was determined by the suggestExportMasksForPlacement call
+                Map<URI, Volume> unplacedVolumes = placementDescriptor.getUnplacedVolumes();
+                createVPlexBackendExportMasksForVolumes(vplex, array, varrayURI, placementDescriptor, invalidMasks, unplacedVolumes);
             }
 
-            if (maskSet.isEmpty()) {
-                _log.info("Unable to find or create any suitable ExportMasks");
-                throw VPlexApiException.exceptions.couldNotFindValidArrayExportMask(
-                        vplex.getNativeGuid(), array.getNativeGuid(), _cluster);
-            }
-
-            // Determine the ExportMask with the lowest volume count
-            int lowestVolumeCount = Integer.MAX_VALUE;
-            ExportMask lowestCountMask = null;
-            for (ExportMask mask : maskSet.values()) {
-                Integer volumeCount = 0;
-                if (mask.getVolumes() != null) {
-                    volumeCount += mask.getVolumes().size();
-                }
-                if (mask.getExistingVolumes() != null) {
-                    volumeCount += mask.getExistingVolumes().size();
-                }
-                if (volumeCount < lowestVolumeCount) {
-                    lowestVolumeCount = volumeCount;
-                    lowestCountMask = mask;
-                }
-            }
-
-            // Determine ExportGroup
-            exportGroup[0] = getExportGroup(lowestCountMask, _idToInitiatorMap.values(),
-                    vplex, array, varrayURI);
+            // At this point, we have:
+            //
+            // a). Requested that the backend StorageArray provide us with a list of ExportMasks that can support the initiators + volumes.
+            // b). Processed the suggested ExportMasks in case they had their names changed
+            // c). Filtered out any ExportMasks that do not fit the VPlex masking paradigm
+            // OR
+            // d). Created a set of new ExportMasks to support the initiators + volumes
+            //
+            // We will now run the final placement based on a strategy determined by looking at the placementDescriptor
+            VPlexBackendPlacementStrategyFactory.create(_dbClient, placementDescriptor).execute();
             long elapsed = System.currentTimeMillis() - startTime;
-            _log.info(String.format("Returning ExportMask %s (%s) took %f seconds", lowestCountMask.getMaskName(), lowestCountMask.getId(),
-                    (double) elapsed / (double) 1000));
-            return lowestCountMask;
+            _log.info(String.format("PlacementDescriptor processing took %f seconds", (double) elapsed / (double) 1000));
+            _log.debug("PlacementDescriptor was created:%n%s", placementDescriptor.toString());
+            return placementDescriptor;
 
         } finally {
             if (lockAcquired) {
@@ -367,16 +303,15 @@ public class VPlexBackendManager {
     /**
      * Validates that an ExportMask can be used.
      * There are comments for each rule that is validated below.
-     * 
-     * @param vplex
-     * @param array
-     * @param map of Network to Vplex StoragePort list.
-     * @param mask
-     * @param invalidMaskscontains
-     * @param returns true if passed validation
+     *
+     * @param varrayURI [IN] - VirtualArray URI
+     * @param initiatorPortMap [IN] - Map of Initiator (URI) to StoragePort objects
+     * @param mask [IN] - ExportMask to validate
+     * @param invalidMasks [IN] - Set of ExportMask URIs that are not valid for reuse
+     * @return true, IFF the 'mask' passes the VPlex backend ExportMask reuse rules
      */
-    private boolean validateExportMask(StorageSystem vplex, StorageSystem array, URI varrayURI,
-            Map<URI, List<StoragePort>> initiatorPortMap, ExportMask mask, Set<URI> invalidMasks) {
+    private boolean validateExportMask(URI varrayURI, Map<URI, List<StoragePort>> initiatorPortMap, ExportMask mask,
+            Set<URI> invalidMasks) {
 
         boolean passed = true;
 
@@ -583,99 +518,6 @@ public class VPlexBackendManager {
     }
 
     /**
-     * Gets an ExportGroup when reusing an ExportMask. Will find the ExportGroup containing
-     * the mask, or will create a new one if necessary.
-     * 
-     * @param mask - ExportMask that is being reused
-     * @param initiators - Collection<Initiator> VPLEX initiators to array
-     * @param vplex StorageSystem
-     * @param array StorageSystem
-     * @param virtualArrayURI
-     * @return
-     */
-    private ExportGroup getExportGroup(ExportMask mask, Collection<Initiator> initiators,
-            StorageSystem vplex, StorageSystem array, URI virtualArrayURI) {
-        // Determine all the possible existing Export Groups
-        Map<String, ExportGroup> possibleExportGroups = new HashMap<String, ExportGroup>();
-        for (Initiator initiator : initiators) {
-            List<ExportGroup> groups = ExportUtils.getInitiatorExportGroups(initiator, _dbClient);
-            for (ExportGroup group : groups) {
-                if (!possibleExportGroups.containsKey(group.getId().toString())) {
-                    possibleExportGroups.put(group.getId().toString(), group);
-                }
-            }
-        }
-
-        // If there are possible Export Groups, look for one with this mask.
-        for (ExportGroup group : possibleExportGroups.values()) {
-            if (group.hasMask(mask.getId())) {
-                _log.info(String.format("Returning ExportGroup %s", group.getLabel()));
-                return group;
-            }
-        }
-
-        return createExportGroup(vplex, array, initiators, virtualArrayURI, _projectURI,
-                _tenantURI, 0, mask);
-
-    }
-
-    /**
-     * Create an ExportGroup.
-     * 
-     * @param vplex -- VPLEX StorageSystem
-     * @param array -- Array StorageSystem
-     * @param initiators -- Collection<Initiator> representing VPLEX back-end ports.
-     * @param virtualArrayURI
-     * @param projectURI
-     * @param tenantURI
-     * @param numPaths Value of maxPaths to be put in ExportGroup
-     * @param exportMask IFF non-null, will add the exportMask to the Export Group.
-     * @return newly created ExportGroup persisted in DB.
-     */
-    ExportGroup createExportGroup(StorageSystem vplex,
-            StorageSystem array, Collection<Initiator> initiators,
-            URI virtualArrayURI,
-            URI projectURI, URI tenantURI, int numPaths,
-            ExportMask exportMask) {
-        String groupName = getExportGroupName(vplex, array)
-                + "_" + UUID.randomUUID().toString().substring(28);
-        if (exportMask != null) {
-            String arrayName = array.getSystemType().replace("block", "")
-                    + array.getSerialNumber().substring(array.getSerialNumber().length() - 4);
-            groupName = exportMask.getMaskName() + "_" + arrayName;
-        }
-
-        // No existing group has the mask, let's create one.
-        ExportGroup exportGroup = new ExportGroup();
-        exportGroup.setId(URIUtil.createId(ExportGroup.class));
-        exportGroup.setLabel(groupName);
-        exportGroup.setProject(new NamedURI(_projectURI, exportGroup.getLabel()));
-        exportGroup.setVirtualArray(vplex.getVirtualArray());
-        exportGroup.setTenant(new NamedURI(_tenantURI, exportGroup.getLabel()));
-        exportGroup.setGeneratedName(groupName);
-        exportGroup.setVolumes(new StringMap());
-        exportGroup.setOpStatus(new OpStatusMap());
-        exportGroup.setVirtualArray(virtualArrayURI);
-        exportGroup.setNumPaths(numPaths);
-
-        // Add the initiators into the ExportGroup.
-        for (Initiator initiator : initiators) {
-            exportGroup.addInitiator(initiator);
-        }
-
-        // If we have an Export Mask, add it into the Export Group.
-        if (exportMask != null) {
-            exportGroup.addExportMask(exportMask.getId());
-        }
-
-        // Persist the ExportGroup
-        _dbClient.createObject(exportGroup);
-        _log.info(String.format("Returning new ExportGroup %s", exportGroup.getLabel()));
-        return exportGroup;
-
-    }
-
-    /**
      * Compute the number of paths to use on the back end array.
      * This is done on a per Network basis and then summed together.
      * Within each Network, we determine the number of ports available, and then
@@ -744,36 +586,9 @@ public class VPlexBackendManager {
             initiators.add(initiator);
         }
         int numPaths = computeNumPaths(initiatorPortMap, virtualArrayURI, array);
-        return createExportGroup(vplex, array, initiators,
+        return ExportUtils.createVplexExportGroup(_dbClient, vplex, array, initiators,
                 virtualArrayURI, projectURI, tenantURI, numPaths, null);
 
-    }
-
-    /**
-     * Returns the ExportGroup name to be used between a particular VPlex and underlying Storage Array.
-     * It is based on the serial numbers of the Vplex and Array. Therefore the same ExportGroup name
-     * will always be used, and it always starts with "VPlex".
-     * 
-     * @param vplex
-     * @param array
-     * @return
-     */
-    private String getExportGroupName(StorageSystem vplex, StorageSystem array) {
-        // Unfortunately, using the full VPlex serial number with the Array serial number
-        // proves to be quite lengthy! We can run into issues on SMIS where
-        // max length (represented as STOR_DEV_GROUP_MAX_LEN) is 64 characters.
-        // Not to mention, other steps append to this name too.
-        // So lets chop everything but the last 4 digits from both serial numbers.
-        // This should be unique enough.
-        int endIndex = vplex.getSerialNumber().length();
-        int beginIndex = endIndex - 4;
-        String modfiedVPlexSerialNumber = vplex.getSerialNumber().substring(beginIndex, endIndex);
-
-        endIndex = array.getSerialNumber().length();
-        beginIndex = endIndex - 4;
-        String modfiedArraySerialNumber = array.getSerialNumber().substring(beginIndex, endIndex);
-
-        return String.format("VPlex_%s_%s", modfiedVPlexSerialNumber, modfiedArraySerialNumber);
     }
 
     /**
@@ -1151,7 +966,8 @@ public class VPlexBackendManager {
                 }
             }
             _dbClient.createObject(exportMask);
-            ExportGroup exportGroup = createExportGroup(vplex, array, initiators, varrayURI, _projectURI, _tenantURI, 0, exportMask);
+            ExportGroup exportGroup = ExportUtils.createVplexExportGroup(_dbClient, vplex, array, initiators, varrayURI, _projectURI,
+                    _tenantURI, 0, exportMask);
             exportMasksMap.put(exportMask, exportGroup);
         }
         return exportMasksMap;
@@ -1399,5 +1215,116 @@ public class VPlexBackendManager {
         // update the names of the corresponding ExportMasks in our database.
         _log.info(String.format("ExportMask %s not present on %s; checking if renamed...", mask.getMaskName(), array.getNativeGuid()));
         checkForRenamedExportMasks(maskSet);
+    }
+
+    /**
+     * Routine will examine the placement descriptor to filter out any of the suggested ExportMasks that do not meet
+     * the VPlex requirements.
+     *
+     * @param vplex [IN] - VPlex StorageSystem
+     * @param array [IN] - Backend StorageSystem
+     * @param varrayURI [IN] - VirtualArray tying together VPlex initiators with backend array
+     * @param placementDescriptor [IN/OUT] - Placement data structure. This should have initial placement suggestions based on the backend
+     *            analysis. It will be further refined based on VPlex requirements.
+     * @return Set of ExportMask URIs that did not meet the selection criteria
+     */
+    private Set<URI> filterExportMasksByVPlexRequirements(StorageSystem vplex, StorageSystem array, URI varrayURI,
+            ExportMaskPlacementDescriptor placementDescriptor) {
+        // The main inputs to this function come from within the placementDescriptor. The expectation is that the call
+        // to get the suggested ExportMasks to reuse has already been called
+        Map<URI, ExportMask> maskSet = placementDescriptor.getMasks();
+        Map<URI, Volume> volumeMap = placementDescriptor.getVolumesToPlace();
+
+        // Collect the potential ExportMasks in the maskSet, which is a map of URI to ExportMask.
+        // Collect the URIs of invalid Masks.
+        Set<URI> invalidMasks = new HashSet<>();
+
+        // Validate the Export Masks. The two booleans below indicate whether we found
+        // Externally Created Export Masks, and/or ViPR created Masks (by this ViPR instance).
+        boolean externallyCreatedMasks = false;
+        boolean viprCreatedMasks = false;
+
+        for (URI exportMaskURI : placementDescriptor.getPlacedMasks()) {
+            ExportMask mask = maskSet.get(exportMaskURI);
+            _log.info(String.format("Validating ExportMask %s (%s) %s", mask.getMaskName(), mask.getId(),
+                    (mask.getCreatedBySystem() ? "ViPR created" : "Externally created")));
+            if (validateExportMask(varrayURI, _initiatorPortMap, mask, invalidMasks)) {
+                if (mask.getCreatedBySystem()) {
+                    viprCreatedMasks = true;
+                } else {
+                    externallyCreatedMasks = true;
+                }
+            }
+        }
+        for (URI invalidMask : invalidMasks) {
+            placementDescriptor.invalidateExportMask(invalidMask);
+        }
+
+        // If there were no externallyCreatedMasks, or we have already created masks,
+        // search for ones that may not have yet been instantiated on the device.
+        // These will be in the database with zero volumes. Naturally, having the lowest
+        // volume count, they would be likely choices.
+        if (!externallyCreatedMasks || viprCreatedMasks) {
+            Map<ExportMask, ExportGroup> uninitializedMasks = searchDbForExportMasks(array, _initiators, false);
+            // Add these into contention for lowest volume count.
+            for (ExportMask mask : uninitializedMasks.keySet()) {
+                _log.info(String.format("Validating uninitialized ViPR ExportMask %s (%s)",
+                        mask.getMaskName(), mask.getId()));
+                if (validateExportMask(varrayURI, _initiatorPortMap, mask, invalidMasks)) {
+                    maskSet.put(mask.getId(), mask);
+                    placementDescriptor.placeVolumes(mask.getId(), volumeMap);
+                }
+            }
+        }
+
+        return invalidMasks;
+    }
+
+    /**
+     * Generate an ExportMasks for the VPlex-to-Backend array to hold the volumes that were not placed by
+     * the 'suggestExportMasksForPlacement' call.
+     *
+     * @param vplex [IN] - VPlex array
+     * @param array [IN] - StorageSystem representing the VPlex backend array
+     * @param varrayURI [IN] - VirtualArray
+     * @param placementDescriptor [IN/OUT] - The output of calling VPlexBackendMaskingOrchestrator.suggestExportMasksForPlacement
+     * @param invalidMasks [IN] - List of Masks that match the initiator list, but do not meet VPlex reuse criteria
+     * @param volumes [IN] - List of volumes to map to the new ExportMasks
+     * @throws VPlexApiException
+     */
+    private void createVPlexBackendExportMasksForVolumes(StorageSystem vplex, StorageSystem array, URI varrayURI,
+            ExportMaskPlacementDescriptor placementDescriptor, Set<URI> invalidMasks, Map<URI, Volume> volumes) throws VPlexApiException {
+        Map<URI, ExportMask> maskSet = placementDescriptor.getMasks();
+
+        if (!invalidMasks.isEmpty()) {
+            _log.info(String.format("Found %d existing export masks, but all failed validation",
+                    invalidMasks.size()));
+        } else {
+            _log.info("Did not find any existing export masks");
+        }
+        _log.info("Attempting to generate ExportMasks...");
+        Map<ExportMask, ExportGroup> generatedMasks = generateExportMasks(varrayURI, vplex, array);
+        if (generatedMasks.isEmpty()) {
+            _log.info("Unable to generate any ExportMasks");
+            throw VPlexApiException.exceptions.couldNotGenerateArrayExportMask(
+                    vplex.getNativeGuid(), array.getNativeGuid(), _cluster);
+        }
+        // Validate the generated masks too.
+        for (ExportMask mask : generatedMasks.keySet()) {
+            _log.info(String.format("Validating generated ViPR Export Mask %s (%s)",
+                    mask.getMaskName(), mask.getId()));
+            if (validateExportMask(varrayURI, _initiatorPortMap, mask, invalidMasks)) {
+                maskSet.put(mask.getId(), mask);
+                // This is a generated ExportMask. The default Volume placement for something that ViPR
+                // creates will be to place everything in a single ExportMask (VOLUMES_TO_SINGLE_MASK).
+                placementDescriptor.placeVolumes(mask.getId(), volumes);
+            }
+        }
+
+        if (maskSet.isEmpty()) {
+            _log.info("Unable to find or create any suitable ExportMasks");
+            throw VPlexApiException.exceptions.couldNotFindValidArrayExportMask(
+                    vplex.getNativeGuid(), array.getNativeGuid(), _cluster);
+        }
     }
 }

@@ -61,9 +61,8 @@ public class ScaleIOSnapshotOperations extends DefaultSnapshotOperations {
 
         } catch (Exception e) {
             log.error("Encountered an exception", e);
-            ServiceCoded code =
-                    DeviceControllerErrors.scaleio.
-                            encounteredAnExceptionFromScaleIOOperation("createSingleVolumeSnapshot", e.getMessage());
+            ServiceCoded code = DeviceControllerErrors.scaleio.encounteredAnExceptionFromScaleIOOperation("createSingleVolumeSnapshot",
+                    e.getMessage());
             taskCompleter.error(dbClient, code);
         }
     }
@@ -100,9 +99,8 @@ public class ScaleIOSnapshotOperations extends DefaultSnapshotOperations {
 
         } catch (Exception e) {
             log.error("Encountered an exception", e);
-            ServiceCoded code =
-                    DeviceControllerErrors.scaleio.
-                            encounteredAnExceptionFromScaleIOOperation("createGroupVolumeSnapshot", e.getMessage());
+            ServiceCoded code = DeviceControllerErrors.scaleio.encounteredAnExceptionFromScaleIOOperation("createGroupVolumeSnapshot",
+                    e.getMessage());
             taskCompleter.error(dbClient, code);
         }
     }
@@ -144,9 +142,8 @@ public class ScaleIOSnapshotOperations extends DefaultSnapshotOperations {
 
         } catch (Exception e) {
             log.error("Encountered an exception", e);
-            ServiceCoded code =
-                    DeviceControllerErrors.scaleio.
-                            encounteredAnExceptionFromScaleIOOperation("deleteSingleVolumeSnapshot", e.getMessage());
+            ServiceCoded code = DeviceControllerErrors.scaleio.encounteredAnExceptionFromScaleIOOperation("deleteSingleVolumeSnapshot",
+                    e.getMessage());
             taskCompleter.error(dbClient, code);
         }
     }
@@ -176,9 +173,8 @@ public class ScaleIOSnapshotOperations extends DefaultSnapshotOperations {
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             log.error("Encountered an exception", e);
-            ServiceCoded code =
-                    DeviceControllerErrors.scaleio.
-                            encounteredAnExceptionFromScaleIOOperation("deleteGroupSnapshots", e.getMessage());
+            ServiceCoded code = DeviceControllerErrors.scaleio.encounteredAnExceptionFromScaleIOOperation("deleteGroupSnapshots",
+                    e.getMessage());
             taskCompleter.error(dbClient, code);
         }
     }

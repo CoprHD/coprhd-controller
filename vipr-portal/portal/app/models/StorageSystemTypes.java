@@ -54,7 +54,7 @@ public class StorageSystemTypes {
             new StringOption(VPLEX, getDisplayValue(STORAGE_PROVIDER_VPLEX)),
             new StringOption(HITACHI, getDisplayValue(STORAGE_PROVIDER_HITACHI)),
             new StringOption(OPENSTACK, getDisplayValue(STORAGE_PROVIDER_OPENSTACK)),
-            new StringOption(SCALEIO, getDisplayValue(STORAGE_PROVIDER_SCALEIO)),
+            new StringOption(SCALEIOAPI, getDisplayValue(STORAGE_PROVIDER_SCALEIOAPI)),
             new StringOption(DATA_DOMAIN, getDisplayValue(STORAGE_PROVIDER_DATA_DOMAIN)),
             new StringOption(IBMXIV, getDisplayValue(STORAGE_PROVIDER_IBMXIV)),
             new StringOption(XTREMIO, getDisplayValue(STORAGE_PROVIDER_XTREMIO))

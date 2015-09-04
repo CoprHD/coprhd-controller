@@ -27,11 +27,11 @@ import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeLunGroupSnap;
 import com.emc.storageos.vnxe.models.VNXeLunSnap;
+import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
-import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeBlockCreateCGSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeBlockDeleteSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeBlockRestoreSnapshotJob;
@@ -305,7 +305,7 @@ public class VNXeSnapshotOperation extends VNXeOperations implements SnapshotOpe
         String groupName = null;
 
         if (group != null && bo != null) {
-            groupName = group.fetchArrayCgName(bo.getStorageController());
+            groupName = group.getCgNameOnStorageSystem(bo.getStorageController());
         }
 
         return groupName;

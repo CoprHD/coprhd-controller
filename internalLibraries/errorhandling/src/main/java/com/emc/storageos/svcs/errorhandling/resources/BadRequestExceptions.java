@@ -795,8 +795,8 @@ public interface BadRequestExceptions {
     public BadRequestException failedToLoadKeyFromString(final Throwable e);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException truststoreUpdatePartialSuccess(
-            final List<String> failedParse, final List<String> notInTruststore);
+    public BadRequestException trustStoreUpdatePartialSuccess(
+            final List<String> failedParse, final List<String> expired, final List<String> notInTrustStore);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_URI)
     public BadRequestException invalidSeverityInURI(final String severity, final String severities);
@@ -2162,7 +2162,7 @@ public interface BadRequestExceptions {
     public BadRequestException volumeForVarrayChangeHasMirrors(final String volumeId, final String volumeLabel);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cannotDeleteObjectWhilePendingTask(final String pendingVolumes);
+    public BadRequestException cannotExecuteOperationWhilePendingTask(final String pendingVolumes);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException rpClusterVarrayNoClusterId(String label);
@@ -2340,4 +2340,23 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException storagePoolsRequireVplexForProtection(final String personality, final String vpoolName);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotRemoveTenant(final String resource, final String name, final Set<String> tenants);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unsupportedNumberOfPrivileges(final URI tenantId, final List<String> privileges);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unsupportedPrivilege(final URI tenantId, final String privilege);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotDetachResourceFromTenant(final String resource);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException resourceCannotBelongToProject(final String resource);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException tenantDoesNotShareTheVcenter(final String tenantName, final String vCenterName);
+
 }

@@ -683,7 +683,17 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         } else {
             if (standbyJournal != null) {
                 volumeInfoBuffer.append(logVolumeInfo(standbyJournal));
-            }
+            }           
+        }
+        
+        // If this is a change vpool to upgrade to Metropoint, we need to update the reference on the source volume to 
+        // include the new created stand-by journal. 
+        if (isChangeVpoolForProtectedVolume) {
+        	Volume sourceVolume = RPHelper.getRPSourceVolume(_dbClient, sourceJournal);
+        	_log.info(String.format("Change Virtual Pool Protected : update the source volume %s reference with standby journal %s", 
+        			sourceVolume.getLabel(), standbyJournal.getLabel()));
+        	sourceVolume.setSecondaryRpJournalVolume(standbyJournal.getId());
+        	_dbClient.persistObject(sourceVolume);        	
         }
         
         // Only need to add to the source journals map if we are NOT doing an add journal operation

@@ -2060,6 +2060,11 @@ public class BlockService extends TaskResourceService {
             createInactive = param.getCreateInactive();
         }
 
+        //Set whether the snapshot should be read only
+        Boolean readOnly = Boolean.FALSE;
+        if(param.getReadOnly() != null) {
+        	readOnly = param.getReadOnly();
+        }
         // Get the block service implementation for the volume. The manner
         // in which snapshots are created an initialized can be different
         // based on the volume being snapped.
@@ -2096,7 +2101,7 @@ public class BlockService extends TaskResourceService {
 
         // Invoke the block service API implementation to create the snapshot
         blockServiceApiImpl.createSnapshot(requestedVolume, snapshotURIs, snapshotType,
-                createInactive, taskId);
+                createInactive, readOnly, taskId);
 
         // Record a message in the audit log.
         auditOp(OperationTypeEnum.CREATE_VOLUME_SNAPSHOT, true,

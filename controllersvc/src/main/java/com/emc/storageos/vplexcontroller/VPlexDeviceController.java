@@ -7974,11 +7974,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * the backend snapshot with the passed URI.
      *
      * @param workflow A reference to a workflow.
-     * @param nativeSystem A reference to the native storage system.
-     * @param nativeFullCopyURIs The URIs of the native full copies.
      * @param waitFor The step to wait for or null.
      * @param rollbackMethod A reference to a rollback method or null.
-     *
+     * @param nativeSystem A reference to the native storage system.
+     * @param nativeFullCopyURIs The URIs of the native full copies.
      * @return RESTORE_VOLUME_STEP
      */
     private String createWorkflowStepForRestoreNativeSnapshot(Workflow workflow,

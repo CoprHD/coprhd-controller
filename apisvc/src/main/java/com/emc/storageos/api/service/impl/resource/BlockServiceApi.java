@@ -356,10 +356,11 @@ public interface BlockServiceApi {
      * @param snapshotType The snapshot technology type.
      * @param createInactive true if the snapshots should be created but not
      *            activated, false otherwise.
+     * @param readOnly true if the snapshot should be read only, false otherwise
      * @param taskId The unique task identifier.
      */
     public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
-            String snapshotType, Boolean createInactive, String taskId);
+            String snapshotType, Boolean createInactive, Boolean readOnly, String taskId);
 
     /**
      * Uses the appropriate controller to delete the snapshot.
@@ -387,6 +388,14 @@ public interface BlockServiceApi {
     public void validateRestoreSnapshot(BlockSnapshot snapshot, Volume volume);
 
     /**
+     * Validates a resynchronize snapshot request.
+     * 
+     * @param snapshot The snapshot to resynchronize.
+     * @param volume
+     */
+    public void validateResynchronizeSnapshot(BlockSnapshot snapshot, Volume volume);
+
+    /**
      * Restore the passed parent volume from the passed snapshot of that parent volume.
      * 
      * @param snapshot The snapshot to restore
@@ -394,6 +403,15 @@ public interface BlockServiceApi {
      * @param taskId The unique task identifier.
      */
     public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId);
+
+    /**
+     * Resynchronize the passed snapshot.
+     * 
+     * @param snapshot The snapshot to be resynchronized
+     * @param parentVolume The volume to resynchronize from.
+     * @param taskId The unique task identifier.
+     */
+    public void resynchronizeSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId);
 
     /**
      * Returns the maximum number of volumes that are allowed in the passed consistency group.

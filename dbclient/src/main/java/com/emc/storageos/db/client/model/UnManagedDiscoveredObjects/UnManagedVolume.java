@@ -62,8 +62,8 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         IS_VPLEX_BACKEND_VOLUME("isVplexBackendVolume", "isVplexBackendVolume"),
         EXPORTGROUP_TYPE("exportGroupType", "exportGroupType");
 
-        private String _charactersticsKey;
-        private String _charactersticAlternateKey;
+        private final String _charactersticsKey;
+        private final String _charactersticAlternateKey;
 
         SupportedVolumeCharacterstics(String charactersticsKey, String charactersticAlternateKey) {
             _charactersticsKey = charactersticsKey;
@@ -144,10 +144,11 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         SNAPSHOTS("snapshots", "snapshots"), // snapshots of a source volume, for internal ingestion use only
         NEEDS_COPY_TO_TARGET("needsCopyToTarget", "needsCopyToTarget"),
         TECHNOLOGY_TYPE("technologyType", "technologyType"),
-        SETTINGS_INSTANCE("settingsInstance", "settingsInstance");
+        SETTINGS_INSTANCE("settingsInstance", "settingsInstance"),
+        IS_READ_ONLY("isReadOnly", "isReadOnly");
 
-        private String _infoKey;
-        private String _alternateKey;
+        private final String _infoKey;
+        private final String _alternateKey;
 
         SupportedVolumeInformation(String infoKey, String alterateKey) {
             _infoKey = infoKey;

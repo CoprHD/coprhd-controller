@@ -8,7 +8,7 @@ import org.codehaus.jackson.annotate.JsonProperty;
 
 import com.google.gson.annotations.SerializedName;
 
-public class XtremIOSnapCreate {
+public class XtremIOV1SnapCreate {
 
     @SerializedName("ancestor-vol-id")
     @JsonProperty(value = "ancestor-vol-id")

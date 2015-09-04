@@ -289,9 +289,14 @@ public class VplexBackendIngestionContext {
         }
 
         if (!success) {
+            // we didn't succeed the first time, so try again and check for mirrors first
             boolean hasMirror = !getMirrorMap().isEmpty();
             
             if (hasMirror) {
+                // the volume has a mirrored top-level device, so we need to 
+                // send the hasMirror flag down so that the VPLEX client will
+                // know to look one level deeper in the components tree for
+                // the backend storage volumes
                 try {
                     backendVolumeWwnToInfoMap =
                             VPlexControllerUtils.getStorageVolumeInfoForDevice(
@@ -384,6 +389,11 @@ public class VplexBackendIngestionContext {
      * for any clones (full copies) associated with the backend volumes 
      * of this context's virtual volume.
      * 
+     * The term "backend-only clone" implies that the clone is only a copy 
+     * of the backend volume and there is no virtual volume in front of it.
+     * This is as-opposed to a "full clone" that has a virtual volume in
+     * front of it.
+     * 
      * @return a Map of UnManagedVolume parent objects to UnManagedVolume child objects
      */
     public Map<UnManagedVolume, Set<UnManagedVolume>> getUnmanagedBackendOnlyClones() {
@@ -401,10 +411,14 @@ public class VplexBackendIngestionContext {
             if (!backendClonesFound.isEmpty()) {
                 for (UnManagedVolume foundClone : backendClonesFound) {
                     boolean addIt = true;
+                    // we need to check if this backend-only clone has a 
+                    // virtual volume in front of it, and if so, it should
+                    // be considered a "full clone" and be excluded from this
+                    // backend-only clone collection
                     if (!getUnmanagedFullClones().isEmpty()) {
                         for (UnManagedVolume knownClone : getUnmanagedFullClones().keySet()) {
                             if (knownClone.getId().toString().equals(foundClone.getId().toString())) {
-                                _logger.info("clone {} is already part of a full clone, "
+                                _logger.info("clone {} is already part of a full (virtual volume) clone, "
                                         + "excluding it from backend-only clones", knownClone.getLabel());
                                 addIt = false;
                             }
@@ -426,6 +440,11 @@ public class VplexBackendIngestionContext {
     /**
      * Returns a Map of clone backend volume to front-end virtual volume clone 
      * for any clones (full copies) associated with this context's virtual volume.
+     * 
+     * The term "full clone" implies that the clone is a backend volume clone with
+     * a front-end virtual volume containing it.  This is as-opposed to a backend-only
+     * clone, which is just a simple clone of a backend volume without a virtual
+     * volume in front of it.
      * 
      * @return a Map of UnManagedVolume backend objects to UnManagedVolume front-end objects
      */
@@ -518,19 +537,27 @@ public class VplexBackendIngestionContext {
                     _logger.info("found device name {} for native id {}", deviceName, volumeNativeId);
                     URI umvUri = deviceToUnManagedVolumeMap.get(deviceName);
                     if (null != umvUri) {
+                        // virtualVolumeClone is the UnManagedVolume that is the front-end of this full clone
+                        // backendClone is the UnManagedVolume that is the backend volume for virtualVolumeClone
                         UnManagedVolume virtualVolumeClone = _dbClient.queryObject(UnManagedVolume.class, umvUri);
                         if (null != virtualVolumeClone) {
-                            _logger.info("adding mapping for vvol clone {} to backend clone {}",
-                                    virtualVolumeClone, backendClone);
+                            
+                            // 1. add a mapping for the backend to the frontend UnManagedVolumes of the full clone
+                            _logger.info("adding mapping for backend clone {} to vvol clone {)",
+                                        backendClone, virtualVolumeClone);
                             unmanagedFullClones.put(backendClone, virtualVolumeClone);
+                            
+                            // 2. remove the backend-clone from the backend-only clone collection
                             _logger.info("   because this clone has a virtual volume "
                                     + "in front of it, removing from backend only clone set");
-                            Iterator<Entry<UnManagedVolume, Set<UnManagedVolume>>> it =
+                            Iterator<Entry<UnManagedVolume, Set<UnManagedVolume>>> backendOnlyCloneEntries =
                                     getUnmanagedBackendOnlyClones().entrySet().iterator();
-                            while (it.hasNext()) {
-                                Entry<UnManagedVolume, Set<UnManagedVolume>> item = it.next();
-                                if (item.getKey().getId().toString().equals(backendClone.getId().toString())) {
-                                    getUnmanagedBackendOnlyClones().remove(item.getKey());
+                            while (backendOnlyCloneEntries.hasNext()) {
+                                Entry<UnManagedVolume, Set<UnManagedVolume>> backendCloneEntry = 
+                                        backendOnlyCloneEntries.next();
+                                if (backendCloneEntry.getKey().getId().toString().equals(
+                                        backendClone.getId().toString())) {
+                                    getUnmanagedBackendOnlyClones().remove(backendCloneEntry.getKey());
                                 }
                             }
                         }
@@ -571,7 +598,7 @@ public class VplexBackendIngestionContext {
      * of a VplexMirror to their device context path from the 
      * VPLEX API.
      * 
-     * @return
+     * @return a map of UnManagedVolume to device context paths
      */
     public Map<UnManagedVolume, String> getUnmanagedMirrors() {
         if (null != unmanagedMirrors) {
@@ -611,6 +638,17 @@ public class VplexBackendIngestionContext {
                 }
                 if (null != unmanagedMirrors && !unmanagedMirrors.isEmpty()) {
                     _logger.info("found mirror map: " + unmanagedMirrors);
+                    
+                    // TODO: this is temporary until I am certain of support
+                    // for mirrors on both legs of a distributed volumes.
+                    // in theory this should work for distributed because the mirror map
+                    // is divided by cluster, but i have not tested with a live volume.
+                    // still want to collect the data for testing, though
+                    if (!this.isLocal()) {
+                        throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(
+                                "currently can't ingest mirrors on distributed volumes, sorry");
+                    }
+                    
                     return unmanagedMirrors;
                 }
             }
@@ -629,7 +667,7 @@ public class VplexBackendIngestionContext {
             return unmanagedMirrors;
         }
 
-        // if they couldn't be found in the database,
+        // if the mirror map couldn't be found in the database,
         // we will query the VPLEX API for this information
         long start = System.currentTimeMillis();
         _logger.info("getting unmanaged mirrors");
@@ -695,6 +733,16 @@ public class VplexBackendIngestionContext {
             }
             // need to update the backend volumes because a mirror target shouldn't be considered a direct backend volume
             updateUnmanagedBackendVolumesInParent();
+            
+            // TODO: this is temporary until I am certain of support
+            // for mirrors on both legs of a distributed volumes.
+            // in theory this should work for distributed because the mirror map
+            // is divided by cluster, but i have not tested with a live volume.
+            // still want to collect the data for testing, though
+            if (!this.isLocal()) {
+                throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(
+                        "currently can't ingest mirrors on distributed volumes, sorry");
+            }
         }
         return unmanagedMirrors;
     }
@@ -730,9 +778,8 @@ public class VplexBackendIngestionContext {
         return null;
     }
 
-    // 
     /**
-     * Creates a Map of cluster id to sorted Map of slot numbers to VPlexDeviceInfos
+     * Creates a Map of cluster name to sorted Map of slot numbers to VPlexDeviceInfos
      * for use in describing the layout of VPLEX native mirrors.
      * 
      * @return a Map of cluster id to sorted Map of slot numbers to VPlexDeviceInfos
@@ -741,6 +788,16 @@ public class VplexBackendIngestionContext {
         if (null != mirrorMap) {
             return mirrorMap;
         }
+
+        // the mirror map is a mapping of:
+        // 
+        //    cluster id (e.g., cluster-1 and cluster-2) to: 
+        //        a sorted map of device slot-number to:
+        //            the VPlexDeviceInfo in that slot
+        //    sort of like: Map<ClusterName, Map<SlotNumber, VPlexDeviceInfo>>
+        //
+        // if distributed, it assumes only one mirror set 
+        // can be present on each side of the vplex
 
         _logger.info("assembling mirror map");
         mirrorMap = new HashMap<String, Map<String, VPlexDeviceInfo>>();

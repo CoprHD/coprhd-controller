@@ -195,7 +195,7 @@ public class BucketService extends TaskResourceService {
         CapacityUtils.validateQuotasForProvisioning(_dbClient, cos, project, tenant, hardQuota, "bucket");
 
         // verify retention
-        if (retention > cos.getMaxRetentionDays()) {
+        if (retention > cos.getMaxRetention()) {
             throw APIException.badRequests.insufficientRetentionForVirtualPool(cos.getLabel(), "bucket");
         }
 

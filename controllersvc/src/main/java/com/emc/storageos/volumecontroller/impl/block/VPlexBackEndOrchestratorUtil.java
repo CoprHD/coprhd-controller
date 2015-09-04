@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -16,10 +17,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
@@ -88,6 +93,117 @@ public class VPlexBackEndOrchestratorUtil {
             }
         }
         return zoningMap;
+    }
+    
+    /**
+     * Validates that an ExportMask can be used.
+     * There are comments for each rule that is validated below.
+     * 
+     * @param map of Network to Vplex StoragePort list.
+     * @param mask
+     * @param invalidMaskscontains
+     * @param returns true if passed validation
+     */
+    public static boolean validateExportMask(URI varrayURI,
+            Map<URI, List<StoragePort>> initiatorPortMap, ExportMask mask, Set<URI> invalidMasks,
+            Map<String, Set<String>> directorToInitiatorIds, Map<String, Initiator> idToInitiatorMap,
+            DbClient dbClient, Map<String, String> portWwnToClusterMap) {
+
+        boolean passed = true;
+
+        // Rule 1. An Export Mask must have at least two initiators from each director.
+        // This is a warning if the ExportMask is non-ViPR.
+        for (String director : directorToInitiatorIds.keySet()) {
+            int portsInDirector = 0;
+            for (String initiatorId : directorToInitiatorIds.get(director)) {
+                Initiator initiator = idToInitiatorMap.get(initiatorId);
+                String initiatorPortWwn = Initiator.normalizePort(initiator.getInitiatorPort());
+                if (mask.hasExistingInitiator(initiatorPortWwn)) {
+                    portsInDirector++;
+                } else if (mask.hasUserInitiator(initiatorPortWwn)) {
+                    portsInDirector++;
+                }
+            }
+            if (portsInDirector < 2) {
+                if (mask.getCreatedBySystem()) {    // ViPR created
+                    _log.info(String.format(
+                            "ExportMask %s disqualified because it only has %d back-end ports from %s (requires two)",
+                            mask.getMaskName(), portsInDirector, director));
+                    if(null!=invalidMasks) {
+                        invalidMasks.add(mask.getId());
+                    }
+                    
+                    passed = false;
+                } else {    // non ViPR created
+                    _log.info(String.format(
+                            "Warning: ExportMask %s only has %d back-end ports from %s (should have at least two)",
+                            mask.getMaskName(), portsInDirector, director));
+                }
+            }
+        }
+
+        // Rule 2. The Export Mask should have at least two ports. Four are recommended.
+        Set<String> usablePorts = new StringSet();
+        if (mask.getStoragePorts() != null) {
+            for (String portId : mask.getStoragePorts()) {
+                StoragePort port = dbClient.queryObject(StoragePort.class, URI.create(portId));
+                if (port == null || port.getInactive()
+                        || NullColumnValueGetter.isNullURI(port.getNetwork())) {
+                    continue;
+                }
+                // Validate port network overlaps Initiators and port is tagged for Varray
+                StringSet taggedVarrays = port.getTaggedVirtualArrays();
+                if (ConnectivityUtil.checkNetworkConnectedToAtLeastOneNetwork(port.getNetwork(), initiatorPortMap.keySet(), dbClient)
+                        && taggedVarrays != null && taggedVarrays.contains(varrayURI.toString())) {
+                    usablePorts.add(port.getLabel());
+                }
+            }
+        }
+
+        if (usablePorts.size() < 2) {
+            _log.info(String.format("ExportMask %s disqualified because it has less than two usable target ports;"
+                    + " usable ports: %s", mask.getMaskName(), usablePorts.toString()));
+            passed = false;
+        }
+        else if (usablePorts.size() < 4) {  // This is a warning
+            _log.info(String.format("Warning: ExportMask %s has only %d usable target ports (best practice is at least four);"
+                    + " usable ports: %s", mask.getMaskName(), usablePorts.size(), usablePorts.toString()));
+        }
+
+        // Rule 3. No mixing of WWNs from both VPLEX clusters.
+        // Add the clusters for all existingInitiators to the sets computed from initiators above.
+        Set<String> clusters = new HashSet<String>();
+        for (String portWwn : portWwnToClusterMap.keySet()) {
+            if (mask.hasExistingInitiator(portWwn) || mask.hasUserInitiator(portWwn)) {
+                clusters.add(portWwnToClusterMap.get(portWwn));
+            }
+        }
+        if (clusters.size() > 1) {
+            _log.info(String.format("ExportMask %s disqualified because it contains wwns from both Vplex clusters",
+                    mask.getMaskName()));
+            passed = false;
+        }
+
+        // Rule 4. The ExportMask name should not have NO_VIPR in it.
+        if (mask.getMaskName().toUpperCase().contains(ExportUtils.NO_VIPR)) {
+            _log.info(String.format("ExportMask %s disqualified because the name contains %s (in upper or lower case) to exclude it",
+                    mask.getMaskName(), ExportUtils.NO_VIPR));
+            passed = false;
+        }
+
+        int volumeCount = (mask.getVolumes() != null) ? mask.getVolumes().size() : 0;
+        if (mask.getExistingVolumes() != null) {
+            volumeCount += mask.getExistingVolumes().keySet().size();
+        }
+        if (passed) {
+            _log.info(String.format("Validation of ExportMask %s passed; it has %d volumes",
+                    mask.getMaskName(), volumeCount));
+        } else {
+            if(null!=invalidMasks) {
+                invalidMasks.add(mask.getId());
+            }
+        }
+        return passed;
     }
 
     /**

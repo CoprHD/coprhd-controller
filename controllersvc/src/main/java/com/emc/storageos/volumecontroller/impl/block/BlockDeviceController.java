@@ -96,6 +96,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshot
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotResyncCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockWaitForSynchronizedCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CleanupMetaVolumeMembersCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneActivateCompleter;
@@ -1672,12 +1673,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     @Override
-    public void createSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, String opId) throws ControllerException {
+    public void createSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId)
+            throws ControllerException {
         TaskCompleter completer = null;
         try {
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             completer = new BlockSnapshotCreateCompleter(snapshotList, opId);
-            getDevice(storageObj.getSystemType()).doCreateSnapshot(storageObj, snapshotList, createInactive, completer);
+            getDevice(storageObj.getSystemType()).doCreateSnapshot(storageObj, snapshotList, createInactive, readOnly, completer);
         } catch (Exception e) {
             if (completer != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -1848,8 +1850,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return new Workflow.Method("restoreVolumeStep", storage, pool, volume, snapshot, updateOpStatus);
     }
 
-    public boolean restoreVolumeStep(URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String opId)
-            throws ControllerException {
+    public boolean restoreVolumeStep(URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus,
+            String opId) throws ControllerException {
         TaskCompleter completer = null;
         try {
             StorageSystem storageDevice = _dbClient.queryObject(StorageSystem.class, storage);
@@ -3233,7 +3235,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         if (clone != null) {
             URI systemURI = clone.getStorageController();
             StorageSystem storage = dbClient.queryObject(StorageSystem.class, systemURI);
-            if (storage.deviceIsType(Type.ibmxiv) || storage.deviceIsType(Type.scaleio)) {
+            if (storage.deviceIsType(Type.ibmxiv)) {
                 return isCG;
             }
             URI source = clone.getAssociatedSourceVolume();
@@ -3546,6 +3548,25 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     public void setSrdfDeviceController(SRDFDeviceController srdfDeviceController) {
         this.srdfDeviceController = srdfDeviceController;
+    }
+
+    @Override
+    public void resyncSnapshot(URI storage, URI volume, URI snapshot, Boolean updateOpStatus, String opId)
+            throws ControllerException {
+        TaskCompleter completer = null;
+        try {
+            StorageSystem storageDevice = _dbClient.queryObject(StorageSystem.class, storage);
+            BlockSnapshot snapObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
+            completer = new BlockSnapshotResyncCompleter(snapObj, opId, updateOpStatus);
+            getDevice(storageDevice.getSystemType()).doResyncSnapshot(storageDevice, volume, snapshot, completer);
+        } catch (Exception e) {
+            _log.error(String.format("resync snapshot failed - storage: %s, volume: %s, snapshot: %s",
+                    storage.toString(), volume.toString(), snapshot.toString()));
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            completer.error(_dbClient, serviceError);
+            doFailTask(BlockSnapshot.class, snapshot, opId, serviceError);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
     }
 
 }

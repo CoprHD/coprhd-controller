@@ -188,16 +188,20 @@ public class NetworkScheduler {
      * end points. If a fabric can't be identified with both endpoints, we fall back to
      * looking for a fabric with at least the storagePort discovered.
      * 
+     * @param exportGroupUri Export Group URI
      * @param varrayUri Virtual Array URI
      * @param protocol String (FC for this to do anything)
      * @param initiatorPort The WWN of the initiator
      * @param storagePort The StoragePort object
      * @param hostName Used for generating the zone name.
      * @param existingZones a list of existing zones for the initiator
+     * @param checkZones Flag to enable or disable zoning check on a Network System
+     * 
      * @return NetworkFabricInfo configured for adding zones
      */
-    private NetworkFCZoneInfo placeZones(URI varrayUri, String protocol, String initiatorPort,
-            StoragePort storagePort, String hostName, List<Zone> existingZones) throws DeviceControllerException {
+    private NetworkFCZoneInfo placeZones(URI exportGroupUri, URI varrayUri, String protocol,
+            String initiatorPort, StoragePort storagePort, String hostName,
+            List<Zone> existingZones, boolean checkZones) throws DeviceControllerException {
         initiatorPort = formatWWN(initiatorPort);
         String storagePortWwn = formatWWN(storagePort.getPortNetworkId());
         if (Transport.FC != StorageProtocol.block2Transport(protocol)) {
@@ -217,56 +221,79 @@ public class NetworkScheduler {
             return null;
         }
 
-        // If the zone already exists, just return its reference, we do this so that we can create zone refs for added volumes
-        NetworkFCZoneInfo zoneInfo = getZoneInfoForExistingZone(iniNet, initiatorPort, storagePort.getPortNetworkId(), existingZones);
-        if (zoneInfo != null) {
-            _log.info("Already existing zone {} for initiator {} and port {} will be used.",
-                    new Object[] { zoneInfo.getZoneName(), initiatorPort, storagePortWwn });
-            return zoneInfo;
-        }
-
-        _log.debug("Could not find an existing zone for initiator {} and port {} to use." +
-                "A new zone will be created.",
-                new Object[] { initiatorPort, storagePortWwn });
-        // Create a the list of end points -
-        List<String> endPoints = Arrays.asList(new String[] { initiatorPort, storagePortWwn });
-        List<NetworkSystem> networkSystems = getZoningNetworkSystems(iniNet, portNet);
-
-        if (networkSystems.isEmpty()) {
-            _log.info(String.format(
-                    "Could not find a network system with connection to storage port %s",
-                    storagePortWwn));
-            throw DeviceControllerException.exceptions.cannotFindSwitchConnectionToStoragePort(storagePortWwn);
-        }
-
-        // 2. Select the network system to use
-        NetworkSystem networkSystem = networkSystems.get(0);
-
-        // 3. identify an alternate network device, if any
-        _log.debug("Network system {} was selected to be the primary network system. " +
-                "Trying to select an alternate network system.", networkSystem.getNativeGuid());
-        NetworkSystem altNetworkSystem = networkSystem;
-        for (NetworkSystem system : networkSystems) {
-            if (altNetworkSystem != system) {
-                altNetworkSystem = system;
-                _log.debug("Network system {} was selected to be the alternate network system.", altNetworkSystem.getNativeGuid());
-                break;
+        //Check whether to check zoning on the Network System
+        //If True, we will check zoning on the Network System
+        //False we will use the existing FCZoneReference info
+        if (!checkZones) {
+            _log.debug("Check Zones flag is false. Finding FCZoneReference for initiator {} and port {}",
+                    initiatorPort, storagePortWwn);
+            // Find the FCZoneReference in ViPR for the port-initiator key and the network
+            String key = FCZoneReference.makeEndpointsKey(initiatorPort, storagePortWwn);
+            List<FCZoneReference> fcZoneRefs = getFCZoneReferencesForKey(key);
+            FCZoneReference refTemplate = DataObjectUtils.findByProperty(fcZoneRefs, "groupUri", exportGroupUri);
+            if (refTemplate != null) {
+                _log.info("Already existing FCZoneReferences for initiator {} and port {} will be replicated for new volumes.",
+                        initiatorPort, storagePortWwn);
+                return createZoneInfoForRef(refTemplate, null, initiatorPort, storagePortWwn,
+                        NetworkUtil.getEndpointNetworkLite(initiatorPort, _dbClient));
+            } else {
+                _log.info("FCZoneReferences doesnt exist for initiator {} and port {} for replication.",
+                        initiatorPort, storagePortWwn);
+                return null;
             }
-        }
-
-        // 4. create the response
-        NetworkFCZoneInfo networkFabricInfo = null;
-        if (networkSystem != null) {
-            networkFabricInfo = new NetworkFCZoneInfo(networkSystem.getId(),
-                    iniNet.getNativeId(), NetworkUtil.getNetworkWwn(iniNet));
-            networkFabricInfo.getEndPoints().addAll(endPoints);
-            networkFabricInfo.setAltNetworkDeviceId(URI.create(altNetworkSystem.getId().toString()));
-            nameZone(networkFabricInfo, networkSystem.getSystemType(), hostName, initiatorPort, storagePort, !portNet.equals(iniNet));
         } else {
-            // This should not happen unless the transport zones were manually entered
-            throw DeviceControllerException.exceptions.cannotFindSwitchConnectionToInitiator();
+            _log.debug("Check Zones flag is false. Placing a zone for initiator {} and port {}", initiatorPort, storagePortWwn);
+            // If the zone already exists, just return its reference
+            NetworkFCZoneInfo zoneInfo = getZoneInfoForExistingZone(initiatorPort, storagePort.getPortNetworkId(), existingZones);
+            if (zoneInfo != null) {
+                _log.info("Already existing zone {} for initiator {} and port {} will be used.",
+                        new Object[]{zoneInfo.getZoneName(), initiatorPort, storagePortWwn});
+                return zoneInfo;
+            }
+
+            _log.debug("Could not find an existing zone for initiator {} and port {} to use." +
+                            "A new zone will be created.",
+                    new Object[]{initiatorPort, storagePortWwn});
+            // Create a the list of end points -
+            List<String> endPoints = Arrays.asList(new String[]{initiatorPort, storagePortWwn});
+            List<NetworkSystem> networkSystems = getZoningNetworkSystems(iniNet, portNet);
+
+            if (networkSystems.isEmpty()) {
+                _log.info(String.format(
+                        "Could not find a network system with connection to storage port %s",
+                        storagePortWwn));
+                throw DeviceControllerException.exceptions.cannotFindSwitchConnectionToStoragePort(storagePortWwn);
+            }
+
+            // 2. Select the network system to use
+            NetworkSystem networkSystem = networkSystems.get(0);
+
+            // 3. identify an alternate network device, if any
+            _log.debug("Network system {} was selected to be the primary network system. " +
+                    "Trying to select an alternate network system.", networkSystem.getNativeGuid());
+            NetworkSystem altNetworkSystem = networkSystem;
+            for (NetworkSystem system : networkSystems) {
+                if (altNetworkSystem != system) {
+                    altNetworkSystem = system;
+                    _log.debug("Network system {} was selected to be the alternate network system.", altNetworkSystem.getNativeGuid());
+                    break;
+                }
+            }
+
+            // 4. create the response
+            NetworkFCZoneInfo networkFabricInfo = null;
+            if (networkSystem != null) {
+                networkFabricInfo = new NetworkFCZoneInfo(networkSystem.getId(),
+                        iniNet.getNativeId(), NetworkUtil.getNetworkWwn(iniNet));
+                networkFabricInfo.getEndPoints().addAll(endPoints);
+                networkFabricInfo.setAltNetworkDeviceId(URI.create(altNetworkSystem.getId().toString()));
+                nameZone(networkFabricInfo, networkSystem.getSystemType(), hostName, initiatorPort, storagePort, !portNet.equals(iniNet));
+            } else {
+                // This should not happen unless the transport zones were manually entered
+                throw DeviceControllerException.exceptions.cannotFindSwitchConnectionToInitiator();
+            }
+            return networkFabricInfo;
         }
-        return networkFabricInfo;
     }
 
     /**
@@ -591,13 +618,14 @@ public class NetworkScheduler {
      * @param exportGroup ExportGroup
      * @param volumeURIs Collection of volumes to be generated
      * @param existingZonesMap a map of initiator ports WWN to its existing zones
+     * @param checkZones Flag to enable or disable zoning check on a Network System
      * @param dbClient an instance of DbClient
      * @return List<NetworkFCZoneInfo> representing zones to be created
      * @throws DeviceControllerException
      */
     public List<NetworkFCZoneInfo> getZoningTargetsForExportMasks(
             ExportGroup exportGroup, List<URI> exportMaskURIs, Collection<URI> volumeURIs,
-            Map<String, List<Zone>> existingZonesMap, DbClient dbClient) {
+            Map<String, List<Zone>> existingZonesMap, boolean checkZones, DbClient dbClient) {
         List<NetworkFCZoneInfo> zoneInfos = new ArrayList<NetworkFCZoneInfo>();
 
         for (URI maskURI : exportMaskURIs) {
@@ -617,7 +645,7 @@ public class NetworkScheduler {
                         exportMask.getMaskName(), exportMask.getId()));
                 zoneInfos.addAll(
                         generateRequestedZonesForExportMask(exportGroup.getVirtualArray(),
-                                exportMask, filteredVolumesURIs, existingZonesMap));
+                                exportMask, filteredVolumesURIs, existingZonesMap, checkZones));
             }
             // If we're doing a VPlex export, it might use an alternate Varray (for HA export),
             // so check to see if we can add zones for the alternate Varray.
@@ -656,17 +684,19 @@ public class NetworkScheduler {
      * the StoragePortsAssigner wanted created. So we create specifically those zones.
      * 
      * @param varrayURI Varray (Neighborhood) URI
+     * @param exportGroup ExportGroup object
      * @param exportMask ExportMask object
      * @param volumeURIs - List of volume URIs using this ExportMask
      * @param existingZonesMap a map of initiator ports WWN to its existing zones
+     * @param checkZones Flag to enable or disable zoning check on a Network System
      * @return List<NetworkFCZoneInfO representing zones to be created.
      * @throws DeviceControllerException
      */
     private List<NetworkFCZoneInfo> generateRequestedZonesForExportMask(
             URI varrayURI,
+            ExportGroup exportGroup,
             ExportMask exportMask,
-            Collection<URI> volumeURIs,
-            Map<String, List<Zone>> existingZonesMap) throws DeviceControllerException {
+            Collection<URI> volumeURIs, Map<String, List<Zone>> existingZonesMap, boolean checkZones) throws DeviceControllerException {
 
         List<NetworkFCZoneInfo> zoneInfos = new ArrayList<NetworkFCZoneInfo>();
 
@@ -687,9 +717,9 @@ public class NetworkScheduler {
                     StoragePort sp = _dbClient.queryObject(StoragePort.class, URI.create(portId));
                     if (sp.getTaggedVirtualArrays() != null &&
                             sp.getTaggedVirtualArrays().contains(varrayURI.toString())) {
-                        boolean placedZone = placeZone(zoneInfos, varrayURI, initiator, sp, volumeURIs,
-                                existingZonesMap.get(initiator.getInitiatorPort()));
-                        if (placedZone == false) {
+                        boolean placedZone = placeZone(zoneInfos, exportGroup, varrayURI, initiator, sp,
+                                volumeURIs, existingZonesMap.get(initiator.getInitiatorPort()), checkZones);
+                        if (placedZone == false && checkZones) {
                             throw DeviceControllerException.exceptions.cannotMatchSanStoragePortInitiatorForVolume(sp.getPortName(),
                                     formatWWN(initiator.getInitiatorPort()), volumeURIs.toString());
                         }
@@ -704,25 +734,28 @@ public class NetworkScheduler {
      * Place a zone described by its initiator and port, and add it to the zoneInfos list.
      * ZoneReferences and zones will be added for all volumes matching the storage port's device.
      * 
-     * @param zoneInfos list of zoneInfo being built
-     * @param varrayURI VirtualArray URI
+     * @param zoneInfos List<NetworkFCZoneInfo> list of zones being built
+     * @param exportGroup ExportGroup
+     * @param varrayURI VirtualArray (Neighborhood) URI
      * @param initiator Initiator
      * @param sp StoragePort
      * @param volumeURIs
      * @param existingZones zones that already exist on the network system
+     * @param checkZones Flag to enable or disable zoning check on a Network System
+     *
      * @return true if could place the zone
      */
     private boolean placeZone(
             List<NetworkFCZoneInfo> zoneInfos,
-            URI varrayURI, Initiator initiator,
-            StoragePort sp,
-            Collection<URI> volumeURIs, List<Zone> existingZones) {
+            ExportGroup exportGroup, URI varrayURI,
+            Initiator initiator,
+            StoragePort sp, Collection<URI> volumeURIs, List<Zone> existingZones, boolean checkZones) {
         boolean foundMatch = false;
         NetworkFCZoneInfo zoneInfo = placeZones(
                 varrayURI,
                 initiator.getProtocol(),
                 formatWWN(initiator.getInitiatorPort()),
-                sp, initiator.getHostName(), existingZones);
+                sp, initiator.getHostName(), existingZones, checkZones);
         if (zoneInfo != null) {
             for (URI volumeURI : volumeURIs) {
                 BlockObject volume = BlockObject.fetch(_dbClient, volumeURI);
@@ -912,7 +945,7 @@ public class NetworkScheduler {
                             varrayUri,
                             initiator.getProtocol(),
                             formatWWN(initiator.getInitiatorPort()),
-                            sp, initiator.getHostName(), zonesMap.get(initiator.getInitiatorPort()));
+                            sp, initiator.getHostName(), zonesMap.get(initiator.getInitiatorPort()), true);
                     if (fabricInfo != null) {
                         for (String volId : exportMask.getVolumes().keySet()) {
                             NetworkFCZoneInfo volFabricInfo = fabricInfo.clone();

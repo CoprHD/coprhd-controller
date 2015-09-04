@@ -5,14 +5,14 @@
 
 package com.emc.storageos.svcs.errorhandling.resources;
 
-import com.emc.storageos.model.block.export.VolumeParam;
-import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
-import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
-
 import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+
+import com.emc.storageos.model.block.export.VolumeParam;
+import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
+import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 
 /**
  * This interface holds all the methods used to create an error condition that will be associated
@@ -258,6 +258,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException initiatorNotCreatedManuallyAndCannotBeDeleted();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException initiatorInClusterWithAutoExportDisabled();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException initiatorPortNotValid();
@@ -667,13 +670,13 @@ public interface BadRequestExceptions {
     public BadRequestException invalidHostNamesAreNotUnique();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidNodeNamesAreNotUnique(String nodeName,String prop1, String prop2);
+    public BadRequestException invalidNodeNamesAreNotUnique(String nodeName, String prop1, String prop2);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidNodeShortNamesAreNotUnique(String shortName,String prop1, String prop2);
+    public BadRequestException invalidNodeShortNamesAreNotUnique(String shortName, String prop1, String prop2);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidNodeNameIsIdOfAnotherNode(String name,String value);
+    public BadRequestException invalidNodeNameIsIdOfAnotherNode(String name, String value);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterHostAlreadyHasOs(String os);
@@ -1153,6 +1156,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_RESOURCE_BEING_REFERENCED)
     public BadRequestException resourceHasActiveReferences(final String clazz, final URI resourceId);
+
+    @DeclareServiceCode(ServiceCode.API_RESOURCE_BEING_REFERENCED)
+    public BadRequestException resourceInClusterWithAutoExportDisabled(final String clazz, final URI resourceId);
 
     @DeclareServiceCode(ServiceCode.API_RESOURCE_BEING_REFERENCED)
     public BadRequestException resourceHasActiveReferencesWithType(final String clazz,
@@ -2162,7 +2168,7 @@ public interface BadRequestExceptions {
     public BadRequestException volumeForVarrayChangeHasMirrors(final String volumeId, final String volumeLabel);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cannotDeleteObjectWhilePendingTask(final String pendingVolumes);
+    public BadRequestException cannotExecuteOperationWhilePendingTask(final String pendingVolumes);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException rpClusterVarrayNoClusterId(String label);
@@ -2340,4 +2346,36 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException storagePoolsRequireVplexForProtection(final String personality, final String vpoolName);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotRemoveTenant(final String resource, final String name, final Set<String> tenants);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unsupportedNumberOfPrivileges(final URI tenantId, final List<String> privileges);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unsupportedPrivilege(final URI tenantId, final String privilege);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotDetachResourceFromTenant(final String resource);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException resourceCannotBelongToProject(final String resource);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException tenantDoesNotShareTheVcenter(final String tenantName, final String vCenterName);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException rpBlockApiImplPrepareVolumeException(final String volume);
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidEntryForProjectVNAS();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException failedToAssignVNasToProject(final String assignVnasError);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException noVNasServersAssociatedToProject(final String project);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vNasServersNotAssociatedToProject();
 }

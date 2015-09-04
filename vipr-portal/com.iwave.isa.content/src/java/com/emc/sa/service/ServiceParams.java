@@ -58,6 +58,7 @@ public interface ServiceParams {
     public String CONSISTENCY_GROUP = "consistencyGroup";
     public String HLU = "hlu";
     public String COPIES = "copies";
+    public String READ_ONLY = "readOnly";
 
     public String TARGET_VIRTUAL_POOL = "targetVirtualPool";
     public String TARGET_VIRTUAL_ARRAY = "targetVirtualArray";

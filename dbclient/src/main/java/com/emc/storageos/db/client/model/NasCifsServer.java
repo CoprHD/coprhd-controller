@@ -1,20 +1,20 @@
 /*
- * Copyright (c) 2008-2012 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
  */
 
-package com.emc.storageos.vnx.xmlapi;
+package com.emc.storageos.db.client.model;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class VNXCifsServer extends VNXBaseClass {
+public class NasCifsServer extends AbstractSerializableNestedObject {
 
     private String _name;
     private int _id;
     private String _type;
     private boolean _moverIdIsVdm;
-    private List<String> _interfaces = new ArrayList<String>();
+    private List<String> _interfaces = new ArrayList();
     private String _domain;
 
     public String getDomain() {
@@ -23,6 +23,21 @@ public class VNXCifsServer extends VNXBaseClass {
 
     public void setDomain(String domain) {
         this._domain = domain;
+    }
+
+    public NasCifsServer() {
+    }
+
+    public NasCifsServer(String name) {
+        _name = name;
+    }
+
+    public NasCifsServer(String name, String id, String type, boolean isMoverIsVdm, List<String> interfaces) {
+        _name = name;
+        _interfaces = interfaces;
+        _type = type;
+        _id = Integer.valueOf(id);
+        _moverIdIsVdm = isMoverIsVdm;
     }
 
     public void setName(String name) {
@@ -61,24 +76,8 @@ public class VNXCifsServer extends VNXBaseClass {
         return _interfaces;
     }
 
-    public void setInterfaces(List<String> interfaces) {
+    public void setInterfaces(List interfaces) {
         _interfaces = interfaces;
-    }
-
-    public VNXCifsServer() {
-    }
-
-    public VNXCifsServer(String name) {
-        _name = name;
-    }
-
-    public VNXCifsServer(String name, String id, String type, boolean isMoverIsVdm, List<String> interfaces, String domain) {
-        _name = name;
-        _interfaces = interfaces;
-        _type = type;
-        _id = Integer.valueOf(id);
-        _moverIdIsVdm = isMoverIsVdm;
-        _domain = domain;
     }
 
     @Override

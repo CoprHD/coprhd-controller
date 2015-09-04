@@ -206,8 +206,10 @@ public class SchedulerConfig {
         ConfigurationImpl cfg = new ConfigurationImpl();
         cfg.setKind(Constants.BACKUP_SCHEDULER_CONFIG);
         cfg.setId(Constants.GLOBAL_ID);
-        cfg.setConfig(BackupConstants.BACKUP_TAGS_RETAINED, Strings.join(",", this.retainedBackups.toArray(new String[this.retainedBackups.size()])));
-        cfg.setConfig(BackupConstants.BACKUP_TAGS_UPLOADED, Strings.join(",", this.uploadedBackups.toArray(new String[this.uploadedBackups.size()])));
+        cfg.setConfig(BackupConstants.BACKUP_TAGS_RETAINED,
+                Strings.join(",", this.retainedBackups.toArray(new String[this.retainedBackups.size()])));
+        cfg.setConfig(BackupConstants.BACKUP_TAGS_UPLOADED,
+                Strings.join(",", this.uploadedBackups.toArray(new String[this.uploadedBackups.size()])));
         this.coordinatorClient.persistServiceConfiguration(cfg);
     }
 
@@ -234,12 +236,12 @@ public class SchedulerConfig {
         sendEmailToRoot(subject, "UploadFailedEmail.html", params);
     }
 
-    private String getEmailSubject(String preSubject, String tags){
-        if(VdcUtil.isLocalVdcSingleSite()){
+    private String getEmailSubject(String preSubject, String tags) {
+        if (VdcUtil.isLocalVdcSingleSite()) {
             return preSubject + tags;
-        }else{
+        } else {
             String vdcId = VdcUtil.getLocalShortVdcId();
-            return String.format("%s %s in %s",preSubject, tags, vdcId);
+            return String.format("%s %s in %s", preSubject, tags, vdcId);
         }
 
     }

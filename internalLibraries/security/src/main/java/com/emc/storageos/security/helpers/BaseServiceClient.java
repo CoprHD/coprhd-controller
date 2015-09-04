@@ -35,29 +35,29 @@ import com.emc.storageos.security.exceptions.SecurityException;
 
 /**
  * Abstract class for building ViPR REST clients. This class provides help
- * in maintaining Client state, methods for constructing requests, and 
- * adding HMAC signatures and tokens. 
+ * in maintaining Client state, methods for constructing requests, and
+ * adding HMAC signatures and tokens.
  */
 public abstract class BaseServiceClient {
     private static final Logger log = LoggerFactory.getLogger(BaseServiceClient.class);
     private volatile boolean initialized = false;
     private ClientRequestHelper clientRequestHelper;
     private Client client;
- 
+
     private int clientMaxRetries = 3;
     private int clientRetryInterval = 5000; // 5s
- 
+
     private int clientReadTimeout = ClientRequestHelper.DEFAULT_CONNECT_TIMEOUT;
     private int clientConnectTimeout = ClientRequestHelper.DEFAULT_READ_TIMEOUT;
-    
+
     private URI serviceURI;
 
     private List<ClientFilter> filters = new ArrayList<>();
-    
-    private SignatureKeyType defaultSignatureType = SignatureKeyType.INTERNAL_API;    
-    
-    // the internal clientRequestHelper needs a InternalApiKeyGenerator to function.  If one is not available,
-    // the coordinatorClient will be used to create one.  Else the coordinator client will be ignored in favor
+
+    private SignatureKeyType defaultSignatureType = SignatureKeyType.INTERNAL_API;
+
+    // the internal clientRequestHelper needs a InternalApiKeyGenerator to function. If one is not available,
+    // the coordinatorClient will be used to create one. Else the coordinator client will be ignored in favor
     // of an InternalApiKeyGenerator bean already instantiated and maintained by the container
     private CoordinatorClient coordinatorClient;
     private InternalApiSignatureKeyGenerator keyGen;
@@ -65,7 +65,7 @@ public abstract class BaseServiceClient {
     public URI getServiceURI() {
         return serviceURI;
     }
-    
+
     public void setServiceURI(URI serviceURI) {
         this.serviceURI = serviceURI;
     }
@@ -81,7 +81,7 @@ public abstract class BaseServiceClient {
     public void setKeyGenerator(InternalApiSignatureKeyGenerator keyGen) {
         this.keyGen = keyGen;
     }
-    
+
     public void setClientReadTimeout(int clientReadTimeout) {
         this.clientReadTimeout = clientReadTimeout;
     }
@@ -94,7 +94,7 @@ public abstract class BaseServiceClient {
         this.clientMaxRetries = clientMaxRetries;
     }
 
-    public int getClientMaxRetries(){
+    public int getClientMaxRetries() {
         return this.clientMaxRetries;
     }
 
@@ -102,7 +102,7 @@ public abstract class BaseServiceClient {
         this.clientRetryInterval = clientRetryInterval;
     }
 
-    public int getClientRetryInterval(){
+    public int getClientRetryInterval() {
         return this.clientRetryInterval;
     }
 
@@ -117,20 +117,20 @@ public abstract class BaseServiceClient {
         }
     }
 
-    public void addFilter(ClientFilter filter){
+    public void addFilter(ClientFilter filter) {
         filters.add(filter);
     }
-    
+
     /**
      * Shut down this client and release associated resources
      */
     public void shutdown() {
-        if (client != null) {            
+        if (client != null) {
             client.destroy();
             client = null;
         }
     }
-    
+
     /**
      * Wrapper for setServiceURI that builds out the full URI from a host or IP
      * 
@@ -149,7 +149,7 @@ public abstract class BaseServiceClient {
         ensureInitialization();
         return clientRequestHelper.createRequest(client, serviceURI, URI.create(uriPath));
     }
-    
+
     /**
      * Create a request object for the specified path, resolved against
      * the service base URI and using the appropriate client configuration
@@ -161,18 +161,18 @@ public abstract class BaseServiceClient {
         ensureInitialization();
         return clientRequestHelper.createRequest(client, serviceURI, uriPath);
     }
-    
+
     /**
      * Add the HMAC authentication headers to a request and return
      * a builder for additional manipulation
      * 
-     * @param webResource the request to sign 
+     * @param webResource the request to sign
      */
     protected Builder addSignature(WebResource webResource) {
         ensureInitialization();
         return clientRequestHelper.addSignature(webResource);
     }
-        
+
     /**
      * Add the HMAC authentication headers to a request and return
      * a builder for additional manipulation.
@@ -180,13 +180,13 @@ public abstract class BaseServiceClient {
      * (which uses the internal api key)
      * 
      * @param webResource the request to sign
-     * @param key secret key to compute the signature with 
+     * @param key secret key to compute the signature with
      */
     protected Builder addSignature(WebResource webResource, SecretKey key) {
         ensureInitialization();
         return clientRequestHelper.addSignature(webResource, key);
     }
-    
+
     /**
      * Add a user token to the returned request builder
      * 
@@ -198,7 +198,7 @@ public abstract class BaseServiceClient {
         ensureInitialization();
         return clientRequestHelper.addTokens(requestBuilder, token, null);
     }
-    
+
     /**
      * Add user and/or proxy tokens to the returned request builder
      * 
@@ -211,17 +211,20 @@ public abstract class BaseServiceClient {
         ensureInitialization();
         return clientRequestHelper.addTokens(requestBuilder, token, proxyToken);
     }
-        
+
     private void ensureInitialization() {
         if (!initialized) {
-            synchronized(this) {
+            synchronized (this) {
                 if (!initialized) {
-                    if ((serviceURI == null) || (coordinatorClient == null && keyGen==null)) {
-                        throw SecurityException.fatals.failedToInitializeClientRequestHelper(serviceURI == null? "serviceURI was null" : serviceURI.toString(), 
-                                (coordinatorClient == null && keyGen == null) ? "both coordinatorClient and keyGenerator were null" : "coordinatorClient or kenGenerator was provided");
+                    if ((serviceURI == null) || (coordinatorClient == null && keyGen == null)) {
+                        throw SecurityException.fatals.failedToInitializeClientRequestHelper(serviceURI == null ? "serviceURI was null"
+                                : serviceURI.toString(),
+                                (coordinatorClient == null && keyGen == null) ? "both coordinatorClient and keyGenerator were null"
+                                        : "coordinatorClient or kenGenerator was provided");
                     } else {
                         if (keyGen == null) {
-                            clientRequestHelper = new ClientRequestHelper(coordinatorClient, this.clientReadTimeout, this.clientConnectTimeout);
+                            clientRequestHelper = new ClientRequestHelper(coordinatorClient, this.clientReadTimeout,
+                                    this.clientConnectTimeout);
                         } else {
                             clientRequestHelper = new ClientRequestHelper(keyGen, this.clientReadTimeout, this.clientConnectTimeout);
                         }
@@ -229,11 +232,11 @@ public abstract class BaseServiceClient {
                         // create and save a client for re-use, since it's an expensive object
                         // and concurrent request creation is thread-safe
                         client = clientRequestHelper.createClient();
-                        if(filters.isEmpty()) {
+                        if (filters.isEmpty()) {
                             client.addFilter(new ServiceClientRetryFilter(clientMaxRetries, clientRetryInterval));
                         }
                         else {
-                            for(ClientFilter filter : filters ){
+                            for (ClientFilter filter : filters) {
                                 client.addFilter(filter);
                             }
                         }
@@ -242,5 +245,5 @@ public abstract class BaseServiceClient {
                 }
             }
         }
-    }        
+    }
 }

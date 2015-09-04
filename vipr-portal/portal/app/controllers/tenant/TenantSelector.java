@@ -33,14 +33,15 @@ public class TenantSelector extends Controller {
         if (url != null) {
             try {
                 redirect(Common.toSafeRedirectURL(url));
-            }  catch(ActionNotFoundException noAction) {
-                Logger.error(noAction, "Action not found for %s",url);
+            } catch (ActionNotFoundException noAction) {
+                Logger.error(noAction, "Action not found for %s", url);
                 badRequest();
             }
         }
     }
 
-    @Util public static void addRenderArgs() {
+    @Util
+    public static void addRenderArgs() {
         if (Security.isSecurityAdmin()) {
             renderArgs.put("tenants", TenantUtils.getSubTenantOptions());
         }

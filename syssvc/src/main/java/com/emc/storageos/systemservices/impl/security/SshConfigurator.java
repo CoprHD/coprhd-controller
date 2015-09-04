@@ -40,7 +40,6 @@ import com.emc.storageos.systemservices.impl.property.PropertyManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.storageos.systemservices.impl.validate.PropertiesConfigurationValidator;
 
-
 /**
  * This class generates ssh host and user keys and ssh config files (ssh_known_hosts or authorizedkeys2)
  * and store them into system properties
@@ -50,7 +49,7 @@ public class SshConfigurator {
     private static final Logger log = LoggerFactory.getLogger(SshConfigurator.class);
 
     private static final String SSH_LOCK = "sshLock";
-    private static final String[] SSH_USERS = {"root", "svcuser", "storageos"};
+    private static final String[] SSH_USERS = { "root", "svcuser", "storageos" };
 
     // System property keys
     private static final String SSH_CONFIG_VERSION = "ssh_config_version";
@@ -98,11 +97,13 @@ public class SshConfigurator {
 
     /**
      * return true if current version equal to 0 (default version)
+     * 
      * @return
      */
     private boolean sshKeyGenRequired() throws Exception {
         String currentVersion = getCurrentVersion();
-        if (currentVersion == null) return true;
+        if (currentVersion == null)
+            return true;
         return getCurrentVersion().equals(getDefaultVersion());
     }
 
@@ -177,10 +178,10 @@ public class SshConfigurator {
 
         // For ec keys
         try {
-			SSHKeyPair ecKeyPair = SSHKeyPairGenerator.getInstance(SSHParam.KeyAlgo.ECDSA).generate();
+            SSHKeyPair ecKeyPair = SSHKeyPairGenerator.getInstance(SSHParam.KeyAlgo.ECDSA).generate();
 
-			String ecPrivKey = PEMUtil.encodePrivateKey(ecKeyPair.getPrivateKey());
-			saveToResultSet(hostPropName(SSHParam.KeyAlgo.ECDSA), ecPrivKey);
+            String ecPrivKey = PEMUtil.encodePrivateKey(ecKeyPair.getPrivateKey());
+            saveToResultSet(hostPropName(SSHParam.KeyAlgo.ECDSA), ecPrivKey);
         } catch (com.emc.storageos.security.exceptions.SecurityException e) {
             log.info("ECDSA is not supported. Skipping the key generation.");
         }

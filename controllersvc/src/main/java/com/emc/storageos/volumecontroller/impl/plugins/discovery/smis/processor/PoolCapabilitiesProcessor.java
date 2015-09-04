@@ -50,7 +50,7 @@ import com.emc.storageos.plugins.common.domainmodel.Operation;
  * 
  */
 public class PoolCapabilitiesProcessor extends PoolProcessor {
-    
+
     private Logger _logger = LoggerFactory.getLogger(PoolCapabilitiesProcessor.class);
     private DbClient _dbClient;
 
@@ -100,15 +100,15 @@ public class PoolCapabilitiesProcessor extends PoolProcessor {
             CIMObjectPath capabilitiesPath, Map<String, Object> keyMap) {
         List<String> expectedPoolSettingsTier = (List<String>) keyMap
                 .get(Constants.VNXPOOLCAPABILITIES_TIER);
-        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPEN 
+        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPEN
                 + Constants.NO_DATA_MOVEMENT);
-        expectedPoolSettingsTier.add(capabilitiesPath.toString() +Constants.HYPEN 
+        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPEN
                 + Constants.AUTO_TIER);
-        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPEN 
+        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPEN
                 + Constants.HIGH_AVAILABLE_TIER);
-        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPEN 
+        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPEN
                 + Constants.LOW_AVAILABLE_TIER);
-        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPEN 
+        expectedPoolSettingsTier.add(capabilitiesPath.toString() + Constants.HYPEN
                 + Constants.START_HIGH_THEN_AUTO_TIER);
     }
 

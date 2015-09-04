@@ -61,8 +61,7 @@ public class XmlStringBuilderTest {
         try {
             sb.attr("a", "A");
             fail("Attributes should not be allowed before a start element");
-        }
-        catch (IllegalStateException e) {
+        } catch (IllegalStateException e) {
         }
 
         sb.start("node");
@@ -70,16 +69,14 @@ public class XmlStringBuilderTest {
         try {
             sb.attr("a", "A");
             fail("Attributes should not be allowed after outputting text");
-        }
-        catch (IllegalStateException e) {
+        } catch (IllegalStateException e) {
         }
 
         sb.end();
         try {
             sb.attr("a", "A");
             fail("Attributes should not be allowed after closing an element");
-        }
-        catch (IllegalStateException e) {
+        } catch (IllegalStateException e) {
         }
     }
 
@@ -89,8 +86,7 @@ public class XmlStringBuilderTest {
         try {
             sb.end();
             fail("Should not be able to end an element when none was started");
-        }
-        catch (IllegalStateException e) {
+        } catch (IllegalStateException e) {
         }
 
         sb.start("node");
@@ -98,8 +94,7 @@ public class XmlStringBuilderTest {
         try {
             sb.end();
             fail("Should not be able to end an element when none remain");
-        }
-        catch (IllegalStateException e) {
+        } catch (IllegalStateException e) {
         }
     }
 

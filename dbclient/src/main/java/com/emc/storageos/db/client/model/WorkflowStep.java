@@ -6,9 +6,11 @@ package com.emc.storageos.db.client.model;
 
 import java.net.URI;
 import java.util.Date;
+
 /**
  * This is the Cassandra form of a Workflow.Step.
  * It represents a step within an overall workflow.
+ * 
  * @author Watson
  *
  */

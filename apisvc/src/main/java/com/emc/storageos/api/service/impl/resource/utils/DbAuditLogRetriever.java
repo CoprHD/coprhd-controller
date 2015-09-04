@@ -35,7 +35,6 @@ import com.emc.storageos.api.service.impl.resource.utils.XMLAuditLogMarshaller;
 import com.emc.storageos.api.service.impl.resource.utils.AuditLogQueryResult;
 import com.emc.storageos.services.util.NamedThreadPoolExecutor;
 
-
 /**
  * 
  * An implementation of auditlog retriever from a dbClient
@@ -73,7 +72,7 @@ public class DbAuditLogRetriever extends AbstractDbRetriever implements AuditLog
         marshaller.header(writer);
 
         log.info("Query time bucket {}", time.toString());
-            
+
         dbClient.queryTimeSeries(AuditLogTimeSeries.class, time, bucket, result,
                 getThreadPool());
 

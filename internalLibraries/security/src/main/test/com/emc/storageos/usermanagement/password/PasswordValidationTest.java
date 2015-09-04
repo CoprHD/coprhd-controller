@@ -51,7 +51,7 @@ public class PasswordValidationTest extends LocalUserMode {
     public void PasswordLowercaseValidation() throws Exception {
         try {
             waitForClusterStable();
-            svcuserClient.password().update(svcuserOldPassword, "1234567890123", false,  false);
+            svcuserClient.password().update(svcuserOldPassword, "1234567890123", false, false);
             Assert.fail("should fail");
         } catch (ServiceErrorException see) {
             logger.info("error code: " + see.getCode());

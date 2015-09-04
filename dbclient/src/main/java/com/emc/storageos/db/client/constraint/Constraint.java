@@ -69,8 +69,6 @@ public interface Constraint {
 
     }
 
-
-
     /**
      * Sets keyspace for this constraint based query
      *

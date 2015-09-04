@@ -23,7 +23,7 @@ import com.emc.storageos.model.property.PropertyInfoRestRep;
  * classes implemented this interface need be registered in PropertyHandlers in sys-config.xml.
  *
  * before - called before updating system properties
- * after -  called after update system properties
+ * after - called after update system properties
  *
  */
 public interface UpdateHandler {

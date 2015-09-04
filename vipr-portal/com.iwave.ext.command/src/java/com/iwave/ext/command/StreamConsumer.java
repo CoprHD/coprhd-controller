@@ -66,16 +66,14 @@ public class StreamConsumer {
             current.interrupt();
             try {
                 current.join();
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 // Ignore
             }
         }
 
         try {
             buffer.close();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             // Ignore
         }
     }
@@ -100,8 +98,7 @@ public class StreamConsumer {
             // Flush and close the stream buffer
             buffer.flush();
             buffer.close();
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
         }
     }
 
@@ -111,8 +108,7 @@ public class StreamConsumer {
     public String toString() {
         try {
             return new String(buffer.toByteArray(), charset);
-        }
-        catch (UnsupportedEncodingException e) {
+        } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
         }
     }

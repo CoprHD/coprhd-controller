@@ -7,7 +7,8 @@ package com.emc.storageos.db.client.model;
 import java.net.URI;
 
 /**
- * A server that runs a vcenter instance that manages ESX clusters and hosts. 
+ * A server that runs a vcenter instance that manages ESX clusters and hosts.
+ * 
  * @author elalih
  *
  */
@@ -134,6 +135,7 @@ public class Vcenter extends AbstractComputeSystem {
 
     /**
      * Sets the flag that indicates if SSL should be used when communicating with the vcenter
+     * 
      * @param useSsl true or false to indicate if SSL should be used
      */
     public void setUseSSL(Boolean useSsl) {
@@ -143,9 +145,8 @@ public class Vcenter extends AbstractComputeSystem {
 
     @Override
     public Object[] auditParameters() {
-        return new Object[] {getLabel(), getIpAddress(),
-                getPortNumber(), getOsVersion(), getTenant(), getId()};
+        return new Object[] { getLabel(), getIpAddress(),
+                getPortNumber(), getOsVersion(), getTenant(), getId() };
     }
-    
-    
+
 }

@@ -26,36 +26,36 @@ public class UnmountVmfsDatastore extends RetryableTask<Void> {
         provideDetailArgs(datastore.getName(), host.getName());
     }
 
-	@Override
-	protected Void tryExecute() {
-		final String dataStoreName = datastore.getName();
-		for (HostFileSystemMountInfo mount : new HostStorageAPI(host)
-				.getStorageSystem().getFileSystemVolumeInfo().getMountInfo()) {
+    @Override
+    protected Void tryExecute() {
+        final String dataStoreName = datastore.getName();
+        for (HostFileSystemMountInfo mount : new HostStorageAPI(host)
+                .getStorageSystem().getFileSystemVolumeInfo().getMountInfo()) {
 
-			HostFileSystemVolume mountVolume = mount.getVolume();
-			
-			if(mountVolume == null) {
-				warn("No volume attached to mount : " + mount.getMountInfo().getPath());
-				continue;
-			}
-			
-			if (mount.getVolume() instanceof HostVmfsVolume 
-				&& dataStoreName.equals(mount.getVolume().getName())) {
-				HostVmfsVolume volume = (HostVmfsVolume) mountVolume;
-				String vmfsUuid = volume.getUuid();
-				info("Unmounting volume : " + vmfsUuid);
-				try {
-					new HostStorageAPI(host).getStorageSystem().unmountVmfsVolume(vmfsUuid);
-				} catch (RemoteException e) {
-					throw new VMWareException(e);
-				}
-			}
-		}
-		return null;
-	}
+            HostFileSystemVolume mountVolume = mount.getVolume();
 
-	@Override
-	protected boolean canRetry(VMWareException e) {
-		return e.getCause() instanceof QuiesceDatastoreIOForHAFailed;
-	}
+            if (mountVolume == null) {
+                warn("No volume attached to mount : " + mount.getMountInfo().getPath());
+                continue;
+            }
+
+            if (mount.getVolume() instanceof HostVmfsVolume
+                    && dataStoreName.equals(mount.getVolume().getName())) {
+                HostVmfsVolume volume = (HostVmfsVolume) mountVolume;
+                String vmfsUuid = volume.getUuid();
+                info("Unmounting volume : " + vmfsUuid);
+                try {
+                    new HostStorageAPI(host).getStorageSystem().unmountVmfsVolume(vmfsUuid);
+                } catch (RemoteException e) {
+                    throw new VMWareException(e);
+                }
+            }
+        }
+        return null;
+    }
+
+    @Override
+    protected boolean canRetry(VMWareException e) {
+        return e.getCause() instanceof QuiesceDatastoreIOForHAFailed;
+    }
 }

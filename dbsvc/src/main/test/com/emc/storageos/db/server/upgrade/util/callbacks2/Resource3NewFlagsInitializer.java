@@ -27,18 +27,16 @@ import java.util.List;
 
 import org.junit.Assert;
 
-
 /**
- *  initialize flags on Resource 3 and all its subclasses
+ * initialize flags on Resource 3 and all its subclasses
  */
 public class Resource3NewFlagsInitializer extends BaseTestCustomMigrationCallback {
     public static boolean injectFault = false; // set true to inject a retryable exception
     public static boolean injectFatalFault = false;  // set true to inject fatal exception
     public static boolean faultInjected = false; // will be set to true after we inject the false
-    
+
     @Override
     public void process() {
-        
 
         DbClient dbClient = getDbClient();
 
@@ -53,25 +51,26 @@ public class Resource3NewFlagsInitializer extends BaseTestCustomMigrationCallbac
             faultInjected = true;
             throw DatabaseException.fatals.failedDuringUpgrade("Injected fatal exception during upgrade", null);
         }
-        
+
         // Check Resource3
         List<URI> res3Keys = dbClient.queryByType(Resource3.class, false);
         Iterator<Resource3> res3Objs =
                 dbClient.queryIterativeObjects(Resource3.class, res3Keys);
         while (res3Objs.hasNext()) {
             Resource3 res3 = res3Objs.next();
-            
-            // Resource3FlagsInitializer should be executed first so extraFlags has value 
+
+            // Resource3FlagsInitializer should be executed first so extraFlags has value
             Long extraFlags = res3.getExtraFlags();
-            if (extraFlags == null) 
-                throw new IllegalStateException("Custom callback order error. Resource3FlagsInitializer should be executed first for Resource3.");
-            
-            // Current value for new flag - should be zero always 
-            // Custom callback should be executed only once even referenced by many fields 
+            if (extraFlags == null)
+                throw new IllegalStateException(
+                        "Custom callback order error. Resource3FlagsInitializer should be executed first for Resource3.");
+
+            // Current value for new flag - should be zero always
+            // Custom callback should be executed only once even referenced by many fields
             Long currentValue = res3.getNewFlags();
             if (currentValue != null)
                 throw new IllegalStateException("Custom callback order error. Resource3NewFlagsInitializer should not be executed twice.");
-            
+
             res3.setNewFlags(extraFlags);
             dbClient.persistObject(res3);
         }
@@ -82,27 +81,28 @@ public class Resource3NewFlagsInitializer extends BaseTestCustomMigrationCallbac
                 dbClient.queryIterativeObjects(Resource6.class, res6Keys);
         while (res6Objs.hasNext()) {
             Resource6 res6 = res6Objs.next();
-            
-            // Resource3FlagsInitializer should be executed first so extraFlags has value 
+
+            // Resource3FlagsInitializer should be executed first so extraFlags has value
             Long extraFlags = res6.getExtraFlags();
-            if (extraFlags == null) 
-                throw new IllegalStateException("Custom callback order error. Resource3FlagsInitializer should be executed first for Resource6.");
-            
-            // Current value for new flag - should be zero always 
-            // Custom callback should be executed only once even referenced by many fields 
+            if (extraFlags == null)
+                throw new IllegalStateException(
+                        "Custom callback order error. Resource3FlagsInitializer should be executed first for Resource6.");
+
+            // Current value for new flag - should be zero always
+            // Custom callback should be executed only once even referenced by many fields
             Long currentValue = res6.getNewFlags();
             if (currentValue != null)
                 throw new IllegalStateException("Custom callback order error. Resource3NewFlagsInitializer should not be executed twice.");
-            
+
             res6.setNewFlags(extraFlags);
             res6.setDupTestFlags(extraFlags);
             dbClient.persistObject(res6);
         }
     }
-    
+
     @Override
-    public void verify(){
-        
+    public void verify() {
+
         // Check Resource3
         List<URI> res3Keys = dbClient.queryByType(Resource3.class, false);
         Iterator<Resource3> res3Objs =
@@ -122,6 +122,6 @@ public class Resource3NewFlagsInitializer extends BaseTestCustomMigrationCallbac
             Assert.assertEquals(res6.getExtraFlags(), res6.getNewFlags());
             Assert.assertEquals(res6.getExtraFlags(), res6.getDupTestFlags());
         }
-        
+
     }
 }

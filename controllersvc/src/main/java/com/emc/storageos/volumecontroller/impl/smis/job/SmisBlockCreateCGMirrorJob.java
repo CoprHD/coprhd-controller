@@ -53,7 +53,8 @@ public class SmisBlockCreateCGMirrorJob extends SmisBlockMirrorJob {
         CloseableIterator<CIMInstance> syncVolumeIter = null;
         CloseableIterator<CIMObjectPath> repGroupPathIter = null;
         DbClient dbClient = jobContext.getDbClient();
-        BlockMirrorCreateCompleter completer = (BlockMirrorCreateCompleter) getTaskCompleter();;
+        BlockMirrorCreateCompleter completer = (BlockMirrorCreateCompleter) getTaskCompleter();
+        ;
         JobStatus jobStatus = getJobStatus();
         try {
             if (jobStatus == JobStatus.IN_PROGRESS) {
@@ -79,9 +80,11 @@ public class SmisBlockCreateCGMirrorJob extends SmisBlockMirrorJob {
                 CIMInstance syncInst = getSynchronizedInstance(client, repGroupPath);
                 String syncType = CIMPropertyFactory.getPropertyValue(syncInst, SmisConstants.CP_SYNC_TYPE);
 
-                String[] props = { SmisConstants.CP_DEVICE_ID, SmisConstants.CP_ELEMENT_NAME, SmisConstants.CP_WWN_NAME, SmisConstants.CP_NAME, SmisConstants.CP_CONSUMABLE_BLOCKS, SmisConstants.CP_BLOCK_SIZE };
+                String[] props = { SmisConstants.CP_DEVICE_ID, SmisConstants.CP_ELEMENT_NAME, SmisConstants.CP_WWN_NAME,
+                        SmisConstants.CP_NAME, SmisConstants.CP_CONSUMABLE_BLOCKS, SmisConstants.CP_BLOCK_SIZE };
                 syncVolumeIter = client.associatorInstances(repGroupPath, null, SmisConstants.CIM_STORAGE_VOLUME, null, null, false, props);
-                processCGMirrors(syncVolumeIter, client, dbClient, jobContext.getSmisCommandHelper(), storage, mirrors, repGroupID, syncInst.getObjectPath().toString(), syncType);
+                processCGMirrors(syncVolumeIter, client, dbClient, jobContext.getSmisCommandHelper(), storage, mirrors, repGroupID,
+                        syncInst.getObjectPath().toString(), syncType);
             } else if (isJobInTerminalFailedState()) {
                 _log.info("Failed to create group mirrors");
                 completer.error(dbClient, DeviceControllerException.exceptions.attachVolumeMirrorFailed(getMessage()));
@@ -149,8 +152,9 @@ public class SmisBlockCreateCGMirrorJob extends SmisBlockMirrorJob {
      * @param syncType
      * @throws Exception
      */
-    private void processCGMirrors(CloseableIterator<CIMInstance> syncVolumeIter, WBEMClient client, DbClient dbClient, SmisCommandHelper helper, StorageSystem storage,
-                                 List<BlockMirror> mirrors, String repGroupID, String syncInst, String syncType) throws Exception {
+    private void processCGMirrors(CloseableIterator<CIMInstance> syncVolumeIter, WBEMClient client, DbClient dbClient,
+            SmisCommandHelper helper, StorageSystem storage,
+            List<BlockMirror> mirrors, String repGroupID, String syncInst, String syncType) throws Exception {
         // Create mapping of volume.nativeDeviceId to BlockMirror object
         Map<String, BlockMirror> volIdToMirrorMap = new HashMap<String, BlockMirror>();
         for (BlockMirror mirror : mirrors) {
@@ -188,7 +192,8 @@ public class SmisBlockCreateCGMirrorJob extends SmisBlockMirrorJob {
             mirror.setSynchronizedInstance(syncInst);
             mirror.setSyncType(syncType);
             dbClient.persistObject(mirror);
-            _log.info(String.format("For target mirror volume %1$s, going to set BlockMirror %2$s nativeId to %3$s (%4$s). Associated volume is %5$s",
+            _log.info(String.format(
+                    "For target mirror volume %1$s, going to set BlockMirror %2$s nativeId to %3$s (%4$s). Associated volume is %5$s",
                     syncVolumePath.toString(), mirror.getId().toString(), syncDeviceID, elementName, volumeDeviceID));
         }
     }
@@ -198,7 +203,7 @@ public class SmisBlockCreateCGMirrorJob extends SmisBlockMirrorJob {
         Map<String, String> tgtToSrcMap = new HashMap<String, String>();
         List<CIMObjectPath> syncPairs = helper.getReplicationRelationships(
                 storage, SmisConstants.LOCAL_LOCALITY_VALUE, SmisConstants.MIRROR_VALUE, SmisConstants.SYNCHRONOUS_MODE_VALUE,
-                        SmisConstants.STORAGE_SYNCHRONIZED_VALUE);
+                SmisConstants.STORAGE_SYNCHRONIZED_VALUE);
 
         if (_log.isDebugEnabled()) {
             _log.debug("Found {} relationships", syncPairs.size());

@@ -44,7 +44,7 @@ public class UnmountAndDeleteBlockVolumeService extends WindowsService {
         unmountBlockVolumeHelpers.get(0).unmountVolumes();
 
         BlockStorageUtils.removeVolumes(uris(volumeIds));
-        
+
         if (hostId != null) {
             ExecutionUtils.addAffectedResource(hostId.toString());
         }

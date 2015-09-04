@@ -19,54 +19,53 @@ import java.util.List;
 import com.emc.storageos.hds.HDSConstants;
 import com.emc.storageos.hds.xmlgen.XMLConstants;
 
-
 public class HostStorageDomain {
-    
+
     private String objectID;
-    
+
     private String name;
-    
-    private String  portID;
-    
+
+    private String portID;
+
     private String domainID;
-    
+
     private String hostMode;
-    
+
     private String hostMode2;
-    
+
     private String hostModeOption;
-    
+
     private String displayName;
-    
+
     private String domainType;
-    
+
     private String nickname;
-    
+
     private List<Path> pathList;
-    
+
     private List<WorldWideName> wwnList;
-    
+
     private List<ISCSIName> iscsiList;
-    
+
     private List<FreeLun> freeLunList;
-    
+
     public HostStorageDomain(String portID, String name, String domainType, String nickName) {
         this.portID = portID;
         this.name = name;
         this.domainType = domainType;
         this.nickname = nickName;
     }
-    
+
     public HostStorageDomain(HostStorageDomain oldHSD) {
-    	this.setObjectID(oldHSD.getObjectID());
-   		this.setPortID(oldHSD.getPortID());
-   		this.setDomainID(oldHSD.getDomainID());
+        this.setObjectID(oldHSD.getObjectID());
+        this.setPortID(oldHSD.getPortID());
+        this.setDomainID(oldHSD.getDomainID());
     }
-    
+
     public HostStorageDomain(String objectID) {
         this.objectID = objectID;
     }
-    
+
     public HostStorageDomain() {
         // TODO Auto-generated constructor stub
     }
@@ -126,14 +125,14 @@ public class HostStorageDomain {
     }
 
     public String getHostModeOption() {
-		return hostModeOption;
-	}
+        return hostModeOption;
+    }
 
-	public void setHostModeOption(String hostModeOption) {
-		this.hostModeOption = hostModeOption;
-	}
+    public void setHostModeOption(String hostModeOption) {
+        this.hostModeOption = hostModeOption;
+    }
 
-	public String getDisplayName() {
+    public String getDisplayName() {
         return displayName;
     }
 
@@ -212,7 +211,7 @@ public class HostStorageDomain {
     public void setFreeLunList(List<FreeLun> freeLunList) {
         this.freeLunList = freeLunList;
     }
-    
+
     public String toXMLString() {
 
         StringBuilder xmlString = new StringBuilder();
@@ -238,13 +237,13 @@ public class HostStorageDomain {
                     .append(HDSConstants.QUOTATION_STR).append(this.nickname)
                     .append(HDSConstants.QUOTATION_STR);
         }
-        
+
         if (null != this.hostMode) {
             xmlString.append(HDSConstants.SPACE_STR).append("hostMode=")
                     .append(HDSConstants.QUOTATION_STR).append(this.hostMode)
                     .append(HDSConstants.QUOTATION_STR);
         }
-        
+
         if (null != this.hostModeOption) {
             xmlString.append(HDSConstants.SPACE_STR).append("hostModeOption=")
                     .append(HDSConstants.QUOTATION_STR).append(this.hostModeOption)
@@ -258,14 +257,15 @@ public class HostStorageDomain {
         }
         return xmlString.toString();
     }
-    
+
     /**
      * Generates the XML String for the child nodes.
+     * 
      * @return
      */
     public String getChildNodeXMLString() {
         StringBuilder childNodeXmlString = new StringBuilder();
-        
+
         if (null != this.wwnList && !this.wwnList.isEmpty()) {
             for (WorldWideName wwnName : this.wwnList) {
                 childNodeXmlString.append(XMLConstants.LESS_THAN_OP);
@@ -274,7 +274,7 @@ public class HostStorageDomain {
                 childNodeXmlString.append(XMLConstants.XML_CLOSING_TAG);
             }
         }
-        
+
         if (null != this.iscsiList && !this.iscsiList.isEmpty()) {
             for (ISCSIName iscsiName : this.iscsiList) {
                 childNodeXmlString.append(XMLConstants.LESS_THAN_OP);
@@ -283,7 +283,7 @@ public class HostStorageDomain {
                 childNodeXmlString.append(XMLConstants.XML_CLOSING_TAG);
             }
         }
-        
+
         return childNodeXmlString.toString();
     }
 }

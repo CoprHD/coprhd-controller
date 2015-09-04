@@ -52,7 +52,7 @@ public class SchemaRecordType {
      * @param clazz
      */
     public SchemaRecordType() {
-        cf = new ColumnFamily<String, String>(((Cf)type.getAnnotation(Cf.class)).value(),
+        cf = new ColumnFamily<String, String>(((Cf) type.getAnnotation(Cf.class)).value(),
                 StringSerializer.get(), StringSerializer.get());
     }
 
@@ -67,11 +67,11 @@ public class SchemaRecordType {
 
     public void serialize(MutationBatch batch, SchemaRecord record) throws ConnectionException {
         batch.withRow(cf, record.getVersion())
-               .putColumn(SCHEMA_COLUMN_NAME, record.getSchema(), null);
+                .putColumn(SCHEMA_COLUMN_NAME, record.getSchema(), null);
         batch.execute();
     }
 
-    public SchemaRecord deserialize(Row<String, String> row) {  
+    public SchemaRecord deserialize(Row<String, String> row) {
         if (row == null)
             return null;
 
@@ -83,7 +83,7 @@ public class SchemaRecordType {
         SchemaRecord record = new SchemaRecord();
         record.setVersion(row.getKey());
         record.setSchema(column.getStringValue());
-      
+
         return record;
     }
 }

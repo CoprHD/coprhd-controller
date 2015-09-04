@@ -22,24 +22,21 @@ import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
  * This interface holds all the methods used to create an error condition that
  * will be associated with an HTTP status of Unauthorized (401)
  * <p/>
- * Remember to add the English message associated to the method in
- * UnauthorizedExceptions.properties and use the annotation
- * {@link DeclareServiceCode} to set the service code associated to this error
- * condition. You may need to create a new service code if there is no an
- * existing one suitable for your error condition.
+ * Remember to add the English message associated to the method in UnauthorizedExceptions.properties and use the annotation
+ * {@link DeclareServiceCode} to set the service code associated to this error condition. You may need to create a new service code if there
+ * is no an existing one suitable for your error condition.
  * <p/>
- * For more information or to see an example, check the Developers Guide section
- * in the Error Handling Wiki page:
+ * For more information or to see an example, check the Developers Guide section in the Error Handling Wiki page:
  * http://confluence.lab.voyence.com/display/OS/Error+Handling+Framework+and+Exceptions+in+ViPR
  */
 @MessageBundle
 public interface UnauthorizedExceptions {
     @DeclareServiceCode(ServiceCode.SECURITY_UNAUTHORIZED_OPERATION)
     public UnauthorizedException bindSearchGenericException();
-    
+
     @DeclareServiceCode(ServiceCode.SECURITY_UNAUTHORIZED_OPERATION)
     public UnauthorizedException userSearchFailed();
-    
+
     @DeclareServiceCode(ServiceCode.SECURITY_UNAUTHORIZED_OPERATION)
     public UnauthorizedException managerBindFailed();
 
@@ -53,14 +50,14 @@ public interface UnauthorizedExceptions {
     public UnauthorizedException unauthenticatedRequestUnsignedInternalRequest();
 
     @DeclareServiceCode(ServiceCode.SECURITY_UNAUTHORIZED_OPERATION)
-    public UnauthorizedException unauthenticatedRequestUnsignedInterVDCRequest();    
-    
+    public UnauthorizedException unauthenticatedRequestUnsignedInterVDCRequest();
+
     @DeclareServiceCode(ServiceCode.SECURITY_UNAUTHORIZED_OPERATION)
     public UnauthorizedException unauthenticatedRequestUseHTTPS();
 
     @DeclareServiceCode(ServiceCode.SECURITY_UNAUTHORIZED_OPERATION)
     public UnauthorizedException tokenNotFoundOrInvalidTokenProvided();
-    
+
     @DeclareServiceCode(ServiceCode.SECURITY_UNAUTHORIZED_OPERATION)
     public UnauthorizedException methodNotAllowedOnThisNode();
 
@@ -75,13 +72,13 @@ public interface UnauthorizedExceptions {
 
     @DeclareServiceCode(ServiceCode.SECURITY_UNAUTHORIZED_OPERATION)
     public UnauthorizedException maxNumberOfTokenExceededForUser();
-    
+
     @DeclareServiceCode(ServiceCode.SECURITY_AUTH_SERVICE_ENCODING_ERROR)
     public UnauthorizedException unableToVerifyTheServiceSignature();
 
     @DeclareServiceCode(ServiceCode.SECURITY_AUTH_SERVICE_ENCODING_ERROR)
     public UnauthorizedException unableToGenerateTheServiceSignature();
-    
+
     @DeclareServiceCode(ServiceCode.SECURITY_UNAUTHORIZED_OPERATION)
     public UnauthorizedException noTokenFoundForUserFromForeignVDC();
 

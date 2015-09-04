@@ -24,7 +24,8 @@ import com.emc.storageos.apidiff.util.Pair;
  */
 class HtmlSerializerHelper {
 
-    private HtmlSerializerHelper() {}
+    private HtmlSerializerHelper() {
+    }
 
     static String buildHeader(final String title) {
         StringBuilder builder = new StringBuilder();
@@ -130,7 +131,6 @@ class HtmlSerializerHelper {
     static String buildLink(final String linkPage, final String content) {
         return String.format("<A HREF=\"%s\"> %s </A>", linkPage, content);
     }
-
 
     static String buildListHeader() {
         return "    <UL>\n";

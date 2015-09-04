@@ -49,7 +49,6 @@ public class PrefixConstraintImpl extends ConstraintImpl implements PrefixConstr
         _field = field;
     }
 
-
     public PrefixConstraintImpl(URI scope, String label, ColumnField field) {
         super(scope, label, field);
 

@@ -41,7 +41,7 @@ public class DisconnectVdcTaskOp extends AbstractVdcTaskOp {
 
     private final static Logger log = LoggerFactory.getLogger(DisconnectVdcTaskOp.class);
 
-    private final static int NODE_CHECK_TIMEOUT = 180*1000; // 3 minutes
+    private final static int NODE_CHECK_TIMEOUT = 180 * 1000; // 3 minutes
 
     public DisconnectVdcTaskOp(InternalDbClient dbClient, GeoClientCacheManager geoClientCache,
             VdcConfigHelper helper, Service serviceInfo, VirtualDataCenter vdc, String taskId,
@@ -64,10 +64,10 @@ public class DisconnectVdcTaskOp extends AbstractVdcTaskOp {
 
         checkDisconnectingConcurrency();
 
-        //TODO: use updateVdcStatus()
+        // TODO: use updateVdcStatus()
         updateOpStatus(ConnectionStatus.DISCONNECTING);
 
-        URI unstable =  checkAllVdcStable(true, true);
+        URI unstable = checkAllVdcStable(true, true);
         if (unstable != null) {
             notifyPrecheckFailed();
             log.error("The 'disconnect vdc operation' should not be triggered because vdc {} is unstable", unstable.toString());
@@ -98,7 +98,7 @@ public class DisconnectVdcTaskOp extends AbstractVdcTaskOp {
         // check local db first
         VirtualDataCenter disconnectingVdc = helper.getDisconnectingVdc();
 
-       if (disconnectingVdc != null)
+        if (disconnectingVdc != null)
         {
             log.error("There is already a VDC {} under disconnecting", disconnectingVdc.getId());
             throw GeoException.fatals.disconnectVdcConcurrentCheckFail(disconnectingVdc.getLabel());
@@ -121,8 +121,7 @@ public class DisconnectVdcTaskOp extends AbstractVdcTaskOp {
             VdcPreCheckResponse2 resp2 = null;
             try {
                 resp2 = sendVdcPrecheckRequest2(vdc, param, DEFAULT_NODE_CHECK_TIMEOUT);
-            }
-            catch( Exception ex ) {
+            } catch (Exception ex) {
                 log.error("Precheck the reconnected vdc {} failed: {}", operatedVdc.getShortId(), ex);
                 notifyPrecheckFailed();
                 throw ex;
@@ -164,17 +163,15 @@ public class DisconnectVdcTaskOp extends AbstractVdcTaskOp {
         try {
             dbClient.removeVdcNodes(operatedVdc);
             dbClient.addVdcNodesToBlacklist(operatedVdc);
-        }
-        catch( Exception e ){
+        } catch (Exception e) {
             log.error("Failed to remove nodes from GeoDB : {}", e);
             throw GeoException.fatals.vdcStrategyFailed(e);
         }
     }
 
     @Override
-    public VdcConfig.ConfigChangeType changeType(){
+    public VdcConfig.ConfigChangeType changeType() {
         return VdcConfig.ConfigChangeType.DISCONNECT_VDC;
     }
 
 }
-

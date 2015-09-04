@@ -63,7 +63,7 @@ public class DbClientContext {
     private RetryPolicy retryPolicy = new QueryRetryPolicy(5, 1000);
     private String keyspaceName = LOCAL_KEYSPACE_NAME;
     private String clusterName = LOCAL_CLUSTER_NAME;
-    
+
     private AstyanaxContext<Keyspace> context;
     private Keyspace keyspace;
 
@@ -107,7 +107,7 @@ public class DbClientContext {
         }
         context.getConnectionPool().setHosts(hosts);
     }
-    
+
     public int getPort() {
         return context.getConnectionPoolConfiguration().getPort();
     }
@@ -122,7 +122,7 @@ public class DbClientContext {
     }
 
     public void setMaxConnections(int maxConnections) {
-        this. maxConnections = maxConnections;
+        this.maxConnections = maxConnections;
     }
 
     public void setMaxConnectionsPerHost(int maxConnectionsPerHost) {
@@ -139,6 +139,7 @@ public class DbClientContext {
 
     /**
      * Sets the monitoring interval for client connection pool stats
+     * 
      * @param monitorIntervalSecs
      */
     public void setMonitorIntervalSecs(long monitorIntervalSecs) {
@@ -146,7 +147,7 @@ public class DbClientContext {
     }
 
     public boolean isInitDone() {
-    	return initDone;
+        return initDone;
     }
 
     public void setTrustStoreFile(String trustStoreFile) {
@@ -175,9 +176,9 @@ public class DbClientContext {
 
     public void init(HostSupplierImpl hostSupplier) {
         String svcName = hostSupplier.getDbSvcName();
-        _log.info ("Initializing hosts for {}", svcName );
+        _log.info("Initializing hosts for {}", svcName);
         List<Host> hosts = hostSupplier.get();
-        if((hosts != null) && (hosts.size() == 0)) {
+        if ((hosts != null) && (hosts.size() == 0)) {
             throw new IllegalStateException(String.format("DbClientContext.init() : host list in hostsupplier for %s is empty", svcName));
         } else {
             _log.info(String.format("number of hosts in the hostsupplier for %s is %d", svcName, hosts.size()));
@@ -186,7 +187,7 @@ public class DbClientContext {
         Map<String, Partitioner> partitioners = new HashMap<String, Partitioner>();
         partitioners.put("org.apache.cassandra.dht.Murmur3Partitioner.class.getCanonicalName()",
                 murmur3partitioner);
-        
+
         ConsistencyLevel readCL = ConsistencyLevel.CL_QUORUM;
         ConsistencyLevel writeCL = ConsistencyLevel.CL_QUORUM;
 

@@ -51,12 +51,12 @@ public class GlobalLockType {
      * @param clazz
      */
     public GlobalLockType() {
-        cf = new ColumnFamily<String, String>(((Cf)type.getAnnotation(Cf.class)).value(),
+        cf = new ColumnFamily<String, String>(((Cf) type.getAnnotation(Cf.class)).value(),
                 StringSerializer.get(), StringSerializer.get());
     }
 
     /**
-     * Get CF for global lock 
+     * Get CF for global lock
      *
      * @return
      */
@@ -71,7 +71,7 @@ public class GlobalLockType {
         batch.execute();
     }
 
-    public GlobalLock deserialize(Row<String, String> row) {  
+    public GlobalLock deserialize(Row<String, String> row) {
         if (row == null)
             return null;
 
@@ -88,7 +88,7 @@ public class GlobalLockType {
         glock.setMode(mode.getStringValue());
         glock.setOwner(owner.getStringValue());
         glock.setExpirationTime(expiration.getStringValue());
-      
+
         return glock;
     }
 }

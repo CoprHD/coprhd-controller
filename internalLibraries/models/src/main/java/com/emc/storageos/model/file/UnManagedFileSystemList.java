@@ -27,25 +27,27 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * List of unmanaged file systems.  UnManaged FileSystem are FileSystems that 
+ * List of unmanaged file systems. UnManaged FileSystem are FileSystems that
  * are present within ViPR, but are not under ViPR management.
  * 
  */
 @XmlRootElement(name = "unmanaged_filesystems")
 public class UnManagedFileSystemList {
-    
+
     private List<RelatedResourceRep> unManagedFileSystem;
-    
+
     private List<NamedRelatedResourceRep> namedUnManagedFileSystem;
-    
-    public UnManagedFileSystemList() {}
-    
+
+    public UnManagedFileSystemList() {
+    }
+
     public UnManagedFileSystemList(List<RelatedResourceRep> unManagedFileSystem) {
         this.unManagedFileSystem = unManagedFileSystem;
     }
 
     /**
      * List of unmanaged file systems.
+     * 
      * @valid none
      */
     @XmlElement(name = "unmanaged_filesystem")
@@ -61,10 +63,11 @@ public class UnManagedFileSystemList {
     }
 
     /**
-     * The list of unmanaged FileSystems with name which are available in a storage system.  
-     * Used primarily to ingest volumes into ViPR.  
+     * The list of unmanaged FileSystems with name which are available in a storage system.
+     * Used primarily to ingest volumes into ViPR.
+     * 
      * @valid none
-     */ 
+     */
     @XmlElement(name = "unmanaged_filesystem")
     public List<NamedRelatedResourceRep> getNamedUnManagedFileSystem() {
         if (namedUnManagedFileSystem == null) {

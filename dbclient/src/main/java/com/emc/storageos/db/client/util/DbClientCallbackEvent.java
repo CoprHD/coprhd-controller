@@ -20,7 +20,7 @@ package com.emc.storageos.db.client.util;
  *
  */
 public interface DbClientCallbackEvent {
-    
-    public void call(Object...args);
+
+    public void call(Object... args);
 
 }

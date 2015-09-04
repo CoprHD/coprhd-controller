@@ -13,18 +13,18 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
 
 public class ChangeModeToAdaptiveStrategy implements ExecutorStrategy {
-	private SmisCommandHelper helper;
-	
-	public ChangeModeToAdaptiveStrategy(SmisCommandHelper helper) {
-		this.helper = helper;
-	}
+    private SmisCommandHelper helper;
 
-	@Override
-	public void execute(Collection<CIMObjectPath> objectPaths,
-			StorageSystem provider) throws Exception {
-	    // Provider internally disables consistency when changing mode to Adaptive Copy
-	    CIMArgument[] args = helper.getResetToAdaptiveCopyModeInputArguments(objectPaths.iterator().next());
-	    helper.callModifyReplica(provider, args);
-	}
+    public ChangeModeToAdaptiveStrategy(SmisCommandHelper helper) {
+        this.helper = helper;
+    }
+
+    @Override
+    public void execute(Collection<CIMObjectPath> objectPaths,
+            StorageSystem provider) throws Exception {
+        // Provider internally disables consistency when changing mode to Adaptive Copy
+        CIMArgument[] args = helper.getResetToAdaptiveCopyModeInputArguments(objectPaths.iterator().next());
+        helper.callModifyReplica(provider, args);
+    }
 
 }

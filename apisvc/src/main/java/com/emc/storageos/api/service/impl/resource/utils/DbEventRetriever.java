@@ -40,7 +40,7 @@ import com.emc.storageos.api.service.impl.resource.utils.XMLEventMarshaller;
 public class DbEventRetriever extends AbstractDbRetriever implements EventRetriever {
 
     private static final Logger log = LoggerFactory.getLogger(DbEventRetriever.class);
-   
+
     @Override
     public void getBulkEvents(DateTime time, TimeSeriesMetadata.TimeBucket bucket,
             MediaType type, Writer writer) throws MarshallingExcetion {
@@ -68,11 +68,10 @@ public class DbEventRetriever extends AbstractDbRetriever implements EventRetrie
         marshaller.header(writer);
 
         log.info("Query time bucket {}", time.toString());
-         
+
         dbClient.queryTimeSeries(EventTimeSeries.class, time, bucket, result,
                 getThreadPool());
 
         marshaller.tailer(writer);
     }
 }
-

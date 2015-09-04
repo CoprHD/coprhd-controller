@@ -100,7 +100,7 @@ public class BlockStorageUtils {
     public static final String COPY_NATIVE = "native";
     public static final String COPY_RP = "rp";
     public static final String COPY_SRDF = "srdf";
-    
+
     public static boolean isHost(URI id) {
         return StringUtils.startsWith(id.toString(), "urn:storageos:Host");
     }
@@ -122,12 +122,12 @@ public class BlockStorageUtils {
         }
         return execute(new GetCluster(clusterId));
     }
-    
+
     public static String getHostOrClusterId(URI hostOrClusterId) {
         String id = null;
         if (hostOrClusterId != null) {
             id = hostOrClusterId.toString();
-            if (BlockStorageUtils.isHost(hostOrClusterId)) {   
+            if (BlockStorageUtils.isHost(hostOrClusterId)) {
                 Host host = BlockStorageUtils.getHost(hostOrClusterId);
                 if (host.getCluster() != null) {
                     Cluster cluster = BlockStorageUtils.getCluster(host.getCluster());
@@ -143,7 +143,7 @@ public class BlockStorageUtils {
     public static BlockObjectRestRep getVolume(URI volumeId) {
         return getBlockResource(volumeId);
     }
-    
+
     public static List<BlockObjectRestRep> getVolumes(List<URI> volumeIds) {
         List<BlockObjectRestRep> volumes = Lists.newArrayList();
         for (URI volumeId : volumeIds) {
@@ -179,7 +179,7 @@ public class BlockStorageUtils {
     public static List<VolumeRestRep> getVolumeByName(String name) {
         return execute(new GetVolumeByName(name));
     }
-    
+
     public static ExportGroupRestRep getExport(URI exportId) {
         return execute(new GetBlockExport(exportId));
     }
@@ -199,7 +199,7 @@ public class BlockStorageUtils {
     public static List<ExportGroupRestRep> findExportsContainingCluster(URI cluster, URI projectId, URI varrayId) {
         return execute(new FindExportsContainingCluster(cluster, projectId, varrayId));
     }
-    
+
     public static List<ExportGroupRestRep> findExportsContainingHost(URI host, URI projectId, URI varrayId) {
         return execute(new FindExportsContainingHost(host, projectId, varrayId));
     }
@@ -316,24 +316,26 @@ public class BlockStorageUtils {
         addAffectedResource(task);
     }
 
-    public static URI createHostExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Host host, Map<URI, Integer> volumeHlus) {
+    public static URI createHostExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Host host,
+            Map<URI, Integer> volumeHlus) {
         String exportName = host.getHostName();
         Task<ExportGroupRestRep> task = execute(new CreateExport(exportName, virtualArrayId, projectId, volumeIds, hlu,
-            host.getHostName(), host.getId(), null, volumeHlus));
+                host.getHostName(), host.getId(), null, volumeHlus));
         URI exportId = task.getResourceId();
         addRollback(new DeactivateBlockExport(exportId));
         addAffectedResource(exportId);
         return exportId;
     }
 
-    public static Task<ExportGroupRestRep> createHostExportNoWait(URI projectId, URI virtualArrayId, 
+    public static Task<ExportGroupRestRep> createHostExportNoWait(URI projectId, URI virtualArrayId,
             List<URI> volumeIds, Integer hlu, Host host) {
         String exportName = host.getHostName();
-        return execute(new CreateExportNoWait(exportName, virtualArrayId, projectId, 
+        return execute(new CreateExportNoWait(exportName, virtualArrayId, projectId,
                 volumeIds, hlu, host.getHostName(), host.getId(), null));
     }
 
-    public static URI createClusterExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Cluster cluster, Map<URI, Integer> volumeHlus) {
+    public static URI createClusterExport(URI projectId, URI virtualArrayId, List<URI> volumeIds, Integer hlu, Cluster cluster,
+            Map<URI, Integer> volumeHlus) {
         String exportName = cluster.getLabel();
         Task<ExportGroupRestRep> task = execute(new CreateExport(exportName, virtualArrayId, projectId, volumeIds, hlu,
                 cluster.getLabel(), null, cluster.getId(), volumeHlus));
@@ -361,7 +363,7 @@ public class BlockStorageUtils {
                 Set<URI> volumesInExport = exportToVolumesMap.get(export.getExport().getId());
                 if (volumesInExport == null) {
                     volumesInExport = Sets.newHashSet(volumeId);
-                } 
+                }
                 else {
                     volumesInExport.add(volumeId);
                 }
@@ -370,7 +372,7 @@ public class BlockStorageUtils {
         }
         return exportToVolumesMap;
     }
-    
+
     public static void removeBlockResourcesFromExports(Map<URI, Set<URI>> exportToVolumesMap) {
         for (Map.Entry<URI, Set<URI>> entry : exportToVolumesMap.entrySet()) {
             // Check to see if the export returned is an internal export; one used by internal orchestrations only.
@@ -380,7 +382,7 @@ public class BlockStorageUtils {
             }
         }
     }
-    
+
     public static void removeBlockResourcesFromExports(Collection<URI> blockResourceIds) {
         Map<URI, Set<URI>> resourcesInExport = Maps.newHashMap();
         for (URI blockResourceId : blockResourceIds) {
@@ -391,18 +393,18 @@ public class BlockStorageUtils {
                     resourcesInExport.get(exportId).add(blockResourceId);
                 }
                 else {
-                    resourcesInExport.put(exportId,Sets.newHashSet(blockResourceId));
+                    resourcesInExport.put(exportId, Sets.newHashSet(blockResourceId));
                 }
             }
         }
-        
+
         removeBlockResourcesFromExports(resourcesInExport);
     }
-    
+
     public static void removeBlockResourceFromExport(URI resourceId, URI exportId) {
         removeBlockResourcesFromExport(Collections.singletonList(resourceId), exportId);
     }
-    
+
     public static void removeBlockResourcesFromExport(Collection<URI> resourceId, URI exportId) {
         Task<ExportGroupRestRep> task = execute(new RemoveBlockResourcesFromExport(exportId, resourceId));
         addAffectedResource(task);
@@ -413,7 +415,7 @@ public class BlockStorageUtils {
     public static void removeExportIfEmpty(URI exportId) {
         ExportGroupRestRep export = getExport(exportId);
         if (ResourceUtils.isActive(export) && export.getVolumes().isEmpty()) {
-            removeExport(export.getId() );
+            removeExport(export.getId());
         }
     }
 
@@ -468,7 +470,7 @@ public class BlockStorageUtils {
         Tasks<VolumeRestRep> tasks = execute(new DeactivateContinuousCopy(volumeId, continuousCopyId, COPY_NATIVE));
         addAffectedResources(tasks);
     }
-    
+
     public static List<URI> getActiveFullCopies(URI volumeId) {
         return ResourceUtils.ids(execute(new GetActiveFullCopiesForVolume(volumeId)));
     }
@@ -478,7 +480,7 @@ public class BlockStorageUtils {
         vols.removeAll(fullCopiesIds);
         removeFullCopies(fullCopiesIds);
     }
-    
+
     public static void removeFullCopies(Collection<URI> fullCopyIds) {
         for (URI fullCopyId : fullCopyIds) {
             removeFullCopy(fullCopyId);
@@ -495,15 +497,15 @@ public class BlockStorageUtils {
             detachFullCopy(fullCopyId);
         }
     }
-    
+
     public static void detachFullCopy(URI fullCopyId) {
         execute(new DetachFullCopy(fullCopyId));
     }
-    
+
     public static void restoreFromFullCopy(URI fullCopyId) {
         execute(new RestoreFromFullCopy(fullCopyId));
-    }    
-    
+    }
+
     public static Map<URI, Integer> findBlockVolumeHLUs(Collection<URI> volumeIds) {
         List<ITLRestRep> bulkResponse = execute(new FindBlockVolumeHlus(volumeIds));
         Map<URI, Integer> volumeHLUs = Maps.newHashMap();
@@ -518,7 +520,7 @@ public class BlockStorageUtils {
             resynchronizeFullCopy(fullCopyId);
         }
     }
-    
+
     public static void resynchronizeFullCopy(URI fullCopyId) {
         execute(new ResynchronizeFullCopy(fullCopyId));
     }
@@ -539,13 +541,12 @@ public class BlockStorageUtils {
         }
         deactivateBlockResources(blockResourceIds, type);
     }
-    
 
     private static void deactivateBlockResources(Collection<URI> blockResourceIds, VolumeDeleteTypeEnum type) {
         List<URI> volumes = Lists.newArrayList();
         List<URI> fullCopies = Lists.newArrayList();
         for (URI blockResourceId : blockResourceIds) {
-            if (ResourceType.isType(VOLUME,  blockResourceId)) {
+            if (ResourceType.isType(VOLUME, blockResourceId)) {
                 if (isFullCopyAttached(blockResourceId)) {
                     fullCopies.add(blockResourceId);
                 }
@@ -558,14 +559,14 @@ public class BlockStorageUtils {
         detachFullCopies(fullCopies);
         deactivateVolumes(volumes, type);
     }
-    
+
     public static boolean isFullCopyAttached(URI id) {
         BlockObjectRestRep obj = getVolume(id);
         if (obj instanceof VolumeRestRep) {
-            VolumeRestRep volume = (VolumeRestRep)obj;
+            VolumeRestRep volume = (VolumeRestRep) obj;
             if (volume.getProtection() != null) {
                 FullCopyRestRep fullCopy = volume.getProtection().getFullCopyRep();
-                if (fullCopy != null && 
+                if (fullCopy != null &&
                         fullCopy.getAssociatedSourceVolume() != null &&
                         fullCopy.getReplicaState() != null &&
                         !fullCopy.getReplicaState().equals(ReplicationState.DETACHED.name())) {
@@ -575,7 +576,7 @@ public class BlockStorageUtils {
         }
         return false;
     }
-    
+
     public static void deactivateVolumes(List<URI> volumeIds, VolumeDeleteTypeEnum type) {
         if (CollectionUtils.isNotEmpty(volumeIds)) {
             Tasks<VolumeRestRep> tasks = execute(new DeactivateVolumes(volumeIds, type));
@@ -590,8 +591,8 @@ public class BlockStorageUtils {
 
     public static List<URI> getSrdfTargetVolumes(BlockObjectRestRep blockObject) {
         List<URI> targetVolumes = Lists.newArrayList();
-        if (blockObject instanceof VolumeRestRep) {            
-            VolumeRestRep volume = (VolumeRestRep)blockObject;
+        if (blockObject instanceof VolumeRestRep) {
+            VolumeRestRep volume = (VolumeRestRep) blockObject;
             if (volume.getProtection() != null && volume.getProtection().getSrdfRep() != null) {
                 for (VirtualArrayRelatedResourceRep targetVolume : volume.getProtection().getSrdfRep().getSRDFTargetVolumes()) {
                     targetVolumes.add(targetVolume.getId());
@@ -609,7 +610,7 @@ public class BlockStorageUtils {
     public static void unexportVolumes(List<URI> volumeIds) {
         removeBlockResourcesFromExports(volumeIds);
     }
-    
+
     public static Set<Initiator> findInitiatorsInVirtualArray(URI virtualArray, Collection<Initiator> initiators,
             Protocol protocol) {
         return findInitiatorsInVirtualArrays(Arrays.asList(virtualArray), initiators, protocol);
@@ -651,7 +652,7 @@ public class BlockStorageUtils {
             }
         });
     }
-    
+
     public static Collection<Initiator> filterInitiatorsByType(Collection<Initiator> initiators, final Protocol protocol) {
         return Collections2.filter(initiators, new Predicate<Initiator>() {
             @Override
@@ -681,21 +682,21 @@ public class BlockStorageUtils {
         addAffectedResources(copies);
         return copies;
     }
-    
+
     public static Tasks<BlockSnapshotRestRep> createSnapshotFullCopy(URI snapshotId, String name, Integer count) {
         int countValue = (count != null) ? count : 1;
         Tasks<BlockSnapshotRestRep> copyTasks = ViPRExecutionUtils.execute(new CreateSnapshotFullCopy(snapshotId, name, countValue));
         addAffectedResources(copyTasks);
         return copyTasks;
     }
-    
+
     public static Tasks<VolumeRestRep> createContinuousCopy(URI volumeId, String name, Integer count) {
         int countValue = (count != null) ? count : 1;
         Tasks<VolumeRestRep> copies = execute(new CreateContinuousCopy(volumeId, name, countValue, COPY_NATIVE));
         addAffectedResources(copies);
         return copies;
     }
-    
+
     public static Tasks<VolumeRestRep> createContinuousCopy(URI volumeId, String name, Integer count, String type, URI copyId) {
         int countValue = (count != null) ? count : 1;
         Tasks<VolumeRestRep> copies = execute(new CreateContinuousCopy(volumeId, name, countValue, type, copyId));
@@ -708,7 +709,7 @@ public class BlockStorageUtils {
         addAffectedResources(copies);
         return copies;
     }
-    
+
     public static Task<BlockConsistencyGroupRestRep> addVolumesToConsistencyGroup(URI consistencyGroupId, List<URI> volumeIds) {
         Task<BlockConsistencyGroupRestRep> task = execute(new AddVolumesToConsistencyGroup(consistencyGroupId, volumeIds));
         addAffectedResource(task);
@@ -719,9 +720,9 @@ public class BlockStorageUtils {
      * Finds the exports (itl) for the given initiators.
      * 
      * @param exports
-     *        the list of all exports (itl)
+     *            the list of all exports (itl)
      * @param initiators
-     *        the initiators.
+     *            the initiators.
      * @return the exports for the initiators.
      */
     public static List<ITLRestRep> getExportsForInitiators(Collection<ITLRestRep> exports,
@@ -759,19 +760,19 @@ public class BlockStorageUtils {
 
         return false;
     }
-    
+
     /**
      * Get the project id off a {@link BlockObjectRestRep}
      */
     public static <T extends BlockObjectRestRep> URI getProjectId(T resource) {
         if (resource instanceof BlockSnapshotRestRep) {
-            return ((BlockSnapshotRestRep)resource).getProject().getId();
+            return ((BlockSnapshotRestRep) resource).getProject().getId();
         }
         else if (resource instanceof VolumeRestRep) {
-            return ((VolumeRestRep)resource).getProject().getId();
+            return ((VolumeRestRep) resource).getProject().getId();
         }
         else if (resource instanceof BlockMirrorRestRep) {
-            return ((BlockMirrorRestRep)resource).getProject().getId();
+            return ((BlockMirrorRestRep) resource).getProject().getId();
         }
         throw new IllegalStateException(ExecutionUtils.getMessage("illegalState.projectNotFound", resource.getId()));
     }
@@ -781,20 +782,20 @@ public class BlockStorageUtils {
      */
     public static URI getVirtualArrayId(BlockObjectRestRep resource) {
         if (resource instanceof VolumeRestRep) {
-            return ((VolumeRestRep)resource).getVirtualArray().getId();
+            return ((VolumeRestRep) resource).getVirtualArray().getId();
         }
         else if (resource instanceof BlockSnapshotRestRep) {
-            return ((BlockSnapshotRestRep)resource).getVirtualArray().getId();
+            return ((BlockSnapshotRestRep) resource).getVirtualArray().getId();
         }
         else if (resource instanceof BlockMirrorRestRep) {
-            return ((BlockMirrorRestRep)resource).getVirtualArray().getId();
+            return ((BlockMirrorRestRep) resource).getVirtualArray().getId();
         }
         throw new IllegalStateException(ExecutionUtils.getMessage("illegalState.varrayNotFound", resource.getId()));
     }
 
     public static String getFailoverType(BlockObjectRestRep blockObject) {
         if (blockObject instanceof VolumeRestRep) {
-            VolumeRestRep volume = (VolumeRestRep)blockObject;
+            VolumeRestRep volume = (VolumeRestRep) blockObject;
             if (volume.getProtection() != null && volume.getProtection().getRpRep() != null) {
                 VolumeRestRep.RecoverPointRestRep rp = volume.getProtection().getRpRep();
                 if (StringUtils.equals("TARGET", rp.getPersonality())) {

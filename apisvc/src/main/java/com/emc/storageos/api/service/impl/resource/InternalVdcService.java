@@ -49,9 +49,9 @@ import static com.emc.storageos.api.mapper.VirtualDataCenterMapper.map;
  */
 
 @Path("/internal/vdc")
-public class InternalVdcService extends ResourceService{
+public class InternalVdcService extends ResourceService {
     private static final Logger log = LoggerFactory.getLogger(InternalVdcService.class);
-    
+
     private static final String EVENT_SERVICE_TYPE = "internalVdcService";
 
     public String getServiceType() {
@@ -60,40 +60,40 @@ public class InternalVdcService extends ResourceService{
 
     @GET
     @Path("/{id}")
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})    
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public VirtualDataCenterRestRep getVdc(@PathParam("id") URI id) {
         ArgValidator.checkUri(id);
         VirtualDataCenter vdc = _dbClient.queryObject(VirtualDataCenter.class, id);
         return map(vdc);
     }
-    
+
     @GET
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})    
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public VirtualDataCenterList listVdc() {
         VirtualDataCenterList vdcList = new VirtualDataCenterList();
 
         List<URI> ids = _dbClient.queryByType(VirtualDataCenter.class, true);
         Iterator<VirtualDataCenter> iter = _dbClient.queryIterativeObjects(VirtualDataCenter.class, ids);
-        while(iter.hasNext())  {
+        while (iter.hasNext()) {
             vdcList.getVirtualDataCenters().add(toNamedRelatedResource(iter.next()));
         }
         return vdcList;
     }
-    
+
     @PUT
     @Path("/{id}")
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})    
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response setVdcInUse(@PathParam("id") URI id, @QueryParam("inuse") Boolean inUse) {
         ArgValidator.checkUri(id);
         VirtualDataCenterInUse vdcInUse = _dbClient.queryObject(VirtualDataCenterInUse.class, id);
-        if(vdcInUse == null) {
-        	vdcInUse = new VirtualDataCenterInUse();
-        	vdcInUse.setId(id);
-        	vdcInUse.setInUse(inUse);
-        	_dbClient.createObject(vdcInUse);
+        if (vdcInUse == null) {
+            vdcInUse = new VirtualDataCenterInUse();
+            vdcInUse.setId(id);
+            vdcInUse.setInUse(inUse);
+            _dbClient.createObject(vdcInUse);
         } else {
-        	vdcInUse.setInUse(inUse);
-        	_dbClient.updateAndReindexObject(vdcInUse);
+            vdcInUse.setInUse(inUse);
+            _dbClient.updateAndReindexObject(vdcInUse);
         }
         return Response.ok().build();
     }

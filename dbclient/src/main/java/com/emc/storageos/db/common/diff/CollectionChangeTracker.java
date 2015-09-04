@@ -48,7 +48,7 @@ public class CollectionChangeTracker<T extends SchemaObject, S extends Diff> ext
     private List<T> duplicateList = new ArrayList<T>();
     private List<S> diffs = new ArrayList<S>();
 
-    public static <T extends SchemaObject, S extends Diff> CollectionChangeTracker<T,S> newInstance(
+    public static <T extends SchemaObject, S extends Diff> CollectionChangeTracker<T, S> newInstance(
             Class<T> schemaClass, Class<S> diffClass, List<T> srcList, List<T> tgtList) {
         if (srcList == null && tgtList == null)
             return null;
@@ -56,7 +56,7 @@ public class CollectionChangeTracker<T extends SchemaObject, S extends Diff> ext
         if (srcList != null && srcList.equals(tgtList))
             return null;
 
-        CollectionChangeTracker<T,S> ret = new CollectionChangeTracker<T,S>(schemaClass,
+        CollectionChangeTracker<T, S> ret = new CollectionChangeTracker<T, S>(schemaClass,
                 diffClass, srcList, tgtList);
         if (ret.isChanged())
             return ret;
@@ -67,7 +67,7 @@ public class CollectionChangeTracker<T extends SchemaObject, S extends Diff> ext
     private CollectionChangeTracker() {
     }
 
-    private CollectionChangeTracker(Class<T> schemaClass, Class<S> diffClass, 
+    private CollectionChangeTracker(Class<T> schemaClass, Class<S> diffClass,
             List<T> srcList, List<T> tgtList) {
         clazz = schemaClass;
 
@@ -81,8 +81,8 @@ public class CollectionChangeTracker<T extends SchemaObject, S extends Diff> ext
             return;
         }
 
-        //We want to catch whether there are duplicate keys in the tgt list.
-        //This is primarily for CFs. Now let's assume that the src list is safe.
+        // We want to catch whether there are duplicate keys in the tgt list.
+        // This is primarily for CFs. Now let's assume that the src list is safe.
         Map<String, T> tgtMap = new HashMap<String, T>();
         for (T tgt : tgtList) {
             String tgtKey = getKey(tgt);
@@ -94,7 +94,7 @@ public class CollectionChangeTracker<T extends SchemaObject, S extends Diff> ext
         }
         tgtMap.clear();
 
-        //initialize newList
+        // initialize newList
         for (T tgt : tgtList) {
             String tgtKey = getKey(tgt);
             boolean found = false;
@@ -104,7 +104,7 @@ public class CollectionChangeTracker<T extends SchemaObject, S extends Diff> ext
                     found = true;
                     if (!tgt.equals(src)) {
                         try {
-                            S diff = diffClass.getConstructor(schemaClass, 
+                            S diff = diffClass.getConstructor(schemaClass,
                                     schemaClass).newInstance(src, tgt);
                             if (diff.isChanged())
                                 diffs.add(diff);
@@ -119,7 +119,7 @@ public class CollectionChangeTracker<T extends SchemaObject, S extends Diff> ext
                 newList.add(tgt);
         }
 
-        //initialize removedList
+        // initialize removedList
         for (T src : srcList) {
             String srcKey = getKey(src);
             boolean found = false;
@@ -135,45 +135,45 @@ public class CollectionChangeTracker<T extends SchemaObject, S extends Diff> ext
     }
 
     @XmlElements({
-        @XmlElement(name = "new_annotation", type = AnnotationType.class),
-        @XmlElement(name = "new_annotation_value", type = AnnotationValue.class),
-        @XmlElement(name = "new_schema", type = DbSchema.class),
-        @XmlElement(name = "new_field", type = FieldInfo.class)
+            @XmlElement(name = "new_annotation", type = AnnotationType.class),
+            @XmlElement(name = "new_annotation_value", type = AnnotationValue.class),
+            @XmlElement(name = "new_schema", type = DbSchema.class),
+            @XmlElement(name = "new_field", type = FieldInfo.class)
     })
     public List<T> getNewList() {
         return newList;
     }
- 
+
     @XmlElements({
-        @XmlElement(name = "removed_annotation", type = AnnotationType.class),
-        @XmlElement(name = "removed_annotation_value", type = AnnotationValue.class),
-        @XmlElement(name = "removed_schema", type = DbSchema.class),
-        @XmlElement(name = "removed_field", type = FieldInfo.class)
+            @XmlElement(name = "removed_annotation", type = AnnotationType.class),
+            @XmlElement(name = "removed_annotation_value", type = AnnotationValue.class),
+            @XmlElement(name = "removed_schema", type = DbSchema.class),
+            @XmlElement(name = "removed_field", type = FieldInfo.class)
     })
     public List<T> getRemovedList() {
         return removedList;
     }
- 
+
     @XmlElements({
-        @XmlElement(name = "duplicate_annotation", type = AnnotationType.class),
-        @XmlElement(name = "duplicate_annotation_value", type = AnnotationValue.class),
-        @XmlElement(name = "duplicate_schema", type = DbSchema.class),
-        @XmlElement(name = "duplicate_field", type = FieldInfo.class)
+            @XmlElement(name = "duplicate_annotation", type = AnnotationType.class),
+            @XmlElement(name = "duplicate_annotation_value", type = AnnotationValue.class),
+            @XmlElement(name = "duplicate_schema", type = DbSchema.class),
+            @XmlElement(name = "duplicate_field", type = FieldInfo.class)
     })
     public List<T> getDuplicateList() {
         return duplicateList;
     }
- 
+
     @XmlElements({
-        @XmlElement(name = "changed_annotation", type = AnnotationTypeDiff.class),
-        @XmlElement(name = "changed_annotation_value", type = AnnotationValueDiff.class),
-        @XmlElement(name = "changed_schema", type = DbSchemaDiff.class),
-        @XmlElement(name = "changed_field", type = FieldInfoDiff.class)
+            @XmlElement(name = "changed_annotation", type = AnnotationTypeDiff.class),
+            @XmlElement(name = "changed_annotation_value", type = AnnotationValueDiff.class),
+            @XmlElement(name = "changed_schema", type = DbSchemaDiff.class),
+            @XmlElement(name = "changed_field", type = FieldInfoDiff.class)
     })
     public List<S> getDiff() {
         return diffs;
     }
- 
+
     @XmlTransient
     public Class<T> getSchemaClass() {
         return clazz;
@@ -184,8 +184,8 @@ public class CollectionChangeTracker<T extends SchemaObject, S extends Diff> ext
         for (int i = 0; i < methods.length; i++) {
             if (methods[i].isAnnotationPresent(Key.class)) {
                 try {
-                    return (String)methods[i].invoke(value);
-                } catch (Exception e){
+                    return (String) methods[i].invoke(value);
+                } catch (Exception e) {
                     log.error("Failed to get key", e);
                 }
             }
@@ -226,14 +226,13 @@ public class CollectionChangeTracker<T extends SchemaObject, S extends Diff> ext
                 returnVal = false;
         }
 
-        
         if (clazz.equals(AnnotationType.class)) {
             for (T element : newList) {
                 AnnotationType at = (AnnotationType) element;
                 Class cfClass = at.getCfClass();
-                
-                // refuse adding any annotation (including index) on existing field 
-                if(cfClass.isAnnotationPresent(DbKeyspace.class)) {
+
+                // refuse adding any annotation (including index) on existing field
+                if (cfClass.isAnnotationPresent(DbKeyspace.class)) {
                     DbKeyspace keyspaceType = (DbKeyspace) cfClass.getAnnotation(DbKeyspace.class);
                     if (DbKeyspace.Keyspaces.GLOBAL.equals(keyspaceType.value())) {
                         log.warn("An unsupported geo schema change has been made. {} has been added",
@@ -242,7 +241,7 @@ public class CollectionChangeTracker<T extends SchemaObject, S extends Diff> ext
                         break;
                     }
                 }
-                
+
                 // check UpgradeAllowed annotation for new annotations
                 if (!CustomMigrationCallback.class.isAssignableFrom(at.getAnnoClass()) &&
                         !at.getAnnoClass().isAnnotationPresent(UpgradeAllowed.class)) {

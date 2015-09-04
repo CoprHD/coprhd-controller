@@ -25,7 +25,7 @@ public class BlockSnapshotCopyGroupToTargetsCompleter extends
             LoggerFactory.getLogger(BlockSnapshotCopyGroupToTargetsCompleter.class);
 
     public BlockSnapshotCopyGroupToTargetsCompleter(Class clazz, List<URI> ids,
-                                                    String opId) {
+            String opId) {
         super(clazz, ids, opId);
     }
 
@@ -37,23 +37,23 @@ public class BlockSnapshotCopyGroupToTargetsCompleter extends
                 // For snapshot based on a consistency group, set status and send
                 // events for all related snaps
                 List<BlockSnapshot> snaps = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshot, dbClient);
-                for(BlockSnapshot snap : snaps) {
+                for (BlockSnapshot snap : snaps) {
                     URI uri = snap.getId();
                     switch (status) {
-                    case error:
-                        dbClient.error(BlockSnapshot.class, uri, getOpId(), coded);
-                        break;
-                    default:
-                        dbClient.ready(BlockSnapshot.class, uri, getOpId());
+                        case error:
+                            dbClient.error(BlockSnapshot.class, uri, getOpId(), coded);
+                            break;
+                        default:
+                            dbClient.ready(BlockSnapshot.class, uri, getOpId());
                     }
                 }
             } else {
                 switch (status) {
-                case error:
-                    dbClient.error(BlockSnapshot.class, getId(), getOpId(), coded);
-                    break;
-                default:
-                    dbClient.ready(BlockSnapshot.class, getId(), getOpId());
+                    case error:
+                        dbClient.error(BlockSnapshot.class, getId(), getOpId(), coded);
+                        break;
+                    default:
+                        dbClient.ready(BlockSnapshot.class, getId(), getOpId());
                 }
             }
         } catch (Exception e) {

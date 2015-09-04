@@ -83,8 +83,8 @@ import com.google.common.net.InetAddresses;
 public class VdcConfigService {
     private static final Logger log = LoggerFactory.getLogger(VdcConfigService.class);
 
-    public static final String DataServiceName= "blobsvc";
-    public static final String DataServiceVersion= "1";
+    public static final String DataServiceName = "blobsvc";
+    public static final String DataServiceVersion = "1";
 
     @Autowired
     private GeoBackgroundTasks geoBackgroundTasks;
@@ -138,16 +138,16 @@ public class VdcConfigService {
         } else {
             // check if VDC is in CONNECTED status
             // check if VDC is in CONNECTED status- remove, add; update will skip-CTRL3549
-            if(checkParam.getConfigChangeType().equals(VdcConfig.ConfigChangeType.CONNECT_VDC.toString()) ||
-              (checkParam.getConfigChangeType().equals(VdcConfig.ConfigChangeType.REMOVE_VDC.toString())) ){
-                 if (vdc.getConnectionStatus() != VirtualDataCenter.ConnectionStatus.CONNECTED) {
-                     throw GeoException.fatals.remoteVDCWrongOperationStatus(vdc.getId(),checkParam.getConfigChangeType());
-                 } 
+            if (checkParam.getConfigChangeType().equals(VdcConfig.ConfigChangeType.CONNECT_VDC.toString()) ||
+                    (checkParam.getConfigChangeType().equals(VdcConfig.ConfigChangeType.REMOVE_VDC.toString()))) {
+                if (vdc.getConnectionStatus() != VirtualDataCenter.ConnectionStatus.CONNECTED) {
+                    throw GeoException.fatals.remoteVDCWrongOperationStatus(vdc.getId(), checkParam.getConfigChangeType());
+                }
             }
         }
 
         boolean hasData = false;
-        if(isFresher) 
+        if (isFresher)
             hasData = hasDataInDb();
 
         hasData |= hasDataService();
@@ -159,7 +159,8 @@ public class VdcConfigService {
             remoteSoftVer = new SoftwareVersion(checkParam.getSoftwareVersion());
             log.info("Software version of remote vdc: {}", remoteSoftVer);
         } catch (Exception e) {
-            log.info("Cannot get software version from checkParam, the version of remote vdc is lower than v2.3 with exception {}", e.getMessage());
+            log.info("Cannot get software version from checkParam, the version of remote vdc is lower than v2.3 with exception {}",
+                    e.getMessage());
         }
 
         SoftwareVersion localSoftVer;
@@ -175,6 +176,7 @@ public class VdcConfigService {
     /**
      * Check if there are useful data in the DB
      * we don't check the data whose type is in excludeClasses
+     * 
      * @return true if there are data no matter inactive or not
      */
     private boolean hasDataInDb() {
@@ -200,7 +202,7 @@ public class VdcConfigService {
             if (services.isEmpty()) {
                 return false;
             }
-        }catch(Exception e) {
+        } catch (Exception e) {
             return false;
         }
 
@@ -212,13 +214,13 @@ public class VdcConfigService {
             return false; // ignore the data in those CFs
         }
 
-        //true: query only active object ids, for below reason: 
-        //add VDC should succeed just when remove the data in vdc2.
+        // true: query only active object ids, for below reason:
+        // add VDC should succeed just when remove the data in vdc2.
         List<URI> ids = dbClient.queryByType(clazz, true, null, 2);
 
         if (clazz.equals(TenantOrg.class) || clazz.equals(ObjectStore.class)) {
-            if (ids.size() >1) {
-                //at least one non-root tenant exist
+            if (ids.size() > 1) {
+                // at least one non-root tenant exist
                 return true;
             }
 
@@ -273,13 +275,14 @@ public class VdcConfigService {
                     log.info("Precheck2 to check the disconnect vdc {} is reachable", targetVdcId);
                     VirtualDataCenter targetVdc = dbClient.queryObject(VirtualDataCenter.class, targetVdcId);
 
-                    resp2.setIsAllNodesNotReachable(!helper.areNodesReachable(getLocalVdc().getShortId(), targetVdc.getHostIPv4AddressesMap(), targetVdc.getHostIPv6AddressesMap(), checkParam.getIsAllNotReachable()));
+                    resp2.setIsAllNodesNotReachable(!helper.areNodesReachable(getLocalVdc().getShortId(),
+                            targetVdc.getHostIPv4AddressesMap(), targetVdc.getHostIPv6AddressesMap(), checkParam.getIsAllNotReachable()));
                     break;
                 }
                 if (precheckFailed) {
                     log.info("Precheck2 to update reconnect precheck fail status");
                     String vdcState = checkParam.getDefaultVdcState();
-                    if( StringUtils.isNotEmpty(vdcState)) {
+                    if (StringUtils.isNotEmpty(vdcState)) {
                         vdc.setConnectionStatus(VirtualDataCenter.ConnectionStatus.valueOf(vdcState));
                         dbClient.updateAndReindexObject(vdc);
                     }
@@ -297,7 +300,7 @@ public class VdcConfigService {
                     }
 
                     // BZ
-                    // TODO  need to use a different field to set locks on concurrent VDC operation
+                    // TODO need to use a different field to set locks on concurrent VDC operation
                     URI id = checkParam.getVdcIds().get(0);
                     vdc = dbClient.queryObject(VirtualDataCenter.class, id);
                     vdc.setConnectionStatus(VirtualDataCenter.ConnectionStatus.DISCONNECTING);
@@ -324,7 +327,7 @@ public class VdcConfigService {
                     log.info("Precheck2 to check the disconnect vdc {} is reachable", targetVdcId);
                     VirtualDataCenter targetVdc = dbClient.queryObject(VirtualDataCenter.class, targetVdcId);
                     String vdcState = checkParam.getDefaultVdcState();
-                    if( StringUtils.isNotEmpty(vdcState)) {
+                    if (StringUtils.isNotEmpty(vdcState)) {
                         targetVdc.setConnectionStatus(VirtualDataCenter.ConnectionStatus.valueOf(vdcState));
                         dbClient.updateAndReindexObject(targetVdc);
                     }
@@ -360,7 +363,7 @@ public class VdcConfigService {
         log.info("The localBackLists={}", localBlackLists);
         List<String> localBlackList = new ArrayList();
         for (List<String> list : localBlackLists) {
-            localBlackList =  list;
+            localBlackList = list;
         }
 
         return localBlackList.containsAll(whiteList);
@@ -380,11 +383,11 @@ public class VdcConfigService {
     }
 
     @PUT
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response syncVdcConfig(VdcConfigSyncParam param) {
         log.info("Acquired gobal lock, vdc {}...", param.getVirtualDataCenters().size());
 
-        VdcConfig.ConfigChangeType  type = VdcConfig.ConfigChangeType.valueOf(param.getConfigChangeType());
+        VdcConfig.ConfigChangeType type = VdcConfig.ConfigChangeType.valueOf(param.getConfigChangeType());
         log.info("Current config change type is {}", type);
 
         switch (type) {
@@ -392,7 +395,7 @@ public class VdcConfigService {
                 String disconntecedvdcId = param.getAssignedVdcId();
                 try {
                     disconnectVdc(disconntecedvdcId);
-                }catch (Exception e) {
+                } catch (Exception e) {
                     throw GeoException.fatals.disconnectRemoteSyncFailed(disconntecedvdcId, e.getMessage());
                 }
                 break;
@@ -400,17 +403,17 @@ public class VdcConfigService {
                 String reconnectVdcId = param.getAssignedVdcId();
                 try {
                     VirtualDataCenter localVdc = VdcUtil.getLocalVdc();
-                    //If the local vdc is the one need to be reconnected back, trigger a node repair for geodb
+                    // If the local vdc is the one need to be reconnected back, trigger a node repair for geodb
                     if (localVdc.getId().toString().equals(reconnectVdcId)) {
                         log.info("Perform sync vdc config operation and node repair for the reconnected vdc {}", reconnectVdcId);
                         VirtualDataCenter reconnVdc = dbClient.queryObject(VirtualDataCenter.class, new URI(reconnectVdcId));
 
-                        //Update operated local db, make sure all the vdcs in operated vdc'd db have the same status with others.
+                        // Update operated local db, make sure all the vdcs in operated vdc'd db have the same status with others.
                         log.info("Reconnect ops update local db for operatedVdc");
                         updateVdcStatusInDB(param.getVirtualDataCenters());
                         log.info("Reconnect ops update local db done");
 
-                        //Clean blacklist for reconnected vdc
+                        // Clean blacklist for reconnected vdc
                         log.info("Reconnect ops to clean blacklist for reconnected vdc.");
                         updateBlackListForReconnectedVdc();
                         log.info("Reconnect ops: new blacklist is {}", dbClient.getBlacklist());
@@ -425,7 +428,7 @@ public class VdcConfigService {
                     } else {
                         reconnectVdc(reconnectVdcId);
                     }
-                }catch (Exception e) {
+                } catch (Exception e) {
                     throw GeoException.fatals.reconnectRemoteSyncFailed(reconnectVdcId, e.getMessage());
                 }
                 break;
@@ -434,11 +437,11 @@ public class VdcConfigService {
 
                 String assignedVdcId = param.getAssignedVdcId();
                 String geoEncryptionKey = param.getGeoEncryptionKey();
-                
+
                 // for add-vdc
                 if (assignedVdcId != null && geoEncryptionKey != null) {
                     log.info("This vdc will be added to a geo system.");
-                    if (! srcVdcIdIter.hasNext() ) {
+                    if (!srcVdcIdIter.hasNext()) {
                         throw GeoException.fatals.connectVDCLocalMultipleVDC(assignedVdcId);
                     }
                     URI srcVdcId = srcVdcIdIter.next();
@@ -452,7 +455,7 @@ public class VdcConfigService {
                     helper.setGeoEncryptionKey(geoEncryptionKey);
                     log.info("geo encryption key has been updated");
                     helper.resetStaleLocalObjects();
-                    
+
                     dbClient.stopClusterGossiping();
                 } else if (assignedVdcId == null && geoEncryptionKey == null) {
                     log.info("Sync'ing new vdc info to existing geo system.");
@@ -461,8 +464,6 @@ public class VdcConfigService {
                 }
 
                 helper.syncVdcConfig(param.getVirtualDataCenters(), assignedVdcId);
-
-
 
                 if (isRemoveOp(param)) {
                     log.info("Disable grossip to avoid schema version disagreement errors");
@@ -482,7 +483,7 @@ public class VdcConfigService {
         }
         for (VdcConfig vdcConfig : vdcConfigs) {
             log.info("current config's id is {}", vdcConfig.getId());
-            if(vdcIdIter.contains(vdcConfig.getId())) {
+            if (vdcIdIter.contains(vdcConfig.getId())) {
                 VirtualDataCenter vdc = dbClient.queryObject(VirtualDataCenter.class, vdcConfig.getId());
                 vdc.setConnectionStatus(VirtualDataCenter.ConnectionStatus.valueOf(vdcConfig.getConnectionStatus()));
                 dbClient.updateAndReindexObject(vdc);
@@ -490,13 +491,13 @@ public class VdcConfigService {
         }
     }
 
-    private void updateBlackListForReconnectedVdc(){
+    private void updateBlackListForReconnectedVdc() {
         List<URI> vdcIds = dbClient.queryByType(VirtualDataCenter.class, true);
         dbClient.clearBlackList();
         log.info("After clear, get current black list {}", dbClient.getBlacklist());
-        for(URI vdcId : vdcIds) {
+        for (URI vdcId : vdcIds) {
             VirtualDataCenter vdc = dbClient.queryObject(VirtualDataCenter.class, vdcId);
-            if(vdc.getConnectionStatus() == VirtualDataCenter.ConnectionStatus.DISCONNECTED) {
+            if (vdc.getConnectionStatus() == VirtualDataCenter.ConnectionStatus.DISCONNECTED) {
                 log.info("Add vdc {} with status {} to blacklist", vdc.getId(), vdc.getConnectionStatus());
                 dbClient.addVdcNodesToBlacklist(vdc);
             }
@@ -508,8 +509,8 @@ public class VdcConfigService {
         VirtualDataCenter vdc = dbClient.queryObject(VirtualDataCenter.class, id);
         vdc.setConnectionStatus(VirtualDataCenter.ConnectionStatus.DISCONNECTED);
         dbClient.updateAndReindexObject(vdc);
-        
-        dbClient.addVdcNodesToBlacklist(vdc); 
+
+        dbClient.addVdcNodesToBlacklist(vdc);
     }
 
     private void reconnectVdc(String vdcId) throws Exception {
@@ -520,7 +521,6 @@ public class VdcConfigService {
 
         dbClient.removeVdcNodesFromBlacklist(vdc);
     }
-
 
     private boolean isRemoveOp(VdcConfigSyncParam param) {
         return VdcConfig.ConfigChangeType.REMOVE_VDC.toString().equals(param.getConfigChangeType());
@@ -550,7 +550,8 @@ public class VdcConfigService {
 
         String ipv4Str = checkParam.getIPv4Address();
         String ipv6Str = checkParam.getIPv6Address();
-        log.info(String.format("Performing NAT check, client address connecting to VIP: %s. Client reports its IPv4 = %s, IPv6 = %s", clientIp, ipv4Str, ipv6Str));
+        log.info(String.format("Performing NAT check, client address connecting to VIP: %s. Client reports its IPv4 = %s, IPv6 = %s",
+                clientIp, ipv4Str, ipv6Str));
 
         InetAddress ipv4Addr = parseInetAddress(ipv4Str);
         InetAddress ipv6Addr = parseInetAddress(ipv6Str);
@@ -569,7 +570,7 @@ public class VdcConfigService {
     }
 
     /**
-     * Post check after sync vdc config. 
+     * Post check after sync vdc config.
      * Verify if connect vdc finished successfully, if so, update the connection status.
      *
      * @param checkParam List of parameters to be checked.
@@ -587,6 +588,7 @@ public class VdcConfigService {
 
     /**
      * check to see if the individual nodes of one vdc are visible from another
+     * 
      * @param checkParam
      * @return
      */
@@ -604,7 +606,7 @@ public class VdcConfigService {
 
         ArgValidator.checkFieldNotEmpty(vdcList, "vdc");
         VirtualDataCenter localVdc = VdcUtil.getLocalVdc();
-        if( localVdc == null ) {
+        if (localVdc == null) {
             throw GeoException.fatals.failedToFindLocalVDC();
         }
 
@@ -653,7 +655,8 @@ public class VdcConfigService {
         return to;
     }
 
-    private VdcPreCheckResponse toVirtualDataCenterResponse(VirtualDataCenter from, boolean hasData, SoftwareVersion remoteSoftVer, SoftwareVersion localSoftVer) {
+    private VdcPreCheckResponse toVirtualDataCenterResponse(VirtualDataCenter from, boolean hasData, SoftwareVersion remoteSoftVer,
+            SoftwareVersion localSoftVer) {
         if (from == null) {
             return null;
         }
@@ -681,7 +684,7 @@ public class VdcConfigService {
         to.setCompatible(compatible);
         boolean clusterStable = isClusterStable();
         to.setClusterStable(clusterStable);
-        log.info("current cluster stable {}",clusterStable );
+        log.info("current cluster stable {}", clusterStable);
 
         return to;
     }
@@ -696,15 +699,16 @@ public class VdcConfigService {
         to.setCompatible(helper.isCompatibleVersion(softVer));
         boolean clusterStable = isClusterStable();
         to.setClusterStable(clusterStable);
-        log.info("current cluster stable {}",clusterStable );
+        log.info("current cluster stable {}", clusterStable);
 
         return to;
     }
 
     /**
      * Check to see if the local cluster is stable
+     * 
      * @return true if state is STABLE
-     */    
+     */
     private boolean isClusterStable() {
         return helper.isClusterStable();
     }
@@ -712,7 +716,7 @@ public class VdcConfigService {
     /**
      * Sync all VDCs' certs into the local VDC.
      *
-     * @param vdcCertListParam     vdc certs list parameter
+     * @param vdcCertListParam vdc certs list parameter
      *
      * @return
      */
@@ -741,7 +745,7 @@ public class VdcConfigService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/resetblacklist")
     public Response resetBlackListForVdc(@QueryParam("vdc_short_id") String vdcShortId) {
-    	try {
+        try {
             log.info("Reset blacklist for {}", vdcShortId);
             URI vdcId = VdcUtil.getVdcUrn(vdcShortId);
             VirtualDataCenter vdc = dbClient.queryObject(VirtualDataCenter.class, vdcId);
@@ -749,10 +753,10 @@ public class VdcConfigService {
             return Response.ok().build();
         } catch (InternalException ex) {
             throw ex;
-    	} catch (Exception ex) {
+        } catch (Exception ex) {
             log.error("Reset blacklist vdc error", ex);
             throw GeoException.fatals.reconnectVdcIncompatible();
-    	}
+        }
     }
-    
+
 }

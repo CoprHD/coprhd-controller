@@ -16,7 +16,7 @@ import com.iwave.ext.netapp.IGroupInfo;
 public class NetAppDevice implements Serializable {
     private static final long serialVersionUID = 1L;
     public static final String DEVICE_TYPE = "NetAppDevice";
-    
+
     public static final String IP_KEY = "device.ip";
     public static final String PORT_KEY = "device.port";
     public static final String USR_KEY = "device.usr";
@@ -53,7 +53,7 @@ public class NetAppDevice implements Serializable {
     public void setPort(int port) {
         this.port = port;
     }
-    
+
     public boolean isSecure() {
         return secure;
     }
@@ -99,5 +99,5 @@ public class NetAppDevice implements Serializable {
         info.put(SECURE_KEY, secure + "");
         return info;
     }
-    
+
 }

@@ -17,29 +17,28 @@ import org.jsoup.Jsoup;
 import org.jsoup.safety.Whitelist;
 import org.owasp.esapi.ESAPI;
 
-
 /**
- * Class contains web application security helper methods. 
+ * Class contains web application security helper methods.
  *
  */
 public class SecurityUtils {
-	private static final Logger log = LoggerFactory.getLogger(SecurityUtils.class);
+    private static final Logger log = LoggerFactory.getLogger(SecurityUtils.class);
 
-	/**
-	 * Removes any potential XSS threats from the value.
-	 * Depends on the WASP ESAPI (owasp.org) and jsoup libraries (jsoup.org).
-	 * 
-	 * @param value  data to be cleaned
-	 * @return cleaned data
-	 */
+    /**
+     * Removes any potential XSS threats from the value.
+     * Depends on the WASP ESAPI (owasp.org) and jsoup libraries (jsoup.org).
+     * 
+     * @param value data to be cleaned
+     * @return cleaned data
+     */
     public static String stripXSS(String value) {
         if (value == null)
-              return null;
+            return null;
 
-        value = ESAPI.encoder().canonicalize( value );
+        value = ESAPI.encoder().canonicalize(value);
         value = value.replaceAll("\0", "");
-        value = Jsoup.clean( value, Whitelist.none() );
-        
+        value = Jsoup.clean(value, Whitelist.none());
+
         return value;
     }
 

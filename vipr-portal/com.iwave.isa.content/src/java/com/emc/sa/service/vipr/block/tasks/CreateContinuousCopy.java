@@ -43,7 +43,7 @@ public class CreateContinuousCopy extends WaitForTasks<VolumeRestRep> {
         copy.setName(name);
         copy.setCount(count);
         copy.setType(type);
-        
+
         if (copyId != null) {
             copy.setCopyID(copyId);
         }

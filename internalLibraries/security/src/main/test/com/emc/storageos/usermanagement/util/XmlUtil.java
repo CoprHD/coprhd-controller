@@ -16,7 +16,6 @@ import java.io.InputStream;
 import java.io.StringReader;
 import java.io.StringWriter;
 
-
 public class XmlUtil {
 
     private static Logger _log = LoggerFactory.getLogger(XmlUtil.class);
@@ -25,11 +24,11 @@ public class XmlUtil {
         throw new AssertionError("Don't create any instance of class XmlUtils");
     }
 
-
     /**
      * General method to parse XML content
+     * 
      * @param t
-     *          The Class instance which will be marshaled
+     *            The Class instance which will be marshaled
      * @return string of content
      */
     public synchronized static <T> String marshal(T t) {
@@ -52,10 +51,11 @@ public class XmlUtil {
 
     /**
      * General method to parse XML content
+     * 
      * @param content
-     *          The string content which need to be parsed
+     *            The string content which need to be parsed
      * @param tClass
-     *          Class identifier of desired type
+     *            Class identifier of desired type
      * @return instance of desired type
      */
     public synchronized static <T> T unmarshal(String content, Class<T> tClass) {
@@ -75,10 +75,11 @@ public class XmlUtil {
 
     /**
      * General method to parse XML content
+     * 
      * @param inputStream
-     *          The content which need to be parsed
+     *            The content which need to be parsed
      * @param tClass
-     *          Class identifier of desired type
+     *            Class identifier of desired type
      * @return instance of desired type
      */
     public synchronized static <T> T unmarshal(InputStream inputStream, Class<T> tClass) {
@@ -91,11 +92,11 @@ public class XmlUtil {
             je.printStackTrace();
         } finally {
             try {
-                if(inputStream != null) {
+                if (inputStream != null) {
                     inputStream.close();
                 }
             } catch (IOException ioe) {
-                _log.error("Unable to close input stream "+ioe.getMessage(), ioe);
+                _log.error("Unable to close input stream " + ioe.getMessage(), ioe);
                 ioe.printStackTrace();
             }
         }

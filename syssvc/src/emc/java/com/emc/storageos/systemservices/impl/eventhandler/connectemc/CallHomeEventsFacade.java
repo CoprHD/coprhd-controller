@@ -37,7 +37,7 @@ import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 /**
  * Facade class for processing sending SYR events including update coordinator when necessary
  * Note: Should not make methods in this class as synchronized. Otherwise it will cause
- * deadlocks of the caller of these methods because the monitor lock cannot be released 
+ * deadlocks of the caller of these methods because the monitor lock cannot be released
  * (out of synchronized method) until the shared targetVersionLock of CoordinatorClientExt
  * is released. Synchronization of sending SYR events is covered in callEMCHome() of
  * SendEvent class
@@ -56,6 +56,7 @@ public class CallHomeEventsFacade {
     private AuditLogManager auditMgr;
     @Autowired
     private CoordinatorClientExt coordinator;
+
     /**
      * Sends Object Registration Event to SYR.
      * 
@@ -66,12 +67,12 @@ public class CallHomeEventsFacade {
      */
     public void sendRegistrationEvent(LicenseInfoExt licenseInfo, MediaType mediaType) {
 
-        if(licenseInfo.isTrialLicense()) {
+        if (licenseInfo.isTrialLicense()) {
             _log.info("CallHomeEventsFacade will not send registration event for trial license of type {}",
                     licenseInfo.getLicenseType().toString());
             return;
         }
-        
+
         // update coordinator with a new latest registration date..
         licenseInfo.setLastRegistrationEventDate(formatCurrentDate());
 
@@ -84,9 +85,9 @@ public class CallHomeEventsFacade {
         // send registration data to SYR
         SendRegistrationEvent sendRegistrationEvent = new SendRegistrationEvent
                 (serviceInfo, logSvcPropertiesLoader, mediaType, licenseInfo, coordinator);
-        sendRegistrationEvent.callEMCHome();              
+        sendRegistrationEvent.callEMCHome();
     }
-    
+
     /**
      * Sends Controller Heartbeat Event to SYR.
      *
@@ -96,27 +97,27 @@ public class CallHomeEventsFacade {
      * @throws Exception
      */
     public void sendHeartBeatEvent(LicenseInfoExt licenseInfo, MediaType mediaType) {
-        if(licenseInfo.isTrialLicense()) {
+        if (licenseInfo.isTrialLicense()) {
             _log.info("CallHomeEventsFacade will not send heartbeat event for trial license of type {}",
                     licenseInfo.getLicenseType().toString());
             return;
         }
-                  
+
         // update coordinator with a new latest heartbeat date..
         licenseInfo.setLastHeartbeatEventDate(formatCurrentDate());
-       
+
         _log.info("CallHomeEventsFacade::sendHeartBeatEvent updating coordinator with {} heartbeat data",
                 licenseInfo.getLicenseType().toString());
         _licenseManager.updateCoordinatorWithLicenseInfo(licenseInfo);
 
         // send heartbeat data to SYR
-        _log.info("CallHomeEventsFacade::sendHeartBeatEvent sending {} heartbeat to SYR", 
-               licenseInfo.getLicenseType());
+        _log.info("CallHomeEventsFacade::sendHeartBeatEvent sending {} heartbeat to SYR",
+                licenseInfo.getLicenseType());
         SendHeartbeatEvent sendHeartbeatEvent = new SendHeartbeatEvent
                 (serviceInfo, logSvcPropertiesLoader, mediaType, licenseInfo, coordinator);
         sendHeartbeatEvent.callEMCHome();
     }
-  
+
     /**
      * Sends Controller License Expiration Event to SYR.
      *
@@ -125,39 +126,39 @@ public class CallHomeEventsFacade {
      * @throws CoordinatorClientException
      * @throws Exception
      */
-    public void sendExpirationEvent(LicenseInfoExt licenseInfo, MediaType mediaType) 
+    public void sendExpirationEvent(LicenseInfoExt licenseInfo, MediaType mediaType)
             throws CoordinatorClientException, Exception {
-        if(licenseInfo.isTrialLicense()) {
+        if (licenseInfo.isTrialLicense()) {
             _log.info("CallHomeEventsFacade will not send expiration event for trial license of type {}",
                     licenseInfo.getLicenseType().toString());
             return;
         }
-        
+
         // update coordinator with a new latest license expiration date..
         licenseInfo.setLastLicenseExpirationDateEventDate(formatCurrentDate());
-        
+
         // update coordinator with a new license expiration date
         _log.info("CallHomeEventsFacade::sendExpirationEvent updating coordinator with {} license expiration data",
                 licenseInfo.getLicenseType().toString());
         _licenseManager.updateCoordinatorWithLicenseInfo(licenseInfo);
 
         // send expiration data to SYR
-        _log.info("CallHomeEventsFacade::sendExpirationEvent sending {} license expiration to SYR", 
+        _log.info("CallHomeEventsFacade::sendExpirationEvent sending {} license expiration to SYR",
                 licenseInfo.getLicenseType());
         SendExpirationEvent sendExpirationEvent = new SendExpirationEvent
                 (serviceInfo, logSvcPropertiesLoader, mediaType, licenseInfo, coordinator);
         sendExpirationEvent.callEMCHome();
-        
-        auditMgr.recordAuditLog(null, null, "callHome", 
-                OperationTypeEnum.SEND_LICENSE_EXPIRED,                
+
+        auditMgr.recordAuditLog(null, null, "callHome",
+                OperationTypeEnum.SEND_LICENSE_EXPIRED,
                 System.currentTimeMillis(),
                 AuditLogManager.AUDITLOG_SUCCESS,
-                null, 
-                licenseInfo.getLicenseType().toString(), 
-                licenseInfo.getProductId(), licenseInfo.getModelId(), 
+                null,
+                licenseInfo.getLicenseType().toString(),
+                licenseInfo.getProductId(), licenseInfo.getModelId(),
                 licenseInfo.getExpirationDate());
     }
-   
+
     /**
      * Sends Object License Expiration Event to SYR.
      * 
@@ -168,7 +169,7 @@ public class CallHomeEventsFacade {
      */
     public void sendCapacityExceededEvent(LicenseInfoExt licenseInfo, MediaType mediaType)
             throws CoordinatorClientException, Exception {
-        if(licenseInfo.isTrialLicense()) {
+        if (licenseInfo.isTrialLicense()) {
             _log.info("CallHomeEventsFacade will not send capacity exceeded event for trial license of type {}",
                     licenseInfo.getLicenseType().toString());
             return;
@@ -176,31 +177,32 @@ public class CallHomeEventsFacade {
 
         // update coordinator with a new latest license expiration date..
         licenseInfo.setLastCapacityExceededEventDate(formatCurrentDate());
-        
+
         // update coordinator with a new capacity exceeded date.
         _log.info("CallHomeEventsFacade::sendCapacityExceededEvent updating coordinator with {} capacity exceeded data",
                 licenseInfo.getLicenseType().toString());
         _licenseManager.updateCoordinatorWithLicenseInfo(licenseInfo);
 
         // send capacity exceeded data to SYR
-        _log.info("CallHomeEventsFacade::sendCapacityExceededEvent sending {} capacity exceeded data to SYR", 
+        _log.info("CallHomeEventsFacade::sendCapacityExceededEvent sending {} capacity exceeded data to SYR",
                 licenseInfo.getLicenseType());
         SendCapacityExceededEvent sendCapacityExceededEvent = new SendCapacityExceededEvent
                 (serviceInfo, logSvcPropertiesLoader, mediaType, licenseInfo, coordinator);
         sendCapacityExceededEvent.callEMCHome();
-        
-        auditMgr.recordAuditLog(null, null, "callHome", 
-                OperationTypeEnum.SEND_CAPACITY_EXCEEDED,                
+
+        auditMgr.recordAuditLog(null, null, "callHome",
+                OperationTypeEnum.SEND_CAPACITY_EXCEEDED,
                 System.currentTimeMillis(),
                 AuditLogManager.AUDITLOG_SUCCESS,
-                null, 
-                licenseInfo.getLicenseType().toString(), 
-                licenseInfo.getProductId(), licenseInfo.getModelId(), 
+                null,
+                licenseInfo.getLicenseType().toString(),
+                licenseInfo.getProductId(), licenseInfo.getModelId(),
                 licenseInfo.getStorageCapacity());
     }
 
     /**
      * Format current date.
+     * 
      * @return String
      */
     public static String formatCurrentDate() {

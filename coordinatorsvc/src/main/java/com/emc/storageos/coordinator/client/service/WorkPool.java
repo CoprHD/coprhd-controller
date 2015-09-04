@@ -15,7 +15,6 @@
 
 package com.emc.storageos.coordinator.client.service;
 
-
 import java.util.Set;
 
 /**
@@ -28,19 +27,20 @@ public interface WorkPool {
     public interface Work {
         /**
          * Work item ID
+         * 
          * @return
          */
         public String getId();
 
         /**
-         * Attempts to work ownership.  If work is not owned by current client,
+         * Attempts to work ownership. If work is not owned by current client,
          * this method is a noop.
          *
          * @throws Exception
          */
         public void release() throws Exception;
     }
-    
+
     /**
      * Listener interface for task assignments
      */
@@ -70,8 +70,8 @@ public interface WorkPool {
     public void removeWork(String workId) throws Exception;
 
     /**
-     * Starts work group.  If coordinator cluster is unavailable, start will retry
-     * until it can establish connection with cluster.  Attempting to read or modify reservation
+     * Starts work group. If coordinator cluster is unavailable, start will retry
+     * until it can establish connection with cluster. Attempting to read or modify reservation
      * group while disconnected will result in error.
      */
     public void start() throws Exception;

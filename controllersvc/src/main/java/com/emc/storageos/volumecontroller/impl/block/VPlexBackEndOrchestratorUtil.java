@@ -25,10 +25,10 @@ import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
 
 public class VPlexBackEndOrchestratorUtil {
     private static final Logger _log = LoggerFactory.getLogger(VPlexBackEndOrchestratorUtil.class);
-    
+
     public static List<StoragePort> allocatePorts(StoragePortsAllocator allocator,
             List<StoragePort> candidatePorts, int portsRequested, NetworkLite net, URI varrayURI,
-            boolean simulation, BlockStorageScheduler blockScheduler,DbClient dbClient) {
+            boolean simulation, BlockStorageScheduler blockScheduler, DbClient dbClient) {
         Collections.shuffle(candidatePorts);
         if (simulation) {
             StoragePortsAllocator.PortAllocationContext context = StoragePortsAllocator
@@ -49,7 +49,6 @@ public class VPlexBackEndOrchestratorUtil {
         }
     }
 
-    
     public static StringSetMap configureZoning(Map<URI, List<StoragePort>> portGroup,
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup, Map<URI, NetworkLite> networkMap) {
         StringSetMap zoningMap = new StringSetMap();

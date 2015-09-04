@@ -47,6 +47,7 @@ public class TasksResources extends AbstractBulkResources<TaskResourceRep> {
         ERROR("error");
 
         String literal;
+
         State(String literal) {
             this.literal = literal;
         }
@@ -67,7 +68,6 @@ public class TasksResources extends AbstractBulkResources<TaskResourceRep> {
         return listByTenant(null, FETCH_ALL, null, null);
     }
 
-
     /**
      * List ALL tasks for a specific tenant (use {@link #SYSTEM_TENANT} for System level tasks).
      *
@@ -85,7 +85,7 @@ public class TasksResources extends AbstractBulkResources<TaskResourceRep> {
      * Tasks are returned sorted with the most recent task first
      *
      * @param tenantId The tenant tasks are required for
-     * @param maxCount The maximum number of tasks to return.  Use {@link #FETCH_ALL} for all tasks
+     * @param maxCount The maximum number of tasks to return. Use {@link #FETCH_ALL} for all tasks
      */
     public List<NamedRelatedResourceRep> listByTenant(URI tenantId, int maxCount) {
         return listByTenant(tenantId, maxCount, null, null);
@@ -125,7 +125,7 @@ public class TasksResources extends AbstractBulkResources<TaskResourceRep> {
     }
 
     /**
-     * Returns tasks matching a particular state  for the given tenant
+     * Returns tasks matching a particular state for the given tenant
      */
     public List<TaskResourceRep> findByState(URI tenantId, State state) {
         Map<String, Object> params = new HashMap<>();
@@ -188,7 +188,7 @@ public class TasksResources extends AbstractBulkResources<TaskResourceRep> {
         }
     }
 
-    private void  addResource(UriBuilder builder, URI tenantId) {
+    private void addResource(UriBuilder builder, URI tenantId) {
         if (tenantId != null) {
             builder.queryParam(RESOURCE_PARAM, tenantId);
         }

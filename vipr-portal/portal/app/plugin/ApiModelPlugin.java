@@ -37,23 +37,22 @@ public class ApiModelPlugin extends PlayPlugin {
     public static ApiModelPlugin getInstance() {
         return instance;
     }
-    
+
     public JAXBContext getCtx() {
         return ctx;
     }
-    
+
     public void onApplicationStart() {
         instance = this;
         Logger.info("API Model Plugin Loaded");
         try {
             ClassLoader cl = ObjectFactory.class.getClassLoader();
             ctx = JAXBContext.newInstance("com.emc.vipr.model.catalog:com.emc.storageos.model", cl);
-        }
-        catch (JAXBException e) {
+        } catch (JAXBException e) {
             Logger.error(e, "Error initializing JAXB context");
         }
     }
-    
+
     public Object bind(String name, Class clazz, Type type, Annotation[] annotations, Map<String, String[]> params) {
         Request request = Request.current();
         if (request != null && request.format != null) {
@@ -67,7 +66,7 @@ public class ApiModelPlugin extends PlayPlugin {
 
         return null;
     }
-    
+
     private Object getXml(Class clazz) {
         try {
             if (clazz.getAnnotation(XmlRootElement.class) != null) {
@@ -91,8 +90,7 @@ public class ApiModelPlugin extends PlayPlugin {
                 mapper.setAnnotationIntrospector(new AnnotationIntrospector.Pair(introspector, secondary));
                 return mapper.readValue(Request.current().params.get("body"), clazz);
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.error("Problem parsing JSON: %s", e.getMessage());
         }
         return null;

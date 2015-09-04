@@ -40,35 +40,34 @@ import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
  * Coordinator server implementation
  */
 public class CoordinatorImpl implements Coordinator {
-   private static final Log _log = LogFactory.getLog(CoordinatorImpl.class);
+    private static final Log _log = LogFactory.getLog(CoordinatorImpl.class);
 
-   private SpringQuorumPeerConfig _config;
-   private CoordinatorClient _coordinatorClient;
-   private JmxServerWrapper _jmxServer;
-   private ZKMain server;
+    private SpringQuorumPeerConfig _config;
+    private CoordinatorClient _coordinatorClient;
+    private JmxServerWrapper _jmxServer;
+    private ZKMain server;
 
-   // runs periodic snapshot cleanup
-   private static final String PURGER_POOL="SnapshotPurger";
-   private ScheduledExecutorService _exe = new NamedScheduledThreadPoolExecutor(PURGER_POOL, 1);
+    // runs periodic snapshot cleanup
+    private static final String PURGER_POOL = "SnapshotPurger";
+    private ScheduledExecutorService _exe = new NamedScheduledThreadPoolExecutor(PURGER_POOL, 1);
 
+    /**
+     * Set node / cluster config
+     *
+     * @param config node / cluster config
+     */
+    public void setConfig(SpringQuorumPeerConfig config) {
+        _config = config;
+    }
 
-   /**
-    * Set node / cluster config
-    *
-    * @param config node / cluster config
-    */
-   public void setConfig(SpringQuorumPeerConfig config) {
-      _config = config;
-   }
-
-   /**
-    * Setter for the coordinator client reference.
-    *
-    * @param coordinatorClient A reference to the coordinator client.
-    */
-   public void setCoordinatorClient(CoordinatorClient coordinatorClient) {
-       _coordinatorClient = coordinatorClient;
-   }
+    /**
+     * Setter for the coordinator client reference.
+     *
+     * @param coordinatorClient A reference to the coordinator client.
+     */
+    public void setCoordinatorClient(CoordinatorClient coordinatorClient) {
+        _coordinatorClient = coordinatorClient;
+    }
 
     /**
      * JMX server wrapper
@@ -77,85 +76,85 @@ public class CoordinatorImpl implements Coordinator {
         _jmxServer = jmxServer;
     }
 
-   @Override
-   public synchronized void start() throws IOException {
-      // snapshot clean up runs at regular interval and leaves desired snapshots
-      // behind
-      _exe.scheduleWithFixedDelay(
-              new Runnable() {
-                 @Override
-                 public void run() {
-                    try {
-                       PurgeTxnLog.purge(
-                               new File(_config.getDataDir()),
-                               new File(_config.getDataDir()), _config.getSnapRetainCount());
-                    } catch (Exception e) {
+    @Override
+    public synchronized void start() throws IOException {
+        // snapshot clean up runs at regular interval and leaves desired snapshots
+        // behind
+        _exe.scheduleWithFixedDelay(
+                new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            PurgeTxnLog.purge(
+                                    new File(_config.getDataDir()),
+                                    new File(_config.getDataDir()), _config.getSnapRetainCount());
+                        } catch (Exception e) {
+                        }
                     }
-                 }
-              },
-              0, _config.getPurgeInterval(), TimeUnit.MINUTES);
+                },
+                0, _config.getPurgeInterval(), TimeUnit.MINUTES);
 
-      startMutexReaper();
+        startMutexReaper();
 
-      // Starts JMX server for analysis and data backup
-      try {
-          if (_jmxServer != null)
-              _jmxServer.start();
-      } catch (Exception ex) {
-          throw new IllegalStateException(ex);
-      }
+        // Starts JMX server for analysis and data backup
+        try {
+            if (_jmxServer != null)
+                _jmxServer.start();
+        } catch (Exception ex) {
+            throw new IllegalStateException(ex);
+        }
 
-      if (_config.getServers().size() == 0) {
-         // standalone
-         ServerConfig config = new ServerConfig();
-         config.readFrom(_config);
-         server = new ZKMain();
-         server.runFromConfig(config);
-      } else {
-         // cluster
-         QuorumPeerMain main = new QuorumPeerMain();
-         main.runFromConfig(_config);
-      }
-   }
+        if (_config.getServers().size() == 0) {
+            // standalone
+            ServerConfig config = new ServerConfig();
+            config.readFrom(_config);
+            server = new ZKMain();
+            server.runFromConfig(config);
+        } else {
+            // cluster
+            QuorumPeerMain main = new QuorumPeerMain();
+            main.runFromConfig(_config);
+        }
+    }
 
-   /**
-    * Reaper mutex dirs generated from InterProcessMutex
-    */ 
-   private void startMutexReaper() {
+    /**
+     * Reaper mutex dirs generated from InterProcessMutex
+     */
+    private void startMutexReaper() {
 
         Thread childReaperThread = new Thread(new Runnable() {
-           public void run() {
-               try {
-                   // Currently the coordinatorclient is connected 
-                   // from LoggingBean, needs to wait for CoordinatorSvc started. 
-                   while (!_coordinatorClient.isConnected()){
-                       _log.info("Waiting for connection to cluster ...");
-                       Thread.sleep(3*1000);
-                   }
+            public void run() {
+                try {
+                    // Currently the coordinatorclient is connected
+                    // from LoggingBean, needs to wait for CoordinatorSvc started.
+                    while (!_coordinatorClient.isConnected()) {
+                        _log.info("Waiting for connection to cluster ...");
+                        Thread.sleep(3 * 1000);
+                    }
 
-                   _log.info("Connected to cluster");
+                    _log.info("Connected to cluster");
 
-                   /**
-                    * Reaper empty dirs under /mutex in zookeeper
-                    * It leverages curator Reaper and ChildReaper to remove empty sub dirs.
-                    * It leverages LeaderSelector to assure only one reaper running at the same time.
-                    * Note: Please use autoRequeue() to requeue for competing leader automatically 
-                    *       while connection broken and reconnected.  The requeue() has a bug in curator
-                    *       1.3.4 and should not be used.
-                    */
-                   LeaderSelectorListener listener = new ReaperLeaderSelectorListener(ZkPath.MUTEX.toString());
-                   String _leaderRelativePath = "mutexReaper";
-                   LeaderSelector leaderSel = _coordinatorClient.getLeaderSelector(_leaderRelativePath, listener);
-                   leaderSel.autoRequeue(); 
-                   leaderSel.start();
-               } catch (Exception e) {
-                   _log.warn("reaper task threw", e);
-               }
-           }
+                    /**
+                     * Reaper empty dirs under /mutex in zookeeper
+                     * It leverages curator Reaper and ChildReaper to remove empty sub dirs.
+                     * It leverages LeaderSelector to assure only one reaper running at the same time.
+                     * Note: Please use autoRequeue() to requeue for competing leader automatically
+                     * while connection broken and reconnected. The requeue() has a bug in curator
+                     * 1.3.4 and should not be used.
+                     */
+                    LeaderSelectorListener listener = new ReaperLeaderSelectorListener(ZkPath.MUTEX.toString());
+                    String _leaderRelativePath = "mutexReaper";
+                    LeaderSelector leaderSel = _coordinatorClient.getLeaderSelector(_leaderRelativePath, listener);
+                    leaderSel.autoRequeue();
+                    leaderSel.start();
+                } catch (Exception e) {
+                    _log.warn("reaper task threw", e);
+                }
+            }
         }, "reaper thread");
-       
-       childReaperThread.start();
-   }
+
+        childReaperThread.start();
+    }
 
     @Override
     public void stop() {
@@ -172,7 +171,7 @@ public class CoordinatorImpl implements Coordinator {
 
         if (_jmxServer != null)
             _jmxServer.stop();
-         
+
         if (_log.isInfoEnabled()) {
             _log.info("Coordinator service stopped...");
         }

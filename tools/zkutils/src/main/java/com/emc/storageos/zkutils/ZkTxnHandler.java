@@ -65,10 +65,10 @@ public class ZkTxnHandler {
 
         // If there is corrupted txn before the last txn log file,
         // txnLog.getLastLoggedZxid() would incorrectly return the 1st txn of the last txn log file.
-        // We could cover this ZK bug by moving the txnlog files (useless and already snapshoped) but the last. 
+        // We could cover this ZK bug by moving the txnlog files (useless and already snapshoped) but the last.
         File[] files = txnLog.getLogFiles(dataDir.listFiles(), 0);
         if (files.length > 1) {
-            for (int i = 0; i < files.length-1; i++) {
+            for (int i = 0; i < files.length - 1; i++) {
                 File targetFile = new File(sDataDir, BACKUP_PREFIX + files[i].getName());
                 files[i].renameTo(targetFile);
             }
@@ -77,7 +77,7 @@ public class ZkTxnHandler {
         long lastValidZxid = txnLog.getLastLoggedZxid();
 
         String tmpstr = String.format("last valid logged zxid:%s(hex)",
-                                      Long.toHexString(lastValidZxid));
+                Long.toHexString(lastValidZxid));
         log.info(tmpstr);
         System.out.println(tmpstr);
         return lastValidZxid;
@@ -85,13 +85,16 @@ public class ZkTxnHandler {
 
     /**
      * Truncate to the specific txn.
+     * 
      * @param zxid The id(hex) of the txn to be truncated to
      */
     public boolean truncateToZxid(String zxid) {
         long lastValidZxid = getLastValidZxid();
         long targetZxid = Long.parseLong(zxid, 16);
-        if (targetZxid < lastValidZxid)  {
-            String errstr = String.format("It is not allowed to truncate to the txn %s(hex) which is prior to the last valid txn %s(hex)! It would lose data!", Long.toHexString(targetZxid), Long.toHexString(lastValidZxid));
+        if (targetZxid < lastValidZxid) {
+            String errstr = String.format(
+                    "It is not allowed to truncate to the txn %s(hex) which is prior to the last valid txn %s(hex)! It would lose data!",
+                    Long.toHexString(targetZxid), Long.toHexString(lastValidZxid));
             log.error(errstr);
             System.out.println(errstr);
             return false;
@@ -102,8 +105,8 @@ public class ZkTxnHandler {
             FileTxnLog truncLog = new FileTxnLog(dataDir);
             truncLog.truncate(targetZxid);
             truncLog.close();
-            System.out.println(String.format("Successfully truncated to zxid: %s(hex)", 
-                        Long.toHexString(targetZxid)));
+            System.out.println(String.format("Successfully truncated to zxid: %s(hex)",
+                    Long.toHexString(targetZxid)));
         } catch (IOException e) {
             String errstr = String.format("Failed to truncated to zxid: %s(hex). Please check it manually.", Long.toHexString(targetZxid));
             log.error(errstr);
@@ -115,6 +118,7 @@ public class ZkTxnHandler {
 
     /**
      * Truncate to the last valid logged txn.
+     * 
      * @param zxid The id of the last valid txn.
      */
     public boolean truncateToZxid() {

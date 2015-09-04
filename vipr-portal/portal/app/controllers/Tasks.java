@@ -55,29 +55,29 @@ import controllers.util.Models;
 @With(Common.class)
 public class Tasks extends Controller {
     private static final String UNKNOWN = "resource.task.unknown";
-    
+
     private static final int NORMAL_DELAY = 3000;
     private static final int MAX_TASKS = 1000;
 
     // Currently the backend only shows progresses of 0 or 100, so for show this as the miminum progress
     private static final int MINIMUM_TASK_PROGRESS = 10;
     private static final int MILLISECONDS_IN_12HOURS = 43200000;
-    
+
     private static TasksDataTable tasksDataTable = new TasksDataTable(true);
 
     private static Comparator orderedTaskComparitor = new Comparator<TaskResourceRep>() {
-            public int compare(TaskResourceRep o1, TaskResourceRep o2) {
-                if (o1.getStartTime() == null || o2.getStartTime() == null) {
-                    return 1;
-                }
-
-                return o2.getStartTime().compareTo(o1.getStartTime());
+        public int compare(TaskResourceRep o1, TaskResourceRep o2) {
+            if (o1.getStartTime() == null || o2.getStartTime() == null) {
+                return 1;
             }
+
+            return o2.getStartTime().compareTo(o1.getStartTime());
+        }
     };
 
     public static void listAll(Boolean systemTasks) {
         TenantSelector.addRenderArgs();
-        
+
         if (systemTasks == null) {
             systemTasks = Boolean.FALSE;
         }
@@ -89,7 +89,7 @@ public class Tasks extends Controller {
         renderArgs.put("systemTasks", systemTasks);
         renderArgs.put("dataTable", new TasksDataTable(true));
 
-        Common.angularRenderArgs().put("tenantId", systemTasks? "system" : Models.currentAdminTenant());
+        Common.angularRenderArgs().put("tenantId", systemTasks ? "system" : Models.currentAdminTenant());
 
         render();
     }
@@ -122,14 +122,14 @@ public class Tasks extends Controller {
         List<TasksDataTable.Task> tasks = Lists.newArrayList();
         if (taskResourceReps != null) {
             for (TaskResourceRep taskResourceRep : taskResourceReps) {
-                TasksDataTable.Task task  = new TasksDataTable.Task(taskResourceRep);
+                TasksDataTable.Task task = new TasksDataTable.Task(taskResourceRep);
                 if (Objects.equals(task.state, "pending") ||
                         Objects.equals(task.state, "queued")) {
                     task.progress = Math.max(task.progress, MINIMUM_TASK_PROGRESS);
                 }
 
                 tasks.add(task);
-            }        
+            }
         }
         renderJSON(DataTablesSupport.createJSON(tasks, params));
     }
@@ -153,18 +153,18 @@ public class Tasks extends Controller {
     }
 
     public static void getRecentTasks() {
-       ViPRCoreClient client = getViprClient();
+        ViPRCoreClient client = getViprClient();
 
-       long minsAgo = new Date().getTime() - MILLISECONDS_IN_12HOURS;
+        long minsAgo = new Date().getTime() - MILLISECONDS_IN_12HOURS;
 
-       List<TaskResourceRep> tasks = client.tasks().findCreatedSince(uri(Security.getUserInfo().getTenant()), minsAgo, 5);
-       if (Security.isSecurityAdmin()) {
-           tasks.addAll(client.tasks().findCreatedSince(SYSTEM_TENANT, minsAgo, 5));
-       }
+        List<TaskResourceRep> tasks = client.tasks().findCreatedSince(uri(Security.getUserInfo().getTenant()), minsAgo, 5);
+        if (Security.isSecurityAdmin()) {
+            tasks.addAll(client.tasks().findCreatedSince(SYSTEM_TENANT, minsAgo, 5));
+        }
 
-       Collections.sort(tasks, orderedTaskComparitor);
+        Collections.sort(tasks, orderedTaskComparitor);
 
-       renderJSON(toTaskSummaries(tasks));
+        renderJSON(toTaskSummaries(tasks));
     }
 
     private static List<TaskResourceRep> tasksLongPoll(Long lastUpdated, Boolean systemTasks) {
@@ -178,9 +178,9 @@ public class Tasks extends Controller {
             int delay = NORMAL_DELAY;
             Logger.debug("No update for tasks, waiting for %s ms", delay);
             await(delay);
-        }                  
+        }
     }
-    
+
     private static List<TaskResourceRep> taskPoll(Long lastUpdated, Boolean systemTasks) {
         List<TaskResourceRep> taskResourceReps = Lists.newArrayList();
         ViPRCoreClient client = getViprClient();
@@ -198,7 +198,7 @@ public class Tasks extends Controller {
         }
         return taskResourceReps;
     }
-    
+
     public static void list(String resourceId) {
         renderArgs.put("dataTable", tasksDataTable);
         render();
@@ -244,7 +244,7 @@ public class Tasks extends Controller {
             ResourceType resourceType = ResourceType.fromResourceId(task.getResource().getId().toString());
             renderArgs.put("resourceType", resourceType);
         }
-        
+
         String orderId = TagUtils.getOrderIdTagValue(task);
         String orderNumber = TagUtils.getOrderNumberTagValue(task);
 
@@ -276,7 +276,7 @@ public class Tasks extends Controller {
             taskSummary.resourceType = resourceType.name();
         }
 
-        taskSummary.orderId =  TagUtils.getOrderIdTagValue(task);
+        taskSummary.orderId = TagUtils.getOrderIdTagValue(task);
         taskSummary.orderNumber = TagUtils.getOrderNumberTagValue(task);
         if (Security.isSystemAdmin() || Security.isSystemMonitor()) {
             if (task.getWorkflow() != null && task.getWorkflow().getId() != null) {
@@ -317,7 +317,7 @@ public class Tasks extends Controller {
         for (WorkflowStepRestRep step : workflowSteps) {
             ResourceType type = ResourceType.fromResourceId(step.getSystem());
             DataObjectRestRep dataObject = null;
-            switch(type) {
+            switch (type) {
                 case STORAGE_SYSTEM:
                     dataObject = getViprClient().storageSystems().get(uri(step.getSystem()));
                     break;
@@ -394,7 +394,7 @@ public class Tasks extends Controller {
             message = task.getMessage();
             name = task.getName();
             state = task.getState();
-            progress = task.getProgress() == null? 0 : task.getProgress();
+            progress = task.getProgress() == null ? 0 : task.getProgress();
             startDate = task.getStartTime() == null ? 0 : task.getStartTime().getTimeInMillis();
             endDate = task.getEndTime() == null ? 0 : task.getEndTime().getTimeInMillis();
             systemTask = task.getTenant() == null;
@@ -417,7 +417,7 @@ public class Tasks extends Controller {
             }
 
             if (task.getServiceError() != null) {
-                serviceCode_error = task.getServiceError().getCode()+"";
+                serviceCode_error = task.getServiceError().getCode() + "";
                 serviceCode_errorDesc = task.getServiceError().getCodeDescription();
                 serviceCode_message = task.getServiceError().getDetailedMessage();
             }
@@ -442,7 +442,7 @@ public class Tasks extends Controller {
         public List<RelatedResourceRep> childFlow;
         public List<WorkflowStepRestRep> childSteps;
 
-        public WorkflowStep(WorkflowStepRestRep step,   Map<String, DataObjectRestRep> systemObjects) {
+        public WorkflowStep(WorkflowStepRestRep step, Map<String, DataObjectRestRep> systemObjects) {
             state = step.getState();
             name = step.getName();
             message = step.getMessage();
@@ -467,15 +467,15 @@ public class Tasks extends Controller {
             else {
                 elapsedTime = endDate - startDate;
             }
-            if(step.getChildWorkflows()==null) {
-            	childSteps=null;
+            if (step.getChildWorkflows() == null) {
+                childSteps = null;
             }
             else {
-            	childFlow=step.getChildWorkflows();
-            	for (int i=0;i<childFlow.size();i++) {
-            		childSteps = getViprClient().workflows().getSteps(step.getChildWorkflows().get(i).getId());
-            		
-            	}
+                childFlow = step.getChildWorkflows();
+                for (int i = 0; i < childFlow.size(); i++) {
+                    childSteps = getViprClient().workflows().getSteps(step.getChildWorkflows().get(i).getId());
+
+                }
             }
         }
     }

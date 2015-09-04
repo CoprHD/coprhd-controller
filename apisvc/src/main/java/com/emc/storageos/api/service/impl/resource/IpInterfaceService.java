@@ -67,14 +67,15 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
  * Service providing APIs for host ipinterfaces.
  */
 @Path("/compute/ip-interfaces")
-@DefaultPermissions( read_roles = {Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN}, 
-                     write_roles = {Role.TENANT_ADMIN},
-                     read_acls = {ACL.OWN, ACL.ALL})
+@DefaultPermissions(read_roles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
+        write_roles = { Role.TENANT_ADMIN },
+        read_acls = { ACL.OWN, ACL.ALL })
 public class IpInterfaceService extends TaskResourceService {
 
     private static Logger _log = LoggerFactory.getLogger(IpInterfaceService.class);
 
     private static final String EVENT_SERVICE_TYPE = "ip-interface";
+
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
     }
@@ -91,10 +92,10 @@ public class IpInterfaceService extends TaskResourceService {
 
     @Override
     protected IpInterface queryResource(URI id) {
-    	return queryObject(IpInterface.class, id, false);
+        return queryObject(IpInterface.class, id, false);
     }
 
-    /**     
+    /**
      * Shows the data for an IP interface
      *
      * @param id the URN of a ViPR IP interface
@@ -107,7 +108,7 @@ public class IpInterfaceService extends TaskResourceService {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN, Role.TENANT_ADMIN }, acls = {ACL.ANY})
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public IpInterfaceRestRep getIpInterface(@PathParam("id") URI id) {
         IpInterface ipInterface = queryResource(id);
         // verify permissions
@@ -115,8 +116,9 @@ public class IpInterfaceService extends TaskResourceService {
         return HostMapper.map(ipInterface);
     }
 
-    /**     
+    /**
      * Deactivate an IP interface.
+     * 
      * @param id the URN of a ViPR IP interface
      * @prereq The IP interface must not have active exports
      * @brief Delete IP interface
@@ -126,7 +128,7 @@ public class IpInterfaceService extends TaskResourceService {
     @POST
     @Path("/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = { Role.TENANT_ADMIN})
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
     public TaskResourceRep deactivateIpInterface(@PathParam("id") URI id) throws DatabaseException {
         IpInterface ipInterface = queryResource(id);
         ArgValidator.checkEntity(ipInterface, id, isIdEmbeddedInURL(id));
@@ -138,12 +140,13 @@ public class IpInterfaceService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(IpInterface.class, ipInterface.getId(), taskId,
                 ResourceOperationTypeEnum.DELETE_HOST_IPINTERFACE);
         // Clean up File Export if host is in use
-        if (ComputeSystemHelper.isHostIpInterfacesInUse(_dbClient, Collections.singletonList(ipInterface.getIpAddress()), ipInterface.getHost())) {
-        	ComputeSystemController controller = getController(ComputeSystemController.class, null);
+        if (ComputeSystemHelper.isHostIpInterfacesInUse(_dbClient, Collections.singletonList(ipInterface.getIpAddress()),
+                ipInterface.getHost())) {
+            ComputeSystemController controller = getController(ComputeSystemController.class, null);
             controller.removeIpInterfaceFromFileShare(ipInterface.getHost(), ipInterface.getId(), taskId);
         } else {
-        	_dbClient.ready(IpInterface.class, ipInterface.getId(), taskId);
-        	_dbClient.markForDeletion(ipInterface);
+            _dbClient.ready(IpInterface.class, ipInterface.getId(), taskId);
+            _dbClient.markForDeletion(ipInterface);
         }
 
         auditOp(OperationTypeEnum.DELETE_HOST_IPINTERFACE, true, null,
@@ -151,7 +154,7 @@ public class IpInterfaceService extends TaskResourceService {
         return toTask(ipInterface, taskId, op);
     }
 
-    /**     
+    /**
      * Update a host IP interface.
      *
      * @param id the URN of a ViPR IP interface
@@ -164,8 +167,8 @@ public class IpInterfaceService extends TaskResourceService {
     @PUT
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = { Role.TENANT_ADMIN })
-    public IpInterfaceRestRep updateIpInterface(@PathParam("id") URI id, 
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    public IpInterfaceRestRep updateIpInterface(@PathParam("id") URI id,
             IpInterfaceUpdateParam updateParam) throws DatabaseException {
         IpInterface ipInterface = queryObject(IpInterface.class, id, true);
         _hostService.validateIpInterfaceData(updateParam, ipInterface);
@@ -176,7 +179,7 @@ public class IpInterfaceService extends TaskResourceService {
         return map(queryObject(IpInterface.class, id, false));
     }
 
-    /**     
+    /**
      * List data of specified IP interfaces.
      *
      * @param param POST data containing the id list.
@@ -186,14 +189,14 @@ public class IpInterfaceService extends TaskResourceService {
      */
     @POST
     @Path("/bulk")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public IpInterfaceBulkRep getBulkResources(BulkIdParam param) {
         return (IpInterfaceBulkRep) super.getBulkResources(param);
     }
-    
-    /**     
+
+    /**
      * Allows the user to deregister a registered IP interface so that it is no
      * longer used by the system. This simply sets the registration_status of
      * the IP interface to UNREGISTERED.
@@ -211,11 +214,13 @@ public class IpInterfaceService extends TaskResourceService {
 
         IpInterface ipInterface = queryResource(id);
         ArgValidator.checkEntity(ipInterface, id, isIdEmbeddedInURL(id));
-        if (ComputeSystemHelper.isHostIpInterfacesInUse(_dbClient, Collections.singletonList(ipInterface.getIpAddress()), ipInterface.getHost())) {
-            throw APIException.badRequests.resourceHasActiveReferencesWithType(IpInterface.class.getSimpleName(), ipInterface.getId(), FileExport.class.getSimpleName());
+        if (ComputeSystemHelper.isHostIpInterfacesInUse(_dbClient, Collections.singletonList(ipInterface.getIpAddress()),
+                ipInterface.getHost())) {
+            throw APIException.badRequests.resourceHasActiveReferencesWithType(IpInterface.class.getSimpleName(), ipInterface.getId(),
+                    FileExport.class.getSimpleName());
         }
         if (RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(
-        		ipInterface.getRegistrationStatus())) {
+                ipInterface.getRegistrationStatus())) {
             ipInterface.setRegistrationStatus(RegistrationStatus.UNREGISTERED.toString());
             _dbClient.persistObject(ipInterface);
             auditOp(OperationTypeEnum.DEREGISTER_HOST_IPINTERFACE, true, null,
@@ -223,15 +228,15 @@ public class IpInterfaceService extends TaskResourceService {
         }
         return map(ipInterface);
     }
-    
-    /**     
+
+    /**
      * Manually register the IP interface with the passed id.
      *
      * @param id the URN of a ViPR IP interface
      *
      * @brief Register IP interface
      * @return A reference to an IpInterfaceRestRep specifying the data for the
-     *       	IP interface.
+     *         IP interface.
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -242,9 +247,9 @@ public class IpInterfaceService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, IpInterface.class, "id");
         IpInterface ipInterface = _dbClient.queryObject(IpInterface.class, id);
         ArgValidator.checkEntity(ipInterface, id, isIdEmbeddedInURL(id));
-        
-        if(RegistrationStatus.UNREGISTERED.toString().equalsIgnoreCase(
-        		ipInterface.getRegistrationStatus())) {
+
+        if (RegistrationStatus.UNREGISTERED.toString().equalsIgnoreCase(
+                ipInterface.getRegistrationStatus())) {
             ipInterface.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
             _dbClient.persistObject(ipInterface);
             auditOp(OperationTypeEnum.REGISTER_HOST_IPINTERFACE, true, null, ipInterface.getId().toString());
@@ -262,7 +267,7 @@ public class IpInterfaceService extends TaskResourceService {
     public IpInterfaceBulkRep queryBulkResourceReps(List<URI> ids) {
 
         Iterator<IpInterface> _dbIterator =
-            _dbClient.queryIterativeObjects(getResourceClass(), ids);
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new IpInterfaceBulkRep(BulkList.wrapping(_dbIterator, MapIpInterface.getInstance()));
     }
 
@@ -290,7 +295,7 @@ public class IpInterfaceService extends TaskResourceService {
     }
 
     public static class IpInterfaceResRepFilter<E extends RelatedResourceRep>
-    extends ResRepFilter<E> {
+            extends ResRepFilter<E> {
         public IpInterfaceResRepFilter(StorageOSUser user,
                 PermissionsHelper permissionsHelper) {
             super(user, permissionsHelper);
@@ -299,7 +304,7 @@ public class IpInterfaceService extends TaskResourceService {
         @Override
         public boolean isAccessible(E resrep) {
             boolean ret = false;
-            URI id = resrep.getId(); 
+            URI id = resrep.getId();
 
             IpInterface ipif = _permissionsHelper.getObjectById(id, IpInterface.class);
             if (ipif == null || ipif.getHost() == null)
@@ -328,53 +333,55 @@ public class IpInterfaceService extends TaskResourceService {
     /**
      * Verify the user has read permission to the IP interface
      * 
-     * @param ipInterface the IP interface to be verified 
+     * @param ipInterface the IP interface to be verified
      */
     private void verifyUserPermisions(IpInterface ipInterface) {
-    	// check the user permissions for the tenant org
-    	Host host = queryObject(Host.class, ipInterface.getHost(), false);
-    	verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
+        // check the user permissions for the tenant org
+        Host host = queryObject(Host.class, ipInterface.getHost(), false);
+        verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
     }
-    
-    /**     
+
+    /**
      * 
      * parameter: 'ip_address' The ip address of the ipInterface
-     * @return Return a list of ipinterfaces that contains the ip address specified 
+     * 
+     * @return Return a list of ipinterfaces that contains the ip address specified
      *         or an empty list if no match was found.
      */
     @Override
     protected SearchResults getOtherSearchResults(Map<String, List<String>> parameters, boolean authorized) {
-    	SearchResults result = new SearchResults();
-    	
+        SearchResults result = new SearchResults();
+
         if (!parameters.containsKey("ip_address")) {
             throw APIException.badRequests.invalidParameterSearchMissingParameter(getResourceClass().getName(), "ip_address");
         }
-    	
+
         for (Map.Entry<String, List<String>> entry : parameters.entrySet()) {
             if (!entry.getKey().equals("ip_address")) {
-                throw APIException.badRequests.parameterForSearchCouldNotBeCombinedWithAnyOtherParameter(getResourceClass().getName(), "ip_address", entry.getKey());
+                throw APIException.badRequests.parameterForSearchCouldNotBeCombinedWithAnyOtherParameter(getResourceClass().getName(),
+                        "ip_address", entry.getKey());
             }
-    	}
-    	
-    	String ip = parameters.get("ip_address").get(0);
-    	// Validate that the ip_address value is not empty
-    	ArgValidator.checkFieldNotEmpty(ip, "ip_address");
-    	
-    	// Validate the format of the initiator port.
+        }
+
+        String ip = parameters.get("ip_address").get(0);
+        // Validate that the ip_address value is not empty
+        ArgValidator.checkFieldNotEmpty(ip, "ip_address");
+
+        // Validate the format of the initiator port.
         if (!EndpointUtility.isValidEndpoint(ip, EndpointType.IP)) {
             throw APIException.badRequests.invalidParameterInvalidIP("ip_address", ip);
         }
-        
-    	SearchedResRepList resRepList = new SearchedResRepList(getResourceType());
-    	
-    	// Finds the IpInterface that includes the ip address specified, if any.
-    	_dbClient.queryByConstraint(AlternateIdConstraint.Factory.getIpInterfaceIpAddressConstraint(ip), resRepList);
-    	
-    	// Filter list based on permission
-    	if (!authorized) {
+
+        SearchedResRepList resRepList = new SearchedResRepList(getResourceType());
+
+        // Finds the IpInterface that includes the ip address specified, if any.
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getIpInterfaceIpAddressConstraint(ip), resRepList);
+
+        // Filter list based on permission
+        if (!authorized) {
             Iterator<SearchResultResourceRep> _queryResultIterator = resRepList.iterator();
             ResRepFilter<SearchResultResourceRep> resRepFilter =
-                    (ResRepFilter<SearchResultResourceRep>)getPermissionFilter(getUserFromContext(), _permissionsHelper);
+                    (ResRepFilter<SearchResultResourceRep>) getPermissionFilter(getUserFromContext(), _permissionsHelper);
 
             SearchedResRepList filteredResRepList = new SearchedResRepList();
             filteredResRepList.setResult(
@@ -384,7 +391,7 @@ public class IpInterfaceService extends TaskResourceService {
         } else {
             result.setResource(resRepList);
         }
-    	
-    	return result;
+
+        return result;
     }
 }

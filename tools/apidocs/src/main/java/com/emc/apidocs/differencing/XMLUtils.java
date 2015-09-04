@@ -23,20 +23,18 @@ public class XMLUtils {
     public static Node getNode(Node node, XPathExpression xpath) {
         try {
             Object result = xpath.evaluate(node, XPathConstants.NODE);
-            return (Node)result;
-        }
-        catch (XPathExpressionException e) {
-            throw new RuntimeException("Invalid XPath",e);
+            return (Node) result;
+        } catch (XPathExpressionException e) {
+            throw new RuntimeException("Invalid XPath", e);
         }
     }
 
     public static NodeList getNodeList(Node node, XPathExpression xpath) {
         try {
             Object result = xpath.evaluate(node, XPathConstants.NODESET);
-            return (NodeList)result;
-        }
-        catch (XPathExpressionException e) {
-            throw new RuntimeException("Invalid XPath",e);
+            return (NodeList) result;
+        } catch (XPathExpressionException e) {
+            throw new RuntimeException("Invalid XPath", e);
         }
     }
 
@@ -47,13 +45,11 @@ public class XMLUtils {
                 return null;
             }
 
-            return ((Node)result).getTextContent();
-        }
-        catch (XPathExpressionException e) {
-            throw new RuntimeException("Invalid XPath",e);
+            return ((Node) result).getTextContent();
+        } catch (XPathExpressionException e) {
+            throw new RuntimeException("Invalid XPath", e);
         }
     }
-
 
     /**
      * Parses the XML string into a Document.
@@ -63,11 +59,9 @@ public class XMLUtils {
     public static org.w3c.dom.Document loadDocument(InputStream xmlStream) {
         try {
             return getDocumentBuilderFactory().newDocumentBuilder().parse(xmlStream);
-        }
-        catch (UnsupportedEncodingException e) {
+        } catch (UnsupportedEncodingException e) {
             throw new Error("UTF-8 must be supported");
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new XmlException(e);
         }
     }
@@ -75,9 +69,8 @@ public class XMLUtils {
     public static XPathExpression getXPath(String expression) {
         try {
             return getXPathFactory().newXPath().compile(expression);
-        }
-        catch (XPathExpressionException e) {
-            throw new RuntimeException("Invalid XPath Expression "+expression, e);
+        } catch (XPathExpressionException e) {
+            throw new RuntimeException("Invalid XPath Expression " + expression, e);
         }
     }
 

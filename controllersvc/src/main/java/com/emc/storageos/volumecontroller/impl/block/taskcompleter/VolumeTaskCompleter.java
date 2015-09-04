@@ -54,6 +54,7 @@ public abstract class VolumeTaskCompleter extends TaskLockingCompleter {
 
     /**
      * Generate and Record a Bourne volume specific event
+     * 
      * @param dbClient
      * @param id
      * @param evtType
@@ -88,15 +89,16 @@ public abstract class VolumeTaskCompleter extends TaskLockingCompleter {
 
     /**
      * Record block volume related event and audit
-     * @param dbClient  db client
-     * @param opType    operation type
-     * @param status    operation status
-     * @param evDesc    event description
-     * @param extParam  parameters array from which we could generate detail audit message
+     * 
+     * @param dbClient db client
+     * @param opType operation type
+     * @param status operation status
+     * @param evDesc event description
+     * @param extParam parameters array from which we could generate detail audit message
      */
     public void recordBlockVolumeOperation(DbClient dbClient, OperationTypeEnum opType, Operation.Status status, Object... extParam) {
         try {
-            boolean opStatus = (Operation.Status.ready == status)? true: false;
+            boolean opStatus = (Operation.Status.ready == status) ? true : false;
             String evType;
             evType = opType.getEvType(opStatus);
             String evDesc = opType.getDescription();
@@ -105,14 +107,14 @@ public abstract class VolumeTaskCompleter extends TaskLockingCompleter {
 
             recordBourneVolumeEvent(dbClient, getId(), evType, status, evDesc);
 
-            String id = (String)extParam[0];
+            String id = (String) extParam[0];
             switch (opType) {
                 case CREATE_BLOCK_VOLUME:
                 case DELETE_BLOCK_VOLUME:
                     AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, id);
                     break;
                 case EXPAND_BLOCK_VOLUME:
-                    String size = (String)extParam[1];
+                    String size = (String) extParam[1];
                     AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, id, size);
                     break;
                 case CREATE_VOLUME_FULL_COPY:

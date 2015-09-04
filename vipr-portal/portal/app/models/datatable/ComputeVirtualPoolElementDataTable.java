@@ -4,19 +4,14 @@
  */
 package models.datatable;
 
-
 import java.text.DecimalFormat;
 
 import org.apache.commons.lang.StringUtils;
-
-
-
 
 import util.datatable.DataTable;
 
 import com.emc.sa.util.SizeUtils;
 import com.emc.storageos.model.compute.ComputeElementRestRep;
-
 
 public class ComputeVirtualPoolElementDataTable extends DataTable {
 
@@ -51,7 +46,7 @@ public class ComputeVirtualPoolElementDataTable extends DataTable {
         public Long ram;
         public String ramString;
         public String uuid;
-        
+
         public boolean assigned;
 
         public ComputeVirtualElementInfo(ComputeElementRestRep computeElement) {
@@ -74,9 +69,9 @@ public class ComputeVirtualPoolElementDataTable extends DataTable {
             this.uuid = computeElement.getUuid();
             this.numberOfCores = computeElement.getNumOfCores();
         }
-        
+
         public String FormatSpeed(String speed) {
-            Float newSpeed=Float.parseFloat(speed);
+            Float newSpeed = Float.parseFloat(speed);
 
             DecimalFormat df = new DecimalFormat("0.00");
             df.setMaximumFractionDigits(2);

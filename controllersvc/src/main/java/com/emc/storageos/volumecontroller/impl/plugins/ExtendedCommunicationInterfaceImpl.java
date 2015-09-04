@@ -48,24 +48,23 @@ import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.XMLStatsDumpGenerator;
 
-
 /**
- * This class provides base implementation of {@link ExtendedCommunicationInterface}
- * functions to avoid having many empty implementations in the subclasses. It is also
+ * This class provides base implementation of {@link ExtendedCommunicationInterface} functions to avoid having many empty implementations in
+ * the subclasses. It is also
  * a good place to add re-usable code.
  * 
  */
 public abstract class ExtendedCommunicationInterfaceImpl implements ExtendedCommunicationInterface {
     private static final Logger _logger = LoggerFactory
             .getLogger(ExtendedCommunicationInterfaceImpl.class);
-	protected DbClient _dbClient;
-	protected CoordinatorClient _coordinator;
-	protected NetworkDeviceController _networkDeviceController;
+    protected DbClient _dbClient;
+    protected CoordinatorClient _coordinator;
+    protected NetworkDeviceController _networkDeviceController;
 
     protected ControllerLockingService _locker;
     protected TaskCompleter _completer;
-	protected Map<String, Object> _cache;
-	protected Map<String, Object> _keyMap = new ConcurrentHashMap<String, Object>(); 
+    protected Map<String, Object> _cache;
+    protected Map<String, Object> _keyMap = new ConcurrentHashMap<String, Object>();
     protected static final String METERING = "metering";
     protected static final String SCAN = "scan";
     protected static final String DISCOVER = "discover";
@@ -100,10 +99,10 @@ public abstract class ExtendedCommunicationInterfaceImpl implements ExtendedComm
     }
 
     @Override
-    public void injectTaskCompleter(TaskCompleter completer){
+    public void injectTaskCompleter(TaskCompleter completer) {
         _completer = completer;
     }
-    
+
     /**
      * Dump stat records in /tmp location.
      */
@@ -114,10 +113,12 @@ public abstract class ExtendedCommunicationInterfaceImpl implements ExtendedComm
             _xmlDumpGenerator.dumpRecordstoXML(_keyMap);
         }
     }
+
     /**
      * Inject Stats to Cassandra. To-Do: To verify, how fast batch insertion is
      * working for entries in 1000s. If its taking time, then will need to work
      * out, splitting again the batch into smaller batches.
+     * 
      * @throws BaseCollectionException
      */
     protected void injectStats() throws BaseCollectionException {
@@ -126,12 +127,12 @@ public abstract class ExtendedCommunicationInterfaceImpl implements ExtendedComm
         @SuppressWarnings("unchecked")
         List<Stat> stats = (List<Stat>) _keyMap.get(Constants._Stats);
         @SuppressWarnings("unchecked")
-        Map<String,String> props =  (Map<String, String>) _keyMap.get(Constants.PROPS);
+        Map<String, String> props = (Map<String, String>) _keyMap.get(Constants.PROPS);
         // insert in batches
         int size = Constants.DEFAULT_PARTITION_SIZE;
-        if(null != props.get(Constants.METERING_RECORDS_PARTITION_SIZE))
+        if (null != props.get(Constants.METERING_RECORDS_PARTITION_SIZE))
             size = Integer.parseInt(props.get(Constants.METERING_RECORDS_PARTITION_SIZE));
-        
+
         if (null == _partitionManager) {
             Stat[] statBatch = new Stat[stats.size()];
             statBatch = stats.toArray(statBatch);
@@ -147,23 +148,23 @@ public abstract class ExtendedCommunicationInterfaceImpl implements ExtendedComm
     }
 
     @Override
-	public void cleanup() {
-		// do nothing
-	}
-    
+    public void cleanup() {
+        // do nothing
+    }
+
     public void setXmlDumpGenerator(XMLStatsDumpGenerator xmlDumpGenerator) {
         _xmlDumpGenerator = xmlDumpGenerator;
     }
-    
+
     public void setPartitionManager(PartitionManager partitionManager) {
         _partitionManager = partitionManager;
     }
 
     /**
-     * Synchronize the existing active DB Un-Managed FS objects with the newly discovered  
+     * Synchronize the existing active DB Un-Managed FS objects with the newly discovered
      * Un-Managed FS objects listed by the Array.
      */
-	protected void markUnManagedFSObjectsInActive(StorageSystem storageSystem,
+    protected void markUnManagedFSObjectsInActive(StorageSystem storageSystem,
             Set<URI> discoveredUnManagedFileSystems) {
         _logger.info(" -- Processing {} discovered Un-Managed FS Objects from -- {}",
                 discoveredUnManagedFileSystems.size(), storageSystem.getLabel());
@@ -218,7 +219,7 @@ public abstract class ExtendedCommunicationInterfaceImpl implements ExtendedComm
      * @throws java.io.IOException
      */
     protected UnManagedFileExportRule checkUnManagedFsExportRuleExistsInDB(DbClient dbClient,
-                                                                           String exportRuleNativeGuid) {
+            String exportRuleNativeGuid) {
         UnManagedFileExportRule unManagedExportRule = null;
         URIQueryResultList result = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
@@ -230,8 +231,8 @@ public abstract class ExtendedCommunicationInterfaceImpl implements ExtendedComm
             return unManagedExportRule;
         }
         return unManagedExportRule;
-   }
-    
+    }
+
     /**
      * check Pre Existing Storage CIFS ACLs exists in DB
      *
@@ -241,8 +242,8 @@ public abstract class ExtendedCommunicationInterfaceImpl implements ExtendedComm
      * @throws java.io.IOException
      */
     protected UnManagedCifsShareACL checkUnManagedFsCifsACLExistsInDB(DbClient dbClient,
-                                                                           String cifsACLNativeGuid) {
-    	UnManagedCifsShareACL unManagedCifsAcl = null;
+            String cifsACLNativeGuid) {
+        UnManagedCifsShareACL unManagedCifsAcl = null;
         URIQueryResultList result = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
                 .getFileCifsACLNativeGUIdConstraint(cifsACLNativeGuid), result);
@@ -253,13 +254,13 @@ public abstract class ExtendedCommunicationInterfaceImpl implements ExtendedComm
             return unManagedCifsAcl;
         }
         return unManagedCifsAcl;
-   }
+    }
 
     @Override
     public void injectNetworkDeviceController(
             NetworkDeviceController networkDeviceController) {
         _networkDeviceController = networkDeviceController;
-        
+
     }
-	
+
 }

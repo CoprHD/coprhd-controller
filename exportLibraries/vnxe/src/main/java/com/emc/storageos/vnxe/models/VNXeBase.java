@@ -19,21 +19,21 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
 public class VNXeBase {
-	private String id;
+    private String id;
 
-	public VNXeBase() {};
-	
-	public VNXeBase(String id) {
-	    this.id = id;
-	}
-	public String getId() {
-		return id;
-	}
+    public VNXeBase() {
+    };
 
-	public void setId(String id) {
-		this.id = id;
-	}
-	
-	
+    public VNXeBase(String id) {
+        this.id = id;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 
 }

@@ -36,18 +36,20 @@ public class SignatureHelper {
 
     /**
      * sign the contents of String. with the specified key and algorithm
+     * 
      * @param buf
      * @param key
      * @param algorithm
      * @return
      */
     public static String sign2(String buf, SecretKey key, String algorithm) {
-       return sign2(buf.getBytes(), key, algorithm);
+        return sign2(buf.getBytes(), key, algorithm);
     }
-    
+
     /**
      * Deprecated. Use static method sign2 intead.
      * sign the contents of String. with the specified key and algorithm
+     * 
      * @param buf
      * @param key
      * @param algorithm
@@ -55,27 +57,27 @@ public class SignatureHelper {
      */
     @Deprecated
     public String sign(String buf, SecretKey key, String algorithm) {
-       return sign2(buf.getBytes(), key, algorithm);
+        return sign2(buf.getBytes(), key, algorithm);
     }
 
     /**
      * sign the contents of String. with the specified key and algorithm
+     * 
      * @param buf
      * @param key
      * @param algorithm
      * @return
      */
-    public static String sign2(byte [] buf, SecretKey key, String algorithm) {
+    public static String sign2(byte[] buf, SecretKey key, String algorithm) {
         Mac mac;
         try {
-            mac =  Mac.getInstance(algorithm);
-        } catch(NoSuchAlgorithmException e) {
+            mac = Mac.getInstance(algorithm);
+        } catch (NoSuchAlgorithmException e) {
             throw SecurityException.fatals.noSuchAlgorithmException(algorithm, e);
         }
         try {
             mac.init(key);
-        }
-        catch (InvalidKeyException e) {
+        } catch (InvalidKeyException e) {
             throw APIException.badRequests.theParametersAreNotValid(
                     SecretKey.class.getName(), e);
         }
@@ -85,18 +87,20 @@ public class SignatureHelper {
     /**
      * Deprecated. Use static method sign2 intead.
      * sign the contents of String. with the specified key and algorithm
+     * 
      * @param buf
      * @param key
      * @param algorithm
      * @return
      */
     @Deprecated
-    public String sign(byte [] buf, SecretKey key, String algorithm) {
+    public String sign(byte[] buf, SecretKey key, String algorithm) {
         return sign2(buf, key, algorithm);
     }
-   
+
     /**
      * Creates a SecretKey from encoded string
+     * 
      * @param encoded
      * @param algo
      * @return
@@ -107,6 +111,7 @@ public class SignatureHelper {
 
     /**
      * Generate a new secret key, encoded as string
+     * 
      * @param algo
      * @return
      * @throws NoSuchAlgorithmException

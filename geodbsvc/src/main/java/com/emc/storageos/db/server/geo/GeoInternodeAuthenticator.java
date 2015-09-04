@@ -40,11 +40,11 @@ import com.emc.storageos.db.server.impl.DbServiceImpl;
 
 /**
  * InternnodeAuthenticator for geodb. It maintains a blacklist to refuse gossip connection
- * from nodes in remote vdc. The use case if for vdc disconnect/reconnect, we need block 
+ * from nodes in remote vdc. The use case if for vdc disconnect/reconnect, we need block
  * geodb connection from disconnected vdc.
  * 
  * The blacklist is stored in ZK under /config/geodbconfig. The blacklist is reloaded
- * each time during dbservice startup.  
+ * each time during dbservice startup.
  */
 public class GeoInternodeAuthenticator implements IInternodeAuthenticator, GeoInternodeAuthenticatorMBean {
     private static final Logger log = LoggerFactory.getLogger(GeoInternodeAuthenticator.class);
@@ -54,7 +54,7 @@ public class GeoInternodeAuthenticator implements IInternodeAuthenticator, GeoIn
     public GeoInternodeAuthenticator() {
         blacklist = new HashSet<InetAddress>();
     }
-    
+
     @Override
     public boolean authenticate(InetAddress remoteAddress, int remotePort)
     {
@@ -66,19 +66,18 @@ public class GeoInternodeAuthenticator implements IInternodeAuthenticator, GeoIn
         return true;
     }
 
-    
     /**
-     * Called by Cassandra startup routine to initialize this instance 
+     * Called by Cassandra startup routine to initialize this instance
      */
     @Override
     public void validateConfiguration() throws ConfigurationException
     {
         log.info("Initialize GeoInternodeAuthenticator");
         reloadBlacklist();
-        
+
         try {
-            MBeanServer mbs = ManagementFactory.getPlatformMBeanServer(); 
-            ObjectName name = new ObjectName(MBEAN_NAME); 
+            MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
+            ObjectName name = new ObjectName(MBEAN_NAME);
             mbs.registerMBean(this, name);
         } catch (Exception ex) {
             log.error("Register MBean error ", ex);
@@ -93,7 +92,7 @@ public class GeoInternodeAuthenticator implements IInternodeAuthenticator, GeoIn
             try {
                 InetAddress addr = InetAddress.getByName(nodeIp);
                 blacklist.add(addr);
-                
+
             } catch (UnknownHostException ex) {
                 log.error("Unrecognized ip in blacklist", ex);
             }
@@ -114,16 +113,16 @@ public class GeoInternodeAuthenticator implements IInternodeAuthenticator, GeoIn
         }
         saveBlacklist();
     }
-    
+
     @Override
     public List<String> getBlacklist() {
         List<String> result = new ArrayList<>();
-        for(InetAddress addr : blacklist) {
+        for (InetAddress addr : blacklist) {
             result.add(addr.getHostAddress());
         }
         return Collections.unmodifiableList(result);
     }
-    
+
     private void reloadBlacklist() {
         blacklist.clear();
         String peerIPs = DbServiceImpl.instance.getConfigValue(DbConfigConstants.NODE_BLACKLIST);
@@ -139,7 +138,7 @@ public class GeoInternodeAuthenticator implements IInternodeAuthenticator, GeoIn
         }
         log.info("Reload blacklist from ZK {}", blacklist);
     }
-    
+
     private void saveBlacklist() {
         List<String> ipList = new ArrayList<String>();
         for (InetAddress addr : blacklist) {
@@ -148,5 +147,5 @@ public class GeoInternodeAuthenticator implements IInternodeAuthenticator, GeoIn
         String value = StringUtils.join(ipList, SEPARATOR);
         DbServiceImpl.instance.setConfigValue(DbConfigConstants.NODE_BLACKLIST, value);
     }
-    
+
 }

@@ -69,7 +69,7 @@ public class WinRMTarget {
      * specified as <i>DOMAIN\\username</i>, but kerberos requires the names to be <i>username@DOMAIN</i>.
      * 
      * @param username
-     *        the username to normalize.
+     *            the username to normalize.
      * @return the normalized username.
      */
     public static String normalizeUsername(String username) {
@@ -113,8 +113,7 @@ public class WinRMTarget {
     public URL getUrl() {
         try {
             return new URL(getProtocol(), host, port, "/wsman");
-        }
-        catch (MalformedURLException e) {
+        } catch (MalformedURLException e) {
             return null;
         }
     }
@@ -132,11 +131,9 @@ public class WinRMTarget {
                 handleError(response, text);
             }
             return text;
-        }
-        catch (WinRMException e) {
+        } catch (WinRMException e) {
             throw e;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new WinRMException(e);
         }
     }
@@ -170,14 +167,14 @@ public class WinRMTarget {
             SOAPEnvelope e = (SOAPEnvelope) SOAPFactory.newInstance().createElement(doc.getDocumentElement());
             SOAPFault fault = e.getBody().getFault();
             return fault;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             return null;
         }
     }
 
     protected String getWMIError(SOAPFault soapFault) {
-        XPathExpression xpath = XmlUtils.compileXPath(WinRMConstants.XPATH,"s:Detail/f:WSManFault/f:Message/f:ProviderFault/f:ExtendedError");
+        XPathExpression xpath = XmlUtils.compileXPath(WinRMConstants.XPATH,
+                "s:Detail/f:WSManFault/f:Message/f:ProviderFault/f:ExtendedError");
         Element extendedError = XmlUtils.selectElement(xpath, soapFault);
 
         if (extendedError != null) {

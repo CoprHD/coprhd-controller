@@ -36,7 +36,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 public class VplexExportGroupServiceApiImpl extends
-AbstractExportGroupServiceApiImpl {
+        AbstractExportGroupServiceApiImpl {
     private static final Logger _log = LoggerFactory
             .getLogger(VplexExportGroupServiceApiImpl.class);
 
@@ -44,24 +44,24 @@ AbstractExportGroupServiceApiImpl {
      * Validate varray ports during Export Group Create. If varray
      * contains ports from both Vplex Cluster 1 and Cluster 2 thats an invalid
      * network configuration. It could be one or more network within a varray.
-     * If initiators of a host are in two networks then vplex storage ports from 
+     * If initiators of a host are in two networks then vplex storage ports from
      * both networks are taken into account to check if ports belong to both
      * Vplex Cluster 1 and Cluster 2.
      * 
      * @param storageSystemURIs vplex storageSystem URIs
      * @param varray source VirtualArray
-     * @param allHosts 
+     * @param allHosts
      * @throws InternalException
      */
     @Override
     public void validateVarrayStoragePorts(Set<URI> storageSystemURIs,
             VirtualArray varray, List<URI> allHosts)
-                    throws InternalException {
+            throws InternalException {
         try {
             // Get VirtualArray Storage ports by Network.
             Map<Network, Set<StoragePort>> networkToPortsMap = getVirtualArrayTaggedPortsByNework(varray
                     .getId());
-            
+
             Map<URI, Set<URI>> vplexCluster1ports = new HashMap<URI, Set<URI>>();
             Map<URI, Set<URI>> vplexCluster2ports = new HashMap<URI, Set<URI>>();
             Map<URI, StorageSystem> storageSystems = new HashMap<URI, StorageSystem>();
@@ -85,29 +85,29 @@ AbstractExportGroupServiceApiImpl {
                     StoragePort storagePort = _dbClient.queryObject(StoragePort.class,
                             storagePortURI);
                     if (storagePort != null
-                    		&& !storagePort.getInactive()
-                    		&& storagePort.getRegistrationStatus().equals(
-                    				DiscoveredDataObject.RegistrationStatus.REGISTERED.name())
+                            && !storagePort.getInactive()
+                            && storagePort.getRegistrationStatus().equals(
+                                    DiscoveredDataObject.RegistrationStatus.REGISTERED.name())
                             && !storagePort.getDiscoveryStatus().equalsIgnoreCase(
                                     DiscoveryStatus.NOTVISIBLE.name())) {
-                    	//Port Group has value like director-1-1-A, first number
-                    	//after director- in this string determines vplex cluster
-                    	if (storagePort.getPortGroup() != null) {
-                    		String[] tokens = storagePort.getPortGroup().split("-");
-                    		if (cluster1.equals(tokens[1])) {
-                    			cluster1StoragePorts.add(storagePort.getId());
-                    		} else if (cluster2.equals(tokens[1])) {
-                    			cluster2StoragePorts.add(storagePort.getId());
-                    		} else {
-                    			_log.warn("Could not determine cluster for storageport:"
-                    					+ storagePort.getPortNetworkId() + " "
-                    					+ storagePort.getId() + " Port group is:"
-                    					+ storagePort.getPortGroup());
-                    		}
-                    	} else {
-                    		_log.warn("Could not determine cluster for storageport:"
-                    				+ storagePort.getPortNetworkId() + " " + storagePort.getId());
-                    	}
+                        // Port Group has value like director-1-1-A, first number
+                        // after director- in this string determines vplex cluster
+                        if (storagePort.getPortGroup() != null) {
+                            String[] tokens = storagePort.getPortGroup().split("-");
+                            if (cluster1.equals(tokens[1])) {
+                                cluster1StoragePorts.add(storagePort.getId());
+                            } else if (cluster2.equals(tokens[1])) {
+                                cluster2StoragePorts.add(storagePort.getId());
+                            } else {
+                                _log.warn("Could not determine cluster for storageport:"
+                                        + storagePort.getPortNetworkId() + " "
+                                        + storagePort.getId() + " Port group is:"
+                                        + storagePort.getPortGroup());
+                            }
+                        } else {
+                            _log.warn("Could not determine cluster for storageport:"
+                                    + storagePort.getPortNetworkId() + " " + storagePort.getId());
+                        }
                     }
                 }
                 vplexCluster1ports.put(uri, cluster1StoragePorts);
@@ -127,17 +127,17 @@ AbstractExportGroupServiceApiImpl {
 
                     intersection1.retainAll(vplexCluster1ports.get(uri));
                     intersection2.retainAll(vplexCluster2ports.get(uri));
-                    
+
                     // Ports should only be either in intersection1 or intersection2,
-                    //if we have ports in both then its a mix ports from cluster 1 and cluster 2
+                    // if we have ports in both then its a mix ports from cluster 1 and cluster 2
                     if (intersection1.size() != 0 && intersection2.size() != 0) {
                         Map<URI, String> cluster1Ports = new HashMap<URI, String>();
                         Map<URI, String> cluster2Ports = new HashMap<URI, String>();
-                        // Get port information so that we can print in log cluster 1 and cluster 2 ports 
-                        //which belong in the same varray
+                        // Get port information so that we can print in log cluster 1 and cluster 2 ports
+                        // which belong in the same varray
                         for (URI uriIntersection1 : intersection1) {
                             if (networkStoragePortsForHost.get(uriIntersection1) != null) {
-                                cluster1Ports.put(uriIntersection1, 
+                                cluster1Ports.put(uriIntersection1,
                                         networkStoragePortsForHost.get(uriIntersection1).getPortNetworkId());
                             }
                         }
@@ -159,7 +159,7 @@ AbstractExportGroupServiceApiImpl {
                                 + "\n Cluster 2 storageports in varray are"
                                 + cluster2Ports);
                         throw APIException.badRequests
-                        .invalidVarrayNetworkConfiguration(varray.getLabel(),storageSystems.get(uri).getLabel());
+                                .invalidVarrayNetworkConfiguration(varray.getLabel(), storageSystems.get(uri).getLabel());
                     }
                 }
             }
@@ -252,7 +252,7 @@ AbstractExportGroupServiceApiImpl {
         }
         return networkToStoragePortsMap;
     }
-    
+
     /**
      * Determines the virtual arrays associated with a VPLEX volume.
      * 
@@ -263,38 +263,38 @@ AbstractExportGroupServiceApiImpl {
      * @return A list of URIs of the virtual array URIs.
      */
     public static List<URI> getVolumeVirtualArrays(Volume volume,
-        StorageSystem vplexSystem, DbClient dbClient) {
-       List<URI> varrayURIs = new ArrayList<URI>();
-       // For volumes created in ViPR we could use the varrays specified
-       // for the associated backend volumes. However, for ingested 
-       // volumes, the associated volumes will not be set. We know
-       // one varray is the varray for the VPLEX volume itself, so
-       // add it to the list.
-       varrayURIs.add(volume.getVirtualArray());
-       
-       // If the volume is a distributed volume, then the other varray
-       // is the HA varray specified in the vpool for the volume.
-       String volumeId = volume.getId().toString();
-       URI vpoolURI = volume.getVirtualPool();
-       if (vpoolURI != null) {
-           VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolURI);
-           if (vpool != null) {
-               String vplexHA = vpool.getHighAvailability();
-               if (VirtualPool.HighAvailabilityType.vplex_distributed.name().equals(vplexHA)) {
-                   StringMap haVarrayMap = vpool.getHaVarrayVpoolMap();
-                   if ((haVarrayMap != null) && (!haVarrayMap.isEmpty())) {
-                       varrayURIs.add(URI.create(haVarrayMap.keySet().iterator().next()));
-                   } else {
-                       _log.error("HA varray not set in vpool {} for VPLEX volume {}", vpoolURI, volumeId);                       
-                   }
-               }
-           } else {
-               _log.error("Could not find virtual pool {} for VPLEX volume {}", vpoolURI, volumeId);               
-           }
-       } else {
-           _log.error("Virtual pool is not set for VPLEX volume {}", volumeId);
-       }
-       
-       return varrayURIs;
+            StorageSystem vplexSystem, DbClient dbClient) {
+        List<URI> varrayURIs = new ArrayList<URI>();
+        // For volumes created in ViPR we could use the varrays specified
+        // for the associated backend volumes. However, for ingested
+        // volumes, the associated volumes will not be set. We know
+        // one varray is the varray for the VPLEX volume itself, so
+        // add it to the list.
+        varrayURIs.add(volume.getVirtualArray());
+
+        // If the volume is a distributed volume, then the other varray
+        // is the HA varray specified in the vpool for the volume.
+        String volumeId = volume.getId().toString();
+        URI vpoolURI = volume.getVirtualPool();
+        if (vpoolURI != null) {
+            VirtualPool vpool = dbClient.queryObject(VirtualPool.class, vpoolURI);
+            if (vpool != null) {
+                String vplexHA = vpool.getHighAvailability();
+                if (VirtualPool.HighAvailabilityType.vplex_distributed.name().equals(vplexHA)) {
+                    StringMap haVarrayMap = vpool.getHaVarrayVpoolMap();
+                    if ((haVarrayMap != null) && (!haVarrayMap.isEmpty())) {
+                        varrayURIs.add(URI.create(haVarrayMap.keySet().iterator().next()));
+                    } else {
+                        _log.error("HA varray not set in vpool {} for VPLEX volume {}", vpoolURI, volumeId);
+                    }
+                }
+            } else {
+                _log.error("Could not find virtual pool {} for VPLEX volume {}", vpoolURI, volumeId);
+            }
+        } else {
+            _log.error("Virtual pool is not set for VPLEX volume {}", volumeId);
+        }
+
+        return varrayURIs;
     }
 }

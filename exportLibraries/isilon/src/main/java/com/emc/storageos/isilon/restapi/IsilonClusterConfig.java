@@ -15,7 +15,6 @@
 
 package com.emc.storageos.isilon.restapi;
 
-
 import com.google.gson.Gson;
 
 import java.util.ArrayList;
@@ -33,13 +32,12 @@ public class IsilonClusterConfig {
     private String name;
     private OnefsVersion onefs_version;
 
-
     public static class Devices {
-       private String devid;
-       private String guid;
-       private String lnn;
+        private String devid;
+        private String guid;
+        private String lnn;
 
-       public String toString() {
+        public String toString() {
             StringBuilder str = new StringBuilder();
             str.append("[ devid: " + devid);
             str.append(", guid: " + guid);
@@ -47,7 +45,7 @@ public class IsilonClusterConfig {
             return str.toString();
         }
 
-     }
+    }
 
     public static class OnefsVersion {
         private String build;
@@ -59,13 +57,13 @@ public class IsilonClusterConfig {
         public String toString() {
             StringBuilder str = new StringBuilder();
             str.append("[ build: " + build);
-            str.append(", release: " +  release);
+            str.append(", release: " + release);
             str.append(", revision: " + revision);
             str.append(", type: " + type);
             str.append(", version: " + version + "]");
             return str.toString();
         }
-        
+
         public String getReleaseVersionNumber() {
             if (release.startsWith("v")) {
                 return release.substring(1, release.length());
@@ -77,7 +75,7 @@ public class IsilonClusterConfig {
     public static class TimeZone {
         private String abbreviation;
         private String custom;
-         private String name;
+        private String name;
         private String path;
 
         public String toString() {
@@ -90,9 +88,7 @@ public class IsilonClusterConfig {
         }
     };
 
-
-
-    public void setVersion(String versionStr){
+    public void setVersion(String versionStr) {
         onefs_version = new Gson().fromJson(versionStr, OnefsVersion.class);
     }
 
@@ -107,43 +103,43 @@ public class IsilonClusterConfig {
     }
 
     public String getDescription() {
-           return description;
-       }
+        return description;
+    }
 
-       public ArrayList<Devices> getDevices() {
-           return devices;
-       }
+    public ArrayList<Devices> getDevices() {
+        return devices;
+    }
 
-       public String getEncoding() {
-           return encoding;
-       }
+    public String getEncoding() {
+        return encoding;
+    }
 
-       public String getGuid() {
-           return guid;
-       }
+    public String getGuid() {
+        return guid;
+    }
 
-       public String getJoin_mode() {
-           return join_mode;
-       }
+    public String getJoin_mode() {
+        return join_mode;
+    }
 
-       public String getLocal_devid() {
-           return local_devid;
-       }
+    public String getLocal_devid() {
+        return local_devid;
+    }
 
-       public String getLocal_lnn() {
-           return local_lnn;
-       }
+    public String getLocal_lnn() {
+        return local_lnn;
+    }
 
-       public String getLocal_serial() {
-           return local_serial;
-       }
+    public String getLocal_serial() {
+        return local_serial;
+    }
 
-       public String getName() {
-           return name;
-       }
+    public String getName() {
+        return name;
+    }
 
-       public OnefsVersion getOnefs_version_info() {
-           return onefs_version;
-       }
+    public OnefsVersion getOnefs_version_info() {
+        return onefs_version;
+    }
 
 }

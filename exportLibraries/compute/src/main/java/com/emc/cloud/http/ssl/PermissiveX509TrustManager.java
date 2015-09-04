@@ -10,7 +10,7 @@
  * notice above does not evidence any actual or intended publication of this 
  * software. Disclosure and dissemination are pursuant to separate agreements. 
  * Unauthorized use, distribution or dissemination are strictly prohibited. 
-*/
+ */
 package com.emc.cloud.http.ssl;
 
 import javax.net.ssl.TrustManagerFactory;
@@ -26,9 +26,8 @@ import java.security.cert.X509Certificate;
 /**
  * A TrustManager which trusts everyone by default.
  * <p>
- * Testing with self-signed and expired certificates can be problematic. This
- * TrustManager implementation allows the use of untrusted and expired
- * certificates for testing purposes.
+ * Testing with self-signed and expired certificates can be problematic. This TrustManager implementation allows the use of untrusted and
+ * expired certificates for testing purposes.
  * <p>
  * WARNING: Do *not* use in production!
  * 
@@ -75,6 +74,7 @@ public class PermissiveX509TrustManager implements X509TrustManager {
     /**
      * Direct the trust manager to allow untrusted certificates or not.
      * <p>
+     * 
      * @param allowUntrusted true if untrusted certificates should be allowed, otherwise false
      */
     public void setAllowUntrusted(boolean allowUntrusted) {
@@ -86,6 +86,7 @@ public class PermissiveX509TrustManager implements X509TrustManager {
      * <p>
      * Default value is true.
      * <p>
+     * 
      * @return true if we're allowing everyone, otherwise false
      */
     public boolean getAllowUntrusted() {

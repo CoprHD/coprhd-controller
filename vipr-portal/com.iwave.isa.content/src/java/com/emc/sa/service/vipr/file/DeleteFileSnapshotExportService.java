@@ -17,10 +17,10 @@ import static com.emc.sa.service.ServiceParams.*;
 
 @Service("DeleteFileSnapshotExport")
 public class DeleteFileSnapshotExportService extends ViPRService {
-    
+
     @Param(SNAPSHOT)
     protected URI snapshot;
-    
+
     @Override
     public void execute() throws Exception {
         FileStorageUtils.deactivateSnapshotExport(snapshot, true, null);

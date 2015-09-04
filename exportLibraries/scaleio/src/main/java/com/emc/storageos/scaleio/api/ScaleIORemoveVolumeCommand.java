@@ -23,7 +23,7 @@ public class ScaleIORemoveVolumeCommand extends AbstractScaleIOQueryCommand<Scal
     public static final String REMOVED_VOLUME_SUCCESS = "RemovedVolumeSuccess";
     public static final String REMOVED_VOLUME_FAILED = "RemovedVolumeFailed";
 
-    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[]{
+    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[] {
             new ParsePattern("Successfully removed volume ID (\\w+)", REMOVED_VOLUME_SUCCESS)
     };
 

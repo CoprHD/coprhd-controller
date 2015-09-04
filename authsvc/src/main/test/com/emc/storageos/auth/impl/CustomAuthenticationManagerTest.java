@@ -14,7 +14,6 @@
  */
 package com.emc.storageos.auth.impl;
 
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -65,11 +64,11 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
  * Unit test for custom authentication manager
  */
 public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
-	
-	private static final String LDAP_SERVER_1 = EnvConfig.get("sanity", "authsvc.CustomAuthenticationManagerTest.ldapServerURL1");
+
+    private static final String LDAP_SERVER_1 = EnvConfig.get("sanity", "authsvc.CustomAuthenticationManagerTest.ldapServerURL1");
     private static final String LDAP_SERVER_2 = EnvConfig.get("sanity", "authsvc.CustomAuthenticationManagerTest.ldapServerURL2");
-	
-	private final Logger _log = LoggerFactory.getLogger(CustomAuthenticationManagerTest.class);
+
+    private final Logger _log = LoggerFactory.getLogger(CustomAuthenticationManagerTest.class);
     private static final int _INITIAL_HANDLERS = 1;
     private final Base64TokenEncoder _encoder = new Base64TokenEncoder();
     private final TokenMaxLifeValuesHolder _holder = new TokenMaxLifeValuesHolder();
@@ -113,12 +112,12 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         tenants = new URIQueryResultList();
         _dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getTenantOrgSubTenantConstraint(URI.create(TenantOrg.PROVIDER_TENANT_ORG)),
-                tenants);     
-        // cleanup subtenants.  It's ok to use removeObject, we are not creating any dependant projects or
+                tenants);
+        // cleanup subtenants. It's ok to use removeObject, we are not creating any dependant projects or
         // resources in these tests.
         List<TenantOrg> deleteTenants = _dbClient.queryObject(TenantOrg.class, tenants);
         for (TenantOrg tenant : deleteTenants) {
-        	_dbClient.removeObject(tenant);
+            _dbClient.removeObject(tenant);
         }
         _authManager.init();
         _invalidLoginManager.setCleanupThreadInitialDelay(1);
@@ -126,9 +125,9 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         _invalidLoginManager.setMaxAuthnLoginAttemtsCount(5);
         _invalidLoginManager.setMaxAuthnLoginAttemtsLifeTimeInMins(1);
         _invalidLoginManager.init();
-        
+
     }
-    
+
     @After
     public void shutdown() {
         _invalidLoginManager.shutdown();
@@ -136,43 +135,43 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
 
     private void createADLDAPProviders() throws Exception {
         // Create the a good authConfig
-           AuthnProvider adAuthConfig = new AuthnProvider();
-           adAuthConfig.setId(URIUtil.createId(AuthnProvider.class));
-           adAuthConfig.setMode("ad");
-           StringSet adDomains = new StringSet();
-           adDomains.add("sanity.local");
-           adAuthConfig.setDomains(adDomains);
-           adAuthConfig.setManagerDN("CN=Administrator,CN=Users,DC=sanity,DC=local");
-           adAuthConfig.setManagerPassword(_adManagerPassword);
-           StringSet adUrls = new StringSet();
-           adUrls.add(LDAP_SERVER_1);
-           adAuthConfig.setServerUrls(adUrls);
-           adAuthConfig.setSearchBase("CN=Users,DC=sanity,DC=local");
-           adAuthConfig.setSearchFilter("userPrincipalName=%u");
-           adAuthConfig.setGroupAttribute("CN");
-           adAuthConfig.setLast_modified(System.currentTimeMillis());
-           _log.info("adding new provider");
-           _dbClient.createObject(adAuthConfig);
+        AuthnProvider adAuthConfig = new AuthnProvider();
+        adAuthConfig.setId(URIUtil.createId(AuthnProvider.class));
+        adAuthConfig.setMode("ad");
+        StringSet adDomains = new StringSet();
+        adDomains.add("sanity.local");
+        adAuthConfig.setDomains(adDomains);
+        adAuthConfig.setManagerDN("CN=Administrator,CN=Users,DC=sanity,DC=local");
+        adAuthConfig.setManagerPassword(_adManagerPassword);
+        StringSet adUrls = new StringSet();
+        adUrls.add(LDAP_SERVER_1);
+        adAuthConfig.setServerUrls(adUrls);
+        adAuthConfig.setSearchBase("CN=Users,DC=sanity,DC=local");
+        adAuthConfig.setSearchFilter("userPrincipalName=%u");
+        adAuthConfig.setGroupAttribute("CN");
+        adAuthConfig.setLast_modified(System.currentTimeMillis());
+        _log.info("adding new provider");
+        _dbClient.createObject(adAuthConfig);
 
-           // Create an LDAP auth config
-           AuthnProvider ldapAuthConfig = new AuthnProvider();
-           ldapAuthConfig.setId(URIUtil.createId(AuthnProvider.class));
-           ldapAuthConfig.setMode("ldap");
-           StringSet ldapDomains = new StringSet();
-           ldapDomains.add("root.com");
-           ldapAuthConfig.setDomains(ldapDomains);
-           ldapAuthConfig.setManagerDN("cn=Manager,dc=root,dc=com");
-           ldapAuthConfig.setManagerPassword("secret");
-           StringSet ldapURLs = new StringSet();
-           ldapURLs.add(LDAP_SERVER_2);
-           ldapAuthConfig.setServerUrls(ldapURLs);
-           ldapAuthConfig.setSearchBase("ou=People,dc=root,dc=com");
-           ldapAuthConfig.setSearchFilter("(uid=%U)");
-           ldapAuthConfig.setLast_modified(System.currentTimeMillis());
-           _dbClient.createObject(ldapAuthConfig);
-           reloadConfig(true);
-       }
-    
+        // Create an LDAP auth config
+        AuthnProvider ldapAuthConfig = new AuthnProvider();
+        ldapAuthConfig.setId(URIUtil.createId(AuthnProvider.class));
+        ldapAuthConfig.setMode("ldap");
+        StringSet ldapDomains = new StringSet();
+        ldapDomains.add("root.com");
+        ldapAuthConfig.setDomains(ldapDomains);
+        ldapAuthConfig.setManagerDN("cn=Manager,dc=root,dc=com");
+        ldapAuthConfig.setManagerPassword("secret");
+        StringSet ldapURLs = new StringSet();
+        ldapURLs.add(LDAP_SERVER_2);
+        ldapAuthConfig.setServerUrls(ldapURLs);
+        ldapAuthConfig.setSearchBase("ou=People,dc=root,dc=com");
+        ldapAuthConfig.setSearchFilter("(uid=%U)");
+        ldapAuthConfig.setLast_modified(System.currentTimeMillis());
+        _dbClient.createObject(ldapAuthConfig);
+        reloadConfig(true);
+    }
+
     private void reloadConfig(boolean force) throws Exception {
         _log.info("triggering reload");
         _authManager.reload();
@@ -220,7 +219,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         Thread.sleep(60 * 1000);
         // The AD auth handler should now be in the list
         authProvidersList = _authManager.getAuthenticationProviders();
-        Assert.assertEquals(_INITIAL_HANDLERS+1, authProvidersList.size());
+        Assert.assertEquals(_INITIAL_HANDLERS + 1, authProvidersList.size());
 
         // Create the authConfig with some unknown mode
         StringSet domains = new StringSet();
@@ -246,7 +245,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         reloadConfig(true);
         // The null manager should not have been added to the list
         authProvidersList = _authManager.getAuthenticationProviders();
-        Assert.assertEquals(_INITIAL_HANDLERS+1, authProvidersList.size());
+        Assert.assertEquals(_INITIAL_HANDLERS + 1, authProvidersList.size());
         _dbClient.removeObject(badManagerAuthConfig);
         _authManager.reload();
 
@@ -268,7 +267,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         reloadConfig(true);
         // The null password should not have been added to the list
         authProvidersList = _authManager.getAuthenticationProviders();
-        Assert.assertEquals(_INITIAL_HANDLERS+1, authProvidersList.size());
+        Assert.assertEquals(_INITIAL_HANDLERS + 1, authProvidersList.size());
         _dbClient.removeObject(badPasswordAuthConfig);
         _authManager.reload();
 
@@ -288,7 +287,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         reloadConfig(true);
         // The no URLs config should not have been added to the list
         authProvidersList = _authManager.getAuthenticationProviders();
-        Assert.assertEquals(_INITIAL_HANDLERS+1, authProvidersList.size());
+        Assert.assertEquals(_INITIAL_HANDLERS + 1, authProvidersList.size());
         _dbClient.removeObject(noUrlsAuthConfig);
         _authManager.reload();
 
@@ -310,7 +309,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         reloadConfig(true);
         // The null search base should not have been added to the list
         authProvidersList = _authManager.getAuthenticationProviders();
-        Assert.assertEquals(_INITIAL_HANDLERS+1, authProvidersList.size());
+        Assert.assertEquals(_INITIAL_HANDLERS + 1, authProvidersList.size());
         _dbClient.removeObject(nullSearchBaseAuthConfig);
         _authManager.reload();
 
@@ -331,7 +330,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         reloadConfig(true);
         // The null search base should not have been added to the list
         authProvidersList = _authManager.getAuthenticationProviders();
-        Assert.assertEquals(_INITIAL_HANDLERS+1, authProvidersList.size());
+        Assert.assertEquals(_INITIAL_HANDLERS + 1, authProvidersList.size());
         _dbClient.removeObject(nullFilterAuthConfig);
         reloadConfig(true);
 
@@ -351,7 +350,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         reloadConfig(true);
         // The null scope config should still be added to the list
         authProvidersList = _authManager.getAuthenticationProviders();
-        Assert.assertEquals(_INITIAL_HANDLERS+2, authProvidersList.size());
+        Assert.assertEquals(_INITIAL_HANDLERS + 2, authProvidersList.size());
 
         // Create the authConfig with a bad search_scope (should be ok, will default to onelevel)
         AuthnProvider badScope = new AuthnProvider();
@@ -370,7 +369,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         reloadConfig(true);
         // The null scope config should still be added to the list
         authProvidersList = _authManager.getAuthenticationProviders();
-        Assert.assertEquals(_INITIAL_HANDLERS+3, authProvidersList.size());
+        Assert.assertEquals(_INITIAL_HANDLERS + 3, authProvidersList.size());
 
         // Create the authConfig with a good search_scope
         AuthnProvider goodScope = new AuthnProvider();
@@ -389,8 +388,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         reloadConfig(true);
         // The null scope config should still be added to the list
         authProvidersList = _authManager.getAuthenticationProviders();
-        Assert.assertEquals(_INITIAL_HANDLERS+4, authProvidersList.size());
-
+        Assert.assertEquals(_INITIAL_HANDLERS + 4, authProvidersList.size());
 
         // Create the authConfig with a null group Attribute
         AuthnProvider nullGroupAttribute = new AuthnProvider();
@@ -410,7 +408,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         reloadConfig(true);
         // The null group attribute config should still be added to the list
         authProvidersList = _authManager.getAuthenticationProviders();
-        Assert.assertEquals(_INITIAL_HANDLERS+5, authProvidersList.size());
+        Assert.assertEquals(_INITIAL_HANDLERS + 5, authProvidersList.size());
 
         // Create an LDAP auth config
         AuthnProvider ldapAuthConfig = new AuthnProvider();
@@ -432,9 +430,9 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         reloadConfig(true);
         // The ldap auth handler should be on the list
         authProvidersList = _authManager.getAuthenticationProviders();
-        Assert.assertEquals(_INITIAL_HANDLERS+6, authProvidersList.size());
+        Assert.assertEquals(_INITIAL_HANDLERS + 6, authProvidersList.size());
 
-        //Disable a config and make sure it goes away
+        // Disable a config and make sure it goes away
         ldapAuthConfig.setDisable(true);
         ldapAuthConfig.setLast_modified(System.currentTimeMillis());
         _dbClient.persistObject(ldapAuthConfig);
@@ -442,9 +440,9 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         reloadConfig(true);
         // The ldap auth handler should not be on the list
         authProvidersList = _authManager.getAuthenticationProviders();
-        Assert.assertEquals(_INITIAL_HANDLERS+5, authProvidersList.size());
+        Assert.assertEquals(_INITIAL_HANDLERS + 5, authProvidersList.size());
 
-        //enable th config and make sure it comes back
+        // enable th config and make sure it comes back
         ldapAuthConfig.setDisable(false);
         ldapAuthConfig.setLast_modified(System.currentTimeMillis());
         _dbClient.persistObject(ldapAuthConfig);
@@ -452,17 +450,17 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         reloadConfig(true);
         // The ldap auth handler should be on the list
         authProvidersList = _authManager.getAuthenticationProviders();
-        Assert.assertEquals(_INITIAL_HANDLERS+6, authProvidersList.size());
+        Assert.assertEquals(_INITIAL_HANDLERS + 6, authProvidersList.size());
 
-        //Delete it and verify that it is gone
+        // Delete it and verify that it is gone
         _dbClient.removeObject(ldapAuthConfig);
 
         reloadConfig(true);
         // The ldap auth handler should be on the list
         authProvidersList = _authManager.getAuthenticationProviders();
-        Assert.assertEquals(_INITIAL_HANDLERS+5, authProvidersList.size());
+        Assert.assertEquals(_INITIAL_HANDLERS + 5, authProvidersList.size());
 
-        //Add it back.  Later tests use it
+        // Add it back. Later tests use it
         ldapAuthConfig.setId(URIUtil.createId(AuthnProvider.class));
         ldapAuthConfig.setDisable(false);
         ldapAuthConfig.setInactive(false);
@@ -472,7 +470,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         reloadConfig(true);
         // The ldap auth handler should be on the list
         authProvidersList = _authManager.getAuthenticationProviders();
-        Assert.assertEquals(_INITIAL_HANDLERS+6, authProvidersList.size());
+        Assert.assertEquals(_INITIAL_HANDLERS + 6, authProvidersList.size());
     }
 
     @Test
@@ -520,16 +518,14 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         mappings.put(tenantMapping.getDomain(), tenantMapping.toString());
         mappings.put(tenantMapping2.getDomain(), tenantMapping2.toString());
 
-
         _subtenantId = URIUtil.createId(TenantOrg.class);
         TenantOrg subtenant = new TenantOrg();
         subtenant.setLabel("subtenant");
         subtenant.setDescription("auth subtenant");
         subtenant.setId(_subtenantId);
-        subtenant.setParentTenant(new NamedURI(_rootTenantId,"subtenant"));
+        subtenant.setParentTenant(new NamedURI(_rootTenantId, "subtenant"));
         subtenant.setUserMappings(mappings);
         _dbClient.persistObject(subtenant);
-
 
         StorageOSUserDAO user = _authManager.authenticate(sanityUserCreds);
         Assert.assertEquals(_rootTenantId.toString(), user.getTenantId());
@@ -669,7 +665,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         subtenant2.setLabel("subtenant2");
         subtenant2.setDescription("auth subtenant2");
         subtenant2.setId(subtenant2Id);
-        subtenant2.setParentTenant(new NamedURI(_rootTenantId,"subtenant2"));
+        subtenant2.setParentTenant(new NamedURI(_rootTenantId, "subtenant2"));
         subtenant2.setUserMappings(sidTestMappings);
         _dbClient.persistObject(subtenant2);
 
@@ -752,7 +748,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
         final String OUTER_GROUP = "OuterGroup@sanity.local";
         final String INNER_GROUP = "InsideGroup@sanity.local";
 
-        //look for a user with an unsupported domain
+        // look for a user with an unsupported domain
         String principalSearchFailedFormat =
                 "Search for %s failed for this tenant, or could not be found for this tenant.";
         String user = "invaliduser@invalidDomain.com";
@@ -797,7 +793,7 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
             Assert.assertEquals(3, userDetails.getUserGroupList().size());
             Assert.assertTrue(
                     "user is supposed to be part of the root tenant " + _rootTenantId
-                    + "but is actually in tenant" + userDetails.getTenant(),
+                            + "but is actually in tenant" + userDetails.getTenant(),
                     _rootTenantId.toString().equals(userDetails.getTenant()));
 
             boolean isDomainUser = false;
@@ -867,9 +863,9 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
 
             Assert.assertTrue(
                     "user is supposed to be part of the subtenant " + subtenantId
-                    + " but is actually in tenant " + userDetails.getTenant()
-                    + " (root tenant is " + _rootTenantId + " )", subtenantId
-                    .toString().equals(userDetails.getTenant()));
+                            + " but is actually in tenant " + userDetails.getTenant()
+                            + " (root tenant is " + _rootTenantId + " )", subtenantId
+                            .toString().equals(userDetails.getTenant()));
 
         } catch (SecurityException e) {
             Assert.fail("Got a SecurityException. Details: " + e.getLocalizedMessage());
@@ -1091,7 +1087,6 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
             Assert.assertTrue(future.get());
         }
 
-
     }
 
     @Test
@@ -1144,16 +1139,17 @@ public class CustomAuthenticationManagerTest extends DbsvcGeoTestBase {
 
         @Override
         public boolean authenticate(Credentials credentials) {
-            if( UsernamePasswordCredentials.class.isAssignableFrom(credentials.getClass())) {
-                return ((UsernamePasswordCredentials)credentials).getUserName().equals("root") && ((UsernamePasswordCredentials)credentials).getPassword().equals("ChangeMe");
+            if (UsernamePasswordCredentials.class.isAssignableFrom(credentials.getClass())) {
+                return ((UsernamePasswordCredentials) credentials).getUserName().equals("root")
+                        && ((UsernamePasswordCredentials) credentials).getPassword().equals("ChangeMe");
             }
             return false;
         }
 
         @Override
         public boolean supports(Credentials credentials) {
-            if( UsernamePasswordCredentials.class.isAssignableFrom(credentials.getClass())) {
-                return ((UsernamePasswordCredentials)credentials).getUserName().equals("root");
+            if (UsernamePasswordCredentials.class.isAssignableFrom(credentials.getClass())) {
+                return ((UsernamePasswordCredentials) credentials).getUserName().equals("root");
             }
             return false;
         }

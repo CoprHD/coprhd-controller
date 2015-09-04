@@ -21,12 +21,12 @@ import javax.xml.bind.annotation.adapters.XmlJavaTypeAdapter;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.dbcli.adapter.StringSetMapAdapter;
 
-@XmlRootElement(name="wrapper")
-public class StringSetMapWrapper extends Wrapper<StringSetMap>{
+@XmlRootElement(name = "wrapper")
+public class StringSetMapWrapper extends Wrapper<StringSetMap> {
 
     private StringSetMap stringSetMap = new StringSetMap();
- 
-    @XmlElement(name="stringSetMap")
+
+    @XmlElement(name = "stringSetMap")
     @XmlJavaTypeAdapter(StringSetMapAdapter.class)
     public StringSetMap getValue() {
         return stringSetMap;
@@ -35,6 +35,5 @@ public class StringSetMapWrapper extends Wrapper<StringSetMap>{
     public void setValue(StringSetMap stringSetMap) {
         this.stringSetMap = stringSetMap;
     }
-
 
 }

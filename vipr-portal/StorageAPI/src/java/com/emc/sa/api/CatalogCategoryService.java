@@ -75,33 +75,34 @@ import com.emc.vipr.model.catalog.CatalogServiceList;
 import com.emc.vipr.model.catalog.CatalogUpgrade;
 
 @DefaultPermissions(
-    read_roles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN }, 
-    write_roles = { Role.TENANT_ADMIN }, 
-    read_acls = { ACL.ANY })
+        read_roles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
+        write_roles = { Role.TENANT_ADMIN },
+        read_acls = { ACL.ANY })
 @Path("/catalog/categories")
 public class CatalogCategoryService extends CatalogTaggedResourceService {
-    
+
     private static final Logger log = LoggerFactory.getLogger(CatalogCategoryService.class);
 
     private static final String EVENT_SERVICE_TYPE = "catalog-category";
 
     @Autowired
     private CatalogCategoryManager catalogCategoryManager;
-    
+
     @Autowired
-    private CatalogServiceManager catalogServiceManager;    
-    
+    private CatalogServiceManager catalogServiceManager;
+
     @Autowired
     private ServiceDescriptors serviceDescriptors;
-    
+
     @Autowired
     private RecordableEventManager eventManager;
 
     private CatalogConfigUtils catalogConfigUtils;
+
     public void setCatalogConfigUtils(CatalogConfigUtils catalogConfigUtils) {
         this.catalogConfigUtils = catalogConfigUtils;
     }
-    
+
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
@@ -111,11 +112,11 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
     protected CatalogCategory queryResource(URI id) {
         return getCatalogCategoryById(id, false);
     }
-    
+
     private CatalogCategory getCatalogCategoryById(URI id, boolean checkInactive) {
         CatalogCategory catalogCategory = catalogCategoryManager.getCatalogCategoryById(id);
         ArgValidator.checkEntity(catalogCategory, id, isIdEmbeddedInURL(id), checkInactive);
-        return catalogCategory;        
+        return catalogCategory;
     }
 
     @Override
@@ -128,13 +129,13 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.CATALOG_CATEGORY;
     }
-    
+
     /**
      * Get the root catalog category for a tenant
      * 
      * @prereq none
      * @brief Get Root Catalog Category
-     * @return Root Catalog Category     
+     * @return Root Catalog Category
      */
     @GET
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -146,44 +147,44 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
         if (StringUtils.isBlank(tenantId)) {
             tenantId = user.getTenantId();
         }
-        
+
         verifyAuthorizedInTenantOrg(uri(tenantId), user);
-        
+
         CatalogCategory catalogCategory = catalogCategoryManager.getOrCreateRootCategory(uri(tenantId));
 
         return map(catalogCategory);
     }
-    
-    /**    
-    * List data for the specified categories.
-    *
-    * @param param POST data containing the id list.
-    * @prereq none
-    * @brief List data of specified clusters
-    * @return list of representations.
-    *
-    * @throws DatabaseException When an error occurs querying the database.
-    */
+
+    /**
+     * List data for the specified categories.
+     *
+     * @param param POST data containing the id list.
+     * @prereq none
+     * @brief List data of specified clusters
+     * @return list of representations.
+     *
+     * @throws DatabaseException When an error occurs querying the database.
+     */
     @POST
     @Path("/bulk")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public CatalogCategoryBulkRep getBulkResources(BulkIdParam param) {
         return (CatalogCategoryBulkRep) super.getBulkResources(param);
     }
-    
+
     @SuppressWarnings("unchecked")
     @Override
     public Class<CatalogCategory> getResourceClass() {
         return CatalogCategory.class;
     }
-    
+
     @Override
     public CatalogCategoryBulkRep queryBulkResourceReps(List<URI> ids) {
 
         Iterator<CatalogCategory> _dbIterator =
-            _dbClient.queryIterativeObjects(getResourceClass(), ids);
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
         List<CatalogCategoryRestRep> bulkList = BulkList.wrapping(_dbIterator, CatalogCategoryMapper.getInstance());
         List<CatalogCategoryRestRep> catalogCategoryRestReps = SortedIndexUtils.createSortedList(bulkList.iterator());
         return new CatalogCategoryBulkRep(catalogCategoryRestReps);
@@ -191,22 +192,21 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
 
     @Override
     public CatalogCategoryBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
-        
+
         Iterator<CatalogCategory> _dbIterator =
-            _dbClient.queryIterativeObjects(getResourceClass(), ids);
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
         BulkList.ResourceFilter filter = new CatalogCategoryFilter(getUserFromContext(), _permissionsHelper);
         List<CatalogCategoryRestRep> bulkList = BulkList.wrapping(_dbIterator, CatalogCategoryMapper.getInstance(), filter);
         List<CatalogCategoryRestRep> catalogCategoryRestReps = SortedIndexUtils.createSortedList(bulkList.iterator());
         return new CatalogCategoryBulkRep(catalogCategoryRestReps);
     }
 
-    
     /**
      * Get the root catalog category for a tenant
      * 
      * @prereq none
      * @brief Get Root Catalog Category
-     * @return Root Catalog Category     
+     * @return Root Catalog Category
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -218,26 +218,25 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
         StorageOSUser user = getUserFromContext();
         if (StringUtils.isBlank(tenantId)) {
             tenantId = user.getTenantId();
-        }        
-        
+        }
+
         verifyAuthorizedInTenantOrg(uri(tenantId), user);
         try {
             catalogCategoryManager.restoreDefaultCatalog(uri(tenantId));
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             log.error("Failed to reset catalog", e);
             return Response.serverError().build();
         }
-        
+
         return Response.ok().build();
-    }         
-    
+    }
+
     /**
      * Check to see if an update to the service catalog is available
      * 
      * @prereq none
      * @brief Check for Service Catalog Update
-     * @return True if Update Available     
+     * @return True if Update Available
      */
     @GET
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -249,21 +248,21 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
         StorageOSUser user = getUserFromContext();
         if (StringUtils.isBlank(tenantId)) {
             tenantId = user.getTenantId();
-        }        
-        
+        }
+
         verifyAuthorizedInTenantOrg(uri(tenantId), user);
 
         CatalogUpgrade catalogUpgrade = new CatalogUpgrade();
         catalogUpgrade.setUpgradeAvailable(catalogCategoryManager.isCatalogUpdateAvailable(uri(tenantId)));
         return catalogUpgrade;
-    }          
-    
+    }
+
     /**
      * Update the service catalog to the latest version
      * 
      * @prereq none
      * @brief Service Catalog Update
-     * @return none     
+     * @return none
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -275,20 +274,19 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
         StorageOSUser user = getUserFromContext();
         if (StringUtils.isBlank(tenantId)) {
             tenantId = user.getTenantId();
-        }        
-        
+        }
+
         verifyAuthorizedInTenantOrg(uri(tenantId), user);
         try {
             catalogCategoryManager.upgradeCatalog(uri(tenantId));
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             log.error("Failed to upgrade catalog", e);
             return Response.serverError().build();
-        }            
-        
+        }
+
         return Response.ok().build();
-    }            
-    
+    }
+
     /**
      * Creates a new catalog category in the supplied parent catalog category
      * 
@@ -296,7 +294,7 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
      *            the parameter to create a new catalog category
      * @prereq none
      * @brief Create Catalog Category
-     * @return none     
+     * @return none
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -307,27 +305,28 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
 
         StorageOSUser user = getUserFromContext();
         String tenantId = createParam.getTenantId();
-        
+
         if (StringUtils.isBlank(tenantId)) {
             tenantId = user.getTenantId();
-        }        
-        
+        }
+
         verifyAuthorizedInTenantOrg(uri(tenantId), user);
-        
+
         CatalogCategory parentCatalogCategory = queryResource(createParam.getCatalogCategoryId());
         validateCatalogCategoryParam(createParam.getCatalogCategoryId(), createParam, null);
-        
+
         CatalogCategory catalogCategory = createNewCatalogCategory(parentCatalogCategory, createParam);
 
         catalogCategoryManager.createCatalogCategory(catalogCategory);
-        
+
         auditOpSuccess(OperationTypeEnum.CREATE_CATALOG_CATEGORY, catalogCategory.auditParameters());
-        
+
         return map(catalogCategory);
-    }         
-    
-    /**     
+    }
+
+    /**
      * Get info for catalog category
+     * 
      * @param id the URN of a Catalog Category
      * @prereq none
      * @brief Show catalog category
@@ -339,50 +338,51 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
     public CatalogCategoryRestRep getCatalogCategory(@PathParam("id") URI id) {
         CatalogCategory catalogCategory = queryResource(id);
         return map(catalogCategory);
-    }    
-    
+    }
+
     @PUT
     @Path("/{id}/move/up")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.OWN})
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN })
     public Response moveUpCatalogCategory(@PathParam("id") URI id) {
-        
+
         catalogCategoryManager.moveUpCatalogCategory(id);
-        
+
         return Response.ok().build();
-    }      
-    
+    }
+
     @PUT
     @Path("/{id}/move/down")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.OWN})
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN })
     public Response moveDownCatalogCategory(@PathParam("id") URI id) {
-        
+
         catalogCategoryManager.moveDownCatalogCategory(id);
-        
+
         return Response.ok().build();
-    }         
-    
+    }
+
     @GET
     @Path("/{id}/acl")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = {Role.SECURITY_ADMIN, Role.TENANT_ADMIN}, acls = {ACL.OWN})
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.TENANT_ADMIN }, acls = { ACL.OWN })
     public ACLAssignments getRoleAssignments(@PathParam("id") URI id) {
         return getRoleAssignmentsResponse(id);
-    }    
-    
+    }
+
     @PUT
     @Path("/{id}/acl")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = {Role.SECURITY_ADMIN, Role.TENANT_ADMIN}, acls = {ACL.OWN} , block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.TENANT_ADMIN }, acls = { ACL.OWN }, block_proxies = true)
     public ACLAssignments updateRoleAssignments(@PathParam("id") URI id,
             ACLAssignmentChanges changes) {
         CatalogCategory catalogCategory = catalogCategoryManager.getCatalogCategoryById(id);
-        URI tenantId = uri(catalogCategory.getTenant()); 
-        
+        URI tenantId = uri(catalogCategory.getTenant());
+
         _permissionsHelper.updateACLs(catalogCategory, changes, new CatalogACLInputFilter(tenantId));
-        
-        catalogCategoryManager.updateCatalogCategory(catalogCategory);;
+
+        catalogCategoryManager.updateCatalogCategory(catalogCategory);
+        ;
 
         auditOpSuccess(OperationTypeEnum.MODIFY_CATALOG_CATEGORY_ACL, catalogCategory.getId()
                 .toString(), catalogCategory.getLabel(), changes);
@@ -390,36 +390,37 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
         catalogConfigUtils.notifyCatalogAclChange();
 
         return getRoleAssignmentsResponse(id);
-    }    
-    
+    }
+
     private ACLAssignments getRoleAssignmentsResponse(URI id) {
         CatalogCategory catalogCategory = catalogCategoryManager.getCatalogCategoryById(id);
         ACLAssignments response = new ACLAssignments();
         response.setAssignments(_permissionsHelper.convertToACLEntries(catalogCategory.getAcls()));
         return response;
-    }    
-    
+    }
+
     /**
      * Gets the list of sub categories within the category
+     * 
      * @param id the URN of a Catalog Category
      * @brief List Catalog Categories
      * @return a list of sub categories that belong to the category
-     * @throws DatabaseException when a DB error occurs     
+     * @throws DatabaseException when a DB error occurs
      */
     @GET
     @Path("/{id}/categories")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CatalogCategoryList getCatalogCategories(@PathParam("id") URI id) throws DatabaseException {
         CatalogCategory parentCatalogCategory = queryResource(id);
-        
+
         // check the user permissions
         verifyAuthorizedInTenantOrg(uri(parentCatalogCategory.getTenant()), getUserFromContext());
-        
+
         List<CatalogCategory> subCatalogCategories = catalogCategoryManager.getSubCategories(id);
         subCatalogCategories = filterCategoriesByACLs(subCatalogCategories);
-        
+
         CatalogCategoryList subCatalogCategoryList = new CatalogCategoryList();
-        for (CatalogCategory subCatalogCategory: subCatalogCategories) {
+        for (CatalogCategory subCatalogCategory : subCatalogCategories) {
             NamedRelatedResourceRep subCatalogCategoryRestRep = toNamedRelatedResource(ResourceTypeEnum.CATALOG_CATEGORY,
                     subCatalogCategory.getId(), subCatalogCategory.getLabel());
             subCatalogCategoryList.getCatalogCategories().add(subCatalogCategoryRestRep);
@@ -428,12 +429,9 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
         return subCatalogCategoryList;
     }
 
-
-
-
-    
-    /**     
+    /**
      * Update info for catalog category
+     * 
      * @param catalogCategoryUpdate Catalog Category update parameters
      * @param id the URN of a Catalog Category
      * @prereq none
@@ -444,12 +442,12 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.OWN})
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN })
     public CatalogCategoryRestRep updateCatalogCategory(@PathParam("id") URI id, CatalogCategoryUpdateParam catalogCategoryUpdate) {
         CatalogCategory catalogCategory = getCatalogCategoryById(id, true);
-        
+
         StorageOSUser user = getUserFromContext();
-        verifyAuthorizedInTenantOrg(uri(catalogCategory.getTenant()), user);        
+        verifyAuthorizedInTenantOrg(uri(catalogCategory.getTenant()), user);
 
         URI parentCategoryId = getTargetParentCategoryId(catalogCategory, catalogCategoryUpdate);
         validateCatalogCategoryParam(parentCategoryId, catalogCategoryUpdate, catalogCategory);
@@ -457,14 +455,14 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
         updateCatalogCategoryObject(parentCatalogCategory, catalogCategory, catalogCategoryUpdate);
 
         catalogCategoryManager.updateCatalogCategory(catalogCategory);
-        
+
         auditOpSuccess(OperationTypeEnum.UPDATE_CATALOG_CATEGORY, catalogCategory.auditParameters());
-        
+
         catalogCategory = catalogCategoryManager.getCatalogCategoryById(catalogCategory.getId());
-        
+
         return map(catalogCategory);
     }
-    
+
     /**
      * Gets the target parent category ID for a category update.
      * 
@@ -482,59 +480,66 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
         NamedURI parentId = NullColumnValueGetter.normalize(category.getCatalogCategoryId());
         return parentId != null ? parentId.getURI() : null;
     }
-    
+
     /**
      * Deactivates the catalog category
+     * 
      * @param id the URN of a catalog category to be deactivated
      * @brief Deactivate Catalog Category
      * @return OK if deactivation completed successfully
-     * @throws DatabaseException when a DB error occurs     
+     * @throws DatabaseException when a DB error occurs
      */
     @POST
     @Path("/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = { Role.TENANT_ADMIN })
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
     public Response deactivateCatalogCategory(@PathParam("id") URI id) throws DatabaseException {
         CatalogCategory catalogCategory = queryResource(id);
         ArgValidator.checkEntity(catalogCategory, id, true);
-        
+
         catalogCategoryManager.deleteCatalogCategory(catalogCategory);
 
         auditOpSuccess(OperationTypeEnum.DELETE_CATALOG_CATEGORY, catalogCategory.auditParameters());
-        
+
         return Response.ok().build();
-    }    
-    
+    }
+
     /**
      * Gets the list of catalog services
+     * 
      * @param catalogCategoryId the URN of a catalog category
      * @brief List Catalog Services
      * @return a list of catalog services
-     * @throws DatabaseException when a DB error occurs     
+     * @throws DatabaseException when a DB error occurs
      */
     @GET
     @Path("/{id}/services")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public CatalogServiceList getCatalogServices(@PathParam("id") String catalogCategoryId) throws DatabaseException {
-        
+
         List<CatalogService> catalogServices = catalogServiceManager.getCatalogServices(uri(catalogCategoryId));
         catalogServices = filterServicesByACLs(catalogServices);
 
         return CatalogServiceMapper.toCatalogServiceList(catalogServices);
-    }  
-    
-    private void validateCatalogCategoryParam(URI parentCatalogCategoryId, CatalogCategoryCommonParam input, CatalogCategory existingCatalogCategory) {
+    }
+
+    private void validateCatalogCategoryParam(URI parentCatalogCategoryId, CatalogCategoryCommonParam input,
+            CatalogCategory existingCatalogCategory) {
         if (nameChanged(input, existingCatalogCategory)) {
-            checkForDuplicateName(input.getName(), CatalogCategory.class, parentCatalogCategoryId, CatalogCategory.CATALOG_CATEGORY_ID, _dbClient);
-        }        
+            checkForDuplicateName(input.getName(), CatalogCategory.class, parentCatalogCategoryId, CatalogCategory.CATALOG_CATEGORY_ID,
+                    _dbClient);
+        }
     }
 
     private boolean nameChanged(CatalogCategoryCommonParam catalogCategoryCommonParam, CatalogCategory existingCatalogCategory) {
-        return existingCatalogCategory == null || (StringUtils.isNotBlank(catalogCategoryCommonParam.getName()) && !StringUtils.equals(catalogCategoryCommonParam.getName(), existingCatalogCategory.getLabel()));
+        return existingCatalogCategory == null
+                || (StringUtils.isNotBlank(catalogCategoryCommonParam.getName()) && !StringUtils.equals(
+                        catalogCategoryCommonParam.getName(), existingCatalogCategory.getLabel()));
     }
 
     /**
      * filter out the services which user don't have access to
+     * 
      * @param services
      * @return
      */
@@ -549,7 +554,6 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
             return filteredCatalogServices;
         }
 
-
         for (CatalogService service : services) {
             if (hasAccess(storageOSUser, service)) {
                 filteredCatalogServices.add(service);
@@ -560,6 +564,7 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
 
     /**
      * check if user has access to the service
+     * 
      * @param storageOSUser
      * @param service
      * @return
@@ -571,6 +576,7 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
 
     /**
      * check if user has access to the category
+     * 
      * @param storageOSUser
      * @param category
      * @return
@@ -582,6 +588,7 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
 
     /**
      * check if specified acls permission user to access
+     * 
      * @param storageOSUser
      * @param acls
      * @return
@@ -619,6 +626,7 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
 
     /**
      * filter out the categories which user don't have access to
+     * 
      * @param categories
      * @return
      */
@@ -643,6 +651,7 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
 
     /**
      * check if user has System admin or TenantAdmin role
+     * 
      * @param storageOSUser
      * @return
      */
@@ -664,5 +673,4 @@ public class CatalogCategoryService extends CatalogTaggedResourceService {
         return false;
     }
 
-    
 }

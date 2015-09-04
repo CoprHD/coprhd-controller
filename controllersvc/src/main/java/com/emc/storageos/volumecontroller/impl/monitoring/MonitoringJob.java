@@ -61,11 +61,13 @@ public class MonitoringJob extends DataCollectionJob implements Serializable {
     }
 
     @Override
-    public DataCollectionTaskCompleter getCompleter(){
+    public DataCollectionTaskCompleter getCompleter() {
         return _completer;
     }
+
     /**
      * Gives SMIS provider's URI
+     * 
      * @return {@link URI} SMIS provider's URI
      */
     public URI getId() {
@@ -73,33 +75,33 @@ public class MonitoringJob extends DataCollectionJob implements Serializable {
     }
 
     @Override
-    public void ready(DbClient dbClient) throws DeviceControllerException{
+    public void ready(DbClient dbClient) throws DeviceControllerException {
         _completer.ready(dbClient);
     }
 
     @Override
-    public void schedule(DbClient dbClient){
+    public void schedule(DbClient dbClient) {
         _completer.schedule(dbClient);
     }
 
     @Override
-    public void error(DbClient dbClient, ServiceCoded serviceCoded) throws DeviceControllerException{
+    public void error(DbClient dbClient, ServiceCoded serviceCoded) throws DeviceControllerException {
         _completer.error(dbClient, serviceCoded);
     }
 
     @Override
-    final public void setTaskError(DbClient dbClient,ServiceCoded code) {
-        _completer.statusError(dbClient,code);
+    final public void setTaskError(DbClient dbClient, ServiceCoded code) {
+        _completer.statusError(dbClient, code);
     }
 
     @Override
-    final public void setTaskReady(DbClient dbClient,String message){
-        _completer.statusReady(dbClient,message);
+    final public void setTaskReady(DbClient dbClient, String message) {
+        _completer.statusReady(dbClient, message);
     }
 
     @Override
-    final public void updateTask(DbClient dbClient, String message){
-        _completer.statusPending(dbClient,message);
+    final public void updateTask(DbClient dbClient, String message) {
+        _completer.statusPending(dbClient, message);
     }
 
     /**
@@ -113,7 +115,7 @@ public class MonitoringJob extends DataCollectionJob implements Serializable {
         this._deviceType = deviceType;
     }
 
-    public Type getDeviceType(){
+    public Type getDeviceType() {
         return this._deviceType;
     }
 
@@ -129,8 +131,8 @@ public class MonitoringJob extends DataCollectionJob implements Serializable {
         return null;
     }
 
-    public boolean isActiveJob(DbClient dbClient){
-        DataObject dbObject = dbClient.queryObject(_completer.getType(),_completer.getId());
+    public boolean isActiveJob(DbClient dbClient) {
+        DataObject dbObject = dbClient.queryObject(_completer.getType(), _completer.getId());
         return (dbObject != null && !dbObject.getInactive()) ? true : false;
     }
 

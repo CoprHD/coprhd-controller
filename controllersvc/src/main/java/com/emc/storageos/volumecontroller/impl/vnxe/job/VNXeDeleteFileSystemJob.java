@@ -35,15 +35,16 @@ import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.FileDeviceController;
 
-public class VNXeDeleteFileSystemJob extends VNXeJob{
+public class VNXeDeleteFileSystemJob extends VNXeJob {
     private static final long serialVersionUID = 1L;
     private static final Logger _logger = LoggerFactory.getLogger(VNXeCreateFileSystemJob.class);
     private boolean isForceDelete = false;
+
     public VNXeDeleteFileSystemJob(String jobId, URI storageSystemUri, TaskCompleter taskCompleter, boolean forceDelete) {
         super(jobId, storageSystemUri, taskCompleter, "deleteFileSystem");
         isForceDelete = forceDelete;
     }
-    
+
     /**
      * Called to update the job status when the file system delete job completes.
      *
@@ -60,12 +61,12 @@ public class VNXeDeleteFileSystemJob extends VNXeJob{
 
             String opId = getTaskCompleter().getOpId();
             StringBuilder logMsgBuilder = new StringBuilder(String.format("Updating status of job %s to %s", opId, _status.name()));
-           
+
             VNXeApiClient vnxeApiClient = getVNXeClient(jobContext);
             StorageSystem storageObj = dbClient.queryObject(StorageSystem.class, getStorageSystemUri());
             URI fsId = getTaskCompleter().getId();
             FileShare fsObj = dbClient.queryObject(FileShare.class, fsId);
-            // If terminal state update storage pool capacity and remove reservation for  volumes capacity
+            // If terminal state update storage pool capacity and remove reservation for volumes capacity
             // from pool's reserved capacity map.
             if (_status == JobStatus.SUCCESS || _status == JobStatus.FAILED) {
                 if (fsObj != null) {
@@ -80,21 +81,22 @@ public class VNXeDeleteFileSystemJob extends VNXeJob{
                 dbClient.persistObject(fsObj);
                 logMsgBuilder.append("\n");
                 logMsgBuilder.append(String.format(
-                            "Task %s succeeded to delete file system: %s", opId, fsId.toString()));
-               
+                        "Task %s succeeded to delete file system: %s", opId, fsId.toString()));
+
             } else if (_status == JobStatus.FAILED && fsObj != null) {
-                
+
                 logMsgBuilder.append("\n");
                 logMsgBuilder.append(String.format(
-                            "Task %s failed to delete file system: %s", opId, fsId.toString()));
+                        "Task %s failed to delete file system: %s", opId, fsId.toString()));
                 fsObj.setInactive(false);
                 dbClient.persistObject(fsObj);
 
-            }else {
+            } else {
                 logMsgBuilder.append(String.format("The file system: %s is not found anymore", fsId));
             }
             _logger.info(logMsgBuilder.toString());
-            FileDeviceController.recordFileDeviceOperation(dbClient, OperationTypeEnum.DELETE_FILE_SYSTEM, _isSuccess, "", "", fsObj, storageObj);
+            FileDeviceController.recordFileDeviceOperation(dbClient, OperationTypeEnum.DELETE_FILE_SYSTEM, _isSuccess, "", "", fsObj,
+                    storageObj);
         } catch (Exception e) {
             _logger.error("Caught an exception while trying to updateStatus for VNXeDeleteFileSystemJob", e);
             setErrorStatus("Encountered an internal error during file system delete job status processing : " + e.getMessage());
@@ -102,26 +104,26 @@ public class VNXeDeleteFileSystemJob extends VNXeJob{
             super.updateStatus(jobContext);
         }
     }
-    
-    private void updateSnapshots(DbClient dbClient, FileShare fsObj) { 
+
+    private void updateSnapshots(DbClient dbClient, FileShare fsObj) {
         _logger.info(" Setting Snapshots to InActive with Force Delete ");
         URIQueryResultList snapIDList = new URIQueryResultList();
         dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getFileshareSnapshotConstraint(fsObj.getId()), snapIDList);
         if (!snapIDList.isEmpty()) {
             List<URI> idList = new ArrayList<URI>();
-            for (Iterator<URI> iter = snapIDList.iterator(); iter.hasNext(); ) {
+            for (Iterator<URI> iter = snapIDList.iterator(); iter.hasNext();) {
                 URI id = iter.next();
                 idList.add(id);
             }
             List<Snapshot> snapList = dbClient.queryObject(
                     Snapshot.class, snapIDList);
-            for(Snapshot snapshot : snapList) {
+            for (Snapshot snapshot : snapList) {
                 _logger.info("Marking Snapshot as InActive Snapshot Id {} Fs Id : {}", snapshot.getId(), snapshot.getParent());
                 snapshot.setInactive(true);
                 dbClient.persistObject(snapshot);
             }
-            
+
         }
     }
 }

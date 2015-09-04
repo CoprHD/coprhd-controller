@@ -15,7 +15,6 @@
 
 package com.emc.storageos.db.client.model;
 
-
 import org.omg.CosNaming.IstringHelper;
 
 import javax.xml.bind.annotation.XmlTransient;
@@ -25,15 +24,14 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.*;
 
-
 /**
- * Abstract base for nested types.  Uses simple Java properties serialization format
+ * Abstract base for nested types. Uses simple Java properties serialization format
  * to de/serialize nested objects from/to byte[].
  *
  * Note that we only support 'flat' nested types currently - this means nested types may contain
  * only primitive fields and no further nesting of other complex types is supported.
  */
-public abstract class AbstractSerializableNestedObject{
+public abstract class AbstractSerializableNestedObject {
     /**
      * 
      */
@@ -81,16 +79,16 @@ public abstract class AbstractSerializableNestedObject{
     }
 
     protected List<String> getListOfStringsField(String key) {
-       List<String> result = new ArrayList<String>();
-       String val = _field.getProperty(key);
-       if (val == null) {
-           return result;
-       }
-       StringTokenizer tokenizer = new StringTokenizer(val, ",");
-       while (tokenizer.hasMoreElements()) {
-           result.add(tokenizer.nextToken());
-       }
-       return result;
+        List<String> result = new ArrayList<String>();
+        String val = _field.getProperty(key);
+        if (val == null) {
+            return result;
+        }
+        StringTokenizer tokenizer = new StringTokenizer(val, ",");
+        while (tokenizer.hasMoreElements()) {
+            result.add(tokenizer.nextToken());
+        }
+        return result;
     }
 
     protected Integer getIntField(String key) {
@@ -183,7 +181,7 @@ public abstract class AbstractSerializableNestedObject{
         if (!(obj instanceof AbstractSerializableNestedObject)) {
             return false;
         }
-        return _field.equals(((AbstractSerializableNestedObject)obj)._field);
+        return _field.equals(((AbstractSerializableNestedObject) obj)._field);
     }
 
 }

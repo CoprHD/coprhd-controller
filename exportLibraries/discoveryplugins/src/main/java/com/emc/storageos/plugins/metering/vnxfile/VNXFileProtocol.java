@@ -44,36 +44,35 @@ public class VNXFileProtocol {
     public VNXFileProtocol(String protocolType, ProtocolSocketFactory protocolSocketFactory, Object portNumber) {
     }
 
-
-    public static void setProtocolType(String protocolType){
+    public static void setProtocolType(String protocolType) {
         _protocolType = protocolType;
     }
 
-    public static String getProtocolType(){
+    public static String getProtocolType() {
         return _protocolType;
     }
 
-    public static void setProtocolSocketFactory(ProtocolSocketFactory protocolSocketFactory){
+    public static void setProtocolSocketFactory(ProtocolSocketFactory protocolSocketFactory) {
         _socketFactory = protocolSocketFactory;
     }
 
-    public static ProtocolSocketFactory getProtocolSocketFactory(){
+    public static ProtocolSocketFactory getProtocolSocketFactory() {
         return _socketFactory;
     }
 
-    public static int getPortNumber(){
+    public static int getPortNumber() {
         return _port;
     }
 
-    public static void setPortNumber(int portNumber){
+    public static void setPortNumber(int portNumber) {
         _port = portNumber;
     }
 
-    public Protocol getProtocol(){
+    public Protocol getProtocol() {
         return new Protocol(getProtocolType(), getProtocolSocketFactory(), getPortNumber());
     }
 
-    public Protocol getProtocol(int portNumber){
+    public Protocol getProtocol(int portNumber) {
         return new Protocol(getProtocolType(), getProtocolSocketFactory(), portNumber);
     }
 

@@ -35,7 +35,7 @@ public class HostIOLimitValidator extends VirtualPoolValidator<BlockVirtualPoolP
 
     @Override
     protected boolean isUpdateAttributeOn(BlockVirtualPoolUpdateParam updateParam) {
-        return  updateParam.isHostIOLimitBandwidthSet() || updateParam.isHostIOLimitIOPsSet();
+        return updateParam.isHostIOLimitBandwidthSet() || updateParam.isHostIOLimitIOPsSet();
     }
 
     @Override
@@ -50,7 +50,7 @@ public class HostIOLimitValidator extends VirtualPoolValidator<BlockVirtualPoolP
                 throw APIException.badRequests.missingParameterSystemTypeforHostIOLimits();
             }
         }
-        
+
         if (null != updateParam.getSystemType()) {
             if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(updateParam.getSystemType()))
                 throw APIException.badRequests.invalidParameterSystemTypeforHostIOLimits();
@@ -60,7 +60,7 @@ public class HostIOLimitValidator extends VirtualPoolValidator<BlockVirtualPoolP
             if (!deviceTypes.contains(VirtualPool.SystemType.vmax.toString()))
                 throw APIException.badRequests.invalidParameterSystemTypeforHostIOLimits();
         }
-        
+
         validHostIOLimits(updateParam.getHostIOLimitBandwidth(), updateParam.getHostIOLimitIOPs());
     }
 
@@ -69,28 +69,28 @@ public class HostIOLimitValidator extends VirtualPoolValidator<BlockVirtualPoolP
         if (null == createParam.getSystemType()
                 || createParam.getSystemType().equalsIgnoreCase(NONE))
             throw APIException.badRequests.missingParameterSystemTypeforHostIOLimits();
-        
+
         if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(createParam.getSystemType()))
             throw APIException.badRequests.invalidParameterSystemTypeforHostIOLimits();
-        
+
         validHostIOLimits(createParam.getHostIOLimitBandwidth(), createParam.getHostIOLimitIOPs());
-        
+
     }
 
     @Override
     protected boolean isCreateAttributeOn(BlockVirtualPoolParam createParam) {
-        return  createParam.isHostIOLimitBandwidthSet() || createParam.isHostIOLimitIOPsSet();
+        return createParam.isHostIOLimitBandwidthSet() || createParam.isHostIOLimitIOPsSet();
     }
-    
+
     private void validHostIOLimits(Integer limitBandwidth, Integer limitIops) {
         // if specified, iops value must a positive number and it should be multiple of 100
-        if (limitIops != null && (limitIops < 0 || limitIops % 100 != 0 || limitIops > MAX_HOST_IO_LIMIT_IOPS) ) {
-            throw APIException.badRequests.invalidParameterValueforHostIOLimitIOPs();            
+        if (limitIops != null && (limitIops < 0 || limitIops % 100 != 0 || limitIops > MAX_HOST_IO_LIMIT_IOPS)) {
+            throw APIException.badRequests.invalidParameterValueforHostIOLimitIOPs();
         }
-        
+
         // if specified, bandwidth value must a positive number and it must <= MAX_HOST_IO_LIMIT_BANDWIDTH
         if (limitBandwidth != null && (limitBandwidth < 0 || limitBandwidth > MAX_HOST_IO_LIMIT_BANDWIDTH)) {
-            throw APIException.badRequests.invalidParameterValueforHostIOLimitBandwidth();            
+            throw APIException.badRequests.invalidParameterValueforHostIOLimitBandwidth();
         }
     }
 }

@@ -63,10 +63,10 @@ public class GeoServiceClient extends BaseServiceClient {
     public static final String INTERVDC_URI = "/intervdc";
 
     public static final String GEO_VISIBLE = "/geo-visible/";
-    public static final String GEOVISIBLE_URI = INTERVDC_URI+GEO_VISIBLE;
+    public static final String GEOVISIBLE_URI = INTERVDC_URI + GEO_VISIBLE;
 
-    public static final String DEPENDENCIES  = "/dependencies/";
-    public static final String DEPENDENCIES_URI = INTERVDC_URI+DEPENDENCIES;
+    public static final String DEPENDENCIES = "/dependencies/";
+    public static final String DEPENDENCIES_URI = INTERVDC_URI + DEPENDENCIES;
 
     public static final String VDCCONFIG_URI = INTERVDC_URI + "/vdcconfig";
     public static final String TOKEN = INTERVDC_URI + "/token";
@@ -80,15 +80,14 @@ public class GeoServiceClient extends BaseServiceClient {
     public static final String VDCCONFIG_STABLE_CHECK = VDCCONFIG_URI + "/stablecheck";
     public static final String VERSION_URI = INTERVDC_URI + "/version";
     public static final String VDCCONFIG_RESET_BLACKLIST = VDCCONFIG_URI + "/resetblacklist";
-   
+
     public static final int MAX_RETRIES = 12;
-    
+
     public final static String VDCOP_LOCK_NAME = "vdcOpLock";
     // An add VDC operation can easily take up to 15 minutes. Use 30 minutes as timeout
     // for now.
     public final static long VDCOP_LOCK_TIMEOUT = (long) 30 * 60 * 1000;
-    
-    
+
     private SecretKey secretKey;
     private String endPoint;
 
@@ -110,26 +109,26 @@ public class GeoServiceClient extends BaseServiceClient {
                 builder.append("]");
                 server = builder.toString();
             }
-            serverURI = URI.create("https://"+server+":4443");
-        }else
+            serverURI = URI.create("https://" + server + ":4443");
+        } else
             serverURI = URI.create(server);
 
-        //TODO: we need to settle on whether the VirtualDataCenter.apiEndpoint
-        //holds a host or a full URI. For the moment, this will work around either
+        // TODO: we need to settle on whether the VirtualDataCenter.apiEndpoint
+        // holds a host or a full URI. For the moment, this will work around either
         if (serverURI.getScheme() == null) {
-            setServiceURI(URI.create("https://" + server + ":4443"));            
+            setServiceURI(URI.create("https://" + server + ":4443"));
         } else {
             setServiceURI(serverURI);
         }
-        //setServiceURI(URI.create("https://" + server + ":8543"));
+        // setServiceURI(URI.create("https://" + server + ":8543"));
     }
 
     public void setSecretKey(String secretKey) {
-        this.secretKey =  StringUtils.isNotBlank(secretKey) ?
+        this.secretKey = StringUtils.isNotBlank(secretKey) ?
                 this.secretKey = SignatureHelper.createKey(secretKey, InternalApiSignatureKeyGenerator.CURRENT_INTERVDC_API_SIGN_ALGO) :
                 null;
     }
-    
+
     /**
      * Override the default behavior of this single argument
      * version of add signature (which uses the internal key)
@@ -139,27 +138,31 @@ public class GeoServiceClient extends BaseServiceClient {
     @Override
     protected Builder addSignature(WebResource webResource) {
         if (secretKey == null) {
-            log.debug("Calling addSignature with null secretKey; local intervdc signing key will be used");            
+            log.debug("Calling addSignature with null secretKey; local intervdc signing key will be used");
         }
         return super.addSignature(webResource, secretKey);
     }
-    
-     /*
+
+    /*
      * Get a token/user dao and token keys from a remote vdc.
      * The token can be omitted if keys are passed (in this case the call is used to retrieve updated keys only)
      * The keys can be omitted and only token passed (in this case, the token will be validated, keys are ignored)
      * Keys and token can both be passed (in this case token gets validated and keys get updated)
-     *
+     * 
      * @return the token and storageosuserdao objects encapsulated in a TokenResponse
+     * 
      * @param rawToken the TokenOnWire object to validate
-     * @param firstKeyId 1st key id from the TokenKeyBundle.  null == don't send keys.  0 == send keys (forced mismatch)
+     * 
+     * @param firstKeyId 1st key id from the TokenKeyBundle. null == don't send keys. 0 == send keys (forced mismatch)
+     * 
      * @param secondKeyId 2nd key id from the TokenKeyBundle
+     * 
      * @throws Exception
      */
     public TokenResponse getToken(String rawToken, String firstKeyId, String secondKeyId) throws Exception {
         TokenKeysRequest requestBody = new TokenKeysRequest();
-        requestBody.setSecondKeyId(secondKeyId); 
-        requestBody.setFirstKeyId(firstKeyId); 
+        requestBody.setSecondKeyId(secondKeyId);
+        requestBody.setFirstKeyId(firstKeyId);
         requestBody.setRequestingVDC(VdcUtil.getLocalShortVdcId());
         WebResource rRoot = createRequest(TOKEN);
         ClientResponse response = addSignature(rRoot).header(RequestProcessingUtils.AUTH_TOKEN_HEADER, rawToken == null ? "" : rawToken).
@@ -174,11 +177,13 @@ public class GeoServiceClient extends BaseServiceClient {
     }
 
     /**
-     * Sends requests to a VDC to logout token(s)/username.  This covers 4 use cases
+     * Sends requests to a VDC to logout token(s)/username. This covers 4 use cases
      * 1. single token logout: the token was created by this vdc, and this is a request to a vdc who has a copy of this token to delete it
-     * 2. single token logout: the token was not created by this vdc, and this is a request to its originator to delete the master copy of it
+     * 2. single token logout: the token was not created by this vdc, and this is a request to its originator to delete the master copy of
+     * it
      * 3. force=true (all tokens of current user)
-     * 4. username=username (all tokens for a given username) 
+     * 4. username=username (all tokens for a given username)
+     * 
      * @param rawToken
      * @param username optional, defines which username for which to delete all tokens
      * @param force, if true, deletes all tokens of current user, else only deletes provided token
@@ -190,11 +195,10 @@ public class GeoServiceClient extends BaseServiceClient {
         if (StringUtils.isNotBlank(username)) {
             rRoot = rRoot.queryParam("username", username);
         }
-        log.info("GeoServiceClient logout request: " +  rRoot.getURI());
+        log.info("GeoServiceClient logout request: " + rRoot.getURI());
         return addSignature(rRoot).header(RequestProcessingUtils.AUTH_TOKEN_HEADER, rawToken).
                 type(MediaType.APPLICATION_XML).post(ClientResponse.class);
     }
-
 
     /**
      * Get the GeoVisible resource IDs from the geosvc
@@ -204,9 +208,9 @@ public class GeoServiceClient extends BaseServiceClient {
      * @return the ResourceIDsRespons response
      * @throws Exception
      */
-    public <T extends GeoVisibleResource > Iterator<URI> queryByType(Class<T> clazz, boolean activeOnly) throws Exception {
-        WebResource rRoot = createRequest(GEOVISIBLE_URI+clazz.getName())
-                              .queryParam("active_only", Boolean.toString(activeOnly));
+    public <T extends GeoVisibleResource> Iterator<URI> queryByType(Class<T> clazz, boolean activeOnly) throws Exception {
+        WebResource rRoot = createRequest(GEOVISIBLE_URI + clazz.getName())
+                .queryParam("active_only", Boolean.toString(activeOnly));
         rRoot.accept(MediaType.APPLICATION_OCTET_STREAM);
 
         ClientResponse resp = addSignature(rRoot).get(ClientResponse.class);
@@ -214,7 +218,7 @@ public class GeoServiceClient extends BaseServiceClient {
         InputStream input = resp.getEntityInputStream();
         ObjectInputStream objInputStream = new ObjectInputStream(input);
         @SuppressWarnings("rawtypes")
-        ResourcesResponse resources = (ResourcesResponse)objInputStream.readObject();
+        ResourcesResponse resources = (ResourcesResponse) objInputStream.readObject();
         @SuppressWarnings("unchecked")
         List<URI> ids = resources.getObjects();
 
@@ -226,19 +230,20 @@ public class GeoServiceClient extends BaseServiceClient {
      *
      * @param clazz the resource type to be queried
      * @param activeOnly
-     * @param startId  where the query starts, if it's null, start from the beginning
+     * @param startId where the query starts, if it's null, start from the beginning
      * @param maxCount if maxCount>0, the max number of IDs returned, otherwise use the default setting on the server side
      * @return the ResourceIDsRespons response
      * @throws Exception
      */
-    public <T extends GeoVisibleResource > List<URI> queryByType(Class<T> clazz, boolean activeOnly, URI startId, int maxCount) throws Exception {
-        WebResource rRoot = createRequest(GEOVISIBLE_URI+clazz.getName())
+    public <T extends GeoVisibleResource> List<URI> queryByType(Class<T> clazz, boolean activeOnly, URI startId, int maxCount)
+            throws Exception {
+        WebResource rRoot = createRequest(GEOVISIBLE_URI + clazz.getName())
                 .queryParam("active_only", Boolean.toString(activeOnly));
 
         if (startId != null)
             rRoot = rRoot.queryParam("start_id", startId.toString());
 
-        if (maxCount >0)
+        if (maxCount > 0)
             rRoot = rRoot.queryParam("max_count", Integer.toString(maxCount));
 
         rRoot.accept(MediaType.APPLICATION_OCTET_STREAM);
@@ -248,7 +253,7 @@ public class GeoServiceClient extends BaseServiceClient {
         InputStream input = resp.getEntityInputStream();
         ObjectInputStream objInputStream = new ObjectInputStream(input);
         @SuppressWarnings("rawtypes")
-        ResourcesResponse resources = (ResourcesResponse)objInputStream.readObject();
+        ResourcesResponse resources = (ResourcesResponse) objInputStream.readObject();
         @SuppressWarnings("unchecked")
         List<URI> ids = resources.getObjects();
 
@@ -264,7 +269,7 @@ public class GeoServiceClient extends BaseServiceClient {
      * @throws Exception
      */
     public <T extends GeoVisibleResource> T queryObject(Class<T> clazz, URI id) throws Exception {
-        WebResource rRoot = createRequest(GEOVISIBLE_URI+ clazz.getName() + "/object/" + id);
+        WebResource rRoot = createRequest(GEOVISIBLE_URI + clazz.getName() + "/object/" + id);
         rRoot.accept(MediaType.APPLICATION_OCTET_STREAM);
 
         ClientResponse resp = addSignature(rRoot).get(ClientResponse.class);
@@ -272,7 +277,7 @@ public class GeoServiceClient extends BaseServiceClient {
         ObjectInputStream objInputStream = new ObjectInputStream(input);
 
         @SuppressWarnings("unchecked")
-        T obj = (T)objInputStream.readObject();
+        T obj = (T) objInputStream.readObject();
 
         return obj;
     }
@@ -282,14 +287,14 @@ public class GeoServiceClient extends BaseServiceClient {
      *
      * @param clazz the resource type to be queried
      * @param ids List of the resource IDs
-     * @return list of resources 
+     * @return list of resources
      * @throws Exception
      */
     public <T extends GeoVisibleResource> Iterator<T> queryObjects(Class<T> clazz, List<URI> ids) throws Exception {
         BulkIdParam param = new BulkIdParam();
         param.setIds(ids);
 
-        WebResource rRoot = createRequest(GEOVISIBLE_URI +clazz.getName()+"/objects");
+        WebResource rRoot = createRequest(GEOVISIBLE_URI + clazz.getName() + "/objects");
 
         rRoot.accept(MediaType.APPLICATION_OCTET_STREAM);
 
@@ -298,7 +303,7 @@ public class GeoServiceClient extends BaseServiceClient {
         ObjectInputStream objInputStream = new ObjectInputStream(input);
 
         @SuppressWarnings("unchecked")
-        ResourcesResponse<T> resources = (ResourcesResponse<T>)objInputStream.readObject();
+        ResourcesResponse<T> resources = (ResourcesResponse<T>) objInputStream.readObject();
         List<T> list = resources.getObjects();
 
         return list.iterator();
@@ -318,7 +323,7 @@ public class GeoServiceClient extends BaseServiceClient {
         BulkIdParam param = new BulkIdParam();
         param.setIds(ids);
 
-        WebResource rRoot = createRequest(GEOVISIBLE_URI + clazz.getName()+"/field/"+fieldName);
+        WebResource rRoot = createRequest(GEOVISIBLE_URI + clazz.getName() + "/field/" + fieldName);
 
         rRoot.accept(MediaType.APPLICATION_OCTET_STREAM);
 
@@ -327,7 +332,7 @@ public class GeoServiceClient extends BaseServiceClient {
 
         ObjectInputStream objInputStream = new ObjectInputStream(input);
         @SuppressWarnings("unchecked")
-        ResourcesResponse<T> resources = (ResourcesResponse<T>)objInputStream.readObject();
+        ResourcesResponse<T> resources = (ResourcesResponse<T>) objInputStream.readObject();
         List<T> list = resources.getObjects();
 
         return list.iterator();
@@ -353,12 +358,12 @@ public class GeoServiceClient extends BaseServiceClient {
         InputStream input = resp.getEntityInputStream();
 
         ObjectInputStream objInputStream = new ObjectInputStream(input);
-        ResourcesResponse<?> resources = (ResourcesResponse<?>)objInputStream.readObject();
-        List<Object> queryResult = (List<Object>)resources.getObjects();
+        ResourcesResponse<?> resources = (ResourcesResponse<?>) objInputStream.readObject();
+        List<Object> queryResult = (List<Object>) resources.getObjects();
         List<T> ret = new ArrayList<T>();
 
-        for(Object obj : queryResult)
-            ret.add((T)obj);
+        for (Object obj : queryResult)
+            ret.add((T) obj);
 
         result.setResult(ret.iterator());
     }
@@ -381,7 +386,7 @@ public class GeoServiceClient extends BaseServiceClient {
         if (startId != null)
             rRoot = rRoot.queryParam("start_id", startId.toString());
 
-        if (maxCount >0)
+        if (maxCount > 0)
             rRoot = rRoot.queryParam("max_count", Integer.toString(maxCount));
 
         rRoot.accept(MediaType.APPLICATION_OCTET_STREAM);
@@ -390,12 +395,12 @@ public class GeoServiceClient extends BaseServiceClient {
         InputStream input = resp.getEntityInputStream();
 
         ObjectInputStream objInputStream = new ObjectInputStream(input);
-        ResourcesResponse<?> resources = (ResourcesResponse<?>)objInputStream.readObject();
-        List<Object> queryResult = (List<Object>)resources.getObjects();
+        ResourcesResponse<?> resources = (ResourcesResponse<?>) objInputStream.readObject();
+        List<Object> queryResult = (List<Object>) resources.getObjects();
         List<T> ret = new ArrayList<T>();
 
-        for(Object obj : queryResult)
-            ret.add((T)obj);
+        for (Object obj : queryResult)
+            ret.add((T) obj);
 
         result.setResult(ret.iterator());
     }
@@ -412,15 +417,12 @@ public class GeoServiceClient extends BaseServiceClient {
 
         try {
             addSignature(rRoot).put(vdcConfigList);
-        }
-        catch(UnauthorizedException e){
+        } catch (UnauthorizedException e) {
             log.error("Failed to sync VDC : 401 Unauthorized, " + vdcName, e);
             throw GeoException.fatals.remoteVdcAuthorizationFailed(vdcName, e);
-        }
-        catch(GeoException e){
+        } catch (GeoException e) {
             throw e;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("Failed to sync VDC : " + vdcName, e);
             throw GeoException.fatals.failedToSyncConfigurationForVdc(vdcName, e);
         }
@@ -435,19 +437,16 @@ public class GeoServiceClient extends BaseServiceClient {
      * @throws Exception
      */
     public VdcPreCheckResponse syncVdcConfigPreCheck(VdcPreCheckParam checkParam, String vdcName) throws GeoException {
-        WebResource rRoot; 
+        WebResource rRoot;
         rRoot = createRequest(VDCCONFIG_PRECHECK_URI);
         rRoot.accept(MediaType.APPLICATION_XML);
-        try{
+        try {
             return addSignature(rRoot).post(VdcPreCheckResponse.class, checkParam);
-        }
-        catch(UnauthorizedException e){
+        } catch (UnauthorizedException e) {
             throw GeoException.fatals.remoteVdcAuthorizationFailed(vdcName, e);
-        }
-        catch(GeoException e){
+        } catch (GeoException e) {
             throw e;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw GeoException.fatals.failedToSendPreCheckRequest(vdcName, e);
         }
     }
@@ -463,39 +462,34 @@ public class GeoServiceClient extends BaseServiceClient {
         WebResource rRoot;
         rRoot = createRequest(VDCCONFIG_PRECHECK2_URI);
         rRoot.accept(MediaType.APPLICATION_XML);
-        try{
+        try {
             return addSignature(rRoot).post(VdcPreCheckResponse2.class, checkParam);
-        }catch(UnauthorizedException e){
+        } catch (UnauthorizedException e) {
             throw GeoException.fatals.remoteVdcAuthorizationFailed(vdcName, e);
-        }
-        catch(GeoException e){
+        } catch (GeoException e) {
             throw e;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw GeoException.fatals.failedToSendPreCheckRequest(vdcName, e);
         }
     }
 
     /**
-     * check all nodes are visible 
+     * check all nodes are visible
      *
      * @param checkParam
      * @throws Exception
      */
     public VdcNodeCheckResponse vdcNodeCheck(VdcNodeCheckParam checkParam) {
-        WebResource rRoot; 
+        WebResource rRoot;
         rRoot = createRequest(VDCCONFIG_NODECHECK_URI);
         rRoot.accept(MediaType.APPLICATION_XML);
         try {
             return addSignature(rRoot).post(VdcNodeCheckResponse.class, checkParam);
-        }
-        catch(UnauthorizedException e){
+        } catch (UnauthorizedException e) {
             throw GeoException.fatals.remoteVdcAuthorizationFailed(endPoint, e);
-        }
-        catch(GeoException e){
+        } catch (GeoException e) {
             throw e;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw GeoException.fatals.unableConnect(endPoint, e);
         }
     }
@@ -506,16 +500,13 @@ public class GeoServiceClient extends BaseServiceClient {
 
         try {
             return addSignature(rRoot).post(VdcNatCheckResponse.class, checkParam);
-        }
-        catch(UnauthorizedException e){
+        } catch (UnauthorizedException e) {
             log.error("Failed to perform NAT check", e);
             throw GeoException.fatals.remoteVdcAuthorizationFailed(endPoint, e);
-        }
-        catch(GeoException e){
+        } catch (GeoException e) {
             log.error("Failed to perform NAT check", e);
             throw e;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             log.error("Failed to perform NAT check", e);
             throw GeoException.fatals.unableConnect(endPoint, e);
         }
@@ -532,14 +523,11 @@ public class GeoServiceClient extends BaseServiceClient {
         rRoot.accept(MediaType.APPLICATION_XML);
         try {
             addSignature(rRoot).post(checkParam);
-        }
-        catch(UnauthorizedException e){
+        } catch (UnauthorizedException e) {
             throw GeoException.fatals.remoteVdcAuthorizationFailed(vdcName, e);
-        }
-        catch(GeoException e){
+        } catch (GeoException e) {
             throw e;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw GeoException.fatals.failedToSedPostCheckRequest(vdcName, e);
         }
     }
@@ -554,19 +542,16 @@ public class GeoServiceClient extends BaseServiceClient {
      * @throws Exception
      */
     public <T extends DataObject> String checkDependencies(Class<T> clazz, URI id, boolean activeOnly) {
-        WebResource rRoot = createRequest(DEPENDENCIES_URI+clazz.getName()+"/"+id)
+        WebResource rRoot = createRequest(DEPENDENCIES_URI + clazz.getName() + "/" + id)
                 .queryParam("active_only", Boolean.toString(activeOnly));
         rRoot.accept(MediaType.APPLICATION_XML);
         try {
             return addSignature(rRoot).get(String.class);
-        }
-        catch(UnauthorizedException e){
+        } catch (UnauthorizedException e) {
             throw GeoException.fatals.remoteVdcAuthorizationFailed(endPoint, e);
-        }
-        catch(GeoException e){
+        } catch (GeoException e) {
             throw e;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw GeoException.fatals.unableConnect(endPoint, e);
         }
 
@@ -583,19 +568,16 @@ public class GeoServiceClient extends BaseServiceClient {
         rRoot.accept(MediaType.APPLICATION_XML);
         try {
             addSignature(rRoot).post(vdcCertListParam);
-        }
-        catch(UnauthorizedException e){
+        } catch (UnauthorizedException e) {
             throw GeoException.fatals.remoteVdcAuthorizationFailed(VdcName, e);
-        }
-        catch(GeoException e){
+        } catch (GeoException e) {
             throw e;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw GeoException.fatals.connectVdcSyncCertFail(VdcName, e);
         }
 
     }
-    
+
     /**
      * Get the version of the ViPR software running on the remote VDC (e.g. vipr-1.0.0.1.1)
      * 
@@ -605,14 +587,11 @@ public class GeoServiceClient extends BaseServiceClient {
         WebResource rRoot = createRequest(VERSION_URI);
         try {
             return addSignature(rRoot).accept(MediaType.TEXT_PLAIN).get(String.class);
-        }
-        catch(UnauthorizedException e) {
-            throw GeoException.fatals.unableConnect(endPoint,e );
-        }
-        catch(GeoException e){
+        } catch (UnauthorizedException e) {
+            throw GeoException.fatals.unableConnect(endPoint, e);
+        } catch (GeoException e) {
             throw e;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw GeoException.fatals.unableConnect(endPoint, e);
         }
     }
@@ -627,19 +606,16 @@ public class GeoServiceClient extends BaseServiceClient {
         try {
             String ret = addSignature(rRoot).accept(MediaType.TEXT_PLAIN).get(String.class);
             return Boolean.valueOf(ret);
-        }
-        catch(UnauthorizedException e){
-            throw GeoException.fatals.unableConnect(endPoint,e);
-        }
-        catch(GeoException e){
+        } catch (UnauthorizedException e) {
+            throw GeoException.fatals.unableConnect(endPoint, e);
+        } catch (GeoException e) {
             throw e;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw GeoException.fatals.unableConnect(endPoint, e);
         }
 
     }
-    
+
     /**
      * Reset geodb blacklist for given vdc short id
      */
@@ -648,14 +624,11 @@ public class GeoServiceClient extends BaseServiceClient {
         rRoot.accept(MediaType.APPLICATION_XML);
         try {
             addSignature(rRoot).post(ClientResponse.class);
-        }
-        catch(UnauthorizedException e){
-            throw GeoException.fatals.unableConnect(endPoint,e);
-        }
-        catch(GeoException e){
+        } catch (UnauthorizedException e) {
+            throw GeoException.fatals.unableConnect(endPoint, e);
+        } catch (GeoException e) {
             throw e;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw GeoException.fatals.unableConnect(endPoint, e);
         }
 

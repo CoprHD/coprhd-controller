@@ -14,14 +14,11 @@
  * it is provided by or on behalf of EMC.
  */
 
-
 package com.emc.storageos.services.restutil;
 
 import com.sun.jersey.api.client.ClientResponse;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import java.net.URI;
-
-
 
 public interface RestClientItf {
 
@@ -63,7 +60,6 @@ public interface RestClientItf {
      * @return A ClientResponse reference.
      */
     ClientResponse delete(URI uri) throws InternalException;
-
 
     /**
      * Close the client

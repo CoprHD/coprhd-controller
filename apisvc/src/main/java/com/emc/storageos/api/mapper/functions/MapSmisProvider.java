@@ -11,7 +11,7 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.google.common.base.Function;
 
 @Deprecated
-public class MapSmisProvider implements Function<StorageProvider,SMISProviderRestRep> {
+public class MapSmisProvider implements Function<StorageProvider, SMISProviderRestRep> {
     public static final MapSmisProvider instance = new MapSmisProvider();
 
     public static MapSmisProvider getInstance() {

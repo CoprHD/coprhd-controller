@@ -90,7 +90,7 @@ public class ControlRequestLockQueueListener implements DistributedLockQueueEven
     }
 
     private String getLastArg(Object[] args) {
-        return (String) args[args.length-1];
+        return (String) args[args.length - 1];
     }
 
     private void updateTasks(List<Task> tasks, Predicate<Task> filter, Task.Status status) {
@@ -98,12 +98,12 @@ public class ControlRequestLockQueueListener implements DistributedLockQueueEven
     }
 
     /**
-     * Updates tasks of a given status with queueing information.  If a timestamp is provided, the message
+     * Updates tasks of a given status with queueing information. If a timestamp is provided, the message
      * property is updated to include the time a task was first queued.
      *
-     * @param tasks     List of tasks.
-     * @param filter    Filter to act only on tasks of a specific status.
-     * @param status    New task status to update with.
+     * @param tasks List of tasks.
+     * @param filter Filter to act only on tasks of a specific status.
+     * @param status New task status to update with.
      * @param timestamp Timestamp of when these tasks were first queued (optional).
      */
     private void updateTasks(List<Task> tasks, Predicate<Task> filter, Task.Status status, Long timestamp) {

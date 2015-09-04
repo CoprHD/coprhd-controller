@@ -40,158 +40,158 @@ import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
  *
  */
 public class FileSystemExportToFileSystemExportRuleMigration extends
-		BaseCustomMigrationCallback {
+        BaseCustomMigrationCallback {
 
-	private static final Logger log = LoggerFactory
-			.getLogger(FileSystemExportToFileSystemExportRuleMigration.class);
+    private static final Logger log = LoggerFactory
+            .getLogger(FileSystemExportToFileSystemExportRuleMigration.class);
 
-	@Override
-	public void process() {
-		
-		log.info("FileSystemExport to FileSystem export rule migration: start");
+    @Override
+    public void process() {
 
-		DbClient dbClient = getDbClient();
+        log.info("FileSystemExport to FileSystem export rule migration: start");
 
-		try {
+        DbClient dbClient = getDbClient();
 
-			List<URI> fileExpRuleURIList = dbClient.queryByType(
-					FileExportRule.class, true);
+        try {
 
-			int exisitingExportRuleCount = 0;
-			for (Iterator<URI> iterator = fileExpRuleURIList.iterator(); iterator
-					.hasNext();) {
-				URI uri = (URI) iterator.next();
-				log.debug("Existing export rule URI: {}", uri);
-				exisitingExportRuleCount++;
-			}
-			
-			if (exisitingExportRuleCount > 0) {
-				log.info("There are exisiting export rule(s). Skipping migration.");
-				return;
-			}
+            List<URI> fileExpRuleURIList = dbClient.queryByType(
+                    FileExportRule.class, true);
 
-			// FileSystems
-			List<URI> fileSystemURIList = dbClient.queryByType(FileShare.class,
-					true);
-			Iterator<FileShare> fileShareListIterator = dbClient
-					.queryIterativeObjects(FileShare.class, fileSystemURIList);
-			while (fileShareListIterator.hasNext()) {
-				FileShare fileShare = fileShareListIterator.next();
-				// Create FS Export Rule for export Map
-				List<FileExportRule> fsExpRules = createFSExportRules(fileShare);
-				if (null != fsExpRules && fsExpRules.size() > 0) {
-					log.debug("Persisting new File Export rule(s): {}",
-							fsExpRules);
-					dbClient.createObject(fsExpRules);
-				}
+            int exisitingExportRuleCount = 0;
+            for (Iterator<URI> iterator = fileExpRuleURIList.iterator(); iterator
+                    .hasNext();) {
+                URI uri = (URI) iterator.next();
+                log.debug("Existing export rule URI: {}", uri);
+                exisitingExportRuleCount++;
+            }
 
-			}
+            if (exisitingExportRuleCount > 0) {
+                log.info("There are exisiting export rule(s). Skipping migration.");
+                return;
+            }
 
-			// Snapshots
-			List<URI> snapshotURIList = dbClient.queryByType(Snapshot.class,
-					true);
-			Iterator<Snapshot> snapshotListIterator = dbClient
-					.queryIterativeObjects(Snapshot.class, snapshotURIList);
-			while (snapshotListIterator.hasNext()) {
-				Snapshot snapshot = snapshotListIterator.next();
-				// Create FS Export Rule for export Map
-				List<FileExportRule> snapshotExpRules = createSnapshotExportRules(snapshot);
-				if (null != snapshotExpRules && snapshotExpRules.size() > 0) {
-					log.debug("Persisting new Snapshot Export rule(s): {}",
-							snapshotExpRules);
-					dbClient.createObject(snapshotExpRules);
-				}
+            // FileSystems
+            List<URI> fileSystemURIList = dbClient.queryByType(FileShare.class,
+                    true);
+            Iterator<FileShare> fileShareListIterator = dbClient
+                    .queryIterativeObjects(FileShare.class, fileSystemURIList);
+            while (fileShareListIterator.hasNext()) {
+                FileShare fileShare = fileShareListIterator.next();
+                // Create FS Export Rule for export Map
+                List<FileExportRule> fsExpRules = createFSExportRules(fileShare);
+                if (null != fsExpRules && fsExpRules.size() > 0) {
+                    log.debug("Persisting new File Export rule(s): {}",
+                            fsExpRules);
+                    dbClient.createObject(fsExpRules);
+                }
 
-			}
-			
-			log.info("FileSystemExport to FileSystem export rule migration: end");
+            }
 
-		} catch (Exception e) {
-			log.error("Exception occured while migrating FileShare/Snapshot Export Map CF to FileExportRule CF");
-			log.error(e.getMessage(), e);
-		}
-	}
+            // Snapshots
+            List<URI> snapshotURIList = dbClient.queryByType(Snapshot.class,
+                    true);
+            Iterator<Snapshot> snapshotListIterator = dbClient
+                    .queryIterativeObjects(Snapshot.class, snapshotURIList);
+            while (snapshotListIterator.hasNext()) {
+                Snapshot snapshot = snapshotListIterator.next();
+                // Create FS Export Rule for export Map
+                List<FileExportRule> snapshotExpRules = createSnapshotExportRules(snapshot);
+                if (null != snapshotExpRules && snapshotExpRules.size() > 0) {
+                    log.debug("Persisting new Snapshot Export rule(s): {}",
+                            snapshotExpRules);
+                    dbClient.createObject(snapshotExpRules);
+                }
 
-	private List<FileExportRule> createSnapshotExportRules(Snapshot snapshot) {
+            }
 
-		List<FileExportRule> fsExpRuleList = new ArrayList<FileExportRule>();
+            log.info("FileSystemExport to FileSystem export rule migration: end");
 
-		FSExportMap fsExportMap = snapshot.getFsExports();
+        } catch (Exception e) {
+            log.error("Exception occured while migrating FileShare/Snapshot Export Map CF to FileExportRule CF");
+            log.error(e.getMessage(), e);
+        }
+    }
 
-		if (fsExportMap != null) {
+    private List<FileExportRule> createSnapshotExportRules(Snapshot snapshot) {
 
-			for (String exportKey : fsExportMap.keySet()) {
+        List<FileExportRule> fsExpRuleList = new ArrayList<FileExportRule>();
 
-				FileExport fsExport = fsExportMap.get(exportKey);
-				FileExportRule expRule = new FileExportRule();
-				expRule.setId(URIUtil.createId(FileExportRule.class));
-				copyFileExportData(fsExport, expRule);
-				// Set snapshotId in the end as setSnapshotId() calculates
-				// snapshotExportIndex with exportPath and security flavor
-				expRule.setSnapshotId(snapshot.getId());
+        FSExportMap fsExportMap = snapshot.getFsExports();
 
-				fsExpRuleList.add(expRule);
+        if (fsExportMap != null) {
 
-			}
-		}
+            for (String exportKey : fsExportMap.keySet()) {
 
-		return fsExpRuleList;
-	}
+                FileExport fsExport = fsExportMap.get(exportKey);
+                FileExportRule expRule = new FileExportRule();
+                expRule.setId(URIUtil.createId(FileExportRule.class));
+                copyFileExportData(fsExport, expRule);
+                // Set snapshotId in the end as setSnapshotId() calculates
+                // snapshotExportIndex with exportPath and security flavor
+                expRule.setSnapshotId(snapshot.getId());
 
-	private List<FileExportRule> createFSExportRules(FileShare fileShare) {
+                fsExpRuleList.add(expRule);
 
-		List<FileExportRule> fsExpRuleList = new ArrayList<FileExportRule>();
+            }
+        }
 
-		FSExportMap fsExportMap = fileShare.getFsExports();
+        return fsExpRuleList;
+    }
 
-		if (fsExportMap != null) {
+    private List<FileExportRule> createFSExportRules(FileShare fileShare) {
 
-			for (String exportKey : fsExportMap.keySet()) {
+        List<FileExportRule> fsExpRuleList = new ArrayList<FileExportRule>();
 
-				FileExport fsExport = fsExportMap.get(exportKey);
-				FileExportRule expRule = new FileExportRule();
-				expRule.setId(URIUtil.createId(FileExportRule.class));
-				copyFileExportData(fsExport, expRule);
-				// Set fileSystemId in the end as setFileSystemId() calculates
-				// fsExportIndex with exportPath and security flavor
-				expRule.setFileSystemId(fileShare.getId());
+        FSExportMap fsExportMap = fileShare.getFsExports();
 
-				fsExpRuleList.add(expRule);
+        if (fsExportMap != null) {
 
-			}
-		}
+            for (String exportKey : fsExportMap.keySet()) {
 
-		return fsExpRuleList;
-	}
+                FileExport fsExport = fsExportMap.get(exportKey);
+                FileExportRule expRule = new FileExportRule();
+                expRule.setId(URIUtil.createId(FileExportRule.class));
+                copyFileExportData(fsExport, expRule);
+                // Set fileSystemId in the end as setFileSystemId() calculates
+                // fsExportIndex with exportPath and security flavor
+                expRule.setFileSystemId(fileShare.getId());
 
-	private void copyFileExportData(FileExport source, FileExportRule dest) {
+                fsExpRuleList.add(expRule);
 
-		dest.setExportPath(source.getMountPath());
-		dest.setMountPoint(source.getMountPoint());
-		dest.setSecFlavor(source.getSecurityType());
-		dest.setAnon(source.getRootUserMapping());
+            }
+        }
 
-		if (null != source.getIsilonId()) {
-			dest.setDeviceExportId(source.getIsilonId());
-		}
+        return fsExpRuleList;
+    }
 
-		List<String> sourceClients = source.getClients();
+    private void copyFileExportData(FileExport source, FileExportRule dest) {
 
-		if (null != sourceClients) {
+        dest.setExportPath(source.getMountPath());
+        dest.setMountPoint(source.getMountPoint());
+        dest.setSecFlavor(source.getSecurityType());
+        dest.setAnon(source.getRootUserMapping());
 
-			if ("rw".equals(source.getPermissions())) {
-				dest.setReadWriteHosts(new StringSet(sourceClients));
-			}
+        if (null != source.getIsilonId()) {
+            dest.setDeviceExportId(source.getIsilonId());
+        }
 
-			if ("ro".equals(source.getPermissions())) {
-				dest.setReadOnlyHosts(new StringSet(sourceClients));
-			}
+        List<String> sourceClients = source.getClients();
 
-			if ("root".equals(source.getPermissions())) {
-				dest.setRootHosts(new StringSet(sourceClients));
-			}
-		}
+        if (null != sourceClients) {
 
-	}
+            if ("rw".equals(source.getPermissions())) {
+                dest.setReadWriteHosts(new StringSet(sourceClients));
+            }
+
+            if ("ro".equals(source.getPermissions())) {
+                dest.setReadOnlyHosts(new StringSet(sourceClients));
+            }
+
+            if ("root".equals(source.getPermissions())) {
+                dest.setRootHosts(new StringSet(sourceClients));
+            }
+        }
+
+    }
 
 }

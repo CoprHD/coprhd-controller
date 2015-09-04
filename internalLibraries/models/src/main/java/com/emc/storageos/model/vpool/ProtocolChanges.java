@@ -26,8 +26,9 @@ public class ProtocolChanges {
     private ProtocolAssignments add;
     private ProtocolAssignments remove;
 
-    public ProtocolChanges() {}
-    
+    public ProtocolChanges() {
+    }
+
     public ProtocolChanges(ProtocolAssignments add, ProtocolAssignments remove) {
         this.add = add;
         this.remove = remove;
@@ -60,5 +61,5 @@ public class ProtocolChanges {
     public void setRemove(ProtocolAssignments remove) {
         this.remove = remove;
     }
-    
+
 }

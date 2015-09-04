@@ -73,15 +73,15 @@ public class HostMapper {
         return to;
     }
 
-    public static ExportGroupRestRep map(ExportGroup from, List<Initiator> initiators, 
-            Map<String,Integer> volumes, List<Host> hosts, List<Cluster> clusters) {
+    public static ExportGroupRestRep map(ExportGroup from, List<Initiator> initiators,
+            Map<String, Integer> volumes, List<Host> hosts, List<Cluster> clusters) {
         if (from == null) {
             return null;
         }
         ExportGroupRestRep to = new ExportGroupRestRep();
         mapDataObjectFields(from, to);
         if (initiators != null) {
-            for (Initiator initiator: initiators) {
+            for (Initiator initiator : initiators) {
                 to.getInitiators().add(map(initiator));
             }
         }
@@ -97,14 +97,14 @@ public class HostMapper {
             }
         }
         if (hosts != null) {
-            for (Host host: hosts) {
+            for (Host host : hosts) {
                 to.getHosts().add(map(host));
             }
         }
         if (clusters != null) {
-            for (Cluster cluster: clusters) {
+            for (Cluster cluster : clusters) {
                 to.getClusters().add(map(cluster));
-                
+
             }
         }
         if (from.getProject() != null) {
@@ -145,7 +145,7 @@ public class HostMapper {
         }
         return to;
     }
-    
+
     public static ClusterRestRep map(Cluster from) {
         if (from == null) {
             return null;

@@ -69,7 +69,7 @@ public class ContainmentConstraintImpl extends ConstraintImpl implements Contain
 
     @Override
     protected <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException {
-        RowQuery<String, IndexColumnName> query =  _keyspace.prepareQuery(_field.getIndexCF()).getKey(_indexKey.toString());
+        RowQuery<String, IndexColumnName> query = _keyspace.prepareQuery(_field.getIndexCF()).getKey(_indexKey.toString());
 
         if (startId != null && _field.getIndex() instanceof RelationDbIndex) {
             queryOnePageWithoutAutoPaginate(query, _entryType.getSimpleName(), result);
@@ -86,7 +86,7 @@ public class ContainmentConstraintImpl extends ConstraintImpl implements Contain
             ret = URI.create(col.getName().getTwo());
         } else if (_field.getIndex() instanceof AltIdDbIndex) {
             ret = URI.create(col.getName().getTwo());
-        }else
+        } else
             ret = URI.create(col.getName().getFour());
 
         return ret;

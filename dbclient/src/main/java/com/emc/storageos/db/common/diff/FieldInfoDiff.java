@@ -41,15 +41,15 @@ public class FieldInfoDiff extends Diff {
 
     public FieldInfoDiff(FieldInfo src, FieldInfo tgt) {
         name = src.getName();
-        
+
         for (AnnotationType at : src.getAnnotations().getAnnotations()) {
-        	at.setParent(src);
+            at.setParent(src);
         }
 
         typeCT = PrimitiveChangeTracker.newInstance(src.getType(), tgt.getType(), tgt);
 
-        annotationCT = CollectionChangeTracker.<AnnotationType, AnnotationTypeDiff>newInstance(
-                AnnotationType.class, AnnotationTypeDiff.class, src.getAnnotations().getAnnotations(), 
+        annotationCT = CollectionChangeTracker.<AnnotationType, AnnotationTypeDiff> newInstance(
+                AnnotationType.class, AnnotationTypeDiff.class, src.getAnnotations().getAnnotations(),
                 tgt.getAnnotations().getAnnotations());
     }
 

@@ -51,15 +51,15 @@ import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
  * Hence, it stores the objectPaths of Auto_tier alone. These object paths will be used to get
  * VolumeSettings (next SMI-S operation), from which the exact policy is being found.
  */
-public class VNXFastVolumesProcessor extends StorageProcessor{
-    
-    List<UnManagedVolume> _unManagedVolumesUpdate  = null;
+public class VNXFastVolumesProcessor extends StorageProcessor {
+
+    List<UnManagedVolume> _unManagedVolumesUpdate = null;
     private Logger _logger = LoggerFactory.getLogger(VNXFastVolumesProcessor.class);
     private List<Object> _args;
     private DbClient _dbClient;
-    
+
     private PartitionManager _partitionManager;
-    
+
     public void setPartitionManager(PartitionManager partitionManager) {
         _partitionManager = partitionManager;
     }
@@ -70,7 +70,7 @@ public class VNXFastVolumesProcessor extends StorageProcessor{
         CloseableIterator<CIMObjectPath> volumeInstances = null;
         try {
             WBEMClient client = (WBEMClient) keyMap.get(Constants._cimClient);
-            _unManagedVolumesUpdate  = new ArrayList<UnManagedVolume>();
+            _unManagedVolumesUpdate = new ArrayList<UnManagedVolume>();
             @SuppressWarnings("unchecked")
             EnumerateResponse<CIMObjectPath> volumeInstanceChunks = (EnumerateResponse<CIMObjectPath>) resultObj;
             volumeInstances = volumeInstanceChunks.getResponses();
@@ -79,7 +79,7 @@ public class VNXFastVolumesProcessor extends StorageProcessor{
             processVolumes(volumeInstances, tierPolicypath, keyMap, operation);
             while (!volumeInstanceChunks.isEnd()) {
                 _logger.info("Processing Next Volume Chunk of size {}", BATCH_SIZE);
-                volumeInstanceChunks = client.getInstancePaths(tierPolicypath, 
+                volumeInstanceChunks = client.getInstancePaths(tierPolicypath,
                         volumeInstanceChunks.getContext(), new UnsignedInteger32(BATCH_SIZE));
                 processVolumes(volumeInstanceChunks.getResponses(), tierPolicypath, keyMap, operation);
             }
@@ -88,15 +88,15 @@ public class VNXFastVolumesProcessor extends StorageProcessor{
                         getPartitionSize(keyMap), _dbClient, "VOLUME");
                 _unManagedVolumesUpdate.clear();
             }
-        }catch(Exception e){
-            _logger.error("Discovering Tier Policies for vnx volumes failed",e);
+        } catch (Exception e) {
+            _logger.error("Discovering Tier Policies for vnx volumes failed", e);
         } finally {
             volumeInstances.close();
         }
-        
+
     }
-    
-    private void processVolumes(Iterator<CIMObjectPath> it,CIMObjectPath tierPolicyPath,
+
+    private void processVolumes(Iterator<CIMObjectPath> it, CIMObjectPath tierPolicyPath,
             Map<String, Object> keyMap, Operation operation) {
 
         AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
@@ -123,29 +123,28 @@ public class VNXFastVolumesProcessor extends StorageProcessor{
                 String unManagedVolumeNativeGuid = getUnManagedVolumeNativeGuidFromVolumePath(volumePath);
                 UnManagedVolume unManagedVolume = checkUnManagedVolumeExistsInDB(
                         unManagedVolumeNativeGuid, _dbClient);
-               if (null != unManagedVolume) {
-                   String policyName = getCIMPropertyValue(tierPolicyPath, Constants.POLICYRULENAME);
-                   _logger.info("Adding {} Policy Rule to UnManaged Volume {}", policyName, unManagedVolumeNativeGuid);
-                   injectIntoVolumeInformationContainer(unManagedVolume,
-                           Constants.POLICYRULENAME, tierPolicyPath);
-                   unManagedVolume.putVolumeCharacterstics(
-                           SupportedVolumeCharacterstics.IS_AUTO_TIERING_ENABLED.toString(),
-                           "true");
+                if (null != unManagedVolume) {
+                    String policyName = getCIMPropertyValue(tierPolicyPath, Constants.POLICYRULENAME);
+                    _logger.info("Adding {} Policy Rule to UnManaged Volume {}", policyName, unManagedVolumeNativeGuid);
+                    injectIntoVolumeInformationContainer(unManagedVolume,
+                            Constants.POLICYRULENAME, tierPolicyPath);
+                    unManagedVolume.putVolumeCharacterstics(
+                            SupportedVolumeCharacterstics.IS_AUTO_TIERING_ENABLED.toString(),
+                            "true");
 
-                   // StorageVolumeInfoProcessor updated supported_vpool_list based on its pool's presence in vPool
-                   // Now, filter those vPools based on policy associated
-                   DiscoveryUtils.filterSupportedVpoolsBasedOnTieringPolicy(unManagedVolume, policyName, system, _dbClient);
+                    // StorageVolumeInfoProcessor updated supported_vpool_list based on its pool's presence in vPool
+                    // Now, filter those vPools based on policy associated
+                    DiscoveryUtils.filterSupportedVpoolsBasedOnTieringPolicy(unManagedVolume, policyName, system, _dbClient);
 
-                   _unManagedVolumesUpdate.add(unManagedVolume);
-               }
-               
-                
+                    _unManagedVolumesUpdate.add(unManagedVolume);
+                }
+
                 if (_unManagedVolumesUpdate.size() > BATCH_SIZE) {
                     _partitionManager.updateInBatches(_unManagedVolumesUpdate,
                             getPartitionSize(keyMap), _dbClient, "VOLUME");
                     _unManagedVolumesUpdate.clear();
                 }
-              
+
             } catch (Exception ex) {
                 _logger.error("Processing UnManaged Storage Volume {} ",
                         volumePath, ex);

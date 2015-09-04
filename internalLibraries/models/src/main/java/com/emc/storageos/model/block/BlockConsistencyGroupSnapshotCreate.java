@@ -11,13 +11,14 @@ import javax.xml.bind.annotation.XmlRootElement;
  * Consistency Group Snapshot creation parameters
  */
 @XmlRootElement(name = "consistency_group_snapshot_create")
-public class BlockConsistencyGroupSnapshotCreate{
+public class BlockConsistencyGroupSnapshotCreate {
 
     private String name;
     private Boolean createInactive;
 
-    public BlockConsistencyGroupSnapshotCreate() {}
-    
+    public BlockConsistencyGroupSnapshotCreate() {
+    }
+
     public BlockConsistencyGroupSnapshotCreate(String name,
             Boolean createInactive) {
         this.name = name;
@@ -61,5 +62,5 @@ public class BlockConsistencyGroupSnapshotCreate{
     public void setCreateInactive(Boolean createInactive) {
         this.createInactive = createInactive;
     }
-    
+
 }

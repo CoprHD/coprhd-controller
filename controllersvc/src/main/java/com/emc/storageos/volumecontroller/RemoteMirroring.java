@@ -214,11 +214,12 @@ public interface RemoteMirroring {
 
     /**
      * Refresh the storage system.
+     * 
      * @param systemURI
      * @param targetURIs
      */
     void refreshStorageSystem(URI systemURI, List<URI> volumeURIsToCheck);
-    
+
     /**
      * Change SRDF Copy Mode.
      *

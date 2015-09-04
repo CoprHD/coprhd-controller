@@ -50,7 +50,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * The base class of DB service test 
+ * The base class of DB service test
  */
 public abstract class DbServiceTestBase {
     static {
@@ -72,7 +72,7 @@ public abstract class DbServiceTestBase {
         if (dataDir.exists() && dataDir.isDirectory()) {
             cleanDirectory(dataDir);
         }
-    } 
+    }
 
     /**
      * Deletes given directory
@@ -118,7 +118,7 @@ public abstract class DbServiceTestBase {
 
         dbVersionInfo = new DbVersionInfo();
         dbVersionInfo.setSchemaVersion(schemaVersion);
-        
+
         coordinator.setDbVersionInfo(dbVersionInfo);
 
         DbServiceStatusChecker statusChecker = new DbServiceStatusChecker();
@@ -188,7 +188,7 @@ public abstract class DbServiceTestBase {
 
         dbsvc.setMigrationHandler(handler);
         dbsvc.setDisableScheduledDbRepair(true);
-        
+
         dbsvc.start();
     }
 
@@ -202,7 +202,7 @@ public abstract class DbServiceTestBase {
 
         return dbClient;
     }
-    
+
     protected DbClientContext createLocalContext() {
         DbClientContext context = new DbClientContext();
         context.setClusterName("Test");
@@ -222,6 +222,6 @@ public abstract class DbServiceTestBase {
     }
 
     protected static boolean isPreMigration() {
-        return Boolean.parseBoolean(System.getProperty("preMigration"));                               
+        return Boolean.parseBoolean(System.getProperty("preMigration"));
     }
 }

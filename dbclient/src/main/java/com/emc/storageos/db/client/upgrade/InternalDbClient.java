@@ -42,8 +42,9 @@ import java.util.*;
 public class InternalDbClient extends DbClientImpl {
     private static final Logger log = LoggerFactory.getLogger(InternalDbClient.class);
 
-    private  static final long MAX_SCHEMA_WAIT_MS = 60 * 1000 * 10;
-	private static final int RETRY_INTERVAL =  1000;
+    private static final long MAX_SCHEMA_WAIT_MS = 60 * 1000 * 10;
+    private static final int RETRY_INTERVAL = 1000;
+
     private List<URI> getNextBatch(Iterator<URI> it) {
         List<URI> uris = new ArrayList<URI>(DEFAULT_PAGE_SIZE);
         while (it.hasNext() && uris.size() < DEFAULT_PAGE_SIZE) {
@@ -58,7 +59,7 @@ public class InternalDbClient extends DbClientImpl {
         if (doType == null) {
             throw new IllegalArgumentException();
         }
-        ColumnField columnField =  doType.getColumnField(fieldName);
+        ColumnField columnField = doType.getColumnField(fieldName);
         if (columnField == null) {
             throw new IllegalArgumentException();
         }
@@ -99,7 +100,7 @@ public class InternalDbClient extends DbClientImpl {
         if (doType == null) {
             throw new IllegalArgumentException();
         }
-        ColumnField columnField =  doType.getColumnField(fieldName);
+        ColumnField columnField = doType.getColumnField(fieldName);
         if (columnField == null) {
             throw new IllegalArgumentException();
         }
@@ -149,7 +150,7 @@ public class InternalDbClient extends DbClientImpl {
             throw DatabaseException.retryables.connectionFailed(e);
         }
     }
-    
+
     public SchemaRecord querySchemaRecord(String version) throws DatabaseException {
         try {
             SchemaRecordType type = TypeMap.getSchemaRecordType();
@@ -178,8 +179,7 @@ public class InternalDbClient extends DbClientImpl {
         log.info("CF({}): row count by getting all rows= {}", clazz.getSimpleName(), inmemKeyList.size());
 
         URIQueryResultList inactiveResult = new URIQueryResultList();
-        DecommissionedConstraint constraint
-             = DecommissionedConstraint.Factory.getAllObjectsConstraint(clazz, true);
+        DecommissionedConstraint constraint = DecommissionedConstraint.Factory.getAllObjectsConstraint(clazz, true);
         constraint.setKeyspace(getKeyspace(clazz));
         constraint.execute(inactiveResult);
 
@@ -282,39 +282,37 @@ public class InternalDbClient extends DbClientImpl {
             Properties props = getLocalKeyspace().getColumnFamilyProperties(cf);
             OperationResult<SchemaChangeResult> dropCFResult = getLocalKeyspace().dropColumnFamily(cf);
             waitForSchemaChange(dropCFResult);
-            //bloom filter can not be 0 starting at version 1.2. Otherwise CF create throws an exception
+            // bloom filter can not be 0 starting at version 1.2. Otherwise CF create throws an exception
             // see CASSANDRA-5013
             // In this case set value for Bloom Filter as 0.01 which is the default value for SizeTieredCompactionStrategy
             String value = (String) props.get("bloom_filter_fp_chance");
             double fpValue;
-            if (value == null || value.isEmpty() ) {
+            if (value == null || value.isEmpty()) {
                 value = "0.01";
             }
             else {
 
-                try{
+                try {
                     fpValue = Double.parseDouble(value);
-                    if( fpValue < 0.000001 ){
+                    if (fpValue < 0.000001) {
                         fpValue = 0.01;
                     }
-                }
-                catch ( Exception ex ){
+                } catch (Exception ex) {
                     fpValue = 0.01;
                 }
                 value = Double.toString(fpValue);
             }
             log.info("Setting value for Bloom Filter to " + value);
-            props.setProperty("bloom_filter_fp_chance",value);
+            props.setProperty("bloom_filter_fp_chance", value);
             OperationResult<SchemaChangeResult> createCFResult = getLocalKeyspace().createColumnFamily(props);
             waitForSchemaChange(createCFResult);
-        }
-        catch( ConnectionException connEx) {
+        } catch (ConnectionException connEx) {
             log.error("Failed to recreate columnFamily : " + cf);
             DatabaseException.retryables.connectionFailed(connEx);
         }
     }
 
-    public void resetFields(Class<? extends DataObject> clazz, Map<String,ColumnField> setFields, boolean ignore) throws Exception {
+    public void resetFields(Class<? extends DataObject> clazz, Map<String, ColumnField> setFields, boolean ignore) throws Exception {
         DataObjectType doType = TypeMap.getDoType(clazz);
         if (doType == null) {
             throw new IllegalArgumentException();
@@ -326,7 +324,7 @@ public class InternalDbClient extends DbClientImpl {
             Iterator<Row<String, CompositeColumnName>> it = result.getResult().iterator();
             RemovedColumnsList removedList = new RemovedColumnsList();
             List<DataObject> objects = new ArrayList<>(DEFAULT_PAGE_SIZE);
-            String key=null;
+            String key = null;
             Exception lastEx = null;
 
             while (it.hasNext()) {
@@ -356,11 +354,11 @@ public class InternalDbClient extends DbClientImpl {
                         objects.clear();
                         removedList.clear();
                     }
-                }catch (Exception e) {
+                } catch (Exception e) {
                     String message = String.format("DB migration failed reason: reset data key='%s'", key);
 
                     log.error(message);
-                    log.error("e=",e);
+                    log.error("e=", e);
 
                     if (ignore) {
                         lastEx = e;
@@ -392,7 +390,7 @@ public class InternalDbClient extends DbClientImpl {
     private void waitForSchemaChange(final OperationResult<SchemaChangeResult> result) {
         String schemaVersion = result.getResult().getSchemaId();
         long start = System.currentTimeMillis();
-      
+
         while (System.currentTimeMillis() - start < MAX_SCHEMA_WAIT_MS) {
             Map<String, List<String>> versions;
             try {
@@ -400,16 +398,16 @@ public class InternalDbClient extends DbClientImpl {
             } catch (final ConnectionException e) {
                 throw DatabaseException.retryables.connectionFailed(e);
             }
-            if(versions.size()==1 && versions.containsKey(schemaVersion)){
+            if (versions.size() == 1 && versions.containsKey(schemaVersion)) {
                 log.info("schema version sync to: {} done", schemaVersion);
                 return;
-            }			
-            try{
+            }
+            try {
                 Thread.sleep(RETRY_INTERVAL);
-            }catch (InterruptedException e) {
-                log.warn("DB keyspace verification interrupted, ignore",e);
+            } catch (InterruptedException e) {
+                log.warn("DB keyspace verification interrupted, ignore", e);
             }
         }
-        log.warn("Unable to sync schema version {}",schemaVersion);
+        log.warn("Unable to sync schema version {}", schemaVersion);
     }
 }

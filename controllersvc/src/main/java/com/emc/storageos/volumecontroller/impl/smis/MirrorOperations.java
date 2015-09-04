@@ -26,31 +26,37 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
  * - Operations for create
  */
 public interface MirrorOperations {
-	public static final String CREATE_ERROR_MSG_FORMAT = "Failed to create single mirror %s";
-	public static final String DETACH_ERROR_MSG_FORMAT = "Failed to detach mirror %s from source %s";
-	
-    void createSingleVolumeMirror(StorageSystem storage, URI mirror, Boolean createInactive, TaskCompleter taskCompleter)  throws DeviceControllerException;
+    public static final String CREATE_ERROR_MSG_FORMAT = "Failed to create single mirror %s";
+    public static final String DETACH_ERROR_MSG_FORMAT = "Failed to detach mirror %s from source %s";
 
-    void fractureSingleVolumeMirror(StorageSystem storage, URI mirror, Boolean sync, TaskCompleter taskCompleter)  throws DeviceControllerException;
+    void createSingleVolumeMirror(StorageSystem storage, URI mirror, Boolean createInactive, TaskCompleter taskCompleter)
+            throws DeviceControllerException;
+
+    void fractureSingleVolumeMirror(StorageSystem storage, URI mirror, Boolean sync, TaskCompleter taskCompleter)
+            throws DeviceControllerException;
 
     void resumeSingleVolumeMirror(StorageSystem storage, URI mirror, TaskCompleter taskCompleter) throws DeviceControllerException;
 
     void establishVolumeNativeContinuousCopyGroupRelation(StorageSystem storage, URI sourceVolume,
             URI mirror, TaskCompleter taskCompleter) throws DeviceControllerException;
 
-    void detachSingleVolumeMirror(StorageSystem storage, URI mirror, TaskCompleter taskCompleter)  throws DeviceControllerException;
+    void detachSingleVolumeMirror(StorageSystem storage, URI mirror, TaskCompleter taskCompleter) throws DeviceControllerException;
 
-    void deleteSingleVolumeMirror(StorageSystem storage, URI mirror, TaskCompleter taskCompleter)  throws DeviceControllerException;
+    void deleteSingleVolumeMirror(StorageSystem storage, URI mirror, TaskCompleter taskCompleter) throws DeviceControllerException;
 
-    void createGroupMirrors(StorageSystem storage, List<URI> mirrorList, Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
+    void createGroupMirrors(StorageSystem storage, List<URI> mirrorList, Boolean createInactive, TaskCompleter taskCompleter)
+            throws DeviceControllerException;
 
-    void fractureGroupMirrors(StorageSystem storage, List<URI> mirrorList, Boolean sync, TaskCompleter taskCompleter) throws DeviceControllerException;
+    void fractureGroupMirrors(StorageSystem storage, List<URI> mirrorList, Boolean sync, TaskCompleter taskCompleter)
+            throws DeviceControllerException;
 
     void resumeGroupMirrors(StorageSystem storage, List<URI> mirrorList, TaskCompleter taskCompleter) throws DeviceControllerException;
 
-    void detachGroupMirrors(StorageSystem storage, List<URI> mirrorList, Boolean deleteGroup, TaskCompleter taskCompleter) throws DeviceControllerException;
+    void detachGroupMirrors(StorageSystem storage, List<URI> mirrorList, Boolean deleteGroup, TaskCompleter taskCompleter)
+            throws DeviceControllerException;
 
     void deleteGroupMirrors(StorageSystem storage, List<URI> mirrorList, TaskCompleter taskCompleter) throws DeviceControllerException;
 
-	void removeMirrorFromDeviceMaskingGroup(StorageSystem system, List<URI> mirrorList, TaskCompleter completer)throws DeviceControllerException;
+    void removeMirrorFromDeviceMaskingGroup(StorageSystem system, List<URI> mirrorList, TaskCompleter completer)
+            throws DeviceControllerException;
 }

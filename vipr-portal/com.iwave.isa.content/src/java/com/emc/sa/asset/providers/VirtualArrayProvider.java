@@ -50,28 +50,28 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
     public List<AssetOption> getFileVirtualArrays(AssetOptionsContext ctx, URI storageSystem) {
         return getVirtualArrayForStorageSystem(ctx, storageSystem);
     }
-    
+
     protected List<AssetOption> getVirtualArrayForStorageSystem(AssetOptionsContext context, URI storageSystem) {
-    	ViPRCoreClient client = api(context);
-    	Set<String> virtualArrayIds = Sets.newHashSet();
-    	
-    	for (StoragePortRestRep storagePortRestRep : client.storagePorts().getByStorageSystem(storageSystem)) {
-    		virtualArrayIds.addAll(storagePortRestRep.getAssignedVirtualArrays());
-    		virtualArrayIds.addAll(storagePortRestRep.getConnectedVirtualArrays());
-    	}
-    	
-    	List<VirtualArrayRestRep> virtualArrays = client.varrays().getByIds(ResourceUtils.uris(virtualArrayIds));
-    	return createBaseResourceOptions(virtualArrays);
-    }    
-    
+        ViPRCoreClient client = api(context);
+        Set<String> virtualArrayIds = Sets.newHashSet();
+
+        for (StoragePortRestRep storagePortRestRep : client.storagePorts().getByStorageSystem(storageSystem)) {
+            virtualArrayIds.addAll(storagePortRestRep.getAssignedVirtualArrays());
+            virtualArrayIds.addAll(storagePortRestRep.getConnectedVirtualArrays());
+        }
+
+        List<VirtualArrayRestRep> virtualArrays = client.varrays().getByIds(ResourceUtils.uris(virtualArrayIds));
+        return createBaseResourceOptions(virtualArrays);
+    }
+
     @Asset("virtualArray")
-    @AssetDependencies({ "linuxHost"})
+    @AssetDependencies({ "linuxHost" })
     public List<AssetOption> getVirtualArrayForLinux(AssetOptionsContext context, URI linuxHostOrCluster) {
         return getVirtualArray(context, linuxHostOrCluster);
     }
 
     @Asset("virtualArray")
-    @AssetDependencies({ "windowsHost"})
+    @AssetDependencies({ "windowsHost" })
     public List<AssetOption> getVirtualArrayForWindows(AssetOptionsContext context, URI windowsHostOrCluster) {
         return getVirtualArray(context, windowsHostOrCluster);
     }
@@ -94,7 +94,7 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
             }
             allVirtualArrays.putAll(connectedVirtualArrays);
         }
-        
+
         // Creates options for the virtual arrays, showing an indication whether the virtual array is only
         // partially connected to the cluster
         List<AssetOption> fullyConnectedOptions = new ArrayList<>();
@@ -119,11 +119,11 @@ public class VirtualArrayProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("virtualArray")
-    @AssetDependencies({"esxHost"})
+    @AssetDependencies({ "esxHost" })
     public List<AssetOption> getVirtualArrayForVMware(AssetOptionsContext context, URI vmwareHostOrCluster) {
         return getVirtualArray(context, vmwareHostOrCluster);
     }
-    
+
     @Asset("fileVirtualArray")
     public List<AssetOption> getFileVirtualArrays(AssetOptionsContext context) {
         ViPRCoreClient client = api(context);

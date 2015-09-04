@@ -29,84 +29,94 @@ import com.emc.storageos.db.joiner.Joiner;
 public interface DbModelClient {
     /**
      * retrieves one DbObject from persistence based on the class type and id
+     * 
      * @param clazz class type to retrieve
      * @param id id of the object to retrieve
      * @return one DataObject instance
      * @throws DatabaseException
      */
     public <T extends DataObject> T find(Class<T> clazz, URI id) throws DatabaseException;
-    
+
     /**
      * retrieves one {@link DataObject} instance from persistence based on a unique alternate Id.
      * Returns the first instance found and does not check that only one instance is found.
+     * 
      * @param clazz
      * @param the name of the field that is an unique alternate id
      * @param value the value of the unique alternate id
-     * @return one {@link DataObject} instance 
+     * @return one {@link DataObject} instance
      * @throws DatabaseException
      */
     public <T extends DataObject> T findByUniqueAlternateId(Class<T> clazz, String field, String value);
-    
+
     /**
      * retrieves all DbObjects of a certain type
+     * 
      * @param clazz class type to retrieve
      * @return iterator pointing to the resulting list of DataObjects
      * @throws DatabaseException
      */
     public <T extends DataObject> Iterator<T> findAll(Class<T> clazz) throws DatabaseException;
-    
+
     /**
      * retrieves all DbObjects of a certain type
+     * 
      * @param clazz class type to retrieve
      * @return iterator pointing to the resulting list of DataObjects
      * @throws DatabaseException
      */
-    public <T extends DataObject> Iterator<T> find(Class<T> clazz, URI...ids) throws DatabaseException;
-    
+    public <T extends DataObject> Iterator<T> find(Class<T> clazz, URI... ids) throws DatabaseException;
+
     /**
      * retrieves all DbObjects of a certain type
+     * 
      * @param clazz class type to retrieve
      * @return iterator pointing to the resulting list of DataObjects
      * @throws DatabaseException
      */
     public <T extends DataObject> Iterator<T> find(Class<T> clazz, Collection<URI> ids) throws DatabaseException;
-    
+
     /**
      * retrieves all DbObjects of a certain type filtered by one String field's value
+     * 
      * @param clazz class type to retrieve
      * @param field field name to filter on
      * @param value field value to filter on
      * @return iterator pointing to the resulting list of DataObjects
      * @throws DatabaseException
      */
-    public <T extends DataObject> Iterator<T> find(Class<T> clazz, String field, Object...value) throws DatabaseException;
-    
+    public <T extends DataObject> Iterator<T> find(Class<T> clazz, String field, Object... value) throws DatabaseException;
+
     /**
      * retrieves all DbObjects of a certain type filtered by one String field's value
+     * 
      * @param clazz class type to retrieve
      * @param field field name to filter on
      * @param value field value to filter on
      * @return iterator pointing to the resulting list of DataObjects
      * @throws DatabaseException
      */
-    public <T extends DataObject> Iterator<T> find(Class<T> clazz, String field, Collection<? extends Object> value) throws DatabaseException;
-    
+    public <T extends DataObject> Iterator<T> find(Class<T> clazz, String field, Collection<? extends Object> value)
+            throws DatabaseException;
+
     /**
      * retrieves all DbObjects with a specified label
+     * 
      * @param clazz
      * @param label
      * @return
      */
     public <T extends DataObject> Iterator<T> findByLabel(Class<T> clazz, String label);
-    
+
     /**
      * retrieves all DbObjects with a specified native GUID
+     * 
      * @param clazz
      * @param nativeGuid
      * @return
      */
     public <T extends DataObject> Iterator<T> findByNativeGuid(Class<T> clazz, String nativeGuid);
-    
+
     /**
      * Defines an initial table that is queried without joining to some previous table
      * 
@@ -116,7 +126,7 @@ public interface DbModelClient {
      */
     public Joiner join(Class<? extends DataObject> clazz, String alias);
 
-    /** 
+    /**
      * Defines an initial set of objects that are queried without joining to some previous table
      * Objects identified by ids are queried from the database
      * 
@@ -125,20 +135,20 @@ public interface DbModelClient {
      * @param ids initial list of ids to start the join with
      * @return
      */
-    public Joiner join(Class<? extends DataObject> clazz, String alias, URI...ids);
-    
-    /** 
-     * Defines an initial set of objects that are queried without joining to some previous table
-     * Objects identified by ids are queried from the database
-     * 
-     * @param clazz defines the table to start the join with
-     * @param alias name for the results of this table
-     * @param ids initial list of ids to start the join with
-     * @return
-     */
-    public <T extends DataObject> Joiner join(Class<T> clazz, String alias, T...objs);
+    public Joiner join(Class<? extends DataObject> clazz, String alias, URI... ids);
 
-    /** 
+    /**
+     * Defines an initial set of objects that are queried without joining to some previous table
+     * Objects identified by ids are queried from the database
+     * 
+     * @param clazz defines the table to start the join with
+     * @param alias name for the results of this table
+     * @param ids initial list of ids to start the join with
+     * @return
+     */
+    public <T extends DataObject> Joiner join(Class<T> clazz, String alias, T... objs);
+
+    /**
      * Defines an initial set of objects that are queried without joining to some previous table
      * Objects identified by ids are queried from the database
      * 
@@ -148,7 +158,7 @@ public interface DbModelClient {
      * @return
      */
     public Joiner join(Class<? extends DataObject> clazz, String alias, Collection filter);
-    
+
     /**
      * Defines an initial set of objects that are queried without joining to some previous table
      * matches initial list of objects to join with field equal to or one of value
@@ -159,7 +169,7 @@ public interface DbModelClient {
      * @param value value to match field to
      * @return
      */
-    public Joiner join(Class<? extends DataObject> clazz, String alias, String field, Object...value);
+    public Joiner join(Class<? extends DataObject> clazz, String alias, String field, Object... value);
 
     /**
      * Defines an initial set of objects that are queried without joining to some previous table
@@ -175,44 +185,50 @@ public interface DbModelClient {
 
     /**
      * persists the modified fields of one or more DataObjects
+     * 
      * @param objs DataObjects to persist
      * @throws DatabaseException
      */
-    public <T extends DataObject> void update(T...objs) throws DatabaseException;
-    
+    public <T extends DataObject> void update(T... objs) throws DatabaseException;
+
     /**
      * persists the modified fields of one or more DataObjects
+     * 
      * @param objs DataObjects to persist
      * @throws DatabaseException
      */
     public void update(Collection<? extends DataObject> objs) throws DatabaseException;
-    
+
     /**
      * creates one or more new DbObjects in persistence
+     * 
      * @param obj DataObjects to persist
      * @throws DatabaseException
      */
-    public <T extends DataObject> void create(T...objs) throws DatabaseException;
-    
+    public <T extends DataObject> void create(T... objs) throws DatabaseException;
+
     /**
      * creates one or more new DbObjects in persistence
+     * 
      * @param obj DataObjects to persist
      * @throws DatabaseException
      */
     public <T extends DataObject> void create(Collection<T> objs) throws DatabaseException;
-    
+
     /**
      * removes one or more DataObjects from persistence
+     * 
      * @param obj
      * @throws DatabaseException
      */
-    public <T extends DataObject> void remove(T...objs) throws DatabaseException;
-    
+    public <T extends DataObject> void remove(T... objs) throws DatabaseException;
+
     /**
      * removes one or more DataObjects from persistence
+     * 
      * @param obj
      * @throws DatabaseException
      */
     public void remove(Collection<? extends DataObject> objs) throws DatabaseException;
-    
+
 }

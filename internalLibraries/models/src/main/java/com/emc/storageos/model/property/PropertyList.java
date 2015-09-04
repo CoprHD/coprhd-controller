@@ -26,8 +26,9 @@ public class PropertyList {
 
     private List<String> propertyList;
 
-    public PropertyList() {}
-    
+    public PropertyList() {
+    }
+
     public PropertyList(List<String> propertyList) {
         this.propertyList = propertyList;
     }
@@ -43,5 +44,5 @@ public class PropertyList {
     public void setPropertyList(ArrayList<String> propertyList) {
         this.propertyList = propertyList;
     }
-    
+
 }

@@ -40,7 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-
 /**
  * Each StoragePool will be associated with multiple Storage PoolSettings.
  * Process all the poolSettings and populate them in a datastructure [Pool_NativeGuid, List<SLO_NAME>]
@@ -49,7 +48,7 @@ import java.util.Set;
  * This is currently supported only vmax3 systems.
  * 
  * an(ref-poolcapability, EMC_StorageSettingsAssociatedToCapabilities, EMC_StoragePoolSetting...)
- *           => Instance of EMC_StoragePoolSetting.
+ * => Instance of EMC_StoragePoolSetting.
  * 
  */
 public class StoragePoolSettingProcessor extends PoolProcessor {
@@ -96,16 +95,15 @@ public class StoragePoolSettingProcessor extends PoolProcessor {
             }
         } catch (Exception e) {
             _logger.error("Pool Setting Discovery failed -->{}", getMessage(e));
-        } 
+        }
     }
-    
 
     @Override
     protected void setPrerequisiteObjects(List<Object> args)
             throws BaseCollectionException {
         _args = args;
     }
-    
+
     /**
      * return 1st Argument in inputArguments used to
      * call this SMI-S call.

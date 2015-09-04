@@ -43,29 +43,29 @@ public class VolumeWorkflowCompleter extends VolumeTaskCompleter {
     }
 
     @Override
-    protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded serviceCoded){
+    protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded serviceCoded) {
         switch (status) {
-        case error:
-            for (URI id : getIds()) {
-                dbClient.error(Volume.class, id, getOpId(), serviceCoded);
-            }
-            if (isNotifyWorkflow()) {
-                WorkflowStepCompleter.stepFailed(getOpId(), serviceCoded);
-            }
-            break;
-        case ready:
-            for (URI id : getIds()) {
-                dbClient.ready(Volume.class, id, getOpId());
-            }
-            if (isNotifyWorkflow()) {
-                WorkflowStepCompleter.stepSucceded(getOpId());
-            }
-            break;
-        default:
-            if (isNotifyWorkflow()) {
-                WorkflowStepCompleter.stepExecuting(getOpId());
-            }
-            break;
+            case error:
+                for (URI id : getIds()) {
+                    dbClient.error(Volume.class, id, getOpId(), serviceCoded);
+                }
+                if (isNotifyWorkflow()) {
+                    WorkflowStepCompleter.stepFailed(getOpId(), serviceCoded);
+                }
+                break;
+            case ready:
+                for (URI id : getIds()) {
+                    dbClient.ready(Volume.class, id, getOpId());
+                }
+                if (isNotifyWorkflow()) {
+                    WorkflowStepCompleter.stepSucceded(getOpId());
+                }
+                break;
+            default:
+                if (isNotifyWorkflow()) {
+                    WorkflowStepCompleter.stepExecuting(getOpId());
+                }
+                break;
         }
     }
 }

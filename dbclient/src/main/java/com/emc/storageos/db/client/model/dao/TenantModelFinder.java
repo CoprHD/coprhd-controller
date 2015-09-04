@@ -17,7 +17,7 @@ import org.apache.commons.lang.StringUtils;
 import java.util.List;
 
 public class TenantModelFinder<T extends DataObject> extends BaseModelFinder<T> {
-    
+
     public TenantModelFinder(Class<T> clazz, ModelClient client) {
         super(clazz, client);
     }
@@ -25,20 +25,20 @@ public class TenantModelFinder<T extends DataObject> extends BaseModelFinder<T> 
     public Iterable<T> findAll(String tenant, boolean activeOnly) throws DataAccessException {
         if (StringUtils.isBlank(tenant)) {
             return Lists.newArrayList();
-        }        
+        }
         List<NamedElement> ids = findAllIds(tenant);
         return findByIds(toURIs(ids), activeOnly);
     }
 
     public Iterable<T> findByLabel(String tenant, String prefix, boolean activeOnly) {
-    	Iterable<T> objects = findByIds(toURIs(client.findByPrefix(clazz, "label", prefix)), activeOnly);
+        Iterable<T> objects = findByIds(toURIs(client.findByPrefix(clazz, "label", prefix)), activeOnly);
         return TenantUtils.filter(objects, tenant);
     }
-    
+
     public List<NamedElement> findAllIds(String tenant) throws DataAccessException {
         if (StringUtils.isBlank(tenant)) {
             return Lists.newArrayList();
-        }        
+        }
         return client.findByAlternateId(clazz, TenantDataObject.TENANT_COLUMN_NAME, tenant);
     }
 }

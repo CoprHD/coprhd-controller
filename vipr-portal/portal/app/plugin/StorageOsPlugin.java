@@ -38,7 +38,7 @@ public class StorageOsPlugin extends PlayPlugin {
     private ZkConnection zkConnection;
     private CoordinatorClient coordinatorClient;
     private EncryptionProvider encryptionProvider;
-    
+
     private AuthSvcEndPointLocator authSvcEndPointLocator;
 
     public static StorageOsPlugin getInstance() {
@@ -66,7 +66,7 @@ public class StorageOsPlugin extends PlayPlugin {
     }
 
     private String[] getContextFiles() {
-        return new String[] {DEFAULT_CONTEXT_FILE, "portal-oss-conf.xml", "portal-emc-conf.xml"};
+        return new String[] { DEFAULT_CONTEXT_FILE, "portal-oss-conf.xml", "portal-emc-conf.xml" };
     }
 
     /**
@@ -114,8 +114,7 @@ public class StorageOsPlugin extends PlayPlugin {
             // register node listener for catalog acl change
             coordinatorClient.addNodeListener(new CatalogAclListener());
             Logger.info("added CatalogAclListener");
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.error(e, "Error initializing ViPR Connection");
             shutdown();
         }

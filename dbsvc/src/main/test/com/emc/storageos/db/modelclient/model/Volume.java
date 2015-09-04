@@ -28,16 +28,16 @@ import com.emc.storageos.db.client.model.RelationIndex;
  */
 @Cf("Volume")
 public class Volume extends BlockObject {
-    
+
     private URI _pool;
     private StoragePool _storagePool;
-    
+
     @RelationIndex(cf = "RelationIndex", type = StoragePool.class)
     @Name("pool")
     public URI getPool() {
         return _pool;
     }
-    
+
     public void setPool(URI pool) {
         _pool = pool;
         setChanged("pool");
@@ -46,7 +46,7 @@ public class Volume extends BlockObject {
     /**
      * @return the _storagePool
      */
-    @Relation(mappedBy="pool")
+    @Relation(mappedBy = "pool")
     @Name("storagePool")
     public StoragePool getStoragePool() {
         return _storagePool;

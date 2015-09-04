@@ -135,24 +135,24 @@ public class VMwareSupport {
      * Verify that the datastore does not exist.
      * 
      * @param datacenterName
-     *        the datacenter name.
+     *            the datacenter name.
      * @param datastoreName
-     *        the datastore name.
+     *            the datastore name.
      */
     public void verifyDatastoreDoesNotExist(String datacenterName, String datastoreName) {
         execute(new VerifyDatastoreDoesNotExist(datacenterName, datastoreName));
     }
-    
+
     /**
      * Verify that the multipath policy is supported on a host.
      * 
      * @param host
-     *        the host.
+     *            the host.
      * @param multipathPolicy
-     *        the multipath policy.
+     *            the multipath policy.
      */
     public void verifySupportedMultipathPolicy(HostSystem host, String multipathPolicy) {
-        if(VMwareUtils.isValidMultipathPolicy(multipathPolicy)) {
+        if (VMwareUtils.isValidMultipathPolicy(multipathPolicy)) {
             execute(new VerifySupportedMultipathPolicy(host, multipathPolicy));
         }
     }
@@ -161,7 +161,7 @@ public class VMwareSupport {
      * Performs various checks to see if the datastore should be able to be removed.
      * 
      * @param datastore
-     *        the datastore.
+     *            the datastore.
      */
     public void verifyDatastoreForRemoval(Datastore datastore) {
         execute(new VerifyDatastoreForRemoval(datastore));
@@ -171,13 +171,13 @@ public class VMwareSupport {
      * Creates a VMFS datastore.
      * 
      * @param host
-     *        the host to which the volume is assigned.
+     *            the host to which the volume is assigned.
      * @param cluster
-     *        the cluster to which the volume is associated (may be null if the storage is exclusive to the host)
+     *            the cluster to which the volume is associated (may be null if the storage is exclusive to the host)
      * @param volume
-     *        the volume to create the datastore on.
+     *            the volume to create the datastore on.
      * @param datastoreName
-     *        the name of the datastore to create.
+     *            the name of the datastore to create.
      * @return datastore
      */
     public Datastore createVmfsDatastore(HostSystem host, ClusterComputeResource cluster, URI hostOrClusterId,
@@ -187,7 +187,7 @@ public class VMwareSupport {
         addAffectedResource(volume);
         addVmfsDatastoreTag(volume, hostOrClusterId, datastoreName);
         ExecutionUtils.clearRollback();
-        
+
         return datastore;
     }
 
@@ -195,54 +195,54 @@ public class VMwareSupport {
      * Sets the multipath policy on the disks for the given host/cluster
      *
      * @param host
-     *        the host to which the volume is assigned.
+     *            the host to which the volume is assigned.
      * @param cluster
-     *        the cluster to which the volume is associated (may be null if the storage is exclusive to the host)
+     *            the cluster to which the volume is associated (may be null if the storage is exclusive to the host)
      * @param multipathPolicy
-     *        the multipath policy to use.
+     *            the multipath policy to use.
      * @param volume
-     *        the volume with the created datastore.
+     *            the volume with the created datastore.
      */
     public void setMultipathPolicy(HostSystem host, ClusterComputeResource cluster, String multipathPolicy,
             BlockObjectRestRep volume) {
-        if(VMwareUtils.isValidMultipathPolicy(multipathPolicy)) {
+        if (VMwareUtils.isValidMultipathPolicy(multipathPolicy)) {
             Map<HostSystem, HostScsiDisk> hostDisks = Maps.newHashMap();
             if (cluster != null) {
                 List<HostSystem> clusterHosts = Lists.newArrayList(cluster.getHosts());
                 for (HostSystem clusterHost : clusterHosts) {
                     HostScsiDisk disk = execute(new FindHostScsiDiskForLun(clusterHost, volume));
-                    hostDisks.put(clusterHost,  disk);
+                    hostDisks.put(clusterHost, disk);
                 }
             } else if (host != null) {
                 HostScsiDisk disk = execute(new FindHostScsiDiskForLun(host, volume));
                 hostDisks.put(host, disk);
             }
 
-            if(hostDisks.size() > 0) {
+            if (hostDisks.size() > 0) {
                 execute(new SetMultipathPolicy(hostDisks, multipathPolicy));
             }
         }
 
     }
-    
+
     public void detachLuns(HostSystem host, List<HostScsiDisk> disks) {
-    	execute( new DetachLunsFromHost(host, disks) );
+        execute(new DetachLunsFromHost(host, disks));
     }
-    
+
     public void unmountVmfsDatastore(HostSystem host, Datastore datastore) {
-    	execute( new UnmountVmfsDatastore(host, datastore) );
+        execute(new UnmountVmfsDatastore(host, datastore));
     }
 
     /**
      * Sets the storage IO control for the given datastore
      * 
      * @param datastore
-     *          the datastore to set the storage io control on
+     *            the datastore to set the storage io control on
      * @param enabled
-     *          true to enable storage io control or false to disable storage io control
+     *            true to enable storage io control or false to disable storage io control
      */
     public void setStorageIOControl(Datastore datastore, Boolean enabled) {
-        if (enabled != null) {         
+        if (enabled != null) {
             if (datastore.getCapability().storageIORMSupported) {
                 execute(new SetStorageIOControl(datastore, enabled));
             } else {
@@ -255,13 +255,13 @@ public class VMwareSupport {
      * Extends a VMFS datastore.
      * 
      * @param host
-     *        the host to which the volume is assigned.
+     *            the host to which the volume is assigned.
      * @param cluster
-     *        the cluster to which the volume is associated (may be null if the storage is exclusive to the host)
+     *            the cluster to which the volume is associated (may be null if the storage is exclusive to the host)
      * @param volume
-     *        the volume to extend the datastore with.
+     *            the volume to extend the datastore with.
      * @param datastore
-     *        the datastore to extend.
+     *            the datastore to extend.
      */
     public void extendVmfsDatastore(HostSystem host, ClusterComputeResource cluster, URI hostOrClusterId,
             BlockObjectRestRep volume, Datastore datastore) {
@@ -276,13 +276,13 @@ public class VMwareSupport {
      * Expand a VMFS datastore.
      * 
      * @param host
-     *        the host to which the volume is assigned.
+     *            the host to which the volume is assigned.
      * @param cluster
-     *        the cluster to which the volume is associated (may be null if the storage is exclusive to the host)
+     *            the cluster to which the volume is associated (may be null if the storage is exclusive to the host)
      * @param volume
-     *        the volume that was expanded.
+     *            the volume that was expanded.
      * @param datastore
-     *        the datastore to expand.
+     *            the datastore to expand.
      */
     public void expandVmfsDatastore(HostSystem host, ClusterComputeResource cluster, URI hostOrClusterId,
             BlockObjectRestRep volume, Datastore datastore) {
@@ -297,11 +297,11 @@ public class VMwareSupport {
      * Verifies that the datastore host configuration matches the host/cluster configuration.
      * 
      * @param host
-     *        the host
+     *            the host
      * @param cluster
-     *        the cluster, will be null when using exclusive storage
+     *            the cluster, will be null when using exclusive storage
      * @param datastore
-     *        the datastore to verify.
+     *            the datastore to verify.
      */
     public void verifyDatastoreMounts(HostSystem host, ClusterComputeResource cluster, Datastore datastore) {
         execute(new VerifyDatastoreHostMounts(host, cluster, datastore));
@@ -311,7 +311,7 @@ public class VMwareSupport {
      * Puts the datastore into maintenance mode, if required.
      * 
      * @param datastore
-     *        the datastore.
+     *            the datastore.
      */
     public void enterMaintenanceMode(Datastore datastore) {
         String maintenanceMode = datastore.getSummary().getMaintenanceMode();
@@ -326,79 +326,79 @@ public class VMwareSupport {
      * single host for it to be deleted.
      * 
      * @param datastore
-     *        the datastore.
+     *            the datastore.
      */
     public void deleteVmfsDatastore(Collection<VolumeRestRep> volumes, URI hostOrClusterId, final Datastore datastore) {
-    	List<HostSystem> hosts = getHostsForDatastore(datastore);
+        List<HostSystem> hosts = getHostsForDatastore(datastore);
         if (hosts.isEmpty()) {
             throw new IllegalStateException("Datastore is not mounted by any hosts");
         }
-    	enterMaintenanceMode(datastore);
-    	setStorageIOControl(datastore, false);
-    	
-    	executeOnHosts(hosts, new HostSystemCallback() {
-			@Override
-			public void exec(HostSystem host) {
-				unmountVmfsDatastore(host, datastore);
-			}
-		});
-    	
-    	final Map<HostSystem, List<HostScsiDisk>> hostDisks = buildHostDiskMap(hosts, datastore);
-    	    	
-    	execute(new DeleteDatastore(hosts.get(0), datastore));
-    	
-    	executeOnHosts(hosts, new HostSystemCallback() {
-			@Override
-			public void exec(HostSystem host) {
-				List<HostScsiDisk> disks = hostDisks.get(host);
-				detachLuns(host, disks);
-			}
-		});
-    	
+        enterMaintenanceMode(datastore);
+        setStorageIOControl(datastore, false);
+
+        executeOnHosts(hosts, new HostSystemCallback() {
+            @Override
+            public void exec(HostSystem host) {
+                unmountVmfsDatastore(host, datastore);
+            }
+        });
+
+        final Map<HostSystem, List<HostScsiDisk>> hostDisks = buildHostDiskMap(hosts, datastore);
+
+        execute(new DeleteDatastore(hosts.get(0), datastore));
+
+        executeOnHosts(hosts, new HostSystemCallback() {
+            @Override
+            public void exec(HostSystem host) {
+                List<HostScsiDisk> disks = hostDisks.get(host);
+                detachLuns(host, disks);
+            }
+        });
+
         removeVmfsDatastoreTag(volumes, hostOrClusterId);
     }
-    
-    private Map<HostSystem, List<HostScsiDisk>> buildHostDiskMap(List<HostSystem> hosts, Datastore datastore){
-    	
-    	Map<HostSystem, List<HostScsiDisk>> hostDisks = new HashMap<>();
-    	
-    	for(HostSystem host : hosts) {
-    		List<HostScsiDisk> disks = new HostStorageAPI(host).listDisks(datastore);
-    		hostDisks.put(host, disks);
-    	}
-    	return hostDisks;
+
+    private Map<HostSystem, List<HostScsiDisk>> buildHostDiskMap(List<HostSystem> hosts, Datastore datastore) {
+
+        Map<HostSystem, List<HostScsiDisk>> hostDisks = new HashMap<>();
+
+        for (HostSystem host : hosts) {
+            List<HostScsiDisk> disks = new HostStorageAPI(host).listDisks(datastore);
+            hostDisks.put(host, disks);
+        }
+        return hostDisks;
     }
-    
+
     private void executeOnHosts(List<HostSystem> hosts, HostSystemCallback callback) {
-    	for(HostSystem host : hosts) {
-    		callback.exec(host);
-    	}
+        for (HostSystem host : hosts) {
+            callback.exec(host);
+        }
     }
-    
+
     private interface HostSystemCallback {
-    	public void exec(HostSystem host);
+        public void exec(HostSystem host);
     }
 
     /**
      * Creates an NFS datastore for the hosts in the cluster
      * 
      * @param cluster
-     *        the cluster.
+     *            the cluster.
      * @param fileSystem
-     *        the file system.
+     *            the file system.
      * @param export
-     *        the export.
+     *            the export.
      * @param datacenterId
-     *        the datacenter ID.
+     *            the datacenter ID.
      * @param datastoreName
-     *        the name of the datastore to create.
+     *            the name of the datastore to create.
      * @return datastores
      */
     public List<Datastore> createNfsDatastore(ClusterComputeResource cluster, FileShareRestRep fileSystem,
             FileSystemExportParam export, URI datacenterId, String datastoreName) {
         addNfsDatastoreTag(fileSystem, export, datacenterId, datastoreName);
         List<Datastore> datastores = Lists.newArrayList();
-        
+
         String fileServer = StringUtils.substringBefore(export.getMountPoint(), ":");
         String mountPath = StringUtils.substringAfter(export.getMountPoint(), ":");
         for (HostSystem host : cluster.getHosts()) {
@@ -413,15 +413,15 @@ public class VMwareSupport {
      * Creates an NFS datastore for a host.
      * 
      * @param host
-     *        the host.
+     *            the host.
      * @param fileSystem
-     *        the file system.
+     *            the file system.
      * @param export
-     *        the export.
+     *            the export.
      * @param datacenterId
-     *        the datacenter ID.
+     *            the datacenter ID.
      * @param datastoreName
-     *        the name of the datastore to create.
+     *            the name of the datastore to create.
      * @return datastore
      */
     public Datastore createNfsDatastore(HostSystem host, FileShareRestRep fileSystem, FileSystemExportParam export,
@@ -440,7 +440,7 @@ public class VMwareSupport {
      * Deletes an NFS datastore. The datastore will be removed from all hosts.
      * 
      * @param datastore
-     *        the NFS datastore.
+     *            the NFS datastore.
      */
     public void deleteNfsDatastore(FileShareRestRep fileSystem, URI datacenterId, Datastore datastore) {
         String datastoreName = datastore.getName();
@@ -459,7 +459,7 @@ public class VMwareSupport {
      * Gets the hosts for the given datastore.
      * 
      * @param datastore
-     *        the datastore.
+     *            the datastore.
      * @return the hosts.
      */
     public List<HostSystem> getHostsForDatastore(Datastore datastore) {
@@ -480,11 +480,11 @@ public class VMwareSupport {
      * Finds the file system containing the datastore.
      * 
      * @param project
-     *        the project.
+     *            the project.
      * @param datacenterId
-     *        the datacenter name.
+     *            the datacenter name.
      * @param datastoreName
-     *        the datastore name.
+     *            the datastore name.
      * @return the file system containing the datastore.
      */
     public FileShareRestRep findFileSystemWithDatastore(URI project, URI datacenterId, String datastoreName) {
@@ -495,9 +495,9 @@ public class VMwareSupport {
      * Refreshes storage for the cluster or host.
      * 
      * @param host
-     *        the host to refresh.
+     *            the host to refresh.
      * @param cluster
-     *        the cluster (may be null).
+     *            the cluster (may be null).
      */
     public void refreshStorage(HostSystem host, ClusterComputeResource cluster) {
         if (cluster != null) {
@@ -512,7 +512,7 @@ public class VMwareSupport {
      * Refreshes the storage for all hosts in the cluster.
      * 
      * @param cluster
-     *        the cluster to refresh.
+     *            the cluster to refresh.
      */
     public void refreshStorage(ClusterComputeResource cluster) {
         List<HostSystem> hosts = Lists.newArrayList(cluster.getHosts());
@@ -523,7 +523,7 @@ public class VMwareSupport {
      * Refreshes the storage for the given host.
      * 
      * @param host
-     *        the host to refresh.
+     *            the host to refresh.
      */
     public void refreshStorage(HostSystem host) {
         List<HostSystem> hosts = Lists.newArrayList(host);
@@ -534,7 +534,7 @@ public class VMwareSupport {
      * Refreshes the storage for a given list of hosts.
      * 
      * @param hosts
-     *        the hosts to refresh;
+     *            the hosts to refresh;
      */
     public void refreshStorage(List<HostSystem> hosts) {
         if (hosts.size() > 0) {
@@ -546,7 +546,7 @@ public class VMwareSupport {
      * Refreshes the storage for all hosts associated with the datastore.
      * 
      * @param datastore
-     *        the datastore.
+     *            the datastore.
      */
     public void refreshStorage(Datastore datastore) {
         List<HostSystem> hosts = VMwareUtils.getHostsForDatastore(vcenterAPI, datastore);
@@ -557,9 +557,9 @@ public class VMwareSupport {
      * Finds the SCSI disk on the host system that matches the volume.
      * 
      * @param host
-     *        the host system.
+     *            the host system.
      * @param volume
-     *        the volume to find.
+     *            the volume to find.
      * @return the disk for the volume.
      */
     public HostScsiDisk findScsiDisk(HostSystem host, ClusterComputeResource cluster, BlockObjectRestRep volume) {
@@ -567,7 +567,7 @@ public class VMwareSupport {
         if (StringUtils.isBlank(volume.getWwn())) {
             String volumeId = ResourceUtils.stringId(volume);
             String volumeName = ResourceUtils.name(volume);
-            ExecutionUtils.fail("failTask.VMwareSupport.findLun", new Object[]{volumeId}, new Object[]{volumeName});
+            ExecutionUtils.fail("failTask.VMwareSupport.findLun", new Object[] { volumeId }, new Object[] { volumeName });
         }
         HostScsiDisk disk = execute(new FindHostScsiDiskForLun(host, volume));
 
@@ -595,9 +595,9 @@ public class VMwareSupport {
      * Adds a tag associating the volumes to the datastore.
      * 
      * @param volumes
-     *        the volumes.
+     *            the volumes.
      * @param datastoreName
-     *        the datastore name.
+     *            the datastore name.
      */
     public void addVmfsDatastoreTag(Collection<BlockObjectRestRep> volumes, URI hostOrClusterId, String datastoreName) {
         for (BlockObjectRestRep volume : volumes) {
@@ -610,9 +610,9 @@ public class VMwareSupport {
      * Adds a tag to the volume associating it with a datastore.
      * 
      * @param volume
-     *        the volume to tag.
+     *            the volume to tag.
      * @param datastoreName
-     *        the name of the datastore to associate.
+     *            the name of the datastore to associate.
      */
     public void addVmfsDatastoreTag(BlockObjectRestRep volume, URI hostOrClusterId, String datastoreName) {
         execute(new SetBlockVolumeMachineTag(volume.getId(), KnownMachineTags.getVMFSDatastoreTagName(hostOrClusterId),
@@ -626,7 +626,7 @@ public class VMwareSupport {
      * Removes the VMFS datastore tag from the volumes.
      * 
      * @param volumes
-     *        the volumes to remove the tag from.
+     *            the volumes to remove the tag from.
      */
     public void removeVmfsDatastoreTag(Collection<? extends BlockObjectRestRep> volumes, URI hostOrClusterId) {
         for (BlockObjectRestRep volume : volumes) {
@@ -638,7 +638,7 @@ public class VMwareSupport {
      * Removes a datastore tag from the given volume.
      * 
      * @param volume
-     *        the volume to remove the tag from.
+     *            the volume to remove the tag from.
      */
     public void removeVmfsDatastoreTag(BlockObjectRestRep volume, URI hostOrClusterId) {
         execute(new RemoveBlockVolumeMachineTag(volume.getId(),
@@ -678,15 +678,15 @@ public class VMwareSupport {
      * Finds the volumes backing the datastore.
      * 
      * @param host
-     *        the actual host system
+     *            the actual host system
      * @param datastore
-     *        the datastore.
+     *            the datastore.
      * @return the volumes backing the host system.
      */
     public List<VolumeRestRep> findVolumesBackingDatastore(HostSystem host, Datastore datastore) {
         Set<String> luns = execute(new FindLunsBackingDatastore(host, datastore));
         List<VolumeRestRep> volumes = Lists.newArrayList();
-        for (String lun: luns) {
+        for (String lun : luns) {
             VolumeRestRep volume = execute(new GetBlockVolumeByWWN(lun));
             if (volume != null) {
                 volumes.add(volume);
@@ -699,7 +699,7 @@ public class VMwareSupport {
      * Checks the exception cause for VMware specific faults.
      * 
      * @param e
-     *        the execution exception.
+     *            the execution exception.
      * @return an execution exception to be rethrown.
      */
     public ExecutionException handleError(ExecutionException e) {

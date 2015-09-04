@@ -150,7 +150,7 @@ public class ModelExtensions extends JavaExtensions {
         }
         return logs;
     }
-    
+
     public static List<VcenterDataCenterRestRep> datacenters(VcenterRestRep vcenter) {
         return VCenterUtils.getDataCentersInVCenter(vcenter);
     }
@@ -311,15 +311,15 @@ public class ModelExtensions extends JavaExtensions {
     public static Long getDiscoveryDate(DiscoveredSystemObjectRestRep system) {
         return system.getLastDiscoveryRunTime();
     }
-    
+
     public static String getCompatibilityStatus(StorageProviderRestRep system) {
-    	return CompatibilityStatus.getDisplayValue(system.getCompatibilityStatus());
+        return CompatibilityStatus.getDisplayValue(system.getCompatibilityStatus());
     }
 
     public static String getCompatibilityStatus(DiscoveredSystemObjectRestRep system) {
         return CompatibilityStatus.getDisplayValue(system.getCompatibilityStatus());
     }
-    
+
     public static Long getLastSuccessfulDiscovery(StorageProviderRestRep system) {
         return system.getSuccessScanTime();
     }
@@ -327,7 +327,7 @@ public class ModelExtensions extends JavaExtensions {
     public static Long getLastSuccessfulDiscovery(DiscoveredSystemObjectRestRep system) {
         return system.getSuccessDiscoveryTime();
     }
-    
+
     public static List<ServiceItemRestRep> getAllItemsList(ServiceItemContainerRestRep container) {
         List<ServiceItemRestRep> items = Lists.newArrayList();
         for (ServiceItemRestRep item : container.getItems()) {

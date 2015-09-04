@@ -27,13 +27,13 @@ import java.net.URI;
 /**
  * Filter for snapshot resources
  */
-public class ProjOwnedSnapResRepFilter <E extends RelatedResourceRep, K extends DataObject&ProjectResourceSnapshot>
+public class ProjOwnedSnapResRepFilter<E extends RelatedResourceRep, K extends DataObject & ProjectResourceSnapshot>
         extends ResRepFilter<E> {
     Class<K> _clazz = null;
 
     public ProjOwnedSnapResRepFilter(StorageOSUser user,
-                                 PermissionsHelper permissionsHelper,
-                                 Class<K> clazz) {
+            PermissionsHelper permissionsHelper,
+            Class<K> clazz) {
         super(user, permissionsHelper);
         _clazz = clazz;
     }
@@ -49,7 +49,7 @@ public class ProjOwnedSnapResRepFilter <E extends RelatedResourceRep, K extends 
 
         ret = isProjectAccessible(obj.getProject().getURI());
         if (!ret) {
-            Project project =  _permissionsHelper.getObjectById(obj.getProject(), Project.class);
+            Project project = _permissionsHelper.getObjectById(obj.getProject(), Project.class);
             ret = isTenantAccessible(project.getTenantOrg().getURI());
         }
         return ret;

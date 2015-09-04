@@ -25,16 +25,18 @@ import com.emc.storageos.db.client.upgrade.callbacks.GeoDbMigrationCallback;
 
 /**
  * Annotation to identify Geo-Replicated data objects
+ * 
  * @author cgarber
  *
  */
 @Documented
-@Target({ElementType.TYPE})
+@Target({ ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)
-@UpgradeAllowed(migrationCallback=GeoDbMigrationCallback.class)
+@UpgradeAllowed(migrationCallback = GeoDbMigrationCallback.class)
 public @interface DbKeyspace {
     public enum Keyspaces {
         LOCAL, GLOBAL
     }
+
     Keyspaces value();
 }

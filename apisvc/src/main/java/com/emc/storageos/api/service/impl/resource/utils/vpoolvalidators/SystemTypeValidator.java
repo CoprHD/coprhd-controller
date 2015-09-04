@@ -24,8 +24,7 @@ import com.emc.storageos.model.vpool.VirtualPoolUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
-public class SystemTypeValidator extends VirtualPoolValidator<VirtualPoolCommonParam,VirtualPoolUpdateParam> {
-   
+public class SystemTypeValidator extends VirtualPoolValidator<VirtualPoolCommonParam, VirtualPoolUpdateParam> {
 
     private boolean compareSystemTypes(
             StringSet systemTypes, StringSet availableSystemTypes) {
@@ -44,30 +43,30 @@ public class SystemTypeValidator extends VirtualPoolValidator<VirtualPoolCommonP
     @Override
     protected void validateVirtualPoolUpdateAttributeValue(
             VirtualPool vPool, VirtualPoolUpdateParam updateParam, DbClient dbClient) {
-        if (null == SystemType.lookup(updateParam.getSystemType())){
-        	throw APIException.badRequests.requiredParameterMissingOrEmpty("System Type");
-        }	
-        
+        if (null == SystemType.lookup(updateParam.getSystemType())) {
+            throw APIException.badRequests.requiredParameterMissingOrEmpty("System Type");
+        }
+
         if (null != vPool.getAutoTierPolicyName()
                 && !NONE.equalsIgnoreCase(vPool.getAutoTierPolicyName())) {
             if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(updateParam.getSystemType())
                     && !VirtualPool.SystemType.vnxblock.toString().equalsIgnoreCase(
-                            updateParam.getSystemType()) 
-                    && !VirtualPool.SystemType.vnxe.toString().equalsIgnoreCase(updateParam.getSystemType())){
+                            updateParam.getSystemType())
+                    && !VirtualPool.SystemType.vnxe.toString().equalsIgnoreCase(updateParam.getSystemType())) {
                 throw APIException.badRequests.invalidParameterSystemTypeforAutoTiering();
             }
         }
-        
+
         if (isRaidLevelAvailable(vPool)) {
             if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(updateParam.getSystemType())
                     && !VirtualPool.SystemType.vnxblock.toString().equalsIgnoreCase(
-                            updateParam.getSystemType()) 
+                            updateParam.getSystemType())
                     && !VirtualPool.SystemType.vnxe.toString().equalsIgnoreCase(
                             updateParam.getSystemType()))
                 throw APIException.badRequests.virtualPoolSupportsVmaxVnxblockWithRaid();
         }
     }
-    
+
     private boolean isRaidLevelAvailable(VirtualPool virtualPool) {
         boolean status = false;
         if (virtualPool != null && virtualPool.getArrayInfo() != null) {
@@ -78,7 +77,6 @@ public class SystemTypeValidator extends VirtualPoolValidator<VirtualPoolCommonP
         }
         return status;
     }
-    
 
     @Override
     protected boolean isUpdateAttributeOn(VirtualPoolUpdateParam updateParam) {
@@ -88,7 +86,7 @@ public class SystemTypeValidator extends VirtualPoolValidator<VirtualPoolCommonP
     @Override
     protected void validateVirtualPoolCreateAttributeValue(VirtualPoolCommonParam createParam, DbClient dbClient) {
         if (null == SystemType.lookup(createParam.getSystemType()))
-        	throw APIException.badRequests.requiredParameterMissingOrEmpty("System Type");
+            throw APIException.badRequests.requiredParameterMissingOrEmpty("System Type");
     }
 
     @Override

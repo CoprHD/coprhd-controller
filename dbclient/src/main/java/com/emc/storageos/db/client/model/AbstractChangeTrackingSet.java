@@ -27,7 +27,6 @@ public abstract class AbstractChangeTrackingSet<K> extends HashSet<K> {
     private HashSet<K> _added;
     DbClientCallbackEvent _cb;
 
-
     /**
      * Default constructor
      */
@@ -42,11 +41,11 @@ public abstract class AbstractChangeTrackingSet<K> extends HashSet<K> {
     public AbstractChangeTrackingSet(Collection<K> source) {
         super(source);
     }
-    
+
     public void setCallback(DbClientCallbackEvent cb) {
         _cb = cb;
     }
-    
+
     public DbClientCallbackEvent getCallback() {
         return _cb;
     }
@@ -104,9 +103,10 @@ public abstract class AbstractChangeTrackingSet<K> extends HashSet<K> {
             _remove.remove(val);
         }
         super.add(val);
-        
-        if (_cb!=null) _cb.call();
-        
+
+        if (_cb != null)
+            _cb.call();
+
         return true;
     }
 
@@ -140,8 +140,9 @@ public abstract class AbstractChangeTrackingSet<K> extends HashSet<K> {
         while (it.hasNext()) {
             add(it.next());
         }
-        
-        if (_cb!=null) _cb.call();
+
+        if (_cb != null)
+            _cb.call();
     }
 
     /**
@@ -162,9 +163,10 @@ public abstract class AbstractChangeTrackingSet<K> extends HashSet<K> {
             _remove = new HashSet<K>();
         }
         _remove.add((K) val);
-        
-        if (_cb!=null) _cb.call();
-        
+
+        if (_cb != null)
+            _cb.call();
+
         return ret;
     }
 
@@ -185,9 +187,10 @@ public abstract class AbstractChangeTrackingSet<K> extends HashSet<K> {
                 ret = removed;
             }
         }
-        
-        if (_cb!=null) _cb.call();
-        
+
+        if (_cb != null)
+            _cb.call();
+
         return ret;
     }
 
@@ -206,8 +209,9 @@ public abstract class AbstractChangeTrackingSet<K> extends HashSet<K> {
         _remove.addAll(this);
 
         super.clear();
-        
-        if (_cb!=null) _cb.call();
+
+        if (_cb != null)
+            _cb.call();
     }
 
     /**
@@ -231,8 +235,9 @@ public abstract class AbstractChangeTrackingSet<K> extends HashSet<K> {
 
         for (K entry : newEntries)
             add(entry);
-        
-        if (_cb!=null) _cb.call();
+
+        if (_cb != null)
+            _cb.call();
     }
 
     /**

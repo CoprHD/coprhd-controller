@@ -52,4 +52,3 @@ public class XMLWriter {
         writer.writeXMLToFile("<TEST>(CHECK STRING FORMATTING ISSUE WITH A BRACE () )</TEST>", "XMLFile");
     }
 }
-

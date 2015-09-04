@@ -61,10 +61,10 @@ public class InternalDbClient extends DbClientImpl {
     private static int WAIT_INTERVAL_IN_SEC = 60;
     private static int DB_RING_TIMEOUT = 10 * 60 * 1000; // 10 mins
     private static int DB_STABLE_TIMEOUT = 30 * 60 * 1000; // 30 mins
-    private static int WAIT_QUERY_NODE_REPAIR_BEGIN = 5 * 60 * 1000; //query every 5min
-    private static int WAIT_QUERY_NODE_REPAIR_PROGRESS = 5 * 1000; //query every 5S
-    private static String LOCALHOST="127.0.0.1";
-    
+    private static int WAIT_QUERY_NODE_REPAIR_BEGIN = 5 * 60 * 1000; // query every 5min
+    private static int WAIT_QUERY_NODE_REPAIR_PROGRESS = 5 * 1000; // query every 5S
+    private static String LOCALHOST = "127.0.0.1";
+
     @Deprecated
     public String getMyVdcId() {
         return VdcUtil.getLocalShortVdcId();
@@ -74,35 +74,35 @@ public class InternalDbClient extends DbClientImpl {
      * Initialize local db context only. Geodb context will be initialized on demand
      */
     protected void setupContext() {
-  	if (localContext != null) {
+        if (localContext != null) {
             setupContext(localContext, Constants.DBSVC_NAME);
-   	}
+        }
     }
-    
+
     protected Keyspace getGeoKeyspace() {
         if (geoContext != null && !geoContext.isInitDone()) {
             setupContext(geoContext, Constants.GEODBSVC_NAME);
         }
         return geoContext.getKeyspace();
     }
-    
+
     protected <T extends DataObject> Keyspace getKeyspace(Class<T> clazz) {
         DbClientContext ctx = null;
         if (localContext == null || geoContext == null) {
             throw new IllegalStateException();
-        } 
+        }
         ctx = KeyspaceUtil.isGlobal(clazz) ? geoContext : localContext;
         if (!ctx.isInitDone()) {
             String serviceName = ctx.equals(geoContext) ? Constants.GEODBSVC_NAME : Constants.GEODBSVC_NAME;
             log.info("Initialize db context {}", serviceName);
             setupContext(ctx, serviceName);
         }
-        
+
         return ctx.getKeyspace();
     }
 
     /**
-     * Waits for the db instances joined in all sites 
+     * Waits for the db instances joined in all sites
      */
     public void waitAllSitesDbStable() {
         String prefix = "Waiting for DB cluster become stable on all sites ...";
@@ -126,7 +126,7 @@ public class InternalDbClient extends DbClientImpl {
             }
         }
     }
-    
+
     /**
      * Check if we need wait for geodbsvc up on given vdc
      */
@@ -140,16 +140,16 @@ public class InternalDbClient extends DbClientImpl {
             log.error("invalid record in db status check {}", vdc.getId());
             return false;
         }
-  
+
         ConnectionStatus connStatus = vdc.getConnectionStatus();
         GeoReplicationStatus repStatus = vdc.getRepStatus();
         log.info("vdc connectionStatus {} repStatus {}", connStatus, repStatus);
-        // geodb connected 
+        // geodb connected
         if (repStatus.equals(GeoReplicationStatus.REP_ALL)) {
             log.info("vdc {}, repStatus {}", vdc.getId(), repStatus);
-            return true;  
+            return true;
         }
-        // connecting now, check db stable status as well 
+        // connecting now, check db stable status as well
         if (connStatus.equals(ConnectionStatus.CONNECTING_SYNCED)) {
             return true;
         }
@@ -157,12 +157,12 @@ public class InternalDbClient extends DbClientImpl {
     }
 
     /**
-     * Stop gossiping on geodb of current cluster 
+     * Stop gossiping on geodb of current cluster
      */
     public void stopClusterGossiping() {
         DbJmxClient localClient = getJmxClient(LOCALHOST);
         List<String> liveNodes = localClient.getDcLiveNodes(VdcUtil.getLocalShortVdcId());
-        for(String ip : liveNodes) {
+        for (String ip : liveNodes) {
             log.info("Stop gossiping for {}", ip);
             ip = getEffectiveAddress(ip);
             try {
@@ -173,7 +173,7 @@ public class InternalDbClient extends DbClientImpl {
             }
         }
     }
-    
+
     private DbJmxClient getJmxClient(String ip) {
         ip = getEffectiveAddress(ip);
 
@@ -183,17 +183,17 @@ public class InternalDbClient extends DbClientImpl {
         } catch (Exception e) {
             throw new IllegalStateException(String.format("Not able to connect via JMX %s", ip));
         }
-        return geoInstance; 
+        return geoInstance;
     }
 
     private String getEffectiveAddress(String ip) {
         if ((!ip.startsWith("[")) && ip.contains(":"))
-            ip="["+ip+"]";
+            ip = "[" + ip + "]";
         return ip;
     }
 
     /**
-     * Wait for num of db instances joined in a vdc. 
+     * Wait for num of db instances joined in a vdc.
      *
      * @param geoInstance jmx client
      * @param vdcShortId the short id of vdc
@@ -205,7 +205,7 @@ public class InternalDbClient extends DbClientImpl {
         long start = System.currentTimeMillis();
         // quorum + 1
         // it ensure at least quorum nodes data rebuild done
-        int numHosts = (vdcHosts / 2 + 2) > vdcHosts? vdcHosts : vdcHosts / 2 + 2;
+        int numHosts = (vdcHosts / 2 + 2) > vdcHosts ? vdcHosts : vdcHosts / 2 + 2;
         while (System.currentTimeMillis() - start < DB_STABLE_TIMEOUT) {
             try {
                 List<String> liveNodes = geoInstance.getDcLiveNodes(vdcShortId);
@@ -214,8 +214,8 @@ public class InternalDbClient extends DbClientImpl {
                     int i = 0;
                     for (String host : liveNodes) {
                         if (!geoInstance.getJoiningNodes().contains(host)
-                             && !geoInstance.getLeavingNodes().contains(host)
-                             && !geoInstance.getMovingNodes().contains(host)) {
+                                && !geoInstance.getLeavingNodes().contains(host)
+                                && !geoInstance.getMovingNodes().contains(host)) {
                             log.info("Node {} jumps to NORMAL", host);
                             ++i;
                         }
@@ -239,7 +239,7 @@ public class InternalDbClient extends DbClientImpl {
     }
 
     /**
-     * Wait for db ring rebuild finished in a vdc. 
+     * Wait for db ring rebuild finished in a vdc.
      * Quorum nodes owns full data, rebuild may need a long time
      *
      * @param vdcShortId the short id of vdc
@@ -247,8 +247,8 @@ public class InternalDbClient extends DbClientImpl {
      */
     public void waitDbRingRebuildDone(String vdcShortId, int vdcHosts) {
         String prefix = new StringBuilder("Waiting for DB rebuild to finish for vdc with shortId '").
-                                append(vdcShortId).append("' and ").
-                                   append(vdcHosts).append(" hosts...").toString();
+                append(vdcShortId).append("' and ").
+                append(vdcHosts).append(" hosts...").toString();
         log.info(prefix);
 
         DbJmxClient geoInstance = getJmxClient(LOCALHOST);
@@ -280,7 +280,7 @@ public class InternalDbClient extends DbClientImpl {
      * @param vdcShortId the short id of vdc
      */
     public void waitVdcRemoveDone(String vdcShortId) {
-        String prefix = String.format("Waiting for vdc removal from cassandra with shortId '%s' ...",vdcShortId);
+        String prefix = String.format("Waiting for vdc removal from cassandra with shortId '%s' ...", vdcShortId);
         log.info(prefix);
 
         DbJmxClient geoInstance = getJmxClient(LOCALHOST);
@@ -309,7 +309,7 @@ public class InternalDbClient extends DbClientImpl {
         try {
             geoInstance.removeVdc(vdc);
             log.info("The hosts in {} is removed", vdc.getShortId());
-        }catch(Exception e) {
+        } catch (Exception e) {
             log.error("Failed to remove nodes in vdc {} e=", vdc.getShortId(), e);
         }
     }
@@ -321,7 +321,7 @@ public class InternalDbClient extends DbClientImpl {
         return ksDef.getStrategyOptions();
     }
 
-    public void runNodeRepairBackEnd(String reconnVdcShortId) throws Exception{
+    public void runNodeRepairBackEnd(String reconnVdcShortId) throws Exception {
         log.info("Node repair for reconnect operation is starting at vdc {}", reconnVdcShortId);
         DbJmxClient localJmxClient = getJmxClient(LOCALHOST);
         localJmxClient.runNodeRepairBackEnd();
@@ -331,7 +331,7 @@ public class InternalDbClient extends DbClientImpl {
         Keyspace ks = getGeoKeyspace();
         return ks.describeSchemaVersions();
     }
-    
+
     public void addVdcNodesToBlacklist(VirtualDataCenter vdc) {
         DbJmxClient localJmxClient = getJmxClient(LOCALHOST);
         List<String> liveNodes = localJmxClient.getDcLiveNodes(VdcUtil.getLocalShortVdcId());
@@ -342,10 +342,10 @@ public class InternalDbClient extends DbClientImpl {
         }
     }
 
-    public void clearBlackList(){
+    public void clearBlackList() {
         Map<String, List<String>> currBlackList = getBlacklist();
-        Set<Map.Entry<String, List<String>>> entrySet =  currBlackList.entrySet();
-        for(Map.Entry<String, List<String>> entry : entrySet) {
+        Set<Map.Entry<String, List<String>>> entrySet = currBlackList.entrySet();
+        for (Map.Entry<String, List<String>> entry : entrySet) {
             DbJmxClient jmxClient = getJmxClient(entry.getKey());
             jmxClient.removeVdcNodesFromBlacklist(entry.getValue());
         }
@@ -360,7 +360,7 @@ public class InternalDbClient extends DbClientImpl {
             log.info("Remove node from blacklist {}", nodeIp);
         }
     }
-    
+
     public Map<String, List<String>> getBlacklist() {
         Map<String, List<String>> result = new HashMap<String, List<String>>();
         DbJmxClient localJmxClient = getJmxClient(LOCALHOST);
@@ -382,7 +382,7 @@ public class InternalDbClient extends DbClientImpl {
 
     /**
      * The JMX client of Cassandra
-     */ 
+     */
     public static class DbJmxClient {
         private static final String fmtUrl = "service:jmx:rmi://%s:7300/jndi/rmi://%s:%d/jmxrmi";
         private static final String ssObjName = "org.apache.cassandra.db:type=StorageService";
@@ -393,13 +393,14 @@ public class InternalDbClient extends DbClientImpl {
         final int port;
         private String username;
         private String password;
-       
+
         private JMXConnector jmxc;
         private MBeanServerConnection mbeanServerConn;
         private StorageServiceMBean ssProxy;
         private EndpointSnitchInfoMBean snitchProxy;
         private GeoInternodeAuthenticatorMBean internodeAuthProxy;
         private DbManagerOps dbMgrOps;
+
         /**
          * Create JMX client using the specified JMX host and port.
          *
@@ -434,7 +435,7 @@ public class InternalDbClient extends DbClientImpl {
          */
         private void connect() throws IOException {
             JMXServiceURL jmxUrl = new JMXServiceURL(String.format(fmtUrl, host, host, port));
-            Map<String,Object> env = new HashMap<String,Object>();
+            Map<String, Object> env = new HashMap<String, Object>();
             if (username != null) {
                 String[] creds = { username, password };
                 env.put(JMXConnector.CREDENTIALS, creds);
@@ -446,8 +447,10 @@ public class InternalDbClient extends DbClientImpl {
             try {
                 ObjectName name = new ObjectName(ssObjName);
                 ssProxy = JMX.newMBeanProxy(mbeanServerConn, name, StorageServiceMBean.class);
-                snitchProxy = JMX.newMBeanProxy(mbeanServerConn, new ObjectName("org.apache.cassandra.db:type=EndpointSnitchInfo"), EndpointSnitchInfoMBean.class);
-                internodeAuthProxy = JMX.newMBeanProxy(mbeanServerConn, new ObjectName(GeoInternodeAuthenticatorMBean.MBEAN_NAME), GeoInternodeAuthenticatorMBean.class);
+                snitchProxy = JMX.newMBeanProxy(mbeanServerConn, new ObjectName("org.apache.cassandra.db:type=EndpointSnitchInfo"),
+                        EndpointSnitchInfoMBean.class);
+                internodeAuthProxy = JMX.newMBeanProxy(mbeanServerConn, new ObjectName(GeoInternodeAuthenticatorMBean.MBEAN_NAME),
+                        GeoInternodeAuthenticatorMBean.class);
                 dbMgrOps = new DbManagerOps(mbeanServerConn);
             } catch (MalformedObjectNameException e) {
                 throw new RuntimeException(
@@ -527,7 +530,7 @@ public class InternalDbClient extends DbClientImpl {
             }
             return fullOwners;
         }
-        
+
         /**
          * check if the node in given vdc has ownership on token ring
          *
@@ -549,8 +552,8 @@ public class InternalDbClient extends DbClientImpl {
                     String endpoint = ownership.getKey().getHostAddress();
                     String dc = snitchProxy.getDatacenter(endpoint);
                     if (dc.equals(dcId)) {
-                       log.info("endpoint {} active on ring", endpoint);
-                       return true;
+                        log.info("endpoint {} active on ring", endpoint);
+                        return true;
                     }
                 }
             } catch (UnknownHostException e) {
@@ -558,7 +561,7 @@ public class InternalDbClient extends DbClientImpl {
             }
             return false;
         }
-     
+
         public Map<InetAddress, Float> getOwnership() {
             return ssProxy.getOwnership();
         }
@@ -586,9 +589,9 @@ public class InternalDbClient extends DbClientImpl {
         public List<String> getUnreachableNodes() {
             return ssProxy.getUnreachableNodes();
         }
-        
+
         public void stopGossiping() {
-            ssProxy.stopGossiping();     
+            ssProxy.stopGossiping();
         }
 
         public List<String> getHostIdMap(VirtualDataCenter vdc) {
@@ -602,7 +605,7 @@ public class InternalDbClient extends DbClientImpl {
 
             return ids;
         }
-        
+
         public void removeVdc(VirtualDataCenter vdc) {
             List<String> ids = getHostIdMap(vdc);
 
@@ -623,14 +626,14 @@ public class InternalDbClient extends DbClientImpl {
 
             return status.getProgress();
         }
-        
+
         public void addVdcNodesToBlacklist(VirtualDataCenter vdc) {
             Collection<String> addrs = vdc.queryHostIPAddressesMap().values();
             List<String> newBlacklist = new ArrayList<String>();
             newBlacklist.addAll(addrs);
             internodeAuthProxy.addToBlacklist(newBlacklist);
         }
-        
+
         public void removeVdcNodesFromBlacklist(VirtualDataCenter vdc) {
             Collection<String> addrs = vdc.queryHostIPAddressesMap().values();
             List<String> newBlacklist = new ArrayList<String>();

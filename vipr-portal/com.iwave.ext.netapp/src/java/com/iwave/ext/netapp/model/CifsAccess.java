@@ -38,7 +38,7 @@ public enum CifsAccess {
         }
         throw new IllegalArgumentException(label + " is not a valid label for CifsAccess");
     }
-    
+
     public String access() {
         return access;
     }

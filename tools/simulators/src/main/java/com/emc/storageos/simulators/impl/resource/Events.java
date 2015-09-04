@@ -34,10 +34,10 @@ public class Events extends BaseResource {
 
     public static class CustomEvents extends IsilonEvent {
         public CustomEvents(String start, String end, String acknowledged_time,
-                            String devid, String id, String extreme_severity,
-                            String event_type,
-                            String extreme_value, String is_coalescing, String message,
-                            String severity, String update_count, String value) {
+                String devid, String id, String extreme_severity,
+                String event_type,
+                String extreme_value, String is_coalescing, String message,
+                String severity, String update_count, String value) {
             this.start = start;
             this.end = end;
             this.acknowledged_time = acknowledged_time;
@@ -77,7 +77,7 @@ public class Events extends BaseResource {
 
     @GET
     @Path("/events")
-    @Produces({MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_JSON })
     public Response getEvents(@QueryParam("begin") String begin, @QueryParam("end") String end, @QueryParam("resume") String resume) {
         long currentTime = System.currentTimeMillis();
         long startTime = 0L;
@@ -93,8 +93,7 @@ public class Events extends BaseResource {
 
         EventResponse eventResponse = new EventResponse();
 
-        ConcurrentLinkedQueue<EventManager.TimedEvent> eventList
-                = EventManager.getInstance().getEventQueue();
+        ConcurrentLinkedQueue<EventManager.TimedEvent> eventList = EventManager.getInstance().getEventQueue();
         Iterator<EventManager.TimedEvent> iterator = eventList.iterator();
         int count = 0;
         while (iterator.hasNext()) {

@@ -109,9 +109,9 @@ public abstract class CIMAlertRecordableDeviceEvent extends
         Severity computedSeverity = Severity.UNKNOWN;
         if ((severityStr != null && severityStr.length() == 0)
                 || severityStr == null) {
-            
+
             int severity;
-            
+
             severityStr = _indication.get(CIMConstants.PERCEIVED_SEVERITY);
             try {
                 if (severityStr != null) {
@@ -120,7 +120,7 @@ public abstract class CIMAlertRecordableDeviceEvent extends
                     if (severity >= 0 && severity <= 9) {
                         computedSeverity = Severity.values()[severity];
                     }
-                } 
+                }
                 severityStr = computedSeverity.name();
             } catch (NumberFormatException e) {
                 _logger.error("Unable to find the right severity ", e);

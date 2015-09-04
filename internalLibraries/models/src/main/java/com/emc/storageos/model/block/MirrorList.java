@@ -30,17 +30,19 @@ import java.util.List;
  */
 @XmlRootElement(name = "mirrors")
 public class MirrorList {
-    
+
     private List<NamedRelatedResourceRep> mirrorList;
 
-    public MirrorList() {}
-    
+    public MirrorList() {
+    }
+
     public MirrorList(List<NamedRelatedResourceRep> mirrorList) {
         this.mirrorList = mirrorList;
     }
 
-    /** 
+    /**
      * The list of all the volume mirrors.
+     * 
      * @valid none
      */
     @XmlElement(name = "mirror")

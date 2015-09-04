@@ -38,7 +38,7 @@ public class VNXFileQuotaDirectoryIdProcessor extends VNXFileProcessor {
 
     @Override
     public void processResult(Operation operation, Object resultObj,
-                              Map<String, Object> keyMap) throws BaseCollectionException {
+            Map<String, Object> keyMap) throws BaseCollectionException {
         _logger.info("processing quota dir id response" + resultObj);
         final PostMethod result = (PostMethod) resultObj;
         try {
@@ -51,8 +51,8 @@ public class VNXFileQuotaDirectoryIdProcessor extends VNXFileProcessor {
                 boolean isQuotaDirFound = false;
                 List<Object> quotaDirList = getQueryResponse(responsePacket);
                 final String quotaDirName = (String) keyMap.get(VNXFileConstants.QUOTA_DIR_NAME);
-                String quotaDirPath = "/"+quotaDirName;
-                _logger.info( "Quota dir name to match: {} Size of quotadir found {} ", quotaDirName, quotaDirList.size());
+                String quotaDirPath = "/" + quotaDirName;
+                _logger.info("Quota dir name to match: {} Size of quotadir found {} ", quotaDirName, quotaDirList.size());
                 Iterator<Object> quotaDirItr = quotaDirList.iterator();
                 if (quotaDirItr.hasNext()) {
                     Status status = (Status) quotaDirItr.next();
@@ -70,7 +70,7 @@ public class VNXFileQuotaDirectoryIdProcessor extends VNXFileProcessor {
                                 break;
                             }
                         }
-                        if(!isQuotaDirFound)
+                        if (!isQuotaDirFound)
                         {
                             _logger.error("Error in getting the quota dir information.");
                         }

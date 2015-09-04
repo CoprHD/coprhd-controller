@@ -38,11 +38,11 @@ import java.util.List;
 import java.util.Collections;
 
 /**
- * Tests internal tenant api 
+ * Tests internal tenant api
  * Note: requires some manual configuration for ad and license
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = {"classpath:coordinatorclient-var.xml"})
+@ContextConfiguration(locations = { "classpath:coordinatorclient-var.xml" })
 public class InternalTenantApiTest extends ApiTestBase {
     private String _server = "localhost";
     private String _apiServer = "https://" + _server + ":8443";
@@ -56,14 +56,14 @@ public class InternalTenantApiTest extends ApiTestBase {
     @XmlRootElement(name = "results")
     public static class Resources {
         public List<SearchResultResourceRep> resource;
-    } 
+    }
 
     @Before
-    public void setup () throws Exception {
+    public void setup() throws Exception {
 
         _internalTenantClient = new InternalTenantServiceClient();
         _internalTenantClient.setCoordinatorClient(_coordinatorClient);
-        _internalTenantClient.setServer(_server);        
+        _internalTenantClient.setServer(_server);
 
         List<String> urls = new ArrayList<String>();
         urls.add(_apiServer);
@@ -75,7 +75,7 @@ public class InternalTenantApiTest extends ApiTestBase {
         _rootToken = (String) _savedTokens.get("root");
 
         updateADConfig();
-        updateRootTenantAttrs();        
+        updateRootTenantAttrs();
 
         rTAdminGr = createHttpsClient(TENANTADMIN, AD_PASSWORD, urls);
 
@@ -87,7 +87,7 @@ public class InternalTenantApiTest extends ApiTestBase {
         long timestamp = System.currentTimeMillis();
 
         // 1. CREATE subtenants
-        String subtenant_url =  "/tenants/"+_rootTenantId.toString()+"/subtenants";
+        String subtenant_url = "/tenants/" + _rootTenantId.toString() + "/subtenants";
 
         TenantCreateParam tenantParam = new TenantCreateParam();
         String subtenant_label = "subtenant" + String.valueOf(timestamp);
@@ -106,11 +106,10 @@ public class InternalTenantApiTest extends ApiTestBase {
         tenantParam.getUserMappings().add(tenantMapping);
 
         TenantOrgRestRep subtenant = rTAdminGr.path(subtenant_url)
-                            .header(RequestProcessingUtils.AUTH_TOKEN_HEADER, _rootToken)
-                            .post(TenantOrgRestRep.class, tenantParam);
+                .header(RequestProcessingUtils.AUTH_TOKEN_HEADER, _rootToken)
+                .post(TenantOrgRestRep.class, tenantParam);
         Assert.assertTrue(subtenant.getName().equals(subtenant_label));
         Assert.assertEquals(1, subtenant.getUserMappings().size());
-
 
         // 2. set namespace
         String sNamespace1 = "namespace1";
@@ -121,16 +120,16 @@ public class InternalTenantApiTest extends ApiTestBase {
 
         // 3. get tenant
         TenantOrgRestRep getTenantResp = rTAdminGr.path("/tenants/" + subtenant.getId().toString())
-                            .header(RequestProcessingUtils.AUTH_TOKEN_HEADER, _rootToken)
-                            .get(TenantOrgRestRep.class);
+                .header(RequestProcessingUtils.AUTH_TOKEN_HEADER, _rootToken)
+                .get(TenantOrgRestRep.class);
         Assert.assertTrue(getTenantResp != null);
         Assert.assertTrue(resp.getId().equals(subtenant.getId()));
         Assert.assertTrue(getTenantResp.getNamespace().equals(sNamespace1));
 
         // 4. try to delete tenant with namespace attached
         ClientResponse delTenantResp = rTAdminGr.path("/tenants/" + subtenant.getId().toString() + "/deactivate")
-                            .header(RequestProcessingUtils.AUTH_TOKEN_HEADER, _rootToken)
-                            .post(ClientResponse.class);
+                .header(RequestProcessingUtils.AUTH_TOKEN_HEADER, _rootToken)
+                .post(ClientResponse.class);
         Assert.assertTrue(delTenantResp != null);
         Assert.assertTrue(delTenantResp.getStatus() == 400);
 
@@ -151,14 +150,14 @@ public class InternalTenantApiTest extends ApiTestBase {
 
         // 8. delete tenant
         delTenantResp = rTAdminGr.path("/tenants/" + subtenant.getId().toString() + "/deactivate")
-                            .header(RequestProcessingUtils.AUTH_TOKEN_HEADER, _rootToken)
-                            .post(ClientResponse.class);
+                .header(RequestProcessingUtils.AUTH_TOKEN_HEADER, _rootToken)
+                .post(ClientResponse.class);
         Assert.assertTrue(delTenantResp != null);
         Assert.assertTrue(delTenantResp.getStatus() == 200);
     }
-      
+
     @After
     public void teardown() throws Exception {
-                
+
     }
 }

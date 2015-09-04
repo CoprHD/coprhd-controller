@@ -23,20 +23,20 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 /**
  * Created by zeldib on 2/10/14.
  */
-@JsonRootName(value="mtree_delete")
+@JsonRootName(value = "mtree_delete")
 public class DDMTreeDelete {
 
     private String path;
-    
+
     public String getPath() {
-		return path;
-	}
+        return path;
+    }
 
-	public void setPath(String path) {
-		this.path = path;
-	}
+    public void setPath(String path) {
+        this.path = path;
+    }
 
-	public String toString() {
+    public String toString() {
         return new Gson().toJson(this).toString();
     }
 

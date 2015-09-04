@@ -105,7 +105,7 @@ public class Export extends AbstractSerializableNestedObject {
         if (map_all != null) {
             setField(MAP_ALL_USER, map_all.getUser());
 
-            List<String> arr = null; //Arrays.asList(map_all.getGroups());
+            List<String> arr = null; // Arrays.asList(map_all.getGroups());
             setListOfStringsField(MAP_ALL_GROUPS, arr);
         }
     }
@@ -119,7 +119,7 @@ public class Export extends AbstractSerializableNestedObject {
         if (user == null && groups.length == 0)
             return null;
 
-       // return new IsilonExport.IsilonIdentity(user, groups);
+        // return new IsilonExport.IsilonIdentity(user, groups);
         return null;
     }
 
@@ -127,7 +127,7 @@ public class Export extends AbstractSerializableNestedObject {
         if (map_root != null) {
             setField(MAP_ROOT_USER, map_root.getUser());
 
-            //List<String> arr = Arrays.asList(map_root.getGroups());
+            // List<String> arr = Arrays.asList(map_root.getGroups());
             List<String> arr = null;
             setListOfStringsField(MAP_ROOT_GROUPS, arr);
         }
@@ -145,6 +145,7 @@ public class Export extends AbstractSerializableNestedObject {
 
     /**
      * Builder for IsilonExport
+     * 
      * @return
      */
     public IsilonExport build() {
@@ -153,7 +154,7 @@ public class Export extends AbstractSerializableNestedObject {
         if (this.getId() != null)
             export.setId(Integer.parseInt(this.getId()));
         if (this.getClients() != null)
-            export.setClients((ArrayList<String>)this.getClients());
+            export.setClients((ArrayList<String>) this.getClients());
         if (this.getComment() != null)
             export.setComment(this.getComment());
         if (this.getMap_all() != null)
@@ -161,10 +162,10 @@ public class Export extends AbstractSerializableNestedObject {
         if (this.getMap_root() != null)
             export.setMapRoot(this.getMap_root().getUser());
         if (this.getPaths() != null)
-            export.setPaths((ArrayList<String>)this.getPaths());
+            export.setPaths((ArrayList<String>) this.getPaths());
         export.setReadOnly();
         if (this.getSecurityFlavors() != null)
-            export.setSecurityFlavors((ArrayList<String>)this.getSecurityFlavors());
+            export.setSecurityFlavors((ArrayList<String>) this.getSecurityFlavors());
 
         return export;
     }

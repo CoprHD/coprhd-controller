@@ -38,7 +38,7 @@ public class ComputeElements extends AbstractCoreBulkResources<ComputeElementRes
 
     @Override
     protected List<ComputeElementRestRep> getBulkResources(BulkIdParam input) {
-    	ComputeElementBulkRep response = client.post(ComputeElementBulkRep.class, input, getBulkUrl());
+        ComputeElementBulkRep response = client.post(ComputeElementBulkRep.class, input, getBulkUrl());
         return defaultList(response.getComputeElements());
     }
 
@@ -51,7 +51,7 @@ public class ComputeElements extends AbstractCoreBulkResources<ComputeElementRes
      */
     @Override
     public List<NamedRelatedResourceRep> list() {
-    	ComputeElementList response = client.get(ComputeElementList.class, baseUrl);
+        ComputeElementList response = client.get(ComputeElementList.class, baseUrl);
         return defaultList(response.getComputeElements());
     }
 
@@ -69,7 +69,7 @@ public class ComputeElements extends AbstractCoreBulkResources<ComputeElementRes
      * Gets all compute elements. This is a convenience method for: <tt>getByRefs(list(), filter)</tt>
      * 
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of all compute elements.
      */
     @Override
@@ -84,21 +84,21 @@ public class ComputeElements extends AbstractCoreBulkResources<ComputeElementRes
      * API Call: <tt>POST /vdc/compute-elements/{id}/discover</tt>
      * 
      * @param id
-     *        the ID of the compute element.
+     *            the ID of the compute element.
      */
     public ComputeElementRestRep rediscover(URI id) {
         return client.post(ComputeElementRestRep.class, getIdUrl() + "/discover", id);
-    }  
-    
+    }
+
     /**
      * Registers a compute element with the given compute system.
      * <p>
      * API Call: <tt>POST /vdc/compute-systems/{computeSystemId}/compute-elements/{computeElementId}/register</tt>
      * 
      * @param computeElementId
-     *        the ID of the compute element.
+     *            the ID of the compute element.
      * @param computeSystemId
-     *        the ID of the compute system.
+     *            the ID of the compute system.
      * @return the compute element.
      */
     public ComputeElementRestRep register(URI computeElementId) {
@@ -111,7 +111,7 @@ public class ComputeElements extends AbstractCoreBulkResources<ComputeElementRes
      * API Call: <tt>POST /vdc/compute-elements/{id}/deregister</tt>
      * 
      * @param id
-     *        the ID of the compute element.
+     *            the ID of the compute element.
      */
     public ComputeElementRestRep deregister(URI id) {
         return client.post(ComputeElementRestRep.class, getIdUrl() + "/deregister", id);

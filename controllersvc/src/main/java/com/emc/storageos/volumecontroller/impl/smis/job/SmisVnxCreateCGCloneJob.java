@@ -38,7 +38,7 @@ import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
 
-public class SmisVnxCreateCGCloneJob extends SmisReplicaCreationJobs{
+public class SmisVnxCreateCGCloneJob extends SmisReplicaCreationJobs {
 
     private static final Logger _log = LoggerFactory.getLogger(SmisVnxCreateCGCloneJob.class);
     protected Boolean isSyncActive;
@@ -47,7 +47,7 @@ public class SmisVnxCreateCGCloneJob extends SmisReplicaCreationJobs{
         super(job, storgeSystemURI, taskCompleter, "CreateGroupClone");
         this.isSyncActive = syncActive;
     }
-    
+
     public void updateStatus(JobContext jobContext) throws Exception {
         CloseableIterator<CIMObjectPath> syncVolumeIter = null;
         DbClient dbClient = jobContext.getDbClient();
@@ -58,14 +58,14 @@ public class SmisVnxCreateCGCloneJob extends SmisReplicaCreationJobs{
             }
             CloneCreateCompleter completer = (CloneCreateCompleter) getTaskCompleter();
             List<Volume> clones = dbClient.queryObject(Volume.class, completer.getIds());
-            if (jobStatus == JobStatus.SUCCESS) {               
+            if (jobStatus == JobStatus.SUCCESS) {
                 CIMConnectionFactory cimConnectionFactory = jobContext.getCimConnectionFactory();
-                WBEMClient client = getWBEMClient(dbClient, cimConnectionFactory);                
-                //generate a UUID for the set of clones
+                WBEMClient client = getWBEMClient(dbClient, cimConnectionFactory);
+                // generate a UUID for the set of clones
                 String setId = UUID.randomUUID().toString();
-                syncVolumeIter = client.associatorNames(getCimJob(), null, SmisConstants.CIM_STORAGE_VOLUME, null, null);               
+                syncVolumeIter = client.associatorNames(getCimJob(), null, SmisConstants.CIM_STORAGE_VOLUME, null, null);
                 processCGClones(syncVolumeIter, client, dbClient, clones, setId, isSyncActive);
-            } else if(jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
+            } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
                 _log.info("Failed to create clone");
                 for (Volume clone : clones) {
                     clone.setInactive(true);
@@ -76,7 +76,7 @@ public class SmisVnxCreateCGCloneJob extends SmisReplicaCreationJobs{
             setPostProcessingErrorStatus("Encountered an internal error during create CG clone job status processing: " + e.getMessage());
             _log.error("Caught an exception while trying to updateStatus for SmisVnxCreateCGCloneJob", e);
         } finally {
-            if(syncVolumeIter != null) {
+            if (syncVolumeIter != null) {
                 syncVolumeIter.close();
             }
             super.updateStatus(jobContext);

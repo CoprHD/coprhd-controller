@@ -98,7 +98,7 @@ public class WorkPoolImpl implements WorkPool {
             } catch (KeeperException.NoNodeException ignore) {
             } catch (KeeperException.BadVersionException ignore) {
                 // someone else took it
-               // Ignore exception, don't re-throw
+                // Ignore exception, don't re-throw
                 _log.debug("Caught exception but ignoring it: " + ignore);
             }
         }
@@ -108,7 +108,7 @@ public class WorkPoolImpl implements WorkPool {
             if (!(obj instanceof Work)) {
                 return false;
             }
-            return _id.equals(((Work)obj).getId());
+            return _id.equals(((Work) obj).getId());
         }
 
         @Override
@@ -125,7 +125,7 @@ public class WorkPoolImpl implements WorkPool {
         public void eventReceived(CuratorFramework client, CuratorEvent event) throws Exception {
             if (event.getType() == CuratorEventType.WATCHED) {
                 if (event.getWatchedEvent().getType() == Watcher.Event.EventType.NodeChildrenChanged &&
-                    (event.getPath().startsWith(_workItemLockPath) || event.getPath().startsWith(_workItemPath))) {
+                        (event.getPath().startsWith(_workItemLockPath) || event.getPath().startsWith(_workItemPath))) {
                     refresh();
                 }
             }
@@ -135,8 +135,8 @@ public class WorkPoolImpl implements WorkPool {
     /**
      * Constructor
      *
-     * @param conn         ZK connection
-     * @param listener     assignment listener
+     * @param conn ZK connection
+     * @param listener assignment listener
      * @param workPoolPath
      */
     public WorkPoolImpl(ZkConnection conn, WorkAssignmentListener listener, String workPoolPath) {
@@ -201,7 +201,7 @@ public class WorkPoolImpl implements WorkPool {
     }
 
     /**
-     * Computes assignment list and calls assignment listener.   Attempts to take new work items.
+     * Computes assignment list and calls assignment listener. Attempts to take new work items.
      */
     private void refresh() {
         try {
@@ -226,7 +226,7 @@ public class WorkPoolImpl implements WorkPool {
                             continue;
                         }
                         if (!workSet.contains(assignedId)) {
-                            // work item was removed - delete my assignment.  Notification comes
+                            // work item was removed - delete my assignment. Notification comes
                             // in next refresh
                             _zkClient.delete().guaranteed().inBackground().forPath(lockPath);
                             continue;

@@ -28,30 +28,29 @@ public class Snapshots extends BaseResource {
     private static Logger _log = LoggerFactory.getLogger(Snapshots.class);
 
     @GET
-    @Produces({MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_JSON })
     public Response listSnapshots() {
         return Response.serverError().entity(StandardResponse.getErrorResponse("Not implemented")).build();
     }
 
-
     @GET
     @Path("/{id}")
-    @Produces({MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_JSON })
     public Response getSnapshot(@PathParam("id") String id) {
         return Response.serverError().entity(StandardResponse.getErrorResponse("Not implemented")).build();
     }
 
     @POST
-    @Produces({MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_JSON })
     public Response createSnapshot(String obj) {
-        try{
+        try {
             IsilonSnapshot snap = new Gson().fromJson(obj, IsilonSnapshot.class);
             String id = _objectStore.createSnapshot(snap.getName(), snap.getPath());
 
             _log.info("Snapshot create: " + id + " obj: " + obj);
 
             return Response.ok(StandardResponse.getSuccessIdResponse(id)).build();
-        } catch(Exception e) {
+        } catch (Exception e) {
             _log.error("createSnapshot exception. obj : " + obj, e);
             return Response.serverError().entity(StandardResponse.getErrorResponse(e.getMessage())).build();
         }
@@ -66,7 +65,7 @@ public class Snapshots extends BaseResource {
             _log.info("Snapshot delete: " + id);
 
             return Response.ok(StandardResponse.getSuccessResponse()).build();
-        } catch(Exception e) {
+        } catch (Exception e) {
             _log.error("deleteSnapshot exception. id : " + id, e);
             return Response.serverError().entity(StandardResponse.getErrorResponse(e.getMessage())).build();
         }

@@ -14,19 +14,19 @@ import java.net.URI;
  * SRDF Controller
  */
 public interface SRDFController extends ProtectionController {
-    
+
     /**
      * Perform protection operation
      *
      * @param system SRDF protection system URI
-     * @param copy volume 
+     * @param copy volume
      * @param op operation to perform
      * @param task task object
      *
      * @throws InternalException
      */
     public void performProtectionOperation(URI system, Copy copy, String op, String task) throws InternalException;
-    
+
     /**
      * Expand SRDF Devices
      * 
@@ -38,5 +38,5 @@ public interface SRDFController extends ProtectionController {
      * @throws InternalException
      */
     public void expandVolume(URI storage, URI pool, URI volumeId, Long size, String token) throws InternalException;
-    
+
 }

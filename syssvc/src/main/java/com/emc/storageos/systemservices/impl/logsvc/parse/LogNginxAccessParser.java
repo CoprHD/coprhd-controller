@@ -42,22 +42,21 @@ public class LogNginxAccessParser extends LogParser {
         Date date = null;
         String msg = null;
 
-
         String[] splitLine = line.split(" ");
-        if(splitLine.length < 10){
+        if (splitLine.length < 10) {
             return LogMessage.CONTINUATION_LOGMESSAGE;
         }
 
         // splitLine[3] is like "[15/May/2014:06:16:21"
         String timeStr = splitLine[3].substring(1);
-        if(timeStr.length() != TIME_LENGTH){
+        if (timeStr.length() != TIME_LENGTH) {
             return LogMessage.CONTINUATION_LOGMESSAGE;
         }
 
         DateFormat format = new SimpleDateFormat("dd/MMM/yyyy:HH:mm:ss");
-        try{
+        try {
             date = format.parse(timeStr);
-        } catch(Exception e){
+        } catch (Exception e) {
             return LogMessage.CONTINUATION_LOGMESSAGE;
         }
 
@@ -84,4 +83,4 @@ public class LogNginxAccessParser extends LogParser {
 
         return log;
     }
-} 
+}

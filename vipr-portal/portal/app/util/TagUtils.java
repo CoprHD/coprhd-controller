@@ -16,7 +16,7 @@ public class TagUtils {
 
     public static String ORDER_ID_TAG = "vipr:orderId";
     public static String ORDER_NUMBER_TAG = "vipr:orderNumber";
-    
+
     private static Pattern MACHINE_TAG_REGEX = Pattern.compile("([^W]*\\:[^W]*)=(.*)");
 
     public static Map<String, String> parseTags(Collection<String> tags) {
@@ -28,8 +28,8 @@ public class TagUtils {
             }
         }
         return machineTags;
-    }    
-    
+    }
+
     public static String getTagValue(DataObjectRestRep dataObject, String tagName) {
         if (dataObject == null || (dataObject != null && dataObject.getTags() == null)) {
             return null;
@@ -37,18 +37,18 @@ public class TagUtils {
 
         Map<String, String> currentMachineTags = parseTags(dataObject.getTags());
         return currentMachineTags.get(tagName);
-    }    
-    
+    }
+
     public static String getOrderIdTagValue(DataObjectRestRep dataObject) {
         return getTagValue(dataObject, ORDER_ID_TAG);
     }
-    
+
     public static String getOrderNumberTagValue(DataObjectRestRep dataObject) {
         return getTagValue(dataObject, ORDER_NUMBER_TAG);
-    }    
-    
+    }
+
     public static String createOrderIdTag(String orderId) {
         return String.format("%s=%s", ORDER_ID_TAG, orderId);
     }
-    
+
 }

@@ -31,8 +31,9 @@ public class VirtualArrayConnectivityRestRep {
     private NamedRelatedResourceRep varray;
     private Set<String> connectionType;
 
-    public VirtualArrayConnectivityRestRep() {}
-    
+    public VirtualArrayConnectivityRestRep() {
+    }
+
     public VirtualArrayConnectivityRestRep(NamedRelatedResourceRep varray,
             Set<String> connectionType) {
         this.varray = varray;
@@ -46,7 +47,7 @@ public class VirtualArrayConnectivityRestRep {
      * 
      * @return The virtual array.
      */
-    @XmlElement(name="varray")
+    @XmlElement(name = "varray")
     @JsonProperty("varray")
     public NamedRelatedResourceRep getVirtualArray() {
         return varray;
@@ -64,7 +65,7 @@ public class VirtualArrayConnectivityRestRep {
      * 
      * @return The connection type
      */
-    @XmlElement(name="connection_type")
+    @XmlElement(name = "connection_type")
     public Set<String> getConnectionType() {
         if (connectionType == null) {
             connectionType = new LinkedHashSet<String>();

@@ -46,15 +46,15 @@ public class HDSDeleteVolumeJob extends HDSJob
     private static final Logger _log = LoggerFactory.getLogger(HDSDeleteVolumeJob.class);
 
     public HDSDeleteVolumeJob(String hdsJob,
-                               URI storageSystem,
-                               TaskCompleter taskCompleter) {
+            URI storageSystem,
+            TaskCompleter taskCompleter) {
         super(hdsJob, storageSystem, taskCompleter, "DeleteVolume");
     }
-    
+
     public HDSDeleteVolumeJob(String hdsJob,
             URI storageSystem,
             TaskCompleter taskCompleter, String name) {
-    	super(hdsJob, storageSystem, taskCompleter, name);
+        super(hdsJob, storageSystem, taskCompleter, name);
     }
 
     /**
@@ -80,8 +80,8 @@ public class HDSDeleteVolumeJob extends HDSJob
             List<Volume> volumes = new ArrayList<Volume>();
             Set<URI> poolURIs = new HashSet<URI>();
             for (URI id : getTaskCompleter().getIds()) {
-                //Volume volume = dbClient.queryObject(Volume.class, id);
-                Volume volume = (Volume)BlockObject.fetch(dbClient, id);
+                // Volume volume = dbClient.queryObject(Volume.class, id);
+                Volume volume = (Volume) BlockObject.fetch(dbClient, id);
                 volumes.add(volume);
                 poolURIs.add(volume.getPool());
             }
@@ -101,10 +101,12 @@ public class HDSDeleteVolumeJob extends HDSJob
             if (_status == JobStatus.SUCCESS) {
                 super.updateStatus(jobContext);
                 for (Volume volume : volumes) {
-                	/*if (URIUtil.isType(volume.getId(), BlockMirror.class)) {
-                		BlockMirror mirror = (BlockMirror) volume;
-                		HDSMirrorOperations.removeReferenceFromSourceVolume(dbClient, mirror);
-                	}*/
+                    /*
+                     * if (URIUtil.isType(volume.getId(), BlockMirror.class)) {
+                     * BlockMirror mirror = (BlockMirror) volume;
+                     * HDSMirrorOperations.removeReferenceFromSourceVolume(dbClient, mirror);
+                     * }
+                     */
                     volume.setInactive(true);
                     dbClient.persistObject(volume);
                     dbClient.updateTaskOpStatus(

@@ -196,12 +196,10 @@ public class ShellCommandExecutor implements CommandExecutor {
                 shell.connect();
 
                 waitForInitialPrompt(prompt);
-            }
-            catch (JSchException e) {
+            } catch (JSchException e) {
                 forceQuit();
                 throw new SSHException(e);
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 forceQuit();
                 throw new SSHException(e);
             }
@@ -272,7 +270,7 @@ public class ShellCommandExecutor implements CommandExecutor {
                 if (noChange) {
                     long sinceLastChange = System.currentTimeMillis() - lastChange;
                     if (sinceLastChange > (timeoutInSeconds * 1000)) {
-                    	debug("Timeout with output: %s", output);
+                        debug("Timeout with output: %s", output);
                         throw new IOException("Timeout waiting for: " + m.pattern().pattern());
                     }
                 }
@@ -289,8 +287,7 @@ public class ShellCommandExecutor implements CommandExecutor {
             String match = m.group();
             debug("Found: '%s'", match);
             return match;
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             throw new IOException(e);
         }
     }
@@ -327,11 +324,9 @@ public class ShellCommandExecutor implements CommandExecutor {
         if (isConnected()) {
             try {
                 send(EXIT);
-            }
-            catch (IOException e) {
+            } catch (IOException e) {
                 throw new SSHException(e);
-            }
-            finally {
+            } finally {
                 forceQuit();
             }
             debug("Disconnected");
@@ -350,10 +345,8 @@ public class ShellCommandExecutor implements CommandExecutor {
             if (shell != null) {
                 shell.disconnect();
             }
-        }
-        catch (RuntimeException e) {
-        }
-        finally {
+        } catch (RuntimeException e) {
+        } finally {
             shell = null;
         }
 
@@ -361,10 +354,8 @@ public class ShellCommandExecutor implements CommandExecutor {
             if (session != null) {
                 session.disconnect();
             }
-        }
-        catch (RuntimeException e) {
-        }
-        finally {
+        } catch (RuntimeException e) {
+        } finally {
             session = null;
         }
     }
@@ -408,8 +399,7 @@ public class ShellCommandExecutor implements CommandExecutor {
             stdout = StringUtils.removeEnd(stdout, matched);
 
             return new CommandOutput(stdout, null, 0);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             CommandException ce = new CommandException(e);
             ce.setOutput(tryGetCommandOutput());
             throw ce;
@@ -420,8 +410,7 @@ public class ShellCommandExecutor implements CommandExecutor {
         try {
             String stdout = getCurrentCommandOutput();
             return new CommandOutput(stdout, null, 0);
-        }
-        catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             return null;
         }
     }

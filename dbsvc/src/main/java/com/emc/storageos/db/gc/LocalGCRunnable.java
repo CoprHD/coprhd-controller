@@ -32,8 +32,8 @@ public class LocalGCRunnable extends GarbageCollectionRunnable {
     private static final Logger log = LoggerFactory.getLogger(LocalGCRunnable.class);
 
     LocalGCRunnable(DbClient dbClient, Class<? extends DataObject> type,
-                    DependencyTracker tracker, int gcDelayMins,
-                    CoordinatorClient coordinator) {
+            DependencyTracker tracker, int gcDelayMins,
+            CoordinatorClient coordinator) {
         super(dbClient, type, tracker, gcDelayMins, coordinator);
     }
 
@@ -44,6 +44,6 @@ public class LocalGCRunnable extends GarbageCollectionRunnable {
         if (dependency != null)
             log.debug("{} has dependencies {}", id, dependency);
 
-        return  dependency ==null;
+        return dependency == null;
     }
 }

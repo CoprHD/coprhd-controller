@@ -71,15 +71,12 @@ public class ExecutionEngineImpl implements ExecutionEngine {
             ExecutionService service = createService(order);
             runService(service);
             orderCompleted(order, service.getCompletedOrderStatus());
-        }
-        catch (ExecutionException e) {
+        } catch (ExecutionException e) {
             orderFailed(order, e);
-        }
-        catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             LOG.error("Unexpected error executing order: " + order.getId());
             orderFailed(order, new ExecutionException(e));
-        }
-        finally {
+        } finally {
             destroyContext(order);
         }
     }
@@ -129,8 +126,7 @@ public class ExecutionEngineImpl implements ExecutionEngine {
             init(service);
             precheck(service);
             execute(service);
-        }
-        catch (ExecutionException e) {
+        } catch (ExecutionException e) {
             logError(e, service);
             try {
                 rollback();
@@ -138,8 +134,7 @@ public class ExecutionEngineImpl implements ExecutionEngine {
                 logError(re, service);
             }
             throw e;
-        }
-        finally {
+        } finally {
             destroy(service);
         }
     }
@@ -149,12 +144,10 @@ public class ExecutionEngineImpl implements ExecutionEngine {
             CatalogService catalogService = getModelClient().catalogServices().findById(order.getCatalogServiceId());
 
             return serviceFactory.createService(order, catalogService);
-        }
-        catch (ServiceNotFoundException e) {
+        } catch (ServiceNotFoundException e) {
             LOG.error("Could not create service for order: " + order.getId(), e);
             throw new ExecutionException(e);
-        }
-        catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             LOG.error("Unexpected exception while creating service for order: " + order.getId(), e);
             throw new ExecutionException(e);
         }
@@ -167,11 +160,9 @@ public class ExecutionEngineImpl implements ExecutionEngine {
 
             bindParameters(context, service);
             service.init();
-        }
-        catch (ExecutionException e) {
+        } catch (ExecutionException e) {
             throw e;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new ExecutionException(e);
         }
     }
@@ -183,11 +174,9 @@ public class ExecutionEngineImpl implements ExecutionEngine {
 
             updateExecutionStatus(ExecutionStatus.PRECHECK);
             service.precheck();
-        }
-        catch (ExecutionException e) {
+        } catch (ExecutionException e) {
             throw e;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new ExecutionException(e);
         }
     }
@@ -199,11 +188,9 @@ public class ExecutionEngineImpl implements ExecutionEngine {
 
             updateExecutionStatus(ExecutionStatus.EXECUTE);
             service.execute();
-        }
-        catch (ExecutionException e) {
+        } catch (ExecutionException e) {
             throw e;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new ExecutionException(e);
         }
     }
@@ -214,11 +201,9 @@ public class ExecutionEngineImpl implements ExecutionEngine {
             LOG.debug("Destroy " + context.getServiceName());
 
             service.destroy();
-        }
-        catch (ExecutionException e) {
+        } catch (ExecutionException e) {
             throw e;
-        }
-        catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             throw new ExecutionException(e);
         }
     }
@@ -235,11 +220,9 @@ public class ExecutionEngineImpl implements ExecutionEngine {
                 for (ExecutionTask<?> task : rollback) {
                     ExecutionUtils.execute(task);
                 }
-            }
-            catch (ExecutionException e) {
+            } catch (ExecutionException e) {
                 throw new RollbackException(e.getCause());
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 throw new RollbackException(e);
             }
         }
@@ -254,8 +237,7 @@ public class ExecutionEngineImpl implements ExecutionEngine {
 
             ExecutionContext context = ExecutionUtils.currentContext();
             context.logError(error.getCause(), message);
-        }
-        catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             LOG.error("Unexpected runtime exception while logging error", e);
         }
     }

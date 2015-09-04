@@ -50,8 +50,7 @@ public class ExecutionEngineDispatcher {
             executionEngine.executeOrder(order);
             monitor.removeOrder(order);
             notifyCompletion(order);
-        }
-        catch (RuntimeException | Error e) {
+        } catch (RuntimeException | Error e) {
             String message = String.format("Error processing order %s [%s]", order.getOrderNumber(), order.getId());
             LOG.error(message, e);
             tryMarkOrderAsFailed(order, e);
@@ -66,8 +65,7 @@ public class ExecutionEngineDispatcher {
             if (modelClient != null) {
                 modelClient.save(order);
             }
-        }
-        catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             // Nothing we can do at this point, simply log it
             String message = String
                     .format("Could update state of Order %s [%s]", order.getOrderNumber(), order.getId());
@@ -79,8 +77,7 @@ public class ExecutionEngineDispatcher {
         String orderId = order.getId().toString();
         try {
             completionQueue.putItem(new OrderMessage(orderId));
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             LOG.error("Failed to notify of order completion for order: " + orderId, e);
         }
     }

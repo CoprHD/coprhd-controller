@@ -20,12 +20,13 @@ import java.util.List;
 import com.emc.storageos.db.client.model.StorageOSUserDAO;
 
 /**
- *   Interface for token management (creation and deletion)
+ * Interface for token management (creation and deletion)
  */
 
 public interface TokenManager {
     /**
      * Get token life time in secs
+     * 
      * @return
      */
     public int getMaxTokenLifeTimeInSecs();
@@ -71,8 +72,7 @@ public interface TokenManager {
      * @param userName
      */
     public List<StorageOSUserDAO> getUserRecords(final String userName);
-    
-    
+
     /**
      * Updates the list of user dao records with the specified user dao object.
      * 
@@ -81,7 +81,5 @@ public interface TokenManager {
      * @return the last StorageOSUserDAO that was updated
      */
     public StorageOSUserDAO updateDBWithUser(final StorageOSUserDAO userDAO, final List<StorageOSUserDAO> userRecords);
-    
-    
 
 }

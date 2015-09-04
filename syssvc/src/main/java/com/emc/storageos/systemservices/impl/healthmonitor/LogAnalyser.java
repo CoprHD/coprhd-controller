@@ -55,7 +55,7 @@ public class LogAnalyser {
     private ServiceImpl service;
     private LogSvcPropertiesLoader logSvcPropertiesLoader;
 
-    //Pre-defined patterns in sys-conf.xml
+    // Pre-defined patterns in sys-conf.xml
     private List<String> warnningPatterns;
     private List<String> errorPatterns;
     private List<String> fatalPatterns;
@@ -92,7 +92,7 @@ public class LogAnalyser {
     }
 
     public void analysisLogs() {
-        //parse db and zk error logs and alert if match pre-defined errors/fatals
+        // parse db and zk error logs and alert if match pre-defined errors/fatals
         try {
             String serviceNameList = getServiceNameList();
             _log.info("Starting parse error logs for services : {}, and will alert if match pre-defined errors/fatals", serviceNameList);
@@ -106,7 +106,7 @@ public class LogAnalyser {
 
                     if (!LogUtil.permitNextLogBatch(maxCount, finalCount,
                             currentLogBatch.size())) {
-                        //discard this batch
+                        // discard this batch
                         break;
                     }
 
@@ -116,7 +116,7 @@ public class LogAnalyser {
                     }
 
                     msg = startLogOfNextBatch;
-                } while (msg != null) ;
+                } while (msg != null);
             }
             _log.info("Total error/fatal logs number is {}", finalCount);
         } catch (Exception e) {
@@ -128,7 +128,7 @@ public class LogAnalyser {
 
     private String getServiceNameList() {
         StringBuilder strBuilder = new StringBuilder();
-        for(String svcName : svcNames) {
+        for (String svcName : svcNames) {
             if (strBuilder.length() > 0) {
                 strBuilder.append(';');
             }
@@ -137,12 +137,12 @@ public class LogAnalyser {
         return strBuilder.toString();
     }
 
-   /*
-    * get error logs from the given service
-    */
+    /*
+     * get error logs from the given service
+     */
     private LogNetworkStreamMerger getNodeErrorLogs() {
         endTime = new DateTime();
-        if(startTime == null) {
+        if (startTime == null) {
             startTime = endTime.minusMinutes(15);
         }
 
@@ -157,7 +157,7 @@ public class LogAnalyser {
         LogNetworkStreamMerger logRequestMgr = new LogNetworkStreamMerger
                 (logReqInfo, MediaType.TEXT_PLAIN_TYPE, logSvcPropertiesLoader);
 
-        //Then it will be start with next log.
+        // Then it will be start with next log.
         startTime = endTime.plusSeconds(1);
         return logRequestMgr;
     }
@@ -183,7 +183,7 @@ public class LogAnalyser {
             Pattern patt = Pattern.compile(pattern);
             Matcher matcher = patt.matcher(rawLogContent);
             if (matcher.matches()) {
-                switch(logAlertLevel) {
+                switch (logAlertLevel) {
                     case WARNNING:
                         _alertsLog.warn("[" + preStr + "] " + rawLogContent);
                         break;

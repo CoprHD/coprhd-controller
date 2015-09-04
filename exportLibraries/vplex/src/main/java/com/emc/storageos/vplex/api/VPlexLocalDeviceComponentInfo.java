@@ -21,18 +21,18 @@ import java.util.List;
  * Info for a component of a VPLEX local device.
  */
 public class VPlexLocalDeviceComponentInfo extends VPlexResourceInfo {
-    
+
     // Enumerates the local device component attributes we are interested
     // in and parse from the VPlex local device component response. There
     // must be a setter method for each attribute specified. The format of
     // the setter method must be as specified by the base class method
     // getAttributeSetterMethodName.
     public static enum ComponentAttribute {
-        COMPONENT_TYPE("component-type");       
-        
+        COMPONENT_TYPE("component-type");
+
         // The VPlex name for the attribute.
         private String _name;
-        
+
         /**
          * Constructor.
          * 
@@ -41,16 +41,16 @@ public class VPlexLocalDeviceComponentInfo extends VPlexResourceInfo {
         ComponentAttribute(String name) {
             _name = name;
         }
-        
+
         /**
          * Getter for the VPlex name for the attribute.
          * 
          * @return The VPlex name for the attribute.
          */
         public String getAttributeName() {
-             return _name;
+            return _name;
         }
-               
+
         /**
          * Returns the enum whose name matches the passed name, else null when
          * not found.
@@ -70,7 +70,7 @@ public class VPlexLocalDeviceComponentInfo extends VPlexResourceInfo {
             return null;
         }
     };
-    
+
     // The component type.
     private String componentType;
 
@@ -91,7 +91,7 @@ public class VPlexLocalDeviceComponentInfo extends VPlexResourceInfo {
     public void setComponentType(String type) {
         componentType = type;
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -114,7 +114,7 @@ public class VPlexLocalDeviceComponentInfo extends VPlexResourceInfo {
         str.append(super.toString());
         str.append(", componentType: " + componentType);
         str.append(" )");
-        
+
         return str.toString();
     }
 }

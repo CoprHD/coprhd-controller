@@ -24,17 +24,17 @@ public class ApprovalRequest extends ModelObject implements TenantDataObject {
     public static final String APPROVED_BY = "approvedBy";
     public static final String ORDER_ID = "orderId";
     public static final String TENANT = TenantDataObject.TENANT_COLUMN_NAME;
-    
+
     private String message;
 
     private Date dateActioned;
 
-    private String approvalStatus;    
+    private String approvalStatus;
 
     private String approvedBy;
-    
-    private URI orderId;    
-    
+
+    private URI orderId;
+
     private String tenant;
 
     @Name(MESSAGE)
@@ -80,7 +80,7 @@ public class ApprovalRequest extends ModelObject implements TenantDataObject {
     }
 
     @RelationIndex(cf = "RelationIndex", type = Order.class)
-    @Name(ORDER_ID)    
+    @Name(ORDER_ID)
     public URI getOrderId() {
         return orderId;
     }
@@ -99,24 +99,24 @@ public class ApprovalRequest extends ModelObject implements TenantDataObject {
     public void setTenant(String tenant) {
         this.tenant = tenant;
         setChanged(TENANT);
-    }    
-    
-    public boolean approved() {
-       return StringUtils.equalsIgnoreCase(approvalStatus, ApprovalStatus.APPROVED.name());
     }
-    
+
+    public boolean approved() {
+        return StringUtils.equalsIgnoreCase(approvalStatus, ApprovalStatus.APPROVED.name());
+    }
+
     public boolean rejected() {
-        return StringUtils.equalsIgnoreCase(approvalStatus, ApprovalStatus.REJECTED.name()); 
+        return StringUtils.equalsIgnoreCase(approvalStatus, ApprovalStatus.REJECTED.name());
     }
 
     public boolean pending() {
-        return StringUtils.equalsIgnoreCase(approvalStatus, ApprovalStatus.PENDING.name()); 
-    }    
-    
+        return StringUtils.equalsIgnoreCase(approvalStatus, ApprovalStatus.PENDING.name());
+    }
+
     @Override
     public Object[] auditParameters() {
-        return new Object[] {getLabel(), 
+        return new Object[] { getLabel(),
                 getApprovalStatus(), getTenant(), getId() };
-    }        
-   
+    }
+
 }

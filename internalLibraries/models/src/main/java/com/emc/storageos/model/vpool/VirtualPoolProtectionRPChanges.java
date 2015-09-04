@@ -26,8 +26,9 @@ public class VirtualPoolProtectionRPChanges {
     private Set<VirtualPoolProtectionVirtualArraySettingsParam> remove;
     private ProtectionSourcePolicy sourcePolicy;
 
-    public VirtualPoolProtectionRPChanges() {}
-    
+    public VirtualPoolProtectionRPChanges() {
+    }
+
     public VirtualPoolProtectionRPChanges(
             Set<VirtualPoolProtectionVirtualArraySettingsParam> add,
             Set<VirtualPoolProtectionVirtualArraySettingsParam> remove,
@@ -43,7 +44,7 @@ public class VirtualPoolProtectionRPChanges {
      * 
      * @valid none
      */
-    @XmlElement(name="protection_varray_vpool", required = false)
+    @XmlElement(name = "protection_varray_vpool", required = false)
     public Set<VirtualPoolProtectionVirtualArraySettingsParam> getAdd() {
         if (add == null) {
             add = new LinkedHashSet<VirtualPoolProtectionVirtualArraySettingsParam>();
@@ -61,7 +62,7 @@ public class VirtualPoolProtectionRPChanges {
      * 
      * @valid none
      */
-    @XmlElement(name="protection_varray_vpool", required = false)
+    @XmlElement(name = "protection_varray_vpool", required = false)
     public Set<VirtualPoolProtectionVirtualArraySettingsParam> getRemove() {
         if (remove == null) {
             remove = new LinkedHashSet<VirtualPoolProtectionVirtualArraySettingsParam>();
@@ -86,5 +87,5 @@ public class VirtualPoolProtectionRPChanges {
     public void setSourcePolicy(ProtectionSourcePolicy sourcePolicy) {
         this.sourcePolicy = sourcePolicy;
     }
-    
+
 }

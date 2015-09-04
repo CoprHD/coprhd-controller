@@ -24,6 +24,7 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.Processor;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
+
 /**
  * refer Comments in CheckPoolSettingsExistenceProcessor, and get in here
  * 
@@ -34,7 +35,7 @@ import com.emc.storageos.plugins.common.domainmodel.Operation;
  * 1. CreatedSetting_CIMObjectPath_TierMethodlogy : TierMethodology (2 or 0 or 6 or 7)
  * 2. CreatedSetting_CIMObjectPath : PoolCapabilitiesCIMPath (on which this Setting is created)
  * 3. Add CreatedSettingPath into Map, so that the next SMI-S call getSettinsgsInstance, runs above
- *    the list.(runs only above successfully created Settings.)
+ * the list.(runs only above successfully created Settings.)
  * 
  *
  */
@@ -57,10 +58,12 @@ public class CreatePoolSettingProcessor extends Processor {
                 List<String> poolSettingsList = (List<String>) keyMap
                         .get(Constants.VNXPOOLCAPABILITIES_TIER);
                 String poolSettingToTierMethodology = poolSettingsList.get(index);
-                tierMethodologyToBeUsedForThisCreatedSetting  = poolSettingToTierMethodology.substring(poolSettingToTierMethodology.lastIndexOf(Constants.HYPEN)+1,poolSettingToTierMethodology.length());
-                
-                String poolCapabilitiesPathAssociatedWiththisSetting = poolSettingToTierMethodology.substring(0, poolSettingToTierMethodology.lastIndexOf(Constants.HYPEN));
-                       
+                tierMethodologyToBeUsedForThisCreatedSetting = poolSettingToTierMethodology.substring(
+                        poolSettingToTierMethodology.lastIndexOf(Constants.HYPEN) + 1, poolSettingToTierMethodology.length());
+
+                String poolCapabilitiesPathAssociatedWiththisSetting = poolSettingToTierMethodology.substring(0,
+                        poolSettingToTierMethodology.lastIndexOf(Constants.HYPEN));
+
                 keyMap.put(path.toString(), poolCapabilitiesPathAssociatedWiththisSetting);
                 keyMap.put(path.toString() + Constants.HYPEN + Constants.TIERMETHODOLOGY,
                         tierMethodologyToBeUsedForThisCreatedSetting);

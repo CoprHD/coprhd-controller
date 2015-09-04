@@ -16,13 +16,13 @@ import java.net.URISyntaxException;
 import java.util.*;
 import java.net.URI;
 
-public class FieldInSetAggregator implements DbAggregatorItf{
+public class FieldInSetAggregator implements DbAggregatorItf {
 
-    private ColumnField  _columnField;
+    private ColumnField _columnField;
     private String _field;
     private List<URI> _list;
     private Set<String> _set;
-    private DataObjectType  _doType;
+    private DataObjectType _doType;
 
     /**
      * @return the aggregated value.
@@ -32,41 +32,34 @@ public class FieldInSetAggregator implements DbAggregatorItf{
     }
 
     public String[] getAggregatedFields() {
-        return new String[] {_field};
+        return new String[] { _field };
     }
 
-    public FieldInSetAggregator(Class<? extends DataObject> clazz, Set<String> allowedValues, String field){
-        _list= new ArrayList<URI>();
+    public FieldInSetAggregator(Class<? extends DataObject> clazz, Set<String> allowedValues, String field) {
+        _list = new ArrayList<URI>();
         _set = allowedValues;
         _doType = TypeMap.getDoType(clazz);
-        _columnField =_doType.getColumnField(field);
+        _columnField = _doType.getColumnField(field);
         _field = field;
     }
 
     @Override
-    public void aggregate(Row<String, CompositeColumnName> row){
+    public void aggregate(Row<String, CompositeColumnName> row) {
 
-        if(row.getColumns().size() == 0) {
+        if (row.getColumns().size() == 0) {
             return;
         }
         Column<CompositeColumnName> column = row.getColumns().iterator().next();
-        if(column.getName().getOne().equals(_field)){
+        if (column.getName().getOne().equals(_field)) {
             String value = ColumnValue.getPrimitiveColumnValue(column,
-                                          _columnField.getPropertyDescriptor()).toString();
-            if( _set.contains(value)) {
+                    _columnField.getPropertyDescriptor()).toString();
+            if (_set.contains(value)) {
                 try {
                     _list.add(new URI(row.getKey()));
+                } catch (URISyntaxException ex) {
                 }
-                catch(URISyntaxException ex) {}
             }
         }
     }
 
 }
-
-
-
-
-
-
-

@@ -25,24 +25,24 @@ import java.util.regex.Pattern;
  */
 public class PlayRoutesParser {
 
-    private static Pattern docPattern = Pattern.compile("##begin\n"+
-                                                         "((## .*\n)*)"+   // this is groups 1 and 2
-                                                         "## @brief (.*)\n"+
-                                                         "(## @param (.*)\n)*"+
-                                                         "## @prereq (.*)\n"+
-                                                         "##end\n"+
-                                                         "([^\\s]*)\\s*([^\\s]*)\\s*(.*)");
+    private static Pattern docPattern = Pattern.compile("##begin\n" +
+            "((## .*\n)*)" +   // this is groups 1 and 2
+            "## @brief (.*)\n" +
+            "(## @param (.*)\n)*" +
+            "## @prereq (.*)\n" +
+            "##end\n" +
+            "([^\\s]*)\\s*([^\\s]*)\\s*(.*)");
 
     private static Pattern paramPattern = Pattern.compile("## @param ([^ ]*)\\s(.*)");
 
     public static Collection<ApiService> getPortalServices(String portalSrcRoot) {
         try {
             Map<String, ApiService> apiServices = Maps.newHashMap();
-            parse(new File(portalSrcRoot+"/conf/routes"), apiServices,"");
+            parse(new File(portalSrcRoot + "/conf/routes"), apiServices, "");
 
             return apiServices.values();
-        } catch(Exception e) {
-            throw new RuntimeException("Error reading portal services",e);
+        } catch (Exception e) {
+            throw new RuntimeException("Error reading portal services", e);
         }
     }
 
@@ -67,24 +67,23 @@ public class PlayRoutesParser {
                 apiService.packageName = packageName;
                 apiService.javaClassName = className;
                 apiService.description = "";
-                apiService.path = moduleRoot+"/api";
+                apiService.path = moduleRoot + "/api";
 
                 services.put(className, apiService);
             }
 
-            if (!serviceMatcher.group(groupCount -1).endsWith("{<json|xml>format}")) {
+            if (!serviceMatcher.group(groupCount - 1).endsWith("{<json|xml>format}")) {
                 ApiMethod apiMethod = new ApiMethod();
                 apiMethod.javaMethodName = getMethodName(serviceMatcher.group(serviceMatcher.groupCount()));
                 apiMethod.httpMethod = serviceMatcher.group(groupCount - 2);
-                apiMethod.path = moduleRoot+serviceMatcher.group(groupCount - 1);
-                apiMethod.description = serviceMatcher.group(1).replaceAll("## ","");
+                apiMethod.path = moduleRoot + serviceMatcher.group(groupCount - 1);
+                apiMethod.description = serviceMatcher.group(1).replaceAll("## ", "");
                 apiMethod.brief = serviceMatcher.group(3);
                 apiMethod.apiService = apiService;
                 apiMethod.alert = "<b>Note:</b> Hosted on HTTPS port 443";
 
                 apiMethod.xmlExample = ExampleLoader.loadExample(apiMethod.getXmlExampleFilename());
                 apiMethod.jsonExample = ExampleLoader.loadExample(apiMethod.getJsonExampleFilename());
-
 
                 addParameterInfo(serviceMatcher.group(0), apiMethod);
 
@@ -104,7 +103,7 @@ public class PlayRoutesParser {
                 field.name = paramMatcher.group(1);
                 field.description = paramMatcher.group(2);
 
-                if (method.path.contains("{"+field.name+"}")) {
+                if (method.path.contains("{" + field.name + "}")) {
                     method.pathParameters.add(field);
                 } else {
                     method.queryParameters.add(field);
@@ -115,15 +114,15 @@ public class PlayRoutesParser {
 
     private static String getClassName(String qualifiedName) {
         String[] parts = qualifiedName.split("\\.");
-        return parts[parts.length-2].replace("Api","Service");
+        return parts[parts.length - 2].replace("Api", "Service");
     }
 
     private static String getMethodName(String qualifiedName) {
         String[] parts = qualifiedName.split("\\.");
-        return parts[parts.length-1];
+        return parts[parts.length - 1];
     }
 
     private static String getPackage(String qualifiedName) {
-        return qualifiedName.substring(0,qualifiedName.lastIndexOf("."));
+        return qualifiedName.substring(0, qualifiedName.lastIndexOf("."));
     }
 }

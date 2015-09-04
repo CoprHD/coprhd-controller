@@ -32,9 +32,8 @@ import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 
-
 /**
- *  Constrained query to get list of decommissioned object URIs of a given type
+ * Constrained query to get list of decommissioned object URIs of a given type
  */
 public class AggregatedConstraintImpl extends ConstraintImpl implements AggregatedConstraint {
     private static final Logger log = LoggerFactory.getLogger(AggregatedConstraintImpl.class);
@@ -49,14 +48,13 @@ public class AggregatedConstraintImpl extends ConstraintImpl implements Aggregat
     private final Class<? extends DataObject> entryType;
     private final boolean classGroup;
 
-
     /*
      * Constraint for listing all objects of a given type with index value
      * if value is null, gives full list for the type - used by queryByType.
      */
     public AggregatedConstraintImpl(Class<? extends DataObject> clazz, ColumnField groupByField, String groupByValue, ColumnField field) {
 
-        super(clazz, field, groupByField.getName(),groupByValue);
+        super(clazz, field, groupByField.getName(), groupByValue);
 
         cf = field.getIndexCF();
         this.groupByField = groupByField;
@@ -66,7 +64,7 @@ public class AggregatedConstraintImpl extends ConstraintImpl implements Aggregat
         fieldName = field.getName();
         classGroup = false;
 
-        rowKey = String.format("%s:%s",clazz.getSimpleName(),groupByValue.toString());
+        rowKey = String.format("%s:%s", clazz.getSimpleName(), groupByValue.toString());
     }
 
     public AggregatedConstraintImpl(Class<? extends DataObject> clazz, ColumnField field) {
@@ -102,23 +100,23 @@ public class AggregatedConstraintImpl extends ConstraintImpl implements Aggregat
     @Override
     protected <T> T createQueryHit(final QueryResult<T> result, Column<IndexColumnName> column) {
         return result.createQueryHit(URI.create(column.getName().getTwo()),
-                                     ColumnValue.getPrimitiveColumnValue(column, field.getPropertyDescriptor()));
+                ColumnValue.getPrimitiveColumnValue(column, field.getPropertyDescriptor()));
     }
 
     @Override
     protected RowQuery<String, IndexColumnName> genQuery() {
         return keyspace.prepareQuery(cf).getKey(rowKey)
-                       .withColumnRange(
-                               CompositeColumnNameSerializer.get().buildRange()
-                                       .greaterThanEquals(fieldName.toString())
-                                       .lessThanEquals(fieldName.toString())
-                                       .limit(pageCount)
-                       );
+                .withColumnRange(
+                        CompositeColumnNameSerializer.get().buildRange()
+                                .greaterThanEquals(fieldName.toString())
+                                .lessThanEquals(fieldName.toString())
+                                .limit(pageCount)
+                );
 
     }
 
     @Override
     public Class<? extends DataObject> getDataObjectType() {
         return entryType;
-}
+    }
 }

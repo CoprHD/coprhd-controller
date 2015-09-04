@@ -15,7 +15,7 @@
 package com.emc.storageos.hds;
 
 public interface HDSConstants {
-    
+
     String HTTPS_URL = "https";
     String HTTP_URL = "http";
     String COLON = ":";
@@ -47,10 +47,10 @@ public interface HDSConstants {
     String PASSWORD_HEADER = "Password";
     String HDS = "HDS";
     String DUMMY_HSD = "ViPR-Dummy-HSD";
-    
+
     int MAX_RETRIES = 60;
     long TASK_PENDING_WAIT_TIME = 3000L;
-    
+
     String VIRTUALVOLUME = "VirtualVolume";
     String ARRAYGROUP_RESPONSE_BEAN_ID = "thickPoolList";
     String HOST_GROUP_DOMAIN_TYPE = "0";
@@ -82,8 +82,7 @@ public interface HDSConstants {
     String EMULATION_OPENV = "OPEN-V";
     int MAX_SHADOWIMAGE_PAIR_COUNT = 3;
     int MAX_SNAPSHOT_COUNT = 1024;
-    
-    
+
     // Input XML Generation Constants
     String CONDITION = "Condition";
     String STORAGEARRAY = "StorageArray";
@@ -110,7 +109,7 @@ public interface HDSConstants {
     String GET_API_VERSION_INFO_OP = "getServerInfo";
     String ADD_HOST_WITH_WWN_OP = "addHostWithWorldWideNames";
     String ADD_HOST_WITH_ISCSINAMES_OP = "addHostWithISCSINames";
-    String GET_HSD_INFO_OP = "getHSDInfoFromSystem"; 
+    String GET_HSD_INFO_OP = "getHSDInfoFromSystem";
     String ADD_WWN_TO_HSD_OP = "addWWNToHSD";
     String BATCH_ADD_WWN_TO_HSD_OP = "batchAddInitiatorsToHSDs";
     String DELETE_WWN_FROM_HSD_OP = "deleteWWNFromHSD";
@@ -138,7 +137,7 @@ public interface HDSConstants {
     String RESTORE_THIN_IMAGE_PAIR_OP = "restoreThinImagePair";
     String DELETE_THIN_IMAGE_PAIR_OP = "deleteThinImagePair";
     String REFRESH_HOST_OP = "refreshHost";
-    
+
     String LU_FORMAT_TARGET = "LogicalUnitFormat";
     String LOGICALUNIT_LIST = "LogicalUnit_List";
     String DELETE_VOLUMES_OP = "deleteVolumes";
@@ -164,7 +163,7 @@ public interface HDSConstants {
     String FREELUN = "FreeLUN";
     String SERVER_INFO = "ServerInfo";
     String SNAPSHOTGROUP = "SnapshotGroup";
-    
+
     String QUOTATION_STR = "\"";
     String EMPTY_STR = "";
     String SPACE_STR = " ";
@@ -181,28 +180,28 @@ public interface HDSConstants {
     String LUSE_TARGET = "LUSE";
     String DPTYPE_THICK = "-1";
     String DPTYPE_THIN = "0";
-    
-    String SHADOW_IMAGE="ShadowImage";
-    String REPLICATION="Replication";
-    String REPLICATION_GROUP="ReplicationGroup";
-    String REPLICATION_INFO="ReplicationInfo";
-    String SPLIT  ="split";
+
+    String SHADOW_IMAGE = "ShadowImage";
+    String REPLICATION = "Replication";
+    String REPLICATION_GROUP = "ReplicationGroup";
+    String REPLICATION_INFO = "ReplicationInfo";
+    String SPLIT = "split";
     String QUICK_FORMAT_TYPE = "quick";
-    String SI="SI";
+    String SI = "SI";
     int HDS_MAX_NICKNAME_ALLOWED_LENGTH = 32;
-    
+
     String HITACHI_NAMESPACE = "root/hitachi/smis";
-    String REPLICATION_INFO_OBJ_ID="ReplicationInfo.objectId";
+    String REPLICATION_INFO_OBJ_ID = "ReplicationInfo.objectId";
     String REPLICATION_GROUP_OBJ_ID = "ReplicationGroup.objectId";
     String VIPR_REPLICATION_GROUP_NAME = "ViPR-Replication-Group";
     String VIPR_SNAPSHOT_GROUP_NAME = "ViPR-Snapshot-Group";
-    String INBAND2="inband2";
-    String THIN_IMAGE="ThinImage";
-    String RESTORE_INBAND2="restore;inband2";
+    String INBAND2 = "inband2";
+    String THIN_IMAGE = "ThinImage";
+    String RESTORE_INBAND2 = "restore;inband2";
     int LOCK_WAIT_SECONDS = 300;
     String NO_CLUSTER_ID = "-1";
     String HOST_REFRESH = "HostRefresh";
-    
+
     String HICOMMAND_OS_TYPE_HPUX = "HP-UX";
     String HICOMMAND_HOST_TYPE_VMWARE = "3";
     String SATA_DRIVE_VALUE = "1";

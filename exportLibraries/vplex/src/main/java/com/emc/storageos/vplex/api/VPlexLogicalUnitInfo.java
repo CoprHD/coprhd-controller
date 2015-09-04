@@ -18,7 +18,7 @@ package com.emc.storageos.vplex.api;
  * Info for a VPlex Logical Unit
  */
 public class VPlexLogicalUnitInfo extends VPlexResourceInfo {
-    
+
     /**
      * {@inheritDoc}
      */

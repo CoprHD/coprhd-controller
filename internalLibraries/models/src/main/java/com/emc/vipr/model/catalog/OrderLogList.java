@@ -14,17 +14,19 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 
 @XmlRootElement(name = "order_logs")
 public class OrderLogList {
-    
+
     private List<OrderLogRestRep> orderLogs;
-    
-    public OrderLogList() {}
-    
+
+    public OrderLogList() {
+    }
+
     public OrderLogList(List<OrderLogRestRep> orderLogs) {
         this.orderLogs = orderLogs;
     }
 
     /**
      * List of order logs
+     * 
      * @valid none
      */
     @XmlElement(name = "order_log")
@@ -37,6 +39,6 @@ public class OrderLogList {
 
     public void setOrderLogs(List<OrderLogRestRep> orderLogs) {
         this.orderLogs = orderLogs;
-    }        
-    
+    }
+
 }

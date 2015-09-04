@@ -22,15 +22,15 @@ import org.codehaus.jackson.annotate.JsonProperty;
 
 @XmlRootElement(name = "ssh_key_update")
 public class SSHKeyUpdateParam {
-	private String sshKey;
-	
-	@XmlElement(name = "ssh_key")
-	public String getSshKey() {
-		return sshKey;
-	}
-	
-	public void setSshKey(String sshKey) {
-		this.sshKey = sshKey;
-	}
+    private String sshKey;
+
+    @XmlElement(name = "ssh_key")
+    public String getSshKey() {
+        return sshKey;
+    }
+
+    public void setSshKey(String sshKey) {
+        this.sshKey = sshKey;
+    }
 
 }

@@ -16,28 +16,29 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
 
 /**
- *Migration handler to set the "uniquePolicyNames" to true if there is a FAST policy 
- *associated with the virtual pool. This is required because of a bug in 1.1 which will 
- *always save the policy name irrespective of the value of uniquePolicyNames.
+ * Migration handler to set the "uniquePolicyNames" to true if there is a FAST policy
+ * associated with the virtual pool. This is required because of a bug in 1.1 which will
+ * always save the policy name irrespective of the value of uniquePolicyNames.
  *
  */
 public class VirtualPoolAutoTieringPolicyMigration extends
-		BaseCustomMigrationCallback {
+        BaseCustomMigrationCallback {
 
-	private static final Logger logger = LoggerFactory.getLogger(VirtualPoolAutoTieringPolicyMigration.class);
-	public static final String NATIVE_GUID_DELIMITER = "+";
-	@Override
-	public void process() {
-		logger.info("Processing virtual pool auto tiering policy migration");
-		
-		DbClient dbClient = getDbClient();
+    private static final Logger logger = LoggerFactory.getLogger(VirtualPoolAutoTieringPolicyMigration.class);
+    public static final String NATIVE_GUID_DELIMITER = "+";
+
+    @Override
+    public void process() {
+        logger.info("Processing virtual pool auto tiering policy migration");
+
+        DbClient dbClient = getDbClient();
         try {
             List<URI> virtualPoolUris = dbClient.queryByType(VirtualPool.class, true);
             Iterator<VirtualPool> virtualPools = dbClient.queryIterativeObjects(VirtualPool.class, virtualPoolUris, true);
-            
+
             while (virtualPools.hasNext()) {
                 VirtualPool virtualPool = virtualPools.next();
-                //If there is a FAST policy associated with the vpool, then mark the uniquePolicyNames to true
+                // If there is a FAST policy associated with the vpool, then mark the uniquePolicyNames to true
                 if (virtualPool.getAutoTierPolicyName() != null
                         && !virtualPool.getAutoTierPolicyName().isEmpty()) {
                     // No way other than using contains to differentiate NativeGuid
@@ -56,6 +57,6 @@ public class VirtualPoolAutoTieringPolicyMigration extends
             logger.error(ex.getMessage(), ex);
         }
 
-	}
+    }
 
 }

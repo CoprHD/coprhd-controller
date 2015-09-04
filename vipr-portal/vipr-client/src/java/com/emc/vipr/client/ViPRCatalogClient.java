@@ -6,10 +6,11 @@ package com.emc.vipr.client;
 
 import com.emc.vipr.client.catalog.*;
 import com.emc.vipr.client.impl.RestClient;
+
 /**
  * The Catalog APIs have been moved from the portal to the a back end ViPR service.
  * 
- * @deprecated Replaced by 
+ * @deprecated Replaced by
  * @see ViPRCatalogClient2
  */
 @Deprecated

@@ -29,7 +29,7 @@ public class ClientConfig {
     public static final int SESSION_KEY_RENEW_TIMEOUT = 1000 * 60 * 60 * 7; // 7 hours
 
     private int maxConcurrentTaskRequests = DEFAULT_MAX_CONCURRENT_TASK_REQUESTS;
-	private int tasksExecutionTimeoutSeconds = DEFAULT_TASKS_EXECUTION_TIMEOUT_SECONDS;
+    private int tasksExecutionTimeoutSeconds = DEFAULT_TASKS_EXECUTION_TIMEOUT_SECONDS;
     private String mediaType = MediaType.APPLICATION_XML;
     private boolean requestLoggingEnabled = true;
     private int loggingEntityLength = DEFAULT_LOGGING_ENTITY_LENGTH;
@@ -46,7 +46,7 @@ public class ClientConfig {
     private String host;
     private SSLSocketFactory socketFactory;
     private HostnameVerifier hostnameVerifier;
-    
+
     public boolean isRequestLoggingEnabled() {
         return requestLoggingEnabled;
     }
@@ -182,7 +182,7 @@ public class ClientConfig {
      * @param port Target port.
      */
     public void setPort(int port) {
-        if (port <=0 || port > 65535) {
+        if (port <= 0 || port > 65535) {
             throw new ViPRException("Port specified is not a valid port");
         }
         this.port = port;
@@ -273,7 +273,7 @@ public class ClientConfig {
     public void setHostnameVerifier(HostnameVerifier hostnameVerifier) {
         this.hostnameVerifier = hostnameVerifier;
     }
-    
+
     /**
      * Returns the maximum concurrent task threads that this client can
      * spawn
@@ -281,48 +281,48 @@ public class ClientConfig {
      * @return Maximum concurrent task threads
      */
     public int getMaxConcurrentTaskRequests() {
-		return maxConcurrentTaskRequests;
-	}
+        return maxConcurrentTaskRequests;
+    }
 
-	/**
-	 * Sets the Maximum concurrent task threads that this client can spawn
-	 * 
-	 * @param maxConcurrentTaskRequests
-	 */
-	public void setMaxConcurrentTaskRequests(int maxConcurrentTaskRequests) {
-		this.maxConcurrentTaskRequests = maxConcurrentTaskRequests;
-	}
-	
-	/**
-	 * Adds maximum concurrent task request thread count
-	 * 
-	 * @param maxConcurrentTaskRequests
-	 * @return this Config
-	 */
-	public ClientConfig withMaxConcurrentTaskRequests(int maxConcurrentTaskRequests) {
-		this.setMaxConcurrentTaskRequests(maxConcurrentTaskRequests);
-		return this;
-	}
+    /**
+     * Sets the Maximum concurrent task threads that this client can spawn
+     * 
+     * @param maxConcurrentTaskRequests
+     */
+    public void setMaxConcurrentTaskRequests(int maxConcurrentTaskRequests) {
+        this.maxConcurrentTaskRequests = maxConcurrentTaskRequests;
+    }
 
-	/**
-	 * Returns task execution timeout in seconds
-	 * 
-	 * @return
-	 */
-	public int getTasksExecutionTimeoutSeconds() {
-		return tasksExecutionTimeoutSeconds;
-	}
+    /**
+     * Adds maximum concurrent task request thread count
+     * 
+     * @param maxConcurrentTaskRequests
+     * @return this Config
+     */
+    public ClientConfig withMaxConcurrentTaskRequests(int maxConcurrentTaskRequests) {
+        this.setMaxConcurrentTaskRequests(maxConcurrentTaskRequests);
+        return this;
+    }
 
-	/**
-	 * Sets the total task execution timeout in seconds
-	 * 
-	 * @param tasksExecutionTimeoutSeconds
-	 */
-	public void setTasksExecutionTimeoutSeconds(int tasksExecutionTimeoutSeconds) {
-		this.tasksExecutionTimeoutSeconds = tasksExecutionTimeoutSeconds;
-	}
-	
-	/**
+    /**
+     * Returns task execution timeout in seconds
+     * 
+     * @return
+     */
+    public int getTasksExecutionTimeoutSeconds() {
+        return tasksExecutionTimeoutSeconds;
+    }
+
+    /**
+     * Sets the total task execution timeout in seconds
+     * 
+     * @param tasksExecutionTimeoutSeconds
+     */
+    public void setTasksExecutionTimeoutSeconds(int tasksExecutionTimeoutSeconds) {
+        this.tasksExecutionTimeoutSeconds = tasksExecutionTimeoutSeconds;
+    }
+
+    /**
      * Returns session key renew timeout
      * 
      * @return
@@ -339,17 +339,17 @@ public class ClientConfig {
     public void setSessionKeyRenewTimeout(int sessionKeyRenewTimeout) {
         this.sessionKeyRenewTimeout = sessionKeyRenewTimeout;
     }
-	
-	/**
-	 * Adds the total tasks execution timeout in seconds
-	 * 
-	 * @param tasksExecutionTimeoutSeconds
-	 * @return This configuration
-	 */
-	public ClientConfig withTasksExecutionTimeoutSeconds(int tasksExecutionTimeoutSeconds) {
-		this.setTasksExecutionTimeoutSeconds(tasksExecutionTimeoutSeconds);
-		return this;
-	}
+
+    /**
+     * Adds the total tasks execution timeout in seconds
+     * 
+     * @param tasksExecutionTimeoutSeconds
+     * @return This configuration
+     */
+    public ClientConfig withTasksExecutionTimeoutSeconds(int tasksExecutionTimeoutSeconds) {
+        this.setTasksExecutionTimeoutSeconds(tasksExecutionTimeoutSeconds);
+        return this;
+    }
 
     /**
      * Sets the SSLSocketFactory and HostnameVerifier to ignore all SSL certificates. This is suitable for a default
@@ -568,7 +568,7 @@ public class ClientConfig {
         setIgnoreCertificates(ignoringCertificates);
         return this;
     }
-    
+
     /**
      * Sets the session key renew timeout.
      *

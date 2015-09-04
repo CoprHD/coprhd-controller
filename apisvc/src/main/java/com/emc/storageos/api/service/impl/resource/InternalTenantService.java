@@ -88,6 +88,7 @@ public class InternalTenantService extends ResourceService {
 
     /**
      * Get tenant object from id
+     * 
      * @param id the URN of a ViPR tenant
      * @return
      */
@@ -102,14 +103,15 @@ public class InternalTenantService extends ResourceService {
 
     /**
      * Set namespace mapping info for tenant or subtenant
+     * 
      * @param id the URN of a ViPR Tenant/Subtenant
      * @param namespace name of the target namespace the tenant will be mapped to
-     * @return the updated Tenant/Subtenant instance     
+     * @return the updated Tenant/Subtenant instance
      */
     @PUT
     @Path("/{id}/namespace")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public TenantOrgRestRep setTenantNamespace(@PathParam("id") URI id, @QueryParam("name") String namespace) {
         if (namespace == null || namespace.isEmpty()) {
             throw APIException.badRequests.invalidParameterTenantNamespaceIsEmpty();
@@ -129,12 +131,13 @@ public class InternalTenantService extends ResourceService {
 
     /**
      * Get namespace attached with a tenant or subtenant
+     * 
      * @param id the URN of a ViPR Tenant/Subtenant
-     * @return the TenantNamespaceInfo 
+     * @return the TenantNamespaceInfo
      */
     @GET
     @Path("/{id}/namespace")
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public TenantNamespaceInfo getTenantNamespace(@PathParam("id") URI id) {
         String namespace = "";
         TenantOrg tenant = getTenantById(id, true);
@@ -153,13 +156,13 @@ public class InternalTenantService extends ResourceService {
      * @param id the URN of a ViPR Tenant/Subtenant
      * @prereq none
      * @brief unset namespace field
-     * @return No data returned in response body     
+     * @return No data returned in response body
      */
     @DELETE
     @Path("/{id}/namespace")
     public Response unsetTenantNamespace(@PathParam("id") URI id) {
         TenantOrg tenant = getTenantById(id, true);
-        String origNamespace = (tenant.getNamespace() == null) ? "": tenant.getNamespace();
+        String origNamespace = (tenant.getNamespace() == null) ? "" : tenant.getNamespace();
 
         tenant.setNamespace("");
         _dbClient.persistObject(tenant);
@@ -168,4 +171,3 @@ public class InternalTenantService extends ResourceService {
         return Response.ok().build();
     }
 }
-

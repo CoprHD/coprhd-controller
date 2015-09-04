@@ -22,18 +22,16 @@ import com.emc.storageos.model.vpool.VirtualPoolCommonParam;
 import com.emc.storageos.model.vpool.VirtualPoolUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
-public class ProvisioningTypeValidator extends VirtualPoolValidator<VirtualPoolCommonParam,VirtualPoolUpdateParam> {
+public class ProvisioningTypeValidator extends VirtualPoolValidator<VirtualPoolCommonParam, VirtualPoolUpdateParam> {
 
     @Override
     public void setNextValidator(VirtualPoolValidator validator) {
         _nextValidator = validator;
     }
 
-   
-
     @Override
     protected void validateVirtualPoolUpdateAttributeValue(
-        VirtualPool cos, VirtualPoolUpdateParam updateParam, DbClient dbClient) {
+            VirtualPool cos, VirtualPoolUpdateParam updateParam, DbClient dbClient) {
         if (null == ProvisioningType.lookup(updateParam.getProvisionType()))
             throw APIException.badRequests.invalidParameter("provisionType",
                     updateParam.getProvisionType());

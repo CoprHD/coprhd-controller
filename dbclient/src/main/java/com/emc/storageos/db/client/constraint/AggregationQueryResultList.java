@@ -35,17 +35,17 @@ public class AggregationQueryResultList extends QueryResultList<AggregationQuery
 
     @Override
     public AggregatedEntry createQueryHit(URI uri) {
-        return new AggregatedEntry(uri,null);
+        return new AggregatedEntry(uri, null);
     }
 
     @Override
     public AggregatedEntry createQueryHit(URI uri, String name, UUID timestamp) {
-        return new AggregatedEntry(uri,name);
+        return new AggregatedEntry(uri, name);
     }
 
     // default implementation
-    public AggregatedEntry createQueryHit(URI uri, Object value){
-        return new AggregatedEntry(uri,value);
+    public AggregatedEntry createQueryHit(URI uri, Object value) {
+        return new AggregatedEntry(uri, value);
     }
 
 }

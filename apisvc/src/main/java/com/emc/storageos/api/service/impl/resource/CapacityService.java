@@ -35,17 +35,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.emc.storageos.volumecontroller.impl.ManagedCapacityImpl;
 
-
 /**
  * API for obtaining the current provisioning managed capacity.
  */
 @Path("/internal/system")
 public class CapacityService extends ResourceService {
-	
+
     private static final Logger _log = LoggerFactory.getLogger(CapacityService.class);
 
     /**
      * Get the provisioning managed capacity.
+     * 
      * @return
      * @throws IOException
      */
@@ -53,19 +53,17 @@ public class CapacityService extends ResourceService {
     @Path("/managed-capacity")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_JSON })
-    public  ManagedResourcesCapacity getManagedCapacity()  {
+    public ManagedResourcesCapacity getManagedCapacity() {
 
         ManagedResourcesCapacity resources = null;
         try {
             resources = getCapacityDataResource();
-        }
-        catch (Exception ex) {
+        } catch (Exception ex) {
             // failed to find capacity in the database, try to compute directly
             try {
                 resources = ManagedCapacityImpl.getManagedCapacity(_dbClient);
-            }
-            catch( InterruptedException ignore) {
-                //impossible
+            } catch (InterruptedException ignore) {
+                // impossible
             }
         }
         return resources;
@@ -74,18 +72,18 @@ public class CapacityService extends ResourceService {
     private ManagedResourcesCapacity getCapacityDataResource() throws Exception {
 
         ManagedResourcesCapacity capacities = new ManagedResourcesCapacity();
-        for( CapacityResourceType capType : CapacityResourceType.values() )  {
+        for (CapacityResourceType capType : CapacityResourceType.values()) {
             ManagedCapacityImpl.CapacityPropertyListTypes resourceType = ManagedCapacityImpl.mapCapacityType(capType);
             List<URI> dataResourcesURI = _dbClient.queryByConstraint(
-                                  AlternateIdConstraint.Factory.getConstraint(PropertyListDataObject.class,
-                                                                              "resourceType",
-                                                                               resourceType.toString()));
+                    AlternateIdConstraint.Factory.getConstraint(PropertyListDataObject.class,
+                            "resourceType",
+                            resourceType.toString()));
             if (dataResourcesURI.size() == 0) {
                 _log.error("Failed to find capacity of type {} in the database, recompute", resourceType);
                 throw new Exception("Failed to find capacity in the database");
             }
             PropertyListDataObject resource = _dbClient.queryObject(PropertyListDataObject.class, dataResourcesURI.get(0));
-            ManagedResourceCapacity mCap = map(resource,ManagedResourceCapacity.class);
+            ManagedResourceCapacity mCap = map(resource, ManagedResourceCapacity.class);
             capacities.getResourceCapacityList().add(mCap);
         }
         return capacities;

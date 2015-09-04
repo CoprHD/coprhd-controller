@@ -40,20 +40,20 @@ import com.emc.storageos.volumecontroller.impl.FileDeviceController;
  * This is the class for create share (file and snapshot) job
  *
  */
-public class VNXeCreateShareJob extends VNXeJob{
+public class VNXeCreateShareJob extends VNXeJob {
 
     private static final long serialVersionUID = 2842416097631512608L;
     private static final Logger _logger = LoggerFactory.getLogger(VNXeCreateShareJob.class);
     private FileSMBShare smbShare;
     private boolean isFile;
-    
-    public VNXeCreateShareJob(String jobId, URI storageSystemUri, 
+
+    public VNXeCreateShareJob(String jobId, URI storageSystemUri,
             TaskCompleter taskCompleter, FileSMBShare smbShare, boolean isFile) {
         super(jobId, storageSystemUri, taskCompleter, "createSMBShare");
         this.smbShare = smbShare;
         this.isFile = isFile;
     }
-    
+
     @Override
     public void updateStatus(JobContext jobContext) throws Exception {
 
@@ -65,20 +65,19 @@ public class VNXeCreateShareJob extends VNXeJob{
 
             String opId = getTaskCompleter().getOpId();
             StringBuilder logMsgBuilder = new StringBuilder(String.format("Updating status of job %s to %s", opId, _status.name()));
-            
+
             VNXeApiClient vnxeApiClient = getVNXeClient(jobContext);
 
-            
             String event = "";
             FileShare fsObj = null;
             Snapshot snapObj = null;
-            
-            URI fsId = getTaskCompleter().getId();  
+
+            URI fsId = getTaskCompleter().getId();
             fsObj = dbClient.queryObject(FileShare.class, fsId);
-            
+
             if (_status == JobStatus.SUCCESS) {
                 if (isFile) {
-                    
+
                     updateFileSystem(vnxeApiClient, dbClient, fsObj);
                     event = String.format(
                             "Create file system smbShare successfully for URI: %s", getTaskCompleter().getId());
@@ -93,15 +92,15 @@ public class VNXeCreateShareJob extends VNXeJob{
                 logMsgBuilder.append("\n");
                 logMsgBuilder.append(event);
 
-            } 
+            }
             _logger.info(logMsgBuilder.toString());
             if (isFile) {
                 FileDeviceController.recordFileDeviceOperation(dbClient, OperationTypeEnum.CREATE_FILE_SYSTEM_SHARE, _isSuccess,
                         event, smbShare.getName(), fsObj, smbShare);
             } else {
-               fsObj = dbClient.queryObject(FileShare.class, snapObj.getParent());
-               
-               FileDeviceController.recordFileDeviceOperation(dbClient, OperationTypeEnum.CREATE_FILE_SNAPSHOT_SHARE, _isSuccess,
+                fsObj = dbClient.queryObject(FileShare.class, snapObj.getParent());
+
+                FileDeviceController.recordFileDeviceOperation(dbClient, OperationTypeEnum.CREATE_FILE_SNAPSHOT_SHARE, _isSuccess,
                         event, smbShare.getName(), snapObj, fsObj, smbShare);
             }
         } catch (Exception e) {
@@ -111,9 +110,10 @@ public class VNXeCreateShareJob extends VNXeJob{
             super.updateStatus(jobContext);
         }
     }
-    
+
     /**
      * update file system object with the SMB share.
+     * 
      * @param apiClient
      * @param dbClient
      * @param fsObj
@@ -128,8 +128,8 @@ public class VNXeCreateShareJob extends VNXeJob{
         if (vnxeShare != null) {
             smbShare.setNativeId(vnxeShare.getId());
             SMBFileShare share = smbShare.getSMBFileShare();
-            //set Mount Point
-            share.setMountPoint(share.getNetBIOSName(),share.getStoragePortNetworkId(),share.getStoragePortName(),share.getName());
+            // set Mount Point
+            share.setMountPoint(share.getNetBIOSName(), share.getStoragePortNetworkId(), share.getStoragePortName(), share.getName());
             shareMap.put(share.getName(), share);
             createDefaultACEForShare(dbClient, fsObj.getId(), smbShare);
         } else {
@@ -138,11 +138,11 @@ public class VNXeCreateShareJob extends VNXeJob{
         }
         dbClient.persistObject(fsObj);
     }
-    
+
     private Snapshot updateSnapshot(VNXeApiClient apiClient, DbClient dbClient) {
-        URI snapId = getTaskCompleter().getId();  
+        URI snapId = getTaskCompleter().getId();
         Snapshot snapObj = dbClient.queryObject(Snapshot.class, snapId);
-        
+
         SMBShareMap shareMap = snapObj.getSMBFileShares();
         if (shareMap == null) {
             shareMap = new SMBShareMap();
@@ -152,8 +152,8 @@ public class VNXeCreateShareJob extends VNXeJob{
         if (vnxeShare != null) {
             smbShare.setNativeId(vnxeShare.getId());
             SMBFileShare share = smbShare.getSMBFileShare();
-            //set Mount Point
-            share.setMountPoint(share.getNetBIOSName(),share.getStoragePortNetworkId(),share.getStoragePortName(),share.getName());
+            // set Mount Point
+            share.setMountPoint(share.getNetBIOSName(), share.getStoragePortNetworkId(), share.getStoragePortName(), share.getName());
             shareMap.put(share.getName(), share);
             createDefaultACEForShare(dbClient, snapId, smbShare);
         } else {
@@ -163,35 +163,35 @@ public class VNXeCreateShareJob extends VNXeJob{
         dbClient.persistObject(snapObj);
         return snapObj;
     }
-    
+
     private void createDefaultACEForShare(DbClient dbClient, URI id, FileSMBShare fileShare) {
-    	
-    	SMBFileShare share = fileShare.getSMBFileShare();
-    	CifsShareACL ace = new CifsShareACL();
-		ace.setUser(FileControllerConstants.CIFS_SHARE_USER_EVERYONE);
-		String permission = null;
-		switch(share.getPermission()) {
-		case "read":
-			permission = FileControllerConstants.CIFS_SHARE_PERMISSION_READ;
-			break;
-		case "change":
-			permission = FileControllerConstants.CIFS_SHARE_PERMISSION_CHANGE;
-			break;
-		case "full":
-			permission = FileControllerConstants.CIFS_SHARE_PERMISSION_FULLCONTROL;
-			break;
-		}
-		ace.setPermission(permission);
-		ace.setId(URIUtil.createId(CifsShareACL.class));
-		ace.setShareName(share.getName());
-		if(URIUtil.isType(id, FileShare.class)) {
-			ace.setFileSystemId(id);
-		} else {
-			ace.setSnapshotId(id);
-		}
-		
-		_logger.info("Creating default ACE for the share: {}", ace);
-		dbClient.createObject(ace);
+
+        SMBFileShare share = fileShare.getSMBFileShare();
+        CifsShareACL ace = new CifsShareACL();
+        ace.setUser(FileControllerConstants.CIFS_SHARE_USER_EVERYONE);
+        String permission = null;
+        switch (share.getPermission()) {
+            case "read":
+                permission = FileControllerConstants.CIFS_SHARE_PERMISSION_READ;
+                break;
+            case "change":
+                permission = FileControllerConstants.CIFS_SHARE_PERMISSION_CHANGE;
+                break;
+            case "full":
+                permission = FileControllerConstants.CIFS_SHARE_PERMISSION_FULLCONTROL;
+                break;
+        }
+        ace.setPermission(permission);
+        ace.setId(URIUtil.createId(CifsShareACL.class));
+        ace.setShareName(share.getName());
+        if (URIUtil.isType(id, FileShare.class)) {
+            ace.setFileSystemId(id);
+        } else {
+            ace.setSnapshotId(id);
+        }
+
+        _logger.info("Creating default ACE for the share: {}", ace);
+        dbClient.createObject(ace);
     }
-    
+
 }

@@ -26,7 +26,7 @@ import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
  */
 public class ProvisioningAttributeMapBuilder extends AttributeMapBuilder {
     /**
-     * Holds size attribute.    
+     * Holds size attribute.
      */
     private long _size;
     /**
@@ -34,11 +34,13 @@ public class ProvisioningAttributeMapBuilder extends AttributeMapBuilder {
      */
     private String _neighborhoodId;
     /**
-     * Holds size attribute.    
+     * Holds size attribute.
      */
     private long _thinVolumePreAllocationSize;
+
     /**
      * Constructor to initialize with provisioning attributes.
+     * 
      * @param size
      * @param protocols
      * @param neighborhoodId

@@ -27,7 +27,7 @@ import com.google.common.collect.Lists;
 public class TextOrderCreator {
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd-MM-yy hh:mm");
     private static final String DETAIL_INDENT = "      \t                            \t";
-    
+
     private final ViPRCatalogClient2 client;
     private final OrderRestRep order;
     private final StringBuffer buffer;
@@ -38,13 +38,12 @@ public class TextOrderCreator {
         this.buffer = new StringBuffer();
     }
 
-    public String getText()  {
+    public String getText() {
         try {
             writeDetails();
             writeRequestParameters();
             writeExecutionState();
-        }
-        catch (Throwable e) {
+        } catch (Throwable e) {
             writeHeader("ERROR CREATING ORDER");
             buffer.append(ExceptionUtils.getFullStackTrace(e));
         }
@@ -94,7 +93,7 @@ public class TextOrderCreator {
         writeLogs(state);
         writeTaskLogs(state);
     }
-    
+
     private void writeLogs(ExecutionStateRestRep state) {
         List<OrderLogRestRep> logs = client.orders().getLogs(order.getId());
         writeHeader("Logs");
@@ -102,7 +101,7 @@ public class TextOrderCreator {
             writeLog(log);
         }
     }
-    
+
     private void writeTaskLogs(ExecutionStateRestRep state) {
         List<ExecutionLogRestRep> logs = client.orders().getExecutionLogs(order.getId());
         List<ExecutionLogRestRep> precheckLogs = getTaskLogs(logs, ExecutionPhase.PRECHECK);
@@ -128,7 +127,7 @@ public class TextOrderCreator {
             }
         }
     }
-    
+
     private List<ExecutionLogRestRep> getTaskLogs(List<ExecutionLogRestRep> logs, ExecutionPhase phase) {
         List<ExecutionLogRestRep> phaseLogs = Lists.newArrayList();
         for (ExecutionLogRestRep log : logs) {
@@ -138,7 +137,7 @@ public class TextOrderCreator {
         }
         return phaseLogs;
     }
-    
+
     private void writeLog(OrderLogRestRep log) {
         buffer.append("[").append(log.getLevel()).append("]");
         buffer.append("\t").append(log.getDate());
@@ -150,7 +149,7 @@ public class TextOrderCreator {
         }
         buffer.append("\n");
     }
-    
+
     private void writeLog(ExecutionLogRestRep log) {
         buffer.append("[").append(log.getLevel()).append("]");
         buffer.append("\t").append(log.getDate());
@@ -168,7 +167,7 @@ public class TextOrderCreator {
         }
         buffer.append("\n");
     }
-    
+
     private void writeHeader(String header) {
         buffer.append("\n");
         buffer.append(header);

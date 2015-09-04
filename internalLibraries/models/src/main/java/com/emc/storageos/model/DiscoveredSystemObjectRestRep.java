@@ -38,7 +38,8 @@ public abstract class DiscoveredSystemObjectRestRep extends DiscoveredDataObject
     private String compatibilityStatus;
     private String registrationStatus;
 
-    public DiscoveredSystemObjectRestRep() {}
+    public DiscoveredSystemObjectRestRep() {
+    }
 
     public DiscoveredSystemObjectRestRep(String systemType,
             String discoveryJobStatus, String meteringJobStatus,
@@ -60,7 +61,7 @@ public abstract class DiscoveredSystemObjectRestRep extends DiscoveredDataObject
         this.compatibilityStatus = compatibilityStatus;
         this.registrationStatus = registrationStatus;
     }
-    
+
     /**
      * The last discovery status message for this system
      *
@@ -82,7 +83,7 @@ public abstract class DiscoveredSystemObjectRestRep extends DiscoveredDataObject
      * @valid isilon
      * @valid netapp
      * @valid mds = Cisco MDS series switch
-     * @valid rp  = RecoverPoint
+     * @valid rp = RecoverPoint
      * @valid vmax
      * @valid vnxblock
      * @valid vnxfile
@@ -216,7 +217,6 @@ public abstract class DiscoveredSystemObjectRestRep extends DiscoveredDataObject
         this.successMeteringTime = successMeteringTime;
     }
 
-
     /**
      * Whether or not the system is registered with ViPR. A system must be
      * registered before it can be managed by ViPR.
@@ -233,7 +233,6 @@ public abstract class DiscoveredSystemObjectRestRep extends DiscoveredDataObject
     public void setRegistrationStatus(String registrationStatus) {
         this.registrationStatus = registrationStatus;
     }
-
 
     /**
      * Whether or not this system is compatible with ViPR

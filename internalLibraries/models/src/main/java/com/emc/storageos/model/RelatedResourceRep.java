@@ -34,6 +34,7 @@ public class RelatedResourceRep {
         this.id = id;
         this.selfLink = selfLink;
     }
+
     /**
      * 
      * ViPR ID of the related object
@@ -41,14 +42,14 @@ public class RelatedResourceRep {
      * @valid none
      */
     @XmlElement(name = "id")
-    public URI getId()  {
+    public URI getId() {
         return id;
     }
-    
-    public void setId(URI id)  {
-         this.id = id;
+
+    public void setId(URI id) {
+        this.id = id;
     }
-    
+
     /**
      * 
      * A hyperlink to the related object
@@ -56,9 +57,10 @@ public class RelatedResourceRep {
      * @valid none
      */
     @XmlElement(name = "link")
-    public RestLinkRep getLink(){
+    public RestLinkRep getLink() {
         return selfLink;
     }
+
     public void setLink(RestLinkRep link) {
         selfLink = link;
     }

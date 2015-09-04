@@ -21,8 +21,7 @@ public class ComputeElementHBA extends DiscoveredDataObject {
     private String _vsanId;
     private String _templateName;
 
-
-	@RelationIndex(cf = "ComputeRelationIndex", type = ComputeElement.class)
+    @RelationIndex(cf = "ComputeRelationIndex", type = ComputeElement.class)
     @Name("computeElement")
     public URI getComputeElement() {
         return _computeElement;
@@ -104,14 +103,15 @@ public class ComputeElementHBA extends DiscoveredDataObject {
         this._vsanId = vsanId;
         setChanged("vsanId");
     }
+
     @Name("templateName")
     public String getTemplateName() {
-		return _templateName;
-	}
+        return _templateName;
+    }
 
-	public void setTemplateName(String _templateName) {
-		this._templateName = _templateName;
-		setChanged("templateName");
-	}
+    public void setTemplateName(String _templateName) {
+        this._templateName = _templateName;
+        setChanged("templateName");
+    }
 
 }

@@ -23,7 +23,7 @@ import java.lang.annotation.*;
  * Time unit for each (row) bucket
  */
 @Documented
-@Target({ElementType.TYPE})
+@Target({ ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface BucketGranularity {
     /**

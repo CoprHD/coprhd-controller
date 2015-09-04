@@ -32,7 +32,7 @@ public class ServiceCatalog {
     private final String version;
 
     public ServiceCatalog(Map<ApiIdentifier, ApiDescriptor> apiMap, Map<String, String> elementMap,
-                          String serviceName, String version) {
+            String serviceName, String version) {
         if (apiMap == null)
             this.apiMap = new HashMap<ApiIdentifier, ApiDescriptor>();
         else
@@ -63,7 +63,6 @@ public class ServiceCatalog {
                 apiMapIter.remove();
         }
     }
-
 
     public Map<ApiIdentifier, ApiDescriptor> getApiMap() {
         return apiMap;

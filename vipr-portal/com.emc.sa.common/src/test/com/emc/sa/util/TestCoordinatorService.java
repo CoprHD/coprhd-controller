@@ -36,7 +36,7 @@ public class TestCoordinatorService {
         lookup.setControllerNodeIPLookupMap(addressMap);
         return lookup;
     }
-    
+
     /** Starts the Coordinator, but first deletes all persisted Zookeeper data */
     public void startClean() throws Exception {
         start();
@@ -62,5 +62,5 @@ public class TestCoordinatorService {
     public CoordinatorClient getCoordinatorClient() {
         return coordinatorClient;
     }
-    
+
 }

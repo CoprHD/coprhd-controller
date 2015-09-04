@@ -48,16 +48,16 @@ public class DbSchemaDiff extends Diff {
                 fi.setParent(src);
             }
         }
-        
+
         for (AnnotationType at : src.getAnnotations().getAnnotations()) {
             at.setParent(src);
         }
 
-        fieldCT = CollectionChangeTracker.<FieldInfo, FieldInfoDiff>newInstance(
+        fieldCT = CollectionChangeTracker.<FieldInfo, FieldInfoDiff> newInstance(
                 FieldInfo.class, FieldInfoDiff.class, src.getFields(), tgt.getFields());
 
-        annotationCT = CollectionChangeTracker.<AnnotationType, AnnotationTypeDiff>newInstance(
-                AnnotationType.class, AnnotationTypeDiff.class, src.getAnnotations().getAnnotations(), 
+        annotationCT = CollectionChangeTracker.<AnnotationType, AnnotationTypeDiff> newInstance(
+                AnnotationType.class, AnnotationTypeDiff.class, src.getAnnotations().getAnnotations(),
                 tgt.getAnnotations().getAnnotations());
     }
 

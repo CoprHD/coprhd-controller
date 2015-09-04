@@ -31,15 +31,16 @@ import java.util.Set;
  */
 @XmlRootElement(name = "property_info")
 public class PropertyInfoRestRep extends PropertyInfo {
-    public static final String CONFIG_VERSION  = "config_version";
+    public static final String CONFIG_VERSION = "config_version";
     public static final String CONNECTEMC_TRANSPORT = "system_connectemc_transport";
-    
-    public PropertyInfoRestRep() {}
+
+    public PropertyInfoRestRep() {
+    }
 
     public PropertyInfoRestRep(Map<String, String> properties) {
         super(properties);
     }
-  
+
     public Map<String, String> getAllProperties() {
         return super.getAllProperties();
     }
@@ -68,7 +69,7 @@ public class PropertyInfoRestRep extends PropertyInfo {
             // compare intersection properties' value
             for (Map.Entry<String, String> entry : getProperties().entrySet()) {
                 final String key = entry.getKey();
-                final String value = object.getProperty(key) ;
+                final String value = object.getProperty(key);
                 if (value == null || value != null && !value.equals(entry.getValue())) {
                     return true;
                 }
@@ -101,7 +102,7 @@ public class PropertyInfoRestRep extends PropertyInfo {
                 final String key = entry.getKey();
                 final String value = entry.getValue();
 
-                final String objectVal = object.getProperty(key) ;
+                final String objectVal = object.getProperty(key);
                 if (objectVal == null || objectVal != null && !objectVal.equals(value)) {
                     diffProps.put(key, value);
                 }
@@ -119,7 +120,7 @@ public class PropertyInfoRestRep extends PropertyInfo {
 
         return diffProps;
     }
-    
+
     public void removeProperty(String propName) {
         getProperties().remove(propName);
     }
@@ -150,4 +151,3 @@ public class PropertyInfoRestRep extends PropertyInfo {
     }
 
 }
-

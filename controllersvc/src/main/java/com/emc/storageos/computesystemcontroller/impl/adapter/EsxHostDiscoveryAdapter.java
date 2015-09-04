@@ -102,17 +102,16 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
     /**
      * (non-Javadoc)
      *
-     * @see com.emc.storageos.computesystemcontroller.impl.ComputeSystemDiscoveryAdapter
-     *      #discoverTarget(java.lang.String)
+     * @see com.emc.storageos.computesystemcontroller.impl.ComputeSystemDiscoveryAdapter #discoverTarget(java.lang.String)
      */
     @Override
     public void discoverTarget(String targetId) {
         Host host = getModelClient().hosts().findById(targetId);
         HostStateChange changes = new HostStateChange(host, host.getCluster());
-        if(checkHostCredentials(host))
+        if (checkHostCredentials(host))
         {
             discoverEsxHost(host, changes);
-        }else
+        } else
         {
             debug("Skipping Esx host discovery, credentials not found for host - %s", host.getHostName());
         }
@@ -120,15 +119,16 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Check if the given host has credentials
+     * 
      * @param host - {@link Host}
      * @return
      */
     private boolean checkHostCredentials(Host host) {
         boolean hasCredentials = false;
-        if(null != host.getUsername() && null !=host.getPassword())
+        if (null != host.getUsername() && null != host.getPassword())
             hasCredentials = true;
         return hasCredentials;
-        
+
     }
 
     /**
@@ -165,7 +165,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
      */
     @Override
     public void matchHostsToComputeElements(URI hostId) {
-        HostToComputeElementMatcher.matchHostsToComputeElementsByUuid(hostId,getDbClient());
+        HostToComputeElementMatcher.matchHostsToComputeElementsByUuid(hostId, getDbClient());
     }
 
     /**
@@ -182,7 +182,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         VCenterAPI api = createVCenterAPI(host);
         try {
             List<HostSystem> hostSystems = api.listAllHostSystems();
-            if(null != hostSystems && !hostSystems.isEmpty())
+            if (null != hostSystems && !hostSystems.isEmpty())
             {
                 // getting the 0th element only coz we are querying an ESX for
                 // hostsystems and this will always return one or none.
@@ -195,13 +195,13 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                         && hw.systemInfo.uuid != null) {
                     // try finding host by UUID
                     uuid = hw.systemInfo.uuid;
-                    //search host by uuid in VIPR if host already discovered
+                    // search host by uuid in VIPR if host already discovered
                     targetHost = findHostByUuid(uuid);
                     checkDuplicateHost(host, targetHost);
                 }
 
                 if (targetHost == null) {
-                    //if target host is null, this is a new discovery.
+                    // if target host is null, this is a new discovery.
                     targetHost = host;
                 }
                 targetHost.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
@@ -217,7 +217,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                     targetHost.setUuid(uuid);
                     save(targetHost);
                 }
-            
+
                 DiscoveryStatusUtils.markAsProcessing(getModelClient(),
                         targetHost);
                 try {
@@ -238,11 +238,12 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Check if the host already exists in VIPR
+     * 
      * @param host - {@link Host} instance being discovered / added.
      * @param targetHost {@link Host} instance from VIPR DB.
      */
     private void checkDuplicateHost(Host host, Host targetHost) {
-        if(targetHost != null && !(host.getId().equals(targetHost.getId())))
+        if (targetHost != null && !(host.getId().equals(targetHost.getId())))
         {
             ComputeSystemControllerException ex =
                     ComputeSystemControllerException.exceptions.duplicateSystem("Host", targetHost.getLabel());
@@ -721,19 +722,19 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
     protected void discoverIpInterfaces(Host host,
             List<IpInterface> oldIpInterfaces) {
         // Do nothing, for ESX host ip interfaces are discovered differently
-        
+
     }
 
     @Override
     protected void discoverInitiators(Host host, List<Initiator> oldInitiators,
             HostStateChange changes) {
         // Do nothing, for ESX host Initiators are discovered differently
-        
+
     }
 
     @Override
     protected void setNativeGuid(Host host) {
         // TODO Auto-generated method stub
-        
+
     }
 }

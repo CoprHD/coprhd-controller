@@ -68,7 +68,7 @@ public class DbManager implements DbManagerMBean {
     private ScheduledExecutorService executor = new NamedScheduledThreadPoolExecutor("DbRepairPool", 2);
 
     /**
-     * Regular repair frequency in minutes 
+     * Regular repair frequency in minutes
      *
      * @param repairFreqMin
      */
@@ -89,7 +89,7 @@ public class DbManager implements DbManagerMBean {
     private boolean startNodeRepair(String keySpaceName, int maxRetryTimes, boolean crossVdc, boolean noNewReapir) throws Exception {
         DbRepairRunnable runnable = new DbRepairRunnable(this.executor, this.coordinator, keySpaceName,
                 this.schemaUtil.isGeoDbsvc(), maxRetryTimes, crossVdc, noNewReapir);
-        //call preConfig() here to set IN_PROGRESS for db repair triggered by schedule since we use it in getDbRepairStatus.
+        // call preConfig() here to set IN_PROGRESS for db repair triggered by schedule since we use it in getDbRepairStatus.
         runnable.preConfig();
         synchronized (runnable) {
             this.executor.submit(runnable);
@@ -184,7 +184,7 @@ public class DbManager implements DbManagerMBean {
     }
 
     @Override
-    public void startNodeRepair(boolean canResume, boolean crossVdc) throws Exception{
+    public void startNodeRepair(boolean canResume, boolean crossVdc) throws Exception {
         // The return value is ignored as we are setting interval time to 0, it cannot be NotTheTime. And both AlreadyRunning and Started
         // are considered success. Though the already running repair may not for current cluster state, but that's same if it is and the
         // cluster state changed immediately after that.
@@ -218,10 +218,11 @@ public class DbManager implements DbManagerMBean {
     @Override
     public DbRepairStatus getLastRepairStatus(boolean forCurrentNodesOnly) {
         try {
-            DbRepairJobState state = DbRepairRunnable.queryRepairState(this.coordinator, this.schemaUtil.getKeyspaceName(), this.schemaUtil.isGeoDbsvc());
+            DbRepairJobState state = DbRepairRunnable.queryRepairState(this.coordinator, this.schemaUtil.getKeyspaceName(),
+                    this.schemaUtil.isGeoDbsvc());
 
-            DbRepairStatus retState = getLastRepairStatus(state, forCurrentNodesOnly ? DbRepairRunnable.getClusterStateDigest() : null, this.repairRetryTimes);
-            
+            DbRepairStatus retState = getLastRepairStatus(state, forCurrentNodesOnly ? DbRepairRunnable.getClusterStateDigest() : null,
+                    this.repairRetryTimes);
 
             if (retState != null && retState.getStatus() == DbRepairStatus.Status.IN_PROGRESS) {
                 // See if current state holder is still active, if not, we need to resume it
@@ -248,7 +249,8 @@ public class DbManager implements DbManagerMBean {
     @Override
     public DbRepairStatus getLastSucceededRepairStatus(boolean forCurrentNodesOnly) {
         try {
-            DbRepairJobState state = DbRepairRunnable.queryRepairState(this.coordinator, this.schemaUtil.getKeyspaceName(), this.schemaUtil.isGeoDbsvc());
+            DbRepairJobState state = DbRepairRunnable.queryRepairState(this.coordinator, this.schemaUtil.getKeyspaceName(),
+                    this.schemaUtil.isGeoDbsvc());
 
             return getLastSucceededRepairStatus(state, forCurrentNodesOnly ? DbRepairRunnable.getClusterStateDigest() : null);
         } catch (Exception e) {
@@ -259,7 +261,7 @@ public class DbManager implements DbManagerMBean {
 
     private Integer getNumTokensToSet() {
         int nodeCount = StorageService.instance.getLiveNodes().size();
-        // no need to adjust token for single node 
+        // no need to adjust token for single node
         if (nodeCount == 1) {
             return null;
         }

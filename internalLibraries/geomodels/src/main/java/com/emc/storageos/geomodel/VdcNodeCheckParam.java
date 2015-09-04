@@ -26,7 +26,7 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @XmlRootElement(name = "vdc-node-check")
 public class VdcNodeCheckParam {
-    
+
     private List<VdcConfig> virtualDataCenters;
 
     @XmlElement(name = "vdc")
@@ -40,7 +40,7 @@ public class VdcNodeCheckParam {
     public void setVirtualDataCenters(List<VdcConfig> virtualDataCenters) {
         this.virtualDataCenters = virtualDataCenters;
     }
-    
+
     public void addVirtualDataCenter(VdcConfig vdc) {
         if (this.virtualDataCenters == null) {
             this.virtualDataCenters = new ArrayList<VdcConfig>();

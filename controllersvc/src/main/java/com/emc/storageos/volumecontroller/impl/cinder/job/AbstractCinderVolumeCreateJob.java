@@ -41,68 +41,68 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.cinder.CinderUtils;
 
 /**
- * Abstract Implementation for cinder volume creation status 
+ * Abstract Implementation for cinder volume creation status
  * check and update the corresponding objects in the Database.
  *
  */
-public abstract class AbstractCinderVolumeCreateJob extends CinderJob 
+public abstract class AbstractCinderVolumeCreateJob extends CinderJob
 {
 
-	private static final long serialVersionUID = -5488768452792486576L;
-	private static final Logger logger = LoggerFactory.getLogger(AbstractCinderVolumeCreateJob.class);
-	private URI storagePoolUri = null;
-	private Map<String, URI> volumeIds = null;
+    private static final long serialVersionUID = -5488768452792486576L;
+    private static final Logger logger = LoggerFactory.getLogger(AbstractCinderVolumeCreateJob.class);
+    private URI storagePoolUri = null;
+    private Map<String, URI> volumeIds = null;
 
-	/**
-	 * @param jobId
-	 * @param jobName
-	 * @param storageSystem
-	 * @param componentType
-	 * @param ep
-	 * @param taskCompleter
-	 */
-	public AbstractCinderVolumeCreateJob(String jobId, String jobName,
-														  URI storageSystem, String componentType, 
-														  CinderEndPointInfo ep, TaskCompleter taskCompleter,
-														  URI storagePoolUri, Map<String, URI> volumeIds) 
-	{
-		super(jobId, jobName, storageSystem, componentType, ep, taskCompleter);
-		this.storagePoolUri = storagePoolUri;
-		this.volumeIds = volumeIds;
-	}
-	
-	 /**
+    /**
+     * @param jobId
+     * @param jobName
+     * @param storageSystem
+     * @param componentType
+     * @param ep
+     * @param taskCompleter
+     */
+    public AbstractCinderVolumeCreateJob(String jobId, String jobName,
+            URI storageSystem, String componentType,
+            CinderEndPointInfo ep, TaskCompleter taskCompleter,
+            URI storagePoolUri, Map<String, URI> volumeIds)
+    {
+        super(jobId, jobName, storageSystem, componentType, ep, taskCompleter);
+        this.storagePoolUri = storagePoolUri;
+        this.volumeIds = volumeIds;
+    }
+
+    /**
      * Called to update the job status when the volume create job completes.
      * This is common update code for volume create operations.
      *
      * @param jobContext The job context.
      */
     @Override
-    public void updateStatus(JobContext jobContext) throws Exception 
+    public void updateStatus(JobContext jobContext) throws Exception
     {
         DbClient dbClient = jobContext.getDbClient();
-        try 
+        try
         {
-        	//Do nothing if the job is not completed yet
+            // Do nothing if the job is not completed yet
             if (status == JobStatus.IN_PROGRESS)
             {
                 return;
             }
-            
+
             String opId = getTaskCompleter().getOpId();
             StringBuilder logMsgBuilder = new StringBuilder(String.format("Updating status of job %s to %s", opId, status.name()));
             StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, getStorageSystemURI());
-            
+
             CinderApi cinderApi = jobContext.getCinderApiFactory().getApi(storageSystem.getActiveProviderURI(), getEndPointInfo());
 
-            // If terminal state update storage pool capacity and remove reservation for  volumes capacity
+            // If terminal state update storage pool capacity and remove reservation for volumes capacity
             // from pool's reserved capacity map.
             StoragePool storagePool = null;
-            if (status == JobStatus.SUCCESS || status == JobStatus.FAILED) 
+            if (status == JobStatus.SUCCESS || status == JobStatus.FAILED)
             {
                 storagePool = dbClient.queryObject(StoragePool.class, storagePoolUri);
                 StringMap reservationMap = storagePool.getReservedCapacityMap();
-                for (URI volumeId : getTaskCompleter().getIds()) 
+                for (URI volumeId : getTaskCompleter().getIds())
                 {
                     // remove from reservation map
                     reservationMap.remove(volumeId.toString());
@@ -110,25 +110,25 @@ public abstract class AbstractCinderVolumeCreateJob extends CinderJob
                 dbClient.persistObject(storagePool);
             }
 
-            if (status == JobStatus.SUCCESS) 
+            if (status == JobStatus.SUCCESS)
             {
-                List<URI> volumes = new ArrayList<URI>();                
+                List<URI> volumes = new ArrayList<URI>();
                 Calendar now = Calendar.getInstance();
                 URI volumeId = getTaskCompleter().getId();
                 volumes.add(volumeId);
-                
+
                 for (Map.Entry<String, URI> entry : volumeIds.entrySet()) {
                     VolumeShowResponse volumeDetails = cinderApi.showVolume(entry.getKey());
                     processVolume(entry.getValue(), volumeDetails, dbClient, now, logMsgBuilder);
-                    
-                  //Adjust the storage pool's capacity
+
+                    // Adjust the storage pool's capacity
                     CinderUtils.updateStoragePoolCapacity(dbClient, cinderApi, storagePool, volumeDetails.volume.size, false);
                 }
-                
+
             }
-            else if (status == JobStatus.FAILED) 
+            else if (status == JobStatus.FAILED)
             {
-                for (URI id : getTaskCompleter().getIds()) 
+                for (URI id : getTaskCompleter().getIds())
                 {
                     logMsgBuilder.append("\n");
                     logMsgBuilder.append(String.format(
@@ -140,18 +140,16 @@ public abstract class AbstractCinderVolumeCreateJob extends CinderJob
 
             }
             logger.info(logMsgBuilder.toString());
-        } 
-        catch (Exception e) 
+        } catch (Exception e)
         {
-        	logger.error("Caught an exception while trying to updateStatus for CinderCreateVolumeJob", e);
+            logger.error("Caught an exception while trying to updateStatus for CinderCreateVolumeJob", e);
             setErrorStatus("Encountered an internal error during volume create job status processing : " + e.getMessage());
-        }
-        finally 
+        } finally
         {
             super.updateStatus(jobContext);
         }
     }
-    
+
     @Override
     protected boolean isJobSucceeded(String currentStatus) {
         return (CinderConstants.ComponentStatus.AVAILABLE.getStatus().equalsIgnoreCase(currentStatus));
@@ -170,9 +168,9 @@ public abstract class AbstractCinderVolumeCreateJob extends CinderJob
      * @param volDetails
      * @param now
      */
-    private void processVolume(URI volumeId, VolumeShowResponse volDetails,  DbClient dbClient, Calendar now, StringBuilder logMsgBuilder) 
+    private void processVolume(URI volumeId, VolumeShowResponse volDetails, DbClient dbClient, Calendar now, StringBuilder logMsgBuilder)
     {
-        try 
+        try
         {
             Volume volume = dbClient.queryObject(Volume.class, volumeId);
             volume.setCreationTime(now);
@@ -180,23 +178,22 @@ public abstract class AbstractCinderVolumeCreateJob extends CinderJob
             volume.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(dbClient, volume));
             long capacityInBytes = Long.valueOf(volDetails.volume.size) * 1024L * 1024L * 1024L;
             volume.setAllocatedCapacity(capacityInBytes);
-            //@TODO currently we don't get wwn for volumes. Setting the id generated as wwn
+            // @TODO currently we don't get wwn for volumes. Setting the id generated as wwn
             volume.setWWN(volDetails.volume.id);
             volume.setProvisionedCapacity(capacityInBytes);
             volume.setInactive(false);
             dbClient.persistObject(volume);
-            
-            if (logMsgBuilder.length() != 0) 
+
+            if (logMsgBuilder.length() != 0)
             {
                 logMsgBuilder.append("\n");
             }
             logMsgBuilder.append(String.format(
                     "Created volume successfully .. NativeId: %s, URI: %s", volume.getNativeId(),
                     getTaskCompleter().getId()));
-        } 
-        catch (IOException e) 
+        } catch (IOException e)
         {
-        	logger.error("Caught an exception while trying to update volume attributes", e);
+            logger.error("Caught an exception while trying to update volume attributes", e);
         }
     }
 

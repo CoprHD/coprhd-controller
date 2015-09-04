@@ -23,17 +23,19 @@ public class PlatformUtils {
     private static final Logger log = LoggerFactory.getLogger(PlatformUtils.class);
     private static final String GET_OVF_PROPERTY_CMD = "/etc/getovfproperties";
     private static final String GENISO_CMD = "/opt/storageos/bin/geniso";
-    private static final String IS_VAPP  = "--is-vapp";
+    private static final String IS_VAPP = "--is-vapp";
     private static final String SYSTOOL_CMD = "/etc/systool";
-    private static final String IS_APPLIANCE  = "--test";
+    private static final String IS_APPLIANCE = "--test";
     private static final String IS_APPLIANCE_OUTPUT = "Ok";
     private static final long CMD_TIMEOUT = 120 * 1000;
     private static final long CMD_PARTITION_TIMEOUT = 600 * 1000;    // 10 min
-    
+
     private static Boolean isVMwareVapp;
     private static Boolean isAppliance;
 
-    /* Get local configuration by reading ovfenv partition and detecting real h/w
+    /*
+     * Get local configuration by reading ovfenv partition and detecting real h/w
+     * 
      * @return local configuration
      */
     public static Configuration getLocalConfiguration() {
@@ -71,7 +73,7 @@ public class PlatformUtils {
     }
 
     public static int diskHasViprPartitions(String disk) {
-        final String[] cmds = {"/etc/mkdisk.sh", "check", disk};
+        final String[] cmds = { "/etc/mkdisk.sh", "check", disk };
         Exec.Result result = Exec.sudo(CMD_PARTITION_TIMEOUT, cmds);
         if (!result.exitedNormally() || result.getExitValue() != 0) {
             log.warn("Check disk {} for vipr partition failed with exit value is: {}",
@@ -80,7 +82,7 @@ public class PlatformUtils {
         return result.getExitValue();
     }
 
-    public static String[] executeCommand(String [] commands) {
+    public static String[] executeCommand(String[] commands) {
         StringBuffer output = new StringBuffer();
         ArrayList<String> out = new ArrayList<String>();
         Process p;
@@ -103,10 +105,11 @@ public class PlatformUtils {
 
     /*
      * Get ovfenv properties
+     * 
      * @return strings of key/value property pairs
      */
     public static String[] getOvfenvPropertyStrings() {
-        final String[] cmds = {"/etc/getovfproperties", "--readCDROM"};
+        final String[] cmds = { "/etc/getovfproperties", "--readCDROM" };
         Exec.Result result = Exec.sudo(CMD_TIMEOUT, cmds);
         if (!result.exitedNormally() || result.getExitValue() != 0) {
             log.error("Failed to get ovfenv properties with errcode: {}, error: {}",
@@ -117,10 +120,11 @@ public class PlatformUtils {
 
     /*
      * Get ovfenv properties
+     * 
      * @return map of key/value property pairs
      */
     public static Map<String, String> getOvfenvProperties() {
-        final String[] cmds = {GET_OVF_PROPERTY_CMD, "--readCDROM"};
+        final String[] cmds = { GET_OVF_PROPERTY_CMD, "--readCDROM" };
         Exec.Result result = Exec.sudo(CMD_TIMEOUT, cmds);
         if (!result.exitedNormally() || result.getExitValue() != 0) {
             log.error("Failed to get properties from ovfenv device directly with errcode: {}, error: {}",
@@ -136,15 +140,15 @@ public class PlatformUtils {
         return propMap;
     }
 
-
     /**
      * Generate key/value pairs string for ovfenv properties
+     * 
      * @param ipinfo
      * @param nodeid
      * @param node_count
      * @return
      */
-    public static String genOvfenvPropertyKVString(ClusterIpInfo ipinfo, String nodeid, int node_count){
+    public static String genOvfenvPropertyKVString(ClusterIpInfo ipinfo, String nodeid, int node_count) {
         // Compose cluster configuration key/value properties string
         StringBuffer clusterprops = new StringBuffer();
         clusterprops.append(ipinfo.toString());
@@ -156,10 +160,11 @@ public class PlatformUtils {
 
     /**
      * Generate ovfenv ISO image which will be then saved to ovfenv partition
+     * 
      * @param ovfenvPropKVStr ovfenv key/value property string
      * @param isoFilePath the path of the ovfenv ISO
      */
-    public static void genOvfenvIsoImage(String ovfenvPropKVStr, String isoFilePath){
+    public static void genOvfenvIsoImage(String ovfenvPropKVStr, String isoFilePath) {
         byte[] bOvfenvPropKVStr = ovfenvPropKVStr.getBytes();
         String propFilePath = "/tmp/ovf-env.properties";
         File propFile = new File(propFilePath);
@@ -174,7 +179,8 @@ public class PlatformUtils {
 
         try {
             File isoFile = new File(isoFilePath);
-            String[] genISOImageCommand = {GENISO_CMD, "--label", "CDROM", "-f", propFilePath, "-o", isoFilePath, "ovf-env.properties", "4096"};
+            String[] genISOImageCommand = { GENISO_CMD, "--label", "CDROM", "-f", propFilePath, "-o", isoFilePath, "ovf-env.properties",
+                    "4096" };
             Exec.Result result = Exec.sudo(CMD_TIMEOUT, genISOImageCommand);
             if (!result.exitedNormally() || result.getExitValue() != 0) {
                 log.error("Generating ISO image failed with exit value: {}, error: {}",
@@ -190,10 +196,11 @@ public class PlatformUtils {
 
     /**
      * Probe ovfenv parition
+     * 
      * @return ovfenv partition
      */
     public static String probeOvfenvPartition() {
-        final String[] cmds = {GET_OVF_PROPERTY_CMD, "--probe-ovfenv-partition"};
+        final String[] cmds = { GET_OVF_PROPERTY_CMD, "--probe-ovfenv-partition" };
         Exec.Result result = Exec.sudo(CMD_TIMEOUT, cmds);
         if (!result.exitedNormally() || result.getExitValue() != 0) {
             log.error("Failed to get ovfenv device with errcode: {}, error: {}",
@@ -206,16 +213,16 @@ public class PlatformUtils {
     }
 
     /**
-     * Check if current deployment is VMWare vapp 
+     * Check if current deployment is VMWare vapp
      * 
      * @return true if it is VMWare vapp, otherwise false
      */
     public static boolean isVMwareVapp() {
-    	if (isVMwareVapp != null) {
-    		log.info("Return value {} from cached result", isVMwareVapp.booleanValue());
-    		return isVMwareVapp.booleanValue();
-    	}
-    	
+        if (isVMwareVapp != null) {
+            log.info("Return value {} from cached result", isVMwareVapp.booleanValue());
+            return isVMwareVapp.booleanValue();
+        }
+
         final String[] cmd = { GET_OVF_PROPERTY_CMD, IS_VAPP };
         Exec.Result result = Exec.sudo(CMD_TIMEOUT, cmd);
         if (!result.exitedNormally()) {
@@ -238,11 +245,11 @@ public class PlatformUtils {
      * @return true if it is an appliance, otherwise false(e.g.: devkit)
      */
     public static boolean isAppliance() {
-    	if (isAppliance != null) {
-    		log.info("Return value {} from cached result", isAppliance.booleanValue());
-    		return isAppliance.booleanValue();
-    	}
-    	
+        if (isAppliance != null) {
+            log.info("Return value {} from cached result", isAppliance.booleanValue());
+            return isAppliance.booleanValue();
+        }
+
         final String[] cmd = { SYSTOOL_CMD, IS_APPLIANCE };
         Exec.Result result = Exec.sudo(CMD_TIMEOUT, cmd);
         if (!result.exitedNormally()) {

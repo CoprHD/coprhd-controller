@@ -34,7 +34,7 @@ import com.emc.vipr.model.sys.logging.LogSeverity;
  * upstream: "https://portal/security/authenticated", host: "10.247.101.162", referrer:
  * "https://10.247.101.162/maintenance?targetUrl=%2Fsetup%2Flicense"
  */
-public class LogNginxErrorParser extends LogParser{
+public class LogNginxErrorParser extends LogParser {
 
     private static final Logger logger = LoggerFactory.getLogger(LogNginxErrorParser.class);
 
@@ -46,18 +46,18 @@ public class LogNginxErrorParser extends LogParser{
         String msg = null;
 
         int lineLength = line.length();
-		if (lineLength <= TIME_LENGTH || line.charAt(4) != '/'
-				|| line.charAt(7) != '/' || line.charAt(10) != ' '
-				|| line.charAt(13) != ':' || line.charAt(16) != ':'
-				|| line.charAt(19) != ' ') {
-			return LogMessage.CONTINUATION_LOGMESSAGE;
-		}
-        
+        if (lineLength <= TIME_LENGTH || line.charAt(4) != '/'
+                || line.charAt(7) != '/' || line.charAt(10) != ' '
+                || line.charAt(13) != ':' || line.charAt(16) != ':'
+                || line.charAt(19) != ' ') {
+            return LogMessage.CONTINUATION_LOGMESSAGE;
+        }
+
         String timeStr = line.substring(0, TIME_LENGTH);
         DateFormat format = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-        try{
+        try {
             date = format.parse(timeStr);
-        } catch(Exception e){
+        } catch (Exception e) {
             return LogMessage.CONTINUATION_LOGMESSAGE;
         }
 
@@ -95,4 +95,4 @@ public class LogNginxErrorParser extends LogParser{
 
         return log;
     }
-} 
+}

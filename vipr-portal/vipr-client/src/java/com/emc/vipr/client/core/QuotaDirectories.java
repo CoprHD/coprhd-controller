@@ -62,9 +62,9 @@ public class QuotaDirectories extends ProjectResources<QuotaDirectoryRestRep> im
      * API Call: <tt>POST /file/filesystems/{id}/quota-directories</tt>
      *
      * @param fileSystemId
-     *        the ID of the file system.
+     *            the ID of the file system.
      * @param input
-     *        the Quota directory configuration.
+     *            the Quota directory configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<QuotaDirectoryRestRep> createQuotaDirectory(URI fileSystemId, QuotaDirectoryCreateParam input) {
@@ -77,13 +77,13 @@ public class QuotaDirectories extends ProjectResources<QuotaDirectoryRestRep> im
      * API Call: <tt>POST /file/quotadirectories/{id}</tt>
      *
      * @param id
-     *        the ID of the quota directory.
+     *            the ID of the quota directory.
      * @param update
-     *        the update configuration.
+     *            the update configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<QuotaDirectoryRestRep> updateQuotaDirectory(URI id, QuotaDirectoryUpdateParam update) {
-        return postTask(update,  getIdUrl(), id);
+        return postTask(update, getIdUrl(), id);
     }
 
     /**
@@ -92,7 +92,7 @@ public class QuotaDirectories extends ProjectResources<QuotaDirectoryRestRep> im
      * API Call: <tt>POST /file/quotadirectories/{id}/deactivate</tt>
      *
      * @param id
-     *        the ID of the quota directory.
+     *            the ID of the quota directory.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<QuotaDirectoryRestRep> deleteQuotaDirectory(URI id, QuotaDirectoryDeleteParam input) {
@@ -100,12 +100,12 @@ public class QuotaDirectories extends ProjectResources<QuotaDirectoryRestRep> im
     }
 
     /**
-     * Gets the quota directory  by ID.
+     * Gets the quota directory by ID.
      * <p>
      * API Call: <tt>GET /file/quotadirectories/{id}</tt>
      *
      * @param id
-     *        the ID of the Quota Directory
+     *            the ID of the Quota Directory
      * @return the quota directory for the given id.
      */
     public QuotaDirectoryRestRep getQuotaDirectory(URI id) {
@@ -120,10 +120,8 @@ public class QuotaDirectories extends ProjectResources<QuotaDirectoryRestRep> im
         return defaultList(response.getQuotaDirectories());
     }
 
-
     /**
-     * Gets the base URL for finding quota directories by file system:
-     * <tt>/file/filesystems/{fileSystemId}/quota-directories</tt>
+     * Gets the base URL for finding quota directories by file system: <tt>/file/filesystems/{fileSystemId}/quota-directories</tt>
      *
      * @return the URL for finding by file system.
      */
@@ -137,7 +135,7 @@ public class QuotaDirectories extends ProjectResources<QuotaDirectoryRestRep> im
      * API Call: <tt>GET /file/filesystems/{fileSystemId}/quota-directories</tt>
      *
      * @param fileSystemId
-     *        the ID of the file system.
+     *            the ID of the file system.
      * @return the list of file quota directory references for the file system.
      */
     public List<NamedRelatedResourceRep> listByFileSystem(URI fileSystemId) {
@@ -151,7 +149,7 @@ public class QuotaDirectories extends ProjectResources<QuotaDirectoryRestRep> im
      * This is a convenience method for: <tt>getByRefs(listByFileSystem(fileSystemId))</tt>
      *
      * @param fileSystemId
-     *        the ID of the file system.
+     *            the ID of the file system.
      * @return the list of file quota directories for the file system.
      */
     public List<QuotaDirectoryRestRep> getByFileSystem(URI fileSystemId) {
@@ -164,9 +162,9 @@ public class QuotaDirectories extends ProjectResources<QuotaDirectoryRestRep> im
      * This is a convenience method for: <tt>getByRefs(listByFileSystem(fileSystemId), filter)</tt>
      *
      * @param fileSystemId
-     *        the ID of the file system.
+     *            the ID of the file system.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of file quota directories for the file system.
      */
     public List<QuotaDirectoryRestRep> getByFileSystem(URI fileSystemId, ResourceFilter<QuotaDirectoryRestRep> filter) {

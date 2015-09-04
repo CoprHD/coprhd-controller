@@ -54,20 +54,22 @@ public abstract class BaseLogSvcResource {
     public static final String DATE_TIME_FORMAT = "yyyy-MM-dd_HH:mm:ss";
 
     // non-service logs
-    private final static List<String> nonServiceLogFileNames = new ArrayList<String>() {{
-        add("systemevents");
-        add("messages");
-        add("nginx_access");
-        add("nginx_error");
-        add("bkutils");
-    }};
-        
+    private final static List<String> nonServiceLogFileNames = new ArrayList<String>() {
+        {
+            add("systemevents");
+            add("messages");
+            add("nginx_access");
+            add("nginx_error");
+            add("bkutils");
+        }
+    };
+
     // used when no media type is specified
     public final static MediaType DEFAULT_MEDIA_TYPE = MediaType.APPLICATION_XML_TYPE;
-    
-    // used as xml tag or json attribute name for error message 
+
+    // used as xml tag or json attribute name for error message
     public final static String ERROR_MESSAGE_TAG = "error_message";
-    
+
     // A reference to the log service configurable properties loader.
     @Autowired
     protected LogSvcPropertiesLoader _logSvcPropertiesLoader;
@@ -77,7 +79,7 @@ public abstract class BaseLogSvcResource {
 
     protected MediaType getMediaType() {
         MediaType mediaType = DEFAULT_MEDIA_TYPE;
-        if(header != null) {
+        if (header != null) {
             List<MediaType> mTypes = header.getAcceptableMediaTypes();
             if (mTypes != null) {
                 for (MediaType media : mTypes) {
@@ -135,9 +137,9 @@ public abstract class BaseLogSvcResource {
      * means they were not specified in the request.
      *
      * @param startTime The requested start time or null.
-     * @param endTime   The requested end time or null.
+     * @param endTime The requested end time or null.
      * @throws APIException When the passed end time comes before the
-     *                                  passed start time.
+     *             passed start time.
      */
     protected void validateTimestamps(Date startTime, Date endTime) {
         if ((startTime != null) && (endTime != null)) {
@@ -194,15 +196,15 @@ public abstract class BaseLogSvcResource {
         }
         return validLogNames;
     }
-         
-     /**
-      * Get set of log names supported by vipr
-      */
-     protected Set<String> getValidLogNames() {
-         Set<String> logNames = new HashSet<String>();        
-         logNames.addAll(ServicesMetadata.getControlNodeServiceNames());
-         logNames.addAll(ServicesMetadata.getExtraNodeServiceNames());
-         logNames.addAll(nonServiceLogFileNames);
-         return logNames;
-     }     
+
+    /**
+     * Get set of log names supported by vipr
+     */
+    protected Set<String> getValidLogNames() {
+        Set<String> logNames = new HashSet<String>();
+        logNames.addAll(ServicesMetadata.getControlNodeServiceNames());
+        logNames.addAll(ServicesMetadata.getExtraNodeServiceNames());
+        logNames.addAll(nonServiceLogFileNames);
+        return logNames;
+    }
 }

@@ -30,21 +30,21 @@ public class BlockWaitForSynchronizedCompleter<T extends BlockObject> extends Ta
     public BlockWaitForSynchronizedCompleter(Class<T> clazz, List<URI> targets, String opId) {
         super(clazz, targets, opId);
     }
-    
+
     @Override
     protected void complete(DbClient dbClient, Operation.Status status,
             ServiceCoded serviceCoded) throws DeviceControllerException {
         log.info("START BlockWaitForSynchronizedCompleter " + status + " for {}", getId());
         switch (status) {
-        case error:
-            WorkflowStepCompleter.stepFailed(getOpId(), serviceCoded);
-            break;
-        case ready:
-            WorkflowStepCompleter.stepSucceded(getOpId());
-            break;
-        default:
-            WorkflowStepCompleter.stepExecuting(getOpId());
-            break;
+            case error:
+                WorkflowStepCompleter.stepFailed(getOpId(), serviceCoded);
+                break;
+            case ready:
+                WorkflowStepCompleter.stepSucceded(getOpId());
+                break;
+            default:
+                WorkflowStepCompleter.stepExecuting(getOpId());
+                break;
         }
     }
 }

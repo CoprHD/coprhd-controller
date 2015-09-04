@@ -37,7 +37,6 @@ import com.google.common.collect.Maps;
 import controllers.Common;
 import controllers.util.Models;
 
-
 /**
  * Base order controller that contains operations for executing orders. This is
  * subclassed for the API or main order form.
@@ -59,13 +58,13 @@ public class OrderExecution extends Controller {
      * Adds the field values from the service item container to the map.
      * 
      * @param service
-     *        the service.
+     *            the service.
      * @param container
-     *        the service item container.
+     *            the service item container.
      * @param values
-     *        the map holding the values.
+     *            the map holding the values.
      * @param locked
-     *        all locked values for the service.
+     *            all locked values for the service.
      */
     private static void addFieldValues(CatalogServiceRestRep service, Collection<? extends ServiceItemRestRep> items,
             Map<String, String> values, Map<String, String> locked) {
@@ -101,19 +100,19 @@ public class OrderExecution extends Controller {
      * Adds all column values for the given table.
      * 
      * @param service
-     *        the catalog service.
+     *            the catalog service.
      * @param table
-     *        the table of fields.
+     *            the table of fields.
      * @param values
-     *        the map holding the values.
+     *            the map holding the values.
      * @param locked
-     *        all locked values for the service.
+     *            all locked values for the service.
      */
     private static void addColumnValues(CatalogServiceRestRep service, ServiceFieldTableRestRep table, Map<String, String> values,
             Map<String, String> locked) {
-        
+
         List<ServiceFieldRestRep> fields = ServiceDescriptorUtils.getAllFieldList(table.getItems());
-        
+
         int rowCount = 0;
         for (ServiceFieldRestRep field : fields) {
             if (!locked.containsKey(field.getName())) {
@@ -139,16 +138,16 @@ public class OrderExecution extends Controller {
                 String prefix = table.getName() + "[" + i + "]";
                 ServiceFieldValidator.validateField(service, prefix, field, columns[i]);
             }
-            
+
             values.put(field.getName(), TextUtils.formatCSV(columns));
         }
     }
-    
+
     /**
      * Gets all locked fields from the catalog service.
      * 
      * @param service
-     *        the catalog service.
+     *            the catalog service.
      * @return the map of locked field values.
      */
     private static Map<String, String> getLockedFields(CatalogServiceRestRep service) {
@@ -174,13 +173,12 @@ public class OrderExecution extends Controller {
 
     /**
      * Gets the submitted value for the column field from the HTTP params. The
-     * parameters are named:
-     * <tt>&lt;<i>table.name</i>&gt;[<i>i</i>].&lt;<i>field.name</i>&gt;</tt>
+     * parameters are named: <tt>&lt;<i>table.name</i>&gt;[<i>i</i>].&lt;<i>field.name</i>&gt;</tt>
      * 
      * @param table
-     *        the table containing the field.
+     *            the table containing the field.
      * @param field
-     *        the field.
+     *            the field.
      * @return the values for the column.
      */
     private static String[] getColumnValue(ServiceFieldTableRestRep table, ServiceFieldRestRep field) {
@@ -204,7 +202,7 @@ public class OrderExecution extends Controller {
      * null.
      * 
      * @param field
-     *        the field.
+     *            the field.
      * @return the locked value, or null.
      */
     private static String getLockedValue(CatalogServiceFieldRestRep field) {
@@ -217,12 +215,13 @@ public class OrderExecution extends Controller {
     }
 
     @Util
-    public static OrderCreateParam createOrder(CatalogServiceRestRep service, ServiceDescriptorRestRep descriptor, Map<String, String> parameters) {
+    public static OrderCreateParam createOrder(CatalogServiceRestRep service, ServiceDescriptorRestRep descriptor,
+            Map<String, String> parameters) {
 
         OrderCreateParam order = new OrderCreateParam();
         order.setTenantId(uri(Models.currentAdminTenant()));
         order.setCatalogService(service.getId());
-        
+
         List<Parameter> orderParameters = Lists.newArrayList();
         List<ServiceFieldRestRep> fields = ServiceDescriptorUtils.getAllFieldList(descriptor.getItems());
         for (ServiceFieldRestRep field : fields) {

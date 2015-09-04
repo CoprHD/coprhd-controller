@@ -75,7 +75,7 @@ public class VolumeSizeProcessor extends PoolProcessor {
                 // we are setting at compile time, hence value will be there always.
                 CIMObjectPath poolObjectPath = getObjectPathfromCIMArgument();
                 String instanceID = poolObjectPath.getKey(Constants.INSTANCEID).getValue().toString();
-                
+
                 StoragePool pool = checkStoragePoolExistsInDB(
                         getNativeIDFromInstance(instanceID), _dbClient, device);
                 if (null != pool) {
@@ -85,15 +85,15 @@ public class VolumeSizeProcessor extends PoolProcessor {
                         String supportedResourceType = pool.getSupportedResourceTypes();
                         if (SupportedResourceTypes.THIN_ONLY.name().equals(supportedResourceType)) {
                             pool.setMaximumThinVolumeSize(maxVolumeSize);
-                            pool.setMinimumThinVolumeSize(minVolumeSize); 
+                            pool.setMinimumThinVolumeSize(minVolumeSize);
                         }
                         else if (SupportedResourceTypes.THICK_ONLY.name().equals(supportedResourceType)) {
                             pool.setMaximumThickVolumeSize(maxVolumeSize);
-                            pool.setMinimumThickVolumeSize(minVolumeSize);    
+                            pool.setMinimumThickVolumeSize(minVolumeSize);
                         }
                     }
                     else { // TODO - could this be changed to use the same logic as for IBM pool?
-                        // if the result is obtained from calling on Thick, use thick volume size else thin
+                           // if the result is obtained from calling on Thick, use thick volume size else thin
                         String elementType = determineCallType();
                         if (elementType.equalsIgnoreCase(FIVE)) {
                             pool.setMaximumThinVolumeSize(maxVolumeSize);
@@ -103,9 +103,10 @@ public class VolumeSizeProcessor extends PoolProcessor {
                             pool.setMinimumThickVolumeSize(minVolumeSize);
                         }
                     }
-                    
-                    _logger.info(String.format("Maximum limits for volume capacity in storage pool: %s  \n   max thin volume capacity: %s, max thick volume capacity: %s ",
-                            pool.getId(), pool.getMaximumThinVolumeSize(), pool.getMaximumThickVolumeSize()));
+
+                    _logger.info(String
+                            .format("Maximum limits for volume capacity in storage pool: %s  \n   max thin volume capacity: %s, max thick volume capacity: %s ",
+                                    pool.getId(), pool.getMaximumThinVolumeSize(), pool.getMaximumThickVolumeSize()));
 
                     _dbClient.persistObject(pool);
                 }

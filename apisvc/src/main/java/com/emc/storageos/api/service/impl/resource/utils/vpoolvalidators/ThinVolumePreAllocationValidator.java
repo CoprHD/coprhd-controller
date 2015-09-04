@@ -23,7 +23,7 @@ import com.emc.storageos.model.vpool.BlockVirtualPoolUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 public class ThinVolumePreAllocationValidator extends VirtualPoolValidator<BlockVirtualPoolParam, BlockVirtualPoolUpdateParam> {
-   
+
     @Override
     public void setNextValidator(VirtualPoolValidator validator) {
         _nextValidator = validator;
@@ -49,17 +49,17 @@ public class ThinVolumePreAllocationValidator extends VirtualPoolValidator<Block
         validateVMaxThinVolumePreAllocateParam(createParam.getProvisionType(), createParam.getSystemType(),
                 createParam.getThinVolumePreAllocationPercentage());
     }
-    
+
     /**
      * Validates VMAX Thin volume preallocate param.
      */
     private void validateVMaxThinVolumePreAllocateParam(String provisionType, String systemType, Integer thinVolumePreAllocationPercentage) {
         if (!VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(provisionType) &&
-        		thinVolumePreAllocationPercentage > 0) {
+                thinVolumePreAllocationPercentage > 0) {
             throw APIException.badRequests.thinVolumePreallocationPercentageOnlyApplicableToThin();
         }
         if (VirtualPool.SystemType.vnxblock.toString().equalsIgnoreCase(systemType) &&
-        		thinVolumePreAllocationPercentage > 0) {
+                thinVolumePreAllocationPercentage > 0) {
             throw APIException.badRequests.thinVolumePreallocationPercentageOnlyApplicableToVMAX();
         }
         if (null != thinVolumePreAllocationPercentage && thinVolumePreAllocationPercentage < 0 || thinVolumePreAllocationPercentage > 100) {

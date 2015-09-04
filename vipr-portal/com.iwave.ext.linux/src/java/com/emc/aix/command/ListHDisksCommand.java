@@ -11,32 +11,32 @@ import com.iwave.ext.linux.command.parser.PowerPathInvistaInquiryParser;
 import com.iwave.ext.linux.model.PowerPathDevice;
 
 public class ListHDisksCommand extends AixResultsCommand<List<PowerPathDevice>> {
-    
+
     private boolean checkVplex;
-    
+
     public static void main(String[] args) {
         new ListHDisksCommand(false, false);
     }
-    
+
     public ListHDisksCommand(boolean usePowerPath, boolean checkVplex) {
-        
+
         this.checkVplex = checkVplex;
-        
+
         setCommand("inq");
-       
+
         if (checkVplex) {
             addArgument("-invista_wwn");
         } else {
             addArgument("-wwn");
         }
-       
+
         if (usePowerPath) {
             addArgument("-f_powerpath");
         }
-        
+
         addArgument("-no_dots");
         setRunAsRoot(true);
-        
+
         log.info(this.getResolvedCommandLine());
     }
 
@@ -53,5 +53,5 @@ public class ListHDisksCommand extends AixResultsCommand<List<PowerPathDevice>> 
             }
         }
     }
-    
+
 }

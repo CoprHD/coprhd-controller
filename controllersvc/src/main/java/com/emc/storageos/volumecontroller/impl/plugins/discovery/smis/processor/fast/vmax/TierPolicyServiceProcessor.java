@@ -47,51 +47,49 @@ public class TierPolicyServiceProcessor extends Processor {
             throws BaseCollectionException {
         boolean tierServiceFound = false;
         try {
-           
+
             @SuppressWarnings("unchecked")
             final Iterator<CIMObjectPath> it = (Iterator<CIMObjectPath>) resultObj;
             _dbClient = (DbClient) keyMap.get(Constants.dbClient);
             profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
             String serialID = (String) keyMap.get(Constants._serialID);
             URI storageSystemURI = profile.getSystemId();
-            
+
             while (it.hasNext()) {
                 CIMObjectPath tierPolicyService = it.next();
                 String systemName = tierPolicyService.getKey(SYSTEMNAME).getValue()
                         .toString();
-                
+
                 if (systemName.contains(serialID)) {
                     tierServiceFound = true;
                     if (systemName.toLowerCase().contains("symmetrix")) {
                         keyMap.put(Constants.VMAXTierPolicyService, tierPolicyService);
-                        
+
                     } else if (systemName.toLowerCase().contains("clariion")) {
                         keyMap.put(Constants.VNXTierPolicyService, tierPolicyService);
-                        
+
                     }
-                   
+
                 }
             }
-            
+
             setFASTStatusOnStorageSystem(storageSystemURI, tierServiceFound);
         } catch (Exception e) {
             _logger.error("Tier Policy Service Discovery Failed : ", e);
         } finally {
-                 
+
         }
     }
-    
+
     private void setFASTStatusOnStorageSystem(URI storageSystemuri, boolean tierServiceFound) throws IOException {
         StorageSystem system = _dbClient.queryObject(StorageSystem.class, storageSystemuri);
         if (null == system)
             return;
         system.setAutoTieringEnabled(tierServiceFound);
         _dbClient.persistObject(system);
-        
-    }
-   
 
-   
+    }
+
     @Override
     protected void setPrerequisiteObjects(List<Object> inputArgs)
             throws BaseCollectionException {

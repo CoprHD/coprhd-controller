@@ -24,7 +24,6 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Processor;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 
-
 /**
  * Responsible for handling CIMArgument[] outputs, get CIMPath and update it in
  * Map.

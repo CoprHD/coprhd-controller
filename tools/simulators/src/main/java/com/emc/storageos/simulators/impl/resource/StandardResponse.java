@@ -26,14 +26,14 @@ public class StandardResponse {
     }
 
     @XmlRootElement
-     private static class SuccessResp {
+    private static class SuccessResp {
         @XmlElement(name = "success")
         private String success;
     }
 
     @XmlRootElement
     private static class SuccessIdResp {
-        @XmlElement(name="id")
+        @XmlElement(name = "id")
         private String id;
 
         @XmlElement(name = "success")
@@ -41,9 +41,10 @@ public class StandardResponse {
     }
 
     /**
-     * Get standard error response  - isilon style
-     * @param error     string error
-     * @return          ErrorResp
+     * Get standard error response - isilon style
+     * 
+     * @param error string error
+     * @return ErrorResp
      */
     public static ErrorResp getErrorResponse(String error) {
         ErrorResp resp = new ErrorResp();
@@ -53,7 +54,8 @@ public class StandardResponse {
 
     /**
      * Get standard success response - isilon style
-     * @return      SuccessResp
+     * 
+     * @return SuccessResp
      */
     public static SuccessResp getSuccessResponse() {
         SuccessResp resp = new SuccessResp();
@@ -63,8 +65,9 @@ public class StandardResponse {
 
     /**
      * Get standard success response with id - isilon style
-     * @param id        Identifier
-     * @return          SuccessIdResp
+     * 
+     * @param id Identifier
+     * @return SuccessIdResp
      */
     public static SuccessIdResp getSuccessIdResponse(String id) {
         SuccessIdResp resp = new SuccessIdResp();

@@ -18,7 +18,7 @@ public class SetFileSnapshotShareACL extends WaitForTask<FileSnapshotRestRep> {
     private final String shareName;
     private final URI fileSystemId;
     private final FileSystemACLs[] acls;
-    
+
     public SetFileSnapshotShareACL(URI fileSystemId, String shareName, FileSystemACLs[] acls) {
         this.shareName = shareName;
         this.fileSystemId = fileSystemId;
@@ -31,6 +31,6 @@ public class SetFileSnapshotShareACL extends WaitForTask<FileSnapshotRestRep> {
         SnapshotCifsShareACLUpdateParams aclUpdate = new SnapshotCifsShareACLUpdateParams();
         ShareACLs shareACLs = FileStorageUtils.createShareACLs(acls);
         aclUpdate.setAclsToAdd(shareACLs);
-        return getClient().fileSnapshots().updateShareACL(fileSystemId,shareName,aclUpdate);
+        return getClient().fileSnapshots().updateShareACL(fileSystemId, shareName, aclUpdate);
     }
 }

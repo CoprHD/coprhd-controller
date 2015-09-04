@@ -41,21 +41,22 @@ public class GlobalLock {
             name = s;
         }
 
-        public boolean equalsName(String otherName){
-            return (otherName == null)? false:name.equals(otherName);
+        public boolean equalsName(String otherName) {
+            return (otherName == null) ? false : name.equals(otherName);
         }
 
-        public String toString(){
+        public String toString() {
             return name;
         }
     }
 
     // CF Key
     private String _name;
+
     public String getName() {
         return _name;
     }
-    
+
     public void setName(String name) {
         _name = name;
     }
@@ -68,7 +69,7 @@ public class GlobalLock {
     public String getOwner() {
         return _owner;
     }
-    
+
     public void setOwner(String owner) {
         _owner = owner;
     }
@@ -76,7 +77,7 @@ public class GlobalLock {
     public String getMode() {
         return _mode;
     }
-    
+
     public void setMode(String mode) {
         _mode = mode;
     }
@@ -89,4 +90,3 @@ public class GlobalLock {
         _expirationTime = expirationTime;
     }
 }
-

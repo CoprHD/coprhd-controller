@@ -31,8 +31,9 @@ import java.util.List;
 public class FileVirtualPoolBulkRep extends BulkRestRep {
     private List<FileVirtualPoolRestRep> virtualPools;
 
-    /** 
+    /**
      * List of all virtual pools of File System type.
+     * 
      * @valid none
      */
     @XmlElement(name = "file_vpool")

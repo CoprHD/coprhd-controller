@@ -42,4 +42,3 @@ public class DbStatRetriever extends AbstractDbRetriever implements StatRetrieve
         marshaller.tailer(out);
     }
 }
-

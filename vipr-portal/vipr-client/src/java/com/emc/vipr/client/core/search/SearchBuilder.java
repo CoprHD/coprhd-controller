@@ -23,7 +23,7 @@ import static com.emc.vipr.client.core.impl.SearchConstants.*;
 public class SearchBuilder<T extends DataObjectRestRep> {
     private AbstractResources<T> resources;
     private ResourceFilter<T> filter = null;
-    private Map<String,Object> parameters = new HashMap<String, Object>();
+    private Map<String, Object> parameters = new HashMap<String, Object>();
 
     public SearchBuilder(AbstractResources<T> resources) {
         this.resources = resources;
@@ -33,9 +33,9 @@ public class SearchBuilder<T extends DataObjectRestRep> {
      * Adds a single parameter to search by.
      *
      * @param name
-     *        the parameter name.
+     *            the parameter name.
      * @param value
-     *        the parameter value.
+     *            the parameter value.
      * @return This SearchBuilder.
      */
     public SearchBuilder<T> by(String name, Object value) {
@@ -49,7 +49,7 @@ public class SearchBuilder<T extends DataObjectRestRep> {
      * @param parameters Map containing name value pairs
      * @return This SearchBuilder.
      */
-    public SearchBuilder<T> byAll(Map<String,Object> parameters) {
+    public SearchBuilder<T> byAll(Map<String, Object> parameters) {
         this.parameters.putAll(parameters);
         return this;
     }

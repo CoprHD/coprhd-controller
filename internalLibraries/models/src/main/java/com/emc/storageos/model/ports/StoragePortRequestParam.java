@@ -22,51 +22,51 @@ import com.emc.storageos.model.valid.Length;
 /**
  * The Class StoragePortRequestParam.
  * This is only applicable to Cinder storage systems
- *  for users to manually create storage ports.
+ * for users to manually create storage ports.
  */
 @XmlRootElement(name = "storage_port_create")
-public class StoragePortRequestParam {	
-    
-	private String name;
-	private String transportType;
-	private String portNetworkId;
-	
+public class StoragePortRequestParam {
+
+    private String name;
+    private String transportType;
+    private String portNetworkId;
+
     /**
      * Name of the storage system
      * 
      * @valid none
      */
-	@XmlElement(required = true, name = "name")
+    @XmlElement(required = true, name = "name")
     @Length(min = 2, max = 128)
-	public String getName() {
-		return name;
-	}
-	
-	public void setName(String name) {
-		this.name = name;
-	}
-	
-	/**
-	 * Storage port transport type.
-	 *
-	 * @valid example FC, IP
-	 */
-	@XmlElement(required = true, name = "transport_type")
-	public String getTransportType() {
-		return transportType;
-	}
-	
-	public void setTransportType(String transportType) {
-		this.transportType = transportType;
-	}
+    public String getName() {
+        return name;
+    }
 
-	/**
-	 * Storage port network identifier.
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    /**
+     * Storage port transport type.
+     *
+     * @valid example FC, IP
+     */
+    @XmlElement(required = true, name = "transport_type")
+    public String getTransportType() {
+        return transportType;
+    }
+
+    public void setTransportType(String transportType) {
+        this.transportType = transportType;
+    }
+
+    /**
+     * Storage port network identifier.
      * 
-	 * @valid example: FC - port WWN,
-	 *                 IP - iSCSI Qualified Name (IQN) or Extended Unique Identifier (EUI)
-	 */
-	@XmlElement(required = true, name = "port_network_id")
+     * @valid example: FC - port WWN,
+     *        IP - iSCSI Qualified Name (IQN) or Extended Unique Identifier (EUI)
+     */
+    @XmlElement(required = true, name = "port_network_id")
     public String getPortNetworkId() {
         return portNetworkId;
     }

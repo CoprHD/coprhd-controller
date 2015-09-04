@@ -15,19 +15,16 @@ import java.net.URI;
  * This interface holds all the methods used to create {@link com.emc.storageos.svcs.errorhandling.model.ServiceError}s
  * related to VPLEX Devices
  * <p/>
- * Remember to add the English message associated to the method in
- * VPlexErrors.properties and use the annotation {@link com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode}
- * to set the service code associated to this error condition. You may need to
- * create a new service code if there is no an existing one suitable for your
- * error condition.
+ * Remember to add the English message associated to the method in VPlexErrors.properties and use the annotation
+ * {@link com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode} to set the service code associated to this error condition.
+ * You may need to create a new service code if there is no an existing one suitable for your error condition.
  * <p/>
- * For more information or to see an example, check the Developers Guide section
- * in the Error Handling Wiki page:
+ * For more information or to see an example, check the Developers Guide section in the Error Handling Wiki page:
  * http://confluence.lab.voyence.com/display/OS/Error+Handling+Framework+and+Exceptions+in+ViPR
  */
 @MessageBundle
 public interface DeviceDataCollectionErrors {
-	
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_DATA_COLLECTION_ERROR)
     public ServiceError failedToEnqueue(final String jobType, final Throwable cause);
 

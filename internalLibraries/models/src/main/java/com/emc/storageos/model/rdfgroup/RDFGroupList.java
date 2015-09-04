@@ -14,26 +14,28 @@ import java.util.List;
 @XmlRootElement(name = "rdf_groups")
 public class RDFGroupList {
     private List<NamedRelatedResourceRep> rdfGroups;
-    
-    public RDFGroupList() {}
-    
+
+    public RDFGroupList() {
+    }
+
     public RDFGroupList(List<NamedRelatedResourceRep> rdfGroups) {
         this.rdfGroups = rdfGroups;
     }
+
     /**
      * List of RDF Groups
      * 
      * @valid none
      */
     @XmlElement(name = "rdf_group")
-	public List<NamedRelatedResourceRep> getRdfGroups() {
-    	 if (rdfGroups == null) {
-         	rdfGroups = new ArrayList<NamedRelatedResourceRep>();
-         }
-		return rdfGroups;
-	}
+    public List<NamedRelatedResourceRep> getRdfGroups() {
+        if (rdfGroups == null) {
+            rdfGroups = new ArrayList<NamedRelatedResourceRep>();
+        }
+        return rdfGroups;
+    }
 
-	public void setRdfGroups(List<NamedRelatedResourceRep> rdfGroups) {
-		this.rdfGroups = rdfGroups;
-	}
+    public void setRdfGroups(List<NamedRelatedResourceRep> rdfGroups) {
+        this.rdfGroups = rdfGroups;
+    }
 }

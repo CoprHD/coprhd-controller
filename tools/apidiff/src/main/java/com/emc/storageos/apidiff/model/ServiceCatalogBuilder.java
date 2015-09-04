@@ -31,7 +31,8 @@ import java.util.Map;
  */
 public class ServiceCatalogBuilder {
 
-    private ServiceCatalogBuilder() {}
+    private ServiceCatalogBuilder() {
+    }
 
     public static ServiceCatalog build(final String filePath) {
         return build(new File(filePath));
@@ -39,8 +40,9 @@ public class ServiceCatalogBuilder {
 
     /**
      * Parses xml file to ServiceCatalog with Jdom
+     * 
      * @param xmlFile
-     *          The instance of xml file
+     *            The instance of xml file
      * @return instance of ServiceCatalog
      */
     public static ServiceCatalog build(final File xmlFile) {
@@ -48,9 +50,9 @@ public class ServiceCatalogBuilder {
         String fileName = xmlFile.getName().trim().toLowerCase();
         // remove suffix
         if (fileName.endsWith(Constants.XML_FILE_SUFFIX))
-            fileName = fileName.substring(0, fileName.length()-Constants.XML_FILE_SUFFIX.length()-1);
+            fileName = fileName.substring(0, fileName.length() - Constants.XML_FILE_SUFFIX.length() - 1);
         else
-            throw new IllegalArgumentException("API file is not xml format: "+ fileName);
+            throw new IllegalArgumentException("API file is not xml format: " + fileName);
 
         // filter name
         int separatorIndex = fileName.indexOf(Constants.NAME_STRING_SEPARATOR);
@@ -58,8 +60,7 @@ public class ServiceCatalogBuilder {
             throw new IllegalArgumentException("API file name should split with "
                     + Constants.NAME_STRING_SEPARATOR + " actually: " + fileName);
         String serviceName = fileName.substring(0, separatorIndex);
-        String version = fileName.substring(separatorIndex+1, fileName.length());
-
+        String version = fileName.substring(separatorIndex + 1, fileName.length());
 
         Document document;
         try {
@@ -89,8 +90,9 @@ public class ServiceCatalogBuilder {
 
     /**
      * Parses tag list <resource> to get REST API details
+     * 
      * @param resourceList
-     *          The list of resource tag
+     *            The list of resource tag
      * @return details of api resource
      */
     public static Map<ApiIdentifier, ApiDescriptor> parseResource(List<Element> resourceList) {
@@ -120,8 +122,8 @@ public class ServiceCatalogBuilder {
                     apiResource.setResponseElement(xmlElement.getAttributeValue(Constants.ATTRIBUTE_ELEMENT_NAME).trim());
             }
 
-            for (Element paramElement : opElement.getChildren(Constants.OPERATION_PARAMETER_NODE)){
-                if(paramElement.getAttributeValue(Constants.ATTRIBUTE_NAME) != null)
+            for (Element paramElement : opElement.getChildren(Constants.OPERATION_PARAMETER_NODE)) {
+                if (paramElement.getAttributeValue(Constants.ATTRIBUTE_NAME) != null)
                     apiResource.getParameters().add(paramElement.getAttributeValue(Constants.ATTRIBUTE_NAME).trim());
             }
 
@@ -133,8 +135,9 @@ public class ServiceCatalogBuilder {
 
     /**
      * Parses tag list <element> to get REST API details
+     * 
      * @param elementList
-     *          The list of element tag
+     *            The list of element tag
      * @return details of API element
      */
     public static Map<String, String> parseElement(List<Element> elementList) {
@@ -150,15 +153,16 @@ public class ServiceCatalogBuilder {
 
     /**
      * Helper method to filter example xml
+     * 
      * @param examplXml
-     *          The content of example xml
+     *            The content of example xml
      * @return the filtered example xml
      */
     private static String filterExampleXml(String examplXml) {
         int begin = 0;
         int end = examplXml.length();
         if (examplXml.startsWith(Constants.EXAMLE_XML_HEADER))
-            begin = Constants.EXAMLE_XML_HEADER.length()-1;
+            begin = Constants.EXAMLE_XML_HEADER.length() - 1;
         if (examplXml.endsWith(Constants.EXAMLE_XML_TAILER))
             end = end - Constants.EXAMLE_XML_TAILER.length();
 

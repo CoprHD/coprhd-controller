@@ -44,15 +44,15 @@ public class StorageOSLocalAuthenticationHandler implements StorageOSAuthenticat
     private CoordinatorClient _coordinatorClient;
 
     private static Map<String, StorageOSUser> _localUsers;
-         
+
     private EncryptionProvider _encryptionProvider;
-    
+
     private static final String CRYPT_SHA_512 = "$6$";
-        
+
     public void setEncryptionProvider(EncryptionProvider encryptionProvider) {
         _encryptionProvider = encryptionProvider;
     }
-         
+
     public void setLocalUsers(final Map<String, StorageOSUser> localUsers) {
         _localUsers = localUsers;
     }
@@ -61,7 +61,8 @@ public class StorageOSLocalAuthenticationHandler implements StorageOSAuthenticat
         _coordinatorClient = coordinatorClient;
     }
 
-    public StorageOSLocalAuthenticationHandler() { }
+    public StorageOSLocalAuthenticationHandler() {
+    }
 
     /**
      * Verify that the user's password matches with the hashed and salted value stored.
@@ -73,7 +74,7 @@ public class StorageOSLocalAuthenticationHandler implements StorageOSAuthenticat
      */
     public boolean verifyUserPassword(final String username, final String clearTextPassword) {
 
-        if(clearTextPassword == null || clearTextPassword.isEmpty()) {
+        if (clearTextPassword == null || clearTextPassword.isEmpty()) {
             _log.error("Login with blank password is not allowed");
             return false;
         }
@@ -86,18 +87,18 @@ public class StorageOSLocalAuthenticationHandler implements StorageOSAuthenticat
             _log.error("Access local user properties failed", e);
             return false;
         }
-            
+
         if (props == null) {
             _log.error("Access local user properties failed");
             return false;
         }
         encpassword = props.getProperty(
-                "system_"+username+"_encpassword");
+                "system_" + username + "_encpassword");
         if (StringUtils.isBlank(encpassword)) {
             _log.error("No password set for user {} ", username);
             return false;
         }
-        
+
         // A hashed value will start with the SHA-512 identifier ($6$)
         if (StringUtils.startsWith(encpassword, CRYPT_SHA_512)) {
             // Hash the clear text password and compare against the stored value
@@ -117,7 +118,7 @@ public class StorageOSLocalAuthenticationHandler implements StorageOSAuthenticat
      * @return the encrypted (and Base64 encoded) string.
      */
     private String encrypt(String s) {
-       return _encryptionProvider.getEncryptedString(s);
+        return _encryptionProvider.getEncryptedString(s);
     }
 
     @Override
@@ -129,11 +130,11 @@ public class StorageOSLocalAuthenticationHandler implements StorageOSAuthenticat
     public static boolean exists(String username) {
         return _localUsers.containsKey(username);
     }
-    
+
     @Override
     public boolean supports(final Credentials credentials) {
-        return  credentials != null
+        return credentials != null
                 && (UsernamePasswordCredentials.class.isAssignableFrom(credentials.getClass()))
-                && exists(((UsernamePasswordCredentials)(credentials)).getUserName());
+                && exists(((UsernamePasswordCredentials) (credentials)).getUserName());
     }
 }

@@ -41,24 +41,24 @@ public class Main {
             ctx.load(args);
             ctx.refresh();
 
-            DbService dbsvc = (DbService)ctx.getBean(SERVICE_BEAN);
+            DbService dbsvc = (DbService) ctx.getBean(SERVICE_BEAN);
             addShutdownHook(dbsvc);
             dbsvc.start();
-        } catch(Exception e) {
+        } catch (Exception e) {
             _log.error("Failed to start {}:", SERVICE_BEAN, e);
             System.exit(1);
-        } 
+        }
     }
 
     private static void addShutdownHook(final DbService dbsvc) {
-        Runtime.getRuntime().addShutdownHook(new Thread(){
+        Runtime.getRuntime().addShutdownHook(new Thread() {
             @Override
             public void run() {
                 _log.info("Shutting down {}", SERVICE_BEAN);
                 try {
                     dbsvc.stopWithDecommission();
-                } catch(Exception e) {
-                     _log.error("Failed to stop {}:", SERVICE_BEAN, e);
+                } catch (Exception e) {
+                    _log.error("Failed to stop {}:", SERVICE_BEAN, e);
                 }
             }
         });

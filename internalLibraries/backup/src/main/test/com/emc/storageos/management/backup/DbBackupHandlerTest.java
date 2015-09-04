@@ -51,7 +51,7 @@ public class DbBackupHandlerTest extends BackupTestBase {
                 File[] subSnapshots = snapshot.listFiles(new FilenameFilter() {
                     @Override
                     public boolean accept(File dir, String name) {
-                        return name.startsWith(snapshotTag+BackupConstants.BACKUP_NAME_DELIMITER);
+                        return name.startsWith(snapshotTag + BackupConstants.BACKUP_NAME_DELIMITER);
                     }
                 });
                 Assert.assertNotNull(subSnapshots);
@@ -80,7 +80,7 @@ public class DbBackupHandlerTest extends BackupTestBase {
             File[] backupFolder = backupDir[0].listFiles(new FilenameFilter() {
                 @Override
                 public boolean accept(File dir, String name) {
-                    return name.startsWith(snapshotTag+BackupConstants.BACKUP_NAME_DELIMITER);
+                    return name.startsWith(snapshotTag + BackupConstants.BACKUP_NAME_DELIMITER);
                 }
             });
             Assert.assertNotNull(backupFolder);
@@ -96,4 +96,3 @@ public class DbBackupHandlerTest extends BackupTestBase {
         }
     }
 }
-

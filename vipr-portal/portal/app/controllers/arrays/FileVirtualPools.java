@@ -58,7 +58,7 @@ import controllers.util.FlashException;
 import controllers.util.ViprResourceController.ResourceIdOperation;
 
 @With(Common.class)
-@Restrictions({@Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN")})
+@Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
 public class FileVirtualPools extends ViprResourceController {
     protected static final String SAVED_SUCCESS = "VirtualPools.save.success";
     protected static final String SAVED_ERROR = "VirtualPools.save.error";
@@ -75,7 +75,7 @@ public class FileVirtualPools extends ViprResourceController {
             list();
         }
     }
-    
+
     public static void list() {
         VirtualPoolDataTable dataTable = createVirtualPoolDataTable();
         render(dataTable);
@@ -102,7 +102,7 @@ public class FileVirtualPools extends ViprResourceController {
         form.protocols = Sets.newHashSet(FileProtocols.CIFS, FileProtocols.NFS);
         edit(form);
     }
-    
+
     public static void duplicate(String ids) {
         FileVirtualPoolRestRep targetVpool = VirtualPoolUtils.getFileVirtualPool(ids);
         if (targetVpool == null) {
@@ -113,7 +113,7 @@ public class FileVirtualPools extends ViprResourceController {
         copy.load(targetVpool);
         copy.id = null;
         copy.name = Messages.get("virtualPools.duplicate.name", copy.name);
-        //Target VPool could have resources, set resources to 0 on the new Copy VPool so user can modify form
+        // Target VPool could have resources, set resources to 0 on the new Copy VPool so user can modify form
         copy.numResources = 0;
         edit(copy);
     }
@@ -135,7 +135,7 @@ public class FileVirtualPools extends ViprResourceController {
         renderArgs.put("storagePoolsDataTable", createStoragePoolDataTable());
         render("@edit", vpool);
     }
-    
+
     private static StoragePoolDataTable createStoragePoolDataTable() {
         StoragePoolDataTable dataTable = new StoragePoolDataTable();
         dataTable.alterColumn("registrationStatus").hidden();
@@ -143,7 +143,7 @@ public class FileVirtualPools extends ViprResourceController {
         return dataTable;
     }
 
-    @FlashException(keep=true, referrer={"create","edit"})
+    @FlashException(keep = true, referrer = { "create", "edit" })
     public static void save(FileVirtualPoolForm vpool) {
         if (vpool == null) {
             list();
@@ -190,8 +190,7 @@ public class FileVirtualPools extends ViprResourceController {
     private static List<StoragePoolRestRep> getMatchingStoragePools(FileVirtualPoolForm vpool) {
         try {
             return await(vpool.matchingStoragePools().asPromise());
-        }
-        catch (UnexpectedException e) {
+        } catch (UnexpectedException e) {
             Throwable cause = Common.unwrap(e);
             if (cause instanceof ViPRHttpException) {
                 int httpCode = ((ViPRHttpException) cause).getHttpCode();
@@ -225,7 +224,7 @@ public class FileVirtualPools extends ViprResourceController {
         renderArgs.put("provisioningTypeOptions",
                 ProvisioningTypes.options(ProvisioningTypes.THICK, ProvisioningTypes.THIN));
         renderArgs.put("protocolOptions", FileProtocols.options(FileProtocols.CIFS, FileProtocols.NFS));
-        renderArgs.put("systemTypeOptions", 
+        renderArgs.put("systemTypeOptions",
                 StorageSystemTypes.options(
                         StorageSystemTypes.NONE,
                         StorageSystemTypes.ISILON,

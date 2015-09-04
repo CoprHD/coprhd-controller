@@ -94,7 +94,7 @@ public class StorageAdapterProcessor extends Processor {
      * @param adapter
      * @param adapterInstance
      * @throws URISyntaxException
-     * @throws IOException 
+     * @throws IOException
      */
     private void createStorageAdapter(
             StorageHADomain adapter, CIMInstance adapterInstance, AccessProfile profile)
@@ -113,11 +113,9 @@ public class StorageAdapterProcessor extends Processor {
         adapter.setSlotNumber(getCIMPropertyValue(adapterInstance, EMCSLOTNUMBER));
         String[] roles = (String[]) adapterInstance.getPropertyValue(ROLES);
         adapter.setAdapterType(HADomainType.getHADomainTypeName(roles[0]));
-        
+
         _storageAdapterList.add(adapter);
     }
-    
-    
 
     /**
      * Check if Adapter exists in DB.

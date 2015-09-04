@@ -17,37 +17,35 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 /**
- *  Copyright (c) 2012 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
  *
  * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
+ * or is licensed to EMC Corporation from third parties. Use of this
  * software and the intellectual property contained therein is expressly
  * limited to the terms and conditions of the License Agreement under which
  * it is provided by or on behalf of EMC.
  */
 
-public class PurgeRunnable<T extends DataObject> implements Runnable{
+public class PurgeRunnable<T extends DataObject> implements Runnable {
 
     private static final Logger _log = LoggerFactory.getLogger(PurgeRunnable.class);
 
-
     private DbDependencyPurger _dbPurger;
     private DbClient _dbClient;
-    private T  _decommissionResouce;
+    private T _decommissionResouce;
     private int _max_retries;
-    private ScheduledExecutorService  _service;
+    private ScheduledExecutorService _service;
     private String _taskId;
     private int _timeout;
 
-    //  volatile int should be sufficient
+    // volatile int should be sufficient
     // since it is guaranteed that multiple threads won't access it at the same time.
-    private volatile int  _iteration = 1;
-
+    private volatile int _iteration = 1;
 
     PurgeRunnable(DbClient dbClient, DbDependencyPurger purger,
-                         ScheduledExecutorService executorService,
-                         T resource, int maxIter, String taskId, int timeout) {
+            ScheduledExecutorService executorService,
+            T resource, int maxIter, String taskId, int timeout) {
         _dbClient = dbClient;
         _dbPurger = purger;
         _service = executorService;
@@ -59,31 +57,31 @@ public class PurgeRunnable<T extends DataObject> implements Runnable{
 
     public void run() {
         try {
-            _dbPurger.purge(_decommissionResouce.getId(),_decommissionResouce.getClass());
+            _dbPurger.purge(_decommissionResouce.getId(), _decommissionResouce.getClass());
 
             _log.info(String.format("Purged the database successfully with %d iterations: resoruce %s",
-                                    _iteration,_decommissionResouce.getId()));
+                    _iteration, _decommissionResouce.getId()));
             Operation upd = new Operation(Operation.Status.ready.toString(),
-                    String.format("Purged the resources %s from the Database",_decommissionResouce.getId()));
-            _dbClient.updateTaskOpStatus(_decommissionResouce.getClass(),_decommissionResouce.getId(),_taskId,upd);
+                    String.format("Purged the resources %s from the Database", _decommissionResouce.getId()));
+            _dbClient.updateTaskOpStatus(_decommissionResouce.getClass(), _decommissionResouce.getId(), _taskId, upd);
 
-        } catch( Exception ex ) {
+        } catch (Exception ex) {
             _log.error(String.format("Failed to purge the database: resoruce %s, attempt #%d,",
-                                     _decommissionResouce.getId(),_iteration), ex);
-            if(_iteration == _max_retries){
+                    _decommissionResouce.getId(), _iteration), ex);
+            if (_iteration == _max_retries) {
                 Operation op = new Operation(Operation.Status.error.toString(),
-                        String.format("Failed to remove resource %s from the Database",_decommissionResouce.getId()));
-                _dbClient.updateTaskOpStatus(_decommissionResouce.getClass(),_decommissionResouce.getId(),_taskId,op);
+                        String.format("Failed to remove resource %s from the Database", _decommissionResouce.getId()));
+                _dbClient.updateTaskOpStatus(_decommissionResouce.getClass(), _decommissionResouce.getId(), _taskId, op);
             } else {
                 try {
                     _iteration++;
-                    _service.schedule(this,_timeout, TimeUnit.SECONDS);
-                } catch ( Exception e) {
+                    _service.schedule(this, _timeout, TimeUnit.SECONDS);
+                } catch (Exception e) {
                     _log.error(String.format("Failed to reschedule removal of the resource %s from the database",
-                                _decommissionResouce.getId()), e);
+                            _decommissionResouce.getId()), e);
                     Operation op = new Operation(Operation.Status.error.toString(),
                             String.format("Failed to reschedule removal of the resource %s rom the Database", _decommissionResouce.getId()));
-                    _dbClient.updateTaskOpStatus(_decommissionResouce.getClass(),_decommissionResouce.getId(),_taskId,op);
+                    _dbClient.updateTaskOpStatus(_decommissionResouce.getClass(), _decommissionResouce.getId(), _taskId, op);
 
                 }
             }
@@ -108,25 +106,25 @@ public class PurgeRunnable<T extends DataObject> implements Runnable{
      */
 
     public static <T extends DataObject> void executePurging(DbClient dbClient,
-                                                      DbDependencyPurger purger,
-                                                      ScheduledExecutorService executorService,
-                                                      T resource,
-                                                      int maxIter,
-                                                      String taskId,
-                                                      int timeout) {
+            DbDependencyPurger purger,
+            ScheduledExecutorService executorService,
+            T resource,
+            int maxIter,
+            String taskId,
+            int timeout) {
 
-        PurgeRunnable<T> purgeRunner = new PurgeRunnable<T>(dbClient,purger,
-                                                         executorService,resource,
-                                                         maxIter, taskId, timeout);
+        PurgeRunnable<T> purgeRunner = new PurgeRunnable<T>(dbClient, purger,
+                executorService, resource,
+                maxIter, taskId, timeout);
         try {
             executorService.execute(purgeRunner);
-        } catch ( Exception e) {
+        } catch (Exception e) {
             _log.error(String.format("Failed to reschedule removal of the resource %s from the database",
-                                      resource.getId()), e);
+                    resource.getId()), e);
             Operation op = new Operation(Operation.Status.error.toString(),
                     String.format("Failed to schedule removal of the resource %s rom the Database",
-                                   resource.getId()));
-            dbClient.updateTaskOpStatus(resource.getClass(),resource.getId(),taskId,op);
+                            resource.getId()));
+            dbClient.updateTaskOpStatus(resource.getClass(), resource.getId(), taskId, op);
         }
     }
 }

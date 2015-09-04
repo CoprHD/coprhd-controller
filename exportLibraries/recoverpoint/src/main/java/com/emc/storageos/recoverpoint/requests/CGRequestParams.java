@@ -3,6 +3,7 @@
  * All Rights Reserved
  */
 package com.emc.storageos.recoverpoint.requests;
+
 /**
  *  Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
@@ -45,69 +46,69 @@ public class CGRequestParams implements Serializable {
     }
 
     public boolean isJunitTest() {
-		return isJunitTest;
-	}
+        return isJunitTest;
+    }
 
-	public void setJunitTest(boolean isJunitTest) {
-		this.isJunitTest = isJunitTest;
-	}
+    public void setJunitTest(boolean isJunitTest) {
+        this.isJunitTest = isJunitTest;
+    }
 
-	public String getCgName() {
-		return cgName;
-	}
+    public String getCgName() {
+        return cgName;
+    }
 
-	public void setCgName(String cgName) {
-		this.cgName = cgName;
-	}
+    public void setCgName(String cgName) {
+        this.cgName = cgName;
+    }
 
-	public URI getCgUri() {
-		return cgUri;
-	}
+    public URI getCgUri() {
+        return cgUri;
+    }
 
-	public void setCgUri(URI cgUri) {
-		this.cgUri = cgUri;
-	}
+    public void setCgUri(URI cgUri) {
+        this.cgUri = cgUri;
+    }
 
-	public URI getProject() {
-		return project;
-	}
+    public URI getProject() {
+        return project;
+    }
 
-	public void setProject(URI project) {
-		this.project = project;
-	}
+    public void setProject(URI project) {
+        this.project = project;
+    }
 
-	public URI getTenant() {
-		return tenant;
-	}
+    public URI getTenant() {
+        return tenant;
+    }
 
-	public void setTenant(URI tenant) {
-		this.tenant = tenant;
-	}
+    public void setTenant(URI tenant) {
+        this.tenant = tenant;
+    }
 
-	public List<CreateCopyParams> getCopies() {
-		return copies;
-	}
+    public List<CreateCopyParams> getCopies() {
+        return copies;
+    }
 
-	public void setCopies(List<CreateCopyParams> copies) {
-		this.copies = copies;
-	}
+    public void setCopies(List<CreateCopyParams> copies) {
+        this.copies = copies;
+    }
 
-	public List<CreateRSetParams> getRsets() {
-		return rsets;
-	}
+    public List<CreateRSetParams> getRsets() {
+        return rsets;
+    }
 
-	public void setRsets(List<CreateRSetParams> rsets) {
-		this.rsets = rsets;
-	}
+    public void setRsets(List<CreateRSetParams> rsets) {
+        this.rsets = rsets;
+    }
 
     // The top-level CG policy objects
     public static class CGPolicyParams implements Serializable {
-    	public String copyMode;
-    	public Long rpoValue;
-    	public String rpoType;
+        public String copyMode;
+        public Long rpoValue;
+        public String rpoType;
     }
 
-	@Override
+    @Override
     public String toString() {
         StringBuffer sb = new StringBuffer();
         sb.append("\ncgName: " + cgName);

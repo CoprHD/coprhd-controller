@@ -41,17 +41,17 @@ public class SmisMaskingViewAddVolumeJob extends SmisJob
     private CIMObjectPath _newCreatedGroup;  // newly created storage group path.
 
     public SmisMaskingViewAddVolumeJob(CIMObjectPath cimJob,
-                                       URI storageSystem,
-                                       URI exportMaskURI,
-                                       VolumeURIHLU[] volumeURIHLUs,
-                                       CIMObjectPath newCreatedGroup, 
-                                       TaskCompleter taskCompleter) {
+            URI storageSystem,
+            URI exportMaskURI,
+            VolumeURIHLU[] volumeURIHLUs,
+            CIMObjectPath newCreatedGroup,
+            TaskCompleter taskCompleter) {
         super(cimJob, storageSystem, taskCompleter, "AddVolumeToMaskingView");
         _exportMaskURI = exportMaskURI;
         _volumeURIHLUs = volumeURIHLUs;
         _newCreatedGroup = newCreatedGroup;
     }
-    
+
     public void setCIMObjectPathfactory(CIMObjectPathFactory cimPath) {
         _cimPath = cimPath;
     }
@@ -59,7 +59,7 @@ public class SmisMaskingViewAddVolumeJob extends SmisJob
     public void updateStatus(JobContext jobContext) throws Exception {
         DbClient dbClient = jobContext.getDbClient();
         JobStatus jobStatus = getJobStatus();
-		_log.info("Updating status of SmisMaskingViewAddVolumeJob");
+        _log.info("Updating status of SmisMaskingViewAddVolumeJob");
         try {
             if (jobStatus == JobStatus.SUCCESS && (ExportMaskOperationsHelper.volumeURIHLUsHasNullHLU(_volumeURIHLUs))) {
                 StorageSystem storageSystem = dbClient.queryObject(
@@ -74,37 +74,37 @@ public class SmisMaskingViewAddVolumeJob extends SmisJob
                     BlockObject bo = Volume.fetchExportMaskBlockObject(dbClient,
                             volumeUriHlu.getVolumeURI());
                     if (bo != null && bo instanceof Volume) {
-                    	Volume volume = (Volume)bo;
-                    	if (volume != null && volume.checkForRp()) {
-                    		List<CIMObjectPath> volumePathList = new ArrayList<CIMObjectPath>();
-                    		volumePathList.add(helper.getVolumeMember(storageSystem, volume));
-                    		helper.setRecoverPointTag(storageSystem,volumePathList,true);
-                    	}
+                        Volume volume = (Volume) bo;
+                        if (volume != null && volume.checkForRp()) {
+                            List<CIMObjectPath> volumePathList = new ArrayList<CIMObjectPath>();
+                            volumePathList.add(helper.getVolumeMember(storageSystem, volume));
+                            helper.setRecoverPointTag(storageSystem, volumePathList, true);
+                        }
                     }
                     volumeUriList.add(volumeUriHlu.getVolumeURI());
                 }
-                
+
                 // update Host IO Limit properties for child storage group if applicable.
-                // NOTE: this need to be done after addGroupsToCascadedVolumeGroup, because the child groups must need to be associated to a parent
+                // NOTE: this need to be done after addGroupsToCascadedVolumeGroup, because the child groups must need to be associated to a
+                // parent
                 // for proper roll back , that is volume removal, if exception is thrown during update
-                if ( _newCreatedGroup != null) {
+                if (_newCreatedGroup != null) {
                     helper.setHostIOLimits(cimConnection.getCimClient(), _newCreatedGroup, _volumeURIHLUs);
                 }
 
                 String[] volumeNames = ExportMaskUtils.getBlockObjectAlternateNames(volumeUriList, dbClient);
                 CIMObjectPath[] volumes = _cimPath.getVolumePaths(storageSystem, volumeNames);
-                
-                
-                _log.info("{} volumes processed for HLU updation",volumes.length);
+
+                _log.info("{} volumes processed for HLU updation", volumes.length);
                 // Now set the HLU on the volume URIs, if they haven't been set// by user.
                 ExportMaskOperationsHelper.
-                setHLUFromProtocolControllersOnAddVolume(dbClient,cimConnection, _exportMaskURI, _volumeURIHLUs,
+                        setHLUFromProtocolControllersOnAddVolume(dbClient, cimConnection, _exportMaskURI, _volumeURIHLUs,
                                 volumes, getTaskCompleter());
             }
         } catch (WBEMException e) {
             _log.error(String.format("updateHostIOLimits failed - new created group: %s", _newCreatedGroup.toString()), e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
-            getTaskCompleter().error(dbClient, serviceError);                        
+            getTaskCompleter().error(dbClient, serviceError);
         } catch (Exception e) {
             _log.error("Caught an exception while trying to updateStatus for SmisMaskingViewAddVolumeJob", e);
             setPostProcessingErrorStatus("Encountered an internal error during add volume to masking view job status processing : "

@@ -36,8 +36,9 @@ public interface SysSvc {
 
     /**
      * Fetch Upgrade URL
-     * @return              Returns string containing URL containing upgrade OVF files.
+     * 
+     * @return Returns string containing URL containing upgrade OVF files.
      * @throws Exception
-    public String fetchUpgradeOVFURL() throws Exception;
+     *             public String fetchUpgradeOVFURL() throws Exception;
      */
 }

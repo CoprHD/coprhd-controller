@@ -38,12 +38,11 @@ public class HDSExportMaskRemoveVolumeCompleter extends ExportTaskCompleter {
     private Collection<URI> _volumes;
 
     public HDSExportMaskRemoveVolumeCompleter(URI egUri, URI emUri, Collection<URI> volumes,
-                                           String task) {
+            String task) {
         super(ExportGroup.class, egUri, emUri, task);
         _volumes = new ArrayList<URI>();
         _volumes.addAll(volumes);
     }
-
 
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {

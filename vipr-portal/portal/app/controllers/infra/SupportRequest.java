@@ -52,8 +52,7 @@ public class SupportRequest extends Controller {
         try {
             task = submit(supportRequest);
             flash.put("info", MessagesUtils.get(SUCCESS_KEY));
-        }
-        catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             flash.error(MessagesUtils.get(ERROR_KEY, e.getMessage()));
             Logger.error(e, e.getMessage());
             createSupportRequest();
@@ -76,14 +75,14 @@ public class SupportRequest extends Controller {
         public String comment;
 
         public long start;
-        
+
         public long end;
 
         public boolean endIsCurrentTime;
 
         public SupportRequestForm() {
         }
-        
+
         public void loadDefaults() {
             email = UserPreferencesUtils.getEmail();
             comment = MessagesUtils.get(COMMENT_TEMPLATE_KEY);

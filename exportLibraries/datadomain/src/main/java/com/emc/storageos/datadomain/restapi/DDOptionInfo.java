@@ -24,20 +24,19 @@ import com.emc.storageos.datadomain.restapi.errorhandling.DataDomainApiException
  *
  * <options> ::= <option> ' ' <options> ;
  *
- *              <option> ::= ro | rw |
- *                           		root_squash | no_root_squash |
- *                           		all_squash | no_all_squash |
- *                           		secure | insecure |
- *                           		anonuid=<N> | anongid=<N>
- *                          		;
- *  Using the space to separate the option.
- *  For example
- *  <options>
- *       rw no_root_squash no_all_squash secure
- *   <option
+ * <option> ::= ro | rw |
+ * root_squash | no_root_squash |
+ * all_squash | no_all_squash |
+ * secure | insecure |
+ * anonuid=<N> | anongid=<N>
+ * ;
+ * Using the space to separate the option.
+ * For example
+ * <options>
+ * rw no_root_squash no_all_squash secure
+ * <option
  *
  */
-
 
 public class DDOptionInfo {
 
@@ -49,34 +48,34 @@ public class DDOptionInfo {
     public String anonGid;
     public boolean secureConnection;
 
-    static public DDOptionInfo parseOptions(String options) throws DataDomainApiException{
+    static public DDOptionInfo parseOptions(String options) throws DataDomainApiException {
         DDOptionInfo info = new DDOptionInfo();
         String optionArr[] = options.split("[ \b]+");
         info.secureConnection = false;
         info.security = DataDomainApiConstants.DEFAULT_SECURITY;
-        for( String option : optionArr) {
+        for (String option : optionArr) {
             switch (option) {
                 case DataDomainApiConstants.PERMISSION_RO: {
                     info.permission = DataDomainApiConstants.PERMISSION_RO;
                     break;
                 }
-                case DataDomainApiConstants.PERMISSION_RW : {
+                case DataDomainApiConstants.PERMISSION_RW: {
                     info.permission = DataDomainApiConstants.PERMISSION_RW;
                     break;
                 }
-                case DataDomainApiConstants.ROOT_SQUASH : {
+                case DataDomainApiConstants.ROOT_SQUASH: {
                     info.rootMapping = DataDomainApiConstants.ROOT_SQUASH;
                     break;
                 }
-                case DataDomainApiConstants.NO_ROOT_SQUASH : {
+                case DataDomainApiConstants.NO_ROOT_SQUASH: {
                     info.rootMapping = DataDomainApiConstants.NO_ROOT_SQUASH;
                     break;
                 }
-                case DataDomainApiConstants.ALL_SQUASH : {
+                case DataDomainApiConstants.ALL_SQUASH: {
                     info.userMapping = DataDomainApiConstants.ALL_SQUASH;
                     break;
                 }
-                case DataDomainApiConstants.NO_ALL_SQUASH : {
+                case DataDomainApiConstants.NO_ALL_SQUASH: {
                     info.userMapping = DataDomainApiConstants.NO_ALL_SQUASH;
                     break;
                 }
@@ -85,18 +84,18 @@ public class DDOptionInfo {
                     break;
                 }
                 default: {
-                    if ( option.startsWith(DataDomainApiConstants.ANONYMOUS_UID) ) {
+                    if (option.startsWith(DataDomainApiConstants.ANONYMOUS_UID)) {
                         String[] tokens = option.split("=");
-                        if(tokens.length == 3){
+                        if (tokens.length == 3) {
                             info.anonUid = tokens[2];
                         }
                         else {
                             throw DataDomainApiException.exceptions.failedProcessExportOption(option);
                         }
                     }
-                    else if ( option.startsWith(DataDomainApiConstants.ANONYMOUS_GID) ) {
+                    else if (option.startsWith(DataDomainApiConstants.ANONYMOUS_GID)) {
                         String[] tokens = option.split("=");
-                        if(tokens.length == 3){
+                        if (tokens.length == 3) {
                             info.anonGid = tokens[2];
                         }
                         else {
@@ -110,7 +109,7 @@ public class DDOptionInfo {
                     }
                 }
             }
-             
+
         }
         return info;
     }

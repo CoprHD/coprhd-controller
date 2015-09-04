@@ -29,25 +29,26 @@ import com.emc.storageos.vnxe.models.VNXeCommandResult;
 import com.emc.storageos.vnxe.models.VNXeFileSystemSnap;
 
 public class FileSystemSnapRequestsTest {
-	private static KHClient _client;
+    private static KHClient _client;
     private static String host = EnvConfig.get("sanity", "vnxe.host");
     private static String userName = EnvConfig.get("sanity", "vnxe.username");
     private static String password = EnvConfig.get("sanity", "vnxe.password");
-	@BeforeClass
-    public static void setup() throws Exception {
-		_client = new KHClient(host, userName, password);
 
-	}
-	
-	//@Test
-	public void createFileSystemSnap() {
-		FileSystemSnapCreateParam parm = new FileSystemSnapCreateParam();
-		VNXeBase resource = new VNXeBase();
-		resource.setId("res_12");
-		parm.setStorageResource(resource);
+    @BeforeClass
+    public static void setup() throws Exception {
+        _client = new KHClient(host, userName, password);
+
+    }
+
+    // @Test
+    public void createFileSystemSnap() {
+        FileSystemSnapCreateParam parm = new FileSystemSnapCreateParam();
+        VNXeBase resource = new VNXeBase();
+        resource.setId("res_12");
+        parm.setStorageResource(resource);
         parm.setName("test-snap");
         parm.setIsReadOnly(false);
-        
+
         FileSystemSnapRequests req = new FileSystemSnapRequests(_client);
         VNXeCommandJob response = null;
         try {
@@ -56,33 +57,34 @@ public class FileSystemSnapRequestsTest {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-       
-        System.out.println(response.getId() + "state: " + response.getState());
-        
-        
-	}
-	
-	/*@Test
-    public void getFileSystemSnap() {
 
+        System.out.println(response.getId() + "state: " + response.getState());
+
+    }
+
+    /*
+     * @Test
+     * public void getFileSystemSnap() {
+     * 
+     * FileSystemSnapRequests req = new FileSystemSnapRequests(_client);
+     * 
+     * VNXeFileSystemSnap response = null;
+     * try {
+     * response = req.getByName("test-file-01-snap");
+     * } catch (VNXeException e) {
+     * // TODO Auto-generated catch block
+     * e.printStackTrace();
+     * }
+     * 
+     * System.out.println(response.getId());
+     * 
+     * 
+     * }
+     */
+
+    // @Test
+    public void deleteSnap() {
         FileSystemSnapRequests req = new FileSystemSnapRequests(_client);
-        
-        VNXeFileSystemSnap response = null;
-        try {
-            response = req.getByName("test-file-01-snap");
-        } catch (VNXeException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-       
-        System.out.println(response.getId());
-        
-        
-    }*/
-	
-	//@Test
-	public void deleteSnap() {
-	    FileSystemSnapRequests req = new FileSystemSnapRequests(_client);
         VNXeCommandJob response = null;
         try {
             response = req.deleteFileSystemSnap("98784247867");
@@ -90,11 +92,11 @@ public class FileSystemSnapRequestsTest {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-       
+
         System.out.println(response.getId());
-	}
-	
-	@Test
+    }
+
+    @Test
     public void restoreSnap() {
         FileSystemSnapRequests req = new FileSystemSnapRequests(_client);
         VNXeCommandJob response = null;
@@ -104,14 +106,14 @@ public class FileSystemSnapRequestsTest {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-       
+
         System.out.println(response.getId());
     }
 
-	//@Test
-	public void getFileSnaps() {
-	    FileSystemSnapRequests req = new FileSystemSnapRequests(_client);
-	    List<VNXeFileSystemSnap> snaps = req.getFileSystemSnaps("res_50");
-	    System.out.println(snaps.size());
-	}
+    // @Test
+    public void getFileSnaps() {
+        FileSystemSnapRequests req = new FileSystemSnapRequests(_client);
+        List<VNXeFileSystemSnap> snaps = req.getFileSystemSnaps("res_50");
+        System.out.println(snaps.size());
+    }
 }

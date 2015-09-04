@@ -64,7 +64,8 @@ public class Approvals extends AbstractResources<ApprovalInfo> {
      */
     @Deprecated
     public List<Reference> listPending() {
-        List<Reference> apiList = getApiList(client, new GenericType<List<Reference>>() {}, APPROVALS_PENDING_URL);
+        List<Reference> apiList = getApiList(client, new GenericType<List<Reference>>() {
+        }, APPROVALS_PENDING_URL);
         return apiList;
     }
 

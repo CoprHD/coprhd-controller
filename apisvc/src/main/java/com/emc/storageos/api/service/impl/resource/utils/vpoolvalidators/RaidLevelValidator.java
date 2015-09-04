@@ -25,8 +25,7 @@ import com.emc.storageos.model.vpool.BlockVirtualPoolUpdateParam;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
-public class RaidLevelValidator extends VirtualPoolValidator<BlockVirtualPoolParam,BlockVirtualPoolUpdateParam> {
-    
+public class RaidLevelValidator extends VirtualPoolValidator<BlockVirtualPoolParam, BlockVirtualPoolUpdateParam> {
 
     @Override
     public void setNextValidator(VirtualPoolValidator validator) {
@@ -41,7 +40,7 @@ public class RaidLevelValidator extends VirtualPoolValidator<BlockVirtualPoolPar
                 throw APIException.badRequests.invalidParameter("raidLevel", raidLevel);
         }
         StringSetMap arrayInfo = cos.getArrayInfo();
-        
+
         /** if system Type is null , throw exception */
         if (null == arrayInfo
                 || null == arrayInfo.get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE)
@@ -93,16 +92,16 @@ public class RaidLevelValidator extends VirtualPoolValidator<BlockVirtualPoolPar
     protected void validateVirtualPoolCreateAttributeValue(BlockVirtualPoolParam createParam, DbClient dbClient) {
         for (String raidLevel : createParam.getRaidLevels()) {
             if (null == RaidLevel.lookup(raidLevel))
-            	throw APIException.badRequests.invalidParameter("Raid Level", raidLevel);
+                throw APIException.badRequests.invalidParameter("Raid Level", raidLevel);
         }
         if (null == createParam.getSystemType())
-        	throw APIException.badRequests.requiredParameterMissingOrEmpty("System Type");
+            throw APIException.badRequests.requiredParameterMissingOrEmpty("System Type");
         if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(createParam.getSystemType())
                 && !VirtualPool.SystemType.vnxblock.toString().equalsIgnoreCase(
                         createParam.getSystemType())
                 && !VirtualPool.SystemType.vnxe.toString().equalsIgnoreCase(
                         createParam.getSystemType()))
-        	throw APIException.badRequests.parameterOnlySupportedForVmaxAndVnxBlock("Raid Levels");
+            throw APIException.badRequests.parameterOnlySupportedForVmaxAndVnxBlock("Raid Levels");
     }
 
     @Override

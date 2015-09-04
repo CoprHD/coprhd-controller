@@ -22,27 +22,29 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.DataObjectRestRep;
 
-
 @XmlRootElement(name = "varray")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class VirtualArrayRestRep extends DataObjectRestRep {
     private BlockSettings blockSettings;
     private ObjectSettings objectSettings;
 
-    public VirtualArrayRestRep() {}
+    public VirtualArrayRestRep() {
+    }
 
-    @XmlElement(name="block_settings")
+    @XmlElement(name = "block_settings")
     public BlockSettings getBlockSettings() {
         return blockSettings;
     }
+
     public void setBlockSettings(BlockSettings blockSettings) {
         this.blockSettings = blockSettings;
     }
 
-    @XmlElement(name="object_settings")
+    @XmlElement(name = "object_settings")
     public ObjectSettings getObjectSettings() {
         return objectSettings;
     }
+
     public void setObjectSettings(ObjectSettings objectSettings) {
         this.objectSettings = objectSettings;
     }
@@ -56,7 +58,7 @@ public class VirtualArrayRestRep extends DataObjectRestRep {
      * @valid true
      * @valid false
      */
-    @XmlElement(name="auto_san_zoning")
+    @XmlElement(name = "auto_san_zoning")
     @Deprecated
     public Boolean getAutoSanZoning() {
         if (blockSettings != null) {

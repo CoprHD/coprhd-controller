@@ -46,7 +46,7 @@ import java.util.regex.Pattern;
  * leader election, etc.
  */
 public interface CoordinatorClient {
-    // enumeration for the storage type associated 
+    // enumeration for the storage type associated
     // with the license.
     public static enum LicenseType {
         CONTROLLER,
@@ -82,13 +82,10 @@ public interface CoordinatorClient {
      * Binds advertised endpoint with a given interface and returns a stub object that implements this interface.
      * Currently supported endpoint types are rmi, tbd...
      * <p/>
-     * Default coordinator implementation may implement any load balancing scheme when
-     * multiple services of the same name and version are available.  Client stub object
-     * for the same endpoint may be cached in CoordinatorClient implementation for
-     * performance.
+     * Default coordinator implementation may implement any load balancing scheme when multiple services of the same name and version are
+     * available. Client stub object for the same endpoint may be cached in CoordinatorClient implementation for performance.
      * <p/>
-     * Note that liveness of endpoint is not guaranteed - any retry
-     * mechanism is a stub object implementation specific.
+     * Note that liveness of endpoint is not guaranteed - any retry mechanism is a stub object implementation specific.
      *
      * @param clazz
      * @param name
@@ -107,8 +104,8 @@ public interface CoordinatorClient {
      *
      * @param name service name
      * @param version service version
-     * @param tag service tag.  if null, does not filter on tag
-     * @param endpointKey endpoint key.  if null, does not filter on endpoint key
+     * @param tag service tag. if null, does not filter on tag
+     * @param endpointKey endpoint key. if null, does not filter on endpoint key
      * @return matching services
      */
     public List<Service> locateAllServices(String name, String version, String tag, String endpointKey)
@@ -123,25 +120,25 @@ public interface CoordinatorClient {
     public List<Service> locateAllSvcsAllVers(String name) throws CoordinatorException;
 
     /**
-     * Retrieves/creates a distributed queue with given name.   Default implementation provides
+     * Retrieves/creates a distributed queue with given name. Default implementation provides
      * at least once delivery semantics with partition tolerance (majority partition
-     * holds onto queue state).   A item is only removed from queue iff
-     * {@link QueueConsumer#consumeMessage(Object)} returns successfully.  If consumer dies
+     * holds onto queue state). A item is only removed from queue iff {@link QueueConsumer#consumeMessage(Object)} returns successfully. If
+     * consumer dies
      * or errors out, item is redelivered to another consumer.
      * <p/>
      *
-     * @param name       queue name
-     * @param consumer   consumer callback implementation
+     * @param name queue name
+     * @param consumer consumer callback implementation
      * @param serializer de/serializer
      * @param maxThreads maximum number of threads to use for concurrent delivery
-     * @param maxItem    maximum number of items that can be processed concurrently / waiting in this queue
+     * @param maxItem maximum number of items that can be processed concurrently / waiting in this queue
      * @param <T>
      * @return
      * @throws CoordinatorException
      */
     public <T> DistributedQueue<T> getQueue(String name, DistributedQueueConsumer<T> consumer,
             QueueSerializer<T> serializer, int maxThreads, int maxItem)
-                    throws CoordinatorException;
+            throws CoordinatorException;
 
     /**
      * Overload of getQueue(name, consumer, serializer, maxThreads, maxItem) that uses default
@@ -149,7 +146,7 @@ public interface CoordinatorClient {
      */
     public <T> DistributedQueue<T> getQueue(String name, DistributedQueueConsumer<T> consumer,
             QueueSerializer<T> serializer, int maxThreads)
-                    throws CoordinatorException;
+            throws CoordinatorException;
 
     /**
      * Gets an instance of a DistributedLockQueueManager, creating one if necessary.
@@ -164,8 +161,8 @@ public interface CoordinatorClient {
             throws CoordinatorException;
 
     /**
-     * Gets/creates work pool with given name.  WorkPool holds a set of work items clients
-     * are assigned.  Pool itself does not preemptively reschedule based on work distribution.
+     * Gets/creates work pool with given name. WorkPool holds a set of work items clients
+     * are assigned. Pool itself does not preemptively reschedule based on work distribution.
      * For use cases where rebalancing is required, it is recommended that workers periodically
      * relinquish work item ownership - released work items are randomly assigned to next
      * available client achieving redistribution when new workers show up.
@@ -207,15 +204,16 @@ public interface CoordinatorClient {
      * @return read write lock
      */
     public InterProcessReadWriteLock getReadWriteLock(String name) throws CoordinatorException;
+
     /**
      * Retrieves/creates a distributed mutex that can be released by any thread.
      *
      * @param name mutex name
      * @return mutex
      */
-	public InterProcessSemaphoreMutex getSemaphoreLock(String name) throws CoordinatorException;
+    public InterProcessSemaphoreMutex getSemaphoreLock(String name) throws CoordinatorException;
 
-	/**
+    /**
      * Retrieves/creates a distributed persistent lock
      *
      * @param name lock name
@@ -225,8 +223,8 @@ public interface CoordinatorClient {
     public DistributedPersistentLock getPersistentLock(String name) throws CoordinatorException;
 
     /**
-     * Starts coordinator client service.  Default implementation attempts to connect
-     * to coordinator cluster when cluster becomes unavailable.  Calling any API during
+     * Starts coordinator client service. Default implementation attempts to connect
+     * to coordinator cluster when cluster becomes unavailable. Calling any API during
      * a disconnect results in IOException.
      *
      * @throws IOException when coordinator cluster is unreachable
@@ -241,13 +239,13 @@ public interface CoordinatorClient {
     /**
      * Returns connection status
      *
-     * @return true if connected to coordinator cluster.  false, otherwise.
+     * @return true if connected to coordinator cluster. false, otherwise.
      */
     public boolean isConnected();
 
     /**
-     * Permanently persists configuration information.   Note that most (if not all) services do not
-     * need to persist their configuration information.   This is used for services (such as dbsvc) that need
+     * Permanently persists configuration information. Note that most (if not all) services do not
+     * need to persist their configuration information. This is used for services (such as dbsvc) that need
      * to adjust cluster configuration using existing configuration of other nodes.
      *
      * @param config
@@ -255,7 +253,7 @@ public interface CoordinatorClient {
     public void persistServiceConfiguration(Configuration... config) throws CoordinatorException;
 
     /**
-     * Removes configured service information.  See above notes about when this feature may be used.
+     * Removes configured service information. See above notes about when this feature may be used.
      *
      * @param config
      */
@@ -286,7 +284,7 @@ public interface CoordinatorClient {
      */
     public void setConnectionListener(ConnectionStateListener listener);
 
-     /**
+    /**
      * Get property information
      *
      * @return property object
@@ -320,9 +318,9 @@ public interface CoordinatorClient {
     /**
      * Get an unlimited workflow version of the data manager for accessing the ZK tree
      * 
-     * This API is present only for the workflow use case in controllersvc, and is not 
-     * recommended for any other use case. It does not provide any limits on the number 
-     * of nodes or memory consumption on ZK server side, so it is the caller's responsibility 
+     * This API is present only for the workflow use case in controllersvc, and is not
+     * recommended for any other use case. It does not provide any limits on the number
+     * of nodes or memory consumption on ZK server side, so it is the caller's responsibility
      * to enforce this through some external means
      * 
      * @return the workflow version of DistributedDataManager
@@ -339,8 +337,9 @@ public interface CoordinatorClient {
     public boolean isStorageProductLicensed(LicenseType licenseType);
 
     /**
-     * Creates a leaderLatch instance for  particular task based on the latchPath.
+     * Creates a leaderLatch instance for particular task based on the latchPath.
      * leaderElection will happen once leaderLatch.start() initiated
+     * 
      * @param latchPath path to participate leader election
      * @return
      */
@@ -348,13 +347,13 @@ public interface CoordinatorClient {
 
     /**
      * Create a leader selector for a specific task.
-     * LeaderSelector is an abstraction to select a "leader" amongst multiple 
+     * LeaderSelector is an abstraction to select a "leader" amongst multiple
      * contenders in a group of JMVs connected to a Zookeeper cluster. If a group
      * of N thread/processes contends for leadership, one will be assigned leader
      * until it releases leadership at which time another one from the group will
      * be chosen.
      *
-     * @param leaderPath leader path in zookeeper  
+     * @param leaderPath leader path in zookeeper
      * @param listener leader assignment listener
      * @return LeaderSelector
      * @throws CoordinatorException
@@ -396,13 +395,14 @@ public interface CoordinatorClient {
      * @throws Exception
      */
     public <T extends CoordinatorSerializable> Map<Service,
-    T> getAllNodeInfos(Class<T> clazz, Pattern nodeIdFilter) throws Exception;
+            T> getAllNodeInfos(Class<T> clazz, Pattern nodeIdFilter) throws Exception;
 
     public <T extends CoordinatorSerializable> T getNodeInfo(Service service, String nodeId, Class<T> clazz)
             throws Exception;
 
     /**
      * Load the state object from specified key.
+     * 
      * @param key
      * @param clazz
      * @param <T>
@@ -413,6 +413,7 @@ public interface CoordinatorClient {
 
     /**
      * Save the state object to specified key
+     * 
      * @param key
      * @param state
      * @param <T>
@@ -435,12 +436,13 @@ public interface CoordinatorClient {
 
     // TODO support schema version of geodbsvc
     public String getCurrentDbSchemaVersion();
+
     public String getTargetDbSchemaVersion();
 
     /**
      * Get DB migration status
      * 
-     * TODO support migration status of geodbsvc 
+     * TODO support migration status of geodbsvc
      */
     public MigrationStatus getMigrationStatus();
 
@@ -450,12 +452,12 @@ public interface CoordinatorClient {
     public boolean isDbSchemaVersionChanged();
 
     /**
-     * Get dbconfig root node in zk 
-     *  
+     * Get dbconfig root node in zk
+     * 
      * @param serviceName - dbsvc or geodbsvc
      * @return
      */
-    public String getDbConfigPath(String serviceName) ;
+    public String getDbConfigPath(String serviceName);
 
     /**
      * Check if the cluster is in a upgradable state. A cluster is stably upgradable if
@@ -485,25 +487,28 @@ public interface CoordinatorClient {
 
     /**
      * Sets inet address lookup map.
+     * 
      * @param inetAddessLookupMap
-     *          The instance of CoordinatorClientInetAddressMap
+     *            The instance of CoordinatorClientInetAddressMap
      */
     public void setInetAddessLookupMap(CoordinatorClientInetAddressMap inetAddessLookupMap);
 
     /**
      * add and start a NodeListener to listen the zk node change. Will not be notified for change on child node.
+     * 
      * @param listener
      */
     public void addNodeListener(NodeListener listener) throws Exception;
 
     /**
      * remove the NodeListener from coordinator client.
+     * 
      * @param listener
      */
     public void removeNodeListener(NodeListener listener);
 
     /**
-     * Checks for the existence of a lock (znode) at the given path.  The lock is available
+     * Checks for the existence of a lock (znode) at the given path. The lock is available
      * if no znode exists at the given path.
      *
      * @param lockPath

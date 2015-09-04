@@ -33,5 +33,5 @@ public interface SimulatorAlternateIdConstraint {
             DataObjectType doType = TypeMap.getDoType(Directory.class);
             return new AlternateIdConstraintImpl(doType.getColumnField("quota"), altId);
         }
-    }    
+    }
 }

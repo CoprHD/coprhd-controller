@@ -30,7 +30,8 @@ public class OpenstackUnscopedToken extends OpenstackToken {
     }
 
     public void setScopedToken(String token) {
-        if(token == null) token = "";
+        if (token == null)
+            token = "";
         _scopedToken = token;
         setChanged("scopedToken");
     }

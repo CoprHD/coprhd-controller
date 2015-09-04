@@ -28,13 +28,13 @@ public interface Configuration {
      * @return service name
      */
     public String getKind();
+
     /**
      * UUID of this configuration
      *
      * @return service UUID
      */
     public String getId();
-
 
     /**
      * Retrieve configuration field
@@ -46,12 +46,13 @@ public interface Configuration {
 
     /**
      * get all properties regardless of key
-     * @param customOnly if set to true, filters out "kind", "keyid" and other built in 
-     * properties
+     * 
+     * @param customOnly if set to true, filters out "kind", "keyid" and other built in
+     *            properties
      * @return
      */
     public Map<String, String> getAllConfigs(boolean customOnly);
-    
+
     /**
      * Sets configuration field
      *
@@ -66,7 +67,7 @@ public interface Configuration {
      * @param key config field key
      */
     public void removeConfig(String key);
-    
+
     /**
      * Serializes service information
      *

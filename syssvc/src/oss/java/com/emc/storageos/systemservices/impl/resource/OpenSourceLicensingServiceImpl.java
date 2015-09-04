@@ -28,14 +28,14 @@ import com.emc.storageos.systemservices.impl.licensing.LicenseManager;
 import com.emc.vipr.model.sys.licensing.License;
 import com.emc.vipr.model.sys.licensing.LicenseFeature;
 
-public class OpenSourceLicensingServiceImpl extends BaseLogSvcResource implements LicensingService{
+public class OpenSourceLicensingServiceImpl extends BaseLogSvcResource implements LicensingService {
     // Logger reference.
     private static final Logger _log = LoggerFactory.getLogger(OpenSourceLicensingServiceImpl.class);
     // Spring Injected
 
     @Autowired
     private LicenseManager _licenseManager;
-    
+
     /**
      * Default constructor.
      */
@@ -47,20 +47,20 @@ public class OpenSourceLicensingServiceImpl extends BaseLogSvcResource implement
         _log.info("Received GET /license request");
         // Changing invalid 01/01/12006 license expiration date to null
         License license = _licenseManager.getLicense();
-        if(license != null && license.getLicenseFeatures() != null) {
-            for(LicenseFeature feature : license.getLicenseFeatures()) {
-                if(LicenseConstants.LICENSE_EXPIRATION_DATE.equals(feature
+        if (license != null && license.getLicenseFeatures() != null) {
+            for (LicenseFeature feature : license.getLicenseFeatures()) {
+                if (LicenseConstants.LICENSE_EXPIRATION_DATE.equals(feature
                         .getDateExpires())) {
                     feature.setDateExpires(null);
                 }
-                if(feature.getStorageCapacity().equals(LicenseInfo.VALUE_NOT_SET)) {
+                if (feature.getStorageCapacity().equals(LicenseInfo.VALUE_NOT_SET)) {
                     feature.setStorageCapacity(null);
                 }
             }
         }
         return license;
     }
-    
+
     @Override
     public Response postLicense(License license) throws Exception {
         return Response.status(501).build();

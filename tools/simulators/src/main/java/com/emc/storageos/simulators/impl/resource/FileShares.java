@@ -31,7 +31,7 @@ public class FileShares extends BaseResource {
     private static Logger _log = LoggerFactory.getLogger(FileShares.class);
 
     @Context
-    UriInfo     _uriInfo;
+    UriInfo _uriInfo;
 
     @XmlAccessorType(XmlAccessType.FIELD)
     public static class Entry {
@@ -54,10 +54,10 @@ public class FileShares extends BaseResource {
     }
 
     /*
-    * listDir
-    */
+     * listDir
+     */
     @GET
-    @Produces({MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_JSON })
     @Path("{subResources:.*}")
     public Response getFileShares() {
         String dir = _uriInfo.getPath().substring("/namespace".length());
@@ -92,13 +92,13 @@ public class FileShares extends BaseResource {
             return Response.ok().build();
         } catch (Exception e) {
             _log.error("createFileShare exception. path : " + dir + ", recursive : " + recursive, e);
-            return Response.serverError().build();    
-        }           
+            return Response.serverError().build();
+        }
     }
 
     @DELETE
     @Path("{subResources:.*}")
-    public Response deleteFileShare(@QueryParam("recursive")@DefaultValue("0") String recursive) {
+    public Response deleteFileShare(@QueryParam("recursive") @DefaultValue("0") String recursive) {
         String dir = _uriInfo.getPath().substring("/namespace".length());
 
         try {
@@ -115,6 +115,5 @@ public class FileShares extends BaseResource {
             return Response.serverError().build();
         }
     }
-
 
 }

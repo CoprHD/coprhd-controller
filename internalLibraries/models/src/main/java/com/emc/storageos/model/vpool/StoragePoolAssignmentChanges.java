@@ -23,12 +23,13 @@ import org.codehaus.jackson.annotate.JsonProperty;
  * to/from the storage pool.
  */
 public class StoragePoolAssignmentChanges {
-    
+
     private StoragePoolAssignments add;
     private StoragePoolAssignments remove;
 
-    public StoragePoolAssignmentChanges() {}
-    
+    public StoragePoolAssignmentChanges() {
+    }
+
     public StoragePoolAssignmentChanges(StoragePoolAssignments add,
             StoragePoolAssignments remove) {
         this.add = add;
@@ -62,5 +63,5 @@ public class StoragePoolAssignmentChanges {
     public void setRemove(StoragePoolAssignments remove) {
         this.remove = remove;
     }
-    
+
 }

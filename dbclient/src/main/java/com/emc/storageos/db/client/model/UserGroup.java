@@ -50,7 +50,7 @@ public class UserGroup extends DataObject {
 
     @Name("attributes")
     public StringSet getAttributes() {
-        if(_attributes == null){
+        if (_attributes == null) {
             _attributes = new StringSet();
         }
         return _attributes;
@@ -83,7 +83,7 @@ public class UserGroup extends DataObject {
         return null;
     }
 
-    private StringSet getAttributeKeySet () {
+    private StringSet getAttributeKeySet() {
         StringSet attributeKeySet = new StringSet();
 
         for (String attributeParamString : _attributes) {
@@ -104,7 +104,7 @@ public class UserGroup extends DataObject {
      *
      * @param userGroup to be compared.
      * @return true if userGroup's _domain matches with
-     *          the object otherwise false.
+     *         the object otherwise false.
      */
     private boolean commonCompare(UserGroup userGroup) {
         if (userGroup == null) {
@@ -115,11 +115,11 @@ public class UserGroup extends DataObject {
         _log.debug("Comparing user groups {}, {}",
                 userGroup.toString(), this.toString());
 
-        //Now compare the domain of both user group.
+        // Now compare the domain of both user group.
         if (StringUtils.isBlank(this._domain) ||
                 StringUtils.isBlank(userGroup._domain) &&
-                        !this._domain.equalsIgnoreCase(userGroup._domain)) {
-            String[] toTrace = {this._domain, this.getLabel(), userGroup._domain, userGroup.getLabel()};
+                !this._domain.equalsIgnoreCase(userGroup._domain)) {
+            String[] toTrace = { this._domain, this.getLabel(), userGroup._domain, userGroup.getLabel() };
             _log.debug("Domain {} of {} does not match with domain {} of {}.", toTrace);
             return false;
         }
@@ -133,7 +133,7 @@ public class UserGroup extends DataObject {
      *
      * @param userGroup to be compared.
      * @return true if userGroup's _domain and _attributes matches with
-     *          the object otherwise false.
+     *         the object otherwise false.
      */
     public boolean isEqual(UserGroup userGroup) {
         boolean isEqual = false;
@@ -142,7 +142,7 @@ public class UserGroup extends DataObject {
             return isEqual;
         }
 
-        //Now compare the size of attributes list.
+        // Now compare the size of attributes list.
         if (CollectionUtils.isEmpty(this._attributes) ||
                 CollectionUtils.isEmpty(userGroup._attributes) ||
                 this._attributes.size() != userGroup._attributes.size()) {
@@ -150,7 +150,7 @@ public class UserGroup extends DataObject {
             return isEqual;
         }
 
-        //Now compare the each individual attribute of the group.
+        // Now compare the each individual attribute of the group.
         for (String attributeParamString : this._attributes) {
             isEqual = compareUserAttributeParam(userGroup, attributeParamString);
             if (!isEqual) {
@@ -168,7 +168,7 @@ public class UserGroup extends DataObject {
      * @param userGroup to be compared.
      * @param attributeParamString attribute of the object to be compared.
      * @return true if object's _attribute matches with one of
-     *          userGroup's _attributes matches with otherwise false.
+     *         userGroup's _attributes matches with otherwise false.
      */
     private boolean compareUserAttributeParam(UserGroup userGroup, String attributeParamString) {
         boolean isEqual = false;
@@ -217,7 +217,7 @@ public class UserGroup extends DataObject {
      *
      * @param userGroup to be compared.
      * @return true if all the keys of object attributes are also available
-     *          in the userGroup's attributes otherwise false.
+     *         in the userGroup's attributes otherwise false.
      */
     private boolean checkIfAllKeysAvailable(UserGroup userGroup) {
         boolean isAllKeysFound = true;
@@ -248,7 +248,7 @@ public class UserGroup extends DataObject {
      * @param userGroup to be compared.
      * @param attributeParamString attribute of the object to be compared.
      * @return true if object's _attribute overlaps with one of
-     *          userGroup's _attributes otherwise false.
+     *         userGroup's _attributes otherwise false.
      */
     private boolean checkOverlappingAttributes(UserGroup userGroup, String attributeParamString) {
         boolean overlaps = false;
@@ -297,7 +297,7 @@ public class UserGroup extends DataObject {
      *
      * @param userGroup to be compared.
      * @return true if userGroup's _domain and _attributes become overlaps with
-     *          object otherwise false.
+     *         object otherwise false.
      */
     public boolean overlap(UserGroup userGroup) {
         boolean overlaps = false;
@@ -306,14 +306,14 @@ public class UserGroup extends DataObject {
             return overlaps;
         }
 
-        //Now compare the attribute keys. To overlap, object's all the attribute keys
-        //should be available in the userGroup.
+        // Now compare the attribute keys. To overlap, object's all the attribute keys
+        // should be available in the userGroup.
         if (!checkIfAllKeysAvailable(userGroup)) {
             _log.debug("User group {} does not contain all the attribute keys of {}", userGroup.getLabel(), this.getLabel());
             return overlaps;
         }
 
-        //Now compare the each individual attribute of the group.
+        // Now compare the each individual attribute of the group.
         for (String attributeParamString : this._attributes) {
             overlaps = checkOverlappingAttributes(userGroup, attributeParamString);
             if (!overlaps) {

@@ -60,7 +60,7 @@ public class VcenterDataCenters extends AbstractCoreBulkResources<VcenterDataCen
      * API Call: <tt>GET /compute/vcenters/{vcenterId}/vcenter-data-centers</tt>
      * 
      * @param vcenterId
-     *        the ID of the vCenter.
+     *            the ID of the vCenter.
      * @return the list of datacenter references.
      */
     public List<NamedRelatedResourceRep> listByVcenter(URI vcenterId) {
@@ -74,7 +74,7 @@ public class VcenterDataCenters extends AbstractCoreBulkResources<VcenterDataCen
      * <tt>getByRefs(listByVcenter(vcenterId))</tt>
      * 
      * @param vcenterId
-     *        the ID of the vCenter.
+     *            the ID of the vCenter.
      * @return the list of datacenters.
      */
     public List<VcenterDataCenterRestRep> getByVcenter(URI vcenterId) {
@@ -88,9 +88,9 @@ public class VcenterDataCenters extends AbstractCoreBulkResources<VcenterDataCen
      * API Call: <tt>POST /compute/vcenters/{vcenterId}/vcenter-data-centers</tt>
      * 
      * @param vcenterId
-     *        the ID of the vCenter.
+     *            the ID of the vCenter.
      * @param input
-     *        the create configuration.
+     *            the create configuration.
      * @return the newly created datacenter.
      */
     public VcenterDataCenterRestRep create(URI vcenterId, VcenterDataCenterCreate input) {
@@ -103,9 +103,9 @@ public class VcenterDataCenters extends AbstractCoreBulkResources<VcenterDataCen
      * API Call: <tt>PUT /compute/vcenter-data-centers/{id}</tt>
      * 
      * @param id
-     *        the ID of the datacenter to update.
+     *            the ID of the datacenter to update.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return the updated datacenter.
      */
     public VcenterDataCenterRestRep update(URI id, VcenterDataCenterUpdate input) {
@@ -118,55 +118,56 @@ public class VcenterDataCenters extends AbstractCoreBulkResources<VcenterDataCen
      * API Call: <tt>POST /compute/vcenter-data-centers/{id}/deactivate</tt>
      * 
      * @param id
-     *        the ID of the datacenter to deactivate.
+     *            the ID of the datacenter to deactivate.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<VcenterDataCenterRestRep> deactivate(URI id) {
         return doDeactivateWithTask(id);
     }
-    
+
     /**
      * Deactivates a data center.
      * <p>
      * API Call: <tt>POST /compute/vcenter-data-centers/{id}/deactivate?detach-storage={detachStorage}</tt>
      * 
      * @param id
-     *        the ID of the data center to deactivate.
+     *            the ID of the data center to deactivate.
      * @param detachStorage
-     *        if true, will first detach storage.
+     *            if true, will first detach storage.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<VcenterDataCenterRestRep> deactivate(URI id, boolean detachStorage) {
         URI deactivateUri = client.uriBuilder(getDeactivateUrl()).queryParam("detach-storage", detachStorage).build(id);
         return postTaskURI(deactivateUri);
     }
-    
+
     /**
      * Detaches storage from a data center.
      * <p>
      * API Call: <tt>POST /compute/vcenter-data-centers/{id}/detach-storage</tt>
      * 
      * @param id
-     *        the ID of the data center.
+     *            the ID of the data center.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<VcenterDataCenterRestRep> detachStorage(URI id) {
         return postTask(PathConstants.DATACENTER_DETACH_STORAGE_URL, id);
     }
-    
+
     /**
      * Create a vCenter cluster in a datacenter.
      * <p>
      * API Call: <tt>POST /compute/vcenter-data-centers/{id}/create-vcenter-cluster</tt>
      * 
      * @param id
-     *        the id of the data center.
+     *            the id of the data center.
      * @param clusterParam
-     *        VcenterClusterParam id of the selected cluster       
+     *            VcenterClusterParam id of the selected cluster
      * @return a task for monitoring the progress of the operation.
      */
     public Task<VcenterDataCenterRestRep> createVcenterCluster(URI dataCenterId, VcenterClusterParam clusterParam) {
-        TaskResourceRep response = client.post(TaskResourceRep.class, clusterParam, PathConstants.DATACENTER_CREATE_CLUSTER_URL, dataCenterId);
+        TaskResourceRep response = client.post(TaskResourceRep.class, clusterParam, PathConstants.DATACENTER_CREATE_CLUSTER_URL,
+                dataCenterId);
         return new Task<VcenterDataCenterRestRep>(client, response, resourceClass);
     }
 
@@ -176,13 +177,14 @@ public class VcenterDataCenters extends AbstractCoreBulkResources<VcenterDataCen
      * API Call: <tt>PUT /compute/vcenter-data-centers/{id}/update-vcenter-cluster</tt>
      * 
      * @param id
-     *        the id of the data center.
+     *            the id of the data center.
      * @param clusterParam
-     *        VcenterClusterParam id of the selected cluster       
+     *            VcenterClusterParam id of the selected cluster
      * @return a task for monitoring the progress of the operation.
      */
     public Task<VcenterDataCenterRestRep> updateVcenterCluster(URI dataCenterId, VcenterClusterParam clusterParam) {
-        TaskResourceRep response = client.post(TaskResourceRep.class, clusterParam, PathConstants.DATACENTER_UPDATE_CLUSTER_URL, dataCenterId);
+        TaskResourceRep response = client.post(TaskResourceRep.class, clusterParam, PathConstants.DATACENTER_UPDATE_CLUSTER_URL,
+                dataCenterId);
         return new Task<VcenterDataCenterRestRep>(client, response, resourceClass);
     }
 }

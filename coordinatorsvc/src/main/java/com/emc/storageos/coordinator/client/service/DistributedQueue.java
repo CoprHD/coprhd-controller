@@ -20,18 +20,18 @@ package com.emc.storageos.coordinator.client.service;
  */
 public interface DistributedQueue<T> {
     /**
-     * Starts distributed queue.  If coordinator cluster is unavailable, start will retry
-     * until it can establish connection with cluster.  Attempting to put items into queue
+     * Starts distributed queue. If coordinator cluster is unavailable, start will retry
+     * until it can establish connection with cluster. Attempting to put items into queue
      * will result in error during this time.
      */
     public void start();
 
     /**
-     * Stops distributed queue. Queue will stop retrieving new items from queue.  Pending
-     * tasks continue to process until wait queue is drained / fully processed.  Blocks for
+     * Stops distributed queue. Queue will stop retrieving new items from queue. Pending
+     * tasks continue to process until wait queue is drained / fully processed. Blocks for
      * given wait time in ms.
      *
-     * @return true if all pending items have been processed.  false, otherwise.
+     * @return true if all pending items have been processed. false, otherwise.
      */
     public boolean stop(long timeoutMs);
 

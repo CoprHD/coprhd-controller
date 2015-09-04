@@ -40,8 +40,9 @@ public class DbBackupHandler extends BackupHandler {
 
     /**
      * Sets vipr keyspace name
+     * 
      * @param viprKeyspace
-     *          The name of vipr keyspace
+     *            The name of vipr keyspace
      */
     public void setViprKeyspace(String viprKeyspace) {
         this.viprKeyspace = viprKeyspace.trim();
@@ -49,8 +50,9 @@ public class DbBackupHandler extends BackupHandler {
 
     /**
      * Sets ignored column family list to include basic ignore column families, such as "Stats"
+     * 
      * @param ignoreCfList
-     *      The list of ignored column family
+     *            The list of ignored column family
      */
     public void setIgnoreCfList(List<String> ignoreCfList) {
         this.ignoreCfList = ignoreCfList;
@@ -97,8 +99,8 @@ public class DbBackupHandler extends BackupHandler {
         if (backupType.equals(BackupType.geodb) && BackupManager.vdcList.size() > 1)
             backupType = BackupType.geodbmultivdc;
         String fullBackupTag = backupTag + BackupConstants.BACKUP_NAME_DELIMITER +
-                               backupType.name() + BackupConstants.BACKUP_NAME_DELIMITER +
-                               BackupManager.nodeName;
+                backupType.name() + BackupConstants.BACKUP_NAME_DELIMITER +
+                BackupManager.nodeName;
         checkBackupFileExist(backupTag, fullBackupTag);
         try {
             StorageService.instance.takeSnapshot(fullBackupTag, viprKeyspace);
@@ -169,4 +171,3 @@ public class DbBackupHandler extends BackupHandler {
     }
 
 }
-

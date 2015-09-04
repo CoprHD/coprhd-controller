@@ -55,7 +55,7 @@ public abstract class Notifier {
             return notifierMap.get(notifierType);
 
         Notifier notifier = null;
-        switch(notifierType) {
+        switch (notifierType) {
             case CONNECTEMC_NOTIFIER:
             case NTP_NOTIFIER:
             case SSH_NOTIFIER:

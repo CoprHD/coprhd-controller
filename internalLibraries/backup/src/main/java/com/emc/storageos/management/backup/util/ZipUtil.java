@@ -39,7 +39,8 @@ public class ZipUtil {
     private static final String SEPARATOR = "/";
     private static final int DELAY_THRESHOLD_IN_SECOND = 5;
 
-    private ZipUtil() { }
+    private ZipUtil() {
+    }
 
     /**
      * Compresses the given directory and all its sub-directories into a ZIP file with
@@ -48,9 +49,9 @@ public class ZipUtil {
      * The ZIP file must not be a directory.
      *
      * @param sourceDir
-     *          source directory.
+     *            source directory.
      * @param targetZip
-     *          ZIP file that will be created or overwritten.
+     *            ZIP file that will be created or overwritten.
      */
     public static void pack(final File sourceDir, final File targetZip) throws IOException {
         pack(sourceDir, targetZip, Deflater.DEFAULT_COMPRESSION);
@@ -63,9 +64,9 @@ public class ZipUtil {
      * The ZIP file must not be a directory.
      *
      * @param sourceDir
-     *          source directory.
+     *            source directory.
      * @param targetZip
-     *          ZIP file that will be created or overwritten.
+     *            ZIP file that will be created or overwritten.
      */
     public static void pack(final File sourceDir, final File targetZip, final int compressionLevel)
             throws IOException {
@@ -78,10 +79,10 @@ public class ZipUtil {
         try {
             zipOut = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(targetZip)));
             zipOut.setLevel(compressionLevel);
-            pack(sourceDir, sourceDir.getParent()+File.separator, zipOut);
+            pack(sourceDir, sourceDir.getParent() + File.separator, zipOut);
         } finally {
             IOUtils.closeQuietly(zipOut);
-            long interval = (System.currentTimeMillis()-startTime)/1000;
+            long interval = (System.currentTimeMillis() - startTime) / 1000;
             if (interval >= DELAY_THRESHOLD_IN_SECOND) {
                 long folderSize = FileUtils.sizeOfDirectory(sourceDir);
                 log.info(String.format("Zip folder: %s from %d to %d bytes, took %s seconds",
@@ -91,8 +92,8 @@ public class ZipUtil {
     }
 
     private static void pack(final File sourceDir,
-                             final String prefixPath,
-                             final ZipOutputStream zipOut)
+            final String prefixPath,
+            final ZipOutputStream zipOut)
             throws IOException {
         File[] files = sourceDir.listFiles();
         if (files == null)
@@ -121,9 +122,9 @@ public class ZipUtil {
      * The output directory must not be a file.
      *
      * @param sourceZip
-     *          The instance of input ZIP file.
+     *            The instance of input ZIP file.
      * @param targetDir
-     *          output directory (created automatically if not found).
+     *            output directory (created automatically if not found).
      */
     public static void unpack(File sourceZip, final File targetDir) throws IOException {
         ZipFile zipFile = null;
@@ -159,9 +160,5 @@ public class ZipUtil {
             IOUtils.closeQuietly(is);
         }
     }
-
-
-
-
 
 }

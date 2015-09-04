@@ -40,8 +40,8 @@ public class ModelProcessor extends Processor {
     private static final String VNX = "vnx";
     private static final String VMAX = "vmax";
     private static final String MODEL = "Model";
-    private static final String TYPE_DESC = "ChassisTypeDescription";  
-    
+    private static final String TYPE_DESC = "ChassisTypeDescription";
+
     private Logger _logger = LoggerFactory.getLogger(ModelProcessor.class);
 
     /**
@@ -96,22 +96,22 @@ public class ModelProcessor extends Processor {
                 String nativeGuid = NativeGUIDGenerator.generateNativeGuid(deviceType, serialID);
 
                 if (storageSystemsCache.containsKey(nativeGuid)) {
-					systemVO = storageSystemsCache.get(nativeGuid);
-				} else {
-					systemVO = new StorageSystemViewObject();
-				}
+                    systemVO = storageSystemsCache.get(nativeGuid);
+                } else {
+                    systemVO = new StorageSystemViewObject();
+                }
                 systemVO.setDeviceType(deviceType);
-				systemVO.addprovider(profile.getSystemId().toString());
-				systemVO.setProperty(StorageSystemViewObject.MODEL, model);
-				systemVO.setProperty(StorageSystemViewObject.SERIAL_NUMBER,serialID);
-                systemVO.setProperty(StorageSystemViewObject.STORAGE_NAME,nativeGuid);
-				storageSystemsCache.put(nativeGuid, systemVO);
+                systemVO.addprovider(profile.getSystemId().toString());
+                systemVO.setProperty(StorageSystemViewObject.MODEL, model);
+                systemVO.setProperty(StorageSystemViewObject.SERIAL_NUMBER, serialID);
+                systemVO.setProperty(StorageSystemViewObject.STORAGE_NAME, nativeGuid);
+                storageSystemsCache.put(nativeGuid, systemVO);
             }
             _logger.info("Found {} systems during scanning for ip {}", storageSystemsCache.size(),
                     profile.getIpAddress());
             resultObj = null;
         } catch (Exception e) {
-            _logger.error(e.getMessage(),e);
+            _logger.error(e.getMessage(), e);
             _logger.error("Model Extraction failed for {}-->{}",
                     modelInstance.getObjectPath(), getMessage(e));
         }

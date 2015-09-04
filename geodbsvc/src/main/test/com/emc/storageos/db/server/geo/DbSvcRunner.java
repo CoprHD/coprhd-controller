@@ -76,21 +76,21 @@ public class DbSvcRunner {
     protected static String GEOSVC_ID = "geodb-standalone"; // svc id defined in
                                                             // geodb-var.xml
 
-    protected static String DBSVC_ID = "db-standalone"; 
-    
+    protected static String DBSVC_ID = "db-standalone";
+
     private static String GEODB_DIR = "geodbtest"; // db dir defined in
                                                    // geodb-test.yaml
     private static String LOCALDB_DIR = "dbtest"; // db dir defined in
                                                   // db-test.yaml
     private static String ZK_DIR = "/data/zk"; // zk data dir defined in
-    
+
     private File dataDir;
 
     private String configFile;
     private String serviceName;
 
     private Process process;
-    
+
     public DbSvcRunner(String configFile, String serviceName) {
         this.configFile = configFile;
         this.serviceName = serviceName;
@@ -109,9 +109,9 @@ public class DbSvcRunner {
         Thread inProcRunnerThread = new Thread(new Runnable() {
             public void run() {
                 main(args);
-                log.info(DBSVC_MAIN+"Thread has stopped");
+                log.info(DBSVC_MAIN + "Thread has stopped");
             }
-        }, DBSVC_MAIN+"Thread");
+        }, DBSVC_MAIN + "Thread");
         inProcRunnerThread.start();
     }
 
@@ -144,9 +144,9 @@ public class DbSvcRunner {
             public void run() {
                 try {
                     final String[] args = new String[] { "classpath:" + COORDINATORSVC_CONFIG };
-                    log.info("Starting Coordinator with config file : {}" , args[0]);
+                    log.info("Starting Coordinator with config file : {}", args[0]);
                     FileSystemXmlApplicationContext ctx = new FileSystemXmlApplicationContext(args);
-                    Coordinator coordinator = (Coordinator)ctx.getBean("coordinatorsvc");
+                    Coordinator coordinator = (Coordinator) ctx.getBean("coordinatorsvc");
                     coordinator.start();
                     log.info("CoordinatorThread has stopped");
                 } catch (Exception ex) {
@@ -156,13 +156,13 @@ public class DbSvcRunner {
         }, "CoordinatorThread");
         coordThread.start();
     }
-    
+
     private String getFullConfigFilePath(String fileName) {
         String confFile = Thread.currentThread().getContextClassLoader()
                 .getResource(fileName).getFile();
         return confFile;
     }
-    
+
     /**
      * Start a thread to fork new java process
      * 
@@ -229,7 +229,7 @@ public class DbSvcRunner {
     private int startProcess(String main, String conf) throws Exception {
         String classPath = System.getProperty("java.class.path");
         ProcessBuilder processBuilder = new ProcessBuilder("java",
-                "-Djava.net.preferIPv4Stack=true",  main, conf);
+                "-Djava.net.preferIPv4Stack=true", main, conf);
         processBuilder.environment().put("CLASSPATH", classPath);
         processBuilder.redirectErrorStream(true);
         processBuilder.directory(dataDir);
@@ -373,12 +373,12 @@ public class DbSvcRunner {
             coordinator.setNodeCount(1);
 
             ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("nodeaddrmap-var.xml");
-            CoordinatorClientInetAddressMap inetAddressMap = (CoordinatorClientInetAddressMap)ctx.getBean("inetAddessLookupMap");
+            CoordinatorClientInetAddressMap inetAddressMap = (CoordinatorClientInetAddressMap) ctx.getBean("inetAddessLookupMap");
             if (inetAddressMap == null) {
                 log.error("CoordinatorClientInetAddressMap is not initialized. Node address lookup will fail.");
             }
             Map<String, DualInetAddress> controlNodes = inetAddressMap.getControllerNodeIPLookupMap();
-            coordinator.setInetAddessLookupMap(inetAddressMap); //HARCODE FOR NOW
+            coordinator.setInetAddessLookupMap(inetAddressMap); // HARCODE FOR NOW
 
             DbVersionInfo dbVersionInfo = new DbVersionInfo();
             dbVersionInfo.setSchemaVersion(SVC_VERSION);
@@ -388,12 +388,12 @@ public class DbSvcRunner {
 
         return coordinator;
     }
-    
+
     public static void main(String args[]) {
         try {
             String ctxFile = args[0];
             FileSystemXmlApplicationContext ctx = new FileSystemXmlApplicationContext("file:" + ctxFile);
-            DbService dbsvc = (DbService)ctx.getBean("dbsvc");
+            DbService dbsvc = (DbService) ctx.getBean("dbsvc");
             dbsvc.start();
             log.info("dbsvc is started");
             while (true)

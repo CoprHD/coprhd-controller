@@ -34,7 +34,7 @@ import com.emc.storageos.services.OperationTypeEnum;
 public class AuditLogManager {
 
     final private Logger _log = LoggerFactory
-                    .getLogger(AuditLogManager.class);
+            .getLogger(AuditLogManager.class);
 
     private static final String PRODUCT_ID = "ViPR 1.0";
 
@@ -50,15 +50,15 @@ public class AuditLogManager {
 
     // A reference to the database client.
     private DbClient _dbClient;
-    
+
     // The logger.
     private static Logger s_logger = LoggerFactory.getLogger(AuditLogManager.class);
-    
+
     /**
      * Default constructor.
      */
     public AuditLogManager() {
-    	super();
+        super();
     }
 
     /**
@@ -78,11 +78,11 @@ public class AuditLogManager {
     public void recordAuditLogs(RecordableAuditLog... auditlogs) {
         AuditLog dbAuditLogs[] = new AuditLog[auditlogs.length];
         int i = 0;
-        for (RecordableAuditLog auditlog:auditlogs) {
-        	AuditLog dbAuditlog = AuditLogUtils.convertToAuditLog(auditlog);
+        for (RecordableAuditLog auditlog : auditlogs) {
+            AuditLog dbAuditlog = AuditLogUtils.convertToAuditLog(auditlog);
             dbAuditLogs[i++] = dbAuditlog;
         }
-        
+
         // Now insert the events into the database.
         try {
             String bucketId = _dbClient.insertTimeSeries(AuditLogTimeSeries.class, dbAuditLogs);
@@ -95,19 +95,20 @@ public class AuditLogManager {
 
     /**
      * Record auditlog for the completed operations
-     * @param tenantId      tenant URI
-     * @param userId        user URI
-     * @param serviceType   service type (e.g. CoS, Block etc.) 
-     * @param auditType     audit event type (e.g. Create_COS|TEANT etc.)
-     * @param timestamp     time that the audit event happened
+     * 
+     * @param tenantId tenant URI
+     * @param userId user URI
+     * @param serviceType service type (e.g. CoS, Block etc.)
+     * @param auditType audit event type (e.g. Create_COS|TEANT etc.)
+     * @param timestamp time that the audit event happened
      * @param operationalStatus result of the audit event
-     * @param operationStage   
-     *          a) For sync operation, it should be null;
-     *          b) For async operation, it should be "BEGIN" or "END";     
-     *        It is used as sub part of description Id. 
-     *        The description Id which will be replaced with the 
-     *        concrete description and parameters after fetching from db.
-     * @param descparams    the parameters for the description.
+     * @param operationStage
+     *            a) For sync operation, it should be null;
+     *            b) For async operation, it should be "BEGIN" or "END";
+     *            It is used as sub part of description Id.
+     *            The description Id which will be replaced with the
+     *            concrete description and parameters after fetching from db.
+     * @param descparams the parameters for the description.
      */
     public void recordAuditLog(URI tenantId,
             URI userId,
@@ -119,7 +120,7 @@ public class AuditLogManager {
             Object... descparams) {
         // Description Id which will be replaced with the concrete description and parameters after fetching from db.
         // Formatted description: "<auditlog version>|<description id>|<param1>|<param2>|..."
-        // The formatted description will be persistent in cassandra db.  During query, it 
+        // The formatted description will be persistent in cassandra db. During query, it
         // will be replaced with the real description in specific language.
         StringBuilder s = new StringBuilder(AUDITLOG_VERSION);
         s.append("|");

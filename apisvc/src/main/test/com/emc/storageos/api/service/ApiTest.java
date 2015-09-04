@@ -113,13 +113,13 @@ import com.sun.jersey.api.client.ClientResponse;
  * ApiTest class to exercise the core api functionality (tenants, AD, role assignments, isilon, volumes...)
  */
 public class ApiTest extends ApiTestBase {
-	
-	@Before
-	public void setUp() throws Exception{
-		setupHttpsResources();
-	}
-	
-	private static String STR144 = "abcdefghijklmnopqrstuvwxyz0123456789" +
+
+    @Before
+    public void setUp() throws Exception {
+        setupHttpsResources();
+    }
+
+    private static String STR144 = "abcdefghijklmnopqrstuvwxyz0123456789" +
             "abcdefghijklmnopqrstuvwxyz0123456789" + "abcdefghijklmnopqrstuvwxyz0123456789" +
             "abcdefghijklmnopqrstuvwxyz0123456789";
     private final int _maxRoleAclEntries = 100;
@@ -199,7 +199,7 @@ public class ApiTest extends ApiTestBase {
             + "qQnIlpEP+GB4CJYfdSa8ltNUx4yRJjzG8QiPVkJV1b88Uba+gn4/xlHLLH3PqPDX\r\n"
             + "TzLGkt6+Prz+1w/ZAMKAXr6KAi4I0pnduqVRJ++GPmYBhPZre5auvw==\r\n"
             + "-----END CERTIFICATE-----";
-    
+
     // right now, this only test one particular bad parameter (search filter).
     // We can enhance this to test out all the precheckConditions present in the AuthnConfigurationService
     private void addBadADConfig() throws NoSuchAlgorithmException {
@@ -217,10 +217,10 @@ public class ApiTest extends ApiTestBase {
         param.setManagerDn("CN=Administrator,CN=Users,DC=sanity,DC=local");
         param.setManagerPassword(AD_PASSWORD);
         param.setSearchBase("CN=Users,DC=sanity,DC=local");
-        // %u is there but not on the right side of the "=".  Adding this config should fail
+        // %u is there but not on the right side of the "=". Adding this config should fail
         param.setSearchFilter("%u=userPrincipalName");
         param.setServerUrls(new HashSet<String>());
-        param.getServerUrls().add("ldap:\\"+AD_SERVER1_IP);
+        param.getServerUrls().add("ldap:\\" + AD_SERVER1_IP);
         param.setMode("ad");
         ClientResponse resp = rSys.path("/vdc/admin/authnproviders").post(ClientResponse.class, param);
         Assert.assertEquals(400, resp.getStatus());
@@ -240,7 +240,7 @@ public class ApiTest extends ApiTestBase {
         duplicateConfig1.setSearchBase("CN=Users,DC=sanity,DC=local");
         duplicateConfig1.setSearchFilter("userPrincipalName=%u");
         duplicateConfig1.setServerUrls(new HashSet<String>());
-        duplicateConfig1.getServerUrls().add("ldap:\\"+AD_SERVER1_IP);
+        duplicateConfig1.getServerUrls().add("ldap:\\" + AD_SERVER1_IP);
         duplicateConfig1.setMode("ad");
         AuthnProviderRestRep authnResp = rSys.path("/vdc/admin/authnproviders").post(AuthnProviderRestRep.class, duplicateConfig1);
         Assert.assertNotNull(authnResp);
@@ -259,7 +259,7 @@ public class ApiTest extends ApiTestBase {
         duplicateConfig2.setSearchBase("CN=Users,DC=sanity,DC=local");
         duplicateConfig2.setSearchFilter("userPrincipalName=%u");
         duplicateConfig2.setServerUrls(new HashSet<String>());
-        duplicateConfig2.getServerUrls().add("ldap:\\"+AD_SERVER1_IP);
+        duplicateConfig2.getServerUrls().add("ldap:\\" + AD_SERVER1_IP);
         duplicateConfig2.setMode("ad");
         resp = rSys.path("/vdc/admin/authnproviders").post(ClientResponse.class, duplicateConfig2);
         Assert.assertEquals(400, resp.getStatus());
@@ -273,7 +273,7 @@ public class ApiTest extends ApiTestBase {
         // Test that you cannot update an existing with a domain name that exists somewhere else
         AuthnUpdateParam updateParam = new AuthnUpdateParam();
         updateParam.getDomainChanges().getAdd().add("sanity.local");
-        String myDomainComauthnProvidersUrlFormat =  String.format("/vdc/admin/authnproviders/%s",
+        String myDomainComauthnProvidersUrlFormat = String.format("/vdc/admin/authnproviders/%s",
                 firstCreatedConfig.toString());
         resp = rSys.path(myDomainComauthnProvidersUrlFormat).put(ClientResponse.class, updateParam);
         Assert.assertEquals(400, resp.getStatus());
@@ -308,9 +308,9 @@ public class ApiTest extends ApiTestBase {
         authnResp = rSys.path(myDomainComauthnProvidersUrlFormat).put(AuthnProviderRestRep.class, updateParam2);
         Assert.assertTrue(authnResp.getName().equals(label));
 
-        // Mark the mydomain.com provider as disabled.  Try to add a conflicting domain provider.
-        // Should still fail.  Because even though disabled the provider can eventually be renabled.
-        AuthnUpdateParam updateParam3= new AuthnUpdateParam();
+        // Mark the mydomain.com provider as disabled. Try to add a conflicting domain provider.
+        // Should still fail. Because even though disabled the provider can eventually be renabled.
+        AuthnUpdateParam updateParam3 = new AuthnUpdateParam();
         updateParam3.setDisable(true);
         resp = rSys.path(myDomainComauthnProvidersUrlFormat).put(ClientResponse.class, updateParam3);
         Assert.assertEquals(200, resp.getStatus());
@@ -327,16 +327,18 @@ public class ApiTest extends ApiTestBase {
         // Test that updating a config with a MaxPageSize=0 fails
         AuthnUpdateParam pageSizeUpdateParam = new AuthnUpdateParam();
         pageSizeUpdateParam.setMaxPageSize(0);
-        resp = rSys.path(String.format("/vdc/admin/authnproviders/%s",authnResp.getId().toString())).put(ClientResponse.class, pageSizeUpdateParam);
+        resp = rSys.path(String.format("/vdc/admin/authnproviders/%s", authnResp.getId().toString())).put(ClientResponse.class,
+                pageSizeUpdateParam);
         Assert.assertEquals(400, resp.getStatus());
 
-        //Set the page size and verify that it is successful.
+        // Set the page size and verify that it is successful.
         pageSizeUpdateParam.setMaxPageSize(500);
-        resp = rSys.path(String.format("/vdc/admin/authnproviders/%s",authnResp.getId().toString())).put(ClientResponse.class, pageSizeUpdateParam);
+        resp = rSys.path(String.format("/vdc/admin/authnproviders/%s", authnResp.getId().toString())).put(ClientResponse.class,
+                pageSizeUpdateParam);
         Assert.assertEquals(200, resp.getStatus());
 
-        //Get the provider and verify that it has the new page size
-        authnResp = rSys.path(String.format("/vdc/admin/authnproviders/%s",authnResp.getId().toString())).get(AuthnProviderRestRep.class);
+        // Get the provider and verify that it has the new page size
+        authnResp = rSys.path(String.format("/vdc/admin/authnproviders/%s", authnResp.getId().toString())).get(AuthnProviderRestRep.class);
         Assert.assertEquals(pageSizeUpdateParam.getMaxPageSize().intValue(), authnResp.getMaxPageSize().intValue());
         // Test that a bad search scope gets rejected.
         // Missing scope is tested by all the other tests above which do not
@@ -354,7 +356,7 @@ public class ApiTest extends ApiTestBase {
         badScopeParam.setSearchBase("CN=Users,DC=sanity,DC=local");
         badScopeParam.setSearchFilter("userPrincipalName=%u");
         badScopeParam.setServerUrls(new HashSet<String>());
-        badScopeParam.getServerUrls().add("ldap:\\"+AD_SERVER1_IP);
+        badScopeParam.getServerUrls().add("ldap:\\" + AD_SERVER1_IP);
         badScopeParam.setSearchScope("bad scope"); // BAD SCOPE
         badScopeParam.setMode("ad");
         resp = rSys.path("/vdc/admin/authnproviders").post(ClientResponse.class, badScopeParam);
@@ -375,7 +377,7 @@ public class ApiTest extends ApiTestBase {
         goodScopeParam.setSearchBase("CN=Users,DC=sanity,DC=local");
         goodScopeParam.setSearchFilter("userPrincipalName=%u");
         goodScopeParam.setServerUrls(new HashSet<String>());
-        goodScopeParam.getServerUrls().add("ldap:\\"+AD_SERVER1_IP);
+        goodScopeParam.getServerUrls().add("ldap:\\" + AD_SERVER1_IP);
         goodScopeParam.setSearchScope(AuthnProvider.SearchScope.SUBTREE.toString());
         goodScopeParam.setMode("ad");
         resp = rSys.path("/vdc/admin/authnproviders").post(ClientResponse.class, goodScopeParam);
@@ -393,23 +395,23 @@ public class ApiTest extends ApiTestBase {
         randomConfig.setManagerDn("CN=Administrator,CN=Users,DC=sanity,DC=local");
         randomConfig.setManagerPassword(AD_PASSWORD);
         randomConfig.setSearchBase("CN=Users,DC=sanity,DC=local");
-        randomConfig.setSearchFilter( "userPrincipalName=%u");
+        randomConfig.setSearchFilter("userPrincipalName=%u");
         randomConfig.setServerUrls(new HashSet<String>());
-        randomConfig.getServerUrls().add("ldap:\\"+AD_SERVER1_IP);
+        randomConfig.getServerUrls().add("ldap:\\" + AD_SERVER1_IP);
         randomConfig.setSearchScope(AuthnProvider.SearchScope.SUBTREE.toString());
         randomConfig.setMode("ad");
         AuthnProviderRestRep authnResp2 = rSys.path("/vdc/admin/authnproviders").post(AuthnProviderRestRep.class, randomConfig);
         Assert.assertNotNull(authnResp2);
         AuthnUpdateParam updateParam4 = new AuthnUpdateParam();
         updateParam4.setLabel(goodScopeName);
-        resp = rSys.path(String.format("/vdc/admin/authnproviders/%s",authnResp2.getId().toString()))
+        resp = rSys.path(String.format("/vdc/admin/authnproviders/%s", authnResp2.getId().toString()))
                 .put(ClientResponse.class, updateParam4);
         Assert.assertEquals(400, resp.getStatus());
 
         // attempt to delete the only url in the config. should fail with 400
         AuthnUpdateParam lastUrl = new AuthnUpdateParam();
         lastUrl.getServerUrlChanges().setRemove(new HashSet<String>());
-        lastUrl.getServerUrlChanges().getRemove().add("ldap:\\"+AD_SERVER1_IP);
+        lastUrl.getServerUrlChanges().getRemove().add("ldap:\\" + AD_SERVER1_IP);
         resp = rSys.path(String.format("/vdc/admin/authnproviders/%s", _goodADConfig)).put(ClientResponse.class, lastUrl);
         Assert.assertEquals(400, resp.getStatus());
 
@@ -418,28 +420,32 @@ public class ApiTest extends ApiTestBase {
         badCN.setGroupAttribute("garbage");
         resp = rSys.path(String.format("/vdc/admin/authnproviders/%s", _goodADConfig)).
                 queryParam("allow_group_attr_change", "true").put(ClientResponse.class, badCN);
-        String errorMessage = String.format("The authentication provider could not be added or modified because of the following error: The group attribute %s could not be found in AD schema at server [%s].",
-                badCN.getGroupAttribute(), "ldap:\\"+AD_SERVER1_IP);
+        String errorMessage = String
+                .format("The authentication provider could not be added or modified because of the following error: The group attribute %s could not be found in AD schema at server [%s].",
+                        badCN.getGroupAttribute(), "ldap:\\" + AD_SERVER1_IP);
         assertExpectedError(resp, 400, ServiceCode.API_PARAMETER_INVALID, errorMessage);
 
         _savedTokens.remove(ROOTTENANTADMIN);
         // put the config back.
         AuthnUpdateParam goodCN = new AuthnUpdateParam();
         goodCN.setGroupAttribute("CN");
-        resp = rSys.path(String.format("/vdc/admin/authnproviders/%s", _goodADConfig)).queryParam("allow_group_attr_change", "true").put(ClientResponse.class, goodCN);
+        resp = rSys.path(String.format("/vdc/admin/authnproviders/%s", _goodADConfig)).queryParam("allow_group_attr_change", "true")
+                .put(ClientResponse.class, goodCN);
         Assert.assertEquals(200, resp.getStatus());
 
-        // modify the group attribute.  Should fail.
+        // modify the group attribute. Should fail.
         AuthnUpdateParam changeCN = new AuthnUpdateParam();
         changeCN.setGroupAttribute("objectSid");
         resp = rSys.path(String.format("/vdc/admin/authnproviders/%s", _goodADConfig)).put(ClientResponse.class, changeCN);
         Assert.assertEquals(400, resp.getStatus());
-        // modify the group attribute with force flag.  Should succeed.
-        resp = rSys.path(String.format("/vdc/admin/authnproviders/%s", _goodADConfig)).queryParam("allow_group_attr_change", "true").put(ClientResponse.class, changeCN);
+        // modify the group attribute with force flag. Should succeed.
+        resp = rSys.path(String.format("/vdc/admin/authnproviders/%s", _goodADConfig)).queryParam("allow_group_attr_change", "true")
+                .put(ClientResponse.class, changeCN);
         Assert.assertEquals(200, resp.getStatus());
         // put the original group attribute back for the rest of the tests.
         changeCN.setGroupAttribute("CN");
-        resp = rSys.path(String.format("/vdc/admin/authnproviders/%s", _goodADConfig)).queryParam("allow_group_attr_change", "true").put(ClientResponse.class, changeCN);
+        resp = rSys.path(String.format("/vdc/admin/authnproviders/%s", _goodADConfig)).queryParam("allow_group_attr_change", "true")
+                .put(ClientResponse.class, changeCN);
         Assert.assertEquals(200, resp.getStatus());
     }
 
@@ -468,7 +474,7 @@ public class ApiTest extends ApiTestBase {
         // Test that a config invalid manager DN results in 400
         param.setManagerDn("xxxxxministrator,CN=Users,DC=sanity,DC=local");
         param.setServerUrls(new HashSet<String>());
-        param.getServerUrls().add("ldap:\\"+AD_SERVER1_IP);
+        param.getServerUrls().add("ldap:\\" + AD_SERVER1_IP);
         resp = rSys.path("/vdc/admin/authnproviders").post(ClientResponse.class, param);
         Assert.assertEquals(400, resp.getStatus());
 
@@ -487,12 +493,14 @@ public class ApiTest extends ApiTestBase {
         // test that trying to enable that bad disabled config fails with 400
         AuthnUpdateParam updateParam = new AuthnUpdateParam();
         updateParam.setDisable(false);
-        resp = rSys.path(String.format("/vdc/admin/authnproviders/%s", authnResp.getId().toString())).put(ClientResponse.class, updateParam);
+        resp = rSys.path(String.format("/vdc/admin/authnproviders/%s", authnResp.getId().toString()))
+                .put(ClientResponse.class, updateParam);
         Assert.assertEquals(400, resp.getStatus());
 
         // fix what was wrong (password), and disable = false from above, validation should rerun and be ok
         updateParam.setManagerPassword(AD_PASSWORD);
-        resp = rSys.path(String.format("/vdc/admin/authnproviders/%s", authnResp.getId().toString())).put(ClientResponse.class, updateParam);
+        resp = rSys.path(String.format("/vdc/admin/authnproviders/%s", authnResp.getId().toString()))
+                .put(ClientResponse.class, updateParam);
         Assert.assertEquals(200, resp.getStatus());
 
         // test basic ldap mode connectivity
@@ -506,24 +514,26 @@ public class ApiTest extends ApiTestBase {
         ldapParam.setSearchBase("CN=Users,DC=sanity,DC=local");
         ldapParam.setSearchFilter("userPrincipalName=%u");
         ldapParam.setServerUrls(new HashSet<String>());
-        ldapParam.getServerUrls().add("ldap:\\"+AD_SERVER1_IP);
+        ldapParam.getServerUrls().add("ldap:\\" + AD_SERVER1_IP);
         ldapParam.setGroupAttribute("CN");
         ldapParam.setMode("ldap");
         AuthnProviderRestRep goodAuthnResp = rSys.path("/vdc/admin/authnproviders").post(AuthnProviderRestRep.class, ldapParam);
         Assert.assertNotNull(goodAuthnResp);
 
-        // test that modifying the good config by adding one bad url still works.  The good url that
+        // test that modifying the good config by adding one bad url still works. The good url that
         // is left in the set makes the url set valid.
         AuthnUpdateParam updateParamBadUrl = new AuthnUpdateParam();
         updateParamBadUrl.getServerUrlChanges().setAdd(new HashSet<String>());
         updateParamBadUrl.getServerUrlChanges().getAdd().add("ldap://garbage");
-        resp = rSys.path(String.format("/vdc/admin/authnproviders/%s", goodAuthnResp.getId().toString())).put(ClientResponse.class, updateParamBadUrl);
+        resp = rSys.path(String.format("/vdc/admin/authnproviders/%s", goodAuthnResp.getId().toString())).put(ClientResponse.class,
+                updateParamBadUrl);
         Assert.assertEquals(200, resp.getStatus());
 
         // update the good config above with a bad search base which won't be found. Should fail.
         AuthnUpdateParam updateParamBadSearchBase = new AuthnUpdateParam();
         updateParamBadSearchBase.setSearchBase("CN=garbage");
-        resp = rSys.path(String.format("/vdc/admin/authnproviders/%s", goodAuthnResp.getId().toString())).put(ClientResponse.class, updateParamBadSearchBase);
+        resp = rSys.path(String.format("/vdc/admin/authnproviders/%s", goodAuthnResp.getId().toString())).put(ClientResponse.class,
+                updateParamBadSearchBase);
         Assert.assertEquals(400, resp.getStatus());
     }
 
@@ -531,7 +541,7 @@ public class ApiTest extends ApiTestBase {
         AuthnProviderList resp = rSys.path("/vdc/admin/authnproviders").get(AuthnProviderList.class);
         int sz = resp.getProviders().size();
 
-        // Add one more, then one with no name field.  The new total should be sz + 2.
+        // Add one more, then one with no name field. The new total should be sz + 2.
         AuthnCreateParam param = new AuthnCreateParam();
         param.setLabel("ad apitest config one");
         param.setDescription("ad configuration created by ApiTest.java");
@@ -545,10 +555,10 @@ public class ApiTest extends ApiTestBase {
         param.setManagerDn("CN=Administrator,CN=Users,DC=sanity,DC=local");
         param.setManagerPassword(AD_PASSWORD);
         param.setSearchBase("CN=Users,DC=sanity,DC=local");
-        param.setSearchFilter( "userPrincipalName=%u");
+        param.setSearchFilter("userPrincipalName=%u");
         param.setServerUrls(new HashSet<String>());
-        param.getServerUrls().add("ldap:\\"+AD_SERVER1_IP);
-        param.getServerUrls().add("ldap:\\"+AD_SERVER1_HOST);
+        param.getServerUrls().add("ldap:\\" + AD_SERVER1_IP);
+        param.getServerUrls().add("ldap:\\" + AD_SERVER1_HOST);
         param.setMode("ad");
         ClientResponse resp2 = rSys.path("/vdc/admin/authnproviders").post(ClientResponse.class, param);
         Assert.assertEquals(200, resp2.getStatus());
@@ -560,7 +570,7 @@ public class ApiTest extends ApiTestBase {
 
         resp = rSys.path("/vdc/admin/authnproviders").get(AuthnProviderList.class);
         int sz2 = resp.getProviders().size();
-        Assert.assertEquals(sz2, sz+2);
+        Assert.assertEquals(sz2, sz + 2);
 
         // update test
         AuthnUpdateParam updateParam = new AuthnUpdateParam();
@@ -572,7 +582,7 @@ public class ApiTest extends ApiTestBase {
         updateParam.getGroupWhitelistValueChanges().getRemove().add("*Test*");
         updateParam.getGroupWhitelistValueChanges().getRemove().add("*Users*");
         updateParam.getServerUrlChanges().setRemove(new HashSet<String>());
-        updateParam.getServerUrlChanges().getRemove().add("ldap:\\"+AD_SERVER1_HOST);
+        updateParam.getServerUrlChanges().getRemove().add("ldap:\\" + AD_SERVER1_HOST);
 
         AuthnProviderRestRep authnResp2 = rSys.path("/vdc/admin/authnproviders/" + authnResp.getId().toString() + "/")
                 .put(AuthnProviderRestRep.class, updateParam);
@@ -599,18 +609,18 @@ public class ApiTest extends ApiTestBase {
         String proxyToken = (String) _savedProxyTokens.get("root");
         Assert.assertNotNull(proxyToken);
 
-        // try to access tenant/id as proxy user.  Does not work because proxy token was not passed in.
+        // try to access tenant/id as proxy user. Does not work because proxy token was not passed in.
         // Proxy user by itself doesn't have TENANT_ADMIN.
-        resp = rProxyUser.path("/tenants/"+rootTenantId.toString()).get(ClientResponse.class);
+        resp = rProxyUser.path("/tenants/" + rootTenantId.toString()).get(ClientResponse.class);
         Assert.assertEquals(403, resp.getStatus());
         // try to access tenant/id as proxy user with proxy token this time.
-        resp = rProxyUser.path("/tenants/"+rootTenantId.toString()).header(ApiTestBase.AUTH_PROXY_TOKEN_HEADER, proxyToken)
+        resp = rProxyUser.path("/tenants/" + rootTenantId.toString()).header(ApiTestBase.AUTH_PROXY_TOKEN_HEADER, proxyToken)
                 .get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
 
         // negative tests
         // proxy token, but a user without PROXY_USER role
-        resp = rZAdmin.path("/tenants/"+rootTenantId.toString()).header(ApiTestBase.AUTH_PROXY_TOKEN_HEADER, proxyToken)
+        resp = rZAdmin.path("/tenants/" + rootTenantId.toString()).header(ApiTestBase.AUTH_PROXY_TOKEN_HEADER, proxyToken)
                 .get(ClientResponse.class);
         Assert.assertEquals(403, resp.getStatus());
 
@@ -632,15 +642,15 @@ public class ApiTest extends ApiTestBase {
 
         Assert.assertEquals(403, resp.getStatus());
 
-        // logout issuer of the proxy token with the force option.  This should wipe out
-        // all tokens including proxy tokens.  Consequently, proxyuser should no longer be able
+        // logout issuer of the proxy token with the force option. This should wipe out
+        // all tokens including proxy tokens. Consequently, proxyuser should no longer be able
         // to access the tenants/id call with that proxy token anymore.
         // ( added .xml and used mixed cases to test that the logout filter forwards the request
         // appropriately)
-        //resp = rSys.path("/loGout.XmL").queryParam("force", "true").get(ClientResponse.class);
+        // resp = rSys.path("/loGout.XmL").queryParam("force", "true").get(ClientResponse.class);
         resp = rSys.path("/logout.xml").queryParam("force", "true").queryParam("proxytokens", "true").get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
-        resp = rProxyUser.path("/tenants/"+rootTenantId.toString()).header(ApiTestBase.AUTH_PROXY_TOKEN_HEADER, proxyToken)
+        resp = rProxyUser.path("/tenants/" + rootTenantId.toString()).header(ApiTestBase.AUTH_PROXY_TOKEN_HEADER, proxyToken)
                 .get(ClientResponse.class);
         Assert.assertEquals(401, resp.getStatus());
     }
@@ -692,7 +702,7 @@ public class ApiTest extends ApiTestBase {
         proxyTokenTests();
         userInfoTests();
         // uncomment the following line when CQ606655 has been fixed
-        //logoutTests();
+        // logoutTests();
         tenantTests();
         testOtherBadParameterErrors();
         testOtherEntityNotFoundErrors();
@@ -709,7 +719,6 @@ public class ApiTest extends ApiTestBase {
         loneAuthnProviderDeleteTest();
         authnProviderAddDomainTest();
     }
-
 
     /**
      * 
@@ -771,15 +780,14 @@ public class ApiTest extends ApiTestBase {
 
         waitForClusterToBeStable();
 
-        //test with the same key and certificate - should fail
-        String expectedError = 
+        // test with the same key and certificate - should fail
+        String expectedError =
                 "The specified certificate is already being used. Please specify a new key and certificate pair.";
         response =
                 rZAdmin.path("/vdc/keystore").put(ClientResponse.class,
                         rotateKeyAndCertParam);
         assertExpectedError(response, 400, ServiceCode.API_BAD_REQUEST,
                 expectedError);
-
 
         // test with a mismatched key and certificate
         keyAndCertificateChain.setPrivateKey(RSA_KEY_2048);
@@ -793,7 +801,7 @@ public class ApiTest extends ApiTestBase {
         assertExpectedError(response, 400, ServiceCode.API_PARAMETER_INVALID,
                 expectedError);
 
-        //test with bad key
+        // test with bad key
         keyAndCertificateChain = new KeyAndCertificateChain();
         keyAndCertificateChain.setCertificateChain(CERTIFICATE_1024);
         keyAndCertificateChain.setPrivateKey("this is a bad key");
@@ -805,7 +813,7 @@ public class ApiTest extends ApiTestBase {
         assertExpectedError(response, 400, ServiceCode.API_PARAMETER_INVALID,
                 expectedError);
 
-        //test with bad certificate
+        // test with bad certificate
         keyAndCertificateChain = new KeyAndCertificateChain();
         String badCert = "this is a bad certificate";
         keyAndCertificateChain.setCertificateChain(badCert);
@@ -852,7 +860,7 @@ public class ApiTest extends ApiTestBase {
         Assert.assertEquals(4, info.getVdcRoles().size());  // no tenant role since 2.0
 
         // check the root user's default vdc roles.
-        userInfoCheckRoles(rSys, new ArrayList<String>(Arrays.asList("SECURITY_ADMIN", "SYSTEM_ADMIN", 
+        userInfoCheckRoles(rSys, new ArrayList<String>(Arrays.asList("SECURITY_ADMIN", "SYSTEM_ADMIN",
                 "SYSTEM_MONITOR", "SYSTEM_AUDITOR")));
 
         info = rZAdmin.path("/user/whoami").get(UserInfo.class);
@@ -862,6 +870,7 @@ public class ApiTest extends ApiTestBase {
 
     /**
      * Checks if the user passed in has all the roles in the provided roles list using the whoami api.
+     * 
      * @throws Exception
      */
     private void userInfoCheckRoles(BalancedWebResource user, List<String> roles) throws Exception {
@@ -873,7 +882,6 @@ public class ApiTest extends ApiTestBase {
         Assert.assertTrue(allRoles.containsAll(roles));
     }
 
-
     private void ADConfigTests() throws Exception {
         addBadADConfig();
         ADConfigListTests();
@@ -882,6 +890,7 @@ public class ApiTest extends ApiTestBase {
 
     /**
      * tenant api tests
+     * 
      * @throws Exception
      */
     private void tenantTests() throws Exception {
@@ -895,16 +904,16 @@ public class ApiTest extends ApiTestBase {
         /*
          * GET root tenant info
          */
-        ClientResponse resp = rUnAuth.path("/tenants/"+rootTenantId.toString()).get(ClientResponse.class);
+        ClientResponse resp = rUnAuth.path("/tenants/" + rootTenantId.toString()).get(ClientResponse.class);
         Assert.assertEquals(403, resp.getStatus());
-        TenantOrgRestRep tenant = rSys.path("/tenants/"+rootTenantId.toString()).get(TenantOrgRestRep.class);
+        TenantOrgRestRep tenant = rSys.path("/tenants/" + rootTenantId.toString()).get(TenantOrgRestRep.class);
         Assert.assertTrue(tenant != null);
         Assert.assertTrue(tenant.getId().equals(rootTenantId));
         Assert.assertFalse(tenant.getUserMappings().isEmpty());
         // ensure the tenent org name is the same name as the tenant and the tenant's link points to
         // the appropriate refs
         Assert.assertTrue(tenant.getName().equals(tenantResp.getName()));
-        Assert.assertTrue(("/tenants/" + tenant.getId()).equals(tenantResp.getSelfLink().getLinkRef().toString() ));
+        Assert.assertTrue(("/tenants/" + tenant.getId()).equals(tenantResp.getSelfLink().getLinkRef().toString()));
 
         // Remove the mapping and add a domain only mapping to make sure it works
         TenantUpdateParam tenantUpdate = new TenantUpdateParam();
@@ -917,7 +926,7 @@ public class ApiTest extends ApiTestBase {
         tenantUpdate.setLabel(ROOTTENANT_NAME);
 
         String rootTenantBaseUrl = "/tenants/" + rootTenantId.toString();
-        
+
         resp = rSys.path(rootTenantBaseUrl).put(ClientResponse.class, tenantUpdate);
         Assert.assertEquals(200, resp.getStatus());
         tenant = rSys.path(rootTenantBaseUrl).get(TenantOrgRestRep.class);
@@ -925,21 +934,20 @@ public class ApiTest extends ApiTestBase {
 
         // as sysmonitor, verify we can access tenant quota
         resp = rMon.path(rootTenantBaseUrl + "/quota").get(ClientResponse.class);
-        Assert.assertEquals(200, resp.getStatus());      
-        
+        Assert.assertEquals(200, resp.getStatus());
+
         // try to delete the auth provider that has the sanity.local domain.
         // should fail with 400.
-        resp = rSys.path("/vdc/admin/authnproviders/"+ _goodADConfig.toString()).delete(ClientResponse.class);
+        resp = rSys.path("/vdc/admin/authnproviders/" + _goodADConfig.toString()).delete(ClientResponse.class);
         Assert.assertEquals(400, resp.getStatus());
-        
+
         // try to add another domain to that provider and remove the sanity.local domain which is used. Should fail.
         AuthnUpdateParam updateParam = new AuthnUpdateParam();
         updateParam.getDomainChanges().getAdd().add("someotherdomain2.com");
         updateParam.getDomainChanges().getRemove().add("sanity.local");
-        resp = rSys.path("/vdc/admin/authnproviders/" + _goodADConfig.toString()).put(ClientResponse.class,updateParam);
+        resp = rSys.path("/vdc/admin/authnproviders/" + _goodADConfig.toString()).put(ClientResponse.class, updateParam);
         Assert.assertEquals(400, resp.getStatus());
-        
-        
+
         // Make sure that all mappings can be cleared from root
         tenantUpdate.setUserMappingChanges(new UserMappingChanges());
         tenantUpdate.getUserMappingChanges().setRemove(tenant.getUserMappings());
@@ -950,7 +958,7 @@ public class ApiTest extends ApiTestBase {
 
         // test that updating the tenant with its own name doesn't cause problems (no op)
         TenantUpdateParam tenantUpdateNameOnly = new TenantUpdateParam();
-        tenantUpdateNameOnly.setLabel(tenant.getName());     
+        tenantUpdateNameOnly.setLabel(tenant.getName());
         resp = rSys.path(rootTenantBaseUrl).put(ClientResponse.class, tenantUpdateNameOnly);
         Assert.assertEquals(200, resp.getStatus());
 
@@ -1006,8 +1014,8 @@ public class ApiTest extends ApiTestBase {
         tenantUpdate.getUserMappingChanges().getRemove().add(rootDomainMapping);
         tenantUpdate.setLabel(ROOTTENANT_NAME);
         resp = rSys.path(rootTenantBaseUrl).put(ClientResponse.class, tenantUpdate);
-        Assert.assertEquals(200, resp.getStatus());     
-        
+        Assert.assertEquals(200, resp.getStatus());
+
         // put the mapping back
         updateRootTenantAttrs();
 
@@ -1086,7 +1094,6 @@ public class ApiTest extends ApiTestBase {
         resp = rZAdmin.path("/vdc/role-assignments").put(ClientResponse.class, changes);
         Assert.assertEquals(400, resp.getStatus());
 
-
         // try to modify zone roles for local users, make sure that fails with 400
         RoleAssignmentChanges changes2 = new RoleAssignmentChanges();
         RoleAssignmentEntry rootTenantAdminUserEntry = new RoleAssignmentEntry();
@@ -1105,12 +1112,12 @@ public class ApiTest extends ApiTestBase {
         /*
          * GET/PUT/POST tenant roles
          */
-        String roles_url_format =  "/tenants/%s/role-assignments";
+        String roles_url_format = "/tenants/%s/role-assignments";
         assignments = rZAdmin.path(String.format(roles_url_format, rootTenantId.toString()))
                 .get(RoleAssignments.class);
         Assert.assertTrue(assignments.getAssignments().size() == 1);
 
-        //    - bad role
+        // - bad role
         entry1 = new RoleAssignmentEntry();
         entry1.setSubjectId(ROOTTENANTADMIN_FORASSIGNMENT);
         entry1.getRoles().add("TENANT_ADMIN");
@@ -1134,7 +1141,7 @@ public class ApiTest extends ApiTestBase {
         resp = rZAdminGr.path(String.format(roles_url_format, rootTenantId.toString()))
                 .put(ClientResponse.class, changes);
         Assert.assertEquals(403, resp.getStatus());
-        //  - all good
+        // - all good
         // this will remove sysadmin's tenant_admin role on root
         rootTenantAdminUserEntry = new RoleAssignmentEntry();
         rootTenantAdminUserEntry.setSubjectId(SYSADMIN);
@@ -1150,7 +1157,7 @@ public class ApiTest extends ApiTestBase {
 
         // partial update
         resp = rTAdmin.path("/tenant").get(ClientResponse.class);
-        Assert.assertEquals(200, resp.getStatus());    
+        Assert.assertEquals(200, resp.getStatus());
         RoleAssignmentEntry entry3t = new RoleAssignmentEntry();
         entry3t.setSubjectId(ROOTTENANTADMIN_FORASSIGNMENT);
         entry3t.getRoles().add("PROJECT_ADMIN");
@@ -1220,11 +1227,10 @@ public class ApiTest extends ApiTestBase {
         resp = rSTAdmin1.path("/login").get(ClientResponse.class);
         Assert.assertEquals(403, resp.getStatus());
 
-
         /*
          * CREATE subtenants
          */
-        String subtenant_url =  rootTenantBaseUrl+"/subtenants";
+        String subtenant_url = rootTenantBaseUrl + "/subtenants";
         TenantCreateParam tenantParam = new TenantCreateParam();
         String subtenant1_label = "subtenant1";
         tenantParam.setLabel(subtenant1_label);
@@ -1232,14 +1238,14 @@ public class ApiTest extends ApiTestBase {
         tenantParam.setUserMappings(new ArrayList<UserMappingParam>());
         UserMappingParam tenantMapping1 = new UserMappingParam();
         tenantMapping1.setDomain("bad_domain.com");
-        // add user mapping with domain only.  Should fail because it conflicts with an existing mapping
+        // add user mapping with domain only. Should fail because it conflicts with an existing mapping
         resp = rTAdminGr.path(subtenant_url).post(ClientResponse.class, tenantParam);
-        Assert.assertEquals(400,  resp.getStatus());
+        Assert.assertEquals(400, resp.getStatus());
 
         tenantMapping1.setDomain("sanity.LOCAL");
-        // add user mapping with domain only.  Should fail because it conflicts with an existing mapping
+        // add user mapping with domain only. Should fail because it conflicts with an existing mapping
         resp = rTAdminGr.path(subtenant_url).post(ClientResponse.class, tenantParam);
-        Assert.assertEquals(400,  resp.getStatus());
+        Assert.assertEquals(400, resp.getStatus());
 
         // Add an attribute scope to the mapping
         UserMappingAttributeParam tenantAttr = new UserMappingAttributeParam();
@@ -1255,10 +1261,10 @@ public class ApiTest extends ApiTestBase {
         UserMappingParam tenantMapping2 = new UserMappingParam();
         tenantMapping2.setAttributes(Collections.singletonList(tenantAttr2));
         tenantParam.getUserMappings().add(tenantMapping1);
-        tenantParam.getUserMappings().add(tenantMapping2);      
+        tenantParam.getUserMappings().add(tenantMapping2);
         resp = rTAdminGr.path(subtenant_url).post(ClientResponse.class, tenantParam);
-        Assert.assertEquals(400,  resp.getStatus());
-        //Add the domain to the second mapping
+        Assert.assertEquals(400, resp.getStatus());
+        // Add the domain to the second mapping
         tenantMapping2.setDomain("Sanity.Local");
 
         // Should fail with 403
@@ -1269,14 +1275,14 @@ public class ApiTest extends ApiTestBase {
         TenantOrgRestRep subtenant1 = rTAdminGr.path(subtenant_url).post(TenantOrgRestRep.class, tenantParam);
         Assert.assertTrue(subtenant1.getName().equals(subtenant1_label));
         Assert.assertEquals(2, subtenant1.getUserMappings().size());
-        for( UserMappingParam mapping : subtenant1.getUserMappings() ) {
+        for (UserMappingParam mapping : subtenant1.getUserMappings()) {
             Assert.assertEquals(1, mapping.getAttributes().size());
             UserMappingAttributeParam attribute = mapping.getAttributes().get(0);
-            if( attribute.getKey().equalsIgnoreCase("department") || attribute.getKey().equalsIgnoreCase("company")) {
+            if (attribute.getKey().equalsIgnoreCase("department") || attribute.getKey().equalsIgnoreCase("company")) {
                 Assert.assertEquals(1, attribute.getValues().size());
                 Assert.assertEquals(SUBTENANT1_ATTR, attribute.getValues().get(0));
             } else {
-                Assert.fail("Attribute key unexpected " + attribute.getKey() );
+                Assert.fail("Attribute key unexpected " + attribute.getKey());
             }
         }
         subtenant1Id = subtenant1.getId();
@@ -1289,21 +1295,21 @@ public class ApiTest extends ApiTestBase {
         tenantUpdate.getUserMappingChanges().getRemove().add(tenantMapping1);
         tenantUpdate.getUserMappingChanges().getRemove().add(tenantMapping2);
 
-        resp = rTAdminGr.path("/tenants/"+subtenant1Id.toString()).put(ClientResponse.class, tenantUpdate);
+        resp = rTAdminGr.path("/tenants/" + subtenant1Id.toString()).put(ClientResponse.class, tenantUpdate);
         Assert.assertEquals(400, resp.getStatus());
 
-        subtenant1 = rTAdminGr.path("/tenants/"+subtenant1Id.toString()).get(TenantOrgRestRep.class);
+        subtenant1 = rTAdminGr.path("/tenants/" + subtenant1Id.toString()).get(TenantOrgRestRep.class);
         Assert.assertTrue(subtenant1.getId().equals(subtenant1Id));
         Assert.assertTrue(subtenant1.getName().equals(subtenant1_label));
         Assert.assertEquals(2, subtenant1.getUserMappings().size());
-        for( UserMappingParam mapping : subtenant1.getUserMappings() ) {
+        for (UserMappingParam mapping : subtenant1.getUserMappings()) {
             Assert.assertEquals(1, mapping.getAttributes().size());
             UserMappingAttributeParam attribute = mapping.getAttributes().get(0);
-            if( attribute.getKey().equalsIgnoreCase("department") || attribute.getKey().equalsIgnoreCase("company")) {
+            if (attribute.getKey().equalsIgnoreCase("department") || attribute.getKey().equalsIgnoreCase("company")) {
                 Assert.assertEquals(1, attribute.getValues().size());
                 Assert.assertEquals(SUBTENANT1_ATTR, attribute.getValues().get(0));
             } else {
-                Assert.fail("Attribute key unexpected " + attribute.getKey() );
+                Assert.fail("Attribute key unexpected " + attribute.getKey());
             }
         }
 
@@ -1381,40 +1387,40 @@ public class ApiTest extends ApiTestBase {
 
         tenantUpdate.setLabel(subtenant2_label);
         tenantUpdate.getUserMappingChanges().getAdd().add(tenant2UserMapping2);
-        resp = rTAdmin.path("/tenants/"+subtenant2Id.toString()).put(ClientResponse.class, tenantUpdate);
+        resp = rTAdmin.path("/tenants/" + subtenant2Id.toString()).put(ClientResponse.class, tenantUpdate);
         Assert.assertEquals(200, resp.getStatus());
 
         tenantUpdate.getUserMappingChanges().setAdd(new ArrayList<UserMappingParam>());
         tenantUpdate.getUserMappingChanges().setRemove(new ArrayList<UserMappingParam>());
         tenantUpdate.getUserMappingChanges().getRemove().add(tenant2UserMapping3);
-        resp = rTAdmin.path("/tenants/"+subtenant2Id.toString()).put(ClientResponse.class, tenantUpdate);
+        resp = rTAdmin.path("/tenants/" + subtenant2Id.toString()).put(ClientResponse.class, tenantUpdate);
         Assert.assertEquals(200, resp.getStatus());
 
-        subtenant2 = rTAdmin.path("/tenants/"+subtenant2Id.toString()).get(TenantOrgRestRep.class);
+        subtenant2 = rTAdmin.path("/tenants/" + subtenant2Id.toString()).get(TenantOrgRestRep.class);
         Assert.assertTrue(subtenant2.getId().equals(subtenant2Id));
         Assert.assertTrue(subtenant2.getName().equals(subtenant2_label));
         Assert.assertEquals(1, subtenant2.getUserMappings().size());
-        for( UserMappingParam mapping : subtenant2.getUserMappings() ) {
+        for (UserMappingParam mapping : subtenant2.getUserMappings()) {
             Assert.assertEquals(1, mapping.getAttributes().size());
             UserMappingAttributeParam attribute = mapping.getAttributes().get(0);
-            if(attribute.getKey().equalsIgnoreCase("company")) {
+            if (attribute.getKey().equalsIgnoreCase("company")) {
                 Assert.assertEquals(1, attribute.getValues().size());
                 Assert.assertEquals(SUBTENANT2_ATTR, attribute.getValues().get(0));
             } else {
-                Assert.fail("Attribute key unexpected " + attribute.getKey() );
+                Assert.fail("Attribute key unexpected " + attribute.getKey());
             }
         }
 
         // test that updating this tenant with the second tenant's name
         tenantUpdateNameOnly = new TenantUpdateParam();
-        tenantUpdateNameOnly.setLabel(subtenant2_label);   
-        resp = rTAdminGr.path("/tenants/"+subtenant1Id.toString()).put(ClientResponse.class, tenantUpdateNameOnly);
+        tenantUpdateNameOnly.setLabel(subtenant2_label);
+        resp = rTAdminGr.path("/tenants/" + subtenant1Id.toString()).put(ClientResponse.class, tenantUpdateNameOnly);
         Assert.assertEquals(400, resp.getStatus());
 
         // as sysmonitor, verify we can access sub tenant quota
-        resp = rMon.path("/tenants/"+subtenant2Id.toString()+ "/quota").get(ClientResponse.class);
-        Assert.assertEquals(200, resp.getStatus());      
-        
+        resp = rMon.path("/tenants/" + subtenant2Id.toString() + "/quota").get(ClientResponse.class);
+        Assert.assertEquals(200, resp.getStatus());
+
         // create second level tenant - should fail
         tenantParam.setLabel("bad");
         tenantParam.setDescription("bad subtenant");
@@ -1425,23 +1431,23 @@ public class ApiTest extends ApiTestBase {
         UserMappingParam tenantMappingBad = new UserMappingParam();
         tenantMappingBad.setAttributes(Collections.singletonList(tenantAttrBad));
         tenantParam.getUserMappings().add(tenantMappingBad);
-        resp = rTAdminGr.path("/tenants/"+subtenant2Id.toString()+"/subtenants")
+        resp = rTAdminGr.path("/tenants/" + subtenant2Id.toString() + "/subtenants")
                 .post(ClientResponse.class, tenantParam);
         Assert.assertEquals(403, resp.getStatus());
-        resp = rTAdmin.path("/tenants/"+subtenant2Id.toString()+"/subtenants")
+        resp = rTAdmin.path("/tenants/" + subtenant2Id.toString() + "/subtenants")
                 .post(ClientResponse.class, tenantParam);
         Assert.assertEquals(400, resp.getStatus());
 
-        //TODO - Refactor these tests to meet one of the good code property "one method is responsible for one work"
-        //TODO - and make each tests as individual and simple unittests as possible that just runs in very few milliseconds.
-        //But, still the process of understanding the whole test architecture, hence adding
-        //my new test also here for now.
+        // TODO - Refactor these tests to meet one of the good code property "one method is responsible for one work"
+        // TODO - and make each tests as individual and simple unittests as possible that just runs in very few milliseconds.
+        // But, still the process of understanding the whole test architecture, hence adding
+        // my new test also here for now.
 
-        //Create subtenants with duplicate groups. But API should
-        //be able to find the duplicate groups and remove them
-        //and create only the distinct groups to the userMappings.
+        // Create subtenants with duplicate groups. But API should
+        // be able to find the duplicate groups and remove them
+        // and create only the distinct groups to the userMappings.
 
-        String dupGroupSubtenant_url =  rootTenantBaseUrl+"/subtenants";
+        String dupGroupSubtenant_url = rootTenantBaseUrl + "/subtenants";
         String dupTenantParam_label = "DupGroupSubTenant";
 
         TenantCreateParam dupTenantParam = new TenantCreateParam();
@@ -1458,8 +1464,8 @@ public class ApiTest extends ApiTestBase {
         values1.add("two");
         values1.add("three");
         values1.add("four");
-        values1.add("two"); //Duplicate one, so should be removed in the expected list.
-        values1.add("three"); //Duplicate one, so should be removed in the expected list.
+        values1.add("two"); // Duplicate one, so should be removed in the expected list.
+        values1.add("three"); // Duplicate one, so should be removed in the expected list.
 
         List<String> expectedValues1 = new ArrayList<String>();
         expectedValues1.add("one");
@@ -1472,9 +1478,9 @@ public class ApiTest extends ApiTestBase {
         values2.add("two");
         values2.add("three");
         values2.add("four");
-        values2.add("two"); //Duplicate one, so should be removed in the expected list.
-        values2.add("three"); //Duplicate one, so should be removed in the expected list.
-        values2.add("five"); //One additional value that is not there in value1. So, not a duplicate.
+        values2.add("two"); // Duplicate one, so should be removed in the expected list.
+        values2.add("three"); // Duplicate one, so should be removed in the expected list.
+        values2.add("five"); // One additional value that is not there in value1. So, not a duplicate.
 
         List<String> expectedValues2 = new ArrayList<String>();
         expectedValues2.add("one");
@@ -1483,9 +1489,9 @@ public class ApiTest extends ApiTestBase {
         expectedValues2.add("four");
         expectedValues2.add("five");
 
-        //Validating the duplicate removal code added in the UserMappingAttributeParam() constructor.
+        // Validating the duplicate removal code added in the UserMappingAttributeParam() constructor.
         UserMappingAttributeParam userMappingAttributeParam1 = new UserMappingAttributeParam(key1, values1);
-        UserMappingAttributeParam userMappingAttributeParam2 = new UserMappingAttributeParam(key1, values1); //Duplicate Attribute.
+        UserMappingAttributeParam userMappingAttributeParam2 = new UserMappingAttributeParam(key1, values1); // Duplicate Attribute.
         UserMappingAttributeParam userMappingAttributeParam3 = new UserMappingAttributeParam(key1, values2);
         UserMappingAttributeParam userMappingAttributeParam4 = new UserMappingAttributeParam(key2, values2);
         UserMappingAttributeParam userMappingAttributeParam5 = new UserMappingAttributeParam(key3, values2);
@@ -1496,7 +1502,7 @@ public class ApiTest extends ApiTestBase {
         Assert.assertArrayEquals(expectedValues2.toArray(), userMappingAttributeParam4.getValues().toArray());
         Assert.assertArrayEquals(expectedValues2.toArray(), userMappingAttributeParam5.getValues().toArray());
 
-        //Validating the duplicate removal code added in the UserMappingAttributeParam.setValues() method.
+        // Validating the duplicate removal code added in the UserMappingAttributeParam.setValues() method.
         userMappingAttributeParam1.setValues(values1);
         userMappingAttributeParam2.setValues(values1);
         userMappingAttributeParam3.setValues(values2);
@@ -1511,7 +1517,7 @@ public class ApiTest extends ApiTestBase {
 
         List<UserMappingAttributeParam> attributeList = new ArrayList<UserMappingAttributeParam>();
         attributeList.add(userMappingAttributeParam1);
-        attributeList.add(userMappingAttributeParam2); //Duplicate one, so should be removed in the expected list.
+        attributeList.add(userMappingAttributeParam2); // Duplicate one, so should be removed in the expected list.
         attributeList.add(userMappingAttributeParam3);
         attributeList.add(userMappingAttributeParam4);
 
@@ -1522,7 +1528,7 @@ public class ApiTest extends ApiTestBase {
 
         List<UserMappingAttributeParam> additionalAttributeList = new ArrayList<UserMappingAttributeParam>();
         additionalAttributeList.add(userMappingAttributeParam1);
-        additionalAttributeList.add(userMappingAttributeParam2); //Duplicate one, so should be removed in the expected list.
+        additionalAttributeList.add(userMappingAttributeParam2); // Duplicate one, so should be removed in the expected list.
         additionalAttributeList.add(userMappingAttributeParam5);
         additionalAttributeList.add(userMappingAttributeParam3);
         additionalAttributeList.add(userMappingAttributeParam4);
@@ -1538,9 +1544,9 @@ public class ApiTest extends ApiTestBase {
         groups.add(TENANT_ADMINS_GROUP);
         groups.add(SUBTENANT1_ADMINS_GROUP);
         groups.add(SUBTENANT1_USERS_GROUP);
-        groups.add(ZONEADMINS_GROUP); //Duplicate one, so should be removed in the expected list.
-        groups.add(TENANT_ADMINS_GROUP); //Duplicate one, so should be removed in the expected list.
-        groups.add(SUBTENANT1_USERS_GROUP); //Duplicate one, so should be removed in the expected list.
+        groups.add(ZONEADMINS_GROUP); // Duplicate one, so should be removed in the expected list.
+        groups.add(TENANT_ADMINS_GROUP); // Duplicate one, so should be removed in the expected list.
+        groups.add(SUBTENANT1_USERS_GROUP); // Duplicate one, so should be removed in the expected list.
 
         List<String> expectedGroups = new ArrayList<String>();
         expectedGroups.add(ZONEADMINS_GROUP);
@@ -1555,9 +1561,9 @@ public class ApiTest extends ApiTestBase {
         additionalGroups.add(ASUBSETOFUSERS_GROUP);
         additionalGroups.add(SUBTENANT1_ADMINS_GROUP);
         additionalGroups.add(SUBTENANT1_USERS_GROUP);
-        additionalGroups.add(ZONEADMINS_GROUP); //Duplicate one, so should be removed in the expected list.
-        additionalGroups.add(TENANT_ADMINS_GROUP); //Duplicate one, so should be removed in the expected list.
-        additionalGroups.add(SUBTENANT1_USERS_GROUP); //Duplicate one, so should be removed in the expected list.
+        additionalGroups.add(ZONEADMINS_GROUP); // Duplicate one, so should be removed in the expected list.
+        additionalGroups.add(TENANT_ADMINS_GROUP); // Duplicate one, so should be removed in the expected list.
+        additionalGroups.add(SUBTENANT1_USERS_GROUP); // Duplicate one, so should be removed in the expected list.
 
         List<String> expectedAdditionalGroups = new ArrayList<String>();
         expectedAdditionalGroups.add(ZONEADMINS_GROUP);
@@ -1570,24 +1576,24 @@ public class ApiTest extends ApiTestBase {
         UserMappingParam dupTenantMapping1 = new UserMappingParam("sanity.LOCAL", attributeList, groups);
         UserMappingParam dupTenantMapping2 = new UserMappingParam("sanity.LOCAL", attributeList, groups);
 
-        //Validate against the expected list. This is to validate the new code added to remove the
-        //duplicates in the UserMappingParam() constructor. For UserMappingParam1.
-        List<UserMappingAttributeParam>retAttributeList = dupTenantMapping1.getAttributes();
-        List<String>retGroups = dupTenantMapping1.getGroups();
+        // Validate against the expected list. This is to validate the new code added to remove the
+        // duplicates in the UserMappingParam() constructor. For UserMappingParam1.
+        List<UserMappingAttributeParam> retAttributeList = dupTenantMapping1.getAttributes();
+        List<String> retGroups = dupTenantMapping1.getGroups();
 
         Assert.assertArrayEquals(expectedAttributeList.toArray(), retAttributeList.toArray());
         Assert.assertArrayEquals(expectedGroups.toArray(), retGroups.toArray());
 
-        //For UserMappingParam2.
+        // For UserMappingParam2.
         retAttributeList = dupTenantMapping2.getAttributes();
         retGroups = dupTenantMapping2.getGroups();
 
         Assert.assertArrayEquals(expectedAttributeList.toArray(), retAttributeList.toArray());
         Assert.assertArrayEquals(expectedGroups.toArray(), retGroups.toArray());
 
-        //Validate against the expected list. This is to validate the new code added to remove the
-        //duplicates in the UserMappingParam.setAttributes() and UserMappingParam.setGroups().
-        //For UserMappingParam1.
+        // Validate against the expected list. This is to validate the new code added to remove the
+        // duplicates in the UserMappingParam.setAttributes() and UserMappingParam.setGroups().
+        // For UserMappingParam1.
         dupTenantMapping1.setGroups(additionalGroups);
         dupTenantMapping1.setAttributes(additionalAttributeList);
 
@@ -1597,7 +1603,7 @@ public class ApiTest extends ApiTestBase {
         Assert.assertArrayEquals(expectedAdditionalAttributeList.toArray(), retAttributeList.toArray());
         Assert.assertArrayEquals(expectedAdditionalGroups.toArray(), retGroups.toArray());
 
-        //For UserMappingParam2.
+        // For UserMappingParam2.
         dupTenantMapping2.setGroups(additionalGroups);
         dupTenantMapping2.setAttributes(additionalAttributeList);
 
@@ -1609,10 +1615,10 @@ public class ApiTest extends ApiTestBase {
 
         List<UserMappingParam> dupUserMappings = new ArrayList<UserMappingParam>();
         dupUserMappings.add(dupTenantMapping1);
-        dupUserMappings.add(dupTenantMapping2); //Adding the same userMapping here, just make sure the duplicate will be removed..
+        dupUserMappings.add(dupTenantMapping2); // Adding the same userMapping here, just make sure the duplicate will be removed..
 
-        //Execute the API /tenants/{id}/subtenants with duplicate entries in the payload
-        //and validate the response to make sure no duplicates are actually added to the resource.
+        // Execute the API /tenants/{id}/subtenants with duplicate entries in the payload
+        // and validate the response to make sure no duplicates are actually added to the resource.
         dupTenantParam.setUserMappings(dupUserMappings);
 
         TenantOrgRestRep dupTenantResp = rTAdminGr.path(dupGroupSubtenant_url).post(TenantOrgRestRep.class, dupTenantParam);
@@ -1620,16 +1626,16 @@ public class ApiTest extends ApiTestBase {
         Assert.assertTrue(dupTenantResp.getName().equals(dupTenantParam_label));
         Assert.assertEquals(1, dupTenantResp.getUserMappings().size());
 
-        //Since, both the UserMapping in the list is same, doing the validation in the loop with
-        //same expected values.
-        for(UserMappingParam retUserMapping : dupTenantResp.getUserMappings()){
-            //Unique groups are only ZONEADMINS_GROUP, TENANT_ADMINS_GROUP, SUBTENANT1_ADMINS_GROUP, SUBTENANT1_USERS_GROUP,
+        // Since, both the UserMapping in the list is same, doing the validation in the loop with
+        // same expected values.
+        for (UserMappingParam retUserMapping : dupTenantResp.getUserMappings()) {
+            // Unique groups are only ZONEADMINS_GROUP, TENANT_ADMINS_GROUP, SUBTENANT1_ADMINS_GROUP, SUBTENANT1_USERS_GROUP,
             // SUBTENANT2_ADMINS_GROUP, ASUBSETOFUSERS_GROUP. So, count is 6.
 
             List<String> actualGroupsWithoutDomainUserMapping = new ArrayList<>(retUserMapping.getGroups());
             List<String> actualGroupsWithDomainUserMapping = new ArrayList<>();
 
-            for(String group : actualGroupsWithoutDomainUserMapping){
+            for (String group : actualGroupsWithoutDomainUserMapping) {
                 String groupWithDomain = group + "@sanity.local";
                 actualGroupsWithDomainUserMapping.add(groupWithDomain);
             }
@@ -1637,14 +1643,15 @@ public class ApiTest extends ApiTestBase {
             Assert.assertEquals(6, retUserMapping.getGroups().size());
             Assert.assertArrayEquals(expectedAdditionalGroups.toArray(), actualGroupsWithDomainUserMapping.toArray());
 
-            //Unique attributes are only userMappingAttributeParam1, userMappingAttributeParam3, userMappingAttributeParam4,
-            //userMappingAttributeParam5. So, count is 4.
+            // Unique attributes are only userMappingAttributeParam1, userMappingAttributeParam3, userMappingAttributeParam4,
+            // userMappingAttributeParam5. So, count is 4.
             Assert.assertEquals(4, retUserMapping.getAttributes().size());
             Assert.assertArrayEquals(expectedAdditionalAttributeList.toArray(), retUserMapping.getAttributes().toArray());
         }
 
-        //Delete the create the subtenant to avoid the confusions in the further test cases that runs after this.
-        ClientResponse dupTenantDeleteResp = rTAdminGr.path("/tenants/"+dupTenantResp.getId().toString()+"/deactivate").post(ClientResponse.class);
+        // Delete the create the subtenant to avoid the confusions in the further test cases that runs after this.
+        ClientResponse dupTenantDeleteResp = rTAdminGr.path("/tenants/" + dupTenantResp.getId().toString() + "/deactivate").post(
+                ClientResponse.class);
         Assert.assertEquals(200, dupTenantDeleteResp.getStatus());
 
         /*
@@ -1662,14 +1669,14 @@ public class ApiTest extends ApiTestBase {
         Assert.assertTrue(subtenant2.getId().equals(subtenant2Id));
         Assert.assertTrue(subtenant2.getName().equals(subtenant2_label));
         Assert.assertEquals(1, subtenant2.getUserMappings().size());
-        for( UserMappingParam mapping : subtenant2.getUserMappings() ) {
+        for (UserMappingParam mapping : subtenant2.getUserMappings()) {
             Assert.assertEquals(1, mapping.getAttributes().size());
             UserMappingAttributeParam attribute = mapping.getAttributes().get(0);
-            if(attribute.getKey().equalsIgnoreCase("company")) {
+            if (attribute.getKey().equalsIgnoreCase("company")) {
                 Assert.assertEquals(1, attribute.getValues().size());
                 Assert.assertEquals(SUBTENANT2_ATTR, attribute.getValues().get(0));
             } else {
-                Assert.fail("Attribute key unexpected " + attribute.getKey() );
+                Assert.fail("Attribute key unexpected " + attribute.getKey());
             }
         }
 
@@ -1681,7 +1688,7 @@ public class ApiTest extends ApiTestBase {
 
         UserMappingParam tenant3Mapping = new UserMappingParam();
 
-        // Try a group without the domain.  Expect 400
+        // Try a group without the domain. Expect 400
         tenant3Mapping.setGroups(Collections.singletonList("Test Group"));
         resp = rTAdmin.path(subtenant_url).post(ClientResponse.class, tenantParam);
         Assert.assertEquals(400, resp.getStatus());
@@ -1713,19 +1720,18 @@ public class ApiTest extends ApiTestBase {
         resp = rST13User.path("/login").get(ClientResponse.class);
         Assert.assertEquals(403, resp.getStatus());
 
-
         /*
          * list subtenants - sys monitor, tenant admin and group
          */
 
         TenantOrgList list = rSys.path(subtenant_url).get(TenantOrgList.class);
         Assert.assertEquals(3, list.getSubtenants().size());
-        list = rTAdmin.path(subtenant_url).get( TenantOrgList.class);
+        list = rTAdmin.path(subtenant_url).get(TenantOrgList.class);
         Assert.assertEquals(3, list.getSubtenants().size());
-        list = rTAdminGr.path(subtenant_url).get( TenantOrgList.class);
+        list = rTAdminGr.path(subtenant_url).get(TenantOrgList.class);
         Assert.assertEquals(3, list.getSubtenants().size());
         // unauth
-        resp = rUnAuth.path(subtenant_url).get( ClientResponse.class);
+        resp = rUnAuth.path(subtenant_url).get(ClientResponse.class);
         Assert.assertEquals(403, resp.getStatus());
 
         // system admin only user, verify it doesn't have permision to list subtenants
@@ -1740,12 +1746,12 @@ public class ApiTest extends ApiTestBase {
         resp = rSys.path("/vdc/role-assignments").put(ClientResponse.class, changes);
         Assert.assertEquals(200, resp.getStatus());
         BalancedWebResource rSysadminOnly = createHttpsClient(SYSTEM_ADMIN_ONLY, AD_PASSWORD, baseUrls);
-        resp = rSysadminOnly.path(subtenant_url).get( ClientResponse.class);
+        resp = rSysadminOnly.path(subtenant_url).get(ClientResponse.class);
         Assert.assertEquals(403, resp.getStatus());
 
         RoleAssignments previousAssignments =
                 rZAdmin.path(String.format(roles_url_format, rootTenantId.toString()))
-                .get(RoleAssignments.class);
+                        .get(RoleAssignments.class);
         // re-add the tenant admin role to root
         changes = new RoleAssignmentChanges();
         changes.setAdd(new ArrayList<RoleAssignmentEntry>());
@@ -1753,7 +1759,7 @@ public class ApiTest extends ApiTestBase {
         previousAssignments.getAssignments().add(rootTenantAdminUserEntry);
         readAssignments =
                 rZAdmin.path(String.format(roles_url_format, rootTenantId.toString()))
-                .put(RoleAssignments.class, changes);
+                        .put(RoleAssignments.class, changes);
         Assert.assertTrue(checkEqualsRoles(previousAssignments.getAssignments(),
                 readAssignments.getAssignments()));
 
@@ -1818,11 +1824,11 @@ public class ApiTest extends ApiTestBase {
 
         resp =
                 rSTAdmin1.path(String.format(roles_url_format, subtenant1Id.toString()))
-                .put(ClientResponse.class, changes);
+                        .put(ClientResponse.class, changes);
         Assert.assertEquals(200, resp.getStatus());
         readAssignments =
                 rSTAdmin1.path(String.format(roles_url_format, subtenant1Id.toString()))
-                .get(RoleAssignments.class);
+                        .get(RoleAssignments.class);
         Assert.assertTrue(checkEqualsRoles(changes.getAdd(),
                 readAssignments.getAssignments()));
 
@@ -1832,11 +1838,11 @@ public class ApiTest extends ApiTestBase {
                         readAssignments.getAssignments());
         resp =
                 rSTAdmin1.path(String.format(roles_url_format, subtenant1Id.toString()))
-                .put(ClientResponse.class, changes);
+                        .put(ClientResponse.class, changes);
         Assert.assertEquals(200, resp.getStatus());
         readAssignments =
                 rSTAdmin1.path(String.format(roles_url_format, subtenant1Id.toString()))
-                .get(RoleAssignments.class);
+                        .get(RoleAssignments.class);
         Assert.assertTrue(checkEqualsRoles(changes.getAdd(),
                 readAssignments.getAssignments()));
 
@@ -1873,21 +1879,20 @@ public class ApiTest extends ApiTestBase {
                 .get(RoleAssignments.class);
         Assert.assertTrue(checkEqualsRoles(changes.getAdd(), readAssignments.getAssignments()));
 
-
         /*
          * LIST subtenants
          */
         // tenant admins on root gets the full list
-        list = rTAdmin.path(subtenant_url).get( TenantOrgList.class);
+        list = rTAdmin.path(subtenant_url).get(TenantOrgList.class);
         Assert.assertEquals(3, list.getSubtenants().size());
         // tenant admin on the child get only the child
-        list = rSTAdmin1.path(subtenant_url).get( TenantOrgList.class);
+        list = rSTAdmin1.path(subtenant_url).get(TenantOrgList.class);
         Assert.assertEquals(1, list.getSubtenants().size());
         Assert.assertEquals(subtenant1Id, list.getSubtenants().get(0).getId());
-        list = rSTAdminGr2.path(subtenant_url).get( TenantOrgList.class);
+        list = rSTAdminGr2.path(subtenant_url).get(TenantOrgList.class);
         Assert.assertEquals(1, list.getSubtenants().size());
         Assert.assertEquals(subtenant2Id, list.getSubtenants().get(0).getId());
-        list = rSTAdmin2.path(subtenant_url).get( TenantOrgList.class);
+        list = rSTAdmin2.path(subtenant_url).get(TenantOrgList.class);
         Assert.assertEquals(1, list.getSubtenants().size());
         Assert.assertEquals(subtenant2Id, list.getSubtenants().get(0).getId());
 
@@ -1902,7 +1907,7 @@ public class ApiTest extends ApiTestBase {
         changes.getAdd().add(entry8);
         changes.setRemove(new ArrayList<RoleAssignmentEntry>());
         changes.getRemove().add(entry6);
-        resp = rSTAdmin2.path(String.format(roles_url_format,subtenant2Id.toString())).put(ClientResponse.class, changes);
+        resp = rSTAdmin2.path(String.format(roles_url_format, subtenant2Id.toString())).put(ClientResponse.class, changes);
         Assert.assertEquals(200, resp.getStatus());
         changes.getAdd().add(entry7);
         readAssignments = rSTAdmin2.path(String.format(roles_url_format, subtenant2Id.toString()))
@@ -1917,7 +1922,7 @@ public class ApiTest extends ApiTestBase {
         changes = new RoleAssignmentChanges();
         changes.setAdd(new ArrayList<RoleAssignmentEntry>());
         changes.getAdd().add(entry9);
-        resp = rSTAdmin1.path(String.format(roles_url_format,subtenant1Id.toString())).put(ClientResponse.class, changes);
+        resp = rSTAdmin1.path(String.format(roles_url_format, subtenant1Id.toString())).put(ClientResponse.class, changes);
         Assert.assertEquals(200, resp.getStatus());
         resp = rSTAdminGr1.path(String.format(roles_url_format, subtenant1Id.toString())).get(ClientResponse.class);
         Assert.assertEquals(403, resp.getStatus());
@@ -1934,7 +1939,7 @@ public class ApiTest extends ApiTestBase {
 
         // test out that rootuser2 is able to use his tenant admin in the subtenant even though that is not
         // his home tenant.
-        resp = rRootUser2.path("/tenants/"+subtenant1Id.toString()).get(ClientResponse.class);
+        resp = rRootUser2.path("/tenants/" + subtenant1Id.toString()).get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
 
         changes = new RoleAssignmentChanges();
@@ -1971,7 +1976,7 @@ public class ApiTest extends ApiTestBase {
         changes = new RoleAssignmentChanges();
         changes.setAdd(new ArrayList<RoleAssignmentEntry>());
         changes.setRemove(new ArrayList<RoleAssignmentEntry>());
-        //STAdmin3 should be able to read roles now
+        // STAdmin3 should be able to read roles now
         readAssignments = rSTAdmin3.path(String.format(roles_url_format, subtenant3Id.toString()))
                 .get(RoleAssignments.class);
         // Try to assign a role to a user in a different tenant
@@ -2007,7 +2012,6 @@ public class ApiTest extends ApiTestBase {
         // Should fail with a 400 due to group with that name not existing
         Assert.assertEquals(400, resp.getStatus());
 
-
         /*
          * Test the user tenant troubleshooting API
          */
@@ -2027,25 +2031,28 @@ public class ApiTest extends ApiTestBase {
         resp = rZAdmin.path(userTenantURL).get(ClientResponse.class);
         Assert.assertEquals(400, resp.getStatus());
 
-        UserTenantList userTenants = rZAdmin.path(userTenantURL).queryParam("username", "sanity_user@sanity.local").get(UserTenantList.class);
+        UserTenantList userTenants = rZAdmin.path(userTenantURL).queryParam("username", "sanity_user@sanity.local")
+                .get(UserTenantList.class);
         Assert.assertEquals(userTenants._userTenantList.size(), 1);
         UserTenant userTenant = userTenants._userTenantList.get(0);
         Assert.assertEquals(rootTenantId, userTenant._id);
-        Assert.assertEquals("sanity.local",userTenant._userMapping.getDomain());
+        Assert.assertEquals("sanity.local", userTenant._userMapping.getDomain());
         Assert.assertEquals(1, userTenant._userMapping.getAttributes().size());
-        Assert.assertEquals( "ou",userTenant._userMapping.getAttributes().get(0).getKey());
-        Assert.assertArrayEquals(new String[]{ROOTTENANT_ATTR}, userTenant._userMapping.getAttributes().get(0).getValues().toArray(new String[0]));
+        Assert.assertEquals("ou", userTenant._userMapping.getAttributes().get(0).getKey());
+        Assert.assertArrayEquals(new String[] { ROOTTENANT_ATTR },
+                userTenant._userMapping.getAttributes().get(0).getValues().toArray(new String[0]));
 
         userTenants = rZAdmin.path(userTenantURL).queryParam("username", SUBTENANT13_USER).get(UserTenantList.class);
         Assert.assertEquals(userTenants._userTenantList.size(), 2);
-        for( UserTenant userTenantEntry : userTenants._userTenantList ) {
-            if(userTenantEntry._id.equals(subtenant1Id)) {
+        for (UserTenant userTenantEntry : userTenants._userTenantList) {
+            if (userTenantEntry._id.equals(subtenant1Id)) {
                 Assert.assertEquals(1, userTenantEntry._userMapping.getAttributes().size());
-                Assert.assertEquals( "company",userTenantEntry._userMapping.getAttributes().get(0).getKey().toLowerCase());
-                Assert.assertArrayEquals(new String[]{SUBTENANT1_ATTR}, userTenantEntry._userMapping.getAttributes().get(0).getValues().toArray(new String[0]));
+                Assert.assertEquals("company", userTenantEntry._userMapping.getAttributes().get(0).getKey().toLowerCase());
+                Assert.assertArrayEquals(new String[] { SUBTENANT1_ATTR }, userTenantEntry._userMapping.getAttributes().get(0).getValues()
+                        .toArray(new String[0]));
             } else if (userTenantEntry._id.equals(subtenant3Id)) {
                 Assert.assertEquals(1, userTenantEntry._userMapping.getGroups().size());
-                Assert.assertArrayEquals(new String[]{SUBTENANT3_ATTR}, userTenantEntry._userMapping.getGroups().toArray(new String[0]));
+                Assert.assertArrayEquals(new String[] { SUBTENANT3_ATTR }, userTenantEntry._userMapping.getGroups().toArray(new String[0]));
             } else {
                 Assert.fail("Unexpected tenant ID: " + userTenantEntry._id);
             }
@@ -2073,7 +2080,7 @@ public class ApiTest extends ApiTestBase {
         ProjectEntry projEl = new ProjectEntry(createResp);
         expectedProjListResults.get("root").add(projEl);
 
-        // as subtenant admins  and project admins
+        // as subtenant admins and project admins
         paramProj = new ProjectParam("subtenant1 project1");
         createResp = rSTAdmin1.path(String.format(_projectsUrlFormat, subtenant1Id.toString()))
                 .post(ProjectEntry.class, paramProj);
@@ -2121,7 +2128,7 @@ public class ApiTest extends ApiTestBase {
         // create project on deleted tenant
         tenantParam.setLabel("toremove");
         tenantParam.setDescription("toremove subtenant");
-        tenantParam.setUserMappings(new ArrayList<UserMappingParam>());        
+        tenantParam.setUserMappings(new ArrayList<UserMappingParam>());
 
         UserMappingParam tenantMappingToRemove = new UserMappingParam();
         tenantMappingToRemove.setDomain("sanity.local");
@@ -2133,7 +2140,7 @@ public class ApiTest extends ApiTestBase {
         tenantParam.getUserMappings().add(tenantMappingToRemove);
 
         TenantOrgRestRep stDeleted = rTAdminGr.path(subtenant_url).post(TenantOrgRestRep.class, tenantParam);
-        rTAdminGr.path("/tenants/"+stDeleted.getId()+"/deactivate").post();
+        rTAdminGr.path("/tenants/" + stDeleted.getId() + "/deactivate").post();
         resp = rTAdminGr.path(String.format(_projectsUrlFormat, stDeleted.getId()))
                 .post(ClientResponse.class, paramProj);
         Assert.assertEquals(404, resp.getStatus());
@@ -2173,7 +2180,7 @@ public class ApiTest extends ApiTestBase {
         // 3. with same user, remove TENANT_ADMIN on himself in subtenant
         // 4. with same user, do get /projects/id/acl so show his project ownership
         // is still honored. (cq605248)
-        String crossUserSubtenantUrl =  rootTenantBaseUrl+"/subtenants";
+        String crossUserSubtenantUrl = rootTenantBaseUrl + "/subtenants";
         TenantCreateParam tenantParam2 = new TenantCreateParam();
         tenantParam2.setLabel("subtenantwithuserfromroottenant");
         tenantParam2.setDescription("subtenant where user from root tenant owns projects");
@@ -2209,8 +2216,8 @@ public class ApiTest extends ApiTestBase {
 
         // negative test:
         // 1. assign TENANT_ADMIN to a group called ASubSetOfUsers in the root tenant
-        // 2. Login with cross1@sanity.local.  That user is part of the group above however is mapped
-        // to the crosssubtenant by his attribute company=crosstenant.  Therefore he should not be allowed
+        // 2. Login with cross1@sanity.local. That user is part of the group above however is mapped
+        // to the crosssubtenant by his attribute company=crosstenant. Therefore he should not be allowed
         // to perform a TENANT_ADMIN call in the root tenant.
         entry1 = new RoleAssignmentEntry();
         entry1.setGroup(ASUBSETOFUSERS_GROUP);
@@ -2221,38 +2228,38 @@ public class ApiTest extends ApiTestBase {
         resp = rSys.path(String.format(roles_url_format, rootTenantId.toString()))
                 .put(ClientResponse.class, changes);
         Assert.assertEquals(200, resp.getStatus());
-        resp = rSTCross.path("/tenants/"+rootTenantId.toString()).get(ClientResponse.class);
+        resp = rSTCross.path("/tenants/" + rootTenantId.toString()).get(ClientResponse.class);
         Assert.assertEquals(403, resp.getStatus());
 
-        //list auth providers tests (CTRL-4314)
+        // list auth providers tests (CTRL-4314)
 
-        //SECURITY_ADMIN can access auth providers
+        // SECURITY_ADMIN can access auth providers
         resp = rZAdmin.path("/vdc/admin/authnproviders").get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
 
-        //root tenant TENANT_ADMIN can access auth providers
+        // root tenant TENANT_ADMIN can access auth providers
         resp = rTAdmin.path("/vdc/admin/authnproviders").get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
 
-        //subtenant TENANT_ADMIN can access auth providers
+        // subtenant TENANT_ADMIN can access auth providers
         resp = rSTAdmin2.path("/vdc/admin/authnproviders").get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
 
-        //regular user can't access auth providers
+        // regular user can't access auth providers
         resp = rUnAuth.path("/vdc/admin/authnproviders").get(ClientResponse.class);
         Assert.assertEquals(403, resp.getStatus());
 
-        //make the user the admin of a subtenant (not their home tenant)
+        // make the user the admin of a subtenant (not their home tenant)
         assignTenantRole(subtenant3Id.toString(), ROOTUSER, "TENANT_ADMIN");
 
-        //subtenant TENANT_ADMIN can access auth providers, even if they aren't admin of their home tenant
+        // subtenant TENANT_ADMIN can access auth providers, even if they aren't admin of their home tenant
         resp = rUnAuth.path("/vdc/admin/authnproviders").get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
 
-        //cleanup
+        // cleanup
         removeTenantRole(subtenant3Id.toString(), ROOTUSER, "TENANT_ADMIN");
 
-        //verify the role was removed
+        // verify the role was removed
         resp = rUnAuth.path("/vdc/admin/authnproviders").get(ClientResponse.class);
         Assert.assertEquals(403, resp.getStatus());
     }
@@ -2261,10 +2268,10 @@ public class ApiTest extends ApiTestBase {
      * test for API /vdc/prepare-vdc, which will remove all root's tenant roles and project ownerships
      *
      * before calling the API, prepare root to be:
-     *      1. Provider Tenant's tenant admin
-     *      2. owner of a project of Provider Tenant
-     *      3. Tenant Admin of a subtenant
-     *      4. owner of a project from subtenant
+     * 1. Provider Tenant's tenant admin
+     * 2. owner of a project of Provider Tenant
+     * 3. Tenant Admin of a subtenant
+     * 4. owner of a project from subtenant
      */
     public void prepareVdcTest() throws Exception {
         ClientResponse resp = null;
@@ -2272,11 +2279,11 @@ public class ApiTest extends ApiTestBase {
         BalancedWebResource rootUser = createHttpsClient(SYSADMIN, SYSADMIN_PASSWORD, baseUrls);
         UserInfo info = rootUser.path("/user/whoami").get(UserInfo.class);
         String rootTenantId = info.getTenant();
-        String rootToken = (String)_savedTokens.get(SYSADMIN);
+        String rootToken = (String) _savedTokens.get(SYSADMIN);
 
         BalancedWebResource superSanity = createHttpsClient(SUPERUSER, AD_PASSWORD, baseUrls);
         superSanity.path("/tenant").get(TenantResponse.class);
-        String superSanityToken = (String)_savedTokens.get(SUPERUSER);
+        String superSanityToken = (String) _savedTokens.get(SUPERUSER);
 
         // prepare tenant roles and project ownership
         // also assign TenantAdmin to superuser, so it can be used to verify afterwards
@@ -2299,7 +2306,7 @@ public class ApiTest extends ApiTestBase {
 
         // create a subtenant by root, root will be its TenantAdmin
         String tenantLabel = "tenant_" + new Random().nextInt();
-        TenantOrgRestRep subtenant = createTenant(tenantLabel,"sanity.local",  "key", tenantLabel);
+        TenantOrgRestRep subtenant = createTenant(tenantLabel, "sanity.local", "key", tenantLabel);
         resp = assignTenantRole(subtenant.getId().toString(), SUPERUSER, "TENANT_ADMIN");
         Assert.assertEquals(200, resp.getStatus());
 
@@ -2336,18 +2343,18 @@ public class ApiTest extends ApiTestBase {
         }
         if (rootProject1 != null) {
             superSanity.path(String.format(_projectUrl + "/deactivate", rootProject1.id.toString()))
-            .header(AUTH_TOKEN_HEADER, superSanityToken)
-            .post(ClientResponse.class);
+                    .header(AUTH_TOKEN_HEADER, superSanityToken)
+                    .post(ClientResponse.class);
         }
         if (rootProject2 != null) {
             superSanity.path(String.format(_projectUrl + "/deactivate", rootProject2.id.toString()))
-            .header(AUTH_TOKEN_HEADER, superSanityToken)
-            .post(ClientResponse.class);
+                    .header(AUTH_TOKEN_HEADER, superSanityToken)
+                    .post(ClientResponse.class);
         }
         if (subtenant != null) {
-            superSanity.path("/tenants/"+subtenant.getId()+"/deactivate")
-            .header(AUTH_TOKEN_HEADER, superSanityToken)
-            .post();
+            superSanity.path("/tenants/" + subtenant.getId() + "/deactivate")
+                    .header(AUTH_TOKEN_HEADER, superSanityToken)
+                    .post();
         }
     }
 
@@ -2355,7 +2362,7 @@ public class ApiTest extends ApiTestBase {
         BalancedWebResource rootUser = createHttpsClient(SYSADMIN, SYSADMIN_PASSWORD, baseUrls);
         UserInfo info = rootUser.path("/user/whoami").get(UserInfo.class);
         String rootTenantId = info.getTenant();
-        String rootToken = (String)_savedTokens.get(SYSADMIN);
+        String rootToken = (String) _savedTokens.get(SYSADMIN);
 
         TenantCreateParam tenantParam = new TenantCreateParam();
         tenantParam.setLabel(label);
@@ -2369,7 +2376,7 @@ public class ApiTest extends ApiTestBase {
         tenant2UserMapping.setAttributes(Collections.singletonList(tenant2Attr));
         tenantParam.getUserMappings().add(tenant2UserMapping);
 
-        String subtenant_url =  "/tenants/" + rootTenantId + "/subtenants";
+        String subtenant_url = "/tenants/" + rootTenantId + "/subtenants";
         TenantOrgRestRep tenantOrg = rootUser.path(subtenant_url)
                 .header(AUTH_TOKEN_HEADER, rootToken)
                 .post(TenantOrgRestRep.class, tenantParam);
@@ -2385,10 +2392,11 @@ public class ApiTest extends ApiTestBase {
         return changeTenantRoles(tenantId, subjectId, new ArrayList<String>(), Arrays.asList(role));
     }
 
-    private ClientResponse changeTenantRoles(String tenantId, String subjectId, List<String> addRoles, List<String> removeRoles) throws Exception {
+    private ClientResponse changeTenantRoles(String tenantId, String subjectId, List<String> addRoles, List<String> removeRoles)
+            throws Exception {
         BalancedWebResource rootUser = createHttpsClient(SYSADMIN, SYSADMIN_PASSWORD, baseUrls);
         rootUser.path("/user/whoami").get(UserInfo.class);
-        String rootToken = (String)_savedTokens.get(SYSADMIN);
+        String rootToken = (String) _savedTokens.get(SYSADMIN);
 
         RoleAssignmentEntry roleAssignmentEntry;
         RoleAssignmentChanges roleAssignmentChanges = new RoleAssignmentChanges();
@@ -2412,8 +2420,8 @@ public class ApiTest extends ApiTestBase {
         }
 
         return rootUser.path("/tenants/" + tenantId + "/role-assignments")
-                       .header(AUTH_TOKEN_HEADER, rootToken)
-                       .put(ClientResponse.class, roleAssignmentChanges);
+                .header(AUTH_TOKEN_HEADER, rootToken)
+                .put(ClientResponse.class, roleAssignmentChanges);
     }
 
     /**
@@ -2424,8 +2432,8 @@ public class ApiTest extends ApiTestBase {
         String groupName = "fredTestGroup";
         String domain = "sanity.local";
         String groupNameWithDomain = groupName + "@sanity.local";
-        ClientResponse response =  createTenant("subTenantForGroupSuffixTest_"
-                + new Random().nextInt(),domain, groupName);
+        ClientResponse response = createTenant("subTenantForGroupSuffixTest_"
+                + new Random().nextInt(), domain, groupName);
         Assert.assertEquals(200, response.getStatus());
 
         response = createTenant("subTenantForGroupSuffixTest_"
@@ -2439,7 +2447,7 @@ public class ApiTest extends ApiTestBase {
         BalancedWebResource rootUser = createHttpsClient(SYSADMIN, SYSADMIN_PASSWORD, baseUrls);
         UserInfo info = rootUser.path("/user/whoami").get(UserInfo.class);
         String rootTenantId = info.getTenant();
-        String rootToken = (String)_savedTokens.get(SYSADMIN);
+        String rootToken = (String) _savedTokens.get(SYSADMIN);
 
         TenantCreateParam tenantParam = new TenantCreateParam();
         tenantParam.setLabel(label);
@@ -2450,7 +2458,7 @@ public class ApiTest extends ApiTestBase {
         tenant2UserMapping.setGroups(new ArrayList<String>(Arrays.asList(groupName)));
         tenantParam.getUserMappings().add(tenant2UserMapping);
 
-        String subtenant_url =  "/tenants/" + rootTenantId + "/subtenants";
+        String subtenant_url = "/tenants/" + rootTenantId + "/subtenants";
         ClientResponse response = rootUser.path(subtenant_url)
                 .header(AUTH_TOKEN_HEADER, rootToken)
                 .post(ClientResponse.class, tenantParam);
@@ -2478,7 +2486,7 @@ public class ApiTest extends ApiTestBase {
         param.setSearchBase("CN=Users,DC=secqe,DC=com");
         param.setSearchFilter("userPrincipalName=%u");
         param.setServerUrls(new HashSet<String>());
-        param.getServerUrls().add("ldap:\\"+AD_SERVER2_IP);
+        param.getServerUrls().add("ldap:\\" + AD_SERVER2_IP);
         param.setMode("ad");
         AuthnProviderRestRep resp = rSys.path("/vdc/admin/authnproviders").post(AuthnProviderRestRep.class, param);
         Assert.assertNotNull(resp.getId());
@@ -2491,14 +2499,14 @@ public class ApiTest extends ApiTestBase {
         // enable the authn provider
         AuthnUpdateParam updateParam = new AuthnUpdateParam();
         updateParam.setDisable(false);
-        response = rSys.path("/vdc/admin/authnproviders/" + resp.getId()).put(ClientResponse.class,updateParam);
+        response = rSys.path("/vdc/admin/authnproviders/" + resp.getId()).put(ClientResponse.class, updateParam);
         Assert.assertEquals(200, response.getStatus());
 
         // create the tenant again, should success
         response = createTenant("disabled_tenant" + new Random().nextInt(), domain, groupName);
         Assert.assertEquals(200, response.getStatus());
     }
-    
+
     // quick test to see that one can create and delete
     // a provider with no errors if there are no tenants associated
     public void loneAuthnProviderDeleteTest() throws Exception {
@@ -2513,7 +2521,7 @@ public class ApiTest extends ApiTestBase {
         param.setSearchBase("OU=People,DC=root,DC=com");
         param.setSearchFilter("mail=%u");
         param.setServerUrls(new HashSet<String>());
-        param.getServerUrls().add("ldaps:\\"+LDAP_SERVER1_IP);
+        param.getServerUrls().add("ldaps:\\" + LDAP_SERVER1_IP);
         param.setMode("ldap");
         AuthnProviderRestRep resp = rSys.path("/vdc/admin/authnproviders").post(AuthnProviderRestRep.class,
                 param);
@@ -2522,27 +2530,27 @@ public class ApiTest extends ApiTestBase {
         // update by removing a domain should work because neither are used by any tenants
         AuthnUpdateParam updateParam = new AuthnUpdateParam();
         updateParam.getDomainChanges().getRemove().add("someotherdomain2.com");
-        ClientResponse response = rSys.path("/vdc/admin/authnproviders/" + resp.getId()).put(ClientResponse.class,updateParam);
+        ClientResponse response = rSys.path("/vdc/admin/authnproviders/" + resp.getId()).put(ClientResponse.class, updateParam);
         Assert.assertEquals(200, response.getStatus());
-        
+
         // disable, delete, should work, because there are no tenants associated
         // with it.
-        
+
         // disable it
         updateParam = new AuthnUpdateParam();
         updateParam.setDisable(true);
-        response = rSys.path("/vdc/admin/authnproviders/" + resp.getId()).put(ClientResponse.class,updateParam);
+        response = rSys.path("/vdc/admin/authnproviders/" + resp.getId()).put(ClientResponse.class, updateParam);
         Assert.assertEquals(200, response.getStatus());
-        
+
         // delete it
         response = rSys.path("/vdc/admin/authnproviders/" + resp.getId()).delete(ClientResponse.class);
         Assert.assertEquals(200, response.getStatus());
-             
+
     }
-    
+
     // quick test to see if the added domain of AP server is converted to all lowercase
     public void authnProviderAddDomainTest() throws Exception {
-    	AuthnCreateParam param = new AuthnCreateParam();
+        AuthnCreateParam param = new AuthnCreateParam();
         param.setLabel("domain test AP server");
         param.setDescription("AP server configuration created by ApiTest.java");
         param.setDisable(false);
@@ -2552,41 +2560,41 @@ public class ApiTest extends ApiTestBase {
         param.setSearchBase("OU=People,DC=root,DC=com");
         param.setSearchFilter("mail=%u");
         param.setServerUrls(new HashSet<String>());
-        param.getServerUrls().add("ldaps:\\"+LDAP_SERVER1_IP);
+        param.getServerUrls().add("ldaps:\\" + LDAP_SERVER1_IP);
         param.setMode("ldap");
         AuthnProviderRestRep resp = rSys.path("/vdc/admin/authnproviders").post(AuthnProviderRestRep.class,
                 param);
         Assert.assertNotNull(resp);
-        
+
         // update the AP server by adding a domain name with mixed case
         AuthnUpdateParam updateParam = new AuthnUpdateParam();
         Set<String> toAddSet = new HashSet<String>();
         toAddSet.add("sAnItY2.local");
         updateParam.getDomainChanges().setAdd(toAddSet);
-        ClientResponse response = rSys.path("/vdc/admin/authnproviders/" + resp.getId()).put(ClientResponse.class,updateParam);
+        ClientResponse response = rSys.path("/vdc/admin/authnproviders/" + resp.getId()).put(ClientResponse.class, updateParam);
         Assert.assertEquals(200, response.getStatus());
-        
+
         // verify the added domain name is converted to lower case
         response = rSys.path("/vdc/admin/authnproviders/" + resp.getId()).get(ClientResponse.class);
         AuthnProviderRestRep responseRestRep = response.getEntity(AuthnProviderRestRep.class);
         Assert.assertFalse(responseRestRep.getDomains().contains("sAnItY2.local"));
         Assert.assertTrue(responseRestRep.getDomains().contains("sanity2.local"));
-        
+
         // use the added domain to create a subtenant, verify it's successful
         TenantCreateParam tenantParam = new TenantCreateParam();
         tenantParam.setLabel("sub2");
         tenantParam.setDescription("My sub tenant 2");
-        
+
         UserMappingParam tenantMapping1 = new UserMappingParam();
         tenantMapping1.setDomain("sAnItY2.local");
         UserMappingAttributeParam attriParam = new UserMappingAttributeParam("department", Collections.singletonList("ASD"));
         tenantMapping1.getAttributes().add(attriParam);
         tenantParam.getUserMappings().add(tenantMapping1);
 
-        response = rSys.path("/tenants/" + rootTenantId +"/subtenants").post(ClientResponse.class, tenantParam);
+        response = rSys.path("/tenants/" + rootTenantId + "/subtenants").post(ClientResponse.class, tenantParam);
         Assert.assertEquals(200, response.getStatus());
     }
-    
+
     /**
      * projects api tests
      */
@@ -2596,7 +2604,7 @@ public class ApiTest extends ApiTestBase {
                 .post(ProjectEntry.class, paramProj);
         Assert.assertTrue(project1.name.equals(paramProj.getName()));
         Assert.assertTrue(project1.id != null);
-        expectedProjListResults.get("st1").add(new ProjectEntry(project1) );
+        expectedProjListResults.get("st1").add(new ProjectEntry(project1));
         paramProj.setName("aclstestproject2");
         ProjectEntry project2 = rSTAdmin1.path(String.format(_projectsUrlFormat, subtenant1Id.toString()))
                 .post(ProjectEntry.class, paramProj);
@@ -2617,13 +2625,13 @@ public class ApiTest extends ApiTestBase {
         ProjectEntry projectTemp = rSTAdminGr1.path(String.format(_projectsUrlFormat, subtenant1Id.toString()))
                 .post(ProjectEntry.class, tempProject);
         Assert.assertTrue(projectTemp.id != null);
-        expectedProjListResults.get("st1").add(new ProjectEntry(projectTemp) );
+        expectedProjListResults.get("st1").add(new ProjectEntry(projectTemp));
         // add temp project 2
         ProjectParam tempProject2 = new ProjectParam("temproject2");
         ProjectEntry projectTemp2 = rSTAdminGr1.path(String.format(_projectsUrlFormat, subtenant1Id.toString()))
                 .post(ProjectEntry.class, tempProject2);
         Assert.assertTrue(projectTemp2.id != null);
-        expectedProjListResults.get("st1").add(new ProjectEntry(projectTemp2) );
+        expectedProjListResults.get("st1").add(new ProjectEntry(projectTemp2));
         // attempt to modify the first project with the same name as itself. should be fine.
         ProjectUpdateParam projectUpdate1 = new ProjectUpdateParam(tempProject.getName());
         resp = rSTAdminGr1.path(String.format(_projectUrl, projectTemp.id.toString()))
@@ -2640,7 +2648,7 @@ public class ApiTest extends ApiTestBase {
                 .put(ClientResponse.class, projectUpdate1c);
         Assert.assertEquals(200, resp.getStatus());
 
-        // attempt to modify the first project with the name of the second one.  Should fail.
+        // attempt to modify the first project with the name of the second one. Should fail.
         ProjectUpdateParam projectUpdate2 = new ProjectUpdateParam(tempProject2.getName());
         resp = rSTAdminGr1.path(String.format(_projectUrl, projectTemp.id.toString()))
                 .put(ClientResponse.class, projectUpdate2);
@@ -2684,7 +2692,7 @@ public class ApiTest extends ApiTestBase {
 
         ACLAssignments assignements = rSTAdminGr1.path(
                 String.format(_projectAclUrl, project1.id.toString())).get(
-                        ACLAssignments.class);
+                ACLAssignments.class);
         ACLAssignmentChanges tooMuchChanges = new ACLAssignmentChanges();
         tooMuchChanges.setAdd(new ArrayList<ACLEntry>());
         for (int i = 0; i < _maxRoleAclEntries + 1 - assignements.getAssignments().size() - 1; i++) {
@@ -2810,7 +2818,7 @@ public class ApiTest extends ApiTestBase {
         // batch acl assignment test - 2 users and 2 groups added at the same time
         ACLAssignments assignmentsToHaveWhenImDone =
                 rSTAdmin1.path(String.format(_projectAclUrl, project1.id.toString()))
-                .get(ACLAssignments.class);
+                        .get(ACLAssignments.class);
         changes = new ACLAssignmentChanges();
         changes.setRemove(assignmentsToHaveWhenImDone.getAssignments());
         entry2 = new ACLEntry();
@@ -2833,11 +2841,11 @@ public class ApiTest extends ApiTestBase {
 
         resp =
                 rSTAdmin1.path(String.format(_projectAclUrl, project1.id.toString()))
-                .put(ClientResponse.class, changes);
+                        .put(ClientResponse.class, changes);
         Assert.assertEquals(200, resp.getStatus());
         read_assignments =
                 rSTAdminGr1.path(String.format(_projectAclUrl, project1.id.toString()))
-                .get(ACLAssignments.class);
+                        .get(ACLAssignments.class);
         Assert.assertTrue(checkEqualsAcls(changes.getAdd(),
                 read_assignments.getAssignments()));
 
@@ -2847,7 +2855,7 @@ public class ApiTest extends ApiTestBase {
                         read_assignments.getAssignments());
         resp =
                 rSTAdmin1.path(String.format(_projectAclUrl, project1.id.toString()))
-                .put(ClientResponse.class, changes);
+                        .put(ClientResponse.class, changes);
         Assert.assertEquals(200, resp.getStatus());
 
         // test lists
@@ -2862,7 +2870,7 @@ public class ApiTest extends ApiTestBase {
         Assert.assertEquals(project1.id, projList._projects.get(0).id);
         Assert.assertEquals(project1.name, projList._projects.get(0).name);
 
-        // use set on both, so  we should see both
+        // use set on both, so we should see both
         projList = rProjUserGr.path(String.format(_projectsUrlFormat, subtenant1Id.toString()))
                 .get(ProjectList.class);
         ArrayList<ProjectEntry> expected = new ArrayList<ProjectEntry>();
@@ -2903,8 +2911,9 @@ public class ApiTest extends ApiTestBase {
         Assert.assertEquals(404, resp.getStatus());
 
         // Test entity not found is returned if we try to retrieve a project that does not exist
-        String getProjectUrl =  "/tenants/%s/projects/%s";
-        resp = rTAdmin.path(String.format(getProjectUrl, rootTenantId.toString(), "urn:storageos:Project:815b507c-26eb-4124-bc96-9d0400a16596:"))
+        String getProjectUrl = "/tenants/%s/projects/%s";
+        resp = rTAdmin.path(
+                String.format(getProjectUrl, rootTenantId.toString(), "urn:storageos:Project:815b507c-26eb-4124-bc96-9d0400a16596:"))
                 .get(ClientResponse.class);
         Assert.assertEquals(404, resp.getStatus());
 
@@ -2934,14 +2943,14 @@ public class ApiTest extends ApiTestBase {
     public void usageAclTests() {
         TenantResponse tenantResp = rSys.path("/tenant").get(TenantResponse.class);
         rootTenantId = tenantResp.getTenant();
-        String subtenant_url =  "/tenants/"+rootTenantId.toString()+"/subtenants";
+        String subtenant_url = "/tenants/" + rootTenantId.toString() + "/subtenants";
         TenantOrgList list = rSys.path(subtenant_url).get(TenantOrgList.class);
         Assert.assertEquals(4, list.getSubtenants().size());
         NamedRelatedResourceRep st1 = list.getSubtenants().get(0);
         NamedRelatedResourceRep st2 = list.getSubtenants().get(1);
 
         // create neighborhoods for test
-        VirtualArrayCreateParam neighborhoodParam  = new VirtualArrayCreateParam();
+        VirtualArrayCreateParam neighborhoodParam = new VirtualArrayCreateParam();
         neighborhoodParam.setLabel("n1");
         VirtualArrayRestRep n1 = rSys.path("/vdc/varrays").post(VirtualArrayRestRep.class, neighborhoodParam);
         Assert.assertNotNull(n1.getId());
@@ -2950,9 +2959,9 @@ public class ApiTest extends ApiTestBase {
         Assert.assertNotNull(n2.getId());
 
         // test open to all by default
-        ClientResponse resp = rSTAdmin1.path("/vdc/varrays/"+n1.getId().toString()).get(ClientResponse.class);
+        ClientResponse resp = rSTAdmin1.path("/vdc/varrays/" + n1.getId().toString()).get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
-        resp = rSTAdmin2.path("/vdc/varrays/"+n1.getId().toString()).get(ClientResponse.class);
+        resp = rSTAdmin2.path("/vdc/varrays/" + n1.getId().toString()).get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
 
         // set usage acl for st1 on n1
@@ -2967,10 +2976,10 @@ public class ApiTest extends ApiTestBase {
         resp = rSys.path(String.format(neighborAclUrl, n1.getId().toString()))
                 .put(ClientResponse.class, changes);
         Assert.assertEquals(200, resp.getStatus());
-        VirtualArrayRestRep nRead = rSTAdmin1.path("/vdc/varrays/"+n1.getId().toString()).get(VirtualArrayRestRep.class);
+        VirtualArrayRestRep nRead = rSTAdmin1.path("/vdc/varrays/" + n1.getId().toString()).get(VirtualArrayRestRep.class);
         Assert.assertEquals(nRead.getId(), n1.getId());
         Assert.assertEquals(nRead.getName(), n1.getName());
-        resp = rSTAdmin2.path("/vdc/varrays/"+n1.getId().toString()).get(ClientResponse.class);
+        resp = rSTAdmin2.path("/vdc/varrays/" + n1.getId().toString()).get(ClientResponse.class);
         Assert.assertEquals(403, resp.getStatus());
 
         // set usage acl for st2 on n2
@@ -2984,10 +2993,10 @@ public class ApiTest extends ApiTestBase {
         resp = rSys.path(String.format(neighborAclUrl, n2.getId().toString()))
                 .put(ClientResponse.class, changes);
         Assert.assertEquals(200, resp.getStatus());
-        nRead = rSTAdmin2.path("/vdc/varrays/"+n2.getId().toString()).get(VirtualArrayRestRep.class);
+        nRead = rSTAdmin2.path("/vdc/varrays/" + n2.getId().toString()).get(VirtualArrayRestRep.class);
         Assert.assertEquals(nRead.getId(), n2.getId());
         Assert.assertEquals(nRead.getName(), n2.getName());
-        resp = rSTAdmin1.path("/vdc/varrays/"+n2.getId().toString()).get(ClientResponse.class);
+        resp = rSTAdmin1.path("/vdc/varrays/" + n2.getId().toString()).get(ClientResponse.class);
         Assert.assertEquals(403, resp.getStatus());
 
         // negative test - invalid tenant id
@@ -3056,7 +3065,7 @@ public class ApiTest extends ApiTestBase {
         Assert.assertEquals(n1.getId(), nList.getVirtualArrays().get(0).getId());
 
         // newly created varray, accessible for all
-        neighborhoodParam  = new VirtualArrayCreateParam();
+        neighborhoodParam = new VirtualArrayCreateParam();
         neighborhoodParam.setLabel("n3");
         VirtualArrayRestRep n3 = rSys.path("/vdc/varrays").post(VirtualArrayRestRep.class, neighborhoodParam);
         Assert.assertNotNull(n3.getId());
@@ -3069,8 +3078,8 @@ public class ApiTest extends ApiTestBase {
         Assert.assertTrue(nList.getVirtualArrays().get(0).getId().equals(n3.getId()) ||
                 nList.getVirtualArrays().get(1).getId().equals(n3.getId()));
 
-        //delete nh3
-        rSys.path("/vdc/varrays/"+n3.getId().toString()+"/deactivate").post();
+        // delete nh3
+        rSys.path("/vdc/varrays/" + n3.getId().toString() + "/deactivate").post();
 
         // create vpool
         BlockVirtualPoolParam paramCosBlock = new BlockVirtualPoolParam();
@@ -3085,9 +3094,9 @@ public class ApiTest extends ApiTestBase {
         Assert.assertNotNull(cos1.getId());
         resp = rZAdmin.path("/block/vpools").post(ClientResponse.class, paramCosBlock);
         Assert.assertEquals(400, resp.getStatus());
-        resp = rSTAdmin1.path("/block/vpools/"+cos1.getId().toString()).get(ClientResponse.class);
+        resp = rSTAdmin1.path("/block/vpools/" + cos1.getId().toString()).get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
-        resp = rSTAdmin2.path("/block/vpools/"+cos1.getId().toString()).get(ClientResponse.class);
+        resp = rSTAdmin2.path("/block/vpools/" + cos1.getId().toString()).get(ClientResponse.class);
         Assert.assertEquals(200, resp.getStatus());
 
         // negative test: assign an empty storage pool
@@ -3096,7 +3105,7 @@ public class ApiTest extends ApiTestBase {
         paramPoolUpdate.getStoragePoolAssignmentChanges().setAdd(new StoragePoolAssignments());
         paramPoolUpdate.getStoragePoolAssignmentChanges().getAdd().setStoragePools(new HashSet<String>());
         paramPoolUpdate.getStoragePoolAssignmentChanges().getAdd().getStoragePools().add("");
-        resp = rZAdmin.path("/block/vpools/"+cos1.getId().toString()+"/assign-matched-pools/")
+        resp = rZAdmin.path("/block/vpools/" + cos1.getId().toString() + "/assign-matched-pools/")
                 .put(ClientResponse.class, paramPoolUpdate);
         Assert.assertEquals(400, resp.getStatus());
 
@@ -3110,10 +3119,10 @@ public class ApiTest extends ApiTestBase {
         resp = rSys.path(String.format(_fileCosAclUrl, cos1.getId().toString()))
                 .get(ClientResponse.class);
         Assert.assertEquals(400, resp.getStatus());
-        BlockVirtualPoolRestRep cRead = rSTAdmin1.path("/block/vpools/"+cos1.getId().toString()).get(BlockVirtualPoolRestRep.class);
+        BlockVirtualPoolRestRep cRead = rSTAdmin1.path("/block/vpools/" + cos1.getId().toString()).get(BlockVirtualPoolRestRep.class);
         Assert.assertEquals(cRead.getId(), cos1.getId());
         Assert.assertEquals(cRead.getName(), cos1.getName());
-        resp = rSTAdmin2.path("/block/vpools/"+cos1.getId().toString()).get(ClientResponse.class);
+        resp = rSTAdmin2.path("/block/vpools/" + cos1.getId().toString()).get(ClientResponse.class);
         Assert.assertEquals(403, resp.getStatus());
 
         // create second CoS
@@ -3168,17 +3177,21 @@ public class ApiTest extends ApiTestBase {
         Assert.assertTrue(tagsResp.getTag().equals(tags.getAdd()));
         tags.setRemove(new StringSet());
         tags.getRemove().addAll(new HashSet(tags.getAdd()));
-        tags.getAdd().add("t"); //invalid tag, too short
+        tags.getAdd().add("t"); // invalid tag, too short
         resp = rSys.path(String.format(cosTagUrl, cos1.getId())).put(ClientResponse.class, tags);
         Assert.assertEquals(400, resp.getStatus());
         tags.getAdd().clear();
-        tags.getAdd().add("tag" + STR144); //invalid tag, too long
+        tags.getAdd().add("tag" + STR144); // invalid tag, too long
         resp = rSys.path(String.format(cosTagUrl, cos1.getId())).put(ClientResponse.class, tags);
         Assert.assertEquals(400, resp.getStatus());
         tags.getAdd().clear();
-        tags.getAdd().add(" testtag  "); //tags should be trimmed
+        tags.getAdd().add(" testtag  "); // tags should be trimmed
         tagsResp = rSys.path(String.format(cosTagUrl, cos1.getId())).put(Tags.class, tags);
-        Assert.assertTrue(tagsResp.getTag().equals(new StringSet(){{add("testtag");}}));
+        Assert.assertTrue(tagsResp.getTag().equals(new StringSet() {
+            {
+                add("testtag");
+            }
+        }));
         resp = rSTAdmin2.path(String.format(cosTagUrl, cos1.getId())).get(ClientResponse.class);
         Assert.assertEquals(403, resp.getStatus());
         resp = rSTAdmin1.path(String.format(cosTagUrl, cos1.getId())).get(ClientResponse.class);
@@ -3198,9 +3211,9 @@ public class ApiTest extends ApiTestBase {
         // below is vpool restricted to tenant test
 
         /*
-             test setup:
-             create a varray and vpool and associate the vpool with the varray
-             restrict the vpool to the tenant
+         * test setup:
+         * create a varray and vpool and associate the vpool with the varray
+         * restrict the vpool to the tenant
          */
 
         String vaLabel = "va-testTenantRestrictAccess-" + Calendar.getInstance().getTime().getTime();
@@ -3285,7 +3298,7 @@ public class ApiTest extends ApiTestBase {
                 .get(VirtualArrayList.class);
         Assert.assertEquals(1, nList.getVirtualArrays().size());
         _nh = nList.getVirtualArrays().get(0).getId();
-        _log.info("varray: "+_nh.toString());
+        _log.info("varray: " + _nh.toString());
         NetworkCreate param = new NetworkCreate();
         param.setTransportType("IP");
         param.setLabel("iptz");
@@ -3388,7 +3401,7 @@ public class ApiTest extends ApiTestBase {
                 StoragePortList vnxBlockPortList = rZAdmin
                         .path(String.format("/vdc/storage-systems/%s/storage-ports",
                                 system.getId()).toString())
-                                .get(StoragePortList.class);
+                        .get(StoragePortList.class);
                 List<NamedRelatedResourceRep> vnxBlockPortURIList = vnxBlockPortList.getPorts();
                 for (RelatedResourceRep portURI : vnxBlockPortURIList) {
                     updateStoragePortTZ(resRep.getId(), portURI);
@@ -3399,6 +3412,7 @@ public class ApiTest extends ApiTestBase {
 
     /**
      * Create a VNXBlock SMISProvider.
+     * 
      * @return SMISProviderRestRep : provider.
      * @throws InterruptedException
      */
@@ -3426,13 +3440,12 @@ public class ApiTest extends ApiTestBase {
             TaskResourceRep taskResp = rZAdmin.path(String.format("/vdc/smis-providers/%s/tasks/%s", providerLink.getId(), opId))
                     .get(TaskResourceRep.class);
             status = taskResp.getState();
-        }
-        while (status.equals("pending") && checkCount-- > 0);
+        } while (status.equals("pending") && checkCount-- > 0);
 
         if (!status.equals("ready")) {
             Assert.assertTrue("Failed to create SMIS provider: time out", false);
         }
-        SMISProviderRestRep provider  = rZAdmin.path(String.format("/vdc/smis-providers/%s", providerLink.getId()))
+        SMISProviderRestRep provider = rZAdmin.path(String.format("/vdc/smis-providers/%s", providerLink.getId()))
                 .get(SMISProviderRestRep.class);
         Assert.assertNotNull(provider);
         _log.info("Scanned SMI-S Provider : " + providerLink.getId());
@@ -3442,13 +3455,13 @@ public class ApiTest extends ApiTestBase {
                 .post(TaskList.class, providerParam);
         // wait upto ~10 minute for discover
         checkCount = 60;
-        for(TaskResourceRep taskRep :  tasks.getTaskList()) {
+        for (TaskResourceRep taskRep : tasks.getTaskList()) {
             opId = taskRep.getOpId();
             Assert.assertNotNull(opId);
             providerLink = taskRep.getResource();
             Assert.assertNotNull(providerLink);
 
-            boolean success =  monitorDiscoveredObjectTask(StorageSystemRestRep.class,taskRep);
+            boolean success = monitorDiscoveredObjectTask(StorageSystemRestRep.class, taskRep);
             if (!success) {
                 Assert.assertTrue("Failed to discover system : " + providerLink.getId().toString(), false);
             }
@@ -3459,28 +3472,28 @@ public class ApiTest extends ApiTestBase {
     }
 
     private <T extends DiscoveredSystemObjectRestRep>
-    boolean monitorDiscoveredObjectTask( Class<T> clazz, TaskResourceRep taskRep )
-            throws InterruptedException {
+            boolean monitorDiscoveredObjectTask(Class<T> clazz, TaskResourceRep taskRep)
+                    throws InterruptedException {
         int checkCount = 60;
         boolean ready = false;
         boolean success = true;
 
-        for(; checkCount > 0; ) {
+        for (; checkCount > 0;) {
 
             TaskResourceRep curTask = rZAdmin.path(taskRep.getLink().getLinkRef().toString())
                     .get(TaskResourceRep.class);
             String status = curTask.getState();
-            if( status.equals("pending") )  {
+            if (status.equals("pending")) {
                 Thread.sleep(10000);
                 checkCount--;
             }
-            else if (status.equals("error")){
+            else if (status.equals("error")) {
                 // first check if the discovery already ran for this object
                 do {
-                    T resource =  rZAdmin.path(taskRep.getResource().getLink().getLinkRef().toString()).
+                    T resource = rZAdmin.path(taskRep.getResource().getLink().getLinkRef().toString()).
                             get(clazz);
                     String resourceStatus = resource.getDiscoveryJobStatus();
-                    if ( resourceStatus.equalsIgnoreCase("IN_PROGRESS") )  {
+                    if (resourceStatus.equalsIgnoreCase("IN_PROGRESS")) {
                         Thread.sleep(10000);
                         checkCount--;
                     }
@@ -3493,20 +3506,18 @@ public class ApiTest extends ApiTestBase {
                         success = false;
                         break;
                     }
-                }
-                while (  checkCount > 0 );
+                } while (checkCount > 0);
             }
             else {
                 ready = true;
             }
 
-            if ( ready ) {
+            if (ready) {
                 break;
             }
         }
         return success;
     }
-
 
     /**
      * Update the discovered Isilon storage ports to set the transport zone.
@@ -3519,15 +3530,17 @@ public class ApiTest extends ApiTestBase {
         StoragePortList portList = rZAdmin
                 .path(String.format("/vdc/storage-systems/%s/storage-ports",
                         isilonDevice.getId()).toString())
-                        .get(StoragePortList.class);
+                .get(StoragePortList.class);
         List<NamedRelatedResourceRep> portURIList = portList.getPorts();
 
         for (RelatedResourceRep portURI : portURIList) {
             updateStoragePortTZ(isilonDevice.getId(), portURI);
         }
     }
+
     /**
      * create a Isilon device.
+     * 
      * @return
      * @throws InterruptedException
      */
@@ -3555,13 +3568,12 @@ public class ApiTest extends ApiTestBase {
             TaskResourceRep taskResp = rZAdmin.path(String.format("/vdc/storage-systems/%s/tasks/%s", deviceLink.getId(), opId))
                     .get(TaskResourceRep.class);
             status = taskResp.getState();
-        }
-        while (status.equals("pending") && checkCount-- > 0);
+        } while (status.equals("pending") && checkCount-- > 0);
 
         if (!status.equals("ready")) {
             Assert.assertTrue("Failed to create isilon device: time out", false);
         }
-        StorageSystemRestRep dev1  = rZAdmin.path(String.format("/vdc/storage-systems/%s", deviceLink.getId()))
+        StorageSystemRestRep dev1 = rZAdmin.path(String.format("/vdc/storage-systems/%s", deviceLink.getId()))
                 .get(StorageSystemRestRep.class);
         Assert.assertNotNull(dev1);
         _log.info("Discover for device is complete : " + deviceLink.getId());
@@ -3589,7 +3601,7 @@ public class ApiTest extends ApiTestBase {
 
         ClientResponse resp = rZAdmin.path(
                 String.format("/vdc/storage-ports/%s", portRep.getId()).toString()).put(
-                        ClientResponse.class, updateParam);
+                ClientResponse.class, updateParam);
         Assert.assertEquals(200, resp.getStatus());
     }
 
@@ -3597,7 +3609,7 @@ public class ApiTest extends ApiTestBase {
             throws Exception {
         FileSystemParam fsparam = new FileSystemParam();
         fsparam.setVpool(_cosFile.getId());
-        fsparam.setLabel("test-fs-"+System.currentTimeMillis());
+        fsparam.setLabel("test-fs-" + System.currentTimeMillis());
         fsparam.setVarray(_nh);
         fsparam.setSize("10240000");
         if (good) {
@@ -3608,18 +3620,17 @@ public class ApiTest extends ApiTestBase {
             Assert.assertNotNull(resp.getResource());
 
             _fs = resp.getResource().getId();
-            String fsId= _fs.toString();
+            String fsId = _fs.toString();
             String opId = resp.getOpId();
             int checkCount = 1200;
             String status;
             do {
                 // wait upto ~2 minute for fs creation
                 Thread.sleep(100);
-                resp = user.path(String.format("/file/filesystems/%s/tasks/%s", fsId,opId))
+                resp = user.path(String.format("/file/filesystems/%s/tasks/%s", fsId, opId))
                         .get(TaskResourceRep.class);
                 status = resp.getState();
-            }
-            while (status.equals("pending") && checkCount-- > 0);
+            } while (status.equals("pending") && checkCount-- > 0);
             if (!status.equals("ready")) {
                 Assert.assertTrue("Fileshare create timed out", false);
             }
@@ -3643,7 +3654,7 @@ public class ApiTest extends ApiTestBase {
 
     private void checkSnapCreate(BalancedWebResource user, boolean good) {
         FileSystemSnapshotParam param = new FileSystemSnapshotParam();
-        param.setLabel("test-fs-snap-"+System.currentTimeMillis());
+        param.setLabel("test-fs-snap-" + System.currentTimeMillis());
         String snapCreateURL = String.format("/file/filesystems/%s/snapshots", _fs);
         if (good) {
             TaskResourceRep resp = user.path(snapCreateURL)
@@ -3683,7 +3694,7 @@ public class ApiTest extends ApiTestBase {
     private void checkVolumeCreate(BalancedWebResource user, boolean good, boolean dup) throws Exception {
         VolumeCreate param = new VolumeCreate();
         param.setVpool(_cosBlock.getId());
-        param.setName("test_volume_"+System.currentTimeMillis());
+        param.setName("test_volume_" + System.currentTimeMillis());
         param.setVarray(_nh);
         param.setSize("307200000");
         param.setProject(_testProject);
@@ -3708,8 +3719,7 @@ public class ApiTest extends ApiTestBase {
                 TaskResourceRep taskResp = user.path(String.format("/block/volumes/%s/tasks/%s", volumeId, opId))
                         .get(TaskResourceRep.class);
                 status = taskResp.getState();
-            }
-            while (status.equals("pending") && checkCount-- > 0);
+            } while (status.equals("pending") && checkCount-- > 0);
             if (!status.equals("ready")) {
                 Assert.assertTrue("Volume create timed out", false);
             }
@@ -3788,7 +3798,6 @@ public class ApiTest extends ApiTestBase {
         checkVolumeCreate(rUnAuth, false);
     }
 
-
     /**
      * Project resource tests
      */
@@ -3798,69 +3807,70 @@ public class ApiTest extends ApiTestBase {
         deviceSetup();
         // The storage pools and devices are not set yet to create files/volumes.
         // Still needs to be fixed.
-        //fileTests();
-        //blockTests();
+        // fileTests();
+        // blockTests();
     }
 
-    /* the secret key service is no longer at this address
-   commenting out for now
-    private void testSecretKeysTest() throws Exception {
-        BalancedWebResource keyUser = rSys;
-        String keyServicePath = "/secret-keys/stadmin@subtenant1.com";
-        // first clear old keys (if there are such keys
-
-        ClientResponse resp = keyUser.path(keyServicePath + "/all")
-                                                  .delete(ClientResponse.class);
-        Assert.assertEquals(200, resp.getStatus());
-
-        // Verify that the user "stadmin" does not have a key
-        resp = keyUser.path(keyServicePath)
-                                        .get(ClientResponse.class);
-        Assert.assertEquals(400, resp.getStatus());
-
-        //create the first key for the user stadmin
-        SecretKeyInfoRep keyInfo1 = keyUser.path(keyServicePath)
-                                                        .post(SecretKeyInfoRep.class);
-        Assert.assertFalse(keyInfo1._secreteKey.equals(""));
-        SecretKeyRestRep userKeys = keyUser.path(keyServicePath)
-                                                       .get(SecretKeyRestRep.class);
-        Assert.assertEquals(keyInfo1._secreteKey,userKeys._secreteKey1);
-        Assert.assertEquals(keyInfo1._secreteKeyTimestamp,userKeys._secreteKeyTimestamp1);
-        Assert.assertEquals(userKeys._secreteKey2,"");
-
-        //create additional key
-        SecretKeyInfoRep keyInfo2 = keyUser.path(keyServicePath)
-                                     .post(SecretKeyInfoRep.class);
-        Assert.assertFalse(keyInfo1._secreteKey.equals(""));
-        userKeys = keyUser.path(keyServicePath)
-                                              .get(SecretKeyRestRep.class);
-        Assert.assertEquals(keyInfo2._secreteKey,userKeys._secreteKey2);
-        Assert.assertEquals(keyInfo2._secreteKeyTimestamp,userKeys._secreteKeyTimestamp2);
-
-        // No more keys can be create for the user
-        resp = keyUser.path(keyServicePath)
-                                          .post(ClientResponse.class);
-        Assert.assertEquals(400, resp.getStatus());
-
-        // Delete the first key and check that only 1 left in the DB
-        SecretKeyService.KeyDeleteParam deleteParam = new SecretKeyService.KeyDeleteParam();
-        deleteParam.key_timestamp = keyInfo1._secreteKeyTimestamp;
-        resp = keyUser.path(keyServicePath)
-                                             .delete(ClientResponse.class,deleteParam);
-        Assert.assertEquals(200, resp.getStatus());
-
-        userKeys = keyUser.path(keyServicePath)
-                                          .get(SecretKeyRestRep.class);
-        Assert.assertEquals(userKeys._secreteKeyTimestamp1,keyInfo2._secreteKeyTimestamp);
-        Assert.assertEquals(userKeys._secreteKey2,"");
-
-        //delete all key again
-        resp = keyUser.path(keyServicePath + "/all")
-                .delete(ClientResponse.class);
-        Assert.assertEquals(200, resp.getStatus());
-    }
+    /*
+     * the secret key service is no longer at this address
+     * commenting out for now
+     * private void testSecretKeysTest() throws Exception {
+     * BalancedWebResource keyUser = rSys;
+     * String keyServicePath = "/secret-keys/stadmin@subtenant1.com";
+     * // first clear old keys (if there are such keys
+     * 
+     * ClientResponse resp = keyUser.path(keyServicePath + "/all")
+     * .delete(ClientResponse.class);
+     * Assert.assertEquals(200, resp.getStatus());
+     * 
+     * // Verify that the user "stadmin" does not have a key
+     * resp = keyUser.path(keyServicePath)
+     * .get(ClientResponse.class);
+     * Assert.assertEquals(400, resp.getStatus());
+     * 
+     * //create the first key for the user stadmin
+     * SecretKeyInfoRep keyInfo1 = keyUser.path(keyServicePath)
+     * .post(SecretKeyInfoRep.class);
+     * Assert.assertFalse(keyInfo1._secreteKey.equals(""));
+     * SecretKeyRestRep userKeys = keyUser.path(keyServicePath)
+     * .get(SecretKeyRestRep.class);
+     * Assert.assertEquals(keyInfo1._secreteKey,userKeys._secreteKey1);
+     * Assert.assertEquals(keyInfo1._secreteKeyTimestamp,userKeys._secreteKeyTimestamp1);
+     * Assert.assertEquals(userKeys._secreteKey2,"");
+     * 
+     * //create additional key
+     * SecretKeyInfoRep keyInfo2 = keyUser.path(keyServicePath)
+     * .post(SecretKeyInfoRep.class);
+     * Assert.assertFalse(keyInfo1._secreteKey.equals(""));
+     * userKeys = keyUser.path(keyServicePath)
+     * .get(SecretKeyRestRep.class);
+     * Assert.assertEquals(keyInfo2._secreteKey,userKeys._secreteKey2);
+     * Assert.assertEquals(keyInfo2._secreteKeyTimestamp,userKeys._secreteKeyTimestamp2);
+     * 
+     * // No more keys can be create for the user
+     * resp = keyUser.path(keyServicePath)
+     * .post(ClientResponse.class);
+     * Assert.assertEquals(400, resp.getStatus());
+     * 
+     * // Delete the first key and check that only 1 left in the DB
+     * SecretKeyService.KeyDeleteParam deleteParam = new SecretKeyService.KeyDeleteParam();
+     * deleteParam.key_timestamp = keyInfo1._secreteKeyTimestamp;
+     * resp = keyUser.path(keyServicePath)
+     * .delete(ClientResponse.class,deleteParam);
+     * Assert.assertEquals(200, resp.getStatus());
+     * 
+     * userKeys = keyUser.path(keyServicePath)
+     * .get(SecretKeyRestRep.class);
+     * Assert.assertEquals(userKeys._secreteKeyTimestamp1,keyInfo2._secreteKeyTimestamp);
+     * Assert.assertEquals(userKeys._secreteKey2,"");
+     * 
+     * //delete all key again
+     * resp = keyUser.path(keyServicePath + "/all")
+     * .delete(ClientResponse.class);
+     * Assert.assertEquals(200, resp.getStatus());
+     * }
      */
-    private void testOtherBadParameterErrors(){
+    private void testOtherBadParameterErrors() {
         ClientResponse resp = null;
 
         // Test bad parameter is returned if we attempt to create a StorageSystem of an unsupported type
@@ -3875,17 +3885,19 @@ public class ApiTest extends ApiTestBase {
         Assert.assertEquals(400, resp.getStatus());
     }
 
-    private void testOtherEntityNotFoundErrors(){
+    private void testOtherEntityNotFoundErrors() {
         ClientResponse resp = null;
 
         // Test entity not found is returned if we try to deactivate a snapshot that does not exist
-        String deactivateSnapshotUrl =  "/block/snapshots/%s/deactivate";
-        resp = rTAdmin.path(String.format(deactivateSnapshotUrl, "urn:storageos:Snapshot:815b507c-26eb-4124-bc96-9d0400a16596:")).post(ClientResponse.class);
+        String deactivateSnapshotUrl = "/block/snapshots/%s/deactivate";
+        resp = rTAdmin.path(String.format(deactivateSnapshotUrl, "urn:storageos:Snapshot:815b507c-26eb-4124-bc96-9d0400a16596:")).post(
+                ClientResponse.class);
         Assert.assertEquals(404, resp.getStatus());
 
         // Test entity not found is returned if we request the list of storage pools for a vpool that does not exist
-        String getStoragePoolsUrl =  "/block/vpools/%s/storage-pools";
-        resp = rZAdmin.path(String.format(getStoragePoolsUrl, "urn:storageos:VirtualPool:815b507c-26eb-4124-bc96-9d0400a16596:")).get(ClientResponse.class);
+        String getStoragePoolsUrl = "/block/vpools/%s/storage-pools";
+        resp = rZAdmin.path(String.format(getStoragePoolsUrl, "urn:storageos:VirtualPool:815b507c-26eb-4124-bc96-9d0400a16596:")).get(
+                ClientResponse.class);
         Assert.assertEquals(404, resp.getStatus());
     }
 
@@ -3903,7 +3915,7 @@ public class ApiTest extends ApiTestBase {
         addParam.setCertificateChain("apitestCertchain");
         addParam.setName("apitestName" + System.currentTimeMillis());
 
-        //TODO: enhance to track task progress
+        // TODO: enhance to track task progress
         // root should NOT do this.
         ClientResponse rsp = rSys.path("/vdc").post(ClientResponse.class, addParam);
         Assert.assertEquals(403, rsp.getStatus());
@@ -3930,30 +3942,30 @@ public class ApiTest extends ApiTestBase {
         Assert.assertNotNull("vdcList should not be null", vdcList);
         Assert.assertNotNull("vdcList.getVirtualDataCenters should not be null", vdcList.getVirtualDataCenters());
 
-        //        boolean found = false;
-        //        for (NamedRelatedResourceRep vdcResource : vdcList.getVirtualDataCenters()) {
-        //            if (vdcResource.getName().equals(addParam.getName())) {
-        //                found = true;
-        //            }
-        //        }
-        //        Assert.assertTrue("newly created vdc could not be found in vdc list", found);
+        // boolean found = false;
+        // for (NamedRelatedResourceRep vdcResource : vdcList.getVirtualDataCenters()) {
+        // if (vdcResource.getName().equals(addParam.getName())) {
+        // found = true;
+        // }
+        // }
+        // Assert.assertTrue("newly created vdc could not be found in vdc list", found);
 
         VirtualDataCenterRestRep vdc = rZAdminGr.path("/vdc/" + taskRep.getResource().getId()).get(VirtualDataCenterRestRep.class);
         Assert.assertNotNull("created vdc object can't be retrieved", vdc);
         Assert.assertTrue("vdc name does not match", vdc.getName().equals(addParam.getName()));
 
-        //TODO: enhance to track task progress        
+        // TODO: enhance to track task progress
 
         ClientResponse response = rZAdminGr.path("/vdc/" + vdc.getId() + "/disconnect").post(ClientResponse.class);
         Assert.assertEquals(405, response.getStatus());
 
-        //TODO: enhance to track task progress
+        // TODO: enhance to track task progress
         response = rZAdminGr.path("/vdc/" + vdc.getId() + "/reconnect").post(ClientResponse.class);
         Assert.assertEquals(405, response.getStatus());
 
-        //TODO: enhance to track task progress
+        // TODO: enhance to track task progress
         taskRep = rZAdminGr.path("/vdc/" + vdc.getId()).delete(TaskResourceRep.class);
-        Assert.assertNotNull("vdc delete task should not be null", taskRep);        
+        Assert.assertNotNull("vdc delete task should not be null", taskRep);
     }
 
     /**
@@ -3962,21 +3974,21 @@ public class ApiTest extends ApiTestBase {
     public void testVDCSecretKey() {
         VirtualDataCenterSecretKeyRestRep resp = rSys.path("/vdc/secret-key").get(VirtualDataCenterSecretKeyRestRep.class);
         Assert.assertNotNull(resp);
-        String encodedKey = resp.getSecretKey(); 
+        String encodedKey = resp.getSecretKey();
         SecretKey decodedKey = SignatureHelper.createKey(encodedKey, "HmacSHA256");
-        Assert.assertNotNull(decodedKey);  
+        Assert.assertNotNull(decodedKey);
         Assert.assertTrue(decodedKey.getAlgorithm().equals("HmacSHA256"));
         String data = "some data";
         String signature = SignatureHelper.sign2(data, decodedKey, decodedKey.getAlgorithm());
 
-        // do it again.  Make sure this is the same key.
+        // do it again. Make sure this is the same key.
         resp = rSys.path("/vdc/secret-key").get(VirtualDataCenterSecretKeyRestRep.class);
         Assert.assertNotNull(resp);
         String encodedKey2 = resp.getSecretKey();
         Assert.assertTrue(encodedKey.equals(encodedKey2));
         SecretKey decodedKey2 = SignatureHelper.createKey(encodedKey2, "HmacSHA256");
-        Assert.assertNotNull(encodedKey2);  
+        Assert.assertNotNull(encodedKey2);
         String signature2 = SignatureHelper.sign2(data, decodedKey2, decodedKey2.getAlgorithm());
-        Assert.assertTrue(signature.equals(signature2));      
+        Assert.assertTrue(signature.equals(signature2));
     }
- }
+}

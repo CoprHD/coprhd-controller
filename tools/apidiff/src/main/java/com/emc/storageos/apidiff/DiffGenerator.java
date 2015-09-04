@@ -31,15 +31,16 @@ import java.util.List;
  */
 public class DiffGenerator {
 
-    private DiffGenerator(){}
+    private DiffGenerator() {
+    }
 
     /**
      * Generate API differences list for all valid services, such as: apisvc, objcontrollersvc, syssvc and so on.
      *
      * @param oldFolder
-     *          The folder of old version api files
+     *            The folder of old version api files
      * @param newFolder
-     *          The folder of new version api files
+     *            The folder of new version api files
      * @return service diff list
      */
     public static List<ServiceCatalogDiff> generate(File oldFolder, File newFolder) {
@@ -62,7 +63,7 @@ public class DiffGenerator {
             }
             if (!found) {
                 System.err.println("Can't find original version of"
-                        + serviceName +"API, please check your file name");
+                        + serviceName + "API, please check your file name");
             }
         }
 
@@ -79,14 +80,15 @@ public class DiffGenerator {
 
     /**
      * loads and generates all ServiceCatalogs according to xml files under folder
+     * 
      * @param folder
-     *          The folder which includes API xml files
+     *            The folder which includes API xml files
      * @return the list of ServiceCatalog
      */
     private static List<ServiceCatalog> generateRestServiceList(File folder) {
         List<ServiceCatalog> apiList = new ArrayList<ServiceCatalog>();
         Collection<File> files = FileUtils.listFiles(folder,
-                new String[]{Constants.XML_FILE_SUFFIX}, false);
+                new String[] { Constants.XML_FILE_SUFFIX }, false);
         for (File file : files) {
             System.out.println("Loading: " + file.getAbsolutePath());
             apiList.add(ServiceCatalogBuilder.build(file));

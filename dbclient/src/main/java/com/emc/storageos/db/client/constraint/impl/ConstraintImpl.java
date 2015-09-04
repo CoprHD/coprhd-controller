@@ -47,7 +47,7 @@ public abstract class ConstraintImpl implements Constraint {
     protected int pageCount = DEFAULT_PAGE_SIZE;
     protected boolean returnOnePage;
 
-    public ConstraintImpl(Object ... arguments) {
+    public ConstraintImpl(Object... arguments) {
         ColumnField field = null;
         int cfPosition = 0;
         int i = 0;
@@ -56,7 +56,7 @@ public abstract class ConstraintImpl implements Constraint {
         for (Object argument : arguments) {
             i++;
             if (argument instanceof ColumnField) {
-                field = (ColumnField)argument;
+                field = (ColumnField) argument;
                 cfPosition = i;
                 continue;
             }
@@ -64,13 +64,12 @@ public abstract class ConstraintImpl implements Constraint {
             args.add(argument);
         }
 
-        //TODO: remove this once TimeConstraintImpl has been reworked to work over geo-queries
+        // TODO: remove this once TimeConstraintImpl has been reworked to work over geo-queries
         if (this instanceof TimeConstraintImpl)
             return;
 
         if (field == null)
             throw new IllegalArgumentException("ColumnField should be in the constructor arguments");
-
 
         String dataObjClassName = field.getDataObjectType().getName();
         String fieldName = field.getName();
@@ -107,7 +106,7 @@ public abstract class ConstraintImpl implements Constraint {
                 queryOnePage(result);
                 return;
             }
-        }catch(ConnectionException e) {
+        } catch (ConnectionException e) {
             log.info("Query failed e=", e);
             throw DatabaseException.retryables.connectionFailed(e);
         }
@@ -116,10 +115,11 @@ public abstract class ConstraintImpl implements Constraint {
     }
 
     protected abstract <T> void queryOnePage(final QueryResult<T> result) throws ConnectionException;
+
     protected abstract RowQuery<String, IndexColumnName> genQuery();
 
     protected <T> void queryWithAutoPaginate(RowQuery<String, IndexColumnName> query, final QueryResult<T> result,
-                                             final ConstraintImpl constraint) {
+            final ConstraintImpl constraint) {
         query.autoPaginate(true);
         QueryHitIterator<T> it = new QueryHitIterator<T>(query) {
             @Override
@@ -132,16 +132,17 @@ public abstract class ConstraintImpl implements Constraint {
     }
 
     protected abstract URI getURI(Column<IndexColumnName> col);
+
     protected abstract <T> T createQueryHit(final QueryResult<T> result, Column<IndexColumnName> col);
 
     protected <T> void queryOnePageWithoutAutoPaginate(RowQuery<String, IndexColumnName> query, String prefix, final QueryResult<T> result)
-        throws ConnectionException {
+            throws ConnectionException {
 
         CompositeRangeBuilder builder = IndexColumnNameSerializer.get().buildRange()
-                                           .greaterThanEquals(prefix)
-                                           .lessThanEquals(prefix)
-                                           .reverse() // last column comes only
-                                           .limit(1);
+                .greaterThanEquals(prefix)
+                .lessThanEquals(prefix)
+                .reverse() // last column comes only
+                .limit(1);
 
         query.withColumnRange(builder);
 
@@ -150,30 +151,29 @@ public abstract class ConstraintImpl implements Constraint {
         List<T> ids = new ArrayList();
         if (columns.size() == 0) {
             result.setResult(ids.iterator());
-            return ; // not found
+            return; // not found
         }
 
         Column<IndexColumnName> lastColumn = columns.getColumnByIndex(0);
 
         String endId = lastColumn.getName().getTwo();
 
-
         builder = IndexColumnNameSerializer.get().buildRange();
 
         if (startId == null) {
-            //query first page
+            // query first page
             builder.greaterThanEquals(prefix)
-                   .lessThanEquals(prefix)
-                   .limit(pageCount);
+                    .lessThanEquals(prefix)
+                    .limit(pageCount);
 
-        }else {
+        } else {
             builder.withPrefix(prefix)
-                   .greaterThan(startId)
-                   .lessThanEquals(endId)
-                   .limit(pageCount);
+                    .greaterThan(startId)
+                    .lessThanEquals(endId)
+                    .limit(pageCount);
         }
 
-        query =query.withColumnRange(builder);
+        query = query.withColumnRange(builder);
 
         columns = query.execute().getResult();
 
@@ -189,9 +189,9 @@ public abstract class ConstraintImpl implements Constraint {
     protected <T> void queryOnePageWithAutoPaginate(RowQuery<String, IndexColumnName> query, String prefix, final QueryResult<T> result)
             throws ConnectionException {
         CompositeRangeBuilder range = IndexColumnNameSerializer.get().buildRange()
-                        .greaterThanEquals(prefix)
-                        .lessThanEquals(prefix)
-                        .limit(pageCount);
+                .greaterThanEquals(prefix)
+                .lessThanEquals(prefix)
+                .limit(pageCount);
         query.withColumnRange(range);
 
         queryOnePageWithAutoPaginate(query, result);
@@ -200,7 +200,7 @@ public abstract class ConstraintImpl implements Constraint {
     protected <T> void queryOnePageWithAutoPaginate(RowQuery<String, IndexColumnName> query, final QueryResult<T> result)
             throws ConnectionException {
         boolean start = false;
-        List<T> ids =  new ArrayList();
+        List<T> ids = new ArrayList();
         int count = 0;
 
         query.autoPaginate(true);

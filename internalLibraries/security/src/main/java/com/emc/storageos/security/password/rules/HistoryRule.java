@@ -35,7 +35,6 @@ public class HistoryRule implements Rule {
         this.passwordUtils = passwordUtils;
     }
 
-
     /**
      * validate the new password is not in history.
      *
@@ -59,7 +58,7 @@ public class HistoryRule implements Rule {
             return;
         }
 
-        for (int i=0; i<previousPasswords.size(); i++) {
+        for (int i = 0; i < previousPasswords.size(); i++) {
             if (passwordUtils.match(text, previousPasswords.get(i))) {
                 _log.info(MessageFormat.format("fail, match previous password #{0}", i));
                 throw BadRequestException.badRequests.passwordInvalidHistory(historySize);

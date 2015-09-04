@@ -29,8 +29,8 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- *  Class provides method for checking dependencies
- *  used by GC and apisvc decommission api
+ * Class provides method for checking dependencies
+ * used by GC and apisvc decommission api
  */
 public class DependencyChecker {
     private static final Logger _log = LoggerFactory.getLogger(DependencyChecker.class);
@@ -39,6 +39,7 @@ public class DependencyChecker {
 
     /**
      * Constructor takes db client and DependencyTracker
+     * 
      * @param dbClient
      * @param dependencyTracker
      */
@@ -49,6 +50,7 @@ public class DependencyChecker {
 
     /**
      * Constructor takes db client and DataObjectScanner
+     * 
      * @param dbClient
      * @param dataObjectScanner
      */
@@ -60,25 +62,28 @@ public class DependencyChecker {
     /**
      * checks to see if any references exist for this uri
      * uses dependency list created from relational indices
+     * 
      * @param uri id of the DataObject
      * @param type DataObject class name
      * @param onlyActive if true, checks for active references only (expensive)
      * @return null if no references exist on this uri, return the type of the dependency if exist
      */
     public String checkDependencies(URI uri, Class<? extends DataObject> type, boolean onlyActive) {
-        return checkDependencies(uri,type, onlyActive, null);
+        return checkDependencies(uri, type, onlyActive, null);
     }
-    
+
     /**
      * checks to see if any references exist for this uri
      * uses dependency list created from relational indices
+     * 
      * @param uri id of the DataObject
      * @param type DataObject class name
      * @param onlyActive if true, checks for active references only (expensive)
      * @param excludeTypes optional list of classes that can be excluded as dependency
      * @return null if no references exist on this uri, return the type of the dependency if exist
      */
-    public String checkDependencies(URI uri, Class<? extends DataObject> type, boolean onlyActive, List<Class<? extends DataObject>> excludeTypes) {
+    public String checkDependencies(URI uri, Class<? extends DataObject> type, boolean onlyActive,
+            List<Class<? extends DataObject>> excludeTypes) {
         List<DependencyTracker.Dependency> dependencies = _dependencyTracker.getDependencies(type);
         // no dependencies - nothing to do
         if (dependencies.isEmpty()) {
@@ -86,9 +91,10 @@ public class DependencyChecker {
         }
 
         for (DependencyTracker.Dependency dependency : dependencies) {
-            if(excludeTypes != null){
-                if (excludeTypes.contains(dependency.getType())) continue;
-            } 
+            if (excludeTypes != null) {
+                if (excludeTypes.contains(dependency.getType()))
+                    continue;
+            }
             // Query relational index to see if any dependents exist
             ContainmentConstraint constraint =
                     new ContainmentConstraintImpl(uri, dependency.getType(), dependency.getColumnField());
@@ -97,7 +103,7 @@ public class DependencyChecker {
             if (list.iterator().hasNext()) {
                 if (!onlyActive || checkIfAnyActive(list, dependency.getType())) {
                     _log.info("{}: active references of type {} found",
-                                uri.toString(), dependency.getType().getSimpleName());
+                            uri.toString(), dependency.getType().getSimpleName());
                     return dependency.getType().getSimpleName();
                 }
             }
@@ -107,9 +113,10 @@ public class DependencyChecker {
 
     /**
      * Checks if any of the uris from the list are active
+     * 
      * @param uris
      * @param type
-     * @return  true if active uri found, false otherwise
+     * @return true if active uri found, false otherwise
      */
     public boolean checkIfAnyActive(URIQueryResultList uris, Class<? extends DataObject> type) {
         Iterator<URI> uriIterator = uris.iterator();
@@ -121,7 +128,7 @@ public class DependencyChecker {
                 added++;
             }
             List<? extends DataObject> results = _dbClient.queryObjectField(type, "inactive", urisToQuery);
-            for (DataObject obj: results) {
+            for (DataObject obj : results) {
                 found++;
                 if (!obj.getInactive()) {
                     return true;

@@ -52,9 +52,9 @@ import com.emc.storageos.db.common.DbConfigConstants;
  * Unit test for geodbsvc startup flow.
  */
 public class GeoDbSvcStartupTest {
-    
+
     private static String GEODBSVC_CONFIG = "geodbtestgeoalone-conf.xml";
-    
+
     private static final Logger log = LoggerFactory
             .getLogger(DbClientGeoTest.class);
     private static String HOST = "127.0.0.1"; // host name defined in
@@ -64,7 +64,7 @@ public class GeoDbSvcStartupTest {
                                         // geodbtest-conf.yaml
 
     static DbSvcRunner runner;
-    
+
     static DbClientImpl dbClient;
 
     @BeforeClass
@@ -137,7 +137,7 @@ public class GeoDbSvcStartupTest {
             transport.close();
         }
     }
-    
+
     @Test
     public void testRootTenantExists() throws Exception {
         URIQueryResultList tenants = new URIQueryResultList();
@@ -145,20 +145,21 @@ public class GeoDbSvcStartupTest {
         int retryCount = 0;
         do {
             getDbClient().queryByConstraint(
-                ContainmentConstraint.Factory.getTenantOrgSubTenantConstraint(URI.create(TenantOrg.NO_PARENT)),
-                tenants);
+                    ContainmentConstraint.Factory.getTenantOrgSubTenantConstraint(URI.create(TenantOrg.NO_PARENT)),
+                    tenants);
             isRootTenantExists = tenants.iterator().hasNext();
             if (!isRootTenantExists) {
                 try {
                     Thread.sleep(2000);
-                } catch (InterruptedException ex) {}
+                } catch (InterruptedException ex) {
+                }
 
             }
         } while (!isRootTenantExists && retryCount < 30);
 
         Assert.assertTrue(isRootTenantExists);
     }
-    
+
     protected static DbClient getDbClient() throws URISyntaxException, IOException {
         if (dbClient == null) {
             dbClient = new DbClientImpl();

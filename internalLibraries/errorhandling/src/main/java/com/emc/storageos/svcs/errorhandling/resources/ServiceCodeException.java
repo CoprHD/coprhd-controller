@@ -40,21 +40,28 @@ public class ServiceCodeException extends RuntimeException implements StatusCode
     /**
      * <b>ServiceCodeException Constructor</b><br>
      *
-     * <p>Creates a ServiceCodeException with a detailed message based on the given pattern and parameters.</p>
+     * <p>
+     * Creates a ServiceCodeException with a detailed message based on the given pattern and parameters.
+     * </p>
      *
-     * <p>This is equivalent to :<br>
+     * <p>
+     * This is equivalent to :<br>
      * <code>
      * new ServiceCodeException(code, null, pattern, parameters)
-     * </code><p>
+     * </code>
+     * <p>
      *
-     * <p><b>Example:</b><br>
+     * <p>
+     * <b>Example:</b><br>
      * <code>
      * new ServiceCodeException(ServiceCode.IO_ERROR, "Could not find a Storage pool for Protection VirtualArray: {0}", new Object[]{varray.getLabel()})
-     * </code></p>
+     * </code>
+     * </p>
      *
      * @param code ServiceCode representing the internal server error causing this exception
      * @param pattern Pattern for the detailed message of this exception
-     * @param parameters List of parameters that will be injected in the given pattern. (A null value is permitted, and indicates that no parameters need to be injected.)
+     * @param parameters List of parameters that will be injected in the given pattern. (A null value is permitted, and indicates that no
+     *            parameters need to be injected.)
      */
     @Deprecated
     public ServiceCodeException(final ServiceCode code, final String pattern, final Object[] parameters) {
@@ -64,19 +71,25 @@ public class ServiceCodeException extends RuntimeException implements StatusCode
     /**
      * <b>ServiceCodeException Constructor</b><br>
      *
-     * <p>Creates a ServiceCodeException with the given cause and a detailed message based on the given pattern and parameters.
-     * Use this constructor if there is a clear causing exception.</p>
+     * <p>
+     * Creates a ServiceCodeException with the given cause and a detailed message based on the given pattern and parameters. Use this
+     * constructor if there is a clear causing exception.
+     * </p>
      *
      *
-     * <p><b>Example:</b><br>
+     * <p>
+     * <b>Example:</b><br>
      * <code>
      * throw new ServiceCodeException(CONTROLLER_ERROR, e, "Caused by: {0}", new Object[] { e.getMessage() });
-     * </code></p>
+     * </code>
+     * </p>
      *
      * @param code ServiceCode representing the internal server error causing this exception
-     * @param cause the cause (which is saved for later retrieval by the getCause() method). (A null value is permitted, and indicates that the cause is nonexistent or unknown.)
+     * @param cause the cause (which is saved for later retrieval by the getCause() method). (A null value is permitted, and indicates that
+     *            the cause is nonexistent or unknown.)
      * @param pattern Pattern for the detailed message of this exception
-     * @param parameters List of parameters that will be injected in the given pattern. (A null value is permitted, and indicates that no parameters need to be injected.)
+     * @param parameters List of parameters that will be injected in the given pattern. (A null value is permitted, and indicates that no
+     *            parameters need to be injected.)
      */
     @Deprecated
     public ServiceCodeException(final ServiceCode code, final Throwable cause, final String pattern, final Object[] parameters) {

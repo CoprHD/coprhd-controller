@@ -96,8 +96,8 @@ public class StoragePoolProcessor extends PoolProcessor {
             _dbClient = (DbClient) keyMap.get(Constants.dbClient);
             _cimClient = (WBEMClient) keyMap.get(Constants._cimClient);
             _coordinator = (CoordinatorClient) keyMap.get(Constants.COORDINATOR_CLIENT);
-            _eventManager= (RecordableEventManager) keyMap.get(Constants.EVENT_MANAGER);
-            _logger.info("StoragePoolProcessor --- event manager: " +_eventManager);
+            _eventManager = (RecordableEventManager) keyMap.get(Constants.EVENT_MANAGER);
+            _logger.info("StoragePoolProcessor --- event manager: " + _eventManager);
             StorageSystem device = getStorageSystem(_dbClient, profile.getSystemId());
             if (SupportedProvisioningTypes.NONE.toString().equalsIgnoreCase(
                     device.getSupportedProvisioningType())) {
@@ -111,9 +111,9 @@ public class StoragePoolProcessor extends PoolProcessor {
                 CIMInstance poolInstance = null;
                 try {
                     poolInstance = it.next();
-                    
+
                     // Supporting both thick and thin pools
-                     String[] poolClassNameAndSupportedVolumeTypes = determinePoolClassNameAndSupportedVolumeTypes(poolInstance,device);
+                    String[] poolClassNameAndSupportedVolumeTypes = determinePoolClassNameAndSupportedVolumeTypes(poolInstance, device);
                     if (null != poolClassNameAndSupportedVolumeTypes) {
                         String instanceID = getCIMPropertyValue(poolInstance,
                                 Constants.INSTANCEID);
@@ -122,14 +122,14 @@ public class StoragePoolProcessor extends PoolProcessor {
                         StoragePool pool = checkStoragePoolExistsInDB(
                                 getNativeIDFromInstance(instanceID), _dbClient, device);
                         createStoragePool(pool, poolInstance, profile, poolClassNameAndSupportedVolumeTypes[0],
-                                          poolClassNameAndSupportedVolumeTypes[1], protocols, poolsToMatchWithVpool, device);
-                       
-                        if(DiscoveredDataObject.Type.vnxblock.toString().equalsIgnoreCase(device.getSystemType())) {
+                                poolClassNameAndSupportedVolumeTypes[1], protocols, poolsToMatchWithVpool, device);
+
+                        if (DiscoveredDataObject.Type.vnxblock.toString().equalsIgnoreCase(device.getSystemType())) {
                             addPath(keyMap, Constants.VNXPOOLS,
                                     poolInstance.getObjectPath());
                         }
-                        
-                        if(DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(device.getSystemType())) {
+
+                        if (DiscoveredDataObject.Type.vmax.toString().equalsIgnoreCase(device.getSystemType())) {
                             addPath(keyMap, Constants.VMAXPOOLS,
                                     poolInstance.getObjectPath());
                             if (!device.checkIfVmax3()) {
@@ -147,24 +147,23 @@ public class StoragePoolProcessor extends PoolProcessor {
                         if (!poolClassNameAndSupportedVolumeTypes[0].contains(DEVICE_STORAGE_POOL))
                             addPath(keyMap, Constants.THINPOOLS,
                                     poolInstance.getObjectPath());
-                            
+
                         addPath(keyMap, Constants.DEVICEANDTHINPOOLS,
-                                    poolInstance.getObjectPath());
+                                poolInstance.getObjectPath());
                     } else {
                         _logger.debug("Skipping Pools other than Unified & Virtual & Device : {}",
                                 poolInstance.getObjectPath().toString());
                     }
                 } catch (Exception e) {
                     _logger.warn("StoragePool Discovery failed for {}",
-                            getCIMPropertyValue(poolInstance, Constants.INSTANCEID),e);
+                            getCIMPropertyValue(poolInstance, Constants.INSTANCEID), e);
                 }
             }
-            
-            
+
             _dbClient.createObject(_newPoolList);
             _dbClient.updateAndReindexObject(_updatePoolList);
-            
-            //find the pools not visible in this discovery
+
+            // find the pools not visible in this discovery
             List<StoragePool> discoveredPools = new ArrayList<StoragePool>(_newPoolList);
             discoveredPools.addAll(_updatePoolList);
             List<StoragePool> notVisiblePools = DiscoveryUtils.checkStoragePoolsNotVisible(discoveredPools, _dbClient, device.getId());
@@ -184,8 +183,6 @@ public class StoragePoolProcessor extends PoolProcessor {
         }
     }
 
-   
-
     /**
      * Include only Unified,Virtual [Thin] and Device Storage Pools (Thick Pool)
      *
@@ -196,23 +193,25 @@ public class StoragePoolProcessor extends PoolProcessor {
 
         if (StoragePool.PoolClassNames.Clar_DeviceStoragePool.toString().
                 equalsIgnoreCase(poolInstance.getClassName())) {
-            return new String [] {StoragePool.PoolClassNames.Clar_DeviceStoragePool.toString(),
-                    StoragePool.SupportedResourceTypes.THICK_ONLY.toString()};
+            return new String[] { StoragePool.PoolClassNames.Clar_DeviceStoragePool.toString(),
+                    StoragePool.SupportedResourceTypes.THICK_ONLY.toString() };
         } else if (StoragePool.PoolClassNames.Clar_UnifiedStoragePool.toString().
                 equalsIgnoreCase(poolInstance.getClassName())) {
-            return new String [] {StoragePool.PoolClassNames.Clar_UnifiedStoragePool.toString(),
-                    StoragePool.SupportedResourceTypes.THIN_AND_THICK.toString()};
+            return new String[] { StoragePool.PoolClassNames.Clar_UnifiedStoragePool.toString(),
+                    StoragePool.SupportedResourceTypes.THIN_AND_THICK.toString() };
         }
 
         if (!system.checkIfVmax3()) {
             if (StoragePool.PoolClassNames.Symm_DeviceStoragePool.toString().
-                    equalsIgnoreCase(poolInstance.getClassName()) && !SupportedProvisioningTypes.THIN.toString().equalsIgnoreCase(system.getSupportedProvisioningType())) {
-                return new String [] {StoragePool.PoolClassNames.Symm_DeviceStoragePool.toString(),
-                        StoragePool.SupportedResourceTypes.THICK_ONLY.toString()};
+                    equalsIgnoreCase(poolInstance.getClassName())
+                    && !SupportedProvisioningTypes.THIN.toString().equalsIgnoreCase(system.getSupportedProvisioningType())) {
+                return new String[] { StoragePool.PoolClassNames.Symm_DeviceStoragePool.toString(),
+                        StoragePool.SupportedResourceTypes.THICK_ONLY.toString() };
             } else if (StoragePool.PoolClassNames.Symm_VirtualProvisioningPool.toString().
-                    equalsIgnoreCase(poolInstance.getClassName()) && !SupportedProvisioningTypes.THICK.toString().equalsIgnoreCase(system.getSupportedProvisioningType())) {
-                return new String [] {StoragePool.PoolClassNames.Symm_VirtualProvisioningPool.toString(),
-                        StoragePool.SupportedResourceTypes.THIN_ONLY.toString()};
+                    equalsIgnoreCase(poolInstance.getClassName())
+                    && !SupportedProvisioningTypes.THICK.toString().equalsIgnoreCase(system.getSupportedProvisioningType())) {
+                return new String[] { StoragePool.PoolClassNames.Symm_VirtualProvisioningPool.toString(),
+                        StoragePool.SupportedResourceTypes.THIN_ONLY.toString() };
             }
         } else {
             // VMAX3 has StorageResourcePools (SRP). These are composed of ThinPools, which we can
@@ -220,8 +219,8 @@ public class StoragePoolProcessor extends PoolProcessor {
             // and skip over other pool discoveries.
             if (StoragePool.PoolClassNames.Symm_SRPStoragePool.toString().
                     equalsIgnoreCase(poolInstance.getClassName())) {
-                return new String[] {StoragePool.PoolClassNames.Symm_SRPStoragePool.toString(),
-                        StoragePool.SupportedResourceTypes.THIN_ONLY.toString()};
+                return new String[] { StoragePool.PoolClassNames.Symm_SRPStoragePool.toString(),
+                        StoragePool.SupportedResourceTypes.THIN_ONLY.toString() };
             }
         }
         return null;
@@ -256,10 +255,10 @@ public class StoragePoolProcessor extends PoolProcessor {
             pool.setNativeId(nativeIdFromInstance);
             pool.setStorageDevice(profile.getSystemId());
             pool.setPoolServiceType(PoolServiceType.block.toString());
-            String poolNativeGuid = NativeGUIDGenerator.generateNativeGuid(_dbClient, pool); 
+            String poolNativeGuid = NativeGUIDGenerator.generateNativeGuid(_dbClient, pool);
             pool.setNativeGuid(poolNativeGuid);
             pool.setLabel(poolNativeGuid);
-            //setting default values on Pool Creation for VMAX and VNX
+            // setting default values on Pool Creation for VMAX and VNX
             pool.setMaximumThickVolumeSize(0L);
             pool.setMinimumThickVolumeSize(0L);
             pool.setMaximumThinVolumeSize(0L);
@@ -270,14 +269,14 @@ public class StoragePoolProcessor extends PoolProcessor {
                 pool.setAutoTieringEnabled(Boolean.FALSE);
             }
             _logger.info(String.format("Maximum default limits for volume capacity in storage pool %s / %s : \n   " +
-                            "max thin volume capacity: %s, max thick volume capacity: %s ",
+                    "max thin volume capacity: %s, max thick volume capacity: %s ",
                     pool.getPoolName(), pool.getId(), pool.getMaximumThinVolumeSize(), pool.getMaximumThickVolumeSize()));
 
             // set default utilization/subscription limits
             double poolSubscriptionPercent = CapacityMatcher.getMaxPoolSubscriptionPercentage(pool, _coordinator);
             double poolUtilizationPercent = CapacityMatcher.getMaxPoolUtilizationPercentage(pool, _coordinator);
-            pool.setMaxThinPoolSubscriptionPercentage((int)poolSubscriptionPercent);
-            pool.setMaxPoolUtilizationPercentage((int)poolUtilizationPercent);
+            pool.setMaxThinPoolSubscriptionPercentage((int) poolSubscriptionPercent);
+            pool.setMaxPoolUtilizationPercentage((int) poolUtilizationPercent);
 
         }
 
@@ -288,7 +287,7 @@ public class StoragePoolProcessor extends PoolProcessor {
         Integer newMaxSubscriptionPercentFromArray = maxSubscriptionPercent == null ? null : new Integer(maxSubscriptionPercent);
         _logger.info(String.format("New maximum subscription percent of storage pool %s from array : %s ", pool.getPoolName(),
                 newMaxSubscriptionPercentFromArray));
-        processMaxSubscriptionPercent(newMaxSubscriptionPercentFromArray, pool,_dbClient, _eventManager);
+        processMaxSubscriptionPercent(newMaxSubscriptionPercentFromArray, pool, _dbClient, _eventManager);
 
         String subscribedCapacity = getCIMPropertyValue(poolInstance, SmisConstants.CP_SUBSCRIBEDCAPACITY);
         if (null != subscribedCapacity) {
@@ -299,33 +298,38 @@ public class StoragePoolProcessor extends PoolProcessor {
         pool.setPoolClassName(poolClassName);
         pool.setSupportedResourceTypes(supportedVolumeTypes);
         String operationalStatus = determineOperationalStatus(poolInstance);
-        if (!newPool && (ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getOperationalStatus(), operationalStatus) ||
-                ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getProtocols(), protocols) ||
-                ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getCompatibilityStatus(), DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()) ||
-                ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getDiscoveryStatus(), DiscoveredDataObject.DiscoveryStatus.VISIBLE.name()))) {
+        if (!newPool
+                && (ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getOperationalStatus(), operationalStatus)
+                        ||
+                        ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getProtocols(), protocols)
+                        ||
+                        ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getCompatibilityStatus(),
+                                DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name()) ||
+                ImplicitPoolMatcher.checkPoolPropertiesChanged(pool.getDiscoveryStatus(),
+                        DiscoveredDataObject.DiscoveryStatus.VISIBLE.name()))) {
             modifiedPool = true;
         }
         pool.addProtocols(protocols);
-        pool.setOperationalStatus(operationalStatus);        
+        pool.setOperationalStatus(operationalStatus);
         pool.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
         pool.setDiscoveryStatus(DiscoveredDataObject.DiscoveryStatus.VISIBLE.name());
-        
+
         Set<String> diskDrives = new HashSet<String>();
         String driveTypes = getCIMPropertyValue(poolInstance, EMC_DRIVE_TYPE);
         if (null != driveTypes) {
             String driveTypesArr[] = driveTypes.split(SPACE_STR_DELIM);
-            if(device.checkIfVmax3() && driveTypesArr.length == 1 && driveTypesArr[0].equals(MIXED_DRIVE_TYPE)){
-            	driveTypesArr = getVMAX3PoolDriveTypes(device, poolInstance);
+            if (device.checkIfVmax3() && driveTypesArr.length == 1 && driveTypesArr[0].equals(MIXED_DRIVE_TYPE)) {
+                driveTypesArr = getVMAX3PoolDriveTypes(device, poolInstance);
             }
             for (String driveType : driveTypesArr) {
-            	String driveDisplayName =  SupportedDriveTypeValues.getDiskDriveDisplayName(driveType);
-            	if (null == driveDisplayName) {
-            		 _logger.warn(
-                             "UnSupported DiskDrive Type : {} resulting in drives not getting discovered for this pool: {}",
-                             driveType, getCIMPropertyValue(poolInstance, Constants.INSTANCEID));
-                     continue;
-            	}
-              
+                String driveDisplayName = SupportedDriveTypeValues.getDiskDriveDisplayName(driveType);
+                if (null == driveDisplayName) {
+                    _logger.warn(
+                            "UnSupported DiskDrive Type : {} resulting in drives not getting discovered for this pool: {}",
+                            driveType, getCIMPropertyValue(poolInstance, Constants.INSTANCEID));
+                    continue;
+                }
+
                 diskDrives.add(driveDisplayName);
             }
             if (!newPool && !modifiedPool &&
@@ -335,13 +339,13 @@ public class StoragePoolProcessor extends PoolProcessor {
             pool.addDriveTypes(diskDrives);
         }
         _logger.info("Discovered disk drives:[{}] for pool id:{}", driveTypes, pool.getId());
-        
+
         if (newPool) {
             _newPoolList.add(pool);
             // add new pools to modified pools list to consider them for implicit pool matching.
             if (!poolsToMatchWithVpool.containsKey(pool.getId())) {
                 poolsToMatchWithVpool.put(pool.getId(), pool);
-           }
+            }
         }
         else {
             _updatePoolList.add(pool);
@@ -355,7 +359,7 @@ public class StoragePoolProcessor extends PoolProcessor {
     }
 
     static public void processMaxSubscriptionPercent(Integer newMaxSubscriptionPercentFromArray, StoragePool pool, DbClient dbClient,
-                                                     RecordableEventManager eventManager) {
+            RecordableEventManager eventManager) {
 
         // get limits in vipr
         int poolSubscriptionPercent = pool.getMaxThinPoolSubscriptionPercentage() == null ? 0 : pool.getMaxThinPoolSubscriptionPercentage();
@@ -386,17 +390,17 @@ public class StoragePoolProcessor extends PoolProcessor {
             if (newMaxSubscriptionPercentFromArray < poolUtilizationPercent) {
                 // reset vipr utilization limit and send alert
                 pool.setMaxPoolUtilizationPercentage(newMaxSubscriptionPercentFromArray);
-                recordBourneStoragePoolEvent( RecordableEventManager.EventType.StoragePoolUpdated,
+                recordBourneStoragePoolEvent(RecordableEventManager.EventType.StoragePoolUpdated,
                         pool, "Discovered pool max subscription percent is below current pool utilization limit. The limit will be reset.",
                         RecordType.Alert, dbClient, eventManager);
             }
         } else if (currentMaxSubscriptionPercentFromArray != null &&
                 currentMaxSubscriptionPercentFromArray == poolSubscriptionPercent &&
                 (newMaxSubscriptionPercentFromArray == null ||
-                currentMaxSubscriptionPercentFromArray < newMaxSubscriptionPercentFromArray ) ) {
+                currentMaxSubscriptionPercentFromArray < newMaxSubscriptionPercentFromArray)) {
             // In this case array limit went up from previous value and vipr max pool subscription percent is using old array value ---
             // send event that array value was increased so client may increase vipr limits if needed.
-            recordBourneStoragePoolEvent( RecordableEventManager.EventType.StoragePoolUpdated,
+            recordBourneStoragePoolEvent(RecordableEventManager.EventType.StoragePoolUpdated,
                     pool, "Discovered pool max subscription percent is above current pool subscription limit",
                     RecordType.Event, dbClient, eventManager);
         }
@@ -432,7 +436,7 @@ public class StoragePoolProcessor extends PoolProcessor {
         }
         return operationalStatus;
     }
-    
+
     @Override
     protected void setPrerequisiteObjects(List<Object> inputArgs)
             throws BaseCollectionException {
@@ -447,9 +451,9 @@ public class StoragePoolProcessor extends PoolProcessor {
      * @param description
      * @param eventType
      */
-    private static void recordBourneStoragePoolEvent( RecordableEventManager.EventType storagePoolEventType,
-                                 StoragePool pool, String description,
-                                 RecordType eventType, DbClient dbClient, RecordableEventManager eventManager) {
+    private static void recordBourneStoragePoolEvent(RecordableEventManager.EventType storagePoolEventType,
+            StoragePool pool, String description,
+            RecordType eventType, DbClient dbClient, RecordableEventManager eventManager) {
 
         RecordableBourneEvent event = ControllerUtils.convertToRecordableBourneEvent(pool, storagePoolEventType.toString(),
                 description, "", dbClient, ControllerUtils.BLOCK_EVENT_SERVICE, eventType.toString(),
@@ -465,37 +469,41 @@ public class StoragePoolProcessor extends PoolProcessor {
 
     }
 
-    private String[] getVMAX3PoolDriveTypes(StorageSystem storageDevice, CIMInstance poolInstance){
-    	Set<String> driveTypes = new HashSet<String>();
-    	CloseableIterator<CIMInstance> virtualProvisioningPoolItr = null;
+    private String[] getVMAX3PoolDriveTypes(StorageSystem storageDevice, CIMInstance poolInstance) {
+        Set<String> driveTypes = new HashSet<String>();
+        CloseableIterator<CIMInstance> virtualProvisioningPoolItr = null;
 
-    	_logger.info("Trying to get all VirtualProvisioningPools for storage pool {}", poolInstance.getProperty(SmisConstants.CP_INSTANCE_ID).toString());
-    	CIMObjectPath poolPath = poolInstance.getObjectPath();
-    	try {
-    		virtualProvisioningPoolItr = getAssociatorInstances(poolPath, null, SmisConstants.SYMM_VIRTUAL_PROVISIONING_POOL, 
-    				null, null, SmisConstants.PS_V3_VIRTUAL_PROVISIONING_POOL_PROPERTIES);
-    		while (virtualProvisioningPoolItr != null && virtualProvisioningPoolItr.hasNext()) {
-    			CIMInstance virtualProvisioningPoolInstance = virtualProvisioningPoolItr.next();
-    			String diskDriveType = CIMPropertyFactory.getPropertyValue(virtualProvisioningPoolInstance, SmisConstants.CP_DISK_DRIVE_TYPE);
-    			if(diskDriveType != null){driveTypes.add(diskDriveType);}
-    		}
-    	} catch (WBEMException e) {
-    		_logger.error("Error getting VirtualProvisioningPools ");
-    		e.printStackTrace();
-    	} finally{
-    		if(virtualProvisioningPoolItr != null){
-    			virtualProvisioningPoolItr.close();
-    		}
-    	}
-    	String[] driveTypesArr = driveTypes.toArray(new String[driveTypes.size()]);    
-    	return driveTypesArr;
+        _logger.info("Trying to get all VirtualProvisioningPools for storage pool {}",
+                poolInstance.getProperty(SmisConstants.CP_INSTANCE_ID).toString());
+        CIMObjectPath poolPath = poolInstance.getObjectPath();
+        try {
+            virtualProvisioningPoolItr = getAssociatorInstances(poolPath, null, SmisConstants.SYMM_VIRTUAL_PROVISIONING_POOL,
+                    null, null, SmisConstants.PS_V3_VIRTUAL_PROVISIONING_POOL_PROPERTIES);
+            while (virtualProvisioningPoolItr != null && virtualProvisioningPoolItr.hasNext()) {
+                CIMInstance virtualProvisioningPoolInstance = virtualProvisioningPoolItr.next();
+                String diskDriveType = CIMPropertyFactory.getPropertyValue(virtualProvisioningPoolInstance,
+                        SmisConstants.CP_DISK_DRIVE_TYPE);
+                if (diskDriveType != null) {
+                    driveTypes.add(diskDriveType);
+                }
+            }
+        } catch (WBEMException e) {
+            _logger.error("Error getting VirtualProvisioningPools ");
+            e.printStackTrace();
+        } finally {
+            if (virtualProvisioningPoolItr != null) {
+                virtualProvisioningPoolItr.close();
+            }
+        }
+        String[] driveTypesArr = driveTypes.toArray(new String[driveTypes.size()]);
+        return driveTypesArr;
     }
 
     public CloseableIterator<CIMInstance>
-    getAssociatorInstances(CIMObjectPath path,
-    		String assocClass, String resultClass, String role, String resultRole, String[] prop)
-    				throws WBEMException {
-    	return _cimClient.associatorInstances(path, null, resultClass, null, null, false, prop);
+            getAssociatorInstances(CIMObjectPath path,
+                    String assocClass, String resultClass, String role, String resultRole, String[] prop)
+                    throws WBEMException {
+        return _cimClient.associatorInstances(path, null, resultClass, null, null, false, prop);
     }
-   
+
 }

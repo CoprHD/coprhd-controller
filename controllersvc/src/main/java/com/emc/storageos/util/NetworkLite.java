@@ -50,23 +50,23 @@ import com.emc.storageos.db.client.util.StringSetUtil;
  * @author watson
  */
 public class NetworkLite {
-    
+
     // Debug facility for disabling routing; should be false in the tree
     // at all times for production.
     static public boolean disableRouting = false;
-    
+
     protected URI _id;
-    
+
     protected Boolean _inactive;
 
     private String _label;
-    
+
     private String _transportType;
-    
+
     private String _registrationStatus;
-    
+
     private Set<String> _assignedVirtualArrays = new HashSet<String>();
-    
+
     private Set<String> _connectedVirtualArrays = new HashSet<String>();
 
     private Set<String> _routedNetworks = new HashSet<String>();
@@ -74,7 +74,7 @@ public class NetworkLite {
     private Set<String> _networkSystems = new HashSet<String>();
 
     private String _nativeId;
-    
+
     private String _nativeGuid;
 
     public NetworkLite(Network network) {
@@ -89,22 +89,25 @@ public class NetworkLite {
             _assignedVirtualArrays.addAll(network.getAssignedVirtualArrays());
         if (network.getConnectedVirtualArrays() != null)
             _connectedVirtualArrays.addAll(network.getConnectedVirtualArrays());
-        if (network.getRoutedNetworks() != null) 
-            _routedNetworks.addAll( network.getRoutedNetworks() );
+        if (network.getRoutedNetworks() != null)
+            _routedNetworks.addAll(network.getRoutedNetworks());
         if (network.getNetworkSystems() != null) {
-            _networkSystems.addAll( network.getNetworkSystems() );
+            _networkSystems.addAll(network.getNetworkSystems());
         }
     }
 
     /**
      * For testing use only.
+     * 
      * @param label
      */
     public NetworkLite(String label) {
-        _label = label; 
+        _label = label;
     }
+
     /**
      * For testing use only.
+     * 
      * @param id
      * @param label
      */
@@ -112,11 +115,12 @@ public class NetworkLite {
         _id = id;
         _label = label;
     }
-    
+
     private static Set<String> _columnNames = null;
-    
+
     /**
      * These have to correspond to the column names in Network.
+     * 
      * @return Set<String> of field names to be retrieved
      */
     public synchronized static Set<String> getColumnNames() {
@@ -135,7 +139,7 @@ public class NetworkLite {
         }
         return _columnNames;
     }
-    
+
     public URI getId() {
         return _id;
     }
@@ -161,16 +165,18 @@ public class NetworkLite {
     }
 
     public Set<String> getRoutedNetworks() {
-        if (disableRouting) return new HashSet<String>();
+        if (disableRouting)
+            return new HashSet<String>();
         return _routedNetworks;
     }
-    
+
     /**
      * Returns true if the networkUri belongs to a network that is routed
      * to this network.
+     * 
      * @param networkUri the URI of the network being checked
      * @return true if the networkUri belongs to a network that is routed
-     * to this network.
+     *         to this network.
      */
     public boolean hasRoutedNetworks(URI networkUri) {
         return _routedNetworks != null && !disableRouting &&
@@ -191,17 +197,19 @@ public class NetworkLite {
     public Boolean getInactive() {
         return (_inactive != null) && _inactive;
     }
-    
+
     /**
      * Returns true if Network is registered.
+     * 
      * @return
      */
     public boolean registered() {
         return getRegistrationStatus().equals(RegistrationStatus.REGISTERED.name());
     }
-    
+
     /**
      * Returns true if this network is connected to another network
+     * 
      * @return
      */
     public boolean connectedToNetwork(URI networkUri) {
@@ -215,10 +223,10 @@ public class NetworkLite {
         }
         return false;
     }
-    
-    
+
     /**
      * Returns true if this network is connected to another network
+     * 
      * @return
      */
     public boolean connectedToAtLeastOneNetwork(Collection<URI> networkUris) {
@@ -228,12 +236,12 @@ public class NetworkLite {
             }
             if (_routedNetworks != null) {
                 List<URI> routedNetowrks = StringSetUtil.stringSetToUriList(getRoutedNetworks());
-                return !Collections.disjoint(networkUris, routedNetowrks) ;
+                return !Collections.disjoint(networkUris, routedNetowrks);
             }
         }
         return false;
     }
-    
+
     public String getNativeId() {
         return _nativeId;
     }
@@ -241,8 +249,8 @@ public class NetworkLite {
     public String getNativeGuid() {
         return _nativeGuid;
     }
-    
-    public Set<String>  getNetworkSystems() {
+
+    public Set<String> getNetworkSystems() {
         return _networkSystems;
     }
 

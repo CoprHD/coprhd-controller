@@ -32,52 +32,52 @@ public interface BlockExportController extends Controller {
      * Export one or more volumes. The volumeToExports parameter has
      * all the information required to do the add volumes operation.
      *
-     * @param export           URI of ExportMask
-     * @param volumeMap        Volume-lun map to be part of the export mask
-     * @param initiatorURIs    List of URIs for the initiators to be added to the export mask
-     * @param opId             Operation ID
+     * @param export URI of ExportMask
+     * @param volumeMap Volume-lun map to be part of the export mask
+     * @param initiatorURIs List of URIs for the initiators to be added to the export mask
+     * @param opId Operation ID
      * @throws ControllerException
      */
     public void exportGroupCreate(URI export, Map<URI, Integer> volumeMap,
-                                  List<URI> initiatorURIs,
-                                  String opId) throws ControllerException;
+            List<URI> initiatorURIs,
+            String opId) throws ControllerException;
 
-    
     /**
      * Update an export group
+     * 
      * @param export the export group to be updated
      * @param updatedBlockObjectMap the updated map of block-object-to-lun
      * @param updatedClusters the updated list of clusters
      * @param updatedHosts the updated list of hosts
      * @param updatedInitiators the updates list of initiators
      * @param opId the taskId
-     * @throws ControllerException 
+     * @throws ControllerException
      */
     public void exportGroupUpdate(URI export, Map<URI, Integer> updatedBlockObjectMap,
-                                  List<URI> updatedClusters,
-                                  List<URI> updatedHosts,
-                                  List<URI> updatedInitiators,
-                                  String opId) throws ControllerException;
+            List<URI> updatedClusters,
+            List<URI> updatedHosts,
+            List<URI> updatedInitiators,
+            String opId) throws ControllerException;
 
     /**
      * Delete the export.
      *
-     * @param export           URI of ExportMask
-     * @param opId             Operation ID
+     * @param export URI of ExportMask
+     * @param opId Operation ID
      * @throws ControllerException
      */
     public void exportGroupDelete(URI export, String opId) throws ControllerException;
-    
+
     /**
      * Updates the export paths according to new path parameters in the Volume's VirtualPool.
      * This is done for all ExportMasks containing the volume if needed.
+     * 
      * @param volumeURI - URI of BlockObject
      * @param newVpoolURI - URI of the new VPool (not updated yet in volume)
      * @param opId - the taskId
      * @throws ControllerException
      */
     public void updateVolumePathParams(URI volumeURI, URI newVpoolURI, String opId) throws ControllerException;
-
 
     /**
      * Updates the Auto-tiering policy and/or host io limits (for VMAX only) according to new one associated to the new VirtualPool.

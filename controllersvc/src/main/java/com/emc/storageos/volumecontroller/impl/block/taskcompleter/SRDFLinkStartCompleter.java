@@ -22,64 +22,65 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
 public class SRDFLinkStartCompleter extends SRDFTaskCompleter {
-	
-	private static final Logger _log = LoggerFactory.getLogger(SRDFLinkStartCompleter.class);
-    
+
+    private static final Logger _log = LoggerFactory.getLogger(SRDFLinkStartCompleter.class);
+
     private String sourceRepGroup;
-    
+
     private String targetRepGroup;
-    
+
     private URI sourceCGUri;
-    
+
     public SRDFLinkStartCompleter(List<URI> ids, String opId) {
-		super(ids, opId);
-	}
-    
+        super(ids, opId);
+    }
+
     public void setCGName(final String sourceGroupName, final String targetGroupName,
             final URI sourceCGUri) {
         this.sourceRepGroup = sourceGroupName;
         this.targetRepGroup = targetGroupName;
         this.sourceCGUri = sourceCGUri;
     }
-    
-	@Override
+
+    @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
         _log.info("Completing with status: {}", status);
         try {
-        	setDbClient(dbClient);
+            setDbClient(dbClient);
 
             switch (status) {
-            
-            case ready:
-                Volume target = getTargetVolume();
-                // Pin the target System with the source CG, which helps to identify this system is
-                // a target R2 for CG.
-                if (null != sourceCGUri) {
-                    URI targetSystemUri = target.getStorageController();
-                    StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class,
-                            targetSystemUri);
-                    if (targetSystem.getTargetCgs() == null) {
-                        targetSystem.setTargetCgs(new StringSet());
+
+                case ready:
+                    Volume target = getTargetVolume();
+                    // Pin the target System with the source CG, which helps to identify this system is
+                    // a target R2 for CG.
+                    if (null != sourceCGUri) {
+                        URI targetSystemUri = target.getStorageController();
+                        StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class,
+                                targetSystemUri);
+                        if (targetSystem.getTargetCgs() == null) {
+                            targetSystem.setTargetCgs(new StringSet());
+                        }
+                        targetSystem.getTargetCgs().add(sourceCGUri.toString());
+                        dbClient.persistObject(targetSystem);
                     }
-                    targetSystem.getTargetCgs().add(sourceCGUri.toString());
-                    dbClient.persistObject(targetSystem);
-                }
-                
-                RemoteDirectorGroup group = dbClient.queryObject(RemoteDirectorGroup.class,
-                        target.getSrdfGroup());
-                group.setSourceReplicationGroupName(sourceRepGroup);
-                group.setTargetReplicationGroupName(targetRepGroup);
-                dbClient.persistObject(group);
-                break;
-            
-            default:
-                _log.info("Unable to handle status: {}", status);
+
+                    RemoteDirectorGroup group = dbClient.queryObject(RemoteDirectorGroup.class,
+                            target.getSrdfGroup());
+                    group.setSourceReplicationGroupName(sourceRepGroup);
+                    group.setTargetReplicationGroupName(targetRepGroup);
+                    dbClient.persistObject(group);
+                    break;
+
+                default:
+                    _log.info("Unable to handle status: {}", status);
             }
-        	recordSRDFOperation(dbClient, OperationTypeEnum.CREATE_SRDF_LINK, status, getSourceVolume().getId().toString(), getTargetVolume().getId().toString());
+            recordSRDFOperation(dbClient, OperationTypeEnum.CREATE_SRDF_LINK, status, getSourceVolume().getId().toString(),
+                    getTargetVolume().getId().toString());
         } catch (Exception e) {
-        	 _log.error("Failed updating status. SRDFLinkStart {}, for task " + getOpId(), getId(), e);
+            _log.error("Failed updating status. SRDFLinkStart {}, for task " + getOpId(), getId(), e);
         } finally {
-        	super.complete(dbClient, status, coded);
+            super.complete(dbClient, status, coded);
         }
     }
 
@@ -88,4 +89,3 @@ public class SRDFLinkStartCompleter extends SRDFTaskCompleter {
         return Volume.LinkStatus.IN_SYNC;
     }
 }
-

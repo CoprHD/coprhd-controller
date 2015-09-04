@@ -37,7 +37,7 @@ import static org.junit.Assert.assertTrue;
 
 public class ScaleIOCLITests {
 
-    public static final String TEST_VOLUME_PREFIX = String.format("Test%s-", (int)(Math.random()*100));
+    public static final String TEST_VOLUME_PREFIX = String.format("Test%s-", (int) (Math.random() * 100));
     public static final String TEST_VOLUME_NAME = generateUUID();
     public static final String TEST_POOL = "Primary";
     public static final String TEST_PROTECTION_DOMAIN = "PD-1";
@@ -54,8 +54,7 @@ public class ScaleIOCLITests {
 
     @BeforeClass
     static public void setUp() {
-        
-        
+
         scaleIOCLI = new ScaleIOCLI(sioHostIpAddress, sioHostCLIUsername, sioHostCLIPwd);
         scaleIOVersionUnderTest = scaleIOCLI.getVersion();
         if (scaleIOVersionUnderTest.matches(SIO_V1_3X_REGEX)) {
@@ -101,7 +100,7 @@ public class ScaleIOCLITests {
         System.out.printf("SIO Version is %s", version);
     }
 
-    @Test (expected = ScaleIOException.class)
+    @Test(expected = ScaleIOException.class)
     public void testThrowsExceptionIfNotInit() {
         ScaleIOCLI cli = new ScaleIOCLI(sioHostIpAddress, sioHostCLIUsername, sioHostCLIPwd);
         cli.queryAll();
@@ -213,7 +212,7 @@ public class ScaleIOCLITests {
     public void testSnapshotConsistencyGroupVolumes() {
         List<ScaleIOAddVolumeResult> volumes = createVolumes(3);
 
-        Map<String,String> id2snap = new HashMap<>();
+        Map<String, String> id2snap = new HashMap<>();
         for (ScaleIOAddVolumeResult volume : volumes) {
             id2snap.put(volume.getId(), generateUUID());
         }
@@ -441,8 +440,7 @@ public class ScaleIOCLITests {
                     initiatorAttrs.get(ScaleIOQueryAllSCSIInitiatorsResult.INITIATOR_ID)));
             if (result.hasMappedVolumes(iqn)) {
                 System.out.println(" Has mapped volumes");
-                for (Map.Entry<String, ScaleIOAttributes> entry :
-                        result.getMappedVolumes(iqn).entrySet()) {
+                for (Map.Entry<String, ScaleIOAttributes> entry : result.getMappedVolumes(iqn).entrySet()) {
                     ScaleIOAttributes volAttrs = entry.getValue();
                     System.out.println(String.format("Mapped volume: %s %s %s",
                             entry.getKey(),

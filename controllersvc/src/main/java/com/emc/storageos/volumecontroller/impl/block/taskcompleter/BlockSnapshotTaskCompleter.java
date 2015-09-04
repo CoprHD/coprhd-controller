@@ -32,7 +32,6 @@ import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 
-
 public abstract class BlockSnapshotTaskCompleter extends TaskLockingCompleter {
     private static final Logger _logger = LoggerFactory.getLogger(BlockSnapshotTaskCompleter.class);
 
@@ -53,8 +52,8 @@ public abstract class BlockSnapshotTaskCompleter extends TaskLockingCompleter {
      * @throws Exception
      */
     public void recordBourneBlockSnapshotEvent(DbClient dbClient, URI snapUri,
-                                               String evtType,
-                                               Operation.Status status, String desc)
+            String evtType,
+            Operation.Status status, String desc)
             throws Exception {
         RecordableEventManager eventManager = new RecordableEventManager();
         eventManager.setDbClient(dbClient);
@@ -79,45 +78,50 @@ public abstract class BlockSnapshotTaskCompleter extends TaskLockingCompleter {
 
     /**
      * Record block snapshot related event and audit
-     * @param dbClient  db client
-     * @param opType    operation type
-     * @param status    operation status
-     * @param evDesc    event description
-     * @param extParam  parameters array from which we could generate detail audit message
+     * 
+     * @param dbClient db client
+     * @param opType operation type
+     * @param status operation status
+     * @param evDesc event description
+     * @param extParam parameters array from which we could generate detail audit message
      */
-    public void recordBlockSnapshotOperation(DbClient dbClient, OperationTypeEnum opType, Operation.Status status, String evDesc, Object... extParam) {
+    public void recordBlockSnapshotOperation(DbClient dbClient, OperationTypeEnum opType, Operation.Status status, String evDesc,
+            Object... extParam) {
         try {
-            boolean opStatus = (Operation.Status.ready == status)? true: false;
+            boolean opStatus = (Operation.Status.ready == status) ? true : false;
             String evType;
             evType = opType.getEvType(opStatus);
             String opStage = AuditLogManager.AUDITOP_END;
             _logger.info("opType: {} detail: {}", opType.toString(), evType + ':' + evDesc);
 
-            BlockSnapshot snapshot = (BlockSnapshot)extParam[0];
+            BlockSnapshot snapshot = (BlockSnapshot) extParam[0];
 
             recordBourneBlockSnapshotEvent(dbClient, snapshot.getId(), evType, status, evDesc);
 
             Volume volume;
             switch (opType) {
                 case CREATE_VOLUME_SNAPSHOT:
-                    volume = (Volume)extParam[1];
+                    volume = (Volume) extParam[1];
                     if (opStatus) {
-                        AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, snapshot.getId().toString(), snapshot.getLabel(), volume.getId().toString());
+                        AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, snapshot.getId().toString(), snapshot.getLabel(),
+                                volume.getId().toString());
                     } else {
                         AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, snapshot.getLabel(), volume.getId().toString());
                     }
                     break;
                 case RESTORE_VOLUME_SNAPSHOT:
-                    volume = (Volume)extParam[1];
+                    volume = (Volume) extParam[1];
                     AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, snapshot.getId().toString(), volume.getId().toString());
                     break;
                 case ACTIVATE_VOLUME_SNAPSHOT:
-                    volume = (Volume)extParam[1];
-                    AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, snapshot.getId().toString(), snapshot.getLabel(), volume.getId().toString());
+                    volume = (Volume) extParam[1];
+                    AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, snapshot.getId().toString(), snapshot.getLabel(), volume
+                            .getId().toString());
                     break;
                 case DEACTIVATE_VOLUME_SNAPSHOT:
                 case DELETE_VOLUME_SNAPSHOT:
-                    AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, snapshot.getId().toString(), snapshot.getLabel(), snapshot.getParent().getName());
+                    AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, snapshot.getId().toString(), snapshot.getLabel(),
+                            snapshot.getParent().getName());
                     break;
                 default:
                     _logger.error("unrecognized block snapshot operation type");

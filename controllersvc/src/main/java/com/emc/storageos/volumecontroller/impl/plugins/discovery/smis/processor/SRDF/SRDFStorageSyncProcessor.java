@@ -28,7 +28,7 @@ import java.util.Map;
 
 public class SRDFStorageSyncProcessor extends StorageProcessor {
     private static final Logger _log = LoggerFactory.getLogger(SRDFStorageSyncProcessor.class);
-    
+
     @Override
     public void processResult(Operation operation, Object resultObj, Map<String, Object> keyMap) throws BaseCollectionException {
         CloseableIterator<CIMObjectPath> synchronizedInstancePaths = null;
@@ -64,7 +64,7 @@ public class SRDFStorageSyncProcessor extends StorageProcessor {
 
         resultObj = null;
     }
-    
+
     private void processStorageSynchronizedPaths(Operation operation, Iterator<CIMObjectPath> it, Object resultObj,
             Map<String, Object> keyMap) {
         while (it.hasNext()) {
@@ -109,17 +109,16 @@ public class SRDFStorageSyncProcessor extends StorageProcessor {
                     }
                     addPath(keyMap, operation.get_result(), volumePath);
                 }
-            } catch(Exception e) {
+            } catch (Exception e) {
                 _log.error("Prerequiste Step for getting srdf storage synchronized relations failed :", e);
             }
         }
-   }
+    }
 
-    
     private boolean isSRDFProtectedVolume(Volume volume) {
         return (!NullColumnValueGetter.isNullNamedURI(volume.getSrdfParent()) || volume.getSrdfTargets() != null);
     }
-    
+
     @Override
     protected void setPrerequisiteObjects(List<Object> inputArgs) throws BaseCollectionException {
     }

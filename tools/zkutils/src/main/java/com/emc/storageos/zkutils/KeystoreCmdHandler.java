@@ -48,7 +48,7 @@ public class KeystoreCmdHandler {
     private GenericXmlApplicationContext ctx;
 
     public KeystoreCmdHandler() throws KeyStoreException, NoSuchAlgorithmException,
-    CertificateException, IOException, InterruptedException {
+            CertificateException, IOException, InterruptedException {
         try {
             // To using Spring profile feature
             ctx = new GenericXmlApplicationContext();
@@ -65,7 +65,7 @@ public class KeystoreCmdHandler {
     }
 
     private String[] getContextFiles() {
-        return new String[] {ZKUtil.ZKUTI_CONF, "zkutil-oss-conf.xml", "zkutil-emc-conf.xml"};
+        return new String[] { ZKUtil.ZKUTI_CONF, "zkutil-oss-conf.xml", "zkutil-emc-conf.xml" };
     }
 
     public void getViPRKey() {

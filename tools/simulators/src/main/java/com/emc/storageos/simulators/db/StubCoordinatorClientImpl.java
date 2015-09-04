@@ -45,7 +45,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
-
 /**
  * Dummy coordinator client for use with dbsvc unit tests
  */
@@ -87,12 +86,15 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
-    public <T> DistributedQueue<T> getQueue(String name, DistributedQueueConsumer<T> consumer, QueueSerializer<T> serializer, int maxThreads, int maxItem) throws CoordinatorException {
+    public <T> DistributedQueue<T> getQueue(String name, DistributedQueueConsumer<T> consumer, QueueSerializer<T> serializer,
+            int maxThreads, int maxItem) throws CoordinatorException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public <T> DistributedQueue<T> getQueue(String name, DistributedQueueConsumer<T> consumer, QueueSerializer<T> serializer, int maxThreads) throws CoordinatorException {
+    public <T> DistributedQueue<T>
+            getQueue(String name, DistributedQueueConsumer<T> consumer, QueueSerializer<T> serializer, int maxThreads)
+                    throws CoordinatorException {
         throw new UnsupportedOperationException();
     }
 
@@ -205,7 +207,7 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public DistributedDataManager createDistributedDataManager(String basePath,
-                                                               long maxNodes) throws CoordinatorException {
+            long maxNodes) throws CoordinatorException {
         return null;
     }
 
@@ -231,7 +233,7 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     }
 
     @Override
-    public <T extends CoordinatorSerializable> T getNodeInfo(Service service, String nodeId, Class<T> clazz)         
+    public <T extends CoordinatorSerializable> T getNodeInfo(Service service, String nodeId, Class<T> clazz)
             throws Exception {
         throw new UnsupportedOperationException();
     }
@@ -248,7 +250,7 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public <T extends CoordinatorSerializable> Map<Service,
-    T> getAllNodeInfos(Class<T> clazz, Pattern nodeIdFilter) throws Exception {
+            T> getAllNodeInfos(Class<T> clazz, Pattern nodeIdFilter) throws Exception {
         throw new UnsupportedOperationException();
     }
 

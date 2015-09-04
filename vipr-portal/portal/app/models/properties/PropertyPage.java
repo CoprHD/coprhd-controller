@@ -41,7 +41,7 @@ public interface PropertyPage {
      * Validates the properties on the page.
      * 
      * @param values
-     *        the values to validate.
+     *            the values to validate.
      */
     public void validate(Map<String, String> values);
 
@@ -56,7 +56,7 @@ public interface PropertyPage {
      * Gets the values that have been updated.
      * 
      * @param values
-     *        the values.
+     *            the values.
      * @return the map of updated values.
      */
     public Map<String, String> getUpdatedValues(Map<String, String> values);

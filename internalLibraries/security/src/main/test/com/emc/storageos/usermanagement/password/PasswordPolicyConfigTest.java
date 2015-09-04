@@ -23,7 +23,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
-
 public class PasswordPolicyConfigTest extends LocalUserMode {
     private static Logger logger = LoggerFactory.getLogger(PasswordPolicyConfigTest.class);
 
@@ -39,7 +38,6 @@ public class PasswordPolicyConfigTest extends LocalUserMode {
         String lenghth = getViprProperty(Constants.PASSWORD_MIN_LENGTH);
         logger.info(Constants.PASSWORD_MIN_LENGTH + ": " + lenghth);
         Assert.assertTrue(lenghth.equalsIgnoreCase(new_min_length));
-
 
         new_min_length = "";
         logger.info("set to empty space:");
@@ -115,7 +113,6 @@ public class PasswordPolicyConfigTest extends LocalUserMode {
             Assert.assertTrue(see.getMessage().contains("Expire days is invalid, it has to be in range"));
         }
 
-
         // test normal value
         waitForClusterStable();
         setViprProperty(Constants.PASSWORD_EXPIRE_DAYS, nomal);
@@ -153,12 +150,11 @@ public class PasswordPolicyConfigTest extends LocalUserMode {
         logger.info(property + ": " + getViprProperty(property));
     }
 
-
     private String getViprProperty(String name) {
         return systemClient.config().getProperties().getProperty(name);
     }
 
-    private void setViprProperty(String name, String value) throws Exception{
+    private void setViprProperty(String name, String value) throws Exception {
         waitForClusterStable();
         Map<String, String> properties = new HashMap<String, String>();
         properties.put(name, value);
@@ -167,7 +163,7 @@ public class PasswordPolicyConfigTest extends LocalUserMode {
         systemClient.config().setProperties(propertyInfoUpdate);
     }
 
-    private void resetViprProperty(String name) throws Exception{
+    private void resetViprProperty(String name) throws Exception {
         waitForClusterStable();
         PropertyList properties = new PropertyList();
         ArrayList<String> names = new ArrayList<String>();

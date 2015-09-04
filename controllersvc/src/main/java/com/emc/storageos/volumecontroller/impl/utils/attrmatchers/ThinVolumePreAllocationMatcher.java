@@ -18,20 +18,20 @@ import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.google.common.base.Joiner;
+
 /**
  * Matcher to filter out the pools based on the thin_volume_preallocation_percentage.
  * Run the matcher only if thin_volume_preallocation_percentage is set.
  */
-public class ThinVolumePreAllocationMatcher extends AttributeMatcher{
+public class ThinVolumePreAllocationMatcher extends AttributeMatcher {
 
     private static final Logger _logger = LoggerFactory
-    .getLogger(ThinVolumePreAllocationMatcher.class);
-  
+            .getLogger(ThinVolumePreAllocationMatcher.class);
 
     @Override
     protected boolean isAttributeOn(Map<String, Object> attributeMap) {
         return (null != attributeMap
-                && attributeMap.containsKey(Attributes.thin_volume_preallocation_percentage.toString()));
+        && attributeMap.containsKey(Attributes.thin_volume_preallocation_percentage.toString()));
     }
 
     @Override
@@ -46,15 +46,16 @@ public class ThinVolumePreAllocationMatcher extends AttributeMatcher{
             StoragePool pool = poolIterator.next();
             if (!pool.getThinVolumePreAllocationSupported()) {
                 if (!attributeMap.get(Attributes.vpool_type.toString()).equals(VirtualPool.Type.file)) {
-                	_logger.info("Ignoring pool {} as it does not support thin Resource Preallocation.", pool.getNativeGuid());
-                	filteredPoolList.remove(pool);
+                    _logger.info("Ignoring pool {} as it does not support thin Resource Preallocation.", pool.getNativeGuid());
+                    filteredPoolList.remove(pool);
                 }
             } else {
                 StorageSystem storageDevice = _objectCache.getDbClient().queryObject(StorageSystem.class, pool.getStorageDevice());
-                if(storageDevice.checkIfVmax3() && thinVolumePreAllocationPercentage != Constants.VMAX3_FULLY_ALLOCATED_VOLUME_PERCENTAGE){
+                if (storageDevice.checkIfVmax3() && thinVolumePreAllocationPercentage != Constants.VMAX3_FULLY_ALLOCATED_VOLUME_PERCENTAGE) {
                     _logger.info("Ignoring pool {} as it belongs to VMAX3 storage system and to qualify this pool, "
                             + "Virtual pool should have Thin Volume preallocation of {} but its set to {}. ",
-                            new Object[]{pool.getNativeGuid(), Constants.VMAX3_FULLY_ALLOCATED_VOLUME_PERCENTAGE, thinVolumePreAllocationPercentage});
+                            new Object[] { pool.getNativeGuid(), Constants.VMAX3_FULLY_ALLOCATED_VOLUME_PERCENTAGE,
+                                    thinVolumePreAllocationPercentage });
                     filteredPoolList.remove(pool);
                 }
             }

@@ -41,7 +41,8 @@ public class JsonAPI {
     }
 
     // Standard POST
-    protected <T> F.Promise<APIResponse<T>> post(String authToken, Object request, final Class<T> responseType, String path, String... args) {
+    protected <T> F.Promise<APIResponse<T>>
+            post(String authToken, Object request, final Class<T> responseType, String path, String... args) {
         WS.WSRequest wsReq = newRequest(authToken, request, path, args);
         Logger.info("POST: %s, %s", wsReq.url, wsReq.body);
         return responseHandler(wsReq.postAsync(), responseType);
@@ -60,20 +61,20 @@ public class JsonAPI {
         Logger.info("DELETE: %s, %s", wsReq.url, wsReq.body);
         return responseHandler(wsReq.deleteAsync());
     }
-    
+
     // PUT with no payload
     protected F.Promise<APIResponse<Boolean>> put(String authToken, String path, String... args) {
         WS.WSRequest wsReq = newRequest(authToken, null, path, args);
         Logger.info("PUT: %s, %s", wsReq.url, wsReq.body);
         return responseHandler(wsReq.putAsync());
     }
-    
+
     // PUT with payload
     protected <T> F.Promise<APIResponse<T>> put(String authToken, Object request, final Class<T> responseType, String path, String... args) {
         WS.WSRequest wsReq = newRequest(authToken, request, path, args);
         Logger.info("PUT: %s, %s", wsReq.url, wsReq.body);
         return responseHandler(wsReq.putAsync(), responseType);
-    }        
+    }
 
     // GET
     protected <T> F.Promise<APIResponse<T>> get(String authToken, final Class<T> responseType, String path, String... args) {
@@ -192,10 +193,10 @@ public class JsonAPI {
                     handleAPIException(e);
                 }
                 catch (Throwable e) {
-                    handleAPIException(e);                   
+                    handleAPIException(e);
                 }
             }
-            
+
             private void handleAPIException(Throwable e) {
                 Logger.error(e, "API Exception");
                 methodResult.invoke(new APIResponse<T>(e));
@@ -203,5 +204,5 @@ public class JsonAPI {
         });
         return methodResult;
     }
-    
+
 }

@@ -19,7 +19,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-
 import org.apache.commons.httpclient.methods.PostMethod;
 import org.apache.commons.httpclient.Header;
 import org.slf4j.Logger;
@@ -53,7 +52,7 @@ public class VNXVDMProcessor extends VNXFileProcessor {
 
     @Override
     public void processResult(Operation operation, Object resultObj,
-                              Map<String, Object> keyMap) throws BaseCollectionException {
+            Map<String, Object> keyMap) throws BaseCollectionException {
         final PostMethod result = (PostMethod) resultObj;
         _logger.info("processing vnx info response" + resultObj);
         try {
@@ -70,9 +69,9 @@ public class VNXVDMProcessor extends VNXFileProcessor {
                     Object responseObj = queryRespItr.next();
                     if (responseObj instanceof Vdm) {
                         Vdm system = (Vdm) responseObj;
-                        //if((system.getInterfaces().getLi().size() > 0) &&
-                        //        system.getState() == VdmState.LOADED) {
-                        if(system.getState() == VdmState.LOADED) {
+                        // if((system.getInterfaces().getLi().size() > 0) &&
+                        // system.getState() == VdmState.LOADED) {
+                        if (system.getState() == VdmState.LOADED) {
                             VNXVdm vdm = new VNXVdm(
                                     system.getName(), system.getMover(), system.getVdm());
                             vdm.setInterfaces(system.getInterfaces().getLi());

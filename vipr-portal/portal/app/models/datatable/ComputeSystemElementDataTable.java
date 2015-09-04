@@ -54,7 +54,7 @@ public class ComputeSystemElementDataTable extends DataTable {
         public String dn;
         public String registrationStatus;
         public String status;
-        
+
         public boolean assigned;
 
         public ComputeElementInfo(ComputeElementRestRep computeElement) {
@@ -84,22 +84,21 @@ public class ComputeSystemElementDataTable extends DataTable {
             if (computeElement.getAvailable()) {
                 this.status = Messages.get("computeSystemElements.Available");
             }
-            
 
         }
+
         public String FormatSpeed(String speed) {
             String returnSpeed = Messages.get("computeSystemElements.Unspecified");
             try {
-                Float newSpeed=Float.parseFloat(speed);
+                Float newSpeed = Float.parseFloat(speed);
 
                 DecimalFormat df = new DecimalFormat("0.00");
                 df.setMaximumFractionDigits(2);
                 newSpeed = Float.parseFloat(df.format(newSpeed));
 
                 returnSpeed = newSpeed.toString();
-            }
-            catch (Exception e) {
-                //don't need to do anything - this is expected when UCS sends string
+            } catch (Exception e) {
+                // don't need to do anything - this is expected when UCS sends string
             }
             return returnSpeed;
         }

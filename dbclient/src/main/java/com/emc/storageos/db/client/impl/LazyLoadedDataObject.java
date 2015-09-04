@@ -25,29 +25,35 @@ import com.emc.storageos.db.client.model.DataObject;
  *
  */
 public class LazyLoadedDataObject<E extends DataObject> implements DataObjectInstrumented<E> {
-    
+
     private Set<String> loaded = new HashSet<String>();
     private LazyLoader loader;
     private boolean lazyLoadingEnabled;
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.db.client.impl.DataObjectInstrumented#setLazyLoader(com.emc.storageos.db.client.impl.LazyLoader)
      */
     @Override
-    public synchronized  void initLazyLoading(LazyLoader loader) {
+    public synchronized void initLazyLoading(LazyLoader loader) {
         this.loader = loader;
         lazyLoadingEnabled = false;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.db.client.impl.DataObjectInstrumented#enableLazyLoading()
      */
     @Override
-    public synchronized  void enableLazyLoading() {
+    public synchronized void enableLazyLoading() {
         lazyLoadingEnabled = true;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.db.client.impl.DataObjectInstrumented#load()
      */
     @Override
@@ -58,14 +64,17 @@ public class LazyLoadedDataObject<E extends DataObject> implements DataObjectIns
             loaded.add(lazyLoadedFieldName);
             lazyLoadingEnabled = true;
         }
-        
+
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.db.client.impl.DataObjectInstrumented#refreshMappedByField(java.lang.String, com.emc.storageos.db.client.model.DataObject)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.db.client.impl.DataObjectInstrumented#refreshMappedByField(java.lang.String,
+     * com.emc.storageos.db.client.model.DataObject)
      */
     @Override
-    public synchronized  void refreshMappedByField(String lazyLoadedFieldName, DataObject obj) {
+    public synchronized void refreshMappedByField(String lazyLoadedFieldName, DataObject obj) {
         if (lazyLoadingEnabled) {
             lazyLoadingEnabled = false;
             loader.refreshMappedByField(lazyLoadedFieldName, obj);
@@ -73,11 +82,14 @@ public class LazyLoadedDataObject<E extends DataObject> implements DataObjectIns
         }
     }
 
-    /* (non-Javadoc)
-     * @see com.emc.storageos.db.client.impl.DataObjectInstrumented#invalidate(java.lang.String, com.emc.storageos.db.client.model.DataObject)
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.db.client.impl.DataObjectInstrumented#invalidate(java.lang.String,
+     * com.emc.storageos.db.client.model.DataObject)
      */
     @Override
-    public synchronized  void invalidate(String lazyLoadedFieldName) {
+    public synchronized void invalidate(String lazyLoadedFieldName) {
         loaded.remove(lazyLoadedFieldName);
     }
 }

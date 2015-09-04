@@ -36,18 +36,18 @@ import org.slf4j.LoggerFactory;
  * @author Chris Dail
  */
 public class ModelClientImpl extends ModelClient {
-	
+
     private static final Logger LOG = LoggerFactory.getLogger(ModelClientImpl.class);
-    
+
     private DbClient dbClient;
-    
-	public ModelClientImpl() {
-	}
-	
-    public ModelClientImpl(DbClient client) {
-    	this.dbClient = client;
+
+    public ModelClientImpl() {
     }
-    
+
+    public ModelClientImpl(DbClient client) {
+        this.dbClient = client;
+    }
+
     @PostConstruct
     public void init() {
         if (dbClient == null) {
@@ -55,7 +55,7 @@ public class ModelClientImpl extends ModelClient {
         }
         dbClient.start();
     }
-    
+
     public void setDbClient(DbClient dbClient) {
         this.dbClient = dbClient;
     }
@@ -63,12 +63,12 @@ public class ModelClientImpl extends ModelClient {
     public DbClient getDbClient() {
         return dbClient;
     }
-    
+
     /**
      * Finds an object by ID.
      * 
      * @param id
-     *        the ID of the object.
+     *            the ID of the object.
      * @return the object.
      */
     public <T extends DataObject> T findById(URI id) {
@@ -88,7 +88,7 @@ public class ModelClientImpl extends ModelClient {
      * Finds an object by ID.
      * 
      * @param id
-     *        the ID of the object.
+     *            the ID of the object.
      * @return the object.
      */
     public <T extends DataObject> T findById(String id) {
@@ -97,11 +97,11 @@ public class ModelClientImpl extends ModelClient {
         }
         return findById(URI.create(id));
     }
-    
+
     public <T extends DataObject> List<NamedElement> findByLabel(Class<T> clazz, String label) {
         return findByPrefix(clazz, "label", label);
     }
-    
+
     public <T extends DataObject> List<URI> findByType(Class<T> clazz, boolean activeOnly) {
         return findAllIds(clazz, activeOnly);
     }
@@ -109,15 +109,15 @@ public class ModelClientImpl extends ModelClient {
     @Override
     public <T extends DataObject> Iterable<T> findByIds(Class<T> clazz, List<URI> ids, boolean activeOnly) throws DatabaseException {
         LOG.debug("findByIds({}, {})", new Object[] { clazz, ids });
- 
+
         Iterable<T> it = new IterativeList<T>(dbClient.queryIterativeObjects(clazz, ids, activeOnly));
         return it;
     }
-    
+
     @Override
     public <T extends DataObject> List<URI> findAllIds(Class<T> clazz, boolean activeOnly) throws DatabaseException {
-        LOG.debug("findAllIds({})", clazz );
-        
+        LOG.debug("findAllIds({})", clazz);
+
         List<URI> results = dbClient.queryByType(clazz, activeOnly);
         return results;
     }
@@ -132,41 +132,41 @@ public class ModelClientImpl extends ModelClient {
 
     @Override
     public <T extends DataObject> List<NamedElement> findBy(Class<T> clazz,
-    		String columnField, URI id) throws DatabaseException {
+            String columnField, URI id) throws DatabaseException {
         LOG.debug("findBy({}, {}, {})", new Object[] { clazz, columnField, id });
-        
+
         DataObjectType doType = TypeMap.getDoType(clazz);
-        
+
         ColumnField field = doType.getColumnField(columnField);
 
         ContainmentConstraint constraint = new ContainmentConstraintImpl(id, clazz, field);
-        
+
         return queryNamedElementsByConstraint(constraint);
     }
 
     @Override
     public <T extends DataObject> List<NamedElement> findByPrefix(
-    		Class<T> clazz, String columnField, String prefix)
-    		throws DatabaseException {
+            Class<T> clazz, String columnField, String prefix)
+            throws DatabaseException {
         LOG.debug("findByPrefix({}, {}, {})", new Object[] { clazz, columnField, prefix });
-        
+
         DataObjectType doType = TypeMap.getDoType(clazz);
-        
+
         PrefixConstraint constraint = new PrefixConstraintImpl(prefix, doType.getColumnField(columnField));
-        
+
         return queryNamedElementsByConstraint(constraint);
     }
 
     @Override
     public <T extends DataObject> List<NamedElement> findByContainmentAndPrefix(
-    		Class<T> clazz, String columnField, URI id, String labelPrefix)
-    		throws DatabaseException {
+            Class<T> clazz, String columnField, URI id, String labelPrefix)
+            throws DatabaseException {
         LOG.debug("findByContainmentAndPrefix({}, {}, {}, {})", new Object[] { clazz, columnField, id, labelPrefix });
-        
+
         DataObjectType doType = TypeMap.getDoType(clazz);
-        
+
         ContainmentPrefixConstraint constraint = new ContainmentPrefixConstraintImpl(id, labelPrefix, doType.getColumnField(columnField));
-        
+
         return queryNamedElementsByConstraint(constraint);
     }
 
@@ -193,28 +193,28 @@ public class ModelClientImpl extends ModelClient {
 
     protected List<NamedElement> queryNamedElementsByConstraint(Constraint constraint) {
         NamedElementQueryResultList queryResults = new NamedElementQueryResultList();
-    
+
         dbClient.queryByConstraint(constraint, queryResults);
         return queryResults;
     }
 
     @Override
     public <T extends DataObject> void delete(List<T> models) throws DatabaseException {
-        for (T model: models) {
+        for (T model : models) {
             delete(model);
         }
     }
 
     @Override
     public <T extends DataObject> List<NamedElement> findByAlternateId(
-    		Class<T> clazz, String columnField, String value)
-    		throws DatabaseException {
+            Class<T> clazz, String columnField, String value)
+            throws DatabaseException {
         LOG.debug("findByAlternateId({}, {}, {})", new Object[] { clazz, columnField, value });
-    
+
         DataObjectType doType = TypeMap.getDoType(clazz);
-        
+
         AlternateIdConstraint constraint = new AlternateIdConstraintImpl(doType.getColumnField(columnField), value);
-        
+
         return queryNamedElementsByConstraint(constraint);
     }
 }

@@ -79,16 +79,16 @@ public class BlockExportControllerImpl implements BlockExportController {
      * Export one or more volumes. The volumeToExports parameter has
      * all the information required to do the add volumes operation.
      *
-     * @param export        URI of ExportMask
-     * @param volumeMap     Volume-lun map to be part of the export mask
+     * @param export URI of ExportMask
+     * @param volumeMap Volume-lun map to be part of the export mask
      * @param initiatorURIs List of URIs for the initiators to be added to the export mask
-     * @param opId          Operation ID
+     * @param opId Operation ID
      * @throws com.emc.storageos.volumecontroller.ControllerException
      *
      */
     @Override
     public void exportGroupCreate(URI export, Map<URI, Integer> volumeMap,
-                                  List<URI> initiatorURIs, String opId)
+            List<URI> initiatorURIs, String opId)
             throws ControllerException {
         blockRMI("exportGroupCreate", export, volumeMap, initiatorURIs, opId);
     }
@@ -97,7 +97,7 @@ public class BlockExportControllerImpl implements BlockExportController {
      * Delete the export.
      *
      * @param export URI of ExportMask
-     * @param opId   Operation ID
+     * @param opId Operation ID
      * @throws com.emc.storageos.volumecontroller.ControllerException
      *
      */
@@ -111,12 +111,13 @@ public class BlockExportControllerImpl implements BlockExportController {
             List<URI> updatedClusters, List<URI> updatedHosts,
             List<URI> updatedInitiators, String opId)
             throws ControllerException {
-        blockRMI("exportGroupUpdate", export, updatedBlockObjectMap, 
+        blockRMI("exportGroupUpdate", export, updatedBlockObjectMap,
                 updatedClusters, updatedHosts, updatedInitiators, opId);
     }
-    
+
     /**
      * Update the path parameters for a volume from a new Vpool.
+     * 
      * @param volumeURI - URI of volume
      * @param newVpoolURI - URI of new Vpool
      * @param opid String containing task identifier

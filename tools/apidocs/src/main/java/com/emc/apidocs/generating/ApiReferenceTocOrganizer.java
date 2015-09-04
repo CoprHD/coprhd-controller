@@ -41,9 +41,8 @@ public class ApiReferenceTocOrganizer {
                     serviceToGroup.put(line, currentGroup);
                 }
             }
-        }
-        catch (IOException e) {
-            throw new RuntimeException("Error reading Group File "+file,e);
+        } catch (IOException e) {
+            throw new RuntimeException("Error reading Group File " + file, e);
         }
     }
 
@@ -76,10 +75,10 @@ public class ApiReferenceTocOrganizer {
         if (!allServices.isEmpty()) {
             String servicesLeft = "";
             for (ApiService service : allServices) {
-                servicesLeft=servicesLeft+"\n"+service.getFqJavaClassName();
+                servicesLeft = servicesLeft + "\n" + service.getFqJavaClassName();
             }
 
-            throw new RuntimeException(servicesLeft+" not assigned to any TOC category in ApiReferenceGrouping.txt");
+            throw new RuntimeException(servicesLeft + " not assigned to any TOC category in ApiReferenceGrouping.txt");
         }
 
         return sortedServices;
@@ -89,8 +88,8 @@ public class ApiReferenceTocOrganizer {
         List<ApiService> dataservices = Lists.newArrayList();
         for (ApiService service : services) {
             if (service.packageName.endsWith("s3.operation") ||
-                service.packageName.endsWith("atmos.operation") ||
-                service.packageName.endsWith("swift.operation")) {
+                    service.packageName.endsWith("atmos.operation") ||
+                    service.packageName.endsWith("swift.operation")) {
                 dataservices.add(service);
 
             }

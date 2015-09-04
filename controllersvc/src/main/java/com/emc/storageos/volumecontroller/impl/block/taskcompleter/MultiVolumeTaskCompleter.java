@@ -45,8 +45,8 @@ public class MultiVolumeTaskCompleter extends TaskCompleter {
     public MultiVolumeTaskCompleter(List<URI> ids, List<VolumeTaskCompleter> volumeTaskCompleters, String opId) {
         super(Volume.class, ids, opId);
         _volumeTaskCompleterMap = new HashMap<URI, VolumeTaskCompleter>();
-        for(VolumeTaskCompleter tc : volumeTaskCompleters) {
-        	tc.setNotifyWorkflow(false); // This completer will take care of notifying workflow
+        for (VolumeTaskCompleter tc : volumeTaskCompleters) {
+            tc.setNotifyWorkflow(false); // This completer will take care of notifying workflow
             _volumeTaskCompleterMap.put(tc.getId(), tc);
         }
     }
@@ -69,8 +69,10 @@ public class MultiVolumeTaskCompleter extends TaskCompleter {
     public VolumeTaskCompleter skipTaskCompleter(URI volumeURI) {
         return _volumeTaskCompleterMap.remove(volumeURI);
     }
+
     /**
      * check whether VolumeTaskCompleters left out
+     * 
      * @return
      */
     public boolean isVolumeTaskCompletersEmpty() {

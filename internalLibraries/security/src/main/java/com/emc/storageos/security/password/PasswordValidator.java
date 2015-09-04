@@ -30,7 +30,7 @@ public class PasswordValidator implements Rule {
     /**
      * Creates a new password validator with the default message resolver.
      *
-     * @param  rules  to validate
+     * @param rules to validate
      */
     public PasswordValidator(final List<Rule> rules) {
         passwordRules = rules;

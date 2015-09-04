@@ -8,7 +8,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement
 public class NamedReference extends Reference {
-    
+
     private String name;
 
     public String getName() {

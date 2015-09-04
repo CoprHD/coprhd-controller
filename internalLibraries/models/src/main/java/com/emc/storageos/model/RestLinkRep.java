@@ -20,15 +20,16 @@ import javax.xml.bind.annotation.XmlAttribute;
 import java.net.URI;
 
 /**
- *  Class represent a link for the Rest API
+ * Class represent a link for the Rest API
  *
  */
-public class RestLinkRep{
+public class RestLinkRep {
 
     private String linkName;
     private URI linkRef;
 
-    public RestLinkRep() {}
+    public RestLinkRep() {
+    }
 
     public RestLinkRep(String link, URI ref) {
         this.linkName = link;
@@ -36,19 +37,19 @@ public class RestLinkRep{
     }
 
     @XmlAttribute(name = "rel")
-    public String getLinkName() { 
-        return linkName; 
+    public String getLinkName() {
+        return linkName;
     }
-    
+
     public void setLinkName(String link) {
-        linkName = link; 
+        linkName = link;
     }
 
     @XmlAttribute(name = "href")
-    public URI getLinkRef() { 
-        return linkRef; 
+    public URI getLinkRef() {
+        return linkRef;
     }
-    
+
     public void setLinkRef(URI ref) {
         linkRef = ref;
     }
@@ -86,5 +87,3 @@ public class RestLinkRep{
         return true;
     }
 }
-
-

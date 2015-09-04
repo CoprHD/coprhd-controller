@@ -14,17 +14,19 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 
 @XmlRootElement(name = "execution_logs")
 public class ExecutionLogList {
-    
+
     private List<ExecutionLogRestRep> executionLogs;
-    
-    public ExecutionLogList() {}
-    
+
+    public ExecutionLogList() {
+    }
+
     public ExecutionLogList(List<ExecutionLogRestRep> executionLogs) {
         this.executionLogs = executionLogs;
     }
 
     /**
      * List of execution logs
+     * 
      * @valid none
      */
     @XmlElement(name = "execution_log")

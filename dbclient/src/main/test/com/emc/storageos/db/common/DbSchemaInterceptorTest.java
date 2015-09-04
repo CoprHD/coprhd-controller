@@ -23,37 +23,37 @@ import com.emc.storageos.db.client.model.ExcludeFromGarbageCollection;
 import com.emc.storageos.db.common.DbSchemaInterceptorImpl;
 
 public class DbSchemaInterceptorTest {
-	
-	private static final String COLUMN_FAMILY = "Task";
-	private static final String IGNORE_FIELD = "error";
-	private static final String NORMAL_FIELD = "normal";
-	private static final String IGNORE_CLASS_ANNOTATION = "ExcludeFromGarbageCollection";
-	private static final String NORMAL_CLASS_ANNOTATION = "Cf";	
-	
-	private static DbSchemaScannerInterceptor interceptor = null;
-	
-	@Before
-	public void setup(){
-		interceptor = new DbSchemaInterceptorImpl();
-	}
-	
-	@Test
-	public void shouldIgnoreSpecificField(){
-		Assert.assertTrue(this.interceptor.isFieldIgnored(COLUMN_FAMILY, IGNORE_FIELD));
-	}
-	
-	@Test
-	public void shouldNotIgnoreNormalField(){
-		Assert.assertFalse(this.interceptor.isFieldIgnored(COLUMN_FAMILY, NORMAL_FIELD));
-	}
-	
-	@Test
-	public void shouldIgnoreSpecificClsAnnt(){
-		Assert.assertTrue(this.interceptor.isClassAnnotationIgnored(COLUMN_FAMILY, IGNORE_CLASS_ANNOTATION));
-	}
-	
-	@Test
-	public void shouldNotIgnoreSpecificClsAnnt(){
-		Assert.assertFalse(this.interceptor.isClassAnnotationIgnored(COLUMN_FAMILY, NORMAL_CLASS_ANNOTATION));
-	}
+
+    private static final String COLUMN_FAMILY = "Task";
+    private static final String IGNORE_FIELD = "error";
+    private static final String NORMAL_FIELD = "normal";
+    private static final String IGNORE_CLASS_ANNOTATION = "ExcludeFromGarbageCollection";
+    private static final String NORMAL_CLASS_ANNOTATION = "Cf";
+
+    private static DbSchemaScannerInterceptor interceptor = null;
+
+    @Before
+    public void setup() {
+        interceptor = new DbSchemaInterceptorImpl();
+    }
+
+    @Test
+    public void shouldIgnoreSpecificField() {
+        Assert.assertTrue(this.interceptor.isFieldIgnored(COLUMN_FAMILY, IGNORE_FIELD));
+    }
+
+    @Test
+    public void shouldNotIgnoreNormalField() {
+        Assert.assertFalse(this.interceptor.isFieldIgnored(COLUMN_FAMILY, NORMAL_FIELD));
+    }
+
+    @Test
+    public void shouldIgnoreSpecificClsAnnt() {
+        Assert.assertTrue(this.interceptor.isClassAnnotationIgnored(COLUMN_FAMILY, IGNORE_CLASS_ANNOTATION));
+    }
+
+    @Test
+    public void shouldNotIgnoreSpecificClsAnnt() {
+        Assert.assertFalse(this.interceptor.isClassAnnotationIgnored(COLUMN_FAMILY, NORMAL_CLASS_ANNOTATION));
+    }
 }

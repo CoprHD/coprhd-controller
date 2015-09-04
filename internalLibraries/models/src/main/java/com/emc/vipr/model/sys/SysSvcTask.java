@@ -41,8 +41,9 @@ public class SysSvcTask {
     private Calendar endTime;
     private ServiceErrorRestRep serviceError;
 
-    public SysSvcTask() {}
-    
+    public SysSvcTask() {
+    }
+
     public SysSvcTask(String opId, NamedRelatedResourceRep resource,
             String message, String state, String description,
             Calendar startTime, Calendar endTime,
@@ -66,7 +67,7 @@ public class SysSvcTask {
         this.opId = opId;
     }
 
-    @XmlElement (name = "resource")
+    @XmlElement(name = "resource")
     public NamedRelatedResourceRep getResource() {
         return resource;
     }
@@ -75,7 +76,7 @@ public class SysSvcTask {
         this.resource = resource;
     }
 
-    @XmlElement (name = "message")
+    @XmlElement(name = "message")
     public String getMessage() {
         return message;
     }
@@ -84,7 +85,7 @@ public class SysSvcTask {
         this.message = message;
     }
 
-    @XmlElement (name = "state")
+    @XmlElement(name = "state")
     public String getState() {
         return state;
     }
@@ -93,7 +94,7 @@ public class SysSvcTask {
         this.state = state;
     }
 
-    @XmlElement (name = "description")
+    @XmlElement(name = "description")
     public String getDescription() {
         return description;
     }
@@ -102,7 +103,7 @@ public class SysSvcTask {
         this.description = description;
     }
 
-    @XmlElement (name = "start_time")
+    @XmlElement(name = "start_time")
     @XmlJavaTypeAdapter(CalendarAdapter.class)
     public Calendar getStartTime() {
         return startTime;
@@ -112,7 +113,7 @@ public class SysSvcTask {
         this.startTime = startTime;
     }
 
-    @XmlElement (name = "end_time")
+    @XmlElement(name = "end_time")
     @XmlJavaTypeAdapter(CalendarAdapter.class)
     public Calendar getEndTime() {
         return endTime;

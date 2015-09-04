@@ -39,19 +39,17 @@ import com.netflix.astyanax.serializers.StringSerializer;
 public class SimulatorDbClient extends DbClientImpl {
     private static final String QUOTA_INDEX = "QuotaIndex";
     private static final String ROW_KEY = "urn:quota:index";
-    private ColumnFamily<String, CompositeColumnName> _quotaIndexCF
-            = new ColumnFamily<String, CompositeColumnName>
-                    (QUOTA_INDEX, StringSerializer.get(), CompositeColumnNameSerializer.get());;
+    private ColumnFamily<String, CompositeColumnName> _quotaIndexCF = new ColumnFamily<String, CompositeColumnName>
+            (QUOTA_INDEX, StringSerializer.get(), CompositeColumnNameSerializer.get());;
 
     private static final String EXPORT_INDEX = "ExportIndex";
-    private ColumnFamily<String, CompositeColumnName> _exportCF
-            = new ColumnFamily<String, CompositeColumnName>
-                    (EXPORT_INDEX, StringSerializer.get(), CompositeColumnNameSerializer.get());
+    private ColumnFamily<String, CompositeColumnName> _exportCF = new ColumnFamily<String, CompositeColumnName>
+            (EXPORT_INDEX, StringSerializer.get(), CompositeColumnNameSerializer.get());
 
     /**
      * Store quota object
      *
-     * @param quota             quota object to be stored
+     * @param quota quota object to be stored
      */
     public void persistQuotaIndex(Quota quota) {
         if (quota == null)
@@ -76,8 +74,8 @@ public class SimulatorDbClient extends DbClientImpl {
     /**
      * Fetch quota from corresponding column
      *
-     * @param uri           quota id
-     * @return              quota object
+     * @param uri quota id
+     * @return quota object
      */
     public Quota queryQuotaIndex(URI uri) {
         Quota quota = null;
@@ -101,9 +99,9 @@ public class SimulatorDbClient extends DbClientImpl {
     /**
      * Page querying quota objects
      *
-     * @param uri           start quota id
-     * @param num           number per page
-     * @return              quota list
+     * @param uri start quota id
+     * @param num number per page
+     * @return quota list
      */
     public ArrayList<Quota> queryQuotaIndexByPage(URI uri, int num) {
         ArrayList<Quota> quotaList = new ArrayList<Quota>();
@@ -131,7 +129,7 @@ public class SimulatorDbClient extends DbClientImpl {
     /**
      * Delete quota
      *
-     * @param uri               quota id
+     * @param uri quota id
      */
     public void deleteQuotaIndex(URI uri) {
         try {
@@ -146,7 +144,7 @@ public class SimulatorDbClient extends DbClientImpl {
     /**
      * Store export
      *
-     * @param export            export object to be stored
+     * @param export export object to be stored
      * @return
      */
     public void persistExport(Export export) {
@@ -171,8 +169,8 @@ public class SimulatorDbClient extends DbClientImpl {
     /**
      * Query export object
      *
-     * @param uri               export key
-     * @return                  export object
+     * @param uri export key
+     * @return export object
      */
     public Export queryExport(URI uri) {
         Export export = null;

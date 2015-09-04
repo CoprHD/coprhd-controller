@@ -42,7 +42,7 @@ import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
  */
 public class HDSCreateMultiVolumeJob extends HDSAbstractCreateVolumeJob {
     private static final Logger _log = LoggerFactory.getLogger(HDSCreateMultiVolumeJob.class);
-    
+
     // These atomic references are for use in the volume rename step in processVolume
     private static final AtomicReference<NameGenerator> _nameGeneratorRef = new AtomicReference<NameGenerator>();
     private static final AtomicReference<CIMPropertyFactory> _propertyFactoryRef =
@@ -50,24 +50,23 @@ public class HDSCreateMultiVolumeJob extends HDSAbstractCreateVolumeJob {
     // Executor used for short-lived task to update
     // the volume names in the background
     private static final Executor _executor = Executors.newCachedThreadPool();
- 
+
     public HDSCreateMultiVolumeJob(String hdsJob,
-                                    URI storageSystem, URI storagePool, int count,
-                                    TaskCompleter taskCompleter) {
+            URI storageSystem, URI storagePool, int count,
+            TaskCompleter taskCompleter) {
         super(hdsJob, storageSystem, storagePool, taskCompleter, String.format("Create%dVolumes", count));
-        
+
         // Keep a reference to these singletons
         _nameGeneratorRef.compareAndSet(null,
                 (NameGenerator) ControllerServiceImpl.getBean("defaultNameGenerator"));
     }
-    
-    
+
     /**
      * Execute operations to rename the volume name, which will run in the background.
      *
-     * @param dbClient     [in] - Client for reading/writing from/to database.
-     * @param client       [in] - HDSApiClient for accessing Hitachi HiCommand DM data
-     * @param volume       [in] - Reference to Bourne's Volume object
+     * @param dbClient [in] - Client for reading/writing from/to database.
+     * @param client [in] - HDSApiClient for accessing Hitachi HiCommand DM data
+     * @param volume [in] - Reference to Bourne's Volume object
      */
     @Override
     void specificProcessing(final DbClient dbClient, final HDSApiClient client, final Volume volume) {
@@ -94,6 +93,6 @@ public class HDSCreateMultiVolumeJob extends HDSAbstractCreateVolumeJob {
                 }
             }
         });
-    } 
- 
+    }
+
 }

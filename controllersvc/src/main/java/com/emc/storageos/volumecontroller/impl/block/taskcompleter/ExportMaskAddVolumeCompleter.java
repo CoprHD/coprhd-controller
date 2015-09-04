@@ -38,7 +38,7 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
     private Map<URI, Integer> _volumeMap;
 
     public ExportMaskAddVolumeCompleter(URI egUri, URI emUri, Map<URI, Integer> volumes,
-                                        String task) {
+            String task) {
         super(ExportGroup.class, egUri, emUri, task);
         _volumes = new ArrayList<URI>();
         _volumes.addAll(volumes.keySet());
@@ -65,11 +65,11 @@ public class ExportMaskAddVolumeCompleter extends ExportTaskCompleter {
             if (exportMask != null && status == Operation.Status.ready) {
                 exportMask.addVolumes(_volumeMap);
                 exportGroup.addExportMask(exportMask.getId());
-                //CTRL-11544: Set the hlu in the export group too
+                // CTRL-11544: Set the hlu in the export group too
                 for (URI boURI : _volumeMap.keySet()) {
-                    if(exportMask.getCreatedBySystem() && exportMask.getVolumes() != null) {
+                    if (exportMask.getCreatedBySystem() && exportMask.getVolumes() != null) {
                         String hlu = exportMask.getVolumes().get(boURI.toString());
-                        _log.info("Volume {} , HLU : {}",boURI, hlu);
+                        _log.info("Volume {} , HLU : {}", boURI, hlu);
                         exportGroup.addVolume(boURI, Integer.parseInt(hlu));
                     }
                 }

@@ -26,10 +26,11 @@ public class NetworkSystemRestRep extends DiscoveredSystemObjectRestRep {
     private String version;
     private String uptime;
 
-    public NetworkSystemRestRep() {}
-    
+    public NetworkSystemRestRep() {
+    }
+
     /**
-     * The system's management IP address 
+     * The system's management IP address
      *
      * @valid none
      */
@@ -57,7 +58,7 @@ public class NetworkSystemRestRep extends DiscoveredSystemObjectRestRep {
     }
 
     /**
-     * The system's backup management IP address 
+     * The system's backup management IP address
      *
      * @valid none
      */

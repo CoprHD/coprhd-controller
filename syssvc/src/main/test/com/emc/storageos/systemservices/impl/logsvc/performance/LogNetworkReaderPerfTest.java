@@ -49,17 +49,19 @@ public class LogNetworkReaderPerfTest {
 
     @Test
     public void testPerformance() {
-        List<String> svcs = new ArrayList<String>() {{
-            add("controllersvc");
-            add("coordinatorsvc");
-            add("apisvc");
-        }};
+        List<String> svcs = new ArrayList<String>() {
+            {
+                add("controllersvc");
+                add("coordinatorsvc");
+                add("apisvc");
+            }
+        };
         int bufSize = 1024 * 64;
         LogRequest req = new LogRequest.Builder().baseNames(svcs).build();
         final LogNetworkWriter writer = new LogNetworkWriter(req, propertiesLoader);
         try (final PipedOutputStream out = new PipedOutputStream();
-             final BufferedOutputStream outputStream = new BufferedOutputStream(out, bufSize);
-             final PipedInputStream inputStream = new PipedInputStream(out)) {
+                final BufferedOutputStream outputStream = new BufferedOutputStream(out, bufSize);
+                final PipedInputStream inputStream = new PipedInputStream(out)) {
             LogNetworkReader reader = new LogNetworkReader("vipr1", inputStream,
                     new LogStatusInfo());
 
@@ -74,8 +76,7 @@ public class LogNetworkReaderPerfTest {
                                 e.printStackTrace();
                             }
                         }
-                    }
-            ).start();
+                    }).start();
             LogMessage log = null;
             while ((log = reader.readNextLogMessage()) != null) {
                 totalSize += log.toStringOriginalFormat().getBytes().length;

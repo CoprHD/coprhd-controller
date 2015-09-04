@@ -56,12 +56,12 @@ public class ExtendBlockVolumeService extends WindowsService {
         for (ExtendDriveHelper extendDriveHelper : extendDriveHelpers) {
             extendDriveHelper.extendDrives();
         }
-        
+
         if (hostId != null) {
             ExecutionUtils.addAffectedResource(hostId.toString());
         }
     }
-    
+
     private long getVolumeCapacityInBytes(Double size) {
         return size.longValue() * 1024 * 1024 * 1024;
     }

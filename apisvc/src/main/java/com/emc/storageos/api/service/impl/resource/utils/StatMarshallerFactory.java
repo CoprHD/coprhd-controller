@@ -31,7 +31,7 @@ public final class StatMarshallerFactory {
         } else if (MediaType.APPLICATION_XML_TYPE.equals(type)) {
             return new XMLStatMarshaller();
         } else {
-        	throw APIException.badRequests.unableToCreateMarshallerForMediaType(type.toString());  
+            throw APIException.badRequests.unableToCreateMarshallerForMediaType(type.toString());
         }
     }
 }

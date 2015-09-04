@@ -35,8 +35,7 @@ public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFac
     @Autowired(required = false)
     private SecurityDisabler _disabler;
 
-    private @Context
-    UriInfo uriInfo;
+    private @Context UriInfo uriInfo;
 
     /**
      * PermissionsFilter for apisvc
@@ -53,13 +52,14 @@ public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFac
 
         /**
          * Get tenant id from the uri
+         * 
          * @return
          */
-        @Override      
+        @Override
         protected URI getTenantIdFromURI(UriInfo uriInfo) {
             return null;
         }
-        
+
         @Override
         protected URI getProjectIdFromURI(UriInfo uriInfo) {
             return null;
@@ -73,6 +73,7 @@ public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFac
 
     /**
      * Setter for permissions helper object
+     * 
      * @param permissionsHelper
      */
     public void setPermissionsHelper(BasePermissionsHelper permissionsHelper) {
@@ -96,7 +97,7 @@ public class SyssvcPermissionsFilterFactory extends AbstractPermissionsFilterFac
 
     @Override
     protected AbstractPermissionFilter getPermissionsFilter(Role[] roles, ACL[] acls, boolean blockProxies, Class resourceClazz) {
-        return new SyssvcPermissionFilter(roles, acls, blockProxies, resourceClazz,_permissionsHelper);
+        return new SyssvcPermissionFilter(roles, acls, blockProxies, resourceClazz, _permissionsHelper);
     }
 
     @Override

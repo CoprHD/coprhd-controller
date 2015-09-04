@@ -15,7 +15,6 @@
 
 package controllers.util;
 
-
 import com.emc.storageos.coordinator.client.model.Constants;
 import com.emc.storageos.coordinator.client.service.NodeListener;
 import org.slf4j.Logger;

@@ -28,24 +28,24 @@ import com.google.common.net.InetAddresses;
  *
  */
 public final class DnsUtils {
-    
+
     private static final String CONTEXT_ATTRIBUTE_A = "A";
-    
+
     private static final String NAMING_FACTORY_KEY = "java.naming.factory.initial";
-    
+
     private static final String NAMING_FACTORY_VALUE = "com.sun.jndi.dns.DnsContextFactory";
-    
+
     private static final String NAMING_PROVIDER_URL_KEY = "java.naming.provider.url";
-    
+
     private static final String DNS_URL_FORMAT = "dns://%s";
 
     /**
      * Resolves a host IP address given DNS servers and FQDN host
      * 
      * @param dnsServers
-     *        set of DNS server IP addresses.
+     *            set of DNS server IP addresses.
      * @param hostname
-     *        the fully qualified hostname to lookup.
+     *            the fully qualified hostname to lookup.
      * @return the ip address of the fully qualified host
      */
     public static final InetAddress getHostIpAddress(Set<String> dnsServers, String hostname) {
@@ -57,8 +57,7 @@ public final class DnsUtils {
             try {
                 Attribute attr = getAttribute(dnsServer, hostname, CONTEXT_ATTRIBUTE_A);
                 return InetAddress.getByName((String) attr.get());
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 Logger.error(e, "Could not lookup IP address of '%s' using nameserver '%s'", hostname, dnsServer);
                 error = new ViPRException(e.getMessage(), e);
             }
@@ -76,9 +75,9 @@ public final class DnsUtils {
      * Validates the hostname against a number of DNS servers.
      * 
      * @param dnsServers
-     *        the collection of DNS servers.
+     *            the collection of DNS servers.
      * @param hostname
-     *        the hostname to validate.
+     *            the hostname to validate.
      * @return true if the hostname is valid.
      */
     public static boolean validateHostname(Collection<String> dnsServers, String hostname) {
@@ -100,12 +99,10 @@ public final class DnsUtils {
     public static boolean validateHostname(final String dnsServer, final String hostname) {
         try {
             getAttribute(dnsServer, hostname, CONTEXT_ATTRIBUTE_A);
-        }
-        catch (NamingException e) {
+        } catch (NamingException e) {
             Logger.error(e, e.getMessage());
             return false;
-        }
-        catch (UnknownHostException e) {
+        } catch (UnknownHostException e) {
             Logger.error(e, e.getMessage());
             return false;
         }

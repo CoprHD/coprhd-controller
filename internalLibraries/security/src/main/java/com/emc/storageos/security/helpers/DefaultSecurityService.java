@@ -27,7 +27,7 @@ public class DefaultSecurityService implements SecurityService {
     @Override
     public byte[] loadPrivateKeyFromPEMString(String pemKey) throws Exception {
 
-        if (! PEMUtil.isPKCS8Key(pemKey)) {
+        if (!PEMUtil.isPKCS8Key(pemKey)) {
             throw new Exception("Only PKCS8 is supported");
         }
 

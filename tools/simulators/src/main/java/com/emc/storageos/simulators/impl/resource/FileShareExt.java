@@ -58,7 +58,7 @@ public class FileShareExt extends BaseResource {
     }
 
     @GET
-    @Produces({MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_JSON })
     @Path("/count/{subResources:.*}")
     public Response getFileSharesCount(@QueryParam("recursive") @DefaultValue("0") String recursive) {
         String dir = _uriInfo.getPath().substring("/helper/1/count".length());
@@ -73,7 +73,7 @@ public class FileShareExt extends BaseResource {
     }
 
     @GET
-    @Produces({MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_JSON })
     @Path("/list/{subResources:.*}")
     public Response getFileSharesRecursive() {
         String dir = _uriInfo.getPath().substring("/helper/1/list".length());
@@ -98,8 +98,9 @@ public class FileShareExt extends BaseResource {
 
     /**
      * Get directory list recursively
-     * @param   dir  root directory
-     * @return  sub directory list
+     * 
+     * @param dir root directory
+     * @return sub directory list
      */
     private ArrayList<String> getListDirRecursive(String dir) {
         ArrayList<String> list = new ArrayList<String>();

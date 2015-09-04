@@ -29,17 +29,16 @@ import java.util.Map;
 @Path("/platform/1/protocols/nfs/exports")
 public class Export extends BaseResource {
     private static Logger _log = LoggerFactory.getLogger(Export.class);
-    
+
     @GET
-    @Produces({MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_JSON })
     public Response listExports() {
         return Response.serverError().entity(StandardResponse.getErrorResponse("Not implemented")).build();
     }
-    
-    
+
     @GET
     @Path("/{id}")
-    @Produces({MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_JSON })
     public Response getExport(@PathParam("id") String id) {
         try {
             IsilonExport isilonExport = _objectStore.getExport(id);
@@ -53,14 +52,14 @@ public class Export extends BaseResource {
             _log.info("Export get: " + id);
 
             return Response.status(200).entity(new Gson().toJson(map)).build();
-        } catch(Exception e) {
+        } catch (Exception e) {
             _log.error("getExport exception. id : " + id, e);
             return Response.serverError().entity(StandardResponse.getErrorResponse(e.getMessage())).build();
         }
     }
 
     @POST
-    @Produces({MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_JSON })
     public Response createExport(String obj) {
         try {
             IsilonExport exp = new Gson().fromJson(obj, IsilonExport.class);
@@ -69,12 +68,12 @@ public class Export extends BaseResource {
             if (exp.getMap_all() != null && exp.getMap_root() != null)
                 return Response.serverError().entity(StandardResponse.getErrorResponse("invalid parameters")).build();
 
-            String id =  _objectStore.createExport(exp);
+            String id = _objectStore.createExport(exp);
 
             _log.info("Export post: " + id + " obj: " + obj);
 
             return Response.ok(StandardResponse.getSuccessIdResponse(id)).build();
-        } catch(Exception e) {
+        } catch (Exception e) {
             _log.error("createExport exception. obj : " + obj, e);
             return Response.serverError().entity(StandardResponse.getErrorResponse(e.getMessage())).build();
         }
@@ -89,7 +88,7 @@ public class Export extends BaseResource {
             _log.info("Export delete: " + id);
 
             return Response.ok().build();
-        } catch(Exception e) {
+        } catch (Exception e) {
             _log.error("deleteExport exception. id : " + id, e);
             return Response.serverError().entity(StandardResponse.getErrorResponse(e.getMessage())).build();
         }
@@ -97,7 +96,7 @@ public class Export extends BaseResource {
 
     @PUT
     @Path("/{id}")
-    @Produces({MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_JSON })
     public Response modifyExport(@PathParam("id") String id, String obj) {
         try {
             IsilonExport exp = new Gson().fromJson(obj, IsilonExport.class);
@@ -106,10 +105,10 @@ public class Export extends BaseResource {
             _log.info("Export modify: " + id + " obj: " + obj);
 
             return Response.status(204).build();
-        }  catch(Exception e) {
+        } catch (Exception e) {
             _log.error("modifyExport exception. id : " + id + ", obj : " + obj, e);
             return Response.serverError().entity(StandardResponse.getErrorResponse(e.getMessage())).build();
         }
     }
-    
+
 }

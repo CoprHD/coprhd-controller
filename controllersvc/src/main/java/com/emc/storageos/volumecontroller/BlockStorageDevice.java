@@ -55,8 +55,8 @@ public interface BlockStorageDevice {
      */
     public void doCreateVolumes(StorageSystem storage, StoragePool storagePool, String opId,
             List<Volume> volumes, VirtualPoolCapabilityValuesWrapper capabilities,
-                                TaskCompleter taskCompleter) throws DeviceControllerException;
-    
+            TaskCompleter taskCompleter) throws DeviceControllerException;
+
     /**
      * Modifies one or more volumes.
      * 
@@ -93,8 +93,8 @@ public interface BlockStorageDevice {
      * @throws DeviceControllerException
      */
     public void doCreateMetaVolumes(StorageSystem storage, StoragePool storagePool, List<Volume> volumes,
-                                   VirtualPoolCapabilityValuesWrapper capabilities,
-                                   MetaVolumeRecommendation recommendation, TaskCompleter completer)
+            VirtualPoolCapabilityValuesWrapper capabilities,
+            MetaVolumeRecommendation recommendation, TaskCompleter completer)
             throws DeviceControllerException;
 
     /**
@@ -113,12 +113,12 @@ public interface BlockStorageDevice {
      * @param completer
      *            The completer invoked when the operation completes.
      * @throws DeviceControllerException
-      */
+     */
     public void doCreateMetaVolume(StorageSystem storage, StoragePool storagePool, Volume volume,
-                                 VirtualPoolCapabilityValuesWrapper capabilities,
+            VirtualPoolCapabilityValuesWrapper capabilities,
             MetaVolumeRecommendation recommendation, VolumeCreateCompleter completer)
             throws DeviceControllerException;
-    
+
     /**
      * @param storage
      *            storage object operation is being performed on
@@ -126,8 +126,8 @@ public interface BlockStorageDevice {
      * @throws DeviceControllerException
      */
     public void doExpandVolume(StorageSystem storage, StoragePool pool, Volume volume, Long size,
-                               TaskCompleter taskCompleter) throws DeviceControllerException;
-    
+            TaskCompleter taskCompleter) throws DeviceControllerException;
+
     /**
      * @param storageSystem
      * @param storagePool
@@ -140,7 +140,7 @@ public interface BlockStorageDevice {
     public void doExpandAsMetaVolume(StorageSystem storageSystem, StoragePool storagePool,
             Volume volume, long size, MetaVolumeRecommendation recommendation,
             VolumeExpandCompleter volumeCompleter) throws DeviceControllerException;
-    
+
     /**
      * Deletes one or more volumes on the same storage system.
      * 
@@ -155,8 +155,8 @@ public interface BlockStorageDevice {
      * @throws DeviceControllerException
      */
     public void doDeleteVolumes(StorageSystem storageSystem, String opId, List<Volume> volumes,
-                                TaskCompleter completer) throws DeviceControllerException;
-    
+            TaskCompleter completer) throws DeviceControllerException;
+
     /**
      * Export one or more volumes for the ExportMask. The volumeToExports parameter has all the
      * information required to do the add volumes operation.
@@ -177,8 +177,8 @@ public interface BlockStorageDevice {
      */
     public void doExportGroupCreate(StorageSystem storage, ExportMask exportMask,
             Map<URI, Integer> volumeMap, List<Initiator> initiators, List<URI> targets,
-                                    TaskCompleter taskCompleter) throws DeviceControllerException;
-    
+            TaskCompleter taskCompleter) throws DeviceControllerException;
+
     /**
      * Delete an export group and all associated mappings that exists at the storage systems
      * 
@@ -189,8 +189,8 @@ public interface BlockStorageDevice {
      * @throws DeviceControllerException
      */
     public void doExportGroupDelete(StorageSystem storage, ExportMask exportMask,
-                                    TaskCompleter taskCompleter) throws DeviceControllerException;
-    
+            TaskCompleter taskCompleter) throws DeviceControllerException;
+
     /**
      * Add one or more volumes to the ExportMask.
      * 
@@ -204,7 +204,7 @@ public interface BlockStorageDevice {
      */
     public void doExportAddVolume(StorageSystem storage, ExportMask exportMask, URI volume,
             Integer lun, TaskCompleter taskCompleter) throws DeviceControllerException;
-    
+
     /**
      * Add one or more volumes to the ExportMask.
      * 
@@ -218,7 +218,7 @@ public interface BlockStorageDevice {
     public void doExportAddVolumes(StorageSystem storage, ExportMask exportMask,
             Map<URI, Integer> volumes, TaskCompleter taskCompleter)
             throws DeviceControllerException;
-    
+
     /**
      * Remove one or more volumes for the ExportMask. The volumeToExports parameter has all the
      * information required to do the remove volumes operation.
@@ -234,8 +234,8 @@ public interface BlockStorageDevice {
      * @throws DeviceControllerException
      */
     public void doExportRemoveVolume(StorageSystem storage, ExportMask exportMask, URI volume,
-                                     TaskCompleter taskCompleter) throws DeviceControllerException;
-    
+            TaskCompleter taskCompleter) throws DeviceControllerException;
+
     /**
      * @param storage
      * @param exportMask
@@ -245,7 +245,7 @@ public interface BlockStorageDevice {
      */
     public void doExportRemoveVolumes(StorageSystem storage, ExportMask exportMask,
             List<URI> volumes, TaskCompleter taskCompleter) throws DeviceControllerException;
-    
+
     /**
      * Add one or more initiators to the export group.
      * 
@@ -264,7 +264,7 @@ public interface BlockStorageDevice {
     public void doExportAddInitiator(StorageSystem storage, ExportMask exportMask,
             Initiator initiator, List<URI> targets, TaskCompleter taskCompleter)
             throws DeviceControllerException;
-    
+
     /**
      * @param storage
      * @param exportMask
@@ -275,7 +275,7 @@ public interface BlockStorageDevice {
     public void doExportAddInitiators(StorageSystem storage, ExportMask exportMask,
             List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
             throws DeviceControllerException;
-    
+
     /**
      * Remove one or more initiators from the export group.
      * 
@@ -294,7 +294,7 @@ public interface BlockStorageDevice {
     public void doExportRemoveInitiator(StorageSystem storage, ExportMask exportMask,
             Initiator initiator, List<URI> targets, TaskCompleter taskCompleter)
             throws DeviceControllerException;
-    
+
     /**
      * @param storage
      * @param exportMask
@@ -305,7 +305,7 @@ public interface BlockStorageDevice {
     public void doExportRemoveInitiators(StorageSystem storage, ExportMask exportMask,
             List<Initiator> initiators, List<URI> targets, TaskCompleter taskCompleter)
             throws DeviceControllerException;
-    
+
     /**
      * @param storage
      * @param snapshotList
@@ -314,7 +314,7 @@ public interface BlockStorageDevice {
      */
     public void doCreateSnapshot(StorageSystem storage, List<URI> snapshotList,
             Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
-    
+
     /**
      * Activate a snapshot. Activation means that the source and target synchronization will be
      * established.
@@ -326,7 +326,7 @@ public interface BlockStorageDevice {
      */
     public void doActivateSnapshot(StorageSystem storage, List<URI> snapshotList,
             TaskCompleter taskCompleter) throws DeviceControllerException;
-    
+
     /**
      * @param storage
      * @param snapshot
@@ -335,10 +335,10 @@ public interface BlockStorageDevice {
      */
     public void doDeleteSnapshot(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException;
-    
+
     public void doRestoreFromSnapshot(StorageSystem storage, URI volume, URI snapshot,
-                                      TaskCompleter taskCompleter) throws DeviceControllerException;
-    
+            TaskCompleter taskCompleter) throws DeviceControllerException;
+
     /**
      * Create a mirror for a volume.
      *
@@ -350,7 +350,7 @@ public interface BlockStorageDevice {
      */
     public void doCreateMirror(StorageSystem storage, URI mirror, Boolean createInactive,
             TaskCompleter taskCompleter) throws DeviceControllerException;
-    
+
     /**
      * Create group mirrors for volumes in a CG.
      *
@@ -429,7 +429,7 @@ public interface BlockStorageDevice {
      */
     public void doResumeGroupNativeContinuousCopies(StorageSystem storage, List<URI> mirrorList,
             TaskCompleter taskCompleter) throws DeviceControllerException;
-    
+
     /**
      * Delete a mirror for a volume.
      * 
@@ -451,7 +451,7 @@ public interface BlockStorageDevice {
      */
     public void doDeleteGroupMirrors(StorageSystem storage, List<URI> mirrorList, TaskCompleter taskCompleter)
             throws DeviceControllerException;
-    
+
     /**
      * Create a clone of an existing source volume.
      * 
@@ -462,8 +462,8 @@ public interface BlockStorageDevice {
      * @param taskCompleter
      */
     public void doCreateClone(StorageSystem storageSystem, URI sourceVolume, URI cloneVolume,
-                              Boolean createInactive, TaskCompleter taskCompleter);
-    
+            Boolean createInactive, TaskCompleter taskCompleter);
+
     /**
      * Create a clone for a consisstency group.
      * 
@@ -473,9 +473,8 @@ public interface BlockStorageDevice {
      * @param taskCompleter
      */
     public void doCreateGroupClone(StorageSystem storageSystem, List<URI> cloneVolumes,
-                              Boolean createInactive, TaskCompleter taskCompleter);
-    
-    
+            Boolean createInactive, TaskCompleter taskCompleter);
+
     /**
      * Detach a cloned volume from its source volume.
      * 
@@ -484,7 +483,7 @@ public interface BlockStorageDevice {
      * @param taskCompleter
      */
     public void doDetachClone(StorageSystem storage, URI cloneVolume, TaskCompleter taskCompleter);
-    
+
     /**
      * Detach a cloned volume in a consistency group.
      * 
@@ -493,7 +492,7 @@ public interface BlockStorageDevice {
      * @param taskCompleter
      */
     public void doDetachGroupClone(StorageSystem storage, List<URI> cloneVolume, TaskCompleter taskCompleter);
-    
+
     /**
      * Creates group relation between volume group and full copy group.
      *
@@ -505,7 +504,7 @@ public interface BlockStorageDevice {
      */
     public void doEstablishVolumeFullCopyGroupRelation(StorageSystem storage, URI sourceVolume,
             URI fullCopy, TaskCompleter taskCompleter) throws DeviceControllerException;
-    
+
     /**
      * Restore from a clone.
      * 
@@ -514,7 +513,7 @@ public interface BlockStorageDevice {
      * @param taskCompleter
      */
     public void doRestoreFromClone(StorageSystem storageSystem, URI cloneVolume, TaskCompleter taskCompleter);
-    
+
     /**
      * Restore from a clone in a consistency group.
      * 
@@ -523,8 +522,8 @@ public interface BlockStorageDevice {
      * @param taskCompleter
      */
     public void doRestoreFromGroupClone(StorageSystem storageSystem, List<URI> cloneVolume,
-                                    TaskCompleter taskCompleter);
-    
+            TaskCompleter taskCompleter);
+
     /**
      * Create a consistency group in the given StorageSystem
      * 
@@ -534,7 +533,7 @@ public interface BlockStorageDevice {
      */
     public void doCreateConsistencyGroup(StorageSystem storage, URI consistencyGroup,
             TaskCompleter taskCompleter) throws DeviceControllerException;
-    
+
     /**
      * Delete a consistency group in the given StorageSystem
      * 
@@ -545,7 +544,7 @@ public interface BlockStorageDevice {
      */
     public void doDeleteConsistencyGroup(StorageSystem storage, URI consistencyGroup,
             Boolean markInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
-    
+
     /**
      * Connect the device - called when a new device is added
      * 
@@ -555,9 +554,9 @@ public interface BlockStorageDevice {
      * @throws ControllerException
      */
     public void doConnect(StorageSystem storage);
-    
+
     /**
-     * Disconnect the device  - called when a device is being removed
+     * Disconnect the device - called when a device is being removed
      * 
      * @param storage
      *            storage device object
@@ -565,8 +564,8 @@ public interface BlockStorageDevice {
      * @throws ControllerException
      */
     public void doDisconnect(StorageSystem storage);
-    
-   /**
+
+    /**
      * Add a new Storage System to an SMIS Provider.
      * 
      * @param storage
@@ -574,7 +573,7 @@ public interface BlockStorageDevice {
      * @throws DeviceControllerException
      */
     public String doAddStorageSystem(StorageSystem storage) throws DeviceControllerException;
-    
+
     /**
      * Remove a Storage System from an SMIS Provider.
      * 
@@ -583,7 +582,7 @@ public interface BlockStorageDevice {
      * @throws DeviceControllerException
      */
     public void doRemoveStorageSystem(StorageSystem storage) throws DeviceControllerException;
-    
+
     /**
      * Implementation should attach an inactive CG blocksnapshot set to target devices.
      * 
@@ -596,7 +595,7 @@ public interface BlockStorageDevice {
      */
     public void doCopySnapshotsToTarget(StorageSystem storage, List<URI> snapshotList,
             TaskCompleter taskCompleter) throws DeviceControllerException;
-    
+
     /**
      * This call can be used to look up the passed in initiator/port names and find (if any) to
      * which export masks they belong on the 'storage' array.
@@ -608,12 +607,12 @@ public interface BlockStorageDevice {
      * @param mustHaveAllPorts
      *            [in] Indicates if true, *all* the passed in initiators have to be in the existing
      *            matching mask. If false, a mask with *any* of the specified initiators will be
-     *                         considered a hit.
+     *            considered a hit.
      * @return Map of port name to Set of ExportMask URIs
      */
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
             List<String> initiatorNames, boolean mustHaveAllPorts);
-    
+
     /**
      * This call will be used to update the ExportMask with the latest data from the array.
      * 
@@ -624,7 +623,7 @@ public interface BlockStorageDevice {
      * @return instance of ExportMask object that has been refreshed with data from the array.
      */
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask);
-    
+
     /**
      * Activates a full copy volume.
      * 
@@ -634,7 +633,7 @@ public interface BlockStorageDevice {
      */
     public void doActivateFullCopy(StorageSystem storageSystem, URI fullCopy,
             TaskCompleter completer);
-    
+
     /**
      * Activates a full copy volume in a consistency group.
      * 
@@ -644,6 +643,7 @@ public interface BlockStorageDevice {
      */
     public void doActivateGroupFullCopy(StorageSystem storageSystem, List<URI> fullCopy,
             TaskCompleter completer);
+
     /**
      * Cleanups meta member volumes of meta volume in array.
      * 
@@ -654,7 +654,7 @@ public interface BlockStorageDevice {
      */
     public void doCleanupMetaMembers(StorageSystem storageSystem, Volume volume,
             CleanupMetaVolumeMembersCompleter cleanupCompleter) throws DeviceControllerException;
-    
+
     /**
      * Gets synchronization details between source and target block objects.
      * 
@@ -664,9 +664,9 @@ public interface BlockStorageDevice {
      * @return percent of synchronization
      */
     public Integer checkSyncProgress(URI storage, URI source, URI target);
-    
+
     /**
-     * Poll the synchronization state of a replication relationship.  Mark the task completer as
+     * Poll the synchronization state of a replication relationship. Mark the task completer as
      * ready when the synchronized state has been reached.
      * 
      * @param storageObj
@@ -675,9 +675,9 @@ public interface BlockStorageDevice {
      */
     public void doWaitForSynchronized(Class<? extends BlockObject> clazz, StorageSystem storageObj,
             URI target, TaskCompleter completer);
-    
+
     /**
-     * Poll the synchronization state of a group replication relationship.  Mark the task completer as
+     * Poll the synchronization state of a group replication relationship. Mark the task completer as
      * ready when the synchronized state has been reached.
      * 
      * @param storageObj
@@ -686,10 +686,10 @@ public interface BlockStorageDevice {
      */
     public void doWaitForGroupSynchronized(StorageSystem storageObj,
             List<URI> target, TaskCompleter completer);
-    
+
     public void doAddToConsistencyGroup(StorageSystem storage, URI consistencyGroupId,
             List<URI> blockObjects, TaskCompleter taskCompleter) throws DeviceControllerException;
-        
+
     public void doRemoveFromConsistencyGroup(StorageSystem storage, URI consistencyGroupId,
             List<URI> blockObjects, TaskCompleter taskCompleter) throws DeviceControllerException;
 
@@ -735,8 +735,8 @@ public interface BlockStorageDevice {
      * @param completer the task completer
      */
     public void doTerminateAnyRestoreSessions(StorageSystem storageDevice, URI source, BlockObject snapshot,
-                                              TaskCompleter completer) throws Exception;
-    
+            TaskCompleter completer) throws Exception;
+
     /**
      * Creates group relation between volume group and mirror group.
      *
@@ -751,7 +751,7 @@ public interface BlockStorageDevice {
 
     /**
      * For mirrors associated with SRDF volumes, remove the mirrors
-     *  from device masking group equivalent to its Replication group.
+     * from device masking group equivalent to its Replication group.
      *
      * @param system the system
      * @param mirrors the mirror list
@@ -767,9 +767,9 @@ public interface BlockStorageDevice {
      * @param clone the restored clone
      * @param completer the task completer
      */
-    public void doFractureClone(StorageSystem storageDevice, URI source, URI clone, 
-                                              TaskCompleter completer) throws Exception;
-    
+    public void doFractureClone(StorageSystem storageDevice, URI source, URI clone,
+            TaskCompleter completer) throws Exception;
+
     /**
      * Fracture group clone.
      *
@@ -778,9 +778,9 @@ public interface BlockStorageDevice {
      * @param clone the restored clone
      * @param completer the task completer
      */
-    public void doFractureGroupClone(StorageSystem storageDevice, List<URI> clone, 
-                                              TaskCompleter completer) throws Exception;
-    
+    public void doFractureGroupClone(StorageSystem storageDevice, List<URI> clone,
+            TaskCompleter completer) throws Exception;
+
     /**
      * Resync clone.
      *
@@ -790,8 +790,8 @@ public interface BlockStorageDevice {
      * @param completer the task completer
      */
     public void doResyncClone(StorageSystem storageDevice, URI clone,
-                                              TaskCompleter completer) throws Exception;
-    
+            TaskCompleter completer) throws Exception;
+
     /**
      * Resync clone.
      *
@@ -800,6 +800,6 @@ public interface BlockStorageDevice {
      * @param clone the restored clone
      * @param completer the task completer
      */
-    public void doResyncGroupClone(StorageSystem storageDevice,  List<URI> clone,
-                                              TaskCompleter completer) throws Exception;
+    public void doResyncGroupClone(StorageSystem storageDevice, List<URI> clone,
+            TaskCompleter completer) throws Exception;
 }

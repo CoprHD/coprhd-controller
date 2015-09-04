@@ -24,6 +24,7 @@ import com.emc.vipr.model.catalog.ExecutionInfo;
 import com.emc.vipr.model.catalog.OrderInfo;
 import com.emc.vipr.model.catalog.Reference;
 import com.sun.jersey.api.client.GenericType;
+
 /**
  * 
  * @deprecated Replaced by
@@ -77,8 +78,8 @@ public class Orders extends AbstractBulkResources<OrderInfo> {
             endTime = end.getTime();
         }
         return listByTimeRange(startTime, endTime);
-    }    
-    
+    }
+
     /**
      * Retrieves all order references for a specific time range.
      * <p>
@@ -95,9 +96,10 @@ public class Orders extends AbstractBulkResources<OrderInfo> {
         if (endTime != null) {
             builder.queryParam("endTime", endTime);
         }
-        return getApiListUri(client, new GenericType<List<Reference>>() {}, builder.build());
-    }     
-    
+        return getApiListUri(client, new GenericType<List<Reference>>() {
+        }, builder.build());
+    }
+
     /**
      * Retrieves all orders for a specific time range.
      * <p>
@@ -109,8 +111,8 @@ public class Orders extends AbstractBulkResources<OrderInfo> {
     public List<OrderInfo> getByTimeRange(Date start, Date end) {
         List<Reference> apiList = listByTimeRange(start, end);
         return getByRefs(apiList);
-    }    
-    
+    }
+
     /**
      * Retrieves all orders for a specific time range.
      * <p>
@@ -122,8 +124,8 @@ public class Orders extends AbstractBulkResources<OrderInfo> {
     public List<OrderInfo> getByTimeRange(Long startTime, Long endTime) {
         List<Reference> apiList = listByTimeRange(startTime, endTime);
         return getByRefs(apiList);
-    }            
-    
+    }
+
     /**
      * Retrieves the execution info for the specified order.
      * <p>
@@ -139,7 +141,8 @@ public class Orders extends AbstractBulkResources<OrderInfo> {
 
     @Override
     protected List<OrderInfo> getBulkResources(BulkIdParam input) {
-        List<OrderInfo> orders = postApiList(client, input, new GenericType<List<OrderInfo>>() {}, getBulkUrl());
+        List<OrderInfo> orders = postApiList(client, input, new GenericType<List<OrderInfo>>() {
+        }, getBulkUrl());
         return orders;
     }
 }

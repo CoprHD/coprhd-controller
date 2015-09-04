@@ -95,7 +95,7 @@ public class VirtualArrays extends ViprResourceController {
      * Simple create and save operation that takes only the name.
      * 
      * @param name
-     *        Name of the virtual array
+     *            Name of the virtual array
      */
     @FlashException("list")
     public static void createSimple(String name) {
@@ -117,7 +117,7 @@ public class VirtualArrays extends ViprResourceController {
      * Displays the page for editing an existing virtual array.
      * 
      * @param id
-     *        the virtual array ID.
+     *            the virtual array ID.
      */
     public static void edit(String id) {
         VirtualArrayRestRep virtualArray = getVirtualArray(id);
@@ -131,7 +131,7 @@ public class VirtualArrays extends ViprResourceController {
      * or to the list page.
      * 
      * @param id
-     *        the virtual array ID.
+     *            the virtual array ID.
      * @return the virtual array.
      */
     @Util
@@ -149,7 +149,7 @@ public class VirtualArrays extends ViprResourceController {
      * Shows the edit page for a virtual array form.
      * 
      * @param virtualArray
-     *        the virtual array form.
+     *            the virtual array form.
      */
     private static void edit(VirtualArrayForm virtualArray) {
         Map<Boolean, String> autoSanZoningOptions = Maps.newHashMap();
@@ -179,9 +179,9 @@ public class VirtualArrays extends ViprResourceController {
      * Saves a virtual array.
      * 
      * @param virtualArray
-     *        the virtual array.
+     *            the virtual array.
      */
-    @FlashException(referrer={"createSimple","edit","list"})
+    @FlashException(referrer = { "createSimple", "edit", "list" })
     public static void save(VirtualArrayForm virtualArray) {
         if (virtualArray == null) {
             list();
@@ -193,7 +193,7 @@ public class VirtualArrays extends ViprResourceController {
 
         VirtualArrayRestRep varray = virtualArray.save();
         if (TenantUtils.canReadAllTenants() && VirtualArrayUtils.canUpdateACLs()) {
-            saveTenantACLs(varray.getId().toString(),virtualArray.tenants);
+            saveTenantACLs(varray.getId().toString(), virtualArray.tenants);
         }
         flash.success(MessagesUtils.get(SAVED_SUCCESS, virtualArray.name));
         backToReferrer();
@@ -204,9 +204,9 @@ public class VirtualArrays extends ViprResourceController {
      * Saves tenant ACLs on the virtual array.
      * 
      * @param virtualArrayId
-     *        the virtual array ID.
+     *            the virtual array ID.
      * @param tenants
-     *        the tenant ACLs.
+     *            the tenant ACLs.
      */
     private static void saveTenantACLs(String virtualArrayId, List<String> tenants) {
         Set<String> tenantIds = Sets.newHashSet();
@@ -218,8 +218,7 @@ public class VirtualArrays extends ViprResourceController {
 
         try {
             VirtualArrayUtils.updateACLs(virtualArrayId, builder.getACLUpdate());
-        }
-        catch (ViPRException e) {
+        } catch (ViPRException e) {
             Logger.error(e, "Failed to update Virtual Array ACLs");
             String errorDesc = e.getMessage();
             if (e instanceof ServiceErrorException) {
@@ -243,8 +242,7 @@ public class VirtualArrays extends ViprResourceController {
     public static void listJson() {
         try {
             performListJson(VirtualArrayUtils.getVirtualArrays(), new JsonItemOperation());
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             renderJSON(DataTablesSupport.createJSON(Collections.emptyList(), params, getUserMessage(e)));
         }
     }
@@ -253,7 +251,7 @@ public class VirtualArrays extends ViprResourceController {
      * Renders the details of a single virtual array.
      * 
      * @param id
-     *        the virtual array ID.
+     *            the virtual array ID.
      */
     public static void itemDetails(String id) {
         VirtualArrayRestRep virtualArray = VirtualArrayUtils.getVirtualArray(id);
@@ -271,7 +269,7 @@ public class VirtualArrays extends ViprResourceController {
      * Deletes the specified virtual arrays.
      * 
      * @param ids
-     *        the IDs of the virtual arrays to delete.
+     *            the IDs of the virtual arrays to delete.
      */
     public static void delete(@As(",") String[] ids) {
         delete(uris(ids));
@@ -281,7 +279,7 @@ public class VirtualArrays extends ViprResourceController {
      * Deletes the specified virtual arrays and redirects back to the list page.
      * 
      * @param ids
-     *        the list of IDs.
+     *            the list of IDs.
      */
     private static void delete(List<URI> ids) {
         performSuccessFail(ids, new DeactivateOperation(), DELETED_SUCCESS, DELETED_ERROR);
@@ -292,7 +290,7 @@ public class VirtualArrays extends ViprResourceController {
      * Creates a change to add a virtual array.
      * 
      * @param virtualArray
-     *        the virtual array to add.
+     *            the virtual array to add.
      * @return the virtual array assignment changes.
      */
     private static VirtualArrayAssignmentChanges addVirtualArray(VirtualArrayRestRep virtualArray) {
@@ -305,7 +303,7 @@ public class VirtualArrays extends ViprResourceController {
      * Creates a change to remove a virtual array.
      * 
      * @param virtualArray
-     *        the virtual array to remove.
+     *            the virtual array to remove.
      * @return the virtual array assignment changes.
      */
     private static VirtualArrayAssignmentChanges removeVirtualArray(VirtualArrayRestRep virtualArray) {
@@ -318,7 +316,7 @@ public class VirtualArrays extends ViprResourceController {
      * Displays the networks page for the given virtual array.
      * 
      * @param id
-     *        the virtual array ID.
+     *            the virtual array ID.
      */
     public static void networks(String id) {
         VirtualArrayRestRep virtualArray = getVirtualArray(id);
@@ -330,7 +328,7 @@ public class VirtualArrays extends ViprResourceController {
      * Renders the list of networks for a given virtual array as JSON.
      * 
      * @param id
-     *        the virtual array ID.
+     *            the virtual array ID.
      */
     public static void networksJson(String id) {
         List<NetworkInfo> items = Lists.newArrayList();
@@ -345,7 +343,7 @@ public class VirtualArrays extends ViprResourceController {
      * Renders the list of networks available to add to the given virtual array as JSON.
      * 
      * @param id
-     *        the virtual array ID.
+     *            the virtual array ID.
      */
     public static void availableNetworksJson(String id) {
         List<NetworkInfo> items = Lists.newArrayList();
@@ -360,9 +358,9 @@ public class VirtualArrays extends ViprResourceController {
      * Registers a number of networks and redisplays the networks page.
      * 
      * @param virtualArrayId
-     *        the virtual array ID.
+     *            the virtual array ID.
      * @param ids
-     *        the network IDs.
+     *            the network IDs.
      */
     @FlashException
     public static void registerNetworks(String virtualArrayId, @As(",") String[] ids) {
@@ -376,9 +374,9 @@ public class VirtualArrays extends ViprResourceController {
      * De-registers a number of networks and redisplays the networks page.
      * 
      * @param virtualArrayId
-     *        the virtual array ID.
+     *            the virtual array ID.
      * @param ids
-     *        the network IDs.
+     *            the network IDs.
      */
     @FlashException
     public static void deregisterNetworks(String virtualArrayId, @As(",") String[] ids) {
@@ -392,9 +390,9 @@ public class VirtualArrays extends ViprResourceController {
      * Adds a number of networks to the given virtual array, and redisplays the networks page.
      * 
      * @param virtualArrayId
-     *        the virtual array ID.
+     *            the virtual array ID.
      * @param ids
-     *        the IDs of the networks to add.
+     *            the IDs of the networks to add.
      */
     @FlashException
     public static void addNetworks(String virtualArrayId, @As(",") String[] ids) {
@@ -411,9 +409,9 @@ public class VirtualArrays extends ViprResourceController {
      * Removes a number of networks from the given virtual array, and redisplays the networks page.
      * 
      * @param virtualArrayId
-     *        the virtual array ID.
+     *            the virtual array ID.
      * @param ids
-     *        the IDs of the networks to remove.
+     *            the IDs of the networks to remove.
      */
     @FlashException
     public static void removeNetworks(String virtualArrayId, @As(",") String[] ids) {
@@ -430,9 +428,9 @@ public class VirtualArrays extends ViprResourceController {
      * Updates the given networks with the virtual array assignment changes.
      * 
      * @param ids
-     *        the network IDs.
+     *            the network IDs.
      * @param changes
-     *        the virtual array changes.
+     *            the virtual array changes.
      */
     private static void updateNetworks(List<URI> ids, VirtualArrayAssignmentChanges changes) {
         if (ids.isEmpty()) {
@@ -450,7 +448,7 @@ public class VirtualArrays extends ViprResourceController {
      * Displays the storage ports page for the given virtual array.
      * 
      * @param id
-     *        the virtual array ID.
+     *            the virtual array ID.
      */
     public static void storagePorts(String id) {
         VirtualArrayRestRep virtualArray = getVirtualArray(id);
@@ -462,7 +460,7 @@ public class VirtualArrays extends ViprResourceController {
      * Renders the list of storage ports for a given virtual array as JSON.
      * 
      * @param id
-     *        the virtual array ID.
+     *            the virtual array ID.
      */
     public static void storagePortsJson(String id) {
         List<StoragePortInfo> items = Lists.newArrayList();
@@ -483,7 +481,7 @@ public class VirtualArrays extends ViprResourceController {
      * Renders the list of storage ports that are available to be assigned to the given virtual array.
      * 
      * @param id
-     *        the virtual array ID.
+     *            the virtual array ID.
      */
     public static void availableStoragePortsJson(String id) {
         List<StoragePortInfo> items = Lists.newArrayList();
@@ -502,9 +500,9 @@ public class VirtualArrays extends ViprResourceController {
      * Adds a number of storage ports to the given virtual array, and redisplays the storage ports page.
      * 
      * @param virtualArrayId
-     *        the virtual array ID.
+     *            the virtual array ID.
      * @param ids
-     *        the IDs of the storage ports to add.
+     *            the IDs of the storage ports to add.
      */
     @FlashException
     public static void addStoragePorts(String virtualArrayId, @As(",") String[] ids) {
@@ -519,9 +517,9 @@ public class VirtualArrays extends ViprResourceController {
      * Removes a number of storage ports from the given virtual array, and redisplays the storage ports page.
      * 
      * @param virtualArrayId
-     *        the virtual array ID.
+     *            the virtual array ID.
      * @param ids
-     *        the IDs of the storage ports to remove.
+     *            the IDs of the storage ports to remove.
      */
     @FlashException
     public static void removeStoragePorts(String virtualArrayId, @As(",") String[] ids) {
@@ -536,9 +534,9 @@ public class VirtualArrays extends ViprResourceController {
      * Updates the given storage ports with the virtual array assignment changes.
      * 
      * @param ids
-     *        the storage port IDs.
+     *            the storage port IDs.
      * @param changes
-     *        the virtual array changes.
+     *            the virtual array changes.
      */
     private static void updateStoragePorts(List<URI> ids, VirtualArrayAssignmentChanges changes) {
         if (ids.isEmpty()) {
@@ -556,7 +554,7 @@ public class VirtualArrays extends ViprResourceController {
      * Displays a page listing all storage pools associated with the given virtual array.
      * 
      * @param id
-     *        the virtual array ID.
+     *            the virtual array ID.
      */
     public static void storagePools(String id) {
         VirtualArrayRestRep virtualArray = getVirtualArray(id);
@@ -568,7 +566,7 @@ public class VirtualArrays extends ViprResourceController {
      * Renders the list of storage pools for a given virtual array as JSON.
      * 
      * @param id
-     *        the virtual array ID.
+     *            the virtual array ID.
      */
     public static void storagePoolsJson(String id) {
         List<StoragePoolInfo> items = Lists.newArrayList();
@@ -585,7 +583,7 @@ public class VirtualArrays extends ViprResourceController {
      * Renders the list of storage pools available for the given virtual array as JSON.
      * 
      * @param id
-     *        the virtual array ID.
+     *            the virtual array ID.
      */
     public static void availableStoragePoolsJson(String id) {
         List<StoragePoolInfo> items = Lists.newArrayList();
@@ -600,9 +598,9 @@ public class VirtualArrays extends ViprResourceController {
      * Registers a number of storage pools and redisplays the storage pools page.
      * 
      * @param virtualArrayId
-     *        the virtual array ID.
+     *            the virtual array ID.
      * @param ids
-     *        the storage pools IDs.
+     *            the storage pools IDs.
      */
     @FlashException
     public static void registerStoragePools(String virtualArrayId, @As(",") String[] ids) {
@@ -620,9 +618,9 @@ public class VirtualArrays extends ViprResourceController {
      * De-registers a number of storage pools and redisplays the storage pools page.
      * 
      * @param virtualArrayId
-     *        the virtual array ID.
+     *            the virtual array ID.
      * @param ids
-     *        the storage pool IDs.
+     *            the storage pool IDs.
      */
     @FlashException
     public static void deregisterStoragePools(String virtualArrayId, @As(",") String[] ids) {
@@ -640,9 +638,9 @@ public class VirtualArrays extends ViprResourceController {
      * Adds a number of storage pools to the given virtual array, and redisplays the storage pools page.
      * 
      * @param virtualArrayId
-     *        the virtual array ID.
+     *            the virtual array ID.
      * @param ids
-     *        the IDs of the storage pools to add.
+     *            the IDs of the storage pools to add.
      */
     @FlashException
     public static void addStoragePools(String virtualArrayId, @As(",") String[] ids) {
@@ -657,9 +655,9 @@ public class VirtualArrays extends ViprResourceController {
      * Removes a number of storage pools from the given virtual array, and redisplays the storage pools page.
      * 
      * @param virtualArrayId
-     *        the virtual array ID.
+     *            the virtual array ID.
      * @param ids
-     *        the IDs of the storage pools to remove.
+     *            the IDs of the storage pools to remove.
      */
     @FlashException
     public static void removeStoragePools(String virtualArrayId, @As(",") String[] ids) {
@@ -674,9 +672,9 @@ public class VirtualArrays extends ViprResourceController {
      * Updates the given storage pools with the virtual array assignment changes.
      * 
      * @param ids
-     *        the storage pool IDs.
+     *            the storage pool IDs.
      * @param changes
-     *        the virtual array changes.
+     *            the virtual array changes.
      */
     private static void updateStoragePools(List<URI> ids, VirtualArrayAssignmentChanges changes) {
         if (ids.isEmpty()) {
@@ -702,11 +700,11 @@ public class VirtualArrays extends ViprResourceController {
      * Adds all ports of the given storage systems to the virtual array.
      * 
      * @param virtualArrayId
-     *        the virtual array ID.
+     *            the virtual array ID.
      * @param ids
-     *        the storage system IDs.
+     *            the storage system IDs.
      */
-    @FlashException(referrer={"edit","list"})
+    @FlashException(referrer = { "edit", "list" })
     public static void addStorageSystems(String virtualArrayId, @As(",") String[] ids) {
         List<URI> storagePorts = Lists.newArrayList();
         for (URI storageSystemId : uris(ids)) {
@@ -724,7 +722,7 @@ public class VirtualArrays extends ViprResourceController {
      * Gets the list of storage systems that may be associated to a virtual array.
      * 
      * @param id
-     *        the virtual array ID.
+     *            the virtual array ID.
      */
     public static void addStorageSystemsJson(String id) {
         List<StorageSystemInfo> items = Lists.newArrayList();

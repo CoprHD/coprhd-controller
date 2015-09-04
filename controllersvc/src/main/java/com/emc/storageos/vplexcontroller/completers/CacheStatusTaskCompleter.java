@@ -36,7 +36,7 @@ public class CacheStatusTaskCompleter extends TaskCompleter {
 
     // Logger reference.
     private static final Logger s_logger = LoggerFactory
-        .getLogger(CacheStatusTaskCompleter.class);
+            .getLogger(CacheStatusTaskCompleter.class);
 
     /**
      *
@@ -52,13 +52,13 @@ public class CacheStatusTaskCompleter extends TaskCompleter {
      */
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded)
-        throws DeviceControllerException {
+            throws DeviceControllerException {
 
         URI vplexVolumeURI = getId();
         String opId = getOpId();
         s_logger.info(String.format(
-            "Cache invalidate for volume %s for step %s completed with status %s",
-            vplexVolumeURI, opId, status.name()));
+                "Cache invalidate for volume %s for step %s completed with status %s",
+                vplexVolumeURI, opId, status.name()));
 
         // Update the workflow status.
         updateWorkflowStatus(status, coded);

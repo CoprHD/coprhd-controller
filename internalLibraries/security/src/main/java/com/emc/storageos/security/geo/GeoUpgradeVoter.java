@@ -49,12 +49,12 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorExcepti
  * 3) there are any ongoing upgrades in the federation
  * 4) there are any VDCs not in the CONNECTED state
  */
-public class GeoUpgradeVoter implements UpgradeVoter{
+public class GeoUpgradeVoter implements UpgradeVoter {
     private static Logger log = LoggerFactory.getLogger(GeoUpgradeVoter.class);
-    
+
     @Autowired
     private DbClient dbClient;
-    
+
     @Autowired
     private GeoClientCacheManager geoClientCache;
 
@@ -107,13 +107,13 @@ public class GeoUpgradeVoter implements UpgradeVoter{
     private boolean isVdcOpLockHold(StringBuffer msg) {
         try {
             // it doesn't matter if it's nodesvcshared or vdcshared
-            GlobalLockImpl glock = new GlobalLockImpl((DbClientImpl)dbClient,
+            GlobalLockImpl glock = new GlobalLockImpl((DbClientImpl) dbClient,
                     GeoServiceClient.VDCOP_LOCK_NAME, GlobalLock.GL_Mode.GL_NodeSvcShared_MODE,
                     GeoServiceClient.VDCOP_LOCK_TIMEOUT, VdcUtil.getLocalShortVdcId());
             String owner = glock.getOwner();
             boolean locked = owner != null && !owner.isEmpty();
             log.info("Vdc op lock is locked {}", locked);
-            if(locked && msg != null && !StringUtils.isEmpty(glock.getErrorMessage())){
+            if (locked && msg != null && !StringUtils.isEmpty(glock.getErrorMessage())) {
                 msg.append(glock.getErrorMessage());
             }
             return locked;
@@ -122,7 +122,7 @@ public class GeoUpgradeVoter implements UpgradeVoter{
             throw GeoException.fatals.accessGlobalLockFail();
         }
     }
-  
+
     /**
      * Check if we'll have 3 geodb schema version after upgrading to give version.
      * 
@@ -139,7 +139,7 @@ public class GeoUpgradeVoter implements UpgradeVoter{
         for (VdcVersion geoVersion : vdcVersions) {
             vdcIdVdcVersionMap.put(geoVersion.getVdcId(), geoVersion);
         }
-        
+
         for (URI vdcId : vdcIds) {
             if (vdcIdVdcVersionMap.containsKey(vdcId)) {
                 String schemaVersion = vdcIdVdcVersionMap.get(vdcId).getVersion();
@@ -156,9 +156,10 @@ public class GeoUpgradeVoter implements UpgradeVoter{
         log.info("Current geodb schema versions in federation {}", allSchemaVersions);
         return allSchemaVersions.size() > 2;
     }
-    
+
     /**
      * Check if the current upgrade is a SP/patch/hotfix upgrade.
+     * 
      * @param currentVersion
      * @param targetVersion
      * @return true if the current upgrade is a SP/patch/hotfix upgrade, false otherwise
@@ -167,7 +168,7 @@ public class GeoUpgradeVoter implements UpgradeVoter{
         String currentDbSchemaVersion = VdcUtil.getDbSchemaVersion(currentVersion);
         if (currentDbSchemaVersion == null)
             return false;
-        
+
         return currentDbSchemaVersion.equals(VdcUtil.getDbSchemaVersion(targetVersion));
     }
 
@@ -178,13 +179,13 @@ public class GeoUpgradeVoter implements UpgradeVoter{
     private List<String> getUnstableVdcs() {
         List<URI> vdcIdIter = dbClient.queryByType(VirtualDataCenter.class, true);
         List<String> unstableVdcs = new ArrayList<>();
-        
+
         for (URI vdcId : vdcIdIter) {
             VirtualDataCenter vdc = dbClient.queryObject(VirtualDataCenter.class, vdcId);
             // Iterated each remote vdc to check stability
             if (vdc.getRepStatus().equals(VirtualDataCenter.GeoReplicationStatus.REP_ALL)
                     && !vdc.getLocal()) {
-                if (! VirtualDataCenter.ConnectionStatus.CONNECTED.equals(
+                if (!VirtualDataCenter.ConnectionStatus.CONNECTED.equals(
                         vdc.getConnectionStatus())) {
                     throw GeoException.fatals.vdcNotConnected(
                             vdc.getShortId());

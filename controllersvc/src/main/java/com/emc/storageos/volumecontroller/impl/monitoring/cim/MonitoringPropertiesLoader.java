@@ -20,32 +20,27 @@ public class MonitoringPropertiesLoader {
      * the value provided in monitoring.properties during initialization
      * automatically.
      */
-    private @Value("#{mntrProperties['monitoring.isIndicationsToLog']}")
-    String _isToLogIndications;
+    private @Value("#{mntrProperties['monitoring.isIndicationsToLog']}") String _isToLogIndications;
 
     /**
      * In Active Operational status codes for block related events
      */
-    private @Value("#{mntrProperties['block.event.active.operationalStatus.codes']}")
-    String _blockEventActiveOSCodes;
+    private @Value("#{mntrProperties['block.event.active.operationalStatus.codes']}") String _blockEventActiveOSCodes;
 
     /**
      * In Active Operational status descriptions for block related events
      */
-    private @Value("#{mntrProperties['block.event.active.operationalStatus.descriptions']}")
-    String _blockEventActiveOSDescs;
+    private @Value("#{mntrProperties['block.event.active.operationalStatus.descriptions']}") String _blockEventActiveOSDescs;
 
     /**
      * In Active Operational status codes for file related events
      */
-    private @Value("#{mntrProperties['file.event.active.operationalStatus.codes']}")
-    String _fileEventActiveOSCodes;
+    private @Value("#{mntrProperties['file.event.active.operationalStatus.codes']}") String _fileEventActiveOSCodes;
 
     /**
      * In Active Operational status descriptions for file related events
      */
-    private @Value("#{mntrProperties['file.event.active.operationalStatus.descriptions']}")
-    String _fileEventActiveOSDescs;
+    private @Value("#{mntrProperties['file.event.active.operationalStatus.descriptions']}") String _fileEventActiveOSDescs;
 
     public Boolean isToLogIndications() {
         if (_isToLogIndications != null && _isToLogIndications.equalsIgnoreCase("true")) {
@@ -56,7 +51,8 @@ public class MonitoringPropertiesLoader {
     }
 
     /**
-     * This Method will help you to split the String separated with comma into a String Array 
+     * This Method will help you to split the String separated with comma into a String Array
+     * 
      * @param value
      * @return
      */

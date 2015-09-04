@@ -26,8 +26,7 @@ public class DummyDeadboltHandler extends Controller implements DeadboltHandler 
         // Ensure the cookie is still good
         try {
             Security.getUserInfo();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             removeResponseCookie(AUTH_TOKEN_KEY);
             removeRequestCookie(AUTH_TOKEN_KEY);
         }

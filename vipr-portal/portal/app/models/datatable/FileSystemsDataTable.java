@@ -45,8 +45,8 @@ public class FileSystemsDataTable extends DataTable {
 
         ViPRCoreClient client = getViprClient();
         List<FileShareRestRep> fileSystems = client.fileSystems().findByProject(projectId);
-        Map<URI,String> virtualArrays = ResourceUtils.mapNames(client.varrays().list());
-        Map<URI,String> virtualPools = ResourceUtils.mapNames(client.fileVpools().list());
+        Map<URI, String> virtualArrays = ResourceUtils.mapNames(client.varrays().list());
+        Map<URI, String> virtualPools = ResourceUtils.mapNames(client.fileVpools().list());
 
         List<FileSystem> results = Lists.newArrayList();
         for (FileShareRestRep fileSystem : fileSystems) {
@@ -56,7 +56,7 @@ public class FileSystemsDataTable extends DataTable {
     }
 
     public static class FileSystem {
-    	public String rowLink;
+        public String rowLink;
         public URI id;
         public String name;
         public String capacity;
@@ -64,7 +64,7 @@ public class FileSystemsDataTable extends DataTable {
         public String vpool;
         public Collection<String> protocols;
 
-        public FileSystem(final FileShareRestRep bourneFs, Map<URI,String> varrayMap, Map<URI,String> vpoolMap) {
+        public FileSystem(final FileShareRestRep bourneFs, Map<URI, String> varrayMap, Map<URI, String> vpoolMap) {
             id = bourneFs.getId();
             rowLink = createLink(FileSystems.class, "fileSystem", "fileSystemId", id);
             name = bourneFs.getName();

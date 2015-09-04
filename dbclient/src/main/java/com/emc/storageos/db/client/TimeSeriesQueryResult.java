@@ -24,7 +24,7 @@ import com.emc.storageos.db.client.model.TimeSeriesSerializer;
  */
 public interface TimeSeriesQueryResult<T extends TimeSeriesSerializer.DataPoint> {
     /**
-     * queryTimeSeries calls this method for each time series record.   For example,
+     * queryTimeSeries calls this method for each time series record. For example,
      * queryTimeSeries(EventTimeSeries.class, ...) will call this method with deserialized
      * Event for every record in the specified time bucket.
      *
@@ -38,7 +38,7 @@ public interface TimeSeriesQueryResult<T extends TimeSeriesSerializer.DataPoint>
     public void done();
 
     /**
-     * Called when an error is encountered during query.  Maybe called multiple
+     * Called when an error is encountered during query. Maybe called multiple
      * times for each thread servicing this query
      *
      * @param e

@@ -46,11 +46,11 @@ public class DbSvcBase {
     public void setDbClient(SimulatorDbClient dbClient) {
         _dbClient = dbClient;
     }
-    
+
     public SimulatorDbClient getDbClient() {
         return _dbClient;
     }
-    
+
     /**
      * Start embedded DB
      */
@@ -97,14 +97,13 @@ public class DbSvcBase {
     public void initDb() throws Exception {
         URI root;
         Directory directory = new Directory();
-        directory.setId(root=URI.create(String.format("urn:dir:ifs")));
+        directory.setId(root = URI.create(String.format("urn:dir:ifs")));
         directory.setParent(null);
         directory.setQuota(ObjectStoreImplDb._emptyURI);
         try {
             _dbClient.persistObject(directory);
-        } catch (Exception e){
+        } catch (Exception e) {
             throw new Exception("cannot create root folder info to db.");
         }
     }
 }
-                

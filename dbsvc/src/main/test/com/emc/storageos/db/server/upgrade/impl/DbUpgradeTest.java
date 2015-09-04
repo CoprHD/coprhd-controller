@@ -81,7 +81,7 @@ public class DbUpgradeTest extends DbMigrationTestBase {
         if (ids.iterator().hasNext()) {
             return;
         }
-        
+
         Volume volume = new Volume();
         volume.setId(URIUtil.createId(Volume.class));
         volume.setCapacity(3456L);
@@ -92,7 +92,7 @@ public class DbUpgradeTest extends DbMigrationTestBase {
 
         _dbClient.createObject(volume);
 
-        //make sure the volume is saved
+        // make sure the volume is saved
         ids = _dbClient.queryByType(Volume.class, true);
         List<URI> uris = new ArrayList<>();
         Iterator<URI> iterator = ids.iterator();
@@ -116,9 +116,9 @@ public class DbUpgradeTest extends DbMigrationTestBase {
 
     private void verifyAnnotation() throws Exception {
         Class clazz = Class.forName(className);
-        Method method = clazz.getDeclaredMethod(methodName);  
+        Method method = clazz.getDeclaredMethod(methodName);
 
-        //getting the annotation
+        // getting the annotation
         Class annotationClazz = Class.forName(annotationName);
         java.lang.annotation.Annotation annotation = method.getAnnotation(annotationClazz);
         Assert.assertNotNull(annotation);
@@ -127,8 +127,8 @@ public class DbUpgradeTest extends DbMigrationTestBase {
     @Override
     public void verifyResults() throws Exception {
         Class clazz = Class.forName(className);
-        List<URI> ids = 
-          _dbClient.queryByConstraint(PrefixConstraint.Factory.getConstraint(clazz, columnName, "foo"));
+        List<URI> ids =
+                _dbClient.queryByConstraint(PrefixConstraint.Factory.getConstraint(clazz, columnName, "foo"));
         Assert.assertEquals(1, ids.size());
     }
 }

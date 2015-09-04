@@ -23,7 +23,6 @@ import javax.xml.bind.annotation.XmlRootElement;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.varray.VirtualArrayResourceRestRep;
 
-
 @XmlRootElement(name = "storage_port")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class StoragePortRestRep extends VirtualArrayResourceRestRep {
@@ -53,23 +52,23 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     private String discoveryStatus;
     private String adapterName;
 
-    public StoragePortRestRep() {}
-    
-    
+    public StoragePortRestRep() {
+    }
+
     /**
      * The adapter name of the Storage Port
+     * 
      * @return Adapter name of Storage Port
      */
     @XmlElement(name = "adapter_name")
     public String getAdapterName() {
-		return adapterName;
-	}
+        return adapterName;
+    }
 
-	public void setAdapterName(String adapterName) {
-		this.adapterName = adapterName;
-	}
+    public void setAdapterName(String adapterName) {
+        this.adapterName = adapterName;
+    }
 
-    
     /**
      * The average bandwidth through the port (Gbps)
      *
@@ -101,7 +100,7 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     /**
      * ID of the endpoint with which this port is associated.
      * 
-     * @valid none    
+     * @valid none
      */
     @XmlElement(name = "port_endpoint_id")
     public String getPortEndPointId() {
@@ -113,12 +112,13 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     }
 
     /**
-     * The name of  this  port's group. A port  group is a  mapping
-     * that is configured on a storage system  between a collection
-     * of ports, a collection of volumes and a collection of  hosts
+     * The name of this port's group. A port group is a mapping
+     * that is configured on a storage system between a collection
+     * of ports, a collection of volumes and a collection of hosts
      * that use those volumes. This name is what the storage system
      * uses to identify the port group.
-     *mapped known by Vipr to this port
+     * mapped known by Vipr to this port
+     * 
      * @valid none
      */
     @XmlElement(name = "port_group")
@@ -129,7 +129,6 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     public void setPortGroup(String portGroup) {
         this.portGroup = portGroup;
     }
-
 
     /**
      * The native name of the port. This name consists of identifiers that
@@ -147,7 +146,7 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     public void setPortName(String portName) {
         this.portName = portName;
     }
-    
+
     /**
      * The alias represents port's wwn id
      *
@@ -160,7 +159,7 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
 
     public void setPortAlias(String portAlias) {
         this.portAlias = portAlias;
-    }    
+    }
 
     /**
      * The network address of the port. When Fibre-Channel (FC) is the
@@ -196,7 +195,7 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     /**
      * How the port connects its storage controller to its network
      *
-     * @valid backend  = connects a VPLEX storage controller to another array
+     * @valid backend = connects a VPLEX storage controller to another array
      * @valid frontend = connects the storage controller to the hosts
      */
     @XmlElement(name = "port_type")
@@ -298,7 +297,6 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
         this.registrationStatus = registrationStatus;
     }
 
-
     /**
      * The operational status of the port
      *
@@ -314,7 +312,7 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     public void setOperationalStatus(String operationalStatus) {
         this.operationalStatus = operationalStatus;
     }
-    
+
     /**
      * Whether or not this storage port is compatible with ViPR
      * 
@@ -330,7 +328,7 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     public void setCompatibilityStatus(String compatibilityStatus) {
         this.compatibilityStatus = compatibilityStatus;
     }
-    
+
     /**
      * The metric for the Storage Port Allocator.
      * Lower metric numbers are preferred over higher metric numbers for allocation.
@@ -345,7 +343,7 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     }
 
     /**
-     * The port percent busy as computed by the kbytes transferred per a given 
+     * The port percent busy as computed by the kbytes transferred per a given
      * unit of time versus the maximum number of kbytes that could be transferred
      * as computed from the port speed.
      */
@@ -366,7 +364,7 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     public Double getCpuPercentBusy() {
         return cpuPercentBusy;
     }
-   
+
     public void setCpuPercentBusy(Double cpuPercentBusy) {
         this.cpuPercentBusy = cpuPercentBusy;
     }
@@ -410,6 +408,7 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * Whether or not this storage pool is visible in discovery
+     * 
      * @valid VISIBLE
      * @valid NOTVISIBLE
      */
@@ -421,6 +420,5 @@ public class StoragePortRestRep extends VirtualArrayResourceRestRep {
     public void setDiscoveryStatus(String discoveryStatus) {
         this.discoveryStatus = discoveryStatus;
     }
-    
-    
+
 }

@@ -37,7 +37,7 @@ public abstract class BulkDataObjQueryResultIterator<T> extends BulkDataObjItera
     public boolean hasNext() {
         if (currentIt != null && currentIt.hasNext()) {
             return true;
-}
+        }
 
         run();
         return currentIt != null;

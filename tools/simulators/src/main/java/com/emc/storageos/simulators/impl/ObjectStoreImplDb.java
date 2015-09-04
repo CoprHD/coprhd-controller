@@ -51,7 +51,7 @@ public class ObjectStoreImplDb implements ObjectStore {
     }
 
     public void setDbClient(SimulatorDbClient dbClient) {
-        _dbClient = dbClient;    
+        _dbClient = dbClient;
     }
 
     public SimulatorDbClient getDbClient() {
@@ -75,9 +75,9 @@ public class ObjectStoreImplDb implements ObjectStore {
     /**
      * Create uri
      *
-     * @param prefix    prefix string
-     * @param id        unique id
-     * @return          uri
+     * @param prefix prefix string
+     * @param id unique id
+     * @return uri
      */
     private URI createURI(String prefix, String id) {
         return URI.create(String.format("urn:" + prefix + ":%1$s", id));
@@ -86,14 +86,14 @@ public class ObjectStoreImplDb implements ObjectStore {
     /**
      * Get Id from URI by removing the prefix
      *
-     * @param prefix    prefix string
-     * @param uri       uri
-     * @return          unique id
+     * @param prefix prefix string
+     * @param uri uri
+     * @return unique id
      */
     private String getIdInURI(String prefix, URI uri) {
         if (uri == null || !uri.toString().startsWith("urn:" + prefix + ":"))
             return "";
-            
+
         int startIndex = ("urn:" + prefix + ":").length();
 
         return uri.toString().substring(startIndex);
@@ -238,7 +238,6 @@ public class ObjectStoreImplDb implements ObjectStore {
 
         dbClient.removeObject(curObj);
     }
-
 
     @Override
     public String createQuota(String path, long limit) throws Exception {
@@ -438,7 +437,8 @@ public class ObjectStoreImplDb implements ObjectStore {
 
             for (int i = 0; i < quotaList.size(); i++) {
                 Directory directory = dbClient.queryObject(Directory.class, quotaList.get(i).getDirectory());
-                IsilonSmartQuota isilonSmartQuota = new IsilonSmartQuota("/" + getIdInURI("dir", directory.getId()), quotaList.get(i).getLimit());
+                IsilonSmartQuota isilonSmartQuota = new IsilonSmartQuota("/" + getIdInURI("dir", directory.getId()), quotaList.get(i)
+                        .getLimit());
                 isilonSmartQuota.setUsage(usage, 0, 0);
                 isilonSmartQuota.setId(quotaList.get(i).getId());
                 list.add(isilonSmartQuota);
@@ -519,9 +519,9 @@ public class ObjectStoreImplDb implements ObjectStore {
     /**
      * Get snapshot path's uri
      *
-     * @param name      snapshot name
-     * @param path      snapshot path
-     * @return          snapshot uri
+     * @param name snapshot name
+     * @param path snapshot path
+     * @return snapshot uri
      */
     private URI getSnapPath(String name, String path) {
         String prefix = "ifs/";

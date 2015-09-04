@@ -24,15 +24,16 @@ import java.net.URI;
 import java.util.Date;
 
 /**
- *  Constrained query to get list of decommissioned object URIs of a given type
+ * Constrained query to get list of decommissioned object URIs of a given type
  */
 public interface DecommissionedConstraint extends Constraint {
     public static class Factory {
         /**
          * query to get list of decommissioned object URIs of a given type
+         * 
          * @param clazz type of objects to query
          * @param timeStartMarker if non-zero, used for filtering the decommissioned objects
-         *                        marked inactive before the time given in microseconds
+         *            marked inactive before the time given in microseconds
          * @return
          */
         public static DecommissionedConstraint getDecommissionedObjectsConstraint(
@@ -42,10 +43,11 @@ public interface DecommissionedConstraint extends Constraint {
 
         /**
          * query to get list of DecommissionedIndex'd object URIs of a given type
+         * 
          * @param clazz type of objects to query
          * @param fieldName name of the field indexed
          * @param timeStartMarker if non-zero, used for filtering the decommissioned objects
-         *                        marked inactive before the time given in microseconds
+         *            marked inactive before the time given in microseconds
          * @return
          */
         public static DecommissionedConstraint getDecommissionedObjectsConstraint(
@@ -57,6 +59,7 @@ public interface DecommissionedConstraint extends Constraint {
 
         /**
          * query to get list of object URIs of a given type, with given value for the inactive field
+         * 
          * @param clazz type of objects to query
          * @param value true - list inactive objects, false - list active objects, null - full list
          * @return
@@ -93,10 +96,10 @@ public interface DecommissionedConstraint extends Constraint {
          * @return
          */
         public static DecommissionedConstraint getTimeConstraint(
-            Class<? extends DataObject> clazz, Boolean value, String columnName, Date startTime, Date endTime) {
+                Class<? extends DataObject> clazz, Boolean value, String columnName, Date startTime, Date endTime) {
             DataObjectType doType = TypeMap.getDoType(clazz);
             return new TimeConstraintImpl(clazz, value,
-                doType.getColumnField(columnName).getIndexCF(), startTime, endTime);
+                    doType.getColumnField(columnName).getIndexCF(), startTime, endTime);
         }
     }
 }

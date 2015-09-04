@@ -28,8 +28,9 @@ public class AttributeList {
 
     private List<VirtualPoolAvailableAttributesResourceRep> attributes;
 
-    public AttributeList() {}
-    
+    public AttributeList() {
+    }
+
     public AttributeList(
             List<VirtualPoolAvailableAttributesResourceRep> attributes,
             URI vArrayId) {

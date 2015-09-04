@@ -48,9 +48,8 @@ import java.io.IOException;
 import java.net.URI;
 import java.util.*;
 
-
 /**
- *  Class provides helper methods for accessing roles and acls from db
+ * Class provides helper methods for accessing roles and acls from db
  */
 public class BasePermissionsHelper {
     private static final Logger _log = LoggerFactory.getLogger(BasePermissionsHelper.class);
@@ -59,7 +58,6 @@ public class BasePermissionsHelper {
     private boolean _usingCache = true;
     private Map<CoordinatorClient.LicenseType, Boolean> licensedCache = new HashMap<CoordinatorClient.LicenseType, Boolean>();
 
-    
     @Autowired(required = false)
     private SecurityDisabler _disabler;
 
@@ -70,7 +68,7 @@ public class BasePermissionsHelper {
      * Determines if the specific license type is enabled.
      * 
      * @param type
-     *        the type of the license.
+     *            the type of the license.
      * @return true if the license is found.
      */
     public boolean isLicensed(CoordinatorClient.LicenseType type) {
@@ -86,7 +84,7 @@ public class BasePermissionsHelper {
      * Determines if any of the provided licenses are enabled.
      * 
      * @param types
-     *        the license types.
+     *            the license types.
      * @return true if any of the provided licenses are found.
      */
     public boolean isAnyLicensed(CoordinatorClient.LicenseType... types) {
@@ -108,8 +106,8 @@ public class BasePermissionsHelper {
     }
 
     private static boolean containsAllIgnoreCase(List<String> left, List<String> right) {
-        for( String rightString : right ) {
-            if(!containsIgnoreCase(left, rightString)) {
+        for (String rightString : right) {
+            if (!containsIgnoreCase(left, rightString)) {
                 return false;
             }
         }
@@ -119,6 +117,7 @@ public class BasePermissionsHelper {
     /**
      * Check if the two lists contain the same string values
      * ignoring case
+     * 
      * @param left
      * @param right
      * @return true if left and right lists are equal ignoring case
@@ -130,15 +129,15 @@ public class BasePermissionsHelper {
                 return false;
         } else if (right == null) {
             return false;
-        } else if(left.size() != right.size()){
+        } else if (left.size() != right.size()) {
             return false;
         }
         return containsAllIgnoreCase(left, right);
     }
 
     private static boolean containsIgnoreCase(List<String> left, String rightString) {
-        for( String leftString : left ) {
-            if( leftString.equalsIgnoreCase(rightString)) {
+        for (String leftString : left) {
+            if (leftString.equalsIgnoreCase(rightString)) {
                 return true;
             }
         }
@@ -146,7 +145,7 @@ public class BasePermissionsHelper {
     }
 
     public static class UserMapping {
-    	private String _domain;
+        private String _domain;
         private List<UserMappingAttribute> _attributes;
         private List<String> _groups;
 
@@ -180,59 +179,61 @@ public class BasePermissionsHelper {
         }
 
         public UserMapping(UserMappingParam param) {
-        	_domain = param.getDomain();
-        	_groups = param.getGroups() == null ? new ArrayList<String>():param.getGroups();
-        	if (param.getAttributes() != null) {
-        		_attributes = new ArrayList<UserMappingAttribute>();
-        		for (UserMappingAttributeParam attribute: param.getAttributes()) {
-        			_attributes.add(new UserMappingAttribute(attribute));
-        		}
-        	} else {
-        		_attributes = new ArrayList<UserMappingAttribute>();
-        	}
+            _domain = param.getDomain();
+            _groups = param.getGroups() == null ? new ArrayList<String>() : param.getGroups();
+            if (param.getAttributes() != null) {
+                _attributes = new ArrayList<UserMappingAttribute>();
+                for (UserMappingAttributeParam attribute : param.getAttributes()) {
+                    _attributes.add(new UserMappingAttribute(attribute));
+                }
+            } else {
+                _attributes = new ArrayList<UserMappingAttribute>();
+            }
         }
 
         public static List<UserMapping> fromParamList(List<UserMappingParam> params) {
-        	if (params == null) {
-        		return null;
-        	}
-        	List<UserMapping> userMappings = new ArrayList<UserMapping>();
-        	for (UserMappingParam param : params) {
-        		userMappings.add(new UserMapping(param));
-        	}
-        	return userMappings;
+            if (params == null) {
+                return null;
+            }
+            List<UserMapping> userMappings = new ArrayList<UserMapping>();
+            for (UserMappingParam param : params) {
+                userMappings.add(new UserMapping(param));
+            }
+            return userMappings;
         }
 
         public static UserMappingParam toParam(UserMapping mapping) {
-        	UserMappingParam param = new UserMappingParam();
-        	param.setDomain(mapping.getDomain());
-        	param.setGroups(mapping.getGroups());
-        	if (mapping.getAttributes() != null) {
-        		List<UserMappingAttributeParam> attrList = new ArrayList<UserMappingAttributeParam>();
-        		for (UserMappingAttribute attribute: mapping.getAttributes()) {
-        			attrList.add(UserMappingAttribute.toParam(attribute));
-        		}
+            UserMappingParam param = new UserMappingParam();
+            param.setDomain(mapping.getDomain());
+            param.setGroups(mapping.getGroups());
+            if (mapping.getAttributes() != null) {
+                List<UserMappingAttributeParam> attrList = new ArrayList<UserMappingAttributeParam>();
+                for (UserMappingAttribute attribute : mapping.getAttributes()) {
+                    attrList.add(UserMappingAttribute.toParam(attribute));
+                }
                 param.setAttributes(attrList);
-        	} else {
-        		param.setAttributes(new ArrayList<UserMappingAttributeParam>());
-        	}
-        	return param;
+            } else {
+                param.setAttributes(new ArrayList<UserMappingAttributeParam>());
+            }
+            return param;
         }
-
 
         /**
          * Check if this mapping conflicts with the other mapping
+         * 
          * @param other
          * @return
          */
-        public boolean isMatch( UserMapping other ) {
+        public boolean isMatch(UserMapping other) {
             // return true if users with this mapping would match the other mapping or
             // users with the other mapping would match this mapping
-            return isMatch(other.getDomain(), other.getAttributes(), other.getGroups()) || other.isMatch(getDomain(), getAttributes(), getGroups());
+            return isMatch(other.getDomain(), other.getAttributes(), other.getGroups())
+                    || other.isMatch(getDomain(), getAttributes(), getGroups());
         }
 
         /**
          * Check if the domain, attributes, and groups results in a match with this UserMapping object
+         * 
          * @param domain
          * @param attributes
          * @param groups
@@ -242,9 +243,9 @@ public class BasePermissionsHelper {
             return _domain.equalsIgnoreCase(domain) && attributesMatch(attributes) && groupsMatch(groups);
         }
 
-
         /**
          * check if the other mapping contains all of this mapping's groups
+         * 
          * @param groups the other mapping to compare to
          * @return true if this mapping's groups are a sublist of the other mapping
          */
@@ -257,6 +258,7 @@ public class BasePermissionsHelper {
 
         /**
          * Check if this mapping has groups
+         * 
          * @return true if the groups list is not null and not empty
          */
         private boolean hasGroups() {
@@ -266,28 +268,30 @@ public class BasePermissionsHelper {
         /**
          * Check if this mapping's attributes conflicts with the
          * other mappings attributes
+         * 
          * @param attributes The other mapping to compare this mapping to
          * @return true if the mapping's attributes conflict with the other
          */
-        private boolean attributesMatch( List<UserMappingAttribute> attributes ) {
+        private boolean attributesMatch(List<UserMappingAttribute> attributes) {
             return !hasAttributes() || (attributes != null && containsAllAttributes(attributes, getAttributes()));
         }
 
         /**
          * Check if this user mappings attributes are equal to a list of
          * user mapping attributes
+         * 
          * @param right list of attributes to compare to
          * @return true if the attribute lists are equal
          */
-        private boolean equalsAttributes (List<UserMappingAttribute> right) {
-            if( _attributes == null ) {
-                if( right != null ) {
+        private boolean equalsAttributes(List<UserMappingAttribute> right) {
+            if (_attributes == null) {
+                if (right != null) {
                     return false;
                 }
-            } else if( right == null ) {
+            } else if (right == null) {
                 return false;
             }
-            if(_attributes.size() != right.size()) {
+            if (_attributes.size() != right.size()) {
                 return false;
             } else {
                 return _attributes.containsAll(right);
@@ -297,25 +301,29 @@ public class BasePermissionsHelper {
         private boolean containsAllAttributes(
                 List<UserMappingAttribute> leftAttributes,
                 List<UserMappingAttribute> rightAttributes) {
-            for( UserMappingAttribute rightAttribute : rightAttributes ) {
-                if( !containsAttribute(leftAttributes, rightAttribute)) {
+            for (UserMappingAttribute rightAttribute : rightAttributes) {
+                if (!containsAttribute(leftAttributes, rightAttribute)) {
                     return false;
                 }
             }
             return true;
         }
+
         private boolean containsAttribute(
                 List<UserMappingAttribute> leftAttributes,
                 UserMappingAttribute rightAttribute) {
-            for( UserMappingAttribute leftAttribute : leftAttributes ) {
-                if(leftAttribute.getKey().equalsIgnoreCase(rightAttribute.getKey()) && containsAllIgnoreCase(leftAttribute.getValues(), rightAttribute.getValues())) {
+            for (UserMappingAttribute leftAttribute : leftAttributes) {
+                if (leftAttribute.getKey().equalsIgnoreCase(rightAttribute.getKey())
+                        && containsAllIgnoreCase(leftAttribute.getValues(), rightAttribute.getValues())) {
                     return true;
                 }
             }
             return false;
         }
+
         /**
          * Check if the mapping has attributes
+         * 
          * @return true if the list of attributes is not null and is not empty
          */
         private boolean hasAttributes() {
@@ -351,6 +359,7 @@ public class BasePermissionsHelper {
             }
             return null;
         }
+
         @Override
         public int hashCode() {
             final int prime = 31;
@@ -363,6 +372,7 @@ public class BasePermissionsHelper {
                     + ((_groups == null) ? 0 : _groups.hashCode());
             return result;
         }
+
         @Override
         public boolean equals(Object obj) {
             if (this == obj)
@@ -379,7 +389,7 @@ public class BasePermissionsHelper {
             } else if (!_domain.equalsIgnoreCase(other._domain)) {
                 return false;
             }
-            if(!listEqualsIgnoreCase(_groups, other._groups)) {
+            if (!listEqualsIgnoreCase(_groups, other._groups)) {
                 return false;
             }
             return equalsAttributes(other._attributes);
@@ -387,7 +397,7 @@ public class BasePermissionsHelper {
     }
 
     public static class UserMappingAttribute {
-    	private String _key;
+        private String _key;
         private List<String> _values;
 
         public UserMappingAttribute() {
@@ -395,18 +405,18 @@ public class BasePermissionsHelper {
         }
 
         public UserMappingAttribute(UserMappingAttributeParam param) {
-        	_key = param.getKey();
-        	_values = param.getValues();
+            _key = param.getKey();
+            _values = param.getValues();
         }
 
         public static UserMappingAttributeParam toParam(UserMappingAttribute attribute) {
-        	UserMappingAttributeParam param = new UserMappingAttributeParam();
-        	param.setKey(attribute.getKey());
-        	param.setValues(attribute.getValues());
-        	return param;
+            UserMappingAttributeParam param = new UserMappingAttributeParam();
+            param.setKey(attribute.getKey());
+            param.setValues(attribute.getValues());
+            return param;
         }
 
-        @XmlElement(required=true, name="key")
+        @XmlElement(required = true, name = "key")
         public String getKey() {
             return _key;
         }
@@ -415,7 +425,7 @@ public class BasePermissionsHelper {
             _key = key;
         }
 
-        @XmlElement(required=true, name="value")
+        @XmlElement(required = true, name = "value")
         public List<String> getValues() {
             return _values;
         }
@@ -455,6 +465,7 @@ public class BasePermissionsHelper {
 
     /**
      * Constructor - takes db client
+     * 
      * @param dbClient
      */
     public BasePermissionsHelper(DbClient dbClient) {
@@ -463,6 +474,7 @@ public class BasePermissionsHelper {
 
     /**
      * Constructor - takes db client, using cache
+     * 
      * @param dbClient
      * @param usingCache
      */
@@ -482,7 +494,7 @@ public class BasePermissionsHelper {
      * @return URI of the tenant
      */
     public URI lookupTenant(final UserMapping userMapping) {
-        if(userMapping == null ) {
+        if (userMapping == null) {
             _log.warn("user mapping is empty");
             return null;
         }
@@ -497,7 +509,7 @@ public class BasePermissionsHelper {
 
                 @Override
                 public URI createQueryHit(URI uri, String queryUserMapping, UUID timestamp) {
-                    if( userMapping.isMatch(UserMapping.fromString(queryUserMapping))) {
+                    if (userMapping.isMatch(UserMapping.fromString(queryUserMapping))) {
                         tenantIds.add(uri);
                     }
                     return uri;
@@ -505,33 +517,37 @@ public class BasePermissionsHelper {
 
                 @Override
                 public URI createQueryHit(URI uri, Object entry) {
-                    if( entry instanceof String) {
-                        return createQueryHit(uri,(String)entry, null);
+                    if (entry instanceof String) {
+                        return createQueryHit(uri, (String) entry, null);
                     }
                     else {
                         return createQueryHit(uri);
                     }
                 }
             };
-            _dbClient.queryByConstraint(ContainmentPermissionsConstraint.Factory.getUserMappingsWithDomain(userMapping.getDomain()), results);
-            for(Iterator<URI> iterator = results.iterator(); iterator.hasNext(); iterator.next());
+            _dbClient.queryByConstraint(ContainmentPermissionsConstraint.Factory.getUserMappingsWithDomain(userMapping.getDomain()),
+                    results);
+            for (Iterator<URI> iterator = results.iterator(); iterator.hasNext(); iterator.next())
+                ;
 
-            if( tenantIds.isEmpty()) {
+            if (tenantIds.isEmpty()) {
                 _log.warn("Tenant lookup returned empty for mapping: {}", userMapping.toString());
                 return null;
-            } else if ( tenantIds.size() > 1) {
+            } else if (tenantIds.size() > 1) {
                 _log.warn("Tenant lookup returned {} tenants for mapping: {}", userMapping.toString());
                 return null;
-        } else {
+            } else {
                 return tenantIds.get(0);
             }
-        } catch (DatabaseException ex ) {
+        } catch (DatabaseException ex) {
             _log.error("tenant user mapping query failed", ex);
         }
         return null;
     }
+
     /**
      * Returns root TenantOrg
+     * 
      * @return
      */
     public TenantOrg getRootTenant() {
@@ -566,9 +582,9 @@ public class BasePermissionsHelper {
         throw SecurityException.fatals.tenantQueryFailed(TenantOrg.NO_PARENT);
     }
 
-
     /**
      * Get object from id
+     * 
      * @param id
      * @return
      */
@@ -576,11 +592,11 @@ public class BasePermissionsHelper {
         return getObjectById(id, clazz, false);
     }
 
-    public <T extends DataObject> T getObjectById(URI id, Class<T> clazz, 
+    public <T extends DataObject> T getObjectById(URI id, Class<T> clazz,
             boolean bypassCache) {
         T ret = null;
         boolean usingCache = _usingCache && !bypassCache;
-        if( usingCache ) {
+        if (usingCache) {
             ret = QueriedObjectCache.getObject(id, clazz);
         }
         if (ret == null) {
@@ -593,7 +609,7 @@ public class BasePermissionsHelper {
     }
 
     /**
-     * Same as queryObjectById(URI, Class).  Takes NamedURI instead.
+     * Same as queryObjectById(URI, Class). Takes NamedURI instead.
      */
     public <T extends DataObject> T getObjectById(NamedURI id, Class<T> clazz) {
         return getObjectById(id.getURI(), clazz, false);
@@ -601,6 +617,7 @@ public class BasePermissionsHelper {
 
     /**
      * adds user's roles on root tenant to user object
+     * 
      * @param user
      */
     public void populateZoneRoles(StorageOSUser user, VirtualDataCenter vdc) {
@@ -632,7 +649,7 @@ public class BasePermissionsHelper {
             for (String group : groups) {
                 // add if any roles for the groups, from the vdc
                 Set<String> roleSet = vdc.getRoleSet(
-                    new PermissionsKey(PermissionsKey.Type.GROUP, group).toString());
+                        new PermissionsKey(PermissionsKey.Type.GROUP, group).toString());
 
                 // in case db migration haven't finished yet, read vdc roles from root tenant.
                 if (roleSet == null || roleSet.size() == 0) {
@@ -650,19 +667,20 @@ public class BasePermissionsHelper {
             }
         }
 
-        //Now based on userGroup role assignments.
+        // Now based on userGroup role assignments.
         updateUserVdcRolesBasedOnUserGroup(user, vdc);
     }
 
     /**
      * Get tenant id from a project id retrieved from uri
+     * 
      * @param projectId
      * @return
      */
     public URI getTenantIdFromProjectId(String projectId, boolean idEmbeddedInURL) {
         if (projectId == null)
             return null;
-        
+
         try {
             URI id = URI.create(projectId);
             Project ret = getObjectById(id, Project.class);
@@ -673,15 +691,16 @@ public class BasePermissionsHelper {
                     throw APIException.badRequests.unableToFindEntity(id);
                 }
             }
-            
+
             return ret.getTenantOrg().getURI();
         } catch (DatabaseException ex) {
             throw SecurityException.fatals.failedGettingTenant(ex);
         }
     }
-    
+
     /**
      * Get tenant id from a project id retrieved from uri
+     * 
      * @param childId
      * @return
      */
@@ -695,11 +714,11 @@ public class BasePermissionsHelper {
             if (URIUtil.isType(id, Host.class)) {
                 ret = getObjectById(id, Host.class);
             } else if (URIUtil.isType(id, VcenterDataCenter.class)) {
-                ret = getObjectById(id, VcenterDataCenter.class );
+                ret = getObjectById(id, VcenterDataCenter.class);
             } else if (URIUtil.isType(id, Vcenter.class)) {
                 ret = getObjectById(id, Vcenter.class);
             } else if (URIUtil.isType(id, Cluster.class)) {
-                ret = getObjectById(id, Cluster.class );
+                ret = getObjectById(id, Cluster.class);
             } else if (URIUtil.isType(id, Initiator.class)) {
                 Initiator ini = getObjectById(id, Initiator.class);
                 if (ini.getHost() != null) {
@@ -714,20 +733,20 @@ public class BasePermissionsHelper {
                 throw APIException.badRequests.theURIIsNotOfType(id,
                         TenantResource.class.getName());
             }
-            
+
             if (ret == null) {
-            	throw FatalDatabaseException.fatals.unableToFindEntity(id);
+                throw FatalDatabaseException.fatals.unableToFindEntity(id);
             }
-            
+
             return ret.getTenant();
         } catch (DatabaseException ex) {
             throw SecurityException.fatals.failedGettingTenant(ex);
         }
     }
 
-
     /**
      * get the set of tenant roles assigned to a user
+     * 
      * @param user StorageOSUser representing the logged in user
      * @param tenantId URI of the tenant, if null, user's tenant is used if one exists
      * @return unmodifiable instance of Set<StorageOSUser.TenantRole>
@@ -741,7 +760,7 @@ public class BasePermissionsHelper {
             return Collections.emptySet();
         }
         Set<String> tenantRoles = new HashSet<String>();
-        TenantOrg tenant = getObjectById(tenantId, TenantOrg.class); 
+        TenantOrg tenant = getObjectById(tenantId, TenantOrg.class);
         if (tenant == null) {
             if (idEmbeddedInURL) {
                 throw APIException.notFound.unableToFindEntityInURL(tenantId);
@@ -751,22 +770,22 @@ public class BasePermissionsHelper {
         }
 
         // The three scenarios that allow us to look up roles in this tenant:
-        // 1 user tenant is the same tenant as the one we're after for role lookups, 
+        // 1 user tenant is the same tenant as the one we're after for role lookups,
         // 2 or user tenant is root tenant (parent of all)
         // 3 or user tenant is parent of the tenant we are after (technically same as 2 today since
         // there is only one level of subtenancy but in the future this may change)
         // If all are false, return no role.
         URI userTenantId = URI.create(user.getTenantId());
         TenantOrg userTenant = getObjectById(userTenantId, TenantOrg.class);
-        if (!tenantId.equals(userTenantId) && 
-                !TenantOrg.isRootTenant(userTenant) && 
-                !tenant.getParentTenant().getURI().equals(userTenantId) ) {
+        if (!tenantId.equals(userTenantId) &&
+                !TenantOrg.isRootTenant(userTenant) &&
+                !tenant.getParentTenant().getURI().equals(userTenantId)) {
             return Collections.emptySet();
         }
-        
+
         // for upn
         Set<String> userRoles = tenant.getRoleSet(
-            new PermissionsKey(PermissionsKey.Type.SID, user.getName()).toString());
+                new PermissionsKey(PermissionsKey.Type.SID, user.getName()).toString());
         if (userRoles != null) {
             for (String role : userRoles) {
                 if (isRoleTenantLevel(role)) {
@@ -775,14 +794,13 @@ public class BasePermissionsHelper {
             }
         }
 
-
         // from groups
         Set<String> groups = user.getGroups();
         if (groups != null && groups.size() > 0) {
             for (String group : groups) {
                 // add if any roles for the groups, from root tenant/zone roles
                 Set<String> roleSet = tenant.getRoleSet(
-                    new PermissionsKey(PermissionsKey.Type.GROUP, group).toString());
+                        new PermissionsKey(PermissionsKey.Type.GROUP, group).toString());
                 if (null != roleSet) {
                     for (String role : roleSet) {
                         if (isRoleTenantLevel(role)) {
@@ -793,7 +811,7 @@ public class BasePermissionsHelper {
             }
         }
 
-        //Now based on userGroup role assignments.
+        // Now based on userGroup role assignments.
         updateUserTenantRolesBasedOnUserGroup(user, tenant, tenantRoles);
 
         return Collections.unmodifiableSet(tenantRoles);
@@ -801,6 +819,7 @@ public class BasePermissionsHelper {
 
     /**
      * get the set of project ACLs assigned to a user
+     * 
      * @param user StorageOSUser representing the logged in user
      * @param projectId URI of the project
      * @return unmodifiable instance of Set<String>
@@ -836,8 +855,8 @@ public class BasePermissionsHelper {
             for (String group : groups) {
                 // add if any roles for the groups, from root tenant/zone roles
                 acls = project.getAclSet(
-                    new PermissionsKey(PermissionsKey.Type.GROUP, group,
-                            user.getTenantId()).toString());
+                        new PermissionsKey(PermissionsKey.Type.GROUP, group,
+                                user.getTenantId()).toString());
                 if (null != acls) {
                     for (String acl : acls) {
                         if (isProjectACL(acl)) {
@@ -848,7 +867,7 @@ public class BasePermissionsHelper {
             }
         }
 
-        //Now based on userGroup acl assignments.
+        // Now based on userGroup acl assignments.
         updateUserProjectAclBasedOnUserGroup(user, project, projectACLs);
 
         return Collections.unmodifiableSet(projectACLs);
@@ -856,6 +875,7 @@ public class BasePermissionsHelper {
 
     /**
      * Returns true if the user has any role from the given list, false otherwise
+     * 
      * @param user
      * @param tenantId tenant id
      * @param roles
@@ -866,8 +886,8 @@ public class BasePermissionsHelper {
             return true;
         }
         Set<String> tenantRoles = null;
-        for (Role role: roles) {
-            if (user.getRoles().contains(role.toString())){
+        for (Role role : roles) {
+            if (user.getRoles().contains(role.toString())) {
                 return true;
             } else if (isRoleTenantLevel(role.toString())) {
                 if (tenantRoles == null) {
@@ -883,6 +903,7 @@ public class BasePermissionsHelper {
 
     /**
      * Returns true if the user has any role from the given list in their home tenant or any subtenant. false otherwise.
+     * 
      * @param user StorageOSUser representing the logged in user
      * @param roles Roles to test against
      * @return whether or not the user has any of the given roles
@@ -893,11 +914,11 @@ public class BasePermissionsHelper {
         }
 
         Map<String, Collection<String>> allSubtenantRoles = null;
-        for (Role role: roles) {
+        for (Role role : roles) {
             if (isRoleTenantLevel(role.toString())) {
                 if (allSubtenantRoles == null) {
-                    //don't initialize allSubtenantRoles unless we need to.
-                    //API can't return null, so this will only run once.
+                    // don't initialize allSubtenantRoles unless we need to.
+                    // API can't return null, so this will only run once.
                     allSubtenantRoles = getSubtenantRolesForUser(user);
                 }
                 for (Collection<String> subtenantRoles : allSubtenantRoles.values()) {
@@ -912,6 +933,7 @@ public class BasePermissionsHelper {
 
     /**
      * Returns true if the user has any acl from the given list, false otherwise
+     * 
      * @param user
      * @param projectId Project uri to check acls on
      * @param acls
@@ -922,7 +944,7 @@ public class BasePermissionsHelper {
             return true;
         }
         Set<String> projectAcls = getProjectACLsForUser(user, projectId, false);
-        for (ACL acl: acls) {
+        for (ACL acl : acls) {
             if (acl.equals(ACL.ANY) && projectAcls.size() > 0) {
                 return true;
             }
@@ -935,6 +957,7 @@ public class BasePermissionsHelper {
 
     /**
      * Returns true if the user's tenant has a usage acl on the VirtualPool
+     * 
      * @param tenantUri
      * @param virtualPool
      * @return
@@ -957,6 +980,7 @@ public class BasePermissionsHelper {
 
     /**
      * Returns true if the user's tenant has a usage acl on the ComputeVirtualPool
+     * 
      * @param tenantUri
      * @param computeVirtualPool
      * @return
@@ -969,10 +993,10 @@ public class BasePermissionsHelper {
         if (computeVirtualPool.getAcls() == null || computeVirtualPool.getAcls().size() == 0) {
             return true;
         }
-     
+
         Set<String> acls = computeVirtualPool.getAclSet(new PermissionsKey(PermissionsKey.Type.TENANT,
-                tenantUri.toString(),computeVirtualPool.getSystemType()).toString());
-        
+                tenantUri.toString(), computeVirtualPool.getSystemType()).toString());
+
         if (acls != null && acls.contains(ACL.USE.toString())) {
             return true;
         }
@@ -981,6 +1005,7 @@ public class BasePermissionsHelper {
 
     /**
      * Returns true if the user's tenant has a usage acl on the VirtualArray
+     * 
      * @param tenantUri
      * @param virtualArray
      * @return
@@ -1003,54 +1028,56 @@ public class BasePermissionsHelper {
 
     /**
      * Check if the string is zone level role
+     * 
      * @param role
-     * @return   true if the string is zone level role, false otherwise
+     * @return true if the string is zone level role, false otherwise
      */
     public boolean isRoleZoneLevel(String role) {
         return (role.equalsIgnoreCase(Role.SYSTEM_ADMIN.toString()) ||
                 role.equalsIgnoreCase(Role.SECURITY_ADMIN.toString()) ||
                 role.equalsIgnoreCase(Role.SYSTEM_MONITOR.toString()) ||
                 role.equalsIgnoreCase(Role.SYSTEM_AUDITOR.toString()) ||
-                role.equalsIgnoreCase(Role.RESTRICTED_SECURITY_ADMIN.toString()) ||
-                role.equalsIgnoreCase(Role.RESTRICTED_SYSTEM_ADMIN.toString()));
+                role.equalsIgnoreCase(Role.RESTRICTED_SECURITY_ADMIN.toString()) || role.equalsIgnoreCase(Role.RESTRICTED_SYSTEM_ADMIN
+                .toString()));
     }
 
     /**
      * Check if the string is external zone level role
+     * 
      * @param role
-     * @return   true if the string is zone level role, false otherwise
+     * @return true if the string is zone level role, false otherwise
      */
     public boolean isExternalRoleZoneLevel(String role) {
         return (role.equalsIgnoreCase(Role.SYSTEM_ADMIN.toString()) ||
                 role.equalsIgnoreCase(Role.SECURITY_ADMIN.toString()) ||
-                role.equalsIgnoreCase(Role.SYSTEM_MONITOR.toString()) ||
-                role.equalsIgnoreCase(Role.SYSTEM_AUDITOR.toString()));
+                role.equalsIgnoreCase(Role.SYSTEM_MONITOR.toString()) || role.equalsIgnoreCase(Role.SYSTEM_AUDITOR.toString()));
     }
 
     /**
      * Check if the string is a tenant level role
+     * 
      * @param role
      * @return true if string is tenant level role, false otherwise
      */
     public boolean isRoleTenantLevel(String role) {
         return (role.equalsIgnoreCase(Role.TENANT_ADMIN.toString()) ||
-                role.equalsIgnoreCase(Role.PROJECT_ADMIN.toString())||
-                role.equalsIgnoreCase(Role.TENANT_APPROVER.toString()));
+                role.equalsIgnoreCase(Role.PROJECT_ADMIN.toString()) || role.equalsIgnoreCase(Role.TENANT_APPROVER.toString()));
     }
 
     /**
      * Check if the string is a valid project acl string
+     * 
      * @param acl
      * @return true if a valid project acl, false otherwise
      */
     public boolean isProjectACL(String acl) {
         return (acl.equalsIgnoreCase(ACL.OWN.toString()) ||
-                acl.equalsIgnoreCase(ACL.ALL.toString()) ||
-                acl.equalsIgnoreCase(ACL.BACKUP.toString()));
+                acl.equalsIgnoreCase(ACL.ALL.toString()) || acl.equalsIgnoreCase(ACL.BACKUP.toString()));
     }
 
     /**
      * Check if the string is a usage acl string
+     * 
      * @param acl
      * @return true if a its usage acl, false otherwise
      */
@@ -1060,6 +1087,7 @@ public class BasePermissionsHelper {
 
     /**
      * Get all tenants with roles for the given user
+     * 
      * @param user
      * @param filterBy if not null, set of roles that the resulting columns will be filtered by
      * @param onTenant if true, queries for tenant columns, otherwise, project columns
@@ -1090,45 +1118,49 @@ public class BasePermissionsHelper {
 
                 @Override
                 public URI createQueryHit(URI uri, Object entry) {
-                    return  createQueryHit(uri);
+                    return createQueryHit(uri);
                 }
             };
             // To do - fix up ContainmentPermissionsConstraint to query multiple row keys at a time.
             if (onTenant) {
                 _dbClient.queryByConstraint(
                         ContainmentPermissionsConstraint.Factory.getTenantsWithPermissionsConstraint(
-                        new PermissionsKey(PermissionsKey.Type.SID, user.getName()).toString()), results);
-                for(Iterator<URI> iterator = results.iterator(); iterator.hasNext(); iterator.next());
+                                new PermissionsKey(PermissionsKey.Type.SID, user.getName()).toString()), results);
+                for (Iterator<URI> iterator = results.iterator(); iterator.hasNext(); iterator.next())
+                    ;
                 if (user.getGroups() != null) {
-                    for (String group: user.getGroups()) {
+                    for (String group : user.getGroups()) {
                         _dbClient.queryByConstraint(
-                            ContainmentPermissionsConstraint.Factory.getTenantsWithPermissionsConstraint(
-                            new PermissionsKey(PermissionsKey.Type.GROUP, group).toString()), results);
-                        for(Iterator<URI> iterator = results.iterator(); iterator.hasNext(); iterator.next());
+                                ContainmentPermissionsConstraint.Factory.getTenantsWithPermissionsConstraint(
+                                        new PermissionsKey(PermissionsKey.Type.GROUP, group).toString()), results);
+                        for (Iterator<URI> iterator = results.iterator(); iterator.hasNext(); iterator.next())
+                            ;
                     }
                 }
-                //Now get the user's permissions based on the userGroup
+                // Now get the user's permissions based on the userGroup
                 getUserPermissionsForTenantBasedOnUserGroup(user, filterBy, permissionsMap);
-            } else {/* project*/
+            } else {/* project */
                 _dbClient.queryByConstraint(
-                    ContainmentPermissionsConstraint.Factory.getObjsWithPermissionsConstraint(
-                    new PermissionsKey(PermissionsKey.Type.SID, user.getName(), tenantId).toString(),
-                            Project.class), results);
-                for(Iterator<URI> iterator = results.iterator(); iterator.hasNext(); iterator.next());
+                        ContainmentPermissionsConstraint.Factory.getObjsWithPermissionsConstraint(
+                                new PermissionsKey(PermissionsKey.Type.SID, user.getName(), tenantId).toString(),
+                                Project.class), results);
+                for (Iterator<URI> iterator = results.iterator(); iterator.hasNext(); iterator.next())
+                    ;
                 if (user.getGroups() != null) {
-                    for (String group: user.getGroups()) {
+                    for (String group : user.getGroups()) {
                         _dbClient.queryByConstraint(
-                            ContainmentPermissionsConstraint.Factory.getObjsWithPermissionsConstraint(
-                            new PermissionsKey(PermissionsKey.Type.GROUP, group, tenantId).toString(),
-                                    Project.class), results);
-                        for(Iterator<URI> iterator = results.iterator(); iterator.hasNext(); iterator.next());
+                                ContainmentPermissionsConstraint.Factory.getObjsWithPermissionsConstraint(
+                                        new PermissionsKey(PermissionsKey.Type.GROUP, group, tenantId).toString(),
+                                        Project.class), results);
+                        for (Iterator<URI> iterator = results.iterator(); iterator.hasNext(); iterator.next())
+                            ;
                     }
                 }
-                //Now get the user's permissions based on the userGroup
+                // Now get the user's permissions based on the userGroup
                 getUserPermissionsForProjectBasedOnUserGroup(user, filterBy, permissionsMap);
             }
             return permissionsMap;
-		} catch (DatabaseException ex) {
+        } catch (DatabaseException ex) {
             _log.error("permissions index query failed", ex);
         }
         throw SecurityException.fatals.permissionsIndexQueryFailed();
@@ -1136,6 +1168,7 @@ public class BasePermissionsHelper {
 
     /**
      * Given a domain get a map of tenant IDs to a list of user mappings with the domain
+     * 
      * @param domain domain to search for
      * @return a map of tenant ID to mappings
      */
@@ -1160,11 +1193,12 @@ public class BasePermissionsHelper {
 
                 @Override
                 public URI createQueryHit(URI uri, Object entry) {
-                    return  createQueryHit(uri);
+                    return createQueryHit(uri);
                 }
             };
             _dbClient.queryByConstraint(ContainmentPermissionsConstraint.Factory.getUserMappingsWithDomain(domain), results);
-            for(Iterator<URI> iterator = results.iterator(); iterator.hasNext(); iterator.next());
+            for (Iterator<URI> iterator = results.iterator(); iterator.hasNext(); iterator.next())
+                ;
 
             return tenantUserMappingMap;
         } catch (DatabaseException ex) {
@@ -1176,7 +1210,7 @@ public class BasePermissionsHelper {
     public Map<String, Collection<String>> getSubtenantRolesForUser(StorageOSUser user) {
         Map<String, Collection<String>> subTenantRoles = new HashMap<String, Collection<String>>();
         URI userHomeTenant = URI.create(user.getTenantId());
-        
+
         NamedElementQueryResultList subtenants = new NamedElementQueryResultList();
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getTenantOrgSubTenantConstraint(userHomeTenant), subtenants);
@@ -1250,7 +1284,8 @@ public class BasePermissionsHelper {
         return userGroupList;
     }
 
-    /*** Gets all the user group that has the label matching with
+    /***
+     * Gets all the user group that has the label matching with
      * the param label.
      *
      * @param label to be matched.
@@ -1320,10 +1355,10 @@ public class BasePermissionsHelper {
      * @param user who's attributes list to be compared with user group.
      * @param roleAssignmentUserGroup to be compared with the user's attributes list.
      * @return true if user's attributes contains all the all attributes and its values of
-     *          user group otherwise false.
+     *         user group otherwise false.
      */
     public boolean matchUserAttributesToUserGroup(StorageOSUserDAO user,
-                                                  UserGroup roleAssignmentUserGroup) {
+            UserGroup roleAssignmentUserGroup) {
         boolean isUserGroupMatchesUserAttributes = false;
         if (roleAssignmentUserGroup == null ||
                 user == null) {
@@ -1332,8 +1367,7 @@ public class BasePermissionsHelper {
         }
 
         Set<String> userGroupDoNotMatch = new HashSet<String>();
-        for(String roleAssignmentUserAttributeString :
-                roleAssignmentUserGroup.getAttributes()) {
+        for (String roleAssignmentUserAttributeString : roleAssignmentUserGroup.getAttributes()) {
             if (StringUtils.isBlank(roleAssignmentUserAttributeString)) {
                 _log.debug("Invalid user attributes param string");
                 continue;
@@ -1385,9 +1419,9 @@ public class BasePermissionsHelper {
      *
      * @param user attributes of the user to be compared with the user group.
      * @param userGroupsWithRoles a map contains all the user group
-     *                                 and the all the roles associated with that groups.
+     *            and the all the roles associated with that groups.
      * @return returns all the roles of the user group that matches with the
-     *      user's attributes.
+     *         user's attributes.
      */
     private StringSet findAllRolesToAdd(StorageOSUser user, Map<UserGroup, StringSet> userGroupsWithRoles) {
         StringSet rolesToAdd = null;
@@ -1405,7 +1439,8 @@ public class BasePermissionsHelper {
             }
 
             if (matchUserAttributesToUserGroup(user, userGroupEntry.getKey())) {
-                rolesToAdd.addAll(userGroupEntry.getValue()); ;
+                rolesToAdd.addAll(userGroupEntry.getValue());
+                ;
             }
         }
         return rolesToAdd;
@@ -1416,7 +1451,7 @@ public class BasePermissionsHelper {
      * vdc role-assignments.
      *
      * @param user who's roles to be updated based on the user group in the
- *             vdc role-assignments.
+     *            vdc role-assignments.
      * @param vdc to get its role-assignments.
      */
     private void updateUserVdcRolesBasedOnUserGroup(StorageOSUser user, VirtualDataCenter vdc) {
@@ -1439,7 +1474,7 @@ public class BasePermissionsHelper {
         }
 
         for (String role : roleSet) {
-            if(isRoleZoneLevel(role)) {
+            if (isRoleZoneLevel(role)) {
                 _log.debug("Adding the vdc role {} to the user {}", role, user.getDistinguishedName());
                 user.addRole(role);
             }
@@ -1557,21 +1592,22 @@ public class BasePermissionsHelper {
      * @param filterBy if not null, set of roles that the resulting columns will be filtered by
      * @param permissionsMap out param, to be updated with list of permissions.
      */
-    private void getUserPermissionsForTenantBasedOnUserGroup(StorageOSUser user, Set<String> filterBy, Map<URI, Set<String>> permissionsMap) {
+    private void
+            getUserPermissionsForTenantBasedOnUserGroup(StorageOSUser user, Set<String> filterBy, Map<URI, Set<String>> permissionsMap) {
         if (user == null || CollectionUtils.isEmpty(user.getAttributes())) {
             _log.error("Invalid user or user attributes");
             return;
         }
 
-        TenantOrg userTenant = (TenantOrg)_dbClient.queryObject(URI.create(user.getTenantId()));
-        if(userTenant == null) {
+        TenantOrg userTenant = (TenantOrg) _dbClient.queryObject(URI.create(user.getTenantId()));
+        if (userTenant == null) {
             _log.error("Could not find user's {} tenant {}", user.getDistinguishedName(), user.getTenantId());
             return;
         }
 
         Set<String> tenantRoles = new HashSet<String>();
         updateUserTenantRolesBasedOnUserGroup(user, userTenant, tenantRoles);
-        if (!CollectionUtils.isEmpty(tenantRoles)){
+        if (!CollectionUtils.isEmpty(tenantRoles)) {
             addUserPermissions(filterBy, userTenant.getId(), tenantRoles, permissionsMap);
         }
     }
@@ -1583,25 +1619,26 @@ public class BasePermissionsHelper {
      * @param filterBy if not null, set of roles that the resulting columns will be filtered by
      * @param permissionsMap out param, to be updated with list of permissions.
      */
-    private void getUserPermissionsForProjectBasedOnUserGroup(StorageOSUser user, Set<String> filterBy, Map<URI, Set<String>> permissionsMap) {
+    private void
+            getUserPermissionsForProjectBasedOnUserGroup(StorageOSUser user, Set<String> filterBy, Map<URI, Set<String>> permissionsMap) {
         if (user == null || CollectionUtils.isEmpty(user.getAttributes())) {
             _log.error("Invalid user or user attributes");
             return;
         }
 
         List<URI> projectsURIList = _dbClient.queryByType(Project.class, true);
-        if (projectsURIList == null || !projectsURIList.iterator().hasNext()){
+        if (projectsURIList == null || !projectsURIList.iterator().hasNext()) {
             _log.warn("There are no projects configured.");
             return;
         }
 
-        List<Project> projects =  _dbClient.queryObject(Project.class, projectsURIList);
-        if (CollectionUtils.isEmpty(projects)){
+        List<Project> projects = _dbClient.queryObject(Project.class, projectsURIList);
+        if (CollectionUtils.isEmpty(projects)) {
             _log.error("Could not find the project objects for the Ids {}", projectsURIList.toString());
             return;
         }
 
-        for (Project project : projects){
+        for (Project project : projects) {
             if (project == null) {
                 _log.debug("Invalid project");
                 continue;
@@ -1609,7 +1646,7 @@ public class BasePermissionsHelper {
 
             Set<String> projectACLs = new HashSet<String>();
             updateUserProjectAclBasedOnUserGroup(user, project, projectACLs);
-            if (!CollectionUtils.isEmpty(projectACLs)){
+            if (!CollectionUtils.isEmpty(projectACLs)) {
                 addUserPermissions(filterBy, project.getId(), projectACLs, permissionsMap);
             }
         }
@@ -1621,10 +1658,10 @@ public class BasePermissionsHelper {
      * @param domain to find all the active user mappings for the domain.
      * @param label to check if the user mapping uses this user group or not.
      * @return Set of URI of the tenant that has the user mappings references to the
-     *          user group.
+     *         user group.
      */
     public Set<URI> checkForActiveUserMappingUsingGroup(String domain, String label) {
-        Set<URI> tenantsUsingUserGroup= null;
+        Set<URI> tenantsUsingUserGroup = null;
 
         Map<URI, List<UserMapping>> mappings = getAllUserMappingsForDomain(domain);
         if (CollectionUtils.isEmpty(mappings)) {
@@ -1662,7 +1699,7 @@ public class BasePermissionsHelper {
      * @param label to check if the acls or role-assignments uses user group or not.
      * @param acls set or acls or role-assignments to be checked.
      * @return true if the acls or role-assignments contains the user group
-     *              otherwise false.
+     *         otherwise false.
      */
     private boolean checkUserGroupWithPermissionKeys(String label, Set<String> acls) {
         boolean resourceUsingUserGroup = false;
@@ -1699,14 +1736,14 @@ public class BasePermissionsHelper {
     public Set<URI> checkForActiveProjectAclsUsingUserGroup(String label) {
         Set<URI> projectsUsingUserGroup = null;
 
-        //Find all the configured project IDs based on the type.
+        // Find all the configured project IDs based on the type.
         List<URI> projectURIList = _dbClient.queryByType(Project.class, true);
         if (projectURIList == null || !projectURIList.iterator().hasNext()) {
             _log.warn("There are no projects configured.");
             return projectsUsingUserGroup;
         }
 
-        //Find all the configured project objects based on the given list of IDs.
+        // Find all the configured project objects based on the given list of IDs.
         List<Project> projects = _dbClient.queryObject(Project.class, projectURIList);
         if (CollectionUtils.isEmpty(projects)) {
             _log.error("Could not find the project objects for the Ids {}", projectURIList.toString());
@@ -1747,7 +1784,7 @@ public class BasePermissionsHelper {
 
         VirtualDataCenter vdc = VdcUtil.getLocalVdc();
         if (vdc == null) {
-            _log.error ("Could not find local VDC");
+            _log.error("Could not find local VDC");
             return vdcUsingUserGroup;
         }
 
@@ -1776,14 +1813,14 @@ public class BasePermissionsHelper {
     public Set<URI> checkForActiveTenantRoleAssignmentsUsingUserGroup(String label) {
         Set<URI> tenantsUsingUserGroup = null;
 
-        //Find all the configured tenant IDs based on the type.
+        // Find all the configured tenant IDs based on the type.
         List<URI> tenantURIList = _dbClient.queryByType(TenantOrg.class, true);
         if (tenantURIList == null || !tenantURIList.iterator().hasNext()) {
             _log.error("There are no tenants configured.");
             return tenantsUsingUserGroup;
         }
 
-        //Find all the configured tenant objects based on the given list of IDs.
+        // Find all the configured tenant objects based on the given list of IDs.
         List<TenantOrg> tenants = _dbClient.queryObject(TenantOrg.class, tenantURIList);
         if (CollectionUtils.isEmpty(tenants)) {
             _log.error("Could not find the tenant objects for the Ids {}", tenantURIList.toString());
@@ -1822,14 +1859,14 @@ public class BasePermissionsHelper {
     public Set<URI> checkForActiveCatalogCategoryAclsUsingUserGroup(String label) {
         Set<URI> catalogCategoryUsingUserGroup = null;
 
-        //Find all the configured Catalog category IDs based on the type.
+        // Find all the configured Catalog category IDs based on the type.
         List<URI> catalogCategoryURIList = _dbClient.queryByType(CatalogCategory.class, true);
         if (catalogCategoryURIList == null || !catalogCategoryURIList.iterator().hasNext()) {
             _log.warn("There are no catalog category configured.");
             return catalogCategoryUsingUserGroup;
         }
 
-        //Find all the configured Catalog category objects based on the given list of IDs.
+        // Find all the configured Catalog category objects based on the given list of IDs.
         List<CatalogCategory> catalogCategories = _dbClient.queryObject(CatalogCategory.class, catalogCategoryURIList);
         if (CollectionUtils.isEmpty(catalogCategories)) {
             _log.error("Could not find the Catalog category objects for the Ids {}", catalogCategoryURIList.toString());
@@ -1868,14 +1905,14 @@ public class BasePermissionsHelper {
     public Set<URI> checkForActiveCatalogServiceAclsUsingUserGroup(String label) {
         Set<URI> catalogServiceUsingUserGroup = null;
 
-        //Find all the configured Catalog service IDs based on the type.
+        // Find all the configured Catalog service IDs based on the type.
         List<URI> catalogServiceURIList = _dbClient.queryByType(CatalogService.class, true);
         if (catalogServiceURIList == null || !catalogServiceURIList.iterator().hasNext()) {
             _log.warn("There are no catalog service configured.");
             return catalogServiceUsingUserGroup;
         }
 
-        //Find all the configured Catalog service objects based on the given list of IDs.
+        // Find all the configured Catalog service objects based on the given list of IDs.
         List<CatalogService> catalogServices = _dbClient.queryObject(CatalogService.class, catalogServiceURIList);
         if (CollectionUtils.isEmpty(catalogServices)) {
             _log.error("Could not find the Catalog service objects for the Ids {}", catalogServiceURIList.toString());
@@ -1906,6 +1943,7 @@ public class BasePermissionsHelper {
 
     /**
      * Returns true if the user has any acl from the given list, false otherwise
+     * 
      * @param user
      * @param acls
      * @return
@@ -1913,7 +1951,7 @@ public class BasePermissionsHelper {
     public boolean userHasGivenProjectACL(StorageOSUser user, ACL... acls) {
         List<URI> projectIds = _dbClient.queryByType(Project.class, true);
 
-        if(projectIds == null || !projectIds.iterator().hasNext()) {
+        if (projectIds == null || !projectIds.iterator().hasNext()) {
             _log.warn("There are no projects configured.");
             return false;
         }
@@ -1930,7 +1968,7 @@ public class BasePermissionsHelper {
     }
 
     /**
-     *  given tenant id, find its name
+     * given tenant id, find its name
      */
     public String getTenantNameByID(String tenantID) {
         if (StringUtils.isEmpty(tenantID)) {
@@ -1938,6 +1976,6 @@ public class BasePermissionsHelper {
         }
 
         TenantOrg tenantOrg = _dbClient.queryObject(TenantOrg.class, URI.create(tenantID));
-        return tenantOrg != null ? tenantOrg.getLabel() : null ;
+        return tenantOrg != null ? tenantOrg.getLabel() : null;
     }
 }

@@ -67,7 +67,7 @@ public class CatalogApi extends OrderExecution {
     public static void invoke(String serviceId) {
         runCatalogService(serviceId);
     }
-    
+
     public static void invokeByPath(String sp1, String sp2, String sp3, String sp4, String sp5) {
         CatalogCategoryRestRep catalog = CatalogCategoryUtils.getRootCategory();
 
@@ -112,7 +112,7 @@ public class CatalogApi extends OrderExecution {
         }
 
         DataObjectRestRep result = root;
-        for (String path: subPaths) {
+        for (String path : subPaths) {
             if (StringUtils.isBlank(path)) {
                 continue;
             }
@@ -157,7 +157,7 @@ public class CatalogApi extends OrderExecution {
     private static OrderCreateParam createAndValidateOrder(String serviceId) {
         CatalogServiceRestRep service = CatalogServiceUtils.getCatalogService(uri(serviceId));
         ServiceDescriptorRestRep descriptor = service.getServiceDescriptor();
-        
+
         // Filter out actual Service Parameters
         Map<String, String> parameters = parseParameters(service, descriptor);
         if (Validation.hasErrors()) {
@@ -169,10 +169,9 @@ public class CatalogApi extends OrderExecution {
         return order;
     }
 
-
     private static List<ValidationError> getValidationErrors() {
         List<ValidationError> errors = Lists.newArrayList();
-        for (play.data.validation.Error error: Validation.errors()) {
+        for (play.data.validation.Error error : Validation.errors()) {
             errors.add(new ValidationError(error.getKey(), error.message()));
         }
         return errors;

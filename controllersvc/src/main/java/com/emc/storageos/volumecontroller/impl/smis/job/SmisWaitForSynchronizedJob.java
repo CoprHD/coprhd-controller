@@ -36,7 +36,7 @@ public class SmisWaitForSynchronizedJob extends SmisJob {
     private Class<? extends BlockObject> clazz;
 
     public SmisWaitForSynchronizedJob(Class<? extends BlockObject> clazz, CIMObjectPath targetPath, URI storageSystem,
-                                      TaskCompleter taskCompleter) {
+            TaskCompleter taskCompleter) {
         super(null, storageSystem, taskCompleter, "WaitForSynchronized");
         _map.put(TARGET_PATH, targetPath);
         this.clazz = clazz;
@@ -58,17 +58,17 @@ public class SmisWaitForSynchronizedJob extends SmisJob {
             pollResult.setJobName(getJobName());
             pollResult.setJobId(SmisConstants.CP_PERCENT_SYNCED);
             pollResult.setJobStatus(JobStatus.IN_PROGRESS);
-            
+
             CIMObjectPath path = getTargetPath();
             // no corresponding sync obj, set to complete
             if (SmisConstants.NULL_IBM_CIM_OBJECT_PATH.equals(path)) {
                 log.info("Sync complete");
                 pollResult.setJobPercentComplete(100);
                 pollResult.setJobStatus(JobStatus.SUCCESS);
-                completer.ready(dbClient);                 
+                completer.ready(dbClient);
                 return pollResult;
             }
-            
+
             references = client.referenceInstances(getTargetPath(),
                     SmisConstants.CIM_STORAGE_SYNCHRONIZED, null, false, null);
             if (references.hasNext()) {
@@ -78,7 +78,7 @@ public class SmisWaitForSynchronizedJob extends SmisJob {
                 String percent = CIMPropertyFactory.getPropertyValue(syncInstance, SmisConstants.CP_PERCENT_SYNCED);
                 String status = CIMPropertyFactory.getPropertyValue(syncInstance, SmisConstants.CP_PROGRESS_STATUS);
                 String msg = String.format("Target=%s, State=%s, Type=%s, Percent=%s, Status=%s",
-                        target.getId(),state, type, percent, status);
+                        target.getId(), state, type, percent, status);
                 log.info(msg);
                 pollResult.setJobPercentComplete(Integer.parseInt(percent));
 

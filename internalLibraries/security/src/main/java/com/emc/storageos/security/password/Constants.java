@@ -15,7 +15,6 @@
 
 package com.emc.storageos.security.password;
 
-
 public class Constants {
 
     // keys in storageos-properties-config.def
@@ -35,37 +34,37 @@ public class Constants {
     public static final String SYSTEM_UPDATE_CHECK_FREQUENCY_HOURS = "system_update_check_frequency_hours";
 
     // prompt information shown in changePassword.html
-    public static final String[][] PASSWORD_CHANGE_PROMPT = new String[][]{
-            {PASSWORD_MIN_LENGTH, "at least {0} characters"},
-            {PASSWORD_LOWERCASE_NUMBER, "at least {0} lowercase"},
-            {PASSWORD_UPPERCASE_NUMBER, "at least {0} uppercase"},
-            {PASSWORD_NUMERIC_NUMBER,  "at least {0} numeric"},
-            {PASSWORD_SPECIAL_NUMBER, "at least {0} special character"},
-            {PASSWORD_REPEATING_NUMBER, "no more than {0} consecutive repeating characters"},
-            {PASSWORD_CHANGED_NUMBER, "at least change {0} characters"},
-            {PASSWORD_REUSE_NUMBER,  "cannot be the last {0} passwords used" }
+    public static final String[][] PASSWORD_CHANGE_PROMPT = new String[][] {
+            { PASSWORD_MIN_LENGTH, "at least {0} characters" },
+            { PASSWORD_LOWERCASE_NUMBER, "at least {0} lowercase" },
+            { PASSWORD_UPPERCASE_NUMBER, "at least {0} uppercase" },
+            { PASSWORD_NUMERIC_NUMBER, "at least {0} numeric" },
+            { PASSWORD_SPECIAL_NUMBER, "at least {0} special character" },
+            { PASSWORD_REPEATING_NUMBER, "no more than {0} consecutive repeating characters" },
+            { PASSWORD_CHANGED_NUMBER, "at least change {0} characters" },
+            { PASSWORD_REUSE_NUMBER, "cannot be the last {0} passwords used" }
     };
 
-    public static final String[][] PASSWORD_VALID_PROMPT = new String[][]{
-    	 {PASSWORD_MIN_LENGTH, "at least {0} characters"},
-         {PASSWORD_LOWERCASE_NUMBER, "at least {0} lowercase"},
-         {PASSWORD_UPPERCASE_NUMBER, "at least {0} uppercase"},
-         {PASSWORD_NUMERIC_NUMBER,  "at least {0} numeric"},
-         {PASSWORD_SPECIAL_NUMBER, "at least {0} special character"},
-         {PASSWORD_REPEATING_NUMBER, "no more than {0} consecutive repeating characters"}
+    public static final String[][] PASSWORD_VALID_PROMPT = new String[][] {
+            { PASSWORD_MIN_LENGTH, "at least {0} characters" },
+            { PASSWORD_LOWERCASE_NUMBER, "at least {0} lowercase" },
+            { PASSWORD_UPPERCASE_NUMBER, "at least {0} uppercase" },
+            { PASSWORD_NUMERIC_NUMBER, "at least {0} numeric" },
+            { PASSWORD_SPECIAL_NUMBER, "at least {0} special character" },
+            { PASSWORD_REPEATING_NUMBER, "no more than {0} consecutive repeating characters" }
     };
 
-    public static final String[][] PASSWORD_UPDATE_PROMPT = new String[][]{
-        {PASSWORD_MIN_LENGTH, "at least {0} characters"},
-        {PASSWORD_LOWERCASE_NUMBER, "at least {0} lowercase"},
-        {PASSWORD_UPPERCASE_NUMBER, "at least {0} uppercase"},
-        {PASSWORD_NUMERIC_NUMBER,  "at least {0} numeric"},
-        {PASSWORD_SPECIAL_NUMBER, "at least {0} special character"},
-        {PASSWORD_REPEATING_NUMBER, "no more than {0} consecutive repeating characters"},
-        {PASSWORD_CHANGED_NUMBER, "at least change {0} characters"},
-        {PASSWORD_REUSE_NUMBER,  "cannot be the last {0} passwords used" },
-        {PASSWORD_CHANGE_INTERVAL,"cannot be changed more than once in every {0} minutes"}
-};
+    public static final String[][] PASSWORD_UPDATE_PROMPT = new String[][] {
+            { PASSWORD_MIN_LENGTH, "at least {0} characters" },
+            { PASSWORD_LOWERCASE_NUMBER, "at least {0} lowercase" },
+            { PASSWORD_UPPERCASE_NUMBER, "at least {0} uppercase" },
+            { PASSWORD_NUMERIC_NUMBER, "at least {0} numeric" },
+            { PASSWORD_SPECIAL_NUMBER, "at least {0} special character" },
+            { PASSWORD_REPEATING_NUMBER, "no more than {0} consecutive repeating characters" },
+            { PASSWORD_CHANGED_NUMBER, "at least change {0} characters" },
+            { PASSWORD_REUSE_NUMBER, "cannot be the last {0} passwords used" },
+            { PASSWORD_CHANGE_INTERVAL, "cannot be changed more than once in every {0} minutes" }
+    };
 
     /*
      * it is the day when the first mail sent to user to notify their password to be expired.
@@ -82,7 +81,7 @@ public class Constants {
     public static final int MAIL_SEND_HOUR = 3;
 
     // send notify mail at the following days before password expire
-    public static final int[] NOTIFICATION_DAYS = new int[] {14,7,6,5,4,3,2,1};
+    public static final int[] NOTIFICATION_DAYS = new int[] { 14, 7, 6, 5, 4, 3, 2, 1 };
 
     public static final String SYSTEM_PASSWORD_EXPIRY_FORMAT = "system_%s_expiry_date";
 

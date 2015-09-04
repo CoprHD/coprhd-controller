@@ -36,14 +36,15 @@ public class UserAttributeParam {
     private String key;
     private Set<String> values;
 
-    public UserAttributeParam() {}
+    public UserAttributeParam() {
+    }
 
     public UserAttributeParam(String key, Set<String> values) {
         this.key = key;
         this.values = values;
     }
 
-    @XmlElement(required=true, name="key")
+    @XmlElement(required = true, name = "key")
     @JsonProperty("key")
     public String getKey() {
         return key;
@@ -53,8 +54,8 @@ public class UserAttributeParam {
         this.key = key;
     }
 
-    @XmlElementWrapper(name="values")
-    @XmlElement(required=true, name="value")
+    @XmlElementWrapper(name = "values")
+    @XmlElement(required = true, name = "value")
     @JsonProperty("values")
     public Set<String> getValues() {
         if (values == null) {
@@ -94,7 +95,7 @@ public class UserAttributeParam {
      * @param attributeParam to compared.
      * @return true if the attributeParam matches with this.
      */
-    public boolean containsAllAttributeValues (UserAttributeParam attributeParam) {
+    public boolean containsAllAttributeValues(UserAttributeParam attributeParam) {
         boolean containsAllAttributes = false;
 
         if (attributeParam == null) {
@@ -116,8 +117,8 @@ public class UserAttributeParam {
             return containsAllAttributes;
         }
 
-        //Set the containsAllAttributes as true here and mark as false if one of the comparing attribute value
-        //is not found in the object's attribute value list.
+        // Set the containsAllAttributes as true here and mark as false if one of the comparing attribute value
+        // is not found in the object's attribute value list.
         containsAllAttributes = true;
 
         for (String comparingValue : attributeParam.getValues()) {
@@ -145,7 +146,7 @@ public class UserAttributeParam {
      * @param attributeParam to compared.
      * @return true if the attributeParam matches with this.
      */
-    public boolean containsOverlappingAttributeValues (UserAttributeParam attributeParam) {
+    public boolean containsOverlappingAttributeValues(UserAttributeParam attributeParam) {
         boolean containsOverlappingAttributes = false;
 
         if (attributeParam == null) {
@@ -207,9 +208,9 @@ public class UserAttributeParam {
             return isEqual;
         }
 
-        //Now compare if all the attribute values natches with each other.
-        //If they match, both the objects are same, as we already compared the
-        //size of the values.
+        // Now compare if all the attribute values natches with each other.
+        // If they match, both the objects are same, as we already compared the
+        // size of the values.
         isEqual = containsAllAttributeValues(attributeParam);
 
         return isEqual;

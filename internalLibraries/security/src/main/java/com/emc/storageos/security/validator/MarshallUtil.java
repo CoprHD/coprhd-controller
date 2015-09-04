@@ -11,7 +11,6 @@
 
 package com.emc.storageos.security.validator;
 
-
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
@@ -37,9 +36,9 @@ public class MarshallUtil {
     public static String ConvertTenantUserMappingToString(TenantOrg tenant) throws Exception {
         TenantOrgRestRep response = new TenantOrgRestRep();
 
-        if(tenant.getUserMappings() != null) {
-            for(AbstractChangeTrackingSet<String> userMappingSet: tenant.getUserMappings().values()) {
-                for(String existingMapping : userMappingSet ) {
+        if (tenant.getUserMappings() != null) {
+            for (AbstractChangeTrackingSet<String> userMappingSet : tenant.getUserMappings().values()) {
+                for (String existingMapping : userMappingSet) {
                     response.getUserMappings().add(BasePermissionsHelper.UserMapping.toParam(
                             BasePermissionsHelper.UserMapping.fromString(existingMapping)));
                 }
@@ -52,7 +51,6 @@ public class MarshallUtil {
         jaxbMarshaller.marshal(response, writer);
         return writer.toString();
     }
-
 
     /**
      * leveraging TenantOrgRestRep's JAXB representation, converting its string to List of UserMapping object.
@@ -72,6 +70,6 @@ public class MarshallUtil {
 
         }
 
-        return  userMappingList;
+        return userMappingList;
     }
 }

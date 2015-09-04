@@ -39,8 +39,7 @@ public class TaskUtil {
             }
             try {
                 Thread.sleep(client.getConfig().getTaskPollingInterval());
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 throw new ViPRException(e);
             }
             refreshSession(client);
@@ -51,7 +50,7 @@ public class TaskUtil {
 
     public static List<TaskResourceRep> waitForTasks(RestClient client, List<TaskResourceRep> tasks, long timeoutMillis) {
         List<TaskResourceRep> newTasks = new ArrayList<TaskResourceRep>();
-        for (TaskResourceRep task: tasks) {
+        for (TaskResourceRep task : tasks) {
             newTasks.add(waitForTask(client, task, timeoutMillis));
         }
         return newTasks;
@@ -88,7 +87,7 @@ public class TaskUtil {
 
     public static void checkForErrors(List<TaskResourceRep> tasks) {
         List<ServiceErrorRestRep> errors = new ArrayList<ServiceErrorRestRep>();
-        for (TaskResourceRep task: tasks) {
+        for (TaskResourceRep task : tasks) {
             if (isError(task)) {
                 errors.add(taskToError(task));
             }
@@ -115,9 +114,9 @@ public class TaskUtil {
         }
         return serviceError;
     }
-    
+
     private synchronized static void refreshSession(RestClient client) {
-        if (client.getLoginTime() > 0 
+        if (client.getLoginTime() > 0
                 && (System.currentTimeMillis() - client.getLoginTime()) > client.getConfig().getSessionKeyRenewTimeout()
                 && client.getUsername() != null && client.getPassword() != null) {
             AuthClient authClient = new AuthClient(client);

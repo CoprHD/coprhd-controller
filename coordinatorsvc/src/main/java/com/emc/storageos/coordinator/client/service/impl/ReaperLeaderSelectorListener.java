@@ -52,7 +52,7 @@ public class ReaperLeaderSelectorListener extends LeaderSelectorListenerImpl {
 
     public void stopLeadership() {
         try {
-            if(_mutexReaper != null) {
+            if (_mutexReaper != null) {
                 _mutexReaper.close();
                 _log.info("Child reaper stopped.");
             }
@@ -61,4 +61,3 @@ public class ReaperLeaderSelectorListener extends LeaderSelectorListenerImpl {
         }
     }
 }
-

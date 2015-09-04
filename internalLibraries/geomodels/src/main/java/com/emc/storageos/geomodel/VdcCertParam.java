@@ -28,18 +28,20 @@ public class VdcCertParam {
     private URI vdcId;
     private String certificate;
 
-    @XmlElement(name="vdcId")
+    @XmlElement(name = "vdcId")
     public URI getVdcId() {
         return vdcId;
     }
+
     public void setVdcId(URI vdcId) {
         this.vdcId = vdcId;
     }
-    
-    @XmlElement(name="certificate")
+
+    @XmlElement(name = "certificate")
     public String getCertificate() {
         return certificate;
     }
+
     public void setCertificate(String certificate) {
         this.certificate = certificate;
     }

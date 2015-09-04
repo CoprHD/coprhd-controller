@@ -139,8 +139,8 @@ public class ScaleIOPoolAndStorageSystemMigration extends BaseCustomMigrationCal
      * Check if there are any ScaleIO StorageSystems in the DB.
      *
      * @return true IFF there are 1 or more StorageSystems with systemType = scaleio. The SIO_STORAGE_SYSTEMS
-     * map will be populate with a mapping of the SIO StorageSystem URIs to StorageSystem object. Note, that
-     * the StorageSystems will have limited properties based on the query to populate them.
+     *         map will be populate with a mapping of the SIO StorageSystem URIs to StorageSystem object. Note, that
+     *         the StorageSystems will have limited properties based on the query to populate them.
      *
      */
     private boolean haveAnySIOStorageSystems() {

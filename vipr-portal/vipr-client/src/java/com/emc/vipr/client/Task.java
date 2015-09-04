@@ -38,7 +38,7 @@ public class Task<R> {
     public TaskResourceRep getTaskResource() {
         return task;
     }
-    
+
     public URI getResourceId() {
         NamedRelatedResourceRep resource = getResource();
         if (resource == null) {

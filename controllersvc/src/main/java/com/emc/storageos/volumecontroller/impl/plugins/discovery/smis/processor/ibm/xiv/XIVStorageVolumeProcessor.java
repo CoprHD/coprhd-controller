@@ -50,7 +50,7 @@ public class XIVStorageVolumeProcessor extends StorageProcessor {
     private static final String SYSTEMNAME = "SystemName";
     private static final String DEVICEID = "DeviceID";
     private static final int BATCH_SIZE = 200;
-    
+
     private DbClient _dbClient = null;
     private List<Volume> _updateVolumes = null;
     private List<BlockSnapshot> _updateSnapShots;
@@ -152,7 +152,7 @@ public class XIVStorageVolumeProcessor extends StorageProcessor {
         return NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
                 systemName.toUpperCase(), id);
     }
-    
+
     private long returnProvisionedCapacity(CIMInstance volumeInstance) {
         long blocksize = Long.parseLong(volumeInstance.getPropertyValue(
                 BLOCK_SIZE).toString());

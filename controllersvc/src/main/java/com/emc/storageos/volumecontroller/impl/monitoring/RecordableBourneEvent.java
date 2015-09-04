@@ -37,7 +37,7 @@ public class RecordableBourneEvent implements RecordableEvent {
     // Constant defines the event extension for host clients for fileshare
     // export/unexport events.
     public static final String FS_CLIENT_EXTENSION_NAME = "Hosts";
-    
+
     // Constant defines the event extension for ACLS of a share
     public static final String FS_ACL_EXTENSION_NAME = "Acls";
 

@@ -27,6 +27,7 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 /**
  * A Workflow represents a sequence of steps that can be executed by Controllers to
  * achieve a higher level goal.
+ * 
  * @author Watson 2/26/2013 revised 3/1/2013
  */
 public class Workflow implements Serializable {
@@ -71,8 +72,8 @@ public class Workflow implements Serializable {
             new ObjectStreamField("_workflowURI", URI.class),
             new ObjectStreamField("_childWorkflows", Set.class),
             new ObjectStreamField("_nested", Boolean.class),
-            new ObjectStreamField("_stepMap",  Map.class),
-            new ObjectStreamField("_stepStatusMap",  Map.class),
+            new ObjectStreamField("_stepMap", Map.class),
+            new ObjectStreamField("_stepStatusMap", Map.class),
     };
 
     private static final Logger _log = LoggerFactory.getLogger(Workflow.class);
@@ -88,8 +89,10 @@ public class Workflow implements Serializable {
         public String description;
         /** Every step belongs to a StepGroup. This is the stepGroup name. */
         public String stepGroup;
-        /** If non-null, a stepId or stepGroup name that must complete before
-         * this step executes. */
+        /**
+         * If non-null, a stepId or stepGroup name that must complete before
+         * this step executes.
+         */
         public String waitFor;
         /** The underlying device URI for this step (e.g. StorageSystem). */
         public URI deviceURI;
@@ -118,10 +121,14 @@ public class Workflow implements Serializable {
 
         // Rollback steps are in the rollback step group.
         public static final String ROLLBACK_GROUP = "_rollback_group_";
-        public boolean isRollbackStep() { return this.stepGroup.equals(ROLLBACK_GROUP); }
+
+        public boolean isRollbackStep() {
+            return this.stepGroup.equals(ROLLBACK_GROUP);
+        }
 
         /**
          * Generates a rollback Step corresponding to this step.
+         * 
          * @return Step
          */
         public Step generateRollbackStep() {
@@ -158,18 +165,21 @@ public class Workflow implements Serializable {
         ERROR;
         /** Returns the equivalent Operation.Status value */
         public Operation.Status getOperationStatus() {
-            if (this == SUCCESS) return Operation.Status.ready;
-            if (this == CANCELLED || this == ERROR) return Operation.Status.error;
+            if (this == SUCCESS)
+                return Operation.Status.ready;
+            if (this == CANCELLED || this == ERROR)
+                return Operation.Status.error;
             return Operation.Status.pending;
         }
+
         public ServiceCode getServiceCode() {
             switch (this) {
-            case CANCELLED:
-                return ServiceCode.WORKFLOW_STEP_CANCELLED;
-            case ERROR:
-                return ServiceCode.WORKFLOW_STEP_ERROR;
-            default:
-                return null;
+                case CANCELLED:
+                    return ServiceCode.WORKFLOW_STEP_CANCELLED;
+                case ERROR:
+                    return ServiceCode.WORKFLOW_STEP_ERROR;
+                default:
+                    return null;
             }
         }
     }
@@ -185,7 +195,7 @@ public class Workflow implements Serializable {
         public StepState state;
         /** A message from the underlying controller */
         public String message;
-        /**  Human readable description of what this step is doing */
+        /** Human readable description of what this step is doing */
         public String description;
         /** Time step was queued to the Dispatcher */
         public Date startTime;
@@ -194,7 +204,8 @@ public class Workflow implements Serializable {
         /** The service code for an error state */
         public ServiceCode serviceCode;
 
-        StepStatus() {  }
+        StepStatus() {
+        }
 
         StepStatus(String stepId, StepState state, String description) {
             this.stepId = stepId;
@@ -220,6 +231,7 @@ public class Workflow implements Serializable {
          * Zookeeper as a result of a WorkflowStepCompleter.updateState().
          * Note that if there are any threads waiting on this step, they will be
          * awakened so that they will recheck the Step's status.
+         * 
          * @param newState The new state reported.
          * @param message Message from the controller.
          */
@@ -295,6 +307,7 @@ public class Workflow implements Serializable {
 
     /**
      * Constructor to be called by WorkflowService. NOT TO BE CALLED BY CLIENTS.
+     * 
      * @param service - Handle to the WorkflowService
      * @param orchControllerName - The simple name of the Controller on behalf this Workflow is executing.
      * @param methodName - Method within the controller on
@@ -313,13 +326,14 @@ public class Workflow implements Serializable {
     /**
      * Constructor to be called by WorkflowService. NOT TO BE CALLED BY CLIENTS.
      * Used to locate Workflows by their URI.
+     * 
      * @param service - Handle to the WorkflowService
      * @param orchControllerName - The simple name of the Controller on behalf this Workflow is executing.
      * @param methodName - Method within the controller on
      * @param workflowURI - URI of existing Workflow
      */
     Workflow(WorkflowService service, String orchControllerName, String methodName, URI workflowURI) {
-    	_service = service;
+        _service = service;
         _orchControllerName = orchControllerName;
         _orchMethod = methodName;
         _workflowURI = workflowURI;
@@ -335,6 +349,7 @@ public class Workflow implements Serializable {
 
     /**
      * Check that the method is defined in the controller.
+     * 
      * @param controller
      * @param methodName
      * @throws WorkflowException
@@ -343,7 +358,8 @@ public class Workflow implements Serializable {
             throws WorkflowException {
         java.lang.reflect.Method[] methods = controllerClass.getMethods();
         for (java.lang.reflect.Method method : methods) {
-            if (method.getName().equals(methodName)) return;
+            if (method.getName().equals(methodName))
+                return;
         }
         throw new WorkflowException(String.format(
                 "In class %s there is no method matching %s",
@@ -352,6 +368,7 @@ public class Workflow implements Serializable {
 
     /**
      * Creates a step id for use with createStep().
+     * 
      * @return String stepId
      */
     public String createStepId() {
@@ -368,34 +385,34 @@ public class Workflow implements Serializable {
      * <p>
      *
      * @param stepGroup
-     *       -- Step group name this step is a member of. Other steps can
+     *            -- Step group name this step is a member of. Other steps can
      *            wait until all the steps in the specified stepGroup have
      *            completed. Do not use UUID values for stepGroup names.
      *            You can pass null if this step should not belong to any
      *            step groups.
      * @param description
-     *       -- Short textual description of the step for logging/status
+     *            -- Short textual description of the step for logging/status
      *            displays.
      * @param waitFor
-     *       -- If non-null, the step will not be queued for execution in
+     *            -- If non-null, the step will not be queued for execution in
      *            the Dispatcher until the Step or StepGroup indicated by the
      *            waitFor has completed. The waitFor may either be a string
      *            representation of a Step UUID, or the name of a StepGroup.
      * @param deviceURI
-     *       -- The URI of the affected device, e.g. StorageSystem or
+     *            -- The URI of the affected device, e.g. StorageSystem or
      *            NetworkSystem. This is a required parameter to the Dispatcher,
      *            who maintains a semaphore count on the number of outstanding
      *            operations to each device instance.
      * @param deviceType
-     *      --The type of Device, used to find the controller. Typically
-     *      given by device.getDeviceType(). This is a required
-     *      parameter to the Dispatcher.
+     *            --The type of Device, used to find the controller. Typically
+     *            given by device.getDeviceType(). This is a required
+     *            parameter to the Dispatcher.
      * @param controllerClass -- The controller class (like
-     *     NetworkDeviceController.class, BlockDeviceController.class)
+     *            NetworkDeviceController.class, BlockDeviceController.class)
      * @param executeMethod - Method name and parameters for the execution method.
      * @param rollbackMethod - Method name name parameters for the rollback method.
      * @param stepId - If non null, specifies the stepId to be used, otherwise if null a stepId is
-     * automatically generated.
+     *            automatically generated.
      *
      * @return String representing UUID of generated step
      */
@@ -404,10 +421,10 @@ public class Workflow implements Serializable {
             Class controllerClass, Method executeMethod, Method rollbackMethod,
             String stepId)
             throws WorkflowException {
-        return createStep(stepGroup, description, waitFor, deviceURI, deviceType, true, controllerClass, 
+        return createStep(stepGroup, description, waitFor, deviceURI, deviceType, true, controllerClass,
                 executeMethod, rollbackMethod, stepId);
     }
- 
+
     /**
      * Creates a step for execution on an internal Queue within the Workflow and
      * returns after internally generating a step UUID for the step. The step
@@ -418,37 +435,37 @@ public class Workflow implements Serializable {
      * <p>
      *
      * @param stepGroup
-     *       -- Step group name this step is a member of. Other steps can
+     *            -- Step group name this step is a member of. Other steps can
      *            wait until all the steps in the specified stepGroup have
      *            completed. Do not use UUID values for stepGroup names.
      *            You can pass null if this step should not belong to any
      *            step groups.
      * @param description
-     *       -- Short textual description of the step for logging/status
+     *            -- Short textual description of the step for logging/status
      *            displays.
      * @param waitFor
-     *       -- If non-null, the step will not be queued for execution in
+     *            -- If non-null, the step will not be queued for execution in
      *            the Dispatcher until the Step or StepGroup indicated by the
      *            waitFor has completed. The waitFor may either be a string
      *            representation of a Step UUID, or the name of a StepGroup.
      * @param deviceURI
-     *       -- The URI of the affected device, e.g. StorageSystem or
+     *            -- The URI of the affected device, e.g. StorageSystem or
      *            NetworkSystem. This is a required parameter to the Dispatcher,
      *            who maintains a semaphore count on the number of outstanding
      *            operations to each device instance.
      * @param deviceType
-     *      --The type of Device, used to find the controller. Typically
-     *      given by device.getDeviceType(). This is a required
-     *      parameter to the Dispatcher.
+     *            --The type of Device, used to find the controller. Typically
+     *            given by device.getDeviceType(). This is a required
+     *            parameter to the Dispatcher.
      * @param lockDevice
-     *      tells the dispatcher whether to acquire a semaphore on the device 
-     *      before executing the step
+     *            tells the dispatcher whether to acquire a semaphore on the device
+     *            before executing the step
      * @param controllerClass -- The controller class (like
-     *     NetworkDeviceController.class, BlockDeviceController.class)
+     *            NetworkDeviceController.class, BlockDeviceController.class)
      * @param executeMethod - Method name and parameters for the execution method.
      * @param rollbackMethod - Method name name parameters for the rollback method.
      * @param stepId - If non null, specifies the stepId to be used, otherwise if null a stepId is
-     * automatically generated.
+     *            automatically generated.
      *
      * @return String representing UUID of generated step
      */
@@ -460,7 +477,8 @@ public class Workflow implements Serializable {
         try {
             // Initialize the new step.
             Step step = new Step();
-            if (stepId == null) stepId = createStepId();
+            if (stepId == null)
+                stepId = createStepId();
             step.stepId = stepId;
             step.stepGroup = stepGroup;
             step.description = description;
@@ -503,7 +521,7 @@ public class Workflow implements Serializable {
             throw new WorkflowException("Cannot create step", ex);
         }
     }
-    
+
     /**
      * Invokes the WorkflowPlanExecutor to execute this workflow plan.
      */
@@ -528,12 +546,14 @@ public class Workflow implements Serializable {
     /**
      * Returns the current step status without waiting (i.e. even if it is in
      * the pending state). Does not block.
+     * 
      * @param stepId
      * @return StepStatus
      */
     public StepStatus getStepStatus(String stepId) throws WorkflowException {
         StepStatus status = getStepStatusMap().get(stepId);
-        if (status == null) throw new WorkflowException("Unknown step: " + stepId);
+        if (status == null)
+            throw new WorkflowException("Unknown step: " + stepId);
         return status;
     }
 
@@ -576,6 +596,7 @@ public class Workflow implements Serializable {
     /**
      * Returns a Map of UUID to step Status for all steps in the Workflow, even if
      * some of the steps have not completed execution. Does not block.
+     * 
      * @return -- A Map of step UUID String to StepResourceRep structure.
      * @throws WorkflowException
      */
@@ -595,6 +616,7 @@ public class Workflow implements Serializable {
      * 3. Otherwise if any step is not returning a state of SUCCESS, CANCELLED, or ERROR, it's state and message are returned.
      * 4. Otherwise if all steps are returning SUCCESS, SUCCESS is returned with the original contents of errorMessage
      * (unless they were null).
+     * 
      * @param statusMap
      * @param errorMessage -- Output parameter - selected error message
      * @return SUCCESS if all successful; ERROR for first error; other StepState if there is a non SUCCESS/ERROR
@@ -605,42 +627,45 @@ public class Workflow implements Serializable {
         StepState state = StepState.SUCCESS;
         StringBuilder buf = new StringBuilder();    // Buffer for error messages
         StringBuilder rbuf = new StringBuilder();    // Buffer for rollback error messages
-        if (errorMessage[0] == null) errorMessage[0] = "Operation successful";
+        if (errorMessage[0] == null)
+            errorMessage[0] = "Operation successful";
 
         for (String stepId : statusMap.keySet()) {
             StepStatus status = statusMap.get(stepId);
             switch (status.state) {
-            case SUCCESS:
-                break;
-            case ERROR:
-                state = StepState.ERROR;
-                if (false == status.description.startsWith("Rollback")) {
-                    // Save non-rollback message
-                    if (buf.length() > 0) buf.append("; ");
-                    buf.append(status.message);
-                } else {
-                    // Save rollback message
-                    rbuf.append("; Rollback error: ");
-                    rbuf.append(status.message);
-                }
-                break;
-            case CANCELLED: // ERROR has higher precedence than CANCELLED
-                if (state != StepState.ERROR) {
-                    state = StepState.CANCELLED;
-                    errorMessage[0] = status.message;
+                case SUCCESS:
                     break;
-                }
-            default: // ERROR and CANCELLED have higher precedence than any default state
-                if (state != StepState.ERROR && state != StepState.CANCELLED) {
-                    state = status.state;
-                    errorMessage[0] = status.message;
+                case ERROR:
+                    state = StepState.ERROR;
+                    if (false == status.description.startsWith("Rollback")) {
+                        // Save non-rollback message
+                        if (buf.length() > 0)
+                            buf.append("; ");
+                        buf.append(status.message);
+                    } else {
+                        // Save rollback message
+                        rbuf.append("; Rollback error: ");
+                        rbuf.append(status.message);
+                    }
                     break;
-                }
-                break;
+                case CANCELLED: // ERROR has higher precedence than CANCELLED
+                    if (state != StepState.ERROR) {
+                        state = StepState.CANCELLED;
+                        errorMessage[0] = status.message;
+                        break;
+                    }
+                default: // ERROR and CANCELLED have higher precedence than any default state
+                    if (state != StepState.ERROR && state != StepState.CANCELLED) {
+                        state = status.state;
+                        errorMessage[0] = status.message;
+                        break;
+                    }
+                    break;
             }
         }
         // If there's an error, replace the success message
-        if (buf.length() > 0) errorMessage[0] = buf.toString() + rbuf.toString();
+        if (buf.length() > 0)
+            errorMessage[0] = buf.toString() + rbuf.toString();
         return state;
     }
 
@@ -651,26 +676,25 @@ public class Workflow implements Serializable {
         for (String stepId : statusMap.keySet()) {
             StepStatus status = statusMap.get(stepId);
             switch (status.state) {
-            case ERROR:
-                if (state != StepState.ERROR) { // we want to record the root error, the first one
-	                state = StepState.ERROR;
-	                error = ServiceError.buildServiceError(status.serviceCode, status.message);
-	                break;
-                }
-            case CANCELLED: // ERROR has higher precedence than CANCELLED
-                if (state != StepState.ERROR) {
-                    state = StepState.CANCELLED;
-                    error = ServiceError.buildServiceError(status.serviceCode, status.message);
-                }
-                break;
-            case SUCCESS:
-            default:
-                break;
+                case ERROR:
+                    if (state != StepState.ERROR) { // we want to record the root error, the first one
+                        state = StepState.ERROR;
+                        error = ServiceError.buildServiceError(status.serviceCode, status.message);
+                        break;
+                    }
+                case CANCELLED: // ERROR has higher precedence than CANCELLED
+                    if (state != StepState.ERROR) {
+                        state = StepState.CANCELLED;
+                        error = ServiceError.buildServiceError(status.serviceCode, status.message);
+                    }
+                    break;
+                case SUCCESS:
+                default:
+                    break;
             }
         }
         return error;
     }
-    
 
     Map<String, Step> getStepMap() {
         return _stepMap;
@@ -727,6 +751,7 @@ public class Workflow implements Serializable {
     public void setWorkflowURI(URI _workflowURI) {
         this._workflowURI = _workflowURI;
     }
+
     public WorkflowService get_service() {
         return _service;
     }

@@ -59,7 +59,7 @@ public interface Service {
      * Service specified attribute
      *
      * @param key attribute key
-     * @return attribute value for given key.  null if no such attribute exists.
+     * @return attribute value for given key. null if no such attribute exists.
      */
     public String getAttribute(String key);
 
@@ -67,12 +67,12 @@ public interface Service {
      * Checks if service has been tagged with given string
      *
      * @param tag tag to check against
-     * @return true tag has been applied.  false, otherwise.
+     * @return true tag has been applied. false, otherwise.
      */
     public boolean isTagged(String tag);
 
     /**
-     * Service endpoint URI.  If multiple endpoints are available for
+     * Service endpoint URI. If multiple endpoints are available for
      * this service, random one is returned
      *
      * @return service URI

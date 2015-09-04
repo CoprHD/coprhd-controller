@@ -66,52 +66,56 @@ public class Statistics extends BaseResource {
 
     @GET
     @Path("/current")
-    @Produces({MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_JSON })
     public Response getStatsCurrent(@QueryParam("key") String key, @QueryParam("devid") String devid) {
-        /*ArrayList<String> errors = new ArrayList<String>();
-        errors.add("0");
-        CustomStatValueCurrent<Integer> statValueCurrent = new CustomStatValueCurrent<Integer>(errors, 
-                System.currentTimeMillis()/1000, 2);
-
-        Map<String, IsilonStats.StatValueCurrent<Integer>> devMap = new HashMap<String, IsilonStats.StatValueCurrent<Integer>>();
-        devMap.put(devid, statValueCurrent);
-        Map<String, Object> keyMap = new HashMap<String, Object>();
-        keyMap.put(key, devMap);
-
-        return Response.status(200).entity(new Gson().toJson(keyMap)).build();  */
+        /*
+         * ArrayList<String> errors = new ArrayList<String>();
+         * errors.add("0");
+         * CustomStatValueCurrent<Integer> statValueCurrent = new CustomStatValueCurrent<Integer>(errors,
+         * System.currentTimeMillis()/1000, 2);
+         * 
+         * Map<String, IsilonStats.StatValueCurrent<Integer>> devMap = new HashMap<String, IsilonStats.StatValueCurrent<Integer>>();
+         * devMap.put(devid, statValueCurrent);
+         * Map<String, Object> keyMap = new HashMap<String, Object>();
+         * keyMap.put(key, devMap);
+         * 
+         * return Response.status(200).entity(new Gson().toJson(keyMap)).build();
+         */
         return Response.status(500).entity("Not implemented").build();
     }
 
     @GET
     @Path("/history")
-    @Produces({MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_JSON })
     public Response getStatsHistory(@QueryParam("key") String key, @QueryParam("devid") String devid) {
-        /*ArrayList<String> errors = new ArrayList<String>();
-        ArrayList<ArrayList<Object>> values = new ArrayList<ArrayList<Object>>();
-        ArrayList<Object> value = new ArrayList<Object>();
-
-        errors.add("0");
-        value.add("1335739393");
-        value.add(918);
-        values.add(value);
-        value = new ArrayList<Object>();
-        value.add("1335739513");
-        value.add(948);
-        values.add(value);
-        CustomStatValueHistory<Object> statValueHistory = new CustomStatValueHistory<Object>(errors, values);
-
-        Map<String, IsilonStats.StatValueHistory<Object>> devMap = new HashMap<String, IsilonStats.StatValueHistory<Object>>();
-        devMap.put(devid, statValueHistory);
-        Map<String, Object> keyMap = new HashMap<String, Object>();
-        keyMap.put(key, devMap);
-
-        return Response.status(200).entity(new Gson().toJson(keyMap)).build(); */
+        /*
+         * ArrayList<String> errors = new ArrayList<String>();
+         * ArrayList<ArrayList<Object>> values = new ArrayList<ArrayList<Object>>();
+         * ArrayList<Object> value = new ArrayList<Object>();
+         * 
+         * errors.add("0");
+         * value.add("1335739393");
+         * value.add(918);
+         * values.add(value);
+         * value = new ArrayList<Object>();
+         * value.add("1335739513");
+         * value.add(948);
+         * values.add(value);
+         * CustomStatValueHistory<Object> statValueHistory = new CustomStatValueHistory<Object>(errors, values);
+         * 
+         * Map<String, IsilonStats.StatValueHistory<Object>> devMap = new HashMap<String, IsilonStats.StatValueHistory<Object>>();
+         * devMap.put(devid, statValueHistory);
+         * Map<String, Object> keyMap = new HashMap<String, Object>();
+         * keyMap.put(key, devMap);
+         * 
+         * return Response.status(200).entity(new Gson().toJson(keyMap)).build();
+         */
         return Response.status(500).entity("Not implemented").build();
     }
 
     @GET
     @Path("/protocols")
-    @Produces({MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_JSON })
     public Response getStatsProtocols() {
         Map<String, ArrayList<IsilonStats.Protocol>> protocols = new HashMap<String, ArrayList<IsilonStats.Protocol>>();
         ArrayList<IsilonStats.Protocol> list = new ArrayList<IsilonStats.Protocol>();
@@ -119,7 +123,7 @@ public class Statistics extends BaseResource {
         list.add(new CustomProtocols("nfs3", IsilonStats.StatProtocolType.internal));
         list.add(new CustomProtocols("ifs", IsilonStats.StatProtocolType.external));
 
-        protocols.put("protocols",list);
+        protocols.put("protocols", list);
 
         return Response.status(200).entity(new Gson().toJson(protocols)).build();
     }

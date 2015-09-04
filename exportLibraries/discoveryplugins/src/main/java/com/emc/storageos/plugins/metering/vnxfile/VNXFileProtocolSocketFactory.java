@@ -64,6 +64,7 @@ public class VNXFileProtocolSocketFactory implements ProtocolSocketFactory {
 
     /**
      * Create SSLContext using the TrustManager.
+     * 
      * @return
      */
     private static SSLContext createEasySSLContext() {
@@ -128,6 +129,7 @@ public class VNXFileProtocolSocketFactory implements ProtocolSocketFactory {
             UnknownHostException {
         return getSSLContext().getSocketFactory().createSocket(host, port);
     }
+
     /**
      * 
      */
@@ -135,13 +137,14 @@ public class VNXFileProtocolSocketFactory implements ProtocolSocketFactory {
         return ((obj != null) && obj.getClass().equals(
                 VNXFileProtocolSocketFactory.class));
     }
+
     /**
      * 
      */
     public int hashCode() {
         return VNXFileProtocolSocketFactory.class.hashCode();
     }
-    
+
     /**
      * @return the _trustManager
      */

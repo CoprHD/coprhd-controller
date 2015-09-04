@@ -25,11 +25,11 @@ public class SmisCreateMetaVolumeJob extends SmisCreateVolumeJob {
     Boolean _isLastJob;
 
     public SmisCreateMetaVolumeJob(CIMObjectPath cimJob,
-                                   URI storageSystem,
-                                   URI storagePool,
-                                   Volume metaHead,
-                                   MetaVolumeTaskCompleter metaVolumeTaskCompleter,
-                                   Boolean isLastJob) {
+            URI storageSystem,
+            URI storagePool,
+            Volume metaHead,
+            MetaVolumeTaskCompleter metaVolumeTaskCompleter,
+            Boolean isLastJob) {
         super(cimJob, storageSystem, storagePool, metaVolumeTaskCompleter.getVolumeTaskCompleter(), "CreateMetaVolume");
         _metaVolumeTaskCompleter = metaVolumeTaskCompleter;
         _metaHead = metaHead;
@@ -52,23 +52,24 @@ public class SmisCreateMetaVolumeJob extends SmisCreateVolumeJob {
                 // Reset list of meta members native ids in WF data (when meta is created meta members are removed from array)
                 String opId = _metaVolumeTaskCompleter.getVolumeTaskCompleter().getOpId();
                 WorkflowService.getInstance().storeStepData(opId, new ArrayList<String>());
-                // Reset list  of meta member volumes in the meta head
+                // Reset list of meta member volumes in the meta head
                 _metaHead.getMetaVolumeMembers().clear();
                 dbClient.persistObject(_metaHead);
             }
         } catch (Exception e) {
             _log.error("Caught an exception while trying to process status for " + this.getJobName(), e);
-            setPostProcessingErrorStatus("Encountered an internal error during " + this.getJobName() + " job status processing : " + e.getMessage());
+            setPostProcessingErrorStatus("Encountered an internal error during " + this.getJobName() + " job status processing : "
+                    + e.getMessage());
         } finally {
             _metaVolumeTaskCompleter.setLastStepStatus(jobStatus);
             if (_isLastJob) {
-            super.updateStatus(jobContext);
-            }  else {
+                super.updateStatus(jobContext);
+            } else {
                 // Complete only if error (this is not the last job for meta volume create).
-                if ( isJobInTerminalFailedState() ) {
+                if (isJobInTerminalFailedState()) {
                     super.updateStatus(jobContext);
-        }
-    }
+                }
+            }
         }
     }
 }

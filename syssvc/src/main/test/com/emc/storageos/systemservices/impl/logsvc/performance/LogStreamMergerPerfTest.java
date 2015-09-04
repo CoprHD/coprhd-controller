@@ -45,19 +45,21 @@ public class LogStreamMergerPerfTest {
             }
         };
     }
-    
+
     @Test
     @Ignore
-    public void testMergePerformance_TimeRangeFilter() throws Exception{
-        List<String> svcs = new ArrayList<String>() {{
-            add("controllersvc");
-            add("coordinatorsvc");
-            add("apisvc");
-        }};
+    public void testMergePerformance_TimeRangeFilter() throws Exception {
+        List<String> svcs = new ArrayList<String>() {
+            {
+                add("controllersvc");
+                add("coordinatorsvc");
+                add("apisvc");
+            }
+        };
         Calendar calendar = Calendar.getInstance();
-        calendar.set(2013, 10, 20, 16, 38,16);
+        calendar.set(2013, 10, 20, 16, 38, 16);
         Date startTimeFilter = calendar.getTime();
-        calendar.set(2014, 0, 16, 16, 38,0);
+        calendar.set(2014, 0, 16, 16, 38, 0);
         Date endTimeFilter = calendar.getTime();
         LogRequest req = new LogRequest.Builder().startTime(startTimeFilter).endTime(endTimeFilter)
                 .baseNames(svcs).build();
@@ -84,17 +86,19 @@ public class LogStreamMergerPerfTest {
 
     @Test
     @Ignore
-    public void testMergePerformance_MultipleFilters() throws Exception{
-    	 List<String> svcs = new ArrayList<String>() {{
-             add("controllersvc");
-             add("coordinatorsvc");
-             add("apisvc");
-         }};
+    public void testMergePerformance_MultipleFilters() throws Exception {
+        List<String> svcs = new ArrayList<String>() {
+            {
+                add("controllersvc");
+                add("coordinatorsvc");
+                add("apisvc");
+            }
+        };
         String pattern = "Memory";
         Calendar calendar = Calendar.getInstance();
-        calendar.set(2013, 10, 20, 16, 38,16);
+        calendar.set(2013, 10, 20, 16, 38, 16);
         Date startTimeFilter = calendar.getTime();
-        calendar.set(2014, 0, 16, 16, 38,0);
+        calendar.set(2014, 0, 16, 16, 38, 0);
         Date endTimeFilter = calendar.getTime();
         LogRequest req = new LogRequest.Builder().startTime(startTimeFilter).endTime(endTimeFilter)
                 .logLevel(7).regex(pattern).baseNames(svcs).build();
@@ -118,14 +122,16 @@ public class LogStreamMergerPerfTest {
         System.out.println("Total read " + totalSize + " MB;" + " Average "
                 + (totalSize / elapsedTime) + " MB/sec.");
     }
-    
+
     @Test
-    public void testMergePerformance() throws Exception{
-        List<String> svcs = new ArrayList<String>() {{
-            add("controllersvc");
-            add("coordinatorsvc");
-            add("apisvc");
-        }};
+    public void testMergePerformance() throws Exception {
+        List<String> svcs = new ArrayList<String>() {
+            {
+                add("controllersvc");
+                add("coordinatorsvc");
+                add("apisvc");
+            }
+        };
         LogRequest req = new LogRequest.Builder().baseNames(svcs).build();
         LogStreamMerger merger = new LogStreamMerger(req, propertiesLoader);
         long startTime = System.nanoTime();
@@ -145,5 +151,5 @@ public class LogStreamMergerPerfTest {
         double elapsedTime = (double) (endTime - startTime) / 1000000000.0;
         System.out.println("Total read " + totalSize + " MB;" + " Used " + elapsedTime +
                 " sec; Average " + (totalSize / elapsedTime) + " MB/sec.");
-    } 
+    }
 }

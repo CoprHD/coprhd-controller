@@ -74,7 +74,7 @@ public class Documenter {
             "com.emc.storageos.security.exceptions",
             "com.emc.storageos.systemservices.exceptions",
             "com.emc.storageos.volumecontroller.placement",
-	        "com.emc.storageos.vnxe"};
+            "com.emc.storageos.vnxe" };
 
     public static Collection<DocumenterEntry> createEntries() {
         final List<Class<?>> list = getMessageBundleClasses();

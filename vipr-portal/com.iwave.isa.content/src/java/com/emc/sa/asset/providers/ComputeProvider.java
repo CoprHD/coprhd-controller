@@ -38,7 +38,7 @@ public class ComputeProvider extends BaseAssetOptionsProvider {
         debug("getting virtual compute pools");
         return api(context).computeVpools().getAll();
     }
-    
+
     @Asset("computeVirtualPool")
     public List<AssetOption> getComputeVirtualPoolOptions(AssetOptionsContext ctx) {
         debug("getting compute virtual pools");
@@ -49,11 +49,11 @@ public class ComputeProvider extends BaseAssetOptionsProvider {
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
-    }    
+    }
 
     protected AssetOption createComputeVirtualPoolOption(AssetOptionsContext ctx, ComputeVirtualPoolRestRep value) {
         String label = value.getName();
         return new AssetOption(value.getId(), label);
     }
-    
+
 }

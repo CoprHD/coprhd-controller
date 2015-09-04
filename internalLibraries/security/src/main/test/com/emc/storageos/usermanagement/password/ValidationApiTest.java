@@ -21,7 +21,7 @@ public class ValidationApiTest extends LocalUserMode {
     private static Logger logger = LoggerFactory.getLogger(ValidationApiTest.class);
 
     private static ViPRSystemClient svcuserClient;
-    private static String password="ChangeMe";
+    private static String password = "ChangeMe";
 
     @BeforeClass
     public static void setupPasswordValidation() throws Exception {
@@ -83,7 +83,6 @@ public class ValidationApiTest extends LocalUserMode {
             Assert.assertTrue(see.getMessage().contains("at least 1 lowercase alphabetic"));
         }
 
-
         // positive test, should be no exception
         svcuserClient.password().validateUpdate(password, "ChangeMe1!");
 
@@ -137,11 +136,8 @@ public class ValidationApiTest extends LocalUserMode {
             Assert.assertTrue(see.getMessage().contains("at least 1 lowercase alphabetic"));
         }
 
-
         // positive test, should be no exception
         authClient.validatePasswordChange("svcuser", password, "ChangeMe1!");
     }
-
-
 
 }

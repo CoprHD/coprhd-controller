@@ -30,7 +30,7 @@ import com.emc.vipr.model.catalog.ApprovalUpdateParam;
 public class Approvals2 extends AbstractCatalogBulkResources<ApprovalRestRep> implements TenantResources<ApprovalRestRep> {
 
     public static final String ORDER_ID_PARAM = "orderId";
-    
+
     public Approvals2(ViPRCatalogClient2 parent, RestClient client) {
         super(parent, client, ApprovalRestRep.class, PathConstants.APPROVALS2_URL);
     }
@@ -57,7 +57,7 @@ public class Approvals2 extends AbstractCatalogBulkResources<ApprovalRestRep> im
             uriBuilder = uriBuilder.queryParam(SearchConstants.TENANT_ID_PARAM, tenantId);
         }
         ApprovalList response = client.getURI(ApprovalList.class, uriBuilder.build());
-        return ResourceUtils.defaultList(response.getApprovals());             
+        return ResourceUtils.defaultList(response.getApprovals());
     }
 
     @Override
@@ -76,7 +76,7 @@ public class Approvals2 extends AbstractCatalogBulkResources<ApprovalRestRep> im
         ApprovalBulkRep response = client.post(ApprovalBulkRep.class, input, getBulkUrl());
         return defaultList(response.getApprovals());
     }
-    
+
     /**
      * Creates a search builder specifically for creating approval search queries.
      * 
@@ -85,7 +85,7 @@ public class Approvals2 extends AbstractCatalogBulkResources<ApprovalRestRep> im
     @Override
     public ApprovalSearchBuilder search() {
         return new ApprovalSearchBuilder(this);
-    }    
+    }
 
     /**
      * Updates the given approval by ID.
@@ -93,9 +93,9 @@ public class Approvals2 extends AbstractCatalogBulkResources<ApprovalRestRep> im
      * API Call: <tt>PUT /catalog/approvals/{id}</tt>
      * 
      * @param id
-     *        the ID of the approval to update.
+     *            the ID of the approval to update.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return the updated approval.
      */
     public ApprovalRestRep update(URI id, ApprovalUpdateParam input) {

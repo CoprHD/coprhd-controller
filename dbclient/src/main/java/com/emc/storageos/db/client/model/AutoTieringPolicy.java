@@ -27,14 +27,14 @@ public class AutoTieringPolicy extends DiscoveredDataObject {
     private String _policyName;
     // indicates whether FAST Policy is Enabled
     private Boolean _policyEnabled;
-    // Indicates the Provisioning Type (FAST VP or FAST DP) 
+    // Indicates the Provisioning Type (FAST VP or FAST DP)
     private String _provisioningType;
-    //Storage Pools associated with this Policy
+    // Storage Pools associated with this Policy
     private StringSet _pools;
-    //Storage System to which this Policy belongs to
+    // Storage System to which this Policy belongs to
     private URI _storageSystem;
-    //Storage Group would get created for each FAST Policy Discovered.
-    //Dedicated Storage Group (Thin or thick or All) based on policy provision type
+    // Storage Group would get created for each FAST Policy Discovered.
+    // Dedicated Storage Group (Thin or thick or All) based on policy provision type
     private String _storageGroupName;
     // EMC VMAX - used to reference the SLO policy setting
     private String _vmaxSLO;
@@ -50,35 +50,36 @@ public class AutoTieringPolicy extends DiscoveredDataObject {
         DEFAULT_AUTOTIER,
         DEFAULT_HIGHEST_AVAILABLE,
         DEFAULT_LOWEST_AVAILABLE,
-        DEFAULT_START_HIGH_THEN_AUTOTIER       
+        DEFAULT_START_HIGH_THEN_AUTOTIER
     }
-    
+
     public static enum ProvisioningType {
         ThinlyProvisioned("2"),
         ThicklyProvisioned("3"),
         All("4");
-        
-       
+
         private String _key;
+
         private ProvisioningType(String key) {
             _key = key;
         }
-        
+
         public String getKey() {
             return _key;
         }
-        
+
         public static String getType(String key) {
-            for(ProvisioningType type : values()) {
-                if(type.getKey().equalsIgnoreCase(key))
+            for (ProvisioningType type : values()) {
+                if (type.getKey().equalsIgnoreCase(key))
                     return type.toString();
-                
+
             }
             return null;
         }
-       
+
     }
-    //Enum to hold Hitachi TieringPolicies.
+
+    // Enum to hold Hitachi TieringPolicies.
     public static enum HitachiTieringPolicy {
         All("0"),
         T1("1"),
@@ -112,34 +113,35 @@ public class AutoTieringPolicy extends DiscoveredDataObject {
         Custom24("29"),
         Custom25("30"),
         Custom26("31");
-        
+
         private String _key;
         private static HitachiTieringPolicy[] copyOfValues = values();
+
         HitachiTieringPolicy(String key) {
             _key = key;
         }
-        
+
         public String getKey() {
             return _key;
         }
-        
+
         public static String getType(String key) {
-            for(HitachiTieringPolicy type : copyOfValues) {
-                if(type.getKey().equalsIgnoreCase(key))
+            for (HitachiTieringPolicy type : copyOfValues) {
+                if (type.getKey().equalsIgnoreCase(key))
                     return type.toString();
             }
             return null;
         }
-        
+
         public static HitachiTieringPolicy getPolicy(String id) {
-            for(HitachiTieringPolicy policyType : copyOfValues) {
+            for (HitachiTieringPolicy policyType : copyOfValues) {
                 if (policyType.name().equalsIgnoreCase(id)) {
                     return policyType;
                 }
             }
             return null;
         }
-       
+
     }
 
     /*********************************************************
@@ -156,13 +158,11 @@ public class AutoTieringPolicy extends DiscoveredDataObject {
     public String getPolicyName() {
         return _policyName;
     }
-  
 
     public void setPools(StringSet pools) {
         _pools = pools;
     }
-    
-    
+
     @Name("pools")
     @AlternateId("PoolToFASTPolicy")
     public StringSet getPools() {
@@ -178,12 +178,11 @@ public class AutoTieringPolicy extends DiscoveredDataObject {
             _pools.addAll(pools);
     }
 
-   
     public void setStorageSystem(URI storageSystem) {
         this._storageSystem = storageSystem;
         setChanged("storageDevice");
     }
-    
+
     @Name("storageDevice")
     @RelationIndex(cf = "storageSystemToFASTPolicy", type = StorageSystem.class)
     public URI getStorageSystem() {
@@ -194,6 +193,7 @@ public class AutoTieringPolicy extends DiscoveredDataObject {
         this._policyEnabled = policyEnabled;
         setChanged("policyEnabled");
     }
+
     @Name("policyEnabled")
     public Boolean getPolicyEnabled() {
         return _policyEnabled;
@@ -203,6 +203,7 @@ public class AutoTieringPolicy extends DiscoveredDataObject {
         this._provisioningType = provisioningType;
         setChanged("provisioningType");
     }
+
     @Name("provisioningType")
     public String getProvisioningType() {
         return _provisioningType;
@@ -213,6 +214,7 @@ public class AutoTieringPolicy extends DiscoveredDataObject {
         _storageGroupName = storageGroupName;
         setChanged("storageGroupName");
     }
+
     @Name("storageGroupName")
     public String getStorageGroupName() {
         return _storageGroupName;

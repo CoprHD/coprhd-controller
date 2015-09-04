@@ -57,8 +57,8 @@ import static com.emc.storageos.api.mapper.UserGroupMapper.map;
  */
 
 @Path("/vdc/admin/user-groups")
-@DefaultPermissions( read_roles = {Role.SECURITY_ADMIN},
-write_roles = {Role.SECURITY_ADMIN})
+@DefaultPermissions(read_roles = { Role.SECURITY_ADMIN },
+        write_roles = { Role.SECURITY_ADMIN })
 public class UserGroupService extends TaggedResource {
     private static String EXPECTED_GEO_VERSION = "2.3";
     private static String FEATURE_NAME = "Attributes Based Role and ACL Assignments";
@@ -77,7 +77,6 @@ public class UserGroupService extends TaggedResource {
         return getUserGroupById(id, false);
     }
 
-
     @Override
     protected URI getTenantOwner(URI id) {
         return null;
@@ -90,7 +89,7 @@ public class UserGroupService extends TaggedResource {
     }
 
     @Override
-    protected ResourceTypeEnum getResourceType(){
+    protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.USER_GROUP;
     }
 
@@ -115,8 +114,7 @@ public class UserGroupService extends TaggedResource {
      * Creates user group.
      * The submitted user group element values will be validated.
      * <p>
-     * The minimal set of parameters include:
-     * name, domain, attributes (key and values pair).
+     * The minimal set of parameters include: name, domain, attributes (key and values pair).
      * <p>
      *
      * @param param Representation of UserGroup with all necessary elements
@@ -134,7 +132,7 @@ public class UserGroupService extends TaggedResource {
         checkCompatibleVersion();
         validateUserGroupCreateParam(param);
 
-        //Check for active UserGroup with same name
+        // Check for active UserGroup with same name
         checkDuplicateLabel(UserGroup.class, param.getLabel(), param.getLabel());
 
         UserGroup userGroup = map(param);
@@ -142,7 +140,7 @@ public class UserGroupService extends TaggedResource {
         userGroup.setId(id);
         _log.debug("Saving the UserGroup: {}: {}", userGroup.getId(), userGroup.toString());
 
-        //Check if there is any existing user group with same set of properties.
+        // Check if there is any existing user group with same set of properties.
         checkForOverlappingUserGroup(userGroup);
 
         _dbClient.createObject(userGroup);
@@ -157,8 +155,7 @@ public class UserGroupService extends TaggedResource {
      * Updates user group.
      * The submitted user group element values will be validated.
      * <p>
-     * The minimal set of parameters include:
-     * name, domain, attributes (key and values pair).
+     * The minimal set of parameters include: name, domain, attributes (key and values pair).
      * <p>
      *
      * @param param Representation of UserGroup with all necessary elements
@@ -180,10 +177,10 @@ public class UserGroupService extends TaggedResource {
 
         validateUserGroupUpdateParam(param);
 
-        //Update the db object with new information.
+        // Update the db object with new information.
         overlayUserGroup(userGroup, param);
 
-        //Check if there is any existing user group with same set of properties.
+        // Check if there is any existing user group with same set of properties.
         checkForOverlappingUserGroup(userGroup);
 
         _dbClient.persistObject(userGroup);
@@ -213,7 +210,7 @@ public class UserGroupService extends TaggedResource {
 
         List<NamedElementQueryResultList.NamedElement> elements =
                 new ArrayList<NamedElementQueryResultList.NamedElement>(configs.size());
-        for (UserGroup p: configs) {
+        for (UserGroup p : configs) {
             elements.add(NamedElementQueryResultList.NamedElement.createElement(p.getId(), p.getLabel()));
         }
         userGroups.setResult(elements.iterator());
@@ -227,8 +224,8 @@ public class UserGroupService extends TaggedResource {
     /**
      * Gets the details of one user group.
      *
-     * @param id  of the user group to be returned.
-     * @brief The details of the  active user group is returned.
+     * @param id of the user group to be returned.
+     * @brief The details of the active user group is returned.
      * @return The user groups details as UserGroupRestRep
      * @see UserGroupRestRep
      */
@@ -253,7 +250,7 @@ public class UserGroupService extends TaggedResource {
      * @return Ok if deletion is successful otherwise valid exception.
      */
     @DELETE
-    @CheckPermission(roles = { Role.SECURITY_ADMIN})
+    @CheckPermission(roles = { Role.SECURITY_ADMIN })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
     public Response deleteUserGroup(@PathParam("id") URI id) {
@@ -316,7 +313,7 @@ public class UserGroupService extends TaggedResource {
 
         ArgValidator.checkFieldNotEmpty(param.getAttributes(), "attributes");
 
-        //Make sure all the UserAttributeParam contains valid attribute key and values.
+        // Make sure all the UserAttributeParam contains valid attribute key and values.
         validateUserAttributeParam(param.getAttributes());
     }
 
@@ -329,7 +326,7 @@ public class UserGroupService extends TaggedResource {
     private void validateUserGroupUpdateParam(UserGroupUpdateParam param) {
         validateUserGroupBaseParam(param);
 
-        //Make sure all the UserAttributeParam contains valid attribute key and values.
+        // Make sure all the UserAttributeParam contains valid attribute key and values.
         validateUserAttributeParam(param.getAddAttributes());
     }
 
@@ -340,7 +337,7 @@ public class UserGroupService extends TaggedResource {
      * @param param of user group create/update api to be validated.
      */
     private void validateUserGroupBaseParam(UserGroupBaseParam param) {
-        if (param == null){
+        if (param == null) {
             throw APIException.badRequests.resourceEmptyConfiguration("user group");
         }
 
@@ -364,10 +361,10 @@ public class UserGroupService extends TaggedResource {
      *
      * @param to user group db object to be updated.
      * @param from user group update api payload to be
-     *             updated in the user group db object.
+     *            updated in the user group db object.
      */
     private void overlayUserGroup(UserGroup to,
-                                  UserGroupUpdateParam from) {
+            UserGroupUpdateParam from) {
         if (from == null || to == null) {
             throw APIException.badRequests.resourceEmptyConfiguration("user group");
         }
@@ -417,7 +414,8 @@ public class UserGroupService extends TaggedResource {
      * @param userAttributeParamMap
      * @param addAttribute
      */
-    private void addToMapIfNotExist(Map<String, UserAttributeParam> userAttributeParamMap, Map.Entry<String, UserAttributeParam> addAttribute) {
+    private void addToMapIfNotExist(Map<String, UserAttributeParam> userAttributeParamMap,
+            Map.Entry<String, UserAttributeParam> addAttribute) {
         if (CollectionUtils.isEmpty(userAttributeParamMap)) {
             _log.info("Invalid map to add the entries");
             return;
@@ -438,7 +436,7 @@ public class UserGroupService extends TaggedResource {
      *
      * @param attributes to be converted to map.
      * @return returns the map<String, UserAttributeParam> with key
-     *          as attribute key.
+     *         as attribute key.
      */
     private Map<String, UserAttributeParam> getUserAttributesToMap(StringSet attributes) {
         Map<String, UserAttributeParam> userAttributeParamMap = new TreeMap<String, UserAttributeParam>(String.CASE_INSENSITIVE_ORDER);
@@ -478,7 +476,7 @@ public class UserGroupService extends TaggedResource {
      *
      * @param userAttributeParams to be converted to map.
      * @return returns the map<String, UserAttributeParam> with key
-     * as attribute key.
+     *         as attribute key.
      */
     private Map<String, UserAttributeParam> getUserAttributesToMap(Set<UserAttributeParam> userAttributeParams) {
         StringSet userAttributesStringSet = new StringSet();
@@ -502,41 +500,41 @@ public class UserGroupService extends TaggedResource {
      *
      * @param domain for which this user group is configured.
      * @param label name that represents the user group in the db.
-     *              This name is what used in all above said resources to represent it.
+     *            This name is what used in all above said resources to represent it.
      */
     void checkForActiveUsageOfUserGroup(String domain, String label) {
-        //Check if VDC rol-assignment references the user group.
+        // Check if VDC rol-assignment references the user group.
         Set<URI> resourcesUsingUserGroup = new HashSet<URI>();
         Set<URI> vdcURI = _permissionsHelper.checkForActiveVDCRoleAssignmentsUsingUserGroup(label);
         if (!CollectionUtils.isEmpty(vdcURI)) {
             resourcesUsingUserGroup.addAll(vdcURI);
         }
 
-        //Check if tenants role-assignments references the user group.
+        // Check if tenants role-assignments references the user group.
         Set<URI> tenantsURI = _permissionsHelper.checkForActiveTenantRoleAssignmentsUsingUserGroup(label);
         if (!CollectionUtils.isEmpty(tenantsURI)) {
             resourcesUsingUserGroup.addAll(tenantsURI);
         }
 
-        //Check if tenants user mapping for the domain references the user group.
+        // Check if tenants user mapping for the domain references the user group.
         Set<URI> userMappingsURI = _permissionsHelper.checkForActiveUserMappingUsingGroup(domain, label);
         if (!CollectionUtils.isEmpty(userMappingsURI)) {
             resourcesUsingUserGroup.addAll(userMappingsURI);
         }
 
-        //Check if project acls references the user group.
+        // Check if project acls references the user group.
         Set<URI> projectsURI = _permissionsHelper.checkForActiveProjectAclsUsingUserGroup(label);
         if (!CollectionUtils.isEmpty(projectsURI)) {
             resourcesUsingUserGroup.addAll(projectsURI);
         }
 
-        //Check if catalog categories acls references the user group.
+        // Check if catalog categories acls references the user group.
         Set<URI> catalogCategoriesURI = _permissionsHelper.checkForActiveCatalogCategoryAclsUsingUserGroup(label);
         if (!CollectionUtils.isEmpty(catalogCategoriesURI)) {
             resourcesUsingUserGroup.addAll(catalogCategoriesURI);
         }
 
-        //Check if catalog services acls references the user group.
+        // Check if catalog services acls references the user group.
         Set<URI> catalogServicesURI = _permissionsHelper.checkForActiveCatalogServiceAclsUsingUserGroup(label);
         if (!CollectionUtils.isEmpty(catalogServicesURI)) {
             resourcesUsingUserGroup.addAll(catalogServicesURI);
@@ -571,7 +569,7 @@ public class UserGroupService extends TaggedResource {
         while (it.hasNext()) {
             URI providerURI = it.next();
             AuthnProvider provider = _dbClient.queryObject(AuthnProvider.class, providerURI);
-            if (provider != null && provider.getDisable()==false) {
+            if (provider != null && provider.getDisable() == false) {
                 bExist = true;
                 break;
             }
@@ -598,8 +596,8 @@ public class UserGroupService extends TaggedResource {
      * or minimum supported version for this api.
      *
      */
-    private void checkCompatibleVersion () {
-        if(!_dbClient.checkGeoCompatible(EXPECTED_GEO_VERSION)) {
+    private void checkCompatibleVersion() {
+        if (!_dbClient.checkGeoCompatible(EXPECTED_GEO_VERSION)) {
             throw APIException.badRequests.incompatibleGeoVersions(EXPECTED_GEO_VERSION, FEATURE_NAME);
         }
     }

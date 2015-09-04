@@ -173,26 +173,27 @@ public class UpgradeCoordinatorClientTest {
          */
         _coordinator.releaseRemoteDownloadLock(nodeid1);
     }
-/*
-    @Test
-    public void testSyssvcBeacon() throws Exception {
-        _logger.info("Testing system service beacon persistent service");
-        RepositoryInfo target = null;
-        target = _coordinator.getTargetRepositoryInfo();
-        Assert.assertNull(target);
-        Assert.assertTrue(_coordinator.setTargetRepositoryInfo(new RepositoryInfo(targetVersion1)));
-        target = _coordinator.getTargetRepositoryInfo();
-        Assert.assertNotNull(target);
-        Assert.assertEquals(targetVersion1, target.toString());
-        Assert.assertTrue(_coordinator.setTargetRepositoryInfo(new RepositoryInfo(targetVersion2)));
-        target = _coordinator.getTargetRepositoryInfo();
-        Assert.assertNotNull(target);
-        Assert.assertEquals(targetVersion2, target.toString());
-        Assert.assertTrue(_coordinator.setTargetRepositoryInfo(null));
-        target = _coordinator.getTargetRepositoryInfo();
-        Assert.assertNotNull(target);
-    }
-*/
+
+    /*
+     * @Test
+     * public void testSyssvcBeacon() throws Exception {
+     * _logger.info("Testing system service beacon persistent service");
+     * RepositoryInfo target = null;
+     * target = _coordinator.getTargetRepositoryInfo();
+     * Assert.assertNull(target);
+     * Assert.assertTrue(_coordinator.setTargetRepositoryInfo(new RepositoryInfo(targetVersion1)));
+     * target = _coordinator.getTargetRepositoryInfo();
+     * Assert.assertNotNull(target);
+     * Assert.assertEquals(targetVersion1, target.toString());
+     * Assert.assertTrue(_coordinator.setTargetRepositoryInfo(new RepositoryInfo(targetVersion2)));
+     * target = _coordinator.getTargetRepositoryInfo();
+     * Assert.assertNotNull(target);
+     * Assert.assertEquals(targetVersion2, target.toString());
+     * Assert.assertTrue(_coordinator.setTargetRepositoryInfo(null));
+     * target = _coordinator.getTargetRepositoryInfo();
+     * Assert.assertNotNull(target);
+     * }
+     */
     @Test
     public void multipleClientTestForUpgradeLock() throws Exception {
         _logger.info("*** multipleClientTestForUpgradeLock start");
@@ -202,7 +203,7 @@ public class UpgradeCoordinatorClientTest {
             clients.submit(new Runnable() {
                 @Override
                 public void run() {
-                    String nodeName = Thread.currentThread().getName() +":9998";
+                    String nodeName = Thread.currentThread().getName() + ":9998";
                     _logger.info("Node {} Initialised lock", nodeName);
                     for (int i = 0; i < NUMRUNS; i++) {
                         try {
@@ -246,7 +247,7 @@ public class UpgradeCoordinatorClientTest {
             clients.submit(new Runnable() {
                 @Override
                 public void run() {
-                    String nodeName = Thread.currentThread().getName() +":9998";
+                    String nodeName = Thread.currentThread().getName() + ":9998";
                     _logger.info("Node {} Initialised lock", nodeName);
                     for (int i = 0; i < NUMRUNS; i++) {
                         try {

@@ -52,7 +52,7 @@ public class DistributedLockQueueManagerImpl<T> implements DistributedLockQueueM
     }
 
     public DistributedLockQueueManagerImpl(ZkConnection zkConnection, String rootPath,
-                                           DistributedLockQueueTaskConsumer<T> consumer) {
+            DistributedLockQueueTaskConsumer<T> consumer) {
         zkClient = zkConnection.curator();
         this.rootPath = rootPath;
         this.consumer = consumer;

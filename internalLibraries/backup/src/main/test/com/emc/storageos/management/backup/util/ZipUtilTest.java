@@ -63,16 +63,16 @@ public class ZipUtilTest {
         Assert.assertTrue(zipDir.mkdir());
         File prepareFile = FileUtil.createRandomFile(testDir, zipName + ".txt", DEFAULT_FILE_SIZE);
         long checksum = FileUtils.checksumCRC32(prepareFile);
-        for ( int i = 0; i < DEFAULT_DIRECTORY_NUM; i++) {
+        for (int i = 0; i < DEFAULT_DIRECTORY_NUM; i++) {
             File folder = new File(zipDir, TEST_FOLDER + "-" + i);
             Assert.assertTrue(folder.mkdir());
             if ((directoryLevel.equals(DirectoryLevel.FULL))
-                    || (directoryLevel.equals(DirectoryLevel.MIX) && (i <= DEFAULT_DIRECTORY_NUM/2)))
+                    || (directoryLevel.equals(DirectoryLevel.MIX) && (i <= DEFAULT_DIRECTORY_NUM / 2)))
                 FileUtils.copyFile(prepareFile, new File(folder, prepareFile.getName()));
         }
 
         // 2. pack directory to zip file
-        File targetZip = new File(testDir, zipName+".zip");
+        File targetZip = new File(testDir, zipName + ".zip");
         if (targetZip.exists())
             Assert.assertTrue(targetZip.delete());
         Assert.assertFalse(targetZip.exists());
@@ -121,10 +121,10 @@ public class ZipUtilTest {
 
     @Test
     public void testZipWithAllLevels() throws IOException {
-        //      NO_COMPRESSION = 0;
-        //      BEST_SPEED = 1;
-        //      BEST_COMPRESSION = 9;
-        //      DEFAULT_COMPRESSION = -1;
+        // NO_COMPRESSION = 0;
+        // BEST_SPEED = 1;
+        // BEST_COMPRESSION = 9;
+        // DEFAULT_COMPRESSION = -1;
         for (int i = 0; i < 10; i++) {
             long zipSize = execute(i, DirectoryLevel.FULL);
             log.info("Compress Level: {}\tSize: {}", i, zipSize);

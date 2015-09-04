@@ -46,8 +46,8 @@ public class BlockVolumesDataTable extends DataTable {
 
         ViPRCoreClient client = getViprClient();
         List<VolumeRestRep> volumes = client.blockVolumes().findByProject(projectId);
-        Map<URI,String> virtualArrays = ResourceUtils.mapNames(client.varrays().list());
-        Map<URI,String> virtualPools = ResourceUtils.mapNames(client.blockVpools().list());
+        Map<URI, String> virtualArrays = ResourceUtils.mapNames(client.varrays().list());
+        Map<URI, String> virtualPools = ResourceUtils.mapNames(client.blockVpools().list());
 
         List<Volume> results = Lists.newArrayList();
         for (VolumeRestRep volume : volumes) {
@@ -57,7 +57,7 @@ public class BlockVolumesDataTable extends DataTable {
     }
 
     public static class Volume {
-    	public String rowLink;
+        public String rowLink;
         public URI id;
         public String name;
         public String capacity;
@@ -66,10 +66,11 @@ public class BlockVolumesDataTable extends DataTable {
         public Set<String> protocols;
         public boolean srdfTarget;
 
-        public Volume(VolumeRestRep volume, Map<URI,String> varrayMap, Map<URI,String> vpoolMap) {
+        public Volume(VolumeRestRep volume, Map<URI, String> varrayMap, Map<URI, String> vpoolMap) {
             id = volume.getId();
             name = volume.getName();
-            srdfTarget = volume.getProtection() != null && volume.getProtection().getSrdfRep() != null && volume.getProtection().getSrdfRep().getAssociatedSourceVolume() !=null;
+            srdfTarget = volume.getProtection() != null && volume.getProtection().getSrdfRep() != null
+                    && volume.getProtection().getSrdfRep().getAssociatedSourceVolume() != null;
             this.rowLink = createLink(BlockVolumes.class, "volume", "volumeId", id);
             capacity = volume.getProvisionedCapacity();
             if (volume.getVirtualArray() != null) {

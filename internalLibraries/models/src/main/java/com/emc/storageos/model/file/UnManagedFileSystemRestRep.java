@@ -29,7 +29,7 @@ import com.emc.storageos.model.StringHashMapEntry;
 import com.emc.storageos.model.adapters.StringSetMapAdapter;
 
 /**
- * An unmanaged file system.  UnManaged FileSystem are FileSystems, which 
+ * An unmanaged file system. UnManaged FileSystem are FileSystems, which
  * are present within ViPR Storage Systems, but are not under ViPR management.
  *
  */
@@ -41,7 +41,7 @@ public class UnManagedFileSystemRestRep extends DataObjectRestRep {
     private List<StringHashMapEntry> filesystemCharacteristics;
     private RelatedResourceRep storageSystem;
     private RelatedResourceRep storagePool;
-    
+
     /**
      * List of supported VPool URIs associated with this UnManagedVolume.
      */
@@ -49,6 +49,7 @@ public class UnManagedFileSystemRestRep extends DataObjectRestRep {
 
     /**
      * GUID associated with the unmanaged file system.
+     * 
      * @valid none
      */
     @XmlElement(name = "native_guid")
@@ -61,8 +62,9 @@ public class UnManagedFileSystemRestRep extends DataObjectRestRep {
     }
 
     /**
-     * URI for the storage system supporting the unmanaged 
+     * URI for the storage system supporting the unmanaged
      * file system.
+     * 
      * @valid none
      */
     @XmlElement(name = "storage_system")
@@ -73,12 +75,13 @@ public class UnManagedFileSystemRestRep extends DataObjectRestRep {
     public void setStorageSystem(RelatedResourceRep storageSystem) {
         this.storageSystem = storageSystem;
     }
-    
+
     /**
-    * URI representing the storage pool supporting the unmanaged file 
-    * system.
-    * @valid none
-    */
+     * URI representing the storage pool supporting the unmanaged file
+     * system.
+     * 
+     * @valid none
+     */
     @XmlElement(name = "storage_pool")
     public RelatedResourceRep getStoragePool() {
         return storagePool;
@@ -87,7 +90,7 @@ public class UnManagedFileSystemRestRep extends DataObjectRestRep {
     public void setStoragePool(RelatedResourceRep storagePool) {
         this.storagePool = storagePool;
     }
-    
+
     @XmlElementWrapper(name = "supported_virtual_pools")
     @XmlElement(name = "virtual_pool")
     public List<String> getSupportedVPoolUris() {
@@ -104,6 +107,7 @@ public class UnManagedFileSystemRestRep extends DataObjectRestRep {
     /**
      * A list of name-value pairs representing the characteristics of
      * the unmanaged file system.
+     * 
      * @valid none
      */
     @XmlElementWrapper(name = "unmanaged_filesystems_characterstics")
@@ -122,6 +126,7 @@ public class UnManagedFileSystemRestRep extends DataObjectRestRep {
     /**
      * A list of name-value pairs containing information relevant to the
      * unmanaged file system.
+     * 
      * @valid none
      */
     @XmlElementWrapper(name = "unmanaged_filesystems_info")

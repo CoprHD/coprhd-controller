@@ -58,7 +58,7 @@ public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor {
             _dbClient = (DbClient) keyMap.get(Constants.dbClient);
             CoordinatorClient coordinator = (CoordinatorClient) keyMap.get(Constants.COORDINATOR_CLIENT);
             AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
-            Map<URI,StoragePool> poolsToMatchWithVpool = (Map<URI, StoragePool>) keyMap.get(Constants.MODIFIED_STORAGEPOOLS);
+            Map<URI, StoragePool> poolsToMatchWithVpool = (Map<URI, StoragePool>) keyMap.get(Constants.MODIFIED_STORAGEPOOLS);
             StorageSystem device = _dbClient.queryObject(StorageSystem.class, profile.getSystemId());
             List<StoragePort> newPorts = new ArrayList<StoragePort>();
             List<StoragePort> existingPorts = new ArrayList<StoragePort>();
@@ -72,8 +72,8 @@ public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor {
                     String iScsiPortName = getCIMPropertyValue(endPointInstance, NAME);
                     // Skip the iSCSI ports without name or without a valid name.
                     if (null == iScsiPortName || iScsiPortName.split(COMMA_STR)[0].length() <= 0) {
-                       _logger.warn("Invalid port Name found for {} Skipping", portInstanceID);
-                       continue;
+                        _logger.warn("Invalid port Name found for {} Skipping", portInstanceID);
+                        continue;
                     }
                     port = checkEthernetStoragePortExistsInDB(
                             iScsiPortName.split(COMMA_STR)[0].toLowerCase(), _dbClient, device);
@@ -86,16 +86,16 @@ public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor {
                             getMessage(e));
                 }
             }
-            
+
             @SuppressWarnings("unchecked")
             List<List<StoragePort>> portsUsedToRunNetworkConnectivity = (List<List<StoragePort>>) keyMap.get(Constants.STORAGE_PORTS);
             portsUsedToRunNetworkConnectivity.add(newPorts);
-            
-            //discovered ports used later to check for not visible ports
+
+            // discovered ports used later to check for not visible ports
             List<StoragePort> discoveredPorts = (List<StoragePort>) keyMap.get(Constants.DISCOVERED_PORTS);
             discoveredPorts.addAll(newPorts);
             discoveredPorts.addAll(existingPorts);
-           
+
             List<StoragePool> modifiedPools = StoragePoolAssociationHelper.getStoragePoolsFromPorts(_dbClient, newPorts, null);
             for (StoragePool pool : modifiedPools) {
                 // pool matcher will be invoked on this pool
@@ -103,8 +103,9 @@ public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor {
                     poolsToMatchWithVpool.put(pool.getId(), pool);
                 }
             }
-            
-            _logger.debug("# Pools used in invoking PoolMatcher during StorageProtoclEndPoint {}",Joiner.on("\t").join(poolsToMatchWithVpool.keySet()));
+
+            _logger.debug("# Pools used in invoking PoolMatcher during StorageProtoclEndPoint {}",
+                    Joiner.on("\t").join(poolsToMatchWithVpool.keySet()));
         } catch (Exception e) {
             _logger.error("SCSI End Point Discovery failed -->{}", getMessage(e));
         } finally {
@@ -128,7 +129,7 @@ public class StorageProtocolEndPointProcessor extends StorageEndPointProcessor {
      */
     private void createEthernetStoragePort(
             Map<String, Object> keyMap, StoragePort port, CIMInstance endPointInstance,
-            String portInstanceID, CoordinatorClient coordinator, List<StoragePort> newPorts, 
+            String portInstanceID, CoordinatorClient coordinator, List<StoragePort> newPorts,
             List<StoragePort> existingPorts) throws IOException {
         StoragePort portinMemory = (StoragePort) keyMap.get(portInstanceID);
         if (null == port) {

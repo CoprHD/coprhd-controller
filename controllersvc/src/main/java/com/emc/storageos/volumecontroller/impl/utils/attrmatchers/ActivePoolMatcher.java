@@ -34,21 +34,21 @@ import com.google.common.base.Joiner;
  *
  */
 public class ActivePoolMatcher extends AttributeMatcher {
-    
+
     private static final Logger _logger = LoggerFactory
             .getLogger(ActivePoolMatcher.class);
 
     @Override
     public List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
         List<StoragePool> matchedPools = new ArrayList<StoragePool>();
-        //Filter out inactive/unregistered/non-ready pools.
+        // Filter out inactive/unregistered/non-ready pools.
         _logger.info("Active Pools Matcher Started : {}", Joiner.on("\t").join(getNativeGuidFromPools(pools)));
         Iterator<StoragePool> poolIterator = pools.iterator();
-        while(poolIterator.hasNext()) {
+        while (poolIterator.hasNext()) {
             StoragePool pool = poolIterator.next();
             if (null == pool) {
                 continue;
-            }else if (!pool.getInactive()
+            } else if (!pool.getInactive()
                     && RegistrationStatus.REGISTERED.toString()
                             .equalsIgnoreCase(pool.getRegistrationStatus())
                     && StoragePool.PoolOperationalStatus.READY.toString()
@@ -57,7 +57,7 @@ public class ActivePoolMatcher extends AttributeMatcher {
                             .equalsIgnoreCase(pool.getDiscoveryStatus())) {
                 matchedPools.add(pool);
             }
-            
+
         }
         _logger.info("Active Pools Matcher Ended : {}", Joiner.on("\t").join(getNativeGuidFromPools(matchedPools)));
         return matchedPools;

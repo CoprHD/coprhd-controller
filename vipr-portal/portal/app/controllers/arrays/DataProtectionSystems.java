@@ -105,19 +105,19 @@ public class DataProtectionSystems extends ViprResourceController {
         }
     }
 
-    @FlashException(keep=true, referrer={"create","edit"})
+    @FlashException(keep = true, referrer = { "create", "edit" })
     public static void save(DataProtectionSystemForm dataProtectionSystem) {
         dataProtectionSystem.validate("dataProtectionSystem");
         if (Validation.hasErrors()) {
             Common.handleError();
         }
-        
+
         dataProtectionSystem.save();
         String name = dataProtectionSystem.name;
         flash.success(MessagesUtils.get(SAVED, name));
         list();
     }
-    
+
     public static void delete(@As(",") String[] ids) {
         delete(uris(ids));
     }

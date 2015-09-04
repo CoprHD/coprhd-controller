@@ -58,8 +58,9 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     private String compatibilityStatus;
     private String discoveryStatus;
 
-    public StoragePoolRestRep() {}
-   
+    public StoragePoolRestRep() {
+    }
+
     @XmlElementWrapper(name = "controller_params")
     /**
      * The list of optional parameters
@@ -207,7 +208,7 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * The percentage of usable space that has been assigned to all volumes
-     * in the pool  and  visible  to  attached hosts. This includes primary 
+     * in the pool and visible to attached hosts. This includes primary
      * and snapshot space. (GB)
      *
      * @valid none
@@ -236,7 +237,7 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     }
 
     /**
-     * The maximum size for thin volumes in this pool (GB) 
+     * The maximum size for thin volumes in this pool (GB)
      *
      * @valid none
      */
@@ -309,8 +310,8 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     /**
      * The ViPR storage resource type that can be provisioned in this pool
      *
-     * @valid block  = Volume
-     * @valid file   = File System
+     * @valid block = Volume
+     * @valid file = File System
      * @valid object = Object Store
      */
     @XmlElement(name = "pool_service_type")
@@ -322,12 +323,11 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
         this.poolServiceType = poolServiceType;
     }
 
-
     /**
      * The Long term retention policy is available on this pool
      *
-     * @valid block  = Volume
-     * @valid file   = File System
+     * @valid block = Volume
+     * @valid file = File System
      * @valid object = Object Store
      */
     @XmlElement(name = "long_term_retention")
@@ -338,7 +338,6 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     public void setLongTermRetention(boolean longTermRetention) {
         this.longTermRetention = longTermRetention;
     }
-
 
     /**
      * The protocols this pool uses to transport disk commands and
@@ -421,7 +420,7 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * The volume types that can be created in this pool. A thin volume
-     * allocates a portion of its assigned capacity when  it is created
+     * allocates a portion of its assigned capacity when it is created
      * and grows as needed. A thick volume allocates all of its
      * assigned capacity when created.
      *
@@ -483,7 +482,7 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     public void setUsedCapacity(Long usedCapacity) {
         this.usedCapacity = usedCapacity;
     }
-    
+
     /**
      * The user-defined limit for this pool's utilization
      * 
@@ -497,7 +496,7 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     public void setMaxPoolUtilizationPercentage(Integer maxPoolUtilizationPercentage) {
         this.maxPoolUtilizationPercentage = maxPoolUtilizationPercentage;
     }
-    
+
     /**
      * The maximum percentage of usable space that can be assigned to thin volumes
      *
@@ -511,7 +510,7 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     public void setMaxThinPoolSubscriptionPercentage(Integer maxThinPoolSubscription) {
         this.maxThinPoolSubscriptionPercentage = maxThinPoolSubscription;
     }
-    
+
     /**
      * Determines whether pre-allocation of thin volume is supported on this storage pool
      * 
@@ -527,7 +526,7 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     public void setThinVolumePreAllocationSupported(Boolean thinVolumePreAllocationSupported) {
         this.thinVolumePreAllocationSupported = thinVolumePreAllocationSupported;
     }
-    
+
     /**
      * Determines whether auto-tiering is supported on this storage pool
      * 
@@ -564,6 +563,7 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
 
     /**
      * Whether or not this storage pool is visible in discovery
+     * 
      * @valid VISIBLE
      * @valid NOTVISIBLE
      */
@@ -575,6 +575,5 @@ public class StoragePoolRestRep extends VirtualArrayResourceRestRep {
     public void setDiscoveryStatus(String discoveryStatus) {
         this.discoveryStatus = discoveryStatus;
     }
-    
-    
+
 }

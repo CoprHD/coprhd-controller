@@ -22,11 +22,11 @@ import java.net.URI;
 public class AuthTokenFilter extends ClientFilter {
 
     private TokenAccess sessionAccess;
-    
+
     public AuthTokenFilter(TokenAccess sessionAccess) {
         this.sessionAccess = sessionAccess;
     }
-    
+
     @Override
     public ClientResponse handle(ClientRequest request) throws ClientHandlerException {
         addTokenToRequest(request);

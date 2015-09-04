@@ -50,19 +50,19 @@ public class VolumeCreateCompleter extends VolumeTaskCompleter {
             super.complete(dbClient, status, coded);
             for (URI id : getIds()) {
                 switch (status) {
-                case error:
-                    dbClient.error(Volume.class, id, getOpId(), coded);
-                    break;
-                default:
-                    dbClient.ready(Volume.class, id, getOpId());
+                    case error:
+                        dbClient.error(Volume.class, id, getOpId(), coded);
+                        break;
+                    default:
+                        dbClient.ready(Volume.class, id, getOpId());
                 }
 
                 _log.info(String.format("Done VolumeCreate - Id: %s, OpId: %s, status: %s",
                         id.toString(), getOpId(), status.name()));
-                // TODO: this may be causing a double event.  If so, break this completer out to a workflow version.
+                // TODO: this may be causing a double event. If so, break this completer out to a workflow version.
                 recordBlockVolumeOperation(dbClient, OperationTypeEnum.CREATE_BLOCK_VOLUME, status, id.toString());
             }
-         } catch (Exception e) {
+        } catch (Exception e) {
             _log.error(String.format("Failed updating status for VolumeCreate - Id: %s, OpId: %s",
                     getId().toString(), getOpId()), e);
         }

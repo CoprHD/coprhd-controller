@@ -41,7 +41,7 @@ public class ClusterInfoMapper {
     public static Response toClusterResponse(ClusterInfo from) {
         ClusterInfo to = toClusterInfoWithSelfLink(from);
         if (!ClusterInfo.ClusterState.STABLE.toString().equals(from.getCurrentState())) {
-            //returning 202 Accepted status.
+            // returning 202 Accepted status.
             return Response.status(202).entity(to).build();
         }
         return Response.ok(to).build();
@@ -59,46 +59,47 @@ public class ClusterInfoMapper {
         }
         return copyTo;
     }
-    
+
     public static ClusterInfo toClusterInfo(final ClusterState controlNodesState,
             final Map<Service, RepositoryInfo> controlNodesInfo,
             final Map<Service, ConfigVersion> controlNodesConfigVersions,
             final RepositoryInfo targetRepository,
             final PropertyInfoExt targetProperty) {
-        
+
         ClusterInfo toClusterInfo = new ClusterInfo();
-        
+
         toClusterInfo.setCurrentState((controlNodesState != ClusterState.STABLE) ? controlNodesState.toString() :
                 ClusterState.STABLE.toString());
 
         if (!controlNodesInfo.isEmpty()) {
             toClusterInfo.setControlNodes(new HashMap<String, NodeState>());
-            
-            for (Map.Entry<Service,RepositoryInfo> entry: controlNodesInfo.entrySet()) {
+
+            for (Map.Entry<Service, RepositoryInfo> entry : controlNodesInfo.entrySet()) {
                 addControlNodeInfo(toClusterInfo, entry.getKey().getNodeName(), entry.getValue(),
-                        controlNodesConfigVersions!=null ? controlNodesConfigVersions.get(entry.getKey()):null);
+                        controlNodesConfigVersions != null ? controlNodesConfigVersions.get(entry.getKey()) : null);
             }
         }
-        
+
         if (targetRepository != null) {
             addTargetInfo(toClusterInfo, targetRepository, targetProperty);
         }
-        
+
         return toClusterInfo;
     }
 
     /**
      * Common method to construct node state by repository info
-     * @param info      repository info
-     * @param configVersion  config version
-     * @return      node state
+     * 
+     * @param info repository info
+     * @param configVersion config version
+     * @return node state
      */
     private static NodeState getNodeStateCommon(RepositoryInfo info, ConfigVersion configVersion) {
         NodeState n = new NodeState();
 
         if (info.getVersions() != null) {
             n.setAvailable(new ArrayList<String>());
-            for(SoftwareVersion v: info.getVersions()) {
+            for (SoftwareVersion v : info.getVersions()) {
                 n.getAvailable().add(v.toString());
             }
         }
@@ -111,23 +112,23 @@ public class ClusterInfoMapper {
 
         return n;
     }
-    
-    private static void addControlNodeInfo(final ClusterInfo clusterInfo, final String nodeId, 
-            final RepositoryInfo info, final ConfigVersion configVersion){
+
+    private static void addControlNodeInfo(final ClusterInfo clusterInfo, final String nodeId,
+            final RepositoryInfo info, final ConfigVersion configVersion) {
         clusterInfo.getControlNodes().put(nodeId, getNodeStateCommon(info, configVersion));
     }
 
-    private static void addExtraNodeInfo(final ClusterInfo clusterInfo, final String nodeId, 
+    private static void addExtraNodeInfo(final ClusterInfo clusterInfo, final String nodeId,
             final RepositoryInfo info, final ConfigVersion configVersion) {
         clusterInfo.getExtraNodes().put(nodeId, getNodeStateCommon(info, configVersion));
     }
 
-    private static void addTargetInfo(final ClusterInfo clusterInfo, final RepositoryInfo targetRepository, 
+    private static void addTargetInfo(final ClusterInfo clusterInfo, final RepositoryInfo targetRepository,
             final PropertyInfoExt targetProperty) {
         clusterInfo.setTargetState(new NodeState());
         if (targetRepository.getVersions() != null) {
             clusterInfo.getTargetState().setAvailable(new ArrayList<String>());
-            for(SoftwareVersion v: targetRepository.getVersions()) {
+            for (SoftwareVersion v : targetRepository.getVersions()) {
                 clusterInfo.getTargetState().getAvailable().add(v.toString());
             }
         }
@@ -137,36 +138,40 @@ public class ClusterInfoMapper {
         if (targetProperty.getProperty(PropertyInfoExt.CONFIG_VERSION) != null) {
             clusterInfo.getTargetState().setConfigVersion(targetProperty.getProperty(PropertyInfoExt.CONFIG_VERSION));
         }
-    }    
-    
+    }
+
     /**
      * Add the new versions and the removable versions to the cluster state
+     * 
      * @param targetRepoInfo Local repository info
      * @param cachedRemoteVersions available versions
      * @param force show versions for force install and force remove
-     * @throws IOException 
+     * @throws IOException
      */
     public static void setInstallableRemovable(final ClusterInfo clusterInfo, final RepositoryInfo targetRepoInfo,
-                                        final Map<SoftwareVersion, List<SoftwareVersion>> cachedRemoteVersions,
-                                        final boolean force) throws IOException {
+            final Map<SoftwareVersion, List<SoftwareVersion>> cachedRemoteVersions,
+            final boolean force) throws IOException {
         // if stable, add new versions and removable versions
         if (clusterInfo.getCurrentState().equals(ClusterState.STABLE.toString()) && cachedRemoteVersions != null) {
-            
-            final List<SoftwareVersion> newRemoteVersions = SyncInfoBuilder.getInstallableRemoteVersions(targetRepoInfo, cachedRemoteVersions, force);
-            if( !newRemoteVersions.isEmpty()) {
+
+            final List<SoftwareVersion> newRemoteVersions = SyncInfoBuilder.getInstallableRemoteVersions(targetRepoInfo,
+                    cachedRemoteVersions, force);
+            if (!newRemoteVersions.isEmpty()) {
                 clusterInfo.setNewVersions(new ArrayList<String>());
-                for( SoftwareVersion newRemoteVersion : newRemoteVersions  ) {
+                for (SoftwareVersion newRemoteVersion : newRemoteVersions) {
                     clusterInfo.getNewVersions().add(newRemoteVersion.toString());
                 }
             }
-            List<SoftwareVersion> removableVersions = SyncInfoBuilder.findToRemove(targetRepoInfo.getVersions(), targetRepoInfo.getCurrentVersion(), null, null, force);
-            if (removableVersions.isEmpty()) return;
-            List<String> removableVersionString =new ArrayList<String>();
-            for(SoftwareVersion v: removableVersions) {
-            	removableVersionString.add(v.toString());
+            List<SoftwareVersion> removableVersions = SyncInfoBuilder.findToRemove(targetRepoInfo.getVersions(),
+                    targetRepoInfo.getCurrentVersion(), null, null, force);
+            if (removableVersions.isEmpty())
+                return;
+            List<String> removableVersionString = new ArrayList<String>();
+            for (SoftwareVersion v : removableVersions) {
+                removableVersionString.add(v.toString());
             }
             clusterInfo.setRemovableVersions(removableVersionString);
         }
     }
-    
+
 }

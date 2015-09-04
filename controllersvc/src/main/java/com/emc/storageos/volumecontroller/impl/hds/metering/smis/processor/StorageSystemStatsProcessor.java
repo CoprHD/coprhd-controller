@@ -43,82 +43,83 @@ import com.google.common.collect.Iterables;
  * Processor responsible to process the Hitachi StorageSystem statistics & persist them db.
  * 
  * Supported metrics: [TotalIOs, KBytesTransferred]
- * Other attributes:  [ElementType, StatisticTime]
+ * Other attributes: [ElementType, StatisticTime]
  *
  */
 public class StorageSystemStatsProcessor extends CommonStatsProcessor {
-	private Logger logger = LoggerFactory.getLogger(StorageSystemStatsProcessor.class);
-	
-	private static final String TOTALIOS = "TotalIOs"; 
-	private static final String KBYTESTRANSFERRED = "KBytesTransferred";
-	private static final String STATISTICTIME = "StatisticTime";
-	private static final String INSTANCE_ID = "InstanceID";
+    private Logger logger = LoggerFactory.getLogger(StorageSystemStatsProcessor.class);
 
-	@SuppressWarnings("unchecked")
-	@Override
-	public void processResult(Operation operation, Object resultObj,
-			Map<String, Object> keyMap) throws BaseCollectionException {
-		Iterator<CIMInstance> systemStatsResponseItr = (Iterator<CIMInstance>) resultObj;
-		AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
-		DbClient dbClient = (DbClient) keyMap.get(Constants.dbClient);
-		logger.info("Processing storagesystem {} stats response", profile.getSystemId());
-		try {
-			List<Stat> metricsObjList = (List<Stat>) keyMap.get(Constants._Stats);
-			while (systemStatsResponseItr.hasNext()) {
-				CIMInstance systemStatInstance = (CIMInstance) systemStatsResponseItr
-						.next();
-				Stat systemStat = new Stat();
-				//HUS VM.211643
-				systemStat.setNativeGuid(getSystemNativeGuid(systemStatInstance, dbClient));
+    private static final String TOTALIOS = "TotalIOs";
+    private static final String KBYTESTRANSFERRED = "KBytesTransferred";
+    private static final String STATISTICTIME = "StatisticTime";
+    private static final String INSTANCE_ID = "InstanceID";
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public void processResult(Operation operation, Object resultObj,
+            Map<String, Object> keyMap) throws BaseCollectionException {
+        Iterator<CIMInstance> systemStatsResponseItr = (Iterator<CIMInstance>) resultObj;
+        AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
+        DbClient dbClient = (DbClient) keyMap.get(Constants.dbClient);
+        logger.info("Processing storagesystem {} stats response", profile.getSystemId());
+        try {
+            List<Stat> metricsObjList = (List<Stat>) keyMap.get(Constants._Stats);
+            while (systemStatsResponseItr.hasNext()) {
+                CIMInstance systemStatInstance = (CIMInstance) systemStatsResponseItr
+                        .next();
+                Stat systemStat = new Stat();
+                // HUS VM.211643
+                systemStat.setNativeGuid(getSystemNativeGuid(systemStatInstance, dbClient));
                 systemStat.setResourceId(profile.getSystemId());
                 systemStat.setServiceType(Constants._Block);
                 systemStat.setTimeCollected((Long) keyMap.get(Constants._TimeCollected));
-                
+
                 Long providerCollectionTime = convertCIMStatisticTime(getCIMPropertyValue(systemStatInstance, STATISTICTIME));
-                
+
                 if (0 != providerCollectionTime) {
-                	systemStat.setTimeInMillis(providerCollectionTime);
+                    systemStat.setTimeInMillis(providerCollectionTime);
                 } else {
-                	systemStat.setTimeInMillis((Long) keyMap.get(Constants._TimeCollected));
+                    systemStat.setTimeInMillis((Long) keyMap.get(Constants._TimeCollected));
                 }
                 systemStat.setTotalIOs(ControllerUtils.getLongValue(getCIMPropertyValue(
-						systemStatInstance, TOTALIOS)));
+                        systemStatInstance, TOTALIOS)));
                 systemStat.setKbytesTransferred(ControllerUtils.getLongValue(getCIMPropertyValue(
-						systemStatInstance, KBYTESTRANSFERRED)));
+                        systemStatInstance, KBYTESTRANSFERRED)));
                 metricsObjList.add(systemStat);
-			}
+            }
 
-		} catch (Exception ex) {
-			logger.error("Failed while extracting Stats for storage System: ", ex);
-		} finally {
-			resultObj = null;
-		}
-		logger.info("Processing storagesystem {} stats response completed", profile.getSystemId());
-	}
+        } catch (Exception ex) {
+            logger.error("Failed while extracting Stats for storage System: ", ex);
+        } finally {
+            resultObj = null;
+        }
+        logger.info("Processing storagesystem {} stats response completed", profile.getSystemId());
+    }
 
-	/**
-	 * Return the System NativeGuid based on the Stat instance returned from provider.
-	 * @param systemStatInstance
-	 * @param dbClient
-	 * @return
-	 */
-	private String getSystemNativeGuid(CIMInstance systemStatInstance, DbClient dbClient) {
-		String systemNativeGuid = null;
-		String instanceId = getCIMPropertyValue(systemStatInstance, INSTANCE_ID);
-		URIQueryResultList result = new URIQueryResultList();
-		Iterable<String> instanceIdSplitter = Splitter.on(HDSConstants.DOT_OPERATOR).limit(2).split(instanceId);
-		String serialNo = Iterables.getLast(instanceIdSplitter);
-		
-		dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStorageDeviceSerialNumberConstraint(serialNo), result);		
-				
-		Iterator<URI> activeSystemListItr = result.iterator();
-		if (activeSystemListItr.hasNext()) {
-			StorageSystem system = dbClient.queryObject(StorageSystem.class,
-					activeSystemListItr.next());
-			systemNativeGuid = system.getNativeGuid();
-		}
-		
-		return systemNativeGuid;
-	}
+    /**
+     * Return the System NativeGuid based on the Stat instance returned from provider.
+     * 
+     * @param systemStatInstance
+     * @param dbClient
+     * @return
+     */
+    private String getSystemNativeGuid(CIMInstance systemStatInstance, DbClient dbClient) {
+        String systemNativeGuid = null;
+        String instanceId = getCIMPropertyValue(systemStatInstance, INSTANCE_ID);
+        URIQueryResultList result = new URIQueryResultList();
+        Iterable<String> instanceIdSplitter = Splitter.on(HDSConstants.DOT_OPERATOR).limit(2).split(instanceId);
+        String serialNo = Iterables.getLast(instanceIdSplitter);
+
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory.getStorageDeviceSerialNumberConstraint(serialNo), result);
+
+        Iterator<URI> activeSystemListItr = result.iterator();
+        if (activeSystemListItr.hasNext()) {
+            StorageSystem system = dbClient.queryObject(StorageSystem.class,
+                    activeSystemListItr.next());
+            systemNativeGuid = system.getNativeGuid();
+        }
+
+        return systemNativeGuid;
+    }
 
 }

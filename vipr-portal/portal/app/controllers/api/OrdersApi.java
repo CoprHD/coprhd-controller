@@ -60,7 +60,7 @@ public class OrdersApi extends Controller {
     public static void orders() {
         ViPRCatalogClient2 catalog = getCatalogClient();
         List<Reference> orders = Lists.newArrayList();
-        for (NamedRelatedResourceRep element: catalog.orders().listByUserTenant()) {
+        for (NamedRelatedResourceRep element : catalog.orders().listByUserTenant()) {
             orders.add(newOrderReference(element.getId().toString()));
         }
         renderApi(orders);
@@ -70,7 +70,7 @@ public class OrdersApi extends Controller {
     public static void allOrders(String startTime, String endTime) {
         List<? extends RelatedResourceRep> elements = queryOrders(startTime, endTime);
         List<Reference> orders = Lists.newArrayList();
-        for (RelatedResourceRep element: elements) {
+        for (RelatedResourceRep element : elements) {
             orders.add(newOrderReference(element.getId().toString()));
         }
         renderApi(orders);
@@ -80,23 +80,23 @@ public class OrdersApi extends Controller {
         OrderRestRep order = getCatalogClient().orders().get(uri(orderId));
         renderApi(newOrderInfo(order));
     }
-    
+
     public static void updateTags(String orderId, TagAssignment assignment) {
         updateOrderTags(uri(orderId), assignment);
         OrderRestRep order = getOrder(orderId);
         renderApi(newOrderInfo(order));
     }
-    
+
     public static void retrieveTags(String orderId) {
         OrderRestRep order = getOrder(orderId);
         Tags tags = ApiMapperUtils.getTags(order);
         renderApi(tags);
     }
-    
+
     public static void bulkGetOrders(String startTime, String endTime) {
         List<? extends RelatedResourceRep> elements = queryOrders(startTime, endTime);
         List<URI> orders = Lists.newArrayList();
-        for (RelatedResourceRep element: elements) {
+        for (RelatedResourceRep element : elements) {
             orders.add(element.getId());
         }
         renderApi(new BulkIdParam(orders));
@@ -108,7 +108,7 @@ public class OrdersApi extends Controller {
         }
 
         List<OrderInfo> orders = Lists.newArrayList();
-        for (OrderRestRep order: getCatalogClient().orders().getByIds(param.getIds())) {
+        for (OrderRestRep order : getCatalogClient().orders().getByIds(param.getIds())) {
             checkPermissions(order);
             orders.add(newOrderInfo(order));
         }
@@ -141,7 +141,7 @@ public class OrdersApi extends Controller {
                 params.put(END_TIME_PARAM, Long.toString(endDate.getTime()));
             }
             elements = catalog.orders().performSearch(params);
-            
+
         }
         return elements;
     }
@@ -151,7 +151,7 @@ public class OrdersApi extends Controller {
         checkPermissions(order);
         return order;
     }
-    
+
     private static void checkPermissions(OrderRestRep order) {
         boolean submittedByMe = order.getSubmittedBy().equals(Security.getUserInfo().getIdentifier());
         if (!submittedByMe && !Security.isTenantAdmin() && !Security.isTenantApprover()) {
@@ -167,8 +167,7 @@ public class OrdersApi extends Controller {
         try {
             SimpleDateFormat dateFormat = new SimpleDateFormat(DATE_TIME_FORMAT);
             return dateFormat.parse(timestampStr);
-        }
-        catch (ParseException pe) {
+        } catch (ParseException pe) {
             return getDateFromLong(timestampStr);
         }
     }
@@ -176,19 +175,18 @@ public class OrdersApi extends Controller {
     private static Date getDateFromLong(String timestampStr) {
         try {
             return new Date(Long.parseLong(timestampStr));
-        }
-        catch (NumberFormatException n) {
+        } catch (NumberFormatException n) {
             throw APIException.badRequests.invalidDate(timestampStr);
         }
     }
-    
+
     private static void updateOrderTags(URI orderId, TagAssignment assignment) {
-        
-        //shouldn't happen but we'll protect against it anyway.
+
+        // shouldn't happen but we'll protect against it anyway.
         if (assignment == null) {
             error(401, Messages.get("OrdersApi.invalidTagChangesElement"));
         }
-        
+
         ViPRCatalogClient2 catalog = getCatalogClient();
         catalog.orders().addTags(orderId, assignment.getAdd());
         catalog.orders().removeTags(orderId, assignment.getRemove());

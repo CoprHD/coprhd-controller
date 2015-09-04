@@ -55,7 +55,7 @@ public class StorageVolumeCapabilitiesProcessor extends StorageProcessor {
                 _logger.debug("Volume Info Object not found :" + nativeGuid);
                 return;
             }
-            
+
             boolean changed = false;
             // get VolumeInfo Object and inject Fast Policy Name.
             @SuppressWarnings("unchecked")
@@ -63,13 +63,13 @@ public class StorageVolumeCapabilitiesProcessor extends StorageProcessor {
             while (it.hasNext()) {
                 CIMObjectPath capabilitiesPath = it.next();
                 if (capabilitiesPath.toString().contains(TIER_POLICY_RULE)) {
-                    
+
                     injectIntoVolumeInformationContainer(preExistingVolume,
-                           POLICYRULENAME, capabilitiesPath);
+                            POLICYRULENAME, capabilitiesPath);
                     preExistingVolume.putVolumeCharacterstics(
                             SupportedVolumeCharacterstics.IS_AUTO_TIERING_ENABLED
                                     .toString(), "true");
-                    changed =true;
+                    changed = true;
                     // inject into Volume Info.
                 } else if (capabilitiesPath.toString().contains(DEVICE_MASKING_GROUP)) {
                     addPath(keyMap, Constants.MASKING_GROUPS, capabilitiesPath);
@@ -82,7 +82,7 @@ public class StorageVolumeCapabilitiesProcessor extends StorageProcessor {
                 }
             }
             if (changed)
-            _dbClient.persistObject(preExistingVolume);
+                _dbClient.persistObject(preExistingVolume);
         } catch (Exception e) {
             _logger.error("Processsing Pre Existing volume Capabilities failed", e);
         }

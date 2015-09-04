@@ -22,7 +22,7 @@ import java.lang.annotation.Target;
 /**
  * Annotation for excluding classes from GarbageCollection
  */
-@Target({ElementType.TYPE})
+@Target({ ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)
 @UpgradeAllowed
 public @interface ExcludeFromGarbageCollection {

@@ -34,11 +34,11 @@ public class RenderApiModel extends Result {
     public static void renderApi(Object o) {
         throw new RenderApiModel(o);
     }
-    
+
     public RenderApiModel(Object o) {
         this.o = o;
     }
-    
+
     @Override
     public void apply(Request request, Response response) {
         try {
@@ -60,11 +60,10 @@ public class RenderApiModel extends Result {
 
                 String json = mapper.writeValueAsString(o);
                 String encoding = getEncoding();
-                setContentTypeIfNotSet(response, "application/json; charset="+encoding);
+                setContentTypeIfNotSet(response, "application/json; charset=" + encoding);
                 response.out.write(json.getBytes(encoding));
             }
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.error(e, "API Rendering error");
             throw new UnexpectedException(e);
         }

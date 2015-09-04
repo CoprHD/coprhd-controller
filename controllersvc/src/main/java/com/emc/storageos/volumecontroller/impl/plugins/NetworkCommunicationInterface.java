@@ -45,8 +45,8 @@ public class NetworkCommunicationInterface extends ExtendedCommunicationInterfac
             worker.setCoordinator(_coordinator);
             worker.verifyVersion(accessProfile.getSystemId());
             worker.updatePhysicalInventory(accessProfile.getSystemId());
-        } catch(Exception e) {
+        } catch (Exception e) {
             throw NetworkDeviceControllerException.exceptions.discoverNetworkSystemFailed(e);
         }
-    }    
+    }
 }

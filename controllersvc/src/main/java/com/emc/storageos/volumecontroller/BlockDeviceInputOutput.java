@@ -25,10 +25,10 @@ import java.util.List;
  * to expose only the fields that are needed/can be modified by storage device implementations
  */
 public class BlockDeviceInputOutput {
-    private StoragePool         pool;
-    private Volume              volume;
-    private BlockSnapshot       snapshot;
-    private String      storageGroupName;
+    private StoragePool pool;
+    private Volume volume;
+    private BlockSnapshot snapshot;
+    private String storageGroupName;
     private String _opId;
     private List<StoragePort> _storagePorts;
 
@@ -42,6 +42,7 @@ public class BlockDeviceInputOutput {
 
     /**
      * The StorageGroup name to be used
+     * 
      * @param storageGroupName
      */
     public void setStorageGroupName(String storageGroupName) {
@@ -49,16 +50,18 @@ public class BlockDeviceInputOutput {
     }
 
     /**
-     * add storage pool 
-     * @param pool        StoragePool object
+     * add storage pool
+     * 
+     * @param pool StoragePool object
      */
-    public void addStoragePool(StoragePool pool){
+    public void addStoragePool(StoragePool pool) {
         this.pool = pool;
     }
 
     /**
-     * add volume 
-     * @param volume        FileShare object
+     * add volume
+     * 
+     * @param volume FileShare object
      */
     public void addVolume(Volume volume) {
         this.volume = volume;
@@ -70,61 +73,68 @@ public class BlockDeviceInputOutput {
 
     /**
      * Get volume capacity
-     * @return  Long
+     * 
+     * @return Long
      */
-    public Long getVolumeCapacity(){
+    public Long getVolumeCapacity() {
         return volume.getCapacity();
     }
 
     /**
      * Get volume label
+     * 
      * @return
      */
-    public String getVolumeLabel(){
+    public String getVolumeLabel() {
         return volume.getLabel();
     }
 
     /**
      * Get volume nativeId
+     * 
      * @return
      */
-    public String getVolumeNativeId(){
+    public String getVolumeNativeId() {
         return volume.getNativeId();
     }
 
     /**
      * Get volume extensions
+     * 
      * @return
      */
-    public StringMap getVolumeExtensions(){
+    public StringMap getVolumeExtensions() {
         return volume.getExtensions();
     }
 
     /**
      * Set volume nativeId
+     * 
      * @param id
      */
-    public void setVolumeNativeId(String id){
+    public void setVolumeNativeId(String id) {
         volume.setNativeId(id);
     }
 
     /**
      * Set volume nativeGuid
+     * 
      * @param id
      */
-    public void setVolumeNativeGuid(String id){
+    public void setVolumeNativeGuid(String id) {
         volume.setNativeGuid(id);
     }
 
     /**
      * Initialize volume extensions map
      */
-    public void initVolumeExtensions(){
+    public void initVolumeExtensions() {
         volume.setExtensions(new StringMap());
     }
 
     /**
      * Set the snapshot
+     * 
      * @param snap
      */
     public void addSnapshot(BlockSnapshot snap) {
@@ -133,6 +143,7 @@ public class BlockDeviceInputOutput {
 
     /**
      * Get the Snapshot Native Id
+     * 
      * @return
      */
     public String getSnapshotNativeId() {
@@ -141,6 +152,7 @@ public class BlockDeviceInputOutput {
 
     /**
      * Set the Snapshot Native Id
+     * 
      * @return
      */
     public void setSnapshotNativeId(String newId) {
@@ -162,13 +174,13 @@ public class BlockDeviceInputOutput {
         return _opId;
     }
 
-	/**
-	 * Get the Consistency Group Label
-	 */
-	public URI getSnapConsistencyGroup() {
-		URI value = snapshot.getConsistencyGroup();
-		return value;
-	}
+    /**
+     * Get the Consistency Group Label
+     */
+    public URI getSnapConsistencyGroup() {
+        URI value = snapshot.getConsistencyGroup();
+        return value;
+    }
 
     public void setStoragePorts(List<StoragePort> ports) {
         _storagePorts = ports;
@@ -182,7 +194,7 @@ public class BlockDeviceInputOutput {
      * Get snapshot extensions
      * 
      */
-    public StringMap getSnapshotExtensions(){
+    public StringMap getSnapshotExtensions() {
         return volume.getExtensions();
     }
 

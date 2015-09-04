@@ -45,6 +45,7 @@ public class ZkSimulator {
 
     /**
      * Sets Zookeeper configuration file
+     * 
      * @param config The instance of SpringQuorumPeerConfig
      */
     public void setConfig(SpringQuorumPeerConfig config) {
@@ -75,6 +76,7 @@ public class ZkSimulator {
 
     /**
      * Gets coordinatorClient and connect client if client is not exist or connected.
+     * 
      * @return The instance of CoordinatorClient
      * @throws IOException
      */
@@ -86,6 +88,7 @@ public class ZkSimulator {
 
     /**
      * Connects to Zookeeper server
+     * 
      * @return The instance of CoordinatorClient
      * @throws IOException
      */
@@ -111,5 +114,5 @@ public class ZkSimulator {
         client.start();
         return client;
     }
-    
+
 }

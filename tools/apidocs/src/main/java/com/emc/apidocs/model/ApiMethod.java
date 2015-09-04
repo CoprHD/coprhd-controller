@@ -51,10 +51,10 @@ public class ApiMethod {
     public String[] jsonExample;
 
     public String getDetailFileName() {
-        return apiService.javaClassName.replace("\\.","_")+"_"+
-               javaMethodName.replaceAll("\\.","_")+"_"+
-               uniqueHash()+"_"+
-               apiService.getPackageHash()+"_detail.html";
+        return apiService.javaClassName.replace("\\.", "_") + "_" +
+                javaMethodName.replaceAll("\\.", "_") + "_" +
+                uniqueHash() + "_" +
+                apiService.getPackageHash() + "_detail.html";
     }
 
     public String getTitle() {
@@ -84,15 +84,15 @@ public class ApiMethod {
     }
 
     public String getQualifiedName() {
-        return apiService.javaClassName+"::"+javaMethodName;
+        return apiService.javaClassName + "::" + javaMethodName;
     }
 
     public String getXmlExampleFilename() {
-        return getExampleFilePrefix()+XML_EXTENSION;
+        return getExampleFilePrefix() + XML_EXTENSION;
     }
 
     public String getJsonExampleFilename() {
-        return getExampleFilePrefix()+JSON_EXTENSION;
+        return getExampleFilePrefix() + JSON_EXTENSION;
     }
 
     public String getIndexKey() {
@@ -100,12 +100,12 @@ public class ApiMethod {
             return indexKey;
         }
 
-        return apiService.javaClassName+javaMethodName;
+        return apiService.javaClassName + javaMethodName;
     }
 
     public String getIndexText() {
         // Index Key is added if there is not brief in order to make the search text unique since we're loading these into a map
-        return Utils.dedupeWords(path+" "+(brief.equals("")?indexKey:brief.toLowerCase())).trim();
+        return Utils.dedupeWords(path + " " + (brief.equals("") ? indexKey : brief.toLowerCase())).trim();
     }
 
     public boolean hasDeprecatedMessage() {
@@ -113,9 +113,9 @@ public class ApiMethod {
     }
 
     private String getExampleFilePrefix() {
-        String fixedName = httpMethod+path.replaceAll("/","_").replaceAll("\\.","_");
+        String fixedName = httpMethod + path.replaceAll("/", "_").replaceAll("\\.", "_");
         if (fixedName.endsWith("_")) {
-            fixedName = fixedName.substring(0, fixedName.length()-1);
+            fixedName = fixedName.substring(0, fixedName.length() - 1);
         }
         return fixedName;
     }

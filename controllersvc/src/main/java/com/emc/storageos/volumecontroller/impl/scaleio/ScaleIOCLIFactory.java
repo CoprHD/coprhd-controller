@@ -83,7 +83,7 @@ public class ScaleIOCLIFactory {
      * Routine will check if the SIO instance has changed versions. This is to support the use-case
      * where an existing SIO instance is upgraded.
      *
-     * @param provider   [in] - StorageProvider object representing the primary MDM
+     * @param provider [in] - StorageProvider object representing the primary MDM
      * @param currentCLI [in] - ScaleIOCLI object representing the current CLI in use
      * @return ScaleIOCLI - Either a new one (if the version changed) or same as currentCLI
      */

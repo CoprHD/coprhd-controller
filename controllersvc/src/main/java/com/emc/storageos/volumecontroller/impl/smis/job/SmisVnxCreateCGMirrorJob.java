@@ -66,7 +66,8 @@ public class SmisVnxCreateCGMirrorJob extends SmisBlockMirrorJob {
             }
 
             if (jobStatus == JobStatus.SUCCESS) {
-                String[] props = { SmisConstants.CP_DEVICE_ID, SmisConstants.CP_ELEMENT_NAME, SmisConstants.CP_WWN_NAME, SmisConstants.CP_NAME, SmisConstants.CP_CONSUMABLE_BLOCKS, SmisConstants.CP_BLOCK_SIZE };
+                String[] props = { SmisConstants.CP_DEVICE_ID, SmisConstants.CP_ELEMENT_NAME, SmisConstants.CP_WWN_NAME,
+                        SmisConstants.CP_NAME, SmisConstants.CP_CONSUMABLE_BLOCKS, SmisConstants.CP_BLOCK_SIZE };
                 syncVolumeIter = client.associatorInstances(getCimJob(), null, SmisConstants.CIM_STORAGE_VOLUME, null, null, false, props);
                 StorageSystem storage = dbClient.queryObject(StorageSystem.class, getStorageSystemURI());
                 processCGMirrors(syncVolumeIter, client, dbClient, storage, mirrors, UUID.randomUUID().toString());
@@ -81,13 +82,12 @@ public class SmisVnxCreateCGMirrorJob extends SmisBlockMirrorJob {
             setPostProcessingErrorStatus("Encountered an internal error during create CG mirror job status processing: " + e.getMessage());
             _log.error("Caught an exception while trying to updateStatus for SmisVnxCreateCGMirrorJob", e);
         } finally {
-            if(syncVolumeIter != null) {
+            if (syncVolumeIter != null) {
                 syncVolumeIter.close();
             }
             super.updateStatus(jobContext);
         }
     }
-
 
     /**
      * Update storage pool capacity and remove reservation for mirror capacities from pool's reserved capacity map.
@@ -127,8 +127,9 @@ public class SmisVnxCreateCGMirrorJob extends SmisBlockMirrorJob {
      * @param repGroupID
      * @throws Exception
      */
-    private void processCGMirrors(CloseableIterator<CIMInstance> syncVolumeIter, WBEMClient client, DbClient dbClient, StorageSystem storage,
-                                 List<BlockMirror> mirrors, String repGroupID) throws Exception {
+    private void processCGMirrors(CloseableIterator<CIMInstance> syncVolumeIter, WBEMClient client, DbClient dbClient,
+            StorageSystem storage,
+            List<BlockMirror> mirrors, String repGroupID) throws Exception {
         // Create mapping of volume.nativeDeviceId to BlockMirror object
         Map<String, BlockMirror> volIdToMirrorMap = new HashMap<String, BlockMirror>();
         for (BlockMirror mirror : mirrors) {
@@ -165,7 +166,8 @@ public class SmisVnxCreateCGMirrorJob extends SmisBlockMirrorJob {
             mirror.setSyncType(CIMPropertyFactory.getPropertyValue(syncInstance, SmisConstants.CP_SYNC_TYPE));
 
             dbClient.persistObject(mirror);
-            _log.info(String.format("For target mirror volume %1$s, going to set BlockMirror %2$s nativeId to %3$s (%4$s). Associated volume is %5$s",
+            _log.info(String.format(
+                    "For target mirror volume %1$s, going to set BlockMirror %2$s nativeId to %3$s (%4$s). Associated volume is %5$s",
                     syncVolumePath.toString(), mirror.getId().toString(), syncDeviceID, elementName, volumeDeviceID));
         }
     }

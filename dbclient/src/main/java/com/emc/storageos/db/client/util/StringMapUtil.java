@@ -15,7 +15,7 @@ import com.emc.storageos.db.client.model.StringMap;
  *
  */
 public class StringMapUtil {
-    
+
     /**
      * Creates and returns a {@link Map} of volume-to-lun from a {@link StringMap}
      * 
@@ -31,13 +31,14 @@ public class StringMapUtil {
         }
         return map;
     }
-    
+
     /**
      * Creates a return a {@link StringMap} of volume/lun from a {@link Map}
+     * 
      * @param volMap the {@link Map} containing the values
-     * @return a {@link StringMap} of volume/lun 
+     * @return a {@link StringMap} of volume/lun
      */
-    public static Map<String, String> volumeMapToStringMap (Map<URI, Integer> volMap) {
+    public static Map<String, String> volumeMapToStringMap(Map<URI, Integer> volMap) {
         Map<String, String> map = new HashMap<String, String>();
         if (volMap != null && !volMap.isEmpty()) {
             for (URI uri : volMap.keySet()) {
@@ -46,6 +47,5 @@ public class StringMapUtil {
         }
         return map;
     }
-    
-    
+
 }

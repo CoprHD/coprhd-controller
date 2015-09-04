@@ -47,7 +47,7 @@ public interface LicenseManager {
     public void updateCoordinatorWithLicenseText(License license)
             throws CoordinatorClientException;
 
-    public void updateCoordinatorWithLicenseInfo(LicenseInfoExt licenseInfo) 
+    public void updateCoordinatorWithLicenseInfo(LicenseInfoExt licenseInfo)
             throws CoordinatorClientException;
 
     public boolean isLicenseExpired(LicenseInfoExt licenseInfo);

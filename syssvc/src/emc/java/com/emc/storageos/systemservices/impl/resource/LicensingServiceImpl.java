@@ -45,7 +45,7 @@ import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.vipr.model.sys.licensing.License;
 import com.emc.vipr.model.sys.licensing.LicenseFeature;
 
-public class LicensingServiceImpl extends BaseLogSvcResource implements LicensingService{
+public class LicensingServiceImpl extends BaseLogSvcResource implements LicensingService {
     // Logger reference.
     private static final Logger _log = LoggerFactory.getLogger(LicensingServiceImpl.class);
     // Spring Injected
@@ -56,7 +56,7 @@ public class LicensingServiceImpl extends BaseLogSvcResource implements Licensin
     private AuditLogManager _auditMgr;
     @Autowired
     private CallHomeService _callHomeService;
-    
+
     /**
      * Default constructor.
      */
@@ -68,13 +68,13 @@ public class LicensingServiceImpl extends BaseLogSvcResource implements Licensin
         _log.info("Received GET /license request");
         // Changing invalid 01/01/12006 license expiration date to null
         License license = _licenseManager.getLicense();
-        if(license != null && license.getLicenseFeatures() != null) {
-            for(LicenseFeature feature : license.getLicenseFeatures()) {
-                if(LicenseConstants.LICENSE_EXPIRATION_DATE.equals(feature
+        if (license != null && license.getLicenseFeatures() != null) {
+            for (LicenseFeature feature : license.getLicenseFeatures()) {
+                if (LicenseConstants.LICENSE_EXPIRATION_DATE.equals(feature
                         .getDateExpires())) {
                     feature.setDateExpires(null);
                 }
-                if(feature.getStorageCapacity().equals(LicenseInfo.VALUE_NOT_SET)) {
+                if (feature.getStorageCapacity().equals(LicenseInfo.VALUE_NOT_SET)) {
                     feature.setStorageCapacity(null);
                 }
             }
@@ -85,8 +85,8 @@ public class LicensingServiceImpl extends BaseLogSvcResource implements Licensin
     @Override
     public Response postLicense(License license) throws Exception {
         _log.info("Received POST /license request");
-              
-        if(license.getLicenseText() == null || license.getLicenseText().isEmpty()) {
+
+        if (license.getLicenseText() == null || license.getLicenseText().isEmpty()) {
             throw APIException.badRequests.licenseTextIsEmpty();
         }
 
@@ -94,15 +94,14 @@ public class LicensingServiceImpl extends BaseLogSvcResource implements Licensin
         boolean isTrialLicense = false;
         try {
             isTrialLicense = _licenseManager.isTrialLicense(license);
-        }
-        catch(Exception e) {
+        } catch (Exception e) {
             throw APIException.badRequests.licenseIsNotValid(e.getMessage());
         }
-        if(isTrialLicense && !_licenseManager.isTrialPackage()) {
+        if (isTrialLicense && !_licenseManager.isTrialPackage()) {
             _log.error("Trial license can only be applied to single node ViPR appliance");
             throw APIException.badRequests.licenseIsNotValid("Trial license can only be applied to single node ViPR appliance");
         }
-        
+
         try {
             _licenseManager.addLicense(license);
             _log.info("Done adding license");
@@ -110,40 +109,41 @@ public class LicensingServiceImpl extends BaseLogSvcResource implements Licensin
             throw APIException.badRequests.licenseIsNotValid(e.getMessage());
         }
 
-        try{
-            ((CallHomeServiceImpl)_callHomeService).internalSendRegistrationEvent();
+        try {
+            ((CallHomeServiceImpl) _callHomeService).internalSendRegistrationEvent();
         } catch (Exception e) {
             _log.warn("Error occurred while sending registration event. {}", e);
         }
-                
+
         auditLicense(OperationTypeEnum.ADD_LICENSE,
                 AuditLogManager.AUDITLOG_SUCCESS, null);
-        
+
         return Response.ok().build();
     }
 
     public void setLicenseManager(LicenseManager licenseManager) {
         _licenseManager = licenseManager;
     }
-    
+
     /**
      * Record audit log for license service
+     * 
      * @param auditType Type of AuditLog
      * @param operationalStatus Status of operation
      * @param description Description for the AuditLog
      * @param descparams Description parameters
      */
     public void auditLicense(OperationTypeEnum auditType,
-                                              String operationalStatus,
-                                              String description,
-                                              Object... descparams)  {
-    
+            String operationalStatus,
+            String description,
+            Object... descparams) {
+
         _auditMgr.recordAuditLog(null, null,
                 EVENT_SERVICE_TYPE,
                 auditType,
                 System.currentTimeMillis(),
                 operationalStatus,
-                description, 
-                descparams);       
-    }   
+                description,
+                descparams);
+    }
 }

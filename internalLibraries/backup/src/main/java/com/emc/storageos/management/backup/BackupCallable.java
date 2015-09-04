@@ -29,7 +29,7 @@ public abstract class BackupCallable<T> implements Callable<T>, Cloneable {
     }
 
     public BackupCallable(String backupTag, String host,
-                          int port, CountDownLatch latch) {
+            int port, CountDownLatch latch) {
         this.backupTag = backupTag;
         this.host = host;
         this.port = port;
@@ -63,9 +63,8 @@ public abstract class BackupCallable<T> implements Callable<T>, Cloneable {
 
     @Override
     public Object clone() throws CloneNotSupportedException {
-        return super.clone();  
+        return super.clone();
     }
 
-    public abstract T sendRequest() throws Exception; 
+    public abstract T sendRequest() throws Exception;
 }
-

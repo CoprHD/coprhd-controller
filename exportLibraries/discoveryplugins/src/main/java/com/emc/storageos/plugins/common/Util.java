@@ -35,8 +35,6 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.domainmodel.Argument;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 
-
-
 /**
  * Class having responsiblities like creating Input Arguments from Operation
  * Node, returning Instance from Map, Finding out Methods using reflection.
@@ -48,7 +46,6 @@ public class Util {
         ARGUMENT,
         OPERATION
     }
-
 
     /**
      * Return InputArgument Array If argument object has Filter, then compare
@@ -86,17 +83,17 @@ public class Util {
             // final Object instance = returnInstance(arg.gegetInstance(),
             // keyMap);
             final Object instance = arg.get_creator();
-            final Method method = getMethod(operation, arg.get_method(), instance,Util.ENDPOINTS.ARGUMENT.toString());
+            final Method method = getMethod(operation, arg.get_method(), instance, Util.ENDPOINTS.ARGUMENT.toString());
             final Object[] inputArgs = { arg, keyMap, index };
             final Object resultObj = method.invoke(instance, inputArgs);
             inputArgs1[count++] = resultObj;
         }
         return normalizedWriteArgs(keyMap, inputArgs1);
     }
-    
+
     /**
      * Get the Instance on which method needs to be run.
-     *  
+     * 
      * @param operation
      * @param keyMap
      * @throws BaseCollectionException
@@ -112,7 +109,7 @@ public class Util {
             Argument instanceArg = (Argument) operation.getInstance();
             final Object[] inputArgs = { instanceArg, keyMap, index };
             final Object instance = instanceArg.get_creator();
-            final Method method = getMethod(operation, instanceArg.get_method(), instance,Util.ENDPOINTS.ARGUMENT.toString());
+            final Method method = getMethod(operation, instanceArg.get_method(), instance, Util.ENDPOINTS.ARGUMENT.toString());
             instanceToReturn = method.invoke(instanceArg.get_creator(), inputArgs);
         } else
             instanceToReturn = operation.getInstance();
@@ -176,6 +173,7 @@ public class Util {
 
     /**
      * get Method based on Parameter Types
+     * 
      * @param operation
      * @param endPoint
      * @return
@@ -186,7 +184,8 @@ public class Util {
             Operation operation, String endPoint) throws ClassNotFoundException {
         List<Class> classes = new ArrayList<Class>();
         Class[] classArray = null;
-        if(null == operation) return classArray;
+        if (null == operation)
+            return classArray;
         for (int index = 0; index < operation.get_arguments().size(); index++) {
             String type = getType(operation, endPoint, index);
             if (null == type)
@@ -309,10 +308,12 @@ public class Util {
         }
         return error;
     }
+
     /**
      * Method used as a ByPasser
      * i.e. if runtime control wants to directly execute a Processor code
      * then use this by Passer
+     * 
      * @return
      */
     public boolean byPassControlToProcessor(boolean flag) {
@@ -325,7 +326,7 @@ public class Util {
      * controller level knows things in terms of this delimiter. Anything that has to be
      * communicated back to the provider will translated back to SMI8.0 delimiters.
      *
-     * @param keyMap  [in/out] Map of String to Objects. Context used for scanning and discovery
+     * @param keyMap [in/out] Map of String to Objects. Context used for scanning and discovery
      * @param objects [in] CIM Arguments
      * @return objects, possibly modified.
      */
@@ -344,13 +345,13 @@ public class Util {
      * This routine will take the arguments and transform any CIMObjectPaths to SMI8.0 delimiters
      * if the the USING_SMIS80_DELIMITERS context flag is enabled.
      *
-     * @param keyMap  [in/out] Map of String to Objects. Context used for scanning and discovery
+     * @param keyMap [in/out] Map of String to Objects. Context used for scanning and discovery
      * @param objects [in] CIM Arguments
      * @return objects, possibly modified
      */
     public static Object[] normalizedWriteArgs(Map<String, Object> keyMap, Object[] objects) {
         int index = 0;
-        Boolean using80Delimiters = (Boolean)keyMap.get(Constants.USING_SMIS80_DELIMITERS);
+        Boolean using80Delimiters = (Boolean) keyMap.get(Constants.USING_SMIS80_DELIMITERS);
         if (using80Delimiters != null && using80Delimiters) {
             for (Object object : objects) {
                 if (object instanceof CIMObjectPath) {
@@ -420,7 +421,7 @@ public class Util {
         if (!string.contains("SE_ReplicationGroup") && string.contains(Constants.PLUS)) {
             Object modifiedPath = modifyForSMIS80(keyMap, (CIMObjectPath) cimPathReferenceObject);
             modifiedArgument = new CIMArgument<>(argument.getName(), argument.getDataType(),
-                    (CIMObjectPath)modifiedPath);
+                    (CIMObjectPath) modifiedPath);
         }
         return modifiedArgument;
     }
@@ -430,7 +431,8 @@ public class Util {
     }
 
     private static Object modifyForViPRConsumption(Map<String, Object> keyMap, CIMObjectPath cimObjectPath) {
-        return modifyCimObjectPathProperties(keyMap, cimObjectPath, Constants.SMIS80_DELIMITER, Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS);
+        return modifyCimObjectPathProperties(keyMap, cimObjectPath, Constants.SMIS80_DELIMITER, Constants.SMIS80_DELIMITER_REGEX,
+                Constants.PLUS);
     }
 
     /**
@@ -441,7 +443,7 @@ public class Util {
      * If there was a modification, keyMap will have a Constants.USING_SMIS80_DELIMITERS set to true.
      *
      * @param keyMap [in/out] Map of String to Objects. Context used for scanning and discovery. Can pass null if
-     *               this is not necessary to use.
+     *            this is not necessary to use.
      * @param cimObjectPath [in] - CIMObjectPath
      * @param delimiter [in] - Check if any key values contain this delimiter
      * @param searchRegex [in] - Substring search string
@@ -449,13 +451,13 @@ public class Util {
      * @return CIMObjectPath, that may have been modified.
      */
     private static Object modifyCimObjectPathProperties(Map<String, Object> keyMap, CIMObjectPath cimObjectPath,
-                                                        String delimiter, String searchRegex, String replaceWith) {
+            String delimiter, String searchRegex, String replaceWith) {
         CIMObjectPath result = cimObjectPath;
         boolean isModified = false;
 
         CIMProperty<?>[] properties = cimObjectPath.getKeys();
         CIMProperty<?>[] changedProperties = new CIMProperty<?>[properties.length];
-        for (int index=0; index < properties.length; index++) {
+        for (int index = 0; index < properties.length; index++) {
             CIMProperty property = properties[index];
             Object value = cimObjectPath.getKeyValue(property.getName());
             if (value instanceof String) {

@@ -23,27 +23,26 @@ public class SSLUtil {
                 SSLContext sc = SSLContext.getInstance("SSL");
                 sc.init(null, newTrustManagers(), new SecureRandom());
                 trustAllContext = sc;
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 log.error("Unable to register SSL TrustManager to trust all SSL Certificates", e);
             }
         }
         return trustAllContext;
     }
-    
+
     private static TrustManager[] newTrustManagers() {
         return new TrustManager[] { new AllTrustManager() };
     }
 
     private static class AllTrustManager implements X509TrustManager {
-        
+
         public java.security.cert.X509Certificate[] getAcceptedIssuers() {
             return null;
         }
-        
+
         public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
         }
-        
+
         public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
         }
     }

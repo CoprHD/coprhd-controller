@@ -20,64 +20,62 @@ import com.emc.storageos.hds.HDSConstants;
 import com.emc.storageos.hds.xmlgen.XMLConstants;
 
 public class ReplicationGroup {
-	private String objectID;
-	
-	private String replicationGroupID;
-	
-	private String groupName;
-	
-	private String replicationFunction;
-	
-	private List<ReplicationInfo> replicationInfoList;
-	
+    private String objectID;
 
-	@Override
-	public String toString() {
-		return String.format("objectID %s replicationGroupID %s groupName %s", objectID,replicationGroupID,groupName);
-	}
+    private String replicationGroupID;
 
-	public String getObjectID() {
-		return objectID;
-	}
+    private String groupName;
 
-	public void setObjectID(String objectID) {
-		this.objectID = objectID;
-	}
+    private String replicationFunction;
 
-	public String getReplicationGroupID() {
-		return replicationGroupID;
-	}
+    private List<ReplicationInfo> replicationInfoList;
 
-	public void setReplicationGroupID(String replicationGroupID) {
-		this.replicationGroupID = replicationGroupID;
-	}
+    @Override
+    public String toString() {
+        return String.format("objectID %s replicationGroupID %s groupName %s", objectID, replicationGroupID, groupName);
+    }
 
-	public String getGroupName() {
-		return groupName;
-	}
+    public String getObjectID() {
+        return objectID;
+    }
 
-	public void setGroupName(String groupName) {
-		this.groupName = groupName;
-	}
+    public void setObjectID(String objectID) {
+        this.objectID = objectID;
+    }
 
-	public String getReplicationFunction() {
-		return replicationFunction;
-	}
+    public String getReplicationGroupID() {
+        return replicationGroupID;
+    }
 
-	public void setReplicationFunction(String replicationFunction) {
-		this.replicationFunction = replicationFunction;
-	}
-	
-	public List<ReplicationInfo> getReplicationInfoList() {
-		return replicationInfoList;
-	}
+    public void setReplicationGroupID(String replicationGroupID) {
+        this.replicationGroupID = replicationGroupID;
+    }
 
-	public void setReplicationInfoList(List<ReplicationInfo> replicationInfoList) {
-		this.replicationInfoList = replicationInfoList;
-	}
-	
-	
-	public String toXMLString() {
+    public String getGroupName() {
+        return groupName;
+    }
+
+    public void setGroupName(String groupName) {
+        this.groupName = groupName;
+    }
+
+    public String getReplicationFunction() {
+        return replicationFunction;
+    }
+
+    public void setReplicationFunction(String replicationFunction) {
+        this.replicationFunction = replicationFunction;
+    }
+
+    public List<ReplicationInfo> getReplicationInfoList() {
+        return replicationInfoList;
+    }
+
+    public void setReplicationInfoList(List<ReplicationInfo> replicationInfoList) {
+        this.replicationInfoList = replicationInfoList;
+    }
+
+    public String toXMLString() {
         StringBuilder xmlString = new StringBuilder();
         if (null != this.objectID) {
             xmlString.append(HDSConstants.SPACE_STR).append("objectID=")
@@ -101,5 +99,5 @@ public class ReplicationGroup {
         }
         return xmlString.toString();
     }
-	
+
 }

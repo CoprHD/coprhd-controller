@@ -102,8 +102,8 @@ public class RPSiteArray extends DataObject {
 
     // Identity helper in logs
     public String toString() {
-        return _rpProtectionSystem.toString() + ":" + _rpInternalSiteName + ":" + _rpSiteName + ":" + _arraySerialNumber + ":" + _storageSystem.toString();
+        return _rpProtectionSystem.toString() + ":" + _rpInternalSiteName + ":" + _rpSiteName + ":" + _arraySerialNumber + ":"
+                + _storageSystem.toString();
     }
-
 
 }

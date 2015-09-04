@@ -52,11 +52,11 @@ public class CheckManifestExistsProcessor extends Processor {
                         List<String> manifestCollectionList = (List<String>) keyMap.get(Constants.MANIFEST_EXISTS);
                         manifestCollectionList.remove(Constants.MANIFEST_COLLECTION_NAME);
                         break;
-                    } 
-                    
+                    }
+
                 } catch (Exception e) {
                     _logger.warn("ManifestCollection call failed for {}",
-                            getCIMPropertyValue(manifestInstance, Constants.INSTANCEID),e);
+                            getCIMPropertyValue(manifestInstance, Constants.INSTANCEID), e);
                 }
             }
         } catch (Exception e) {

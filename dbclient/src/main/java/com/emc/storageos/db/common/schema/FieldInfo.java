@@ -36,7 +36,7 @@ public class FieldInfo implements SchemaObject {
     private String name;
     private String type;
     private Annotations annotations;
-    
+
     private SchemaObject parent;
 
     public FieldInfo() {
@@ -45,15 +45,15 @@ public class FieldInfo implements SchemaObject {
     public FieldInfo(RuntimeType runtimeType, PropertyDescriptor pd, SchemaObject parent, DbSchemaScannerInterceptor scannerInterceptor) {
         this.runtimeType = new RuntimeType(runtimeType);
         this.runtimeType.setPropertyDescriptor(pd);
-        
+
         this.parent = parent;
 
         this.name = pd.getName();
         Method readMethod = pd.getReadMethod();
         if (readMethod == null) {
-        	String msg = String.format("Could not find getter method for property %s in %s", this.getName(), runtimeType.getCfClass());
-        	log.error(msg);
-        	throw new IllegalStateException(msg);
+            String msg = String.format("Could not find getter method for property %s in %s", this.getName(), runtimeType.getCfClass());
+            log.error(msg);
+            throw new IllegalStateException(msg);
         }
         Name nameAnnotation = readMethod.getAnnotation(Name.class);
         if (nameAnnotation != null) {
@@ -96,7 +96,7 @@ public class FieldInfo implements SchemaObject {
         if (!(o instanceof FieldInfo))
             return false;
 
-        FieldInfo field = (FieldInfo)o;
+        FieldInfo field = (FieldInfo) o;
 
         if (!name.equals(field.getName()))
             return false;
@@ -110,7 +110,7 @@ public class FieldInfo implements SchemaObject {
     @Override
     public int hashCode() {
         return Objects.hashCode(name, type, annotations);
-    } 
+    }
 
     @XmlTransient
     public Class getCfClass() {
@@ -119,11 +119,10 @@ public class FieldInfo implements SchemaObject {
 
     @Override
     public String describe() {
-        return "field: " + this.name + " (type:" + this.type +") in " + parent.describe();
+        return "field: " + this.name + " (type:" + this.type + ") in " + parent.describe();
     }
-    
+
     public void setParent(SchemaObject parent) {
         this.parent = parent;
     }
 }
-

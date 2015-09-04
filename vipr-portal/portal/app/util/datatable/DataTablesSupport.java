@@ -31,7 +31,6 @@ public class DataTablesSupport {
         return toJson(source);
     }
 
-
     public static Source createSource(SourceDataTable dataTable, Scope.Params requestParams) {
         DataTableParams params = createParams(requestParams);
         Source source = new Source();
@@ -51,7 +50,7 @@ public class DataTablesSupport {
 
     public static Source createSource(Collection data, Scope.Params requestParams, String message) {
         Source source = createSource(data, requestParams);
-        source.message = StringUtils.defaultIfEmpty(message,  null);
+        source.message = StringUtils.defaultIfEmpty(message, null);
         return source;
     }
 

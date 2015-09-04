@@ -18,7 +18,8 @@ import java.util.Map;
  */
 @FastTags.Namespace("license")
 public class LicenseTags extends FastTags {
-    public static void _ifController(Map<?, ?> args, Closure body, PrintWriter out, GroovyTemplate.ExecutableTemplate template, int fromLine) {
+    public static void
+            _ifController(Map<?, ?> args, Closure body, PrintWriter out, GroovyTemplate.ExecutableTemplate template, int fromLine) {
         doIf(LicenseUtils.isControllerLicensed(), body);
     }
 

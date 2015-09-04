@@ -32,13 +32,13 @@ public class LockCmdHandler {
     private static final Logger log = LoggerFactory.getLogger(LockCmdHandler.class);
     private static final String ZKUTI_CONF = "/zkutils-conf.xml";
     private static final String COORDINATOR_BEAN = "coordinatorclientext";
-    
+
     private static ApplicationContext ctx;
     private CoordinatorClientExt coordinatorClientExt;
     // syssvc id, like syssvc-1, syssvc-2
     private String mysvcId;
     private String upgradeLockId;
-    
+
     public LockCmdHandler() {
         ctx = new ClassPathXmlApplicationContext(ZKUTI_CONF);
         coordinatorClientExt = (CoordinatorClientExt) ctx.getBean(COORDINATOR_BEAN);
@@ -63,7 +63,7 @@ public class LockCmdHandler {
             // get target lock
             if (getTargetInfoLock())
                 System.out.println("Succeed! Upgrade is Locking!");
-        } 
+        }
         else {
             log.error("Fail to get upgrade lock!");
             throw new RuntimeException("Some node grabbed the lock already, "
@@ -175,5 +175,5 @@ public class LockCmdHandler {
         log.info("No other node, return self");
         return mysvcId;
     }
-    
+
 }

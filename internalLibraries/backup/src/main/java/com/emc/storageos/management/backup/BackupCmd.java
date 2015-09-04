@@ -63,18 +63,18 @@ public class BackupCmd {
 
     static {
         Option createOption = OptionBuilder.hasOptionalArg()
-                                        .withArgName("[backup]")
-                                        .withDescription(CommandType.create.getDescription())
-                                        .withLongOpt(CommandType.create.name())
-                                        .create("c");
+                .withArgName("[backup]")
+                .withDescription(CommandType.create.getDescription())
+                .withLongOpt(CommandType.create.name())
+                .create("c");
         options.addOption(createOption);
         options.addOption("l", CommandType.list.name(), false, CommandType.list.getDescription());
         options.addOption("d", CommandType.delete.name(), true, CommandType.delete.getDescription());
         Option restoreOption = OptionBuilder.hasArgs()
-                                         .withArgName("args")
-                                         .withDescription(CommandType.restore.getDescription())
-                                         .withLongOpt(CommandType.restore.name())
-                                         .create("r");
+                .withArgName("args")
+                .withDescription(CommandType.restore.getDescription())
+                .withLongOpt(CommandType.restore.name())
+                .create("r");
         options.addOption(restoreOption);
         options.addOption("q", CommandType.quota.name(), false, CommandType.quota.getDescription());
         options.addOption("f", CommandType.force.name(), false, CommandType.force.getDescription());
@@ -106,7 +106,7 @@ public class BackupCmd {
                 throw new IllegalArgumentException(
                         String.format("Invalid argument: %s\n", Arrays.toString(args)));
             String[] invalidArgs = cli.getArgs();
-            if (invalidArgs != null && invalidArgs.length != 0){
+            if (invalidArgs != null && invalidArgs.length != 0) {
                 throw new IllegalArgumentException(
                         String.format("Invalid argument: %s\n", Arrays.toString(invalidArgs)));
             }
@@ -134,6 +134,7 @@ public class BackupCmd {
 
     /**
      * Singleton method to get BackupOps instance
+     * 
      * @return the instance of BackupOps
      */
     private static synchronized BackupOps getBackupOps() {
@@ -152,7 +153,7 @@ public class BackupCmd {
             backupName = BackupOps.createBackupName();
 
         boolean force = false;
-        if (cli.hasOption(CommandType.force.name())) { 
+        if (cli.hasOption(CommandType.force.name())) {
             force = true;
         }
 
@@ -221,7 +222,7 @@ public class BackupCmd {
         if (!cli.hasOption(CommandType.restore.name()))
             return;
         String[] restoreArgs = cli.getOptionValues(CommandType.restore.name());
-        if(restoreArgs.length != 2){
+        if (restoreArgs.length != 2) {
             System.out.println("Invalid number of restore args.");
             new HelpFormatter().printHelp(TOOL_NAME, options);
             System.exit(-1);

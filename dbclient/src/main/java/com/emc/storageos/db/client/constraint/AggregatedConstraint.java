@@ -22,7 +22,7 @@ import com.emc.storageos.db.client.model.DataObject;
 import java.util.Date;
 
 /**
- *  Constrained query to get list of decommissioned object URIs of a given type
+ * Constrained query to get list of decommissioned object URIs of a given type
  */
 public interface AggregatedConstraint extends Constraint {
     public static class Factory {
@@ -30,9 +30,9 @@ public interface AggregatedConstraint extends Constraint {
         /**
          * query to get list of aggregated ids and corresponding values
          *
-         * @param clazz           type of objects to query
-         * @param groupByField    the groupBy field for aggregation.
-         * @param groupByValue    the value of the groupBy field for aggregation.
+         * @param clazz type of objects to query
+         * @param groupByField the groupBy field for aggregation.
+         * @param groupByValue the value of the groupBy field for aggregation.
          * @param aggregatedField - aggregated field of an object that is being aggregated.
          * @return
          */
@@ -52,7 +52,7 @@ public interface AggregatedConstraint extends Constraint {
          * query to get list of aggregated ids and corresponding values
          * the query obtained class level aggregation
          *
-         * @param clazz           type of objects to query
+         * @param clazz type of objects to query
          * @param aggregatedField - aggregated field of an object that is being aggregated.
          * @return
          */

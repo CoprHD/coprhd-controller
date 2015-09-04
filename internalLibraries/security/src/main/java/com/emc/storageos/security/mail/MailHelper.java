@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.security.mail;
 
-
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.google.common.collect.Maps;
@@ -60,7 +59,7 @@ public class MailHelper {
     }
 
     public void sendMailMessage(String to, String subject, String html) {
-        try{
+        try {
             JavaMailSender mailSender = getMailSender();
             if (mailSender != null) {
                 MimeMessage mimeMessage = mailSender.createMimeMessage();
@@ -81,8 +80,7 @@ public class MailHelper {
             else {
                 log.warn("Unable to send notification email.  Email settings not configured.");
             }
-        }
-        catch (MailException|MessagingException ex) {
+        } catch (MailException | MessagingException ex) {
             String message = String.format("Failed to notify user by email");
             log.error(message, ex);
             throw APIException.internalServerErrors.genericApisvcError(message, ex);
@@ -175,11 +173,10 @@ public class MailHelper {
         mailSender.setHost(smtpServer);
         try {
             mailSender.setPort(Integer.parseInt(smtpPort));
-        }
-        catch (NumberFormatException e) {
+        } catch (NumberFormatException e) {
             log.error(String.format("Failed to parse smtp port [%s]", smtpPort), e);
         }
-//        this.mailSender.setProtocol(protocol);
+        // this.mailSender.setProtocol(protocol);
         if (authEnabled) {
             mailSender.setUsername(username);
             mailSender.setPassword(password);
@@ -230,8 +227,7 @@ public class MailHelper {
         InputStream in = MailHelper.class.getResourceAsStream(resource);
         try {
             return IOUtils.toString(in, "UTF-8");
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             throw new Error(e);
         }
     }

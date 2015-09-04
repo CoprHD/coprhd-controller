@@ -19,11 +19,12 @@ import java.util.List;
 
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 import org.codehaus.jackson.map.annotate.JsonDeserialize;
+
 /*
  * represents storage pool
  */
-@JsonIgnoreProperties(ignoreUnknown=true)
-public class VNXePool extends VNXeBase{
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class VNXePool extends VNXeBase {
     private String name;
     private String instanceId;
     private Health health;
@@ -53,7 +54,6 @@ public class VNXePool extends VNXeBase{
     private long snapSizeUsed;
     private long rebalanceProgress;
 
-    
     public String getName() {
         return name;
     }
@@ -72,258 +72,258 @@ public class VNXePool extends VNXeBase{
 
     public Health getHealth() {
         return health;
-	}
+    }
 
-	public void setHealth(Health health) {
-		this.health = health;
-	}
+    public void setHealth(Health health) {
+        this.health = health;
+    }
 
-	public List<Integer> getOperationalStatus() {
-		return operationalStatus;
-	}
+    public List<Integer> getOperationalStatus() {
+        return operationalStatus;
+    }
 
-	public void setOperationalStatus(List<Integer> operationalStatus) {
-		this.operationalStatus = operationalStatus;
-	}
+    public void setOperationalStatus(List<Integer> operationalStatus) {
+        this.operationalStatus = operationalStatus;
+    }
 
-	public String getDescription() {
-		return description;
-	}
+    public String getDescription() {
+        return description;
+    }
 
-	public void setDescription(String description) {
-		this.description = description;
-	}
+    public void setDescription(String description) {
+        this.description = description;
+    }
 
-	public PoolSystemDefinedEnum getType() {
-		return type;
-	}
+    public PoolSystemDefinedEnum getType() {
+        return type;
+    }
 
-	public void setType(PoolSystemDefinedEnum type) {
-		this.type = type;
-	}
+    public void setType(PoolSystemDefinedEnum type) {
+        this.type = type;
+    }
 
-	public Integer getRaidType() {
-		return raidType;
-	}
-	
-	public RaidTypeEnum getRaidTypeEnum() {
-		return RaidTypeEnum.getEnumValue(raidType);
-	}
+    public Integer getRaidType() {
+        return raidType;
+    }
 
-	public void setRaidType(Integer raidGroupLevel) {
-		this.raidType = raidGroupLevel;
-	}
+    public RaidTypeEnum getRaidTypeEnum() {
+        return RaidTypeEnum.getEnumValue(raidType);
+    }
 
-	public double getSizeFree() {
-		return sizeFree;
-	}
+    public void setRaidType(Integer raidGroupLevel) {
+        this.raidType = raidGroupLevel;
+    }
 
-	public void setSizeFree(double sizeFree) {
-		this.sizeFree = sizeFree;
-	}
+    public double getSizeFree() {
+        return sizeFree;
+    }
 
-	public double getSizeTotal() {
-		return sizeTotal;
-	}
+    public void setSizeFree(double sizeFree) {
+        this.sizeFree = sizeFree;
+    }
 
-	public void setSizeTotal(double sizeTotal) {
-		this.sizeTotal = sizeTotal;
-	}
+    public double getSizeTotal() {
+        return sizeTotal;
+    }
 
-	public double getSizeUsed() {
-		return sizeUsed;
-	}
+    public void setSizeTotal(double sizeTotal) {
+        this.sizeTotal = sizeTotal;
+    }
 
-	public void setSizeUsed(double sizeUsed) {
-		this.sizeUsed = sizeUsed;
-	}
+    public double getSizeUsed() {
+        return sizeUsed;
+    }
 
-	public double getSizeSubscribed() {
-		return sizeSubscribed;
-	}
+    public void setSizeUsed(double sizeUsed) {
+        this.sizeUsed = sizeUsed;
+    }
 
-	public void setSizeSbuscribed(double sizeSubscribed) {
-		this.sizeSubscribed = sizeSubscribed;
-	}
+    public double getSizeSubscribed() {
+        return sizeSubscribed;
+    }
 
-	public int getAlertThreshold() {
-		return alertThreshold;
-	}
+    public void setSizeSbuscribed(double sizeSubscribed) {
+        this.sizeSubscribed = sizeSubscribed;
+    }
 
-	public void setAlertThreshold(int alertThreshold) {
-		this.alertThreshold = alertThreshold;
-	}
+    public int getAlertThreshold() {
+        return alertThreshold;
+    }
 
-	public float getHarvestHightThreshold() {
-		return harvestHightThreshold;
-	}
+    public void setAlertThreshold(int alertThreshold) {
+        this.alertThreshold = alertThreshold;
+    }
 
-	public void setHarvestHightThreshold(float harvestHightThreshold) {
-		this.harvestHightThreshold = harvestHightThreshold;
-	}
+    public float getHarvestHightThreshold() {
+        return harvestHightThreshold;
+    }
 
-	public float getHarvestLowThreshold() {
-		return HarvestLowThreshold;
-	}
+    public void setHarvestHightThreshold(float harvestHightThreshold) {
+        this.harvestHightThreshold = harvestHightThreshold;
+    }
 
-	public void setHarvestLowThreshold(float harvestLowThreshold) {
-		HarvestLowThreshold = harvestLowThreshold;
-	}
+    public float getHarvestLowThreshold() {
+        return HarvestLowThreshold;
+    }
 
-	public float getSnapHarvestHighThreshold() {
-		return snapHarvestHighThreshold;
-	}
+    public void setHarvestLowThreshold(float harvestLowThreshold) {
+        HarvestLowThreshold = harvestLowThreshold;
+    }
 
-	public void setSnapHarvestHighThreshold(float snapHarvestHighThreshold) {
-		this.snapHarvestHighThreshold = snapHarvestHighThreshold;
-	}
+    public float getSnapHarvestHighThreshold() {
+        return snapHarvestHighThreshold;
+    }
 
-	public boolean getIsFASTCacheEnabled() {
-		return isFASTCacheEnabled;
-	}
+    public void setSnapHarvestHighThreshold(float snapHarvestHighThreshold) {
+        this.snapHarvestHighThreshold = snapHarvestHighThreshold;
+    }
 
-	public void setIsFASTCacheEnabled(boolean isFASTCacheEnabled) {
-		this.isFASTCacheEnabled = isFASTCacheEnabled;
-	}
+    public boolean getIsFASTCacheEnabled() {
+        return isFASTCacheEnabled;
+    }
 
-	public List<PoolTier> getTiers() {
-		return tiers;
-	}
+    public void setIsFASTCacheEnabled(boolean isFASTCacheEnabled) {
+        this.isFASTCacheEnabled = isFASTCacheEnabled;
+    }
 
-	public void setTiers(List<PoolTier> tiers) {
-		this.tiers = tiers;
-	}
+    public List<PoolTier> getTiers() {
+        return tiers;
+    }
 
-	public String getCreationTime() {
-		return creationTime;
-	}
+    public void setTiers(List<PoolTier> tiers) {
+        this.tiers = tiers;
+    }
 
-	public void setCreationTime(String creationTime) {
-		this.creationTime = creationTime;
-	}
+    public String getCreationTime() {
+        return creationTime;
+    }
 
-	public boolean getIsEmpty() {
-		return isEmpty;
-	}
+    public void setCreationTime(String creationTime) {
+        this.creationTime = creationTime;
+    }
 
-	public void setIsEmpty(boolean isEmpty) {
-		this.isEmpty = isEmpty;
-	}
+    public boolean getIsEmpty() {
+        return isEmpty;
+    }
 
-	public PoolFASTVP getPoolFastVP() {
-		return poolFastVP;
-	}
+    public void setIsEmpty(boolean isEmpty) {
+        this.isEmpty = isEmpty;
+    }
 
-	public void setPoolFastVP(PoolFASTVP poolFastVP) {
-		this.poolFastVP = poolFastVP;
-	}
+    public PoolFASTVP getPoolFastVP() {
+        return poolFastVP;
+    }
 
-	public boolean getIsHarvestEnabled() {
-		return isHarvestEnabled;
-	}
+    public void setPoolFastVP(PoolFASTVP poolFastVP) {
+        this.poolFastVP = poolFastVP;
+    }
 
-	public void setIsHarvestEnabled(boolean isHarvestEnabled) {
-		this.isHarvestEnabled = isHarvestEnabled;
-	}
+    public boolean getIsHarvestEnabled() {
+        return isHarvestEnabled;
+    }
 
-	public HarvestStateEnum getHarvestState() {
-		return harvestState;
-	}
+    public void setIsHarvestEnabled(boolean isHarvestEnabled) {
+        this.isHarvestEnabled = isHarvestEnabled;
+    }
 
-	public void setHarvestState(HarvestStateEnum harvestState) {
-		this.harvestState = harvestState;
-	}
+    public HarvestStateEnum getHarvestState() {
+        return harvestState;
+    }
 
-	public boolean getIsSnapHarvestEnabled() {
-		return isSnapHarvestEnabled;
-	}
+    public void setHarvestState(HarvestStateEnum harvestState) {
+        this.harvestState = harvestState;
+    }
 
-	public void setIsSnapHarvestEnabled(boolean isSnapHarvestEnabled) {
-		this.isSnapHarvestEnabled = isSnapHarvestEnabled;
-	}
+    public boolean getIsSnapHarvestEnabled() {
+        return isSnapHarvestEnabled;
+    }
 
-	public long getMetadataSizeSubscribed() {
-		return metadataSizeSubscribed;
-	}
+    public void setIsSnapHarvestEnabled(boolean isSnapHarvestEnabled) {
+        this.isSnapHarvestEnabled = isSnapHarvestEnabled;
+    }
 
-	public void setMetadataSizeSubscribed(long metadataSizeSubscribed) {
-		this.metadataSizeSubscribed = metadataSizeSubscribed;
-	}
+    public long getMetadataSizeSubscribed() {
+        return metadataSizeSubscribed;
+    }
 
-	public long getSnapSizeSubscribed() {
-		return snapSizeSubscribed;
-	}
+    public void setMetadataSizeSubscribed(long metadataSizeSubscribed) {
+        this.metadataSizeSubscribed = metadataSizeSubscribed;
+    }
 
-	public void setSnapSizeSubscribed(long snapSizeSubscribed) {
-		this.snapSizeSubscribed = snapSizeSubscribed;
-	}
+    public long getSnapSizeSubscribed() {
+        return snapSizeSubscribed;
+    }
 
-	public long getMetadataSizeUsed() {
-		return metadataSizeUsed;
-	}
+    public void setSnapSizeSubscribed(long snapSizeSubscribed) {
+        this.snapSizeSubscribed = snapSizeSubscribed;
+    }
 
-	public void setMetadataSizeUsed(long metadataSizeUsed) {
-		this.metadataSizeUsed = metadataSizeUsed;
-	}
+    public long getMetadataSizeUsed() {
+        return metadataSizeUsed;
+    }
 
-	public long getSnapSizeUsed() {
-		return snapSizeUsed;
-	}
+    public void setMetadataSizeUsed(long metadataSizeUsed) {
+        this.metadataSizeUsed = metadataSizeUsed;
+    }
 
-	public void setSnapSizeUsed(long snapSizeUsed) {
-		this.snapSizeUsed = snapSizeUsed;
-	}
+    public long getSnapSizeUsed() {
+        return snapSizeUsed;
+    }
 
-	public long getRebalanceProgress() {
-		return rebalanceProgress;
-	}
+    public void setSnapSizeUsed(long snapSizeUsed) {
+        this.snapSizeUsed = snapSizeUsed;
+    }
 
-	public void setRebalanceProgress(long rebalanceProgress) {
-		this.rebalanceProgress = rebalanceProgress;
-	}
+    public long getRebalanceProgress() {
+        return rebalanceProgress;
+    }
 
-	public String getStatus() {
-		String statusString = null;
-		for (Integer opStatus : operationalStatus) {
-			if (opStatus == 2) {
-				statusString = "READY";
-				break;
-			}
-			
-		}
-		if (statusString == null) {
-			statusString = "NOTREADY";
-		}
-		return statusString;
-	}
-	
-	public static enum HarvestStateEnum {
-		IDLE,
-		RUNNING,
-		COULD_NOT_REACH_LWM,
-		PAUSED_COULD_NOT_REACH_HWM,
-		FAILED;
-	}
+    public void setRebalanceProgress(long rebalanceProgress) {
+        this.rebalanceProgress = rebalanceProgress;
+    }
 
-	//@JsonSerialize(using = PoolSystemDefinedEnumSerializer.class)
-	@JsonDeserialize(using = PoolSystemDefinedEnumDeserializer.class)
-	public static enum PoolSystemDefinedEnum {
-		PERFORMANCE(1),
-		CAPACITY(3),
-		BESTPERFORMANCE(9),
-		CUSTOM(27);
-		
-		private int value;
+    public String getStatus() {
+        String statusString = null;
+        for (Integer opStatus : operationalStatus) {
+            if (opStatus == 2) {
+                statusString = "READY";
+                break;
+            }
 
-	    private PoolSystemDefinedEnum(int value) {
-	        this.value = value;
-	    }
-	    @org.codehaus.jackson.annotate.JsonValue
-	    public int getValue() {
-	        return this.value;
-	    }
-	    
+        }
+        if (statusString == null) {
+            statusString = "NOTREADY";
+        }
+        return statusString;
+    }
 
-	}
+    public static enum HarvestStateEnum {
+        IDLE,
+        RUNNING,
+        COULD_NOT_REACH_LWM,
+        PAUSED_COULD_NOT_REACH_HWM,
+        FAILED;
+    }
+
+    // @JsonSerialize(using = PoolSystemDefinedEnumSerializer.class)
+    @JsonDeserialize(using = PoolSystemDefinedEnumDeserializer.class)
+    public static enum PoolSystemDefinedEnum {
+        PERFORMANCE(1),
+        CAPACITY(3),
+        BESTPERFORMANCE(9),
+        CUSTOM(27);
+
+        private int value;
+
+        private PoolSystemDefinedEnum(int value) {
+            this.value = value;
+        }
+
+        @org.codehaus.jackson.annotate.JsonValue
+        public int getValue() {
+            return this.value;
+        }
+
+    }
 
 }

@@ -59,16 +59,16 @@ import static com.emc.storageos.api.mapper.FileMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 @Path("/file/quotadirectories")
-
-@DefaultPermissions( read_roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        read_acls = {ACL.OWN, ACL.ALL},
+@DefaultPermissions(read_roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
+        read_acls = { ACL.OWN, ACL.ALL },
         write_roles = { Role.TENANT_ADMIN },
-        write_acls = {ACL.OWN, ACL.ALL})
+        write_acls = { ACL.OWN, ACL.ALL })
 public class FileQuotaDirectoryService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(FileQuotaDirectoryService.class);
     public static final String UNLIMITED_USERS = "unlimited";
     private static final String EVENT_SERVICE_TYPE = "file";
+
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
@@ -146,12 +146,11 @@ public class FileQuotaDirectoryService extends TaskResourceService {
      */
     @POST
     @Path("/bulk")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public QuotaDirectoryBulkRep getBulkResources(BulkIdParam param) {
         return (QuotaDirectoryBulkRep) super.getBulkResources(param);
     }
-
 
     /**
      * Filesystem is not a zone level resource
@@ -162,7 +161,7 @@ public class FileQuotaDirectoryService extends TaskResourceService {
     }
 
     @Override
-    protected ResourceTypeEnum getResourceType(){
+    protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.QUOTA_DIR;
     }
 
@@ -172,11 +171,11 @@ public class FileQuotaDirectoryService extends TaskResourceService {
      * @return SearchedResRepList
      */
     @Override
-    protected SearchedResRepList getNamedSearchResults(String name,URI projectId){
+    protected SearchedResRepList getNamedSearchResults(String name, URI projectId) {
         SearchedResRepList resRepList = new SearchedResRepList(getResourceType());
         if (projectId == null) {
             _dbClient.queryByConstraint(
-                    PrefixConstraint.Factory.getLabelPrefixConstraint(getResourceClass(),name),
+                    PrefixConstraint.Factory.getLabelPrefixConstraint(getResourceClass(), name),
                     resRepList);
         } else {
             _dbClient.queryByConstraint(
@@ -192,7 +191,7 @@ public class FileQuotaDirectoryService extends TaskResourceService {
      * @return SearchedResRepList
      */
     @Override
-    protected SearchedResRepList getProjectSearchResults(URI projectId){
+    protected SearchedResRepList getProjectSearchResults(URI projectId) {
         SearchedResRepList resRepList = new SearchedResRepList(getResourceType());
         _dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getProjectFileshareConstraint(projectId),
@@ -206,7 +205,7 @@ public class FileQuotaDirectoryService extends TaskResourceService {
      */
     @Override
     public ResRepFilter<? extends RelatedResourceRep> getPermissionFilter(StorageOSUser user,
-                                                                          PermissionsHelper permissionsHelper)
+            PermissionsHelper permissionsHelper)
     {
         return new ProjOwnedResRepFilter(user, permissionsHelper, FileShare.class);
     }
@@ -215,6 +214,7 @@ public class FileQuotaDirectoryService extends TaskResourceService {
      * Update Quota Directory for a file share
      * <p>
      * NOTE: This is an asynchronous operation.
+     * 
      * @param id the URN of a ViPR Quota directory
      * @param param File system Quota directory update parameters
      * @brief Update file system Quota directory
@@ -222,10 +222,10 @@ public class FileQuotaDirectoryService extends TaskResourceService {
      * @throws com.emc.storageos.svcs.errorhandling.resources.InternalException
      */
     @POST
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.OWN, ACL.ALL})
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskResourceRep updateQuotaDirectory(@PathParam("id") URI id, QuotaDirectoryUpdateParam param)
             throws InternalException {
         _log.info("FileService::Update Quota directory Request recieved {}", id);
@@ -234,7 +234,7 @@ public class FileQuotaDirectoryService extends TaskResourceService {
 
         String task = UUID.randomUUID().toString();
 
-        if(param.getSecurityStyle() != null){
+        if (param.getSecurityStyle() != null) {
             ArgValidator.checkFieldValueFromEnum(param.getSecurityStyle(), "security_style",
                     EnumSet.allOf(QuotaDirectory.SecurityStyles.class));
         }
@@ -257,9 +257,9 @@ public class FileQuotaDirectoryService extends TaskResourceService {
 
         if (param.getSize() != null) {
             Long quotaSize = SizeUtil.translateSize(param.getSize());
-            if(quotaSize > 0){
-                 ArgValidator.checkFieldMaximum(quotaSize, fs.getCapacity(), " Bytes", "size");
-                 quotaDir.setSize(quotaSize);
+            if (quotaSize > 0) {
+                ArgValidator.checkFieldMaximum(quotaSize, fs.getCapacity(), " Bytes", "size");
+                quotaDir.setSize(quotaSize);
             }
         }
 
@@ -281,8 +281,8 @@ public class FileQuotaDirectoryService extends TaskResourceService {
             controller.updateQuotaDirectory(device.getId(), qt, fs.getId(), task);
         } catch (InternalException e) {
             _log.error("Error during update of Quota Directory {}", e);
-                                 
-            // treating all controller exceptions as internal error for now.  controller
+
+            // treating all controller exceptions as internal error for now. controller
             // should discriminate between validation problems vs. internal errors
             throw e;
         }
@@ -291,7 +291,8 @@ public class FileQuotaDirectoryService extends TaskResourceService {
                 quotaDir.getLabel(), quotaDir.getId().toString(), fs.getId().toString());
 
         fs = _dbClient.queryObject(FileShare.class, fs.getId());
-        _log.debug("FileService::Quota directory Before sending response, FS ID : {}, Taks : {} ; Status {}", fs.getOpStatus().get(task), fs.getOpStatus().get(task).getStatus());
+        _log.debug("FileService::Quota directory Before sending response, FS ID : {}, Taks : {} ; Status {}", fs.getOpStatus().get(task),
+                fs.getOpStatus().get(task).getStatus());
 
         return toTask(quotaDir, task, op);
     }
@@ -301,6 +302,7 @@ public class FileQuotaDirectoryService extends TaskResourceService {
      * Quota directory to a "marked-for-delete" state
      * <p>
      * NOTE: This is an asynchronous operation.
+     * 
      * @param id the URN of the QuotaDirectory
      * @param param QuotaDirectory delete param for optional force delete
      * @brief Delete file system Quota Dir
@@ -309,10 +311,10 @@ public class FileQuotaDirectoryService extends TaskResourceService {
      */
 
     @POST
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/deactivate")
-    @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.OWN, ACL.ALL})
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskResourceRep deactivateQuotaDirectory(@PathParam("id") URI id, QuotaDirectoryDeleteParam param)
             throws InternalException {
 
@@ -338,12 +340,12 @@ public class FileQuotaDirectoryService extends TaskResourceService {
         FileController controller = getController(FileController.class, device.getSystemType());
         try {
             controller.deleteQuotaDirectory(device.getId(), quotaDirectory.getId(), fs.getId(), task);
-            //If delete operation is successful, then remove obj from ViPR db by setting inactive=true
-	        quotaDirectory.setInactive(true);
-            _dbClient.persistObject(quotaDirectory);	
-            
+            // If delete operation is successful, then remove obj from ViPR db by setting inactive=true
+            quotaDirectory.setInactive(true);
+            _dbClient.persistObject(quotaDirectory);
+
         } catch (InternalException e) {
-            // treating all controller exceptions as internal error for now.  controller
+            // treating all controller exceptions as internal error for now. controller
             // should discriminate between validation problems vs. internal errors
 
             throw e;
@@ -353,37 +355,37 @@ public class FileQuotaDirectoryService extends TaskResourceService {
                 quotaDirectory.getLabel(), quotaDirectory.getId().toString(), fs.getId().toString());
 
         fs = _dbClient.queryObject(FileShare.class, fs.getId());
-        _log.debug("FileService::Quota directory Before sending response, FS ID : {}, Taks : {} ; Status {}", fs.getOpStatus().get(task), fs.getOpStatus().get(task).getStatus());
+        _log.debug("FileService::Quota directory Before sending response, FS ID : {}, Taks : {} ; Status {}", fs.getOpStatus().get(task),
+                fs.getOpStatus().get(task).getStatus());
 
         return toTask(quotaDirectory, task, op);
     }
 
-
     /**
      * Get info for file system quota directory
+     * 
      * @param id the URN of a ViPR Quota directory
      * @brief Show file system quota directory
      * @return File system quota directory details
      */
     @GET
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    @CheckPermission( roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = {ACL.ANY})
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public QuotaDirectoryRestRep getQuotaDirectory(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, QuotaDirectory.class, "id");
         QuotaDirectory quotaDir = queryResource(id);
         return map(quotaDir);
     }
 
-    private List<QuotaDirectory> queryDBQuotaDirectories(FileShare fs){
+    private List<QuotaDirectory> queryDBQuotaDirectories(FileShare fs) {
         _log.info("Querying all quota directories Using FsId {}", fs.getId());
-        try{
+        try {
             ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getQuotaDirectoryConstraint(fs.getId());
             List<QuotaDirectory> fsQuotaDirs = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, QuotaDirectory.class,
                     containmentConstraint);
             return fsQuotaDirs;
-        }
-        catch(Exception e){
+        } catch (Exception e) {
             _log.error("Error while querying {}", e);
         }
 

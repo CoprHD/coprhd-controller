@@ -43,7 +43,7 @@ import com.emc.storageos.systemservices.impl.logsvc.LogConstants;
 public class LogUtil {
     // Logger reference.
     private static final Logger logger = LoggerFactory.getLogger(LogUtil.class);
-    
+
     // suppress default constructor for noninstantiability
     private LogUtil() {
         throw new AssertionError("This class should not be instantiated");
@@ -63,8 +63,8 @@ public class LogUtil {
             Date end) throws IOException {
         List<String> nameList = new ArrayList<>();
 
-        for(File f : files) {
-        	logger.debug("file path: " + f.getAbsolutePath());
+        for (File f : files) {
+            logger.debug("file path: " + f.getAbsolutePath());
         }
         if (files.size() > 0) {
             Collections.sort(files, new LogFileComparator());
@@ -145,7 +145,7 @@ public class LogUtil {
      * @return whether the current log should be returned to the upper layer.
      */
     public static boolean permitCurrentLog(long maxCount, long logCount, long currentLogTime,
-                                     long prevLogTime) {
+            long prevLogTime) {
         if (maxCount == 0) {
             return true;
         } else if (currentLogTime == prevLogTime) {

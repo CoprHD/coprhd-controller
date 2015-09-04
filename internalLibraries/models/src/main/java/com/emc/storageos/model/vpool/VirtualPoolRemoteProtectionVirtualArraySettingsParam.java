@@ -8,11 +8,8 @@ import java.net.URI;
 
 import javax.xml.bind.annotation.XmlElement;
 
-
-
 public class VirtualPoolRemoteProtectionVirtualArraySettingsParam {
-    
-    
+
     public VirtualPoolRemoteProtectionVirtualArraySettingsParam(URI varray, URI vpool,
             String remoteCopyMode) {
         super();
@@ -22,7 +19,7 @@ public class VirtualPoolRemoteProtectionVirtualArraySettingsParam {
     }
 
     public VirtualPoolRemoteProtectionVirtualArraySettingsParam() {
-      
+
     }
 
     /**
@@ -30,7 +27,7 @@ public class VirtualPoolRemoteProtectionVirtualArraySettingsParam {
      * 
      * @valid none
      */
-  
+
     private URI varray;
 
     /**
@@ -39,7 +36,7 @@ public class VirtualPoolRemoteProtectionVirtualArraySettingsParam {
      * @valid none
      */
     private URI vpool;
-    
+
     /**
      * remote copy modes
      * 
@@ -64,8 +61,8 @@ public class VirtualPoolRemoteProtectionVirtualArraySettingsParam {
     public void setVpool(URI vpool) {
         this.vpool = vpool;
     }
-    
-    @XmlElement(name="remote_copy_mode", required = false)
+
+    @XmlElement(name = "remote_copy_mode", required = false)
     public String getRemoteCopyMode() {
         return remoteCopyMode;
     }
@@ -73,9 +70,7 @@ public class VirtualPoolRemoteProtectionVirtualArraySettingsParam {
     public void setRemoteCopyMode(String remoteCopyMode) {
         this.remoteCopyMode = remoteCopyMode;
     }
-    
-    
-    
+
     @Override
     public int hashCode() {
         final int prime = 31;

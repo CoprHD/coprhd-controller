@@ -14,17 +14,19 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @XmlRootElement(name = "filesystem_snapshot_create")
 public class FileSystemSnapshotParam {
-    
+
     private String label;
 
-    public FileSystemSnapshotParam() {}
-    
+    public FileSystemSnapshotParam() {
+    }
+
     public FileSystemSnapshotParam(String label) {
         this.label = label;
     }
 
     /**
      * User provided name/label for the snapshot.
+     * 
      * @valid none
      */
     @XmlElement(required = true, name = "name")
@@ -35,5 +37,5 @@ public class FileSystemSnapshotParam {
     public void setLabel(String label) {
         this.label = label;
     }
-    
+
 }

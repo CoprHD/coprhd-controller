@@ -19,8 +19,8 @@ import java.util.List;
  * category() or service() to retrieve the data from this path.
  *
  * Examples:
- *   client.browse().path("BlockStorageServices").category();
- *   client.browse().path("BlockStorageServices/CreateBlockVolume").service();
+ * client.browse().path("BlockStorageServices").category();
+ * client.browse().path("BlockStorageServices/CreateBlockVolume").service();
  */
 public class CatalogSearchBuilder {
     private ViPRCatalogClient2 catalog;
@@ -40,7 +40,7 @@ public class CatalogSearchBuilder {
      */
     public CatalogSearchBuilder path(String path) {
         String[] segments = path.split("/");
-        for (String segment: segments) {
+        for (String segment : segments) {
             if (segment != null && !segment.equals("")) {
                 this.segments.add(segment);
             }
@@ -55,7 +55,7 @@ public class CatalogSearchBuilder {
      * @return This Builder
      */
     public CatalogSearchBuilder segments(String... segments) {
-        for (String segment: segments) {
+        for (String segment : segments) {
             if (segment != null && !segment.equals("")) {
                 this.segments.add(segment);
             }
@@ -70,7 +70,7 @@ public class CatalogSearchBuilder {
      */
     public CatalogCategoryRestRep category() {
         CatalogCategoryRestRep parent = catalog.categories().getRootCatalogCategory(tenantId);
-        for (String segment: segments) {
+        for (String segment : segments) {
             parent = getChildCategory(parent, segment);
         }
         return parent;

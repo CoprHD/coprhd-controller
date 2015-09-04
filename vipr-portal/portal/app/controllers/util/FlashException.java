@@ -19,16 +19,19 @@ import java.lang.annotation.Target;
  * keep = true to call Validation.keep() and params.flash()
  * 
  * referrer = A String array containing a valid redirect action or multiple actions.
- * This is overwritten if a value() is defined.  Set
+ * This is overwritten if a value() is defined. Set
  * verify = false to disable static verification, which allows the use of a regexp
  * pattern here (ie. "blockvirtualpools.*vdc\\d+")
  * 
  */
-@Target({ElementType.METHOD})
+@Target({ ElementType.METHOD })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface FlashException {
     String value() default "";
+
     boolean keep() default false;
+
     String[] referrer() default {};
+
     boolean verify() default true;
 }

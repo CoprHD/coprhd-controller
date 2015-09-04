@@ -43,10 +43,10 @@ public class ImplicitUnManagedObjectsMatcher {
     private static final String MATCHED = "Matched";
     private static final int VOLUME_BATCH_SIZE = 200;
     private static final int FILESHARE_BATCH_SIZE = 200;
-    
-    
+
     /**
      * run implicit unmanaged matcher during rediscovery
+     * 
      * @param dbClient
      */
     public static void runImplicitUnManagedObjectsMatcher(DbClient dbClient) {
@@ -64,30 +64,30 @@ public class ImplicitUnManagedObjectsMatcher {
         Map<String, StringSet> poolMapping = new HashMap<String, StringSet>();
 
         StringSet invalidPools = null;
-        //if a virtual pool has assigned pools, use them for matching.
-        //Otherwise use matched pools
+        // if a virtual pool has assigned pools, use them for matching.
+        // Otherwise use matched pools
         if (virtualPool.getUseMatchedPools() && null != virtualPool.getMatchedStoragePools()) {
             poolMapping.put(MATCHED, virtualPool.getMatchedStoragePools());
         } else if (null != virtualPool.getAssignedStoragePools()) {
-        	poolMapping.put(MATCHED, virtualPool.getAssignedStoragePools()); 
-        	if(null != virtualPool.getMatchedStoragePools()) {
-        		//Find out the storage pools which are in matched pools but not in assigned pools.
-                //These pools should not be in the supported vpool list
-            	invalidPools = (StringSet)virtualPool.getMatchedStoragePools().clone();
-            	invalidPools.removeAll(virtualPool.getAssignedStoragePools());
-        	}        	
+            poolMapping.put(MATCHED, virtualPool.getAssignedStoragePools());
+            if (null != virtualPool.getMatchedStoragePools()) {
+                // Find out the storage pools which are in matched pools but not in assigned pools.
+                // These pools should not be in the supported vpool list
+                invalidPools = (StringSet) virtualPool.getMatchedStoragePools().clone();
+                invalidPools.removeAll(virtualPool.getAssignedStoragePools());
+            }
         }
-        
+
         if (null != virtualPool.getInvalidMatchedPools()) {
-        	if(invalidPools == null) {
-        		invalidPools = virtualPool.getInvalidMatchedPools();
-        	} else {
-        		invalidPools.addAll(virtualPool.getInvalidMatchedPools());
-        	}            
+            if (invalidPools == null) {
+                invalidPools = virtualPool.getInvalidMatchedPools();
+            } else {
+                invalidPools.addAll(virtualPool.getInvalidMatchedPools());
+            }
         }
-        
-        if(invalidPools != null) {
-        	poolMapping.put(INVALID, invalidPools);
+
+        if (invalidPools != null) {
+            poolMapping.put(INVALID, invalidPools);
         }
         // too many loops, as I am trying to encapsulate both invalid and
         // matched pools within the same logic.T
@@ -98,8 +98,8 @@ public class ImplicitUnManagedObjectsMatcher {
                 StorageSystem system = null;
                 @SuppressWarnings("deprecation")
                 List<URI> unManagedVolumeUris = dbClient
-                .queryByConstraint(ContainmentConstraint.Factory
-                        .getPoolUnManagedVolumeConstraint(URI.create(pool)));
+                        .queryByConstraint(ContainmentConstraint.Factory
+                                .getPoolUnManagedVolumeConstraint(URI.create(pool)));
                 Iterator<UnManagedVolume> unManagedVolumes = dbClient
                         .queryIterativeObjects(UnManagedVolume.class, unManagedVolumeUris);
                 while (unManagedVolumes.hasNext()) {
@@ -113,12 +113,12 @@ public class ImplicitUnManagedObjectsMatcher {
                         system = dbClient.queryObject(StorageSystem.class, unManagedVolume.getStorageSystemUri());
                     }
                     String unManagedVolumeProvisioningType = UnManagedVolume.SupportedProvisioningType
-                    		.getProvisioningType(unManagedVolume.getVolumeCharacterstics().get(
-                    				SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()));
-                    
+                            .getProvisioningType(unManagedVolume.getVolumeCharacterstics().get(
+                                    SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()));
+
                     // remove the vpool from supported Vpool List if present
                     if (INVALID.equalsIgnoreCase(key) ||
-                    		!unManagedVolumeProvisioningType.equalsIgnoreCase(virtualPool.getSupportedProvisioningType())) {
+                            !unManagedVolumeProvisioningType.equalsIgnoreCase(virtualPool.getSupportedProvisioningType())) {
                         if (removeVPoolFromUnManagedVolumeObjectVPools(virtualPool, unManagedVolume)) {
                             modifiedUnManagedVolumes.add(unManagedVolume);
                         }
@@ -126,7 +126,7 @@ public class ImplicitUnManagedObjectsMatcher {
                             unManagedVolume, system, srdfEnabledTargetVPools)) {
                         modifiedUnManagedVolumes.add(unManagedVolume);
                     }
-                    
+
                     if (modifiedUnManagedVolumes.size() > VOLUME_BATCH_SIZE) {
                         insertInBatches(modifiedUnManagedVolumes, dbClient, "UnManagedVolumes");
                         modifiedUnManagedVolumes.clear();
@@ -136,9 +136,10 @@ public class ImplicitUnManagedObjectsMatcher {
         }
         insertInBatches(modifiedUnManagedVolumes, dbClient, "UnManagedVolumes");
     }
-    
+
     /**
      * remove VPool from Supported VPool List of UnManaged Objects
+     * 
      * @param supportedVPoolsList
      * @param virtualPool
      * @param unManagedVolume
@@ -153,7 +154,7 @@ public class ImplicitUnManagedObjectsMatcher {
         }
         return false;
     }
-    
+
     /**
      * add VPool to Supported VPool List of UnManaged Objects.
      *
@@ -164,7 +165,7 @@ public class ImplicitUnManagedObjectsMatcher {
      * @return true, if successful
      */
     private static boolean addVPoolToUnManagedObjectSupportedVPools(VirtualPool virtualPool,
-            StringSetMap unManagedObjectInfo, UnManagedDiscoveredObject unManagedObject, StorageSystem system, 
+            StringSetMap unManagedObjectInfo, UnManagedDiscoveredObject unManagedObject, StorageSystem system,
             Set<URI> srdfEnabledTargetVPools) {
         // if virtual pool is already part of supported vpool
         // List, then continue;
@@ -175,10 +176,9 @@ public class ImplicitUnManagedObjectsMatcher {
             return false;
         }
 
-        
         if (VirtualPool.Type.block.name().equals(virtualPool.getType())) {
             // Before adding this vPool to supportedVPoolList, check if Tiering policy matches
-            if ( system != null && system.getAutoTieringEnabled()) {
+            if (system != null && system.getAutoTieringEnabled()) {
                 String autoTierPolicyId = null;
                 if (unManagedObjectInfo.containsKey(SupportedVolumeInformation.AUTO_TIERING_POLICIES.toString())) {
                     for (String policyName : unManagedObjectInfo.get(SupportedVolumeInformation.AUTO_TIERING_POLICIES
@@ -197,22 +197,23 @@ public class ImplicitUnManagedObjectsMatcher {
                     return false;
                 }
             }
-            
+
             // Verify whether unmanaged volume SRDF properties with the Vpool
-            boolean srdfSourceVpool = (null != virtualPool.getProtectionRemoteCopySettings() && !virtualPool.getProtectionRemoteCopySettings().isEmpty());
+            boolean srdfSourceVpool = (null != virtualPool.getProtectionRemoteCopySettings() && !virtualPool
+                    .getProtectionRemoteCopySettings().isEmpty());
             boolean srdfTargetVpool = (srdfEnabledTargetVPools.contains(virtualPool.getId()));
             StringSet remoteVolType = unManagedObjectInfo.get(SupportedVolumeInformation.REMOTE_VOLUME_TYPE.toString());
             boolean isRegularVolume = (null == remoteVolType);
             boolean isSRDFSourceVolume = (null != remoteVolType && remoteVolType.contains(RemoteMirrorObject.Types.SOURCE.toString()));
             boolean isSRDFTargetVolume = (null != remoteVolType && remoteVolType.contains(RemoteMirrorObject.Types.TARGET.toString()));
-            
+
             if (isRegularVolume && (srdfSourceVpool || srdfTargetVpool)) {
                 _log.debug("Found a regular volume with SRDF Protection Virtual Pool. No need to update.");
                 return false;
             } else if (isSRDFSourceVolume && !(srdfSourceVpool || srdfTargetVpool)) {
                 _log.debug("Found a SRDF unmanaged volume with non-srdf virtualpool. No need to update.");
                 return false;
-            } else if(isSRDFSourceVolume && srdfTargetVpool) {
+            } else if (isSRDFSourceVolume && srdfTargetVpool) {
                 _log.debug("Found a SRDF source volume & target srdf vpool. No need to update.");
                 return false;
             } else if (isSRDFTargetVolume && srdfSourceVpool) {
@@ -226,7 +227,7 @@ public class ImplicitUnManagedObjectsMatcher {
         if (null == supportedVPoolsList) {
             _log.debug("Adding a new Supported VPool List {}", virtualPool.getId().toString());
             supportedVPoolsList = new StringSet();
-        } 
+        }
         supportedVPoolsList.add(virtualPool.getId().toString());
         return true;
     }
@@ -238,31 +239,30 @@ public class ImplicitUnManagedObjectsMatcher {
         Map<String, StringSet> poolMapping = new HashMap<String, StringSet>();
 
         StringSet invalidPools = null;
-        //if a virtual pool has assigned pools, use them for matching.
-        //Otherwise use matched pools        
+        // if a virtual pool has assigned pools, use them for matching.
+        // Otherwise use matched pools
         if (virtualPool.getUseMatchedPools() && null != virtualPool.getMatchedStoragePools()) {
             poolMapping.put(MATCHED, virtualPool.getMatchedStoragePools());
         } else if (null != virtualPool.getAssignedStoragePools()) {
-        	poolMapping.put(MATCHED, virtualPool.getAssignedStoragePools());        	
-        	//Find out the storage pools which are in matched pools but not in assigned pools.
-            //These pools should not be in the supported vpool list
-        	invalidPools = (StringSet)virtualPool.getMatchedStoragePools().clone();
-        	invalidPools.removeAll(virtualPool.getAssignedStoragePools());
+            poolMapping.put(MATCHED, virtualPool.getAssignedStoragePools());
+            // Find out the storage pools which are in matched pools but not in assigned pools.
+            // These pools should not be in the supported vpool list
+            invalidPools = (StringSet) virtualPool.getMatchedStoragePools().clone();
+            invalidPools.removeAll(virtualPool.getAssignedStoragePools());
         }
-        
+
         if (null != virtualPool.getInvalidMatchedPools()) {
-        	if(invalidPools == null) {
-        		invalidPools = virtualPool.getInvalidMatchedPools();
-        	} else {
-        		invalidPools.addAll(virtualPool.getInvalidMatchedPools());
-        	}            
+            if (invalidPools == null) {
+                invalidPools = virtualPool.getInvalidMatchedPools();
+            } else {
+                invalidPools.addAll(virtualPool.getInvalidMatchedPools());
+            }
         }
-        
-        if(invalidPools != null) {
-        	poolMapping.put(INVALID, invalidPools);
+
+        if (invalidPools != null) {
+            poolMapping.put(INVALID, invalidPools);
         }
-        
-        
+
         for (Entry<String, StringSet> entry : poolMapping.entrySet()) {
             String key = entry.getKey();
 
@@ -282,13 +282,13 @@ public class ImplicitUnManagedObjectsMatcher {
                     }
 
                     String unManagedFileSystemProvisioningType = UnManagedFileSystem.SupportedProvisioningType
-                    		.getProvisioningType(unManagedFileSystem.getFileSystemCharacterstics().get(
-                    				SupportedFileSystemCharacterstics.IS_THINLY_PROVISIONED.toString()));
-                    
-                    boolean isNetApp = unManagedFileSystemInfo.get(SupportedFileSystemInformation.SYSTEM_TYPE.toString()).
-                    	contains(DiscoveredDataObject.Type.netapp.name());
+                            .getProvisioningType(unManagedFileSystem.getFileSystemCharacterstics().get(
+                                    SupportedFileSystemCharacterstics.IS_THINLY_PROVISIONED.toString()));
 
-                    // Since, Provisioning Type for NetApp FileSystem is set as Thick by default, 
+                    boolean isNetApp = unManagedFileSystemInfo.get(SupportedFileSystemInformation.SYSTEM_TYPE.toString()).
+                            contains(DiscoveredDataObject.Type.netapp.name());
+
+                    // Since, Provisioning Type for NetApp FileSystem is set as Thick by default,
                     // Ignoring the provisioning type check for NetApp.
                     if (INVALID.equalsIgnoreCase(key)
                             || ((!isNetApp) && !unManagedFileSystemProvisioningType

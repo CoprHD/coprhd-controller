@@ -34,8 +34,8 @@ public class GlobalGCRunnable extends GarbageCollectionRunnable {
     private GeoDependencyChecker geoDependencyChecker;
 
     GlobalGCRunnable(DbClient dbClient, Class<? extends DataObject> type,
-                     DependencyTracker tracker, int gcDelayMins,
-                     CoordinatorClient coordinator) {
+            DependencyTracker tracker, int gcDelayMins,
+            CoordinatorClient coordinator) {
         super(dbClient, type, tracker, gcDelayMins, coordinator);
 
         geoDependencyChecker = new GeoDependencyChecker(dbClient, coordinator, dependencyChecker);

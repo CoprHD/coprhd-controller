@@ -28,8 +28,9 @@ public class ExportBlockParam {
     private URI id;
     private Integer lun;
 
-    public ExportBlockParam() {}
-    
+    public ExportBlockParam() {
+    }
+
     public ExportBlockParam(URI id, Integer lun) {
         this.id = id;
         this.lun = lun;
@@ -38,8 +39,9 @@ public class ExportBlockParam {
     /**
      * Block Export parameters -
      * Volume or snapshot.
-     * @valid example: a valid URI 
-     */     
+     * 
+     * @valid example: a valid URI
+     */
     @XmlElement(required = true)
     public URI getId() {
         return id;
@@ -51,8 +53,9 @@ public class ExportBlockParam {
 
     /**
      * Corresponding (optional) mapped LUN
+     * 
      * @valid none
-     */     
+     */
     @XmlElement(required = false)
     public Integer getLun() {
         return lun;

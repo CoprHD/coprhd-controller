@@ -66,7 +66,6 @@ public class IndexColumnName {
         return _two;
     }
 
-
     public String getThree() {
         return _three;
     }
@@ -81,10 +80,10 @@ public class IndexColumnName {
 
     @Override
     public String toString() {
-        return  _one + ":" +
+        return _one + ":" +
                 _two + ":" +
                 _three + ":" +
-                _four+ ":" +
+                _four + ":" +
                 _timeUUID;
     }
 }

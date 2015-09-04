@@ -63,7 +63,7 @@ public class VirtualDataCenter {
      * Update Role Assignments for the VDC.
      *
      * @param roleChanges
-     *        Role assignment changes
+     *            Role assignment changes
      * @return the list of RoleAssignmentEntry
      */
     public List<RoleAssignmentEntry> updateRoleAssignments(RoleAssignmentChanges roleChanges) {
@@ -71,12 +71,11 @@ public class VirtualDataCenter {
         return ResourceUtils.defaultList(response.getAssignments());
     }
 
-
     /**
      * prepare the vdc to fulfill the requirement of being able to add other vdc in this one.
      * tasks are:
-     *      1. remove root's roles from all tenants
-     *      2. remove root's ownership from all projects
+     * 1. remove root's roles from all tenants
+     * 2. remove root's ownership from all projects
      * <p>
      * API Call: <tt>POST /vdc/prepare-vdc</tt>
      */

@@ -23,47 +23,47 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 public class ComputeImageCompleter extends TaskCompleter {
 
     private static final Logger log = LoggerFactory.getLogger(ComputeImageCompleter.class);
-    
+
     private OperationTypeEnum opType = null;
     private String serviceType = null;
-    
+
     public ComputeImageCompleter(URI id, String opId, OperationTypeEnum opType, String serviceType) {
         super(ComputeImage.class, id, opId);
-    	this.opType = opType;
-    	this.serviceType = serviceType;
+        this.opType = opType;
+        this.serviceType = serviceType;
     }
-    
-	@Override
-	protected void complete(DbClient dbClient, Status status, ServiceCoded coded)
-			throws DeviceControllerException {
-		log.info("ComputeImageCompleter.complete {}", status.name());
-		ComputeImage ci = dbClient.queryObject(ComputeImage.class, getId());
-		AuditLogManager auditMgr = new AuditLogManager();
+
+    @Override
+    protected void complete(DbClient dbClient, Status status, ServiceCoded coded)
+            throws DeviceControllerException {
+        log.info("ComputeImageCompleter.complete {}", status.name());
+        ComputeImage ci = dbClient.queryObject(ComputeImage.class, getId());
+        AuditLogManager auditMgr = new AuditLogManager();
         auditMgr.setDbClient(dbClient);
-		if (status == Status.error) {
-			if (opType == OperationTypeEnum.CREATE_COMPUTE_IMAGE) {
-				ci.setComputeImageStatus(ComputeImageStatus.NOT_AVAILABLE.name());
-				ci.setLastImportStatusMessage(coded.getMessage());
-				dbClient.persistObject(ci);
-			}
-			dbClient.error(ComputeImage.class, getId(), getOpId(), coded);
-			auditMgr.recordAuditLog(null, null, serviceType,
-					opType, System.currentTimeMillis(),
-					AuditLogManager.AUDITLOG_FAILURE, AuditLogManager.AUDITOP_END,
-					ci.getId().toString(), ci.getImageUrl(), ci.getComputeImageStatus());
-		} else {
-			if (opType == OperationTypeEnum.DELETE_COMPUTE_IMAGE) {
-				dbClient.markForDeletion(ci);
-			} else if (opType == OperationTypeEnum.CREATE_COMPUTE_IMAGE) {
-				ci.setComputeImageStatus(ComputeImageStatus.AVAILABLE.name());
-				ci.setLastImportStatusMessage("Success");
-				dbClient.persistObject(ci);
-			}
-			dbClient.ready(ComputeImage.class, getId(), getOpId());
-			auditMgr.recordAuditLog(null, null, serviceType,
-					opType, System.currentTimeMillis(),
-					AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END,
-					ci.getId().toString(), ci.getImageUrl(), ci.getComputeImageStatus());
-		}
-	}
+        if (status == Status.error) {
+            if (opType == OperationTypeEnum.CREATE_COMPUTE_IMAGE) {
+                ci.setComputeImageStatus(ComputeImageStatus.NOT_AVAILABLE.name());
+                ci.setLastImportStatusMessage(coded.getMessage());
+                dbClient.persistObject(ci);
+            }
+            dbClient.error(ComputeImage.class, getId(), getOpId(), coded);
+            auditMgr.recordAuditLog(null, null, serviceType,
+                    opType, System.currentTimeMillis(),
+                    AuditLogManager.AUDITLOG_FAILURE, AuditLogManager.AUDITOP_END,
+                    ci.getId().toString(), ci.getImageUrl(), ci.getComputeImageStatus());
+        } else {
+            if (opType == OperationTypeEnum.DELETE_COMPUTE_IMAGE) {
+                dbClient.markForDeletion(ci);
+            } else if (opType == OperationTypeEnum.CREATE_COMPUTE_IMAGE) {
+                ci.setComputeImageStatus(ComputeImageStatus.AVAILABLE.name());
+                ci.setLastImportStatusMessage("Success");
+                dbClient.persistObject(ci);
+            }
+            dbClient.ready(ComputeImage.class, getId(), getOpId());
+            auditMgr.recordAuditLog(null, null, serviceType,
+                    opType, System.currentTimeMillis(),
+                    AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_END,
+                    ci.getId().toString(), ci.getImageUrl(), ci.getComputeImageStatus());
+        }
+    }
 }

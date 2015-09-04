@@ -28,8 +28,9 @@ public class BlockConsistencyGroupCreate {
      */
     private URI project;
 
-    public BlockConsistencyGroupCreate() {}
-    
+    public BlockConsistencyGroupCreate() {
+    }
+
     public BlockConsistencyGroupCreate(String name, URI project) {
         this.name = name;
         this.project = project;

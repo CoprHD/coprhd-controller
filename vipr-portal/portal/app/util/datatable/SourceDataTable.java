@@ -21,7 +21,7 @@ public abstract class SourceDataTable<T> extends DataTable {
      * Fetches the rows for the datatable based on the given parameters.
      * 
      * @param params
-     *        the datatable parameters.
+     *            the datatable parameters.
      * @return the data.
      */
     public List fetchRows(DataTableParams params) {
@@ -37,7 +37,7 @@ public abstract class SourceDataTable<T> extends DataTable {
      * Fetches the data from the database based on the given parameters.
      * 
      * @param params
-     *        the datatable parameters.
+     *            the datatable parameters.
      * @return the data.
      */
     protected abstract List<T> fetchData(DataTableParams params);
@@ -46,7 +46,7 @@ public abstract class SourceDataTable<T> extends DataTable {
      * Converts an item into the row representation. By default, this just returns the item.
      * 
      * @param item
-     *        the item to convert.
+     *            the item to convert.
      * @return the row representation.
      */
     protected Object convert(T item) {

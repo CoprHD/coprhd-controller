@@ -44,7 +44,8 @@ public class CatalogConfigUtils {
             log.debug("catalog acl change time: " + time);
             _coordinator.persistServiceConfiguration(configImpl);
         } catch (Exception e) {
-            log.warn(String.format("updating zk node /config/%s/%s failed, portalsvc cache will not clear immediately, but will reload 10 minutes later",
+            log.warn(String.format(
+                    "updating zk node /config/%s/%s failed, portalsvc cache will not clear immediately, but will reload 10 minutes later",
                     Constants.CATALOG_CONFIG, Constants.CATALOG_ACL_CHANGE));
         }
     }

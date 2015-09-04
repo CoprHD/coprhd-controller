@@ -36,7 +36,7 @@ public class TestDBClientUtils {
         zkConnection.setServer(Lists.newArrayList(new URI("coordinator://localhost:2181")));
         zkConnection.build();
 
-        DualInetAddress dualInetAddress = DualInetAddress.fromAddresses("127.0.0.1","::1");
+        DualInetAddress dualInetAddress = DualInetAddress.fromAddresses("127.0.0.1", "::1");
         Map<String, DualInetAddress> addresses = Maps.newHashMap();
         addresses.put("localhost", dualInetAddress);
 
@@ -49,7 +49,6 @@ public class TestDBClientUtils {
         coordinatorClient.setZkConnection(zkConnection);
         coordinatorClient.setInetAddessLookupMap(map);
         coordinatorClient.start();
-
 
         DbClientContext localContext = new DbClientContext();
         localContext.setKeyspaceName("StorageOS");
@@ -79,11 +78,11 @@ public class TestDBClientUtils {
     public static void stop() {
         System.exit(0);
     }
-    
+
     public static int size(List<URI> ids) {
         int count = 0;
         for (URI id : ids)
-            count ++;
+            count++;
         return count;
     }
 }

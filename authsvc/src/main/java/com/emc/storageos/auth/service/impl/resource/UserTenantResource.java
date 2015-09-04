@@ -51,17 +51,17 @@ import com.emc.storageos.security.resource.UserInfoPage.UserTenantList;
 @Path("/internal/userTenant")
 public class UserTenantResource {
 
-    private static final Logger _log = LoggerFactory.getLogger (UserTenantResource.class);
+    private static final Logger _log = LoggerFactory.getLogger(UserTenantResource.class);
     @Autowired
     protected AuthenticationManager _authManager;
-    
+
     @GET
     @Produces(MediaType.APPLICATION_XML)
     public Response getUserTenant(@QueryParam("username") String username,
-                                  @QueryParam("tenantURI") String tenantURI,
-                                  @QueryParam("usermappings") String strUserMappings)
+            @QueryParam("tenantURI") String tenantURI,
+            @QueryParam("usermappings") String strUserMappings)
     {
-        if( username==null || username.isEmpty() ) {
+        if (username == null || username.isEmpty()) {
             Response.status(Status.BAD_REQUEST).entity("Query parameter username is required").build();
         }
 
@@ -78,13 +78,13 @@ public class UserTenantResource {
 
             userTenants = _authManager.peekUserTenants(username, URI.create(tenantURI), userMappings);
         }
-        if( null != userTenants ) {
+        if (null != userTenants) {
             UserTenantList userTenantList = new UserTenantList();
             userTenantList._userTenantList = new ArrayList<UserTenant>();
-            for(Entry<URI, UserMapping> userTenantEntry :userTenants.entrySet() ) {
+            for (Entry<URI, UserMapping> userTenantEntry : userTenants.entrySet()) {
                 UserTenant userTenant = new UserTenant();
                 userTenant._id = userTenantEntry.getKey();
-                userTenant._userMapping = userTenantEntry.getValue();                
+                userTenant._userMapping = userTenantEntry.getValue();
                 userTenantList._userTenantList.add(userTenant);
             }
             return Response.ok(userTenantList).build();

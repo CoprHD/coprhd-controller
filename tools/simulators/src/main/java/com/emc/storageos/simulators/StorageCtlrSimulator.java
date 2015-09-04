@@ -14,7 +14,6 @@
  */
 package com.emc.storageos.simulators;
 
-
 /**
  * API for generic storage controller simulator
  */

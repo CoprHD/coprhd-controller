@@ -41,4 +41,3 @@ public abstract class AbstractDbRetriever {
         return dbRetrieverPool;
     }
 }
-

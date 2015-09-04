@@ -14,7 +14,6 @@
  */
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
-
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,10 +43,10 @@ public class XIVBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      * @param scheduler A reference to a scheduler.
      */
     public XIVBlockFullCopyApiImpl(DbClient dbClient,
-        CoordinatorClient coordinator, Scheduler scheduler) {
+            CoordinatorClient coordinator, Scheduler scheduler) {
         super(dbClient, coordinator, scheduler);
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -58,18 +57,18 @@ public class XIVBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
         fcSourceObjList.add(fcSourceObj);
         return fcSourceObjList;
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public Map<URI, Volume> getFullCopySetMap(BlockObject fcSourceObj,
-        Volume fullCopyVolume) {
+            Volume fullCopyVolume) {
         Map<URI, Volume> fullCopyMap = new HashMap<URI, Volume>();
         fullCopyMap.put(fullCopyVolume.getId(), fullCopyVolume);
         return fullCopyMap;
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -77,16 +76,16 @@ public class XIVBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     public void validateFullCopyCreateRequest(List<BlockObject> fcSourceObjList, int count) {
         super.validateFullCopyCreateRequest(fcSourceObjList, count);
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray,
-        String name, boolean createInactive, int count, String taskId) {
+            String name, boolean createInactive, int count, String taskId) {
         return super.create(fcSourceObjList, varray, name, createInactive, count, taskId);
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -101,7 +100,7 @@ public class XIVBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     @Override
     public TaskList detach(BlockObject fcSourceObj, Volume fullCopyVolume) {
         return super.detach(fcSourceObj, fullCopyVolume);
-    }    
+    }
 
     /**
      * {@inheritDoc}
@@ -118,7 +117,7 @@ public class XIVBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     public TaskList resynchronizeCopy(Volume sourceVolume, Volume fullCopyVolume) {
         throw APIException.methodNotAllowed.notSupportedForXIV();
     }
-    
+
     /**
      * {@inheritDoc}
      */

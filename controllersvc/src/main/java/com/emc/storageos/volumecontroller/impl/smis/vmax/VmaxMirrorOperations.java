@@ -81,7 +81,7 @@ public class VmaxMirrorOperations extends AbstractMirrorOperations {
                 for (BlockMirror mirrorObject : mirrors) {
                     Volume volume = _dbClient.queryObject(Volume.class, mirrorObject.getSource());
                     elementSynchronizations.add(_cimPath.getStorageSynchronized(storage, volume,
-                        storage, mirrorObject));
+                            storage, mirrorObject));
                 }
 
                 _log.info("Creating Group synchronization between volume group and mirror group");
@@ -107,14 +107,14 @@ public class VmaxMirrorOperations extends AbstractMirrorOperations {
 
     @Override
     public void createGroupMirrors(StorageSystem storage, List<URI> mirrorList, Boolean createInactive,
-                                         TaskCompleter taskCompleter) throws DeviceControllerException {
+            TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("createGroupMirrors operation START");
         List<BlockMirror> mirrors = null;
         try {
             if (!storage.getUsingSmis80()) {
                 throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
             }
-            
+
             mirrors = _dbClient.queryObject(BlockMirror.class, mirrorList);
             BlockMirror firstMirror = mirrors.get(0);
             Volume sourceVolume = _dbClient.queryObject(Volume.class, firstMirror.getSource());
@@ -123,8 +123,9 @@ public class VmaxMirrorOperations extends AbstractMirrorOperations {
             // CTRL-5640: ReplicationGroup may not be accessible after provider fail-over.
             ReplicationUtils.checkReplicationGroupAccessibleOrFail(storage, sourceVolume, _dbClient, _helper, _cimPath);
             // Create CG mirrors
-            CIMObjectPath job = VmaxGroupOperationsUtils.internalCreateGroupReplica(storage, sourceGroupName, replicaLabel, null, createInactive, taskCompleter,
-                                            SYNC_TYPE.MIRROR, _dbClient, _helper, _cimPath);
+            CIMObjectPath job = VmaxGroupOperationsUtils.internalCreateGroupReplica(storage, sourceGroupName, replicaLabel, null,
+                    createInactive, taskCompleter,
+                    SYNC_TYPE.MIRROR, _dbClient, _helper, _cimPath);
             ControllerServiceImpl.enqueueJob(
                     new QueueJob(new SmisBlockCreateCGMirrorJob(job, storage.getId(), taskCompleter)));
 
@@ -193,7 +194,8 @@ public class VmaxMirrorOperations extends AbstractMirrorOperations {
     }
 
     @Override
-    public void resumeGroupMirrors(StorageSystem storage, List<URI> mirrorList, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void resumeGroupMirrors(StorageSystem storage, List<URI> mirrorList, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         _log.info("resumeGroupMirrors operation START");
         if (!storage.getUsingSmis80()) {
             throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
@@ -202,7 +204,7 @@ public class VmaxMirrorOperations extends AbstractMirrorOperations {
         try {
             callEMCRefreshIfRequired(_dbClient, _helper, storage, mirrorList);
             CIMObjectPath groupSynchronized = ReplicationUtils.getMirrorGroupSynchronizedPath(storage, mirrorList.get(0),
-                                                _dbClient, _helper, _cimPath);
+                    _dbClient, _helper, _cimPath);
             if (null == _helper.checkExists(storage, groupSynchronized, false, false)) {
                 _log.error("Unable to find group synchronized {}", groupSynchronized.toString());
                 BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, mirrorList.get(0));
@@ -218,9 +220,10 @@ public class VmaxMirrorOperations extends AbstractMirrorOperations {
             taskCompleter.error(_dbClient, error);
         }
     }
-    
+
     /**
      * Utility to resume Group mirrors.
+     * 
      * @param storage
      * @param mirrorList
      */
@@ -239,7 +242,8 @@ public class VmaxMirrorOperations extends AbstractMirrorOperations {
     }
 
     @Override
-    public void detachGroupMirrors(StorageSystem storage, List<URI> mirrorList, Boolean deleteGroup, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void detachGroupMirrors(StorageSystem storage, List<URI> mirrorList, Boolean deleteGroup, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         _log.info("START detach group mirror operation");
         if (!storage.getUsingSmis80()) {
             throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
@@ -248,7 +252,7 @@ public class VmaxMirrorOperations extends AbstractMirrorOperations {
         try {
             callEMCRefreshIfRequired(_dbClient, _helper, storage, mirrorList);
             CIMObjectPath groupSynchronized = ReplicationUtils.getMirrorGroupSynchronizedPath(storage, mirrorList.get(0), _dbClient,
-                                                    _helper, _cimPath);
+                    _helper, _cimPath);
             if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
                 CIMArgument[] detachCGMirrorInput = _helper.getDetachSynchronizationInputArguments(groupSynchronized);
                 // Invoke method to detach local mirrors
@@ -256,7 +260,8 @@ public class VmaxMirrorOperations extends AbstractMirrorOperations {
                 if (JOB_COMPLETED_NO_ERROR.equals(result)) {
                     List<BlockMirror> mirrors = _dbClient.queryObject(BlockMirror.class, mirrorList);
                     if (deleteGroup) {
-                        ReplicationUtils.deleteReplicationGroup(storage, mirrors.get(0).getReplicationGroupInstance(), _dbClient, _helper, _cimPath);
+                        ReplicationUtils.deleteReplicationGroup(storage, mirrors.get(0).getReplicationGroupInstance(), _dbClient, _helper,
+                                _cimPath);
                     }
 
                     // Set mirrors replication group to null

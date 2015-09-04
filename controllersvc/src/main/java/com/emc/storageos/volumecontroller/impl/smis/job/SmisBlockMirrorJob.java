@@ -72,7 +72,8 @@ public abstract class SmisBlockMirrorJob extends SmisReplicaCreationJobs {
         CloseableIterator<CIMInstance> syncIter = null;
         try {
             // get reference to the CIM_StorageSynchronized instance
-            syncIter = client.referenceInstances(repGroupPath, SmisConstants.CIM_GROUP_SYNCHRONIZED, null, false, new String[] { SmisConstants.CP_SYNC_TYPE });
+            syncIter = client.referenceInstances(repGroupPath, SmisConstants.CIM_GROUP_SYNCHRONIZED, null, false,
+                    new String[] { SmisConstants.CP_SYNC_TYPE });
             return syncIter.next();
         } catch (Exception e) {
             _log.error("Failed to find GroupSynchronized for group {}", repGroupPath.toString(), e);

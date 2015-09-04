@@ -35,12 +35,9 @@ import org.slf4j.LoggerFactory;
  * /proc/diskstats: contains disk I/O statistics for each disk device.
  * /proc/loadavg: contains information about load average numbers
  * <p/>
- * Service stats are retrieved from
- * /proc/{pid}/comm: the command that invoked this process
- * /proc/{pid}/cmdline: contains command line for the process. Gives service name.
- * /proc/{pid}/stat: contains status information about the process
- * /proc/{pid}/statm: contains information about memory usage
- * /proc/{pid}/fd: contains entries for files that this process has opened
+ * Service stats are retrieved from /proc/{pid}/comm: the command that invoked this process /proc/{pid}/cmdline: contains command line for
+ * the process. Gives service name. /proc/{pid}/stat: contains status information about the process /proc/{pid}/statm: contains information
+ * about memory usage /proc/{pid}/fd: contains entries for files that this process has opened
  */
 public class NodeStatsExtractor implements StatConstants {
 
@@ -89,7 +86,7 @@ public class NodeStatsExtractor implements StatConstants {
             }
         }
 
-        //Ordering service stats
+        // Ordering service stats
         if (availableServices == null || availableServices.size() == 0) {
             _log.warn("List of available services is null or empty: {}",
                     availableServices);
@@ -114,7 +111,7 @@ public class NodeStatsExtractor implements StatConstants {
      * @return List of disk stats
      */
     public static List<DiskStats> getDiskStats(int intervalInSecs) {
-        //Getting disk/cpu stats
+        // Getting disk/cpu stats
         try {
             Map<String, DiskStats> oldDiskDataMap = ProcStats.getDiskStats();
             CPUStats oldCPUStats = ProcStats.getCPUStats();
@@ -128,14 +125,13 @@ public class NodeStatsExtractor implements StatConstants {
                     _log.error("Thread Sleep InterrupdtedExcepion: {}", e);
                     return null;
                 }
-                //Getting disk/cpu stats after sleep
+                // Getting disk/cpu stats after sleep
                 newDiskDataMap = ProcStats.getDiskStats();
                 newCPUStats = ProcStats.getCPUStats();
             }
             // perform method that will actually perform the calucations.
-            return getDifferentialDiskStats
-                    (oldDiskDataMap, newDiskDataMap, getCPUTimeDeltaMS(oldCPUStats,
-                            newCPUStats));
+            return getDifferentialDiskStats(oldDiskDataMap, newDiskDataMap, getCPUTimeDeltaMS(oldCPUStats,
+                    newCPUStats));
         } catch (Exception e) {
             _log.error("Error occurred while getting disk stats: {}", e);
         }
@@ -166,18 +162,18 @@ public class NodeStatsExtractor implements StatConstants {
             }
             DiskStats diffStats = getDifference(oldStats, newStats);
 
-            //number of requests
+            // number of requests
             double numOfIOs = diffStats.getNumberOfReads()
                     + diffStats.getNumberOfWrites();
 
-            //await
+            // await
             double wait = numOfIOs > 0 ?
                     (diffStats.getReadTicks() + diffStats.getWriteTicks()) / numOfIOs : 0;
 
-            //svctm
+            // svctm
             double svcTime = numOfIOs > 0 ? diffStats.getNumberOfIOInMs() / numOfIOs : 0;
 
-            //%util
+            // %util
             double busy = 0;
             if (deltaMS > 0) {
                 busy = 100 * diffStats.getNumberOfIOInMs() / deltaMS;

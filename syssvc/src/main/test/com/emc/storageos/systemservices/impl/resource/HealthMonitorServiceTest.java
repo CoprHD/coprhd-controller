@@ -26,12 +26,14 @@ import org.junit.Test;
 import java.util.ArrayList;
 import java.util.List;
 
-public class HealthMonitorServiceTest extends HealthMonitorService{
+public class HealthMonitorServiceTest extends HealthMonitorService {
 
-    private static final List<String> AVAILABLE_SERVICES = new ArrayList<String>() {{
-        add("syssvc");
-        add("apisvc");
-    }};
+    private static final List<String> AVAILABLE_SERVICES = new ArrayList<String>() {
+        {
+            add("syssvc");
+            add("apisvc");
+        }
+    };
 
     private static final String NODE_ID = "syssvc-node1";
     private static final String NODE_IP = "standalone";
@@ -50,13 +52,13 @@ public class HealthMonitorServiceTest extends HealthMonitorService{
         verifyNodeStats(nodeStats);
     }
 
-    private void verifyNodeStats(NodeStats nodeStats){
+    private void verifyNodeStats(NodeStats nodeStats) {
         Assert.assertTrue(nodeStats.getDiskStatsList() != null && nodeStats
                 .getDiskStatsList().size() > 0);
         Assert.assertTrue(nodeStats.getServiceStatsList() != null && nodeStats
                 .getServiceStatsList().size() > 0);
 
-        //service stats
+        // service stats
         for (ServiceStats serviceStats : nodeStats.getServiceStatsList()) {
             Assert.assertTrue(serviceStats.getServiceName() != null && !serviceStats
                     .getServiceName().isEmpty());
@@ -70,7 +72,7 @@ public class HealthMonitorServiceTest extends HealthMonitorService{
             Assert.assertTrue(serviceStats.getProcessStatus().getVirtualMemSizeInBytes() >= 0);
         }
 
-        //Node stats
+        // Node stats
         Assert.assertEquals(NODE_ID, nodeStats.getNodeId());
         Assert.assertEquals(NODE_IP, nodeStats.getIp());
         Assert.assertNotNull(nodeStats.getMemoryStats());
@@ -82,7 +84,7 @@ public class HealthMonitorServiceTest extends HealthMonitorService{
         Assert.assertTrue(nodeStats.getLoadAvgStats().getLoadAvgTasksPastFiveMinutes() >= 0);
         Assert.assertTrue(nodeStats.getLoadAvgStats().getLoadAvgTasksPastMinute() >= 0);
 
-        //disk stats
+        // disk stats
         for (DiskStats diskStats : nodeStats.getDiskStatsList()) {
             Assert.assertNotNull(diskStats.getDiskId());
             Assert.assertTrue(diskStats.getSectorsReadPerSec() >= 0);
@@ -94,7 +96,7 @@ public class HealthMonitorServiceTest extends HealthMonitorService{
             Assert.assertTrue(diskStats.getAvgWait() >= 0);
         }
 
-        //Test service list order
+        // Test service list order
         Assert.assertEquals(AVAILABLE_SERVICES.get(0), nodeStats.getServiceStatsList()
                 .get(0).getServiceName());
     }
@@ -108,25 +110,25 @@ public class HealthMonitorServiceTest extends HealthMonitorService{
         Assert.assertTrue(nodeStats.getServiceStatsList() != null && nodeStats
                 .getServiceStatsList().size() > 0);
 
-        //service stats
+        // service stats
         for (ServiceStats serviceStats : nodeStats.getServiceStatsList()) {
             Assert.assertTrue(serviceStats.getServiceName() != null && !serviceStats
                     .getServiceName().isEmpty());
         }
 
-        //Node stats
+        // Node stats
         Assert.assertEquals(NODE_ID, nodeStats.getNodeId());
         Assert.assertEquals(NODE_IP, nodeStats.getIp());
         Assert.assertNotNull(nodeStats.getMemoryStats().getMemFree());
 
-        //disk stats
+        // disk stats
         for (DiskStats diskStats : nodeStats.getDiskStatsList()) {
             Assert.assertNotNull(diskStats.getDiskId());
         }
     }
 
     @Test
-    public void testNodeHealth(){
+    public void testNodeHealth() {
         NodeHealth nodeHealth = getNodeHealth(NODE_ID, NODE_IP, AVAILABLE_SERVICES);
         Assert.assertNotNull(nodeHealth);
         Assert.assertEquals(NODE_ID, nodeHealth.getNodeId());
@@ -134,17 +136,19 @@ public class HealthMonitorServiceTest extends HealthMonitorService{
         Assert.assertNotNull(nodeHealth.getStatus());
         Assert.assertNotNull(nodeHealth.getServiceHealthList());
 
-        //Test service list order
+        // Test service list order
         Assert.assertEquals(AVAILABLE_SERVICES.get(0), nodeHealth.getServiceHealthList
                 ().get(0).getServiceName());
     }
 
     @Test
     public void testNodeHealthWithInvalidServices() {
-        List<String> invalidServices = new ArrayList<String>(){{
-            add("syssvc");
-            add("mysvc");
-        }};
+        List<String> invalidServices = new ArrayList<String>() {
+            {
+                add("syssvc");
+                add("mysvc");
+            }
+        };
         NodeHealth nodeHealth = getNodeHealth(NODE_ID, NODE_IP, invalidServices);
         Assert.assertNotNull(nodeHealth);
         Assert.assertTrue(Status.DEGRADED.toString().equals(nodeHealth.getStatus()));

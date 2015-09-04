@@ -33,7 +33,7 @@ public abstract class StandardRestClient implements RestClientItf {
     protected String _password;
     protected String _authToken;
     protected URI _base;
-    
+
     @Override
     public ClientResponse get(URI uri) throws InternalException {
         URI requestURI = _base.resolve(uri);
@@ -43,7 +43,7 @@ public abstract class StandardRestClient implements RestClientItf {
             authenticate();
             response = setResourceHeaders(_client.resource(requestURI)).get(ClientResponse.class);
         }
-        checkResponse(uri,response);
+        checkResponse(uri, response);
         return response;
     }
 
@@ -51,11 +51,11 @@ public abstract class StandardRestClient implements RestClientItf {
     public ClientResponse put(URI uri, String body) throws InternalException {
         URI requestURI = _base.resolve(uri);
         ClientResponse response = setResourceHeaders(_client.resource(requestURI)).put(ClientResponse.class, body);
-        if ( authenticationFailed(response) ){
+        if (authenticationFailed(response)) {
             authenticate();
-            response = setResourceHeaders(_client.resource(requestURI)).put(ClientResponse.class,body);
+            response = setResourceHeaders(_client.resource(requestURI)).put(ClientResponse.class, body);
         }
-        checkResponse(uri,response);
+        checkResponse(uri, response);
         return response;
     }
 
@@ -63,13 +63,13 @@ public abstract class StandardRestClient implements RestClientItf {
     public ClientResponse post(URI uri, String body) throws InternalException {
         URI requestURI = _base.resolve(uri);
         ClientResponse response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON)
-                                           .post(ClientResponse.class, body);
-        if ( authenticationFailed(response) ){
+                .post(ClientResponse.class, body);
+        if (authenticationFailed(response)) {
             authenticate();
             response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON)
-                                            .post(ClientResponse.class, body);
+                    .post(ClientResponse.class, body);
         }
-        checkResponse(uri,response);
+        checkResponse(uri, response);
         return response;
     }
 
@@ -78,43 +78,43 @@ public abstract class StandardRestClient implements RestClientItf {
         URI requestURI = _base.resolve(uri);
         ClientResponse response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON)
                 .delete(ClientResponse.class);
-        if ( authenticationFailed(response) ){
+        if (authenticationFailed(response)) {
             authenticate();
             response = setResourceHeaders(_client.resource(requestURI)).type(MediaType.APPLICATION_JSON)
                     .delete(ClientResponse.class);
         }
-        checkResponse(uri,response);
+        checkResponse(uri, response);
         return response;
     }
 
     @Override
     public void close() throws InternalException {
         _client.destroy();
-        
+
     }
-    
+
     private boolean authenticationFailed(ClientResponse response) {
         return response.getClientResponseStatus() == com.sun.jersey.api.client.ClientResponse.Status.UNAUTHORIZED;
     }
-    
+
     protected <T> T getResponseObject(Class<T> clazz, ClientResponse response) throws Exception {
         JSONObject resp = response.getEntity(JSONObject.class);
         T respObject = new Gson().fromJson(resp.toString(), clazz);
         return respObject;
     }
-    
+
     protected <T> String getJsonForEntity(T model) throws Exception {
         return new Gson().toJson(model);
     }
 
     abstract protected WebResource.Builder setResourceHeaders(WebResource resource);
-    
+
     abstract protected void authenticate();
-    
+
     protected void authenticate1() {
-        
+
     }
-    
+
     abstract protected int checkResponse(URI uri, ClientResponse response);
 
 }

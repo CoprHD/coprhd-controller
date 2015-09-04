@@ -19,13 +19,13 @@ public class DetachLunsFromHost extends ExecutionTask<Void> {
     public DetachLunsFromHost(HostSystem host, List<HostScsiDisk> disks) {
         this.host = host;
         this.disks = disks;
-        
+
         List<String> deviceNames = new ArrayList<>();
 
         for (HostScsiDisk disk : disks) {
-        	deviceNames.add(disk.getDeviceName());
+            deviceNames.add(disk.getDeviceName());
         }
-        
+
         String lunsString = Strings.join(",", deviceNames);
         provideDetailArgs(lunsString, host.getName());
     }
@@ -33,9 +33,9 @@ public class DetachLunsFromHost extends ExecutionTask<Void> {
     @Override
     public void execute() throws Exception {
         for (HostScsiDisk disk : disks) {
-        	info("Detaching Scsi Lun : %s", disk.getCanonicalName());
-        	host.getHostStorageSystem().detachScsiLun(disk.getUuid());
-        	logInfo("detach.host.scsi.lun", disk.getDeviceName(), host.getName());
+            info("Detaching Scsi Lun : %s", disk.getCanonicalName());
+            host.getHostStorageSystem().detachScsiLun(disk.getUuid());
+            logInfo("detach.host.scsi.lun", disk.getDeviceName(), host.getName());
         }
     }
 }

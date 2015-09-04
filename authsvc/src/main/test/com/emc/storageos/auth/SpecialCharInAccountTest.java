@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.auth;
 
-
 import com.emc.storageos.auth.ldap.LdapFilterUtil;
 import org.junit.Assert;
 import org.junit.Test;
@@ -22,7 +21,7 @@ public class SpecialCharInAccountTest {
         String expected1 = "(&(userPrincipalName=f$red@secqe.com)(objectClass=person))";
         String expected2 = "(&(uid=f$red)(objectClass=person))";
 
-        String result = LdapFilterUtil.getPersonFilterWithValues(filter1,username);
+        String result = LdapFilterUtil.getPersonFilterWithValues(filter1, username);
         Assert.assertTrue(result.equals(expected1));
 
         result = LdapFilterUtil.getPersonFilterWithValues(filter2, username);

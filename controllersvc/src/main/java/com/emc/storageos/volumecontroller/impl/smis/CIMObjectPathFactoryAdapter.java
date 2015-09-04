@@ -40,12 +40,12 @@ public class CIMObjectPathFactoryAdapter implements CIMObjectPathFactory {
     }
 
     /**
-     * Initialize 
+     * Initialize
      */
     public void init() {
         log.info("Initializing CIMObjectPathFactory proxy..");
         proxy = (CIMObjectPathFactory) Proxy.newProxyInstance(CIMObjectPathFactory.class.getClassLoader(),
-                new Class<?>[]{CIMObjectPathFactory.class}, handler);
+                new Class<?>[] { CIMObjectPathFactory.class }, handler);
     }
 
     @Override
@@ -85,7 +85,8 @@ public class CIMObjectPathFactoryAdapter implements CIMObjectPathFactory {
     }
 
     @Override
-    public CIMObjectPath getStorageSynchronized(StorageSystem sourceSystem, BlockObject source, StorageSystem targetSystem, BlockObject target) {
+    public CIMObjectPath getStorageSynchronized(StorageSystem sourceSystem, BlockObject source, StorageSystem targetSystem,
+            BlockObject target) {
         return proxy.getStorageSynchronized(sourceSystem, source, targetSystem, target);
     }
 

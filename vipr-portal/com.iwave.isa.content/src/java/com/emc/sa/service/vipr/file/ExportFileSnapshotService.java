@@ -21,7 +21,6 @@ import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.storageos.model.file.ExportRule;
 
-
 @Service("ExportFileSnapshot")
 public class ExportFileSnapshotService extends ViPRService {
 
@@ -29,18 +28,17 @@ public class ExportFileSnapshotService extends ViPRService {
     protected URI snapshot;
     @Param(COMMENT)
     protected String comment;
-    
+
     @Bindable(itemType = FileStorageUtils.FileExportRule.class)
     protected FileStorageUtils.FileExportRule[] exportRules;
 
     @Override
-    public void precheck() throws Exception{
+    public void precheck() throws Exception {
         if (exportRules == null || exportRules.length == 0) {
-            ExecutionUtils.fail("failTask.CreateFileSnapshotExport.precheck", new Object[]{}, new Object[]{});
+            ExecutionUtils.fail("failTask.CreateFileSnapshotExport.precheck", new Object[] {}, new Object[] {});
         }
     }
-    
-    
+
     @Override
     public void execute() throws Exception {
         if (exportRules != null) {

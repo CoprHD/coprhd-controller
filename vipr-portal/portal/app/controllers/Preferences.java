@@ -26,7 +26,7 @@ public class Preferences extends Controller {
     private static final String FLASH_REFERER = "flash.userPreferences.referer.url";
 
     public static void update() {
-        PreferencesForm user =  new PreferencesForm(UserPreferencesUtils.getUserPreferences());
+        PreferencesForm user = new PreferencesForm(UserPreferencesUtils.getUserPreferences());
         storeReferer(user);
         render(user);
     }

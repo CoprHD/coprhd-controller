@@ -40,35 +40,35 @@ public class AuditLogUtils {
     // Logger reference.
     private static final Logger s_logger = LoggerFactory.getLogger(AuditLogUtils.class);
 
-	/**
-	 * Converts a RecordableAuditLog to an AuditLog Model
-	 * 
-	 * @param event
-	 * @return
-	 */
-	public static AuditLog convertToAuditLog(RecordableAuditLog auditlog) {
+    /**
+     * Converts a RecordableAuditLog to an AuditLog Model
+     * 
+     * @param event
+     * @return
+     */
+    public static AuditLog convertToAuditLog(RecordableAuditLog auditlog) {
 
-		AuditLog dbAuditLog = new AuditLog();
+        AuditLog dbAuditLog = new AuditLog();
 
-		dbAuditLog.setTimeInMillis(auditlog.getTimestamp());
-		dbAuditLog.setProductId(auditlog.getProductId());
-		dbAuditLog.setTenantId(auditlog.getTenantId());
-		dbAuditLog.setUserId(auditlog.getUserId());
-		dbAuditLog.setServiceType(auditlog.getServiceType());
-		dbAuditLog.setAuditType(auditlog.getAuditType());
-		dbAuditLog.setDescription(auditlog.getDescription());
-		dbAuditLog.setOperationalStatus(auditlog.getOperationalStatus());
-		dbAuditLog.setAuditlogId(auditlog.getAuditlogId());
+        dbAuditLog.setTimeInMillis(auditlog.getTimestamp());
+        dbAuditLog.setProductId(auditlog.getProductId());
+        dbAuditLog.setTenantId(auditlog.getTenantId());
+        dbAuditLog.setUserId(auditlog.getUserId());
+        dbAuditLog.setServiceType(auditlog.getServiceType());
+        dbAuditLog.setAuditType(auditlog.getAuditType());
+        dbAuditLog.setDescription(auditlog.getDescription());
+        dbAuditLog.setOperationalStatus(auditlog.getOperationalStatus());
+        dbAuditLog.setAuditlogId(auditlog.getAuditlogId());
 
-		return dbAuditLog;
-	}
+        return dbAuditLog;
+    }
 
-	/**
-	 * reset auditlog "description" column in specific language with parameters packed.
-	 * 
-	 * @param auditlog
-	 * @return
-	 */
+    /**
+     * reset auditlog "description" column in specific language with parameters packed.
+     * 
+     * @param auditlog
+     * @return
+     */
     public static void resetDesc(AuditLog auditlog, ResourceBundle resb) {
 
         // get formatted description from "description" column
@@ -89,15 +89,15 @@ public class AuditLogUtils {
                 int formatSpecCount = format_desc.split("%s").length - 1;
                 if (formatSpecCount != paramCount)
                     s_logger.warn("Unexpected number of parameters for audit log {}. Expect {}, {} given."
-                        + " Filling the gap will nulls.", 
-                        new Object[]{parameters[1],formatSpecCount, paramCount});
+                            + " Filling the gap will nulls.",
+                            new Object[] { parameters[1], formatSpecCount, paramCount });
 
                 // set parameters into the description
-                String[] formatParams = Arrays.copyOfRange(parameters, 2, 
+                String[] formatParams = Arrays.copyOfRange(parameters, 2,
                         formatSpecCount + 2);
                 String newdesc = String.format(format_desc, formatParams);
 
-                auditlog.setDescription(newdesc);        
+                auditlog.setDescription(newdesc);
             }
         } catch (Exception e) {
             s_logger.error("can not reset description for {}", origdesc, e);

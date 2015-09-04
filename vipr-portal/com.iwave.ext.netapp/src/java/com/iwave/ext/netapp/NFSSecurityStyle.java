@@ -12,8 +12,8 @@ package com.iwave.ext.netapp;
  *
  */
 public enum NFSSecurityStyle {
-	sys("System"), krb5("Kerberos 5"), krb5i("Kerberos 5i"), krb5p("Kerberos 5p");
-	
+    sys("System"), krb5("Kerberos 5"), krb5i("Kerberos 5i"), krb5p("Kerberos 5p");
+
     private String label;
 
     NFSSecurityStyle(String label) {
@@ -32,7 +32,7 @@ public enum NFSSecurityStyle {
     public String toString() {
         return label;
     }
-    
+
     public static NFSSecurityStyle valueOfName(String label) {
         for (NFSSecurityStyle t : values()) {
             if (label.equals(t.name()))

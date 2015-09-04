@@ -28,7 +28,7 @@ import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.plugins.common.Processor;
 
 /**
- * Processor responsible for collecting Allocated Capacity 
+ * Processor responsible for collecting Allocated Capacity
  * StoragePool Processor, is common for both Volume & Storage pool Approach
  */
 public class SPProcessor extends Processor {

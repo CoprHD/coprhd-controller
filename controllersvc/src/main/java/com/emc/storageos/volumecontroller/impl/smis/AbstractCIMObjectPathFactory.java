@@ -152,15 +152,15 @@ public abstract class AbstractCIMObjectPathFactory implements CIMObjectPathFacto
      * @param groupPath storage group path
      * @return the group name
      */
-    public String getMaskingGroupName(StorageSystem storageDevice, CIMObjectPath groupPath){
-        String groupName = null ;
+    public String getMaskingGroupName(StorageSystem storageDevice, CIMObjectPath groupPath) {
+        String groupName = null;
 
         CIMProperty<?>[] keys = groupPath.getKeys();
-        for(CIMProperty key :  keys){
-            if(key.getName().equals(CP_INSTANCE_ID)){
+        for (CIMProperty key : keys) {
+            if (key.getName().equals(CP_INSTANCE_ID)) {
                 String groupNameProperty = key.getValue().toString();
                 int lastDelimIndex = 0;
-                if(storageDevice.getUsingSmis80()){
+                if (storageDevice.getUsingSmis80()) {
                     lastDelimIndex = groupNameProperty.lastIndexOf(Constants.SMIS80_DELIMITER);
                     // For V3 provider example:
                     // if groupNameProperty = SYMMETRIX-+-000196700567-+-stdummyhost3_567_SG_BRONZE_DSS_SRP_1
@@ -247,7 +247,8 @@ public abstract class AbstractCIMObjectPathFactory implements CIMObjectPathFacto
 
     // TODO: check if this method is used at all if not delete it
     public String getProcessorName(StorageSystem system, String processorName) {
-        return SmisUtils.translate(system, prefixWithSystemName(system.getSerialNumber()).concat("+FA-").concat(processorName.replaceAll(":", "+")));
+        return SmisUtils.translate(system,
+                prefixWithSystemName(system.getSerialNumber()).concat("+FA-").concat(processorName.replaceAll(":", "+")));
     }
 
     /**
@@ -267,8 +268,8 @@ public abstract class AbstractCIMObjectPathFactory implements CIMObjectPathFacto
     }
 
     public abstract CIMObjectPath getBlockObjectPath(StorageSystem storage, StorageSystem storage1,
-                                                        BlockObject subject);
+            BlockObject subject);
 
     public abstract CIMObjectPath getMaskingGroupPath(StorageSystem storage, String storageGroupName,
-                                                         MASKING_GROUP_TYPE se_deviceMaskingGroup) throws Exception;
+            MASKING_GROUP_TYPE se_deviceMaskingGroup) throws Exception;
 }

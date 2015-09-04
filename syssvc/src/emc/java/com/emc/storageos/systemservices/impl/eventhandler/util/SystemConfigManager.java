@@ -21,36 +21,36 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class SystemConfigManager {
-	public static String getSoftwareVersion() {
-		String version = "1.0.0.56";
+    public static String getSoftwareVersion() {
+        String version = "1.0.0.56";
 
-		return version;
-	}
+        return version;
+    }
 
-	public static List<String> getNodeList() {
-		List<String> nodelist = new ArrayList<String>();
-		nodelist.add("Node1");
-		nodelist.add("Node2");
+    public static List<String> getNodeList() {
+        List<String> nodelist = new ArrayList<String>();
+        nodelist.add("Node1");
+        nodelist.add("Node2");
 
-		return nodelist;
-	}
+        return nodelist;
+    }
 
-	public static List<String> getHotfixLIst() {
-		List<String> hflist = new ArrayList<String>();
-		hflist.add("HF-000123");
-		hflist.add("HF-000234");
+    public static List<String> getHotfixLIst() {
+        List<String> hflist = new ArrayList<String>();
+        hflist.add("HF-000123");
+        hflist.add("HF-000234");
 
-		return hflist;
-	}
-	
-	public static String getHostname() {
-		String hostname = null;
-		try {
-			InetAddress addr = InetAddress.getLocalHost();
-			hostname = addr.getHostName();
-			System.out.println("hostname=" + hostname);
-		} catch (UnknownHostException e) {
-		}
-		return hostname;
-	}
+        return hflist;
+    }
+
+    public static String getHostname() {
+        String hostname = null;
+        try {
+            InetAddress addr = InetAddress.getLocalHost();
+            hostname = addr.getHostName();
+            System.out.println("hostname=" + hostname);
+        } catch (UnknownHostException e) {
+        }
+        return hostname;
+    }
 }

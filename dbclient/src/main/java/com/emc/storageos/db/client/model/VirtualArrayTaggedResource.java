@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
  * connectivity.
  */
 public class VirtualArrayTaggedResource extends DiscoveredDataObject {
-    
+
     // Logger reference
     protected static final Logger s_logger = LoggerFactory.getLogger(VirtualArrayTaggedResource.class);
 
@@ -49,11 +49,10 @@ public class VirtualArrayTaggedResource extends DiscoveredDataObject {
     // assigned to the resource unless there are none, in which case, the
     // tagged virtual arrays are those that are implicitly connected.
     private StringSet _taggedVirtualArrays;
-    
 
     /**
      * Gets the URIs of the virtual arrays assigned to the storage port or pool by the
-     * user. The assigned virtual arrays override the connected virtual arrays when 
+     * user. The assigned virtual arrays override the connected virtual arrays when
      * present.
      *
      * @return A set of the URIs of the virtual arrays assigned to the resource
@@ -73,7 +72,7 @@ public class VirtualArrayTaggedResource extends DiscoveredDataObject {
      * not be updated. Use the add/remove APIs instead.
      *
      * @param virtualArrayURIs A set of the URIs of the VirtualArrays to be
-     *        assigned to the resource.
+     *            assigned to the resource.
      */
     public void setAssignedVirtualArrays(StringSet virtualArrayURIs) {
         _assignedVirtualArrays = virtualArrayURIs;
@@ -85,7 +84,7 @@ public class VirtualArrayTaggedResource extends DiscoveredDataObject {
      * the resource by the user.
      *
      * @param virtualArrayURI The URI of the VirtualArray to be assigned to the
-     *        resource.
+     *            resource.
      */
     public void addAssignedVirtualArray(String virtualArrayURI) {
         if (virtualArrayURI != null) {
@@ -104,7 +103,7 @@ public class VirtualArrayTaggedResource extends DiscoveredDataObject {
      * the resources by the user.
      *
      * @param virtualArrayURIs The URIs of the VirtualArrays to be assigned to
-     *        the resource.
+     *            the resource.
      */
     public void addAssignedVirtualArrays(Set<String> virtualArrayURIs) {
         if ((virtualArrayURIs != null) && (!virtualArrayURIs.isEmpty())) {
@@ -141,7 +140,7 @@ public class VirtualArrayTaggedResource extends DiscoveredDataObject {
      * assigned to the resource by the user.
      *
      * @param virtualArrayURIs The URIs of the VirtualArrays to be removed from
-     *        the resource.
+     *            the resource.
      */
     public void removeAssignedVirtualArrays(Set<String> virtualArrayURIs) {
         if ((virtualArrayURIs != null) && (!virtualArrayURIs.isEmpty())
@@ -158,11 +157,11 @@ public class VirtualArrayTaggedResource extends DiscoveredDataObject {
 
     /**
      * Gets the URIs of the VirtualArrays to which the storage port or pool is
-     * implicitly connected. Storage ports are implicitly connected to virtual 
+     * implicitly connected. Storage ports are implicitly connected to virtual
      * arrays to which the port's network is assigned, if any. Storage pools are
-     * implicitly connected to virtual arrays when their storage array has one 
-     * or more ports in the virtual array. In other words, a pool's connected  
-     * virtual arrays are the union of all the tagged virtual arrays of the 
+     * implicitly connected to virtual arrays when their storage array has one
+     * or more ports in the virtual array. In other words, a pool's connected
+     * virtual arrays are the union of all the tagged virtual arrays of the
      * storage array's ports.
      *
      * @return A set of the URIs of the virtual arrays to which the resource
@@ -182,7 +181,7 @@ public class VirtualArrayTaggedResource extends DiscoveredDataObject {
      * not be updated. Use the add/remove/clear/replace APIs instead.
      *
      * @param virtualArrayURIs The set of the URIs to which the resource is
-     *        implicitly connected.
+     *            implicitly connected.
      */
     public void setConnectedVirtualArrays(StringSet virtualArrayURIs) {
         _connectedVirtualArrays = virtualArrayURIs;
@@ -194,7 +193,7 @@ public class VirtualArrayTaggedResource extends DiscoveredDataObject {
      * resource is implicitly connected.
      *
      * @param virtualArrayURI The URI of a VirtualArray to which the resource
-     * is implicitly connected.
+     *            is implicitly connected.
      */
     public void addConnectedVirtualArray(String virtualArrayURI) {
         if (virtualArrayURI != null) {
@@ -283,7 +282,7 @@ public class VirtualArrayTaggedResource extends DiscoveredDataObject {
      * Called to update the tagged VirtualArrays when VirtualArrays are
      * explicitly assigned/unassigned to/from the resource and also when the
      * resource is implicitly connected/disconnected to/from a VirtualArray.
-     * Note that the tagged VirtualArrays will always be the URNs of the 
+     * Note that the tagged VirtualArrays will always be the URNs of the
      * explicitly assigned VirtualArrays unless there are none, in which case,
      * the search tags are the URNs of the implicitly connected VirtualArrays.
      */
@@ -294,28 +293,28 @@ public class VirtualArrayTaggedResource extends DiscoveredDataObject {
         }
         s_logger.info("entering updateVirtualArrayTags: assigned: {}, " +
                 " connected: {} , tagged: {}", new Object[] {
-                _assignedVirtualArrays == null ? "[]" :_assignedVirtualArrays.toArray(), 
-                _connectedVirtualArrays == null ? "[]" : _connectedVirtualArrays.toArray(), 
-                _taggedVirtualArrays == null ? "[]" : _taggedVirtualArrays.toArray()});
+                _assignedVirtualArrays == null ? "[]" : _assignedVirtualArrays.toArray(),
+                _connectedVirtualArrays == null ? "[]" : _connectedVirtualArrays.toArray(),
+                _taggedVirtualArrays == null ? "[]" : _taggedVirtualArrays.toArray() });
 
         if ((_assignedVirtualArrays != null) && (_assignedVirtualArrays.size() != 0)) {
             s_logger.debug("updateVirtualArrayTags: replacing with assigned {}", _assignedVirtualArrays.size());
             _taggedVirtualArrays.replace(_assignedVirtualArrays);
             s_logger.debug("updateVirtualArrayTags is taking assigned varrays: added {} removed {}",
-                (_taggedVirtualArrays.getAddedSet() != null)?_taggedVirtualArrays.getAddedSet().size():"0",
-                (_taggedVirtualArrays.getRemovedSet() != null)?_taggedVirtualArrays.getRemovedSet().size():"0");
+                    (_taggedVirtualArrays.getAddedSet() != null) ? _taggedVirtualArrays.getAddedSet().size() : "0",
+                    (_taggedVirtualArrays.getRemovedSet() != null) ? _taggedVirtualArrays.getRemovedSet().size() : "0");
         } else if ((_connectedVirtualArrays != null)
                 && (_connectedVirtualArrays.size() != 0)) {
             s_logger.debug("updateVirtualArrayTags: replacing with connected {}", _connectedVirtualArrays.size());
             _taggedVirtualArrays.replace(_connectedVirtualArrays);
-           s_logger.debug("updateVirtualArrayTags is taking connected varrays: added {} removed {}",
-               (_taggedVirtualArrays.getAddedSet() != null)?_taggedVirtualArrays.getAddedSet().size():"0",
-               (_taggedVirtualArrays.getRemovedSet() != null)?_taggedVirtualArrays.getRemovedSet().size():"0");
+            s_logger.debug("updateVirtualArrayTags is taking connected varrays: added {} removed {}",
+                    (_taggedVirtualArrays.getAddedSet() != null) ? _taggedVirtualArrays.getAddedSet().size() : "0",
+                    (_taggedVirtualArrays.getRemovedSet() != null) ? _taggedVirtualArrays.getRemovedSet().size() : "0");
         } else {
             _taggedVirtualArrays.clear();
         }
 
         s_logger.info("leaving updateVirtualArrayTags: tagged: {}",
-                   _taggedVirtualArrays == null ? "[]" : _taggedVirtualArrays.toArray());
+                _taggedVirtualArrays == null ? "[]" : _taggedVirtualArrays.toArray());
     }
 }

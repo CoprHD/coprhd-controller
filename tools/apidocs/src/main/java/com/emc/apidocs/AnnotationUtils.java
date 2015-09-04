@@ -38,7 +38,6 @@ public class AnnotationUtils {
         return false;
     }
 
-
     public static boolean hasAnnotation(Parameter element, String name) {
         for (AnnotationDesc annotation : element.annotations()) {
             if (annotation.annotationType().qualifiedTypeName().equals(name)) {
@@ -84,7 +83,7 @@ public class AnnotationUtils {
         if (annotationDesc != null) {
             for (AnnotationDesc.ElementValuePair element : annotationDesc.elementValues()) {
                 if (element.element().name().equals(elementName)) {
-                    return (T)element.value().value();
+                    return (T) element.value().value();
                 }
             }
         }
@@ -94,7 +93,7 @@ public class AnnotationUtils {
 
     /**
      * Retrieves the element from the Annotation if present, i.e @XmlElement(required=true) would be an annotation of XmlElement
-     * and an element name of "required".  If the annotation isn't present, or the element isn't present, the defaultValue is returned.
+     * and an element name of "required". If the annotation isn't present, or the element isn't present, the defaultValue is returned.
      *
      * For Annotations with just a value, i.e @Path("/mypath") the element name is {@link KnownAnnotations.Value_Element}
      */
@@ -103,7 +102,7 @@ public class AnnotationUtils {
         if (annotationDesc != null) {
             for (AnnotationDesc.ElementValuePair element : annotationDesc.elementValues()) {
                 if (element.element().name().equals(elementName)) {
-                    return (T)element.value().value();
+                    return (T) element.value().value();
                 }
             }
         }

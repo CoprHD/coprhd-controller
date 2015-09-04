@@ -53,7 +53,7 @@ public class AbstractResources<T extends ModelInfo> {
     public List<T> getByIds(Collection<String> ids) {
         List<T> results = new ArrayList<T>();
         if (ids != null) {
-            for (String id: ids) {
+            for (String id : ids) {
                 T item = get(id);
                 if (item != null) {
                     results.add(item);
@@ -75,7 +75,8 @@ public class AbstractResources<T extends ModelInfo> {
     }
 
     protected List<Reference> doList() {
-        List<Reference> apiList = getApiList(client, new GenericType<List<Reference>>() {}, baseUrl);
+        List<Reference> apiList = getApiList(client, new GenericType<List<Reference>>() {
+        }, baseUrl);
         return apiList;
     }
 

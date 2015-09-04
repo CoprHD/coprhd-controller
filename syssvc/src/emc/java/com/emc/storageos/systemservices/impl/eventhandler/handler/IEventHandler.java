@@ -16,6 +16,6 @@
 package com.emc.storageos.systemservices.impl.eventhandler.handler;
 
 public interface IEventHandler {
-	public String handleEvent();
-	
+    public String handleEvent();
+
 }

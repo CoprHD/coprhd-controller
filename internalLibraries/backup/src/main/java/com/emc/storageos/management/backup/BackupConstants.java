@@ -40,9 +40,9 @@ public interface BackupConstants {
     public static final String UPLOAD_USERNAME = "backup_external_location_username";
     public static final String UPLOAD_PASSWORD = "backup_external_location_password";
     public static final int DEFAULT_BACKUP_COPIES_TO_KEEP = 5;
-    
+
     public static final int BACKUP_RETRY_COUNT = 3;
-    
+
     // The sleep time for scheduler when the cluster is upgrading
     public static final int SCHEDULER_SLEEP_TIME_FOR_UPGRADING = 10 * 60 * 1000;
 
@@ -66,7 +66,7 @@ public interface BackupConstants {
 
     // Standard date string format
     public static final String DATE_FORMAT = "yyyy-MM-dd HH:mm:ss";
-    
+
     // Dynamic string format of listing backups
     public static final String LIST_BACKUP_TITLE = "  %%-%ds%%-10s%%-20s";
     public static final String LIST_BACKUP_INFO = "  %%-%ds%%-10.2f%%-20s";
@@ -78,7 +78,7 @@ public interface BackupConstants {
     public static final String EVENT_SERVICE_TYPE = "backup";
     public static final String BACKUP_LEADER_PATH = "backupleader";
     public static final long BACKUP_WAINT_BEFORE_RETRY_ZK_CONN = 1000L;
-    
+
     // Delimiter for host IPv4 and IPv6 in _info.properties file
     public static final String HOSTS_IP_DELIMITER = "/";
 

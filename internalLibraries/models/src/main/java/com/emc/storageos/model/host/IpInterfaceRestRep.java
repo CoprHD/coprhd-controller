@@ -25,15 +25,16 @@ import javax.xml.bind.annotation.XmlRootElement;
 @XmlRootElement(name = "ip_interface")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class IpInterfaceRestRep extends HostInterfaceRestRep {
-    
+
     private String ipAddress;
     private String netmask;
     private Integer prefixLength;
     private String scopeId;
     private String name;
 
-    public IpInterfaceRestRep() {}
-    
+    public IpInterfaceRestRep() {
+    }
+
     public IpInterfaceRestRep(String ipAddress, String netmask,
             Integer prefixLength, String scopeId, String name) {
         this.ipAddress = ipAddress;
@@ -43,7 +44,7 @@ public class IpInterfaceRestRep extends HostInterfaceRestRep {
         this.name = name;
     }
 
-    /** 
+    /**
      * The IPv4 or IPv6 address of this interface.
      *
      * @valid example: 10.247.12.99
@@ -58,14 +59,14 @@ public class IpInterfaceRestRep extends HostInterfaceRestRep {
     }
 
     /**
-     * Gets the netmask of an IPv4 address expressed as the 
-     * integer prefix in an IPv4 address CIDR notation. 
-     * For example 24 for 255.255.255.0 and 16 for 
-     * 255.255.0.0 etc.. 
+     * Gets the netmask of an IPv4 address expressed as the
+     * integer prefix in an IPv4 address CIDR notation.
+     * For example 24 for 255.255.255.0 and 16 for
+     * 255.255.0.0 etc..
      *
      * @return the netmask of an IP interface
      */
-    @XmlElement(name="netmask")
+    @XmlElement(name = "netmask")
     public String getNetmask() {
         return netmask;
     }
@@ -77,7 +78,7 @@ public class IpInterfaceRestRep extends HostInterfaceRestRep {
     /**
      * Returns the prefix length for an IPv6 interface
      */
-    @XmlElement(name="prefix_length")
+    @XmlElement(name = "prefix_length")
     public Integer getPrefixLength() {
         return prefixLength;
     }
@@ -88,10 +89,11 @@ public class IpInterfaceRestRep extends HostInterfaceRestRep {
 
     /**
      * Gets the scope id for an IPv6 interface.
+     * 
      * @valid none
      * @return the scope id for an IPv6 interface
      */
-    @XmlElement(name="scope_id")
+    @XmlElement(name = "scope_id")
     public String getScopeId() {
         return scopeId;
     }
@@ -99,13 +101,14 @@ public class IpInterfaceRestRep extends HostInterfaceRestRep {
     public void setScopeId(String scopeId) {
         this.scopeId = scopeId;
     }
-    
+
     /**
      * Gets the name of the interface
+     * 
      * @valid none
      * @return the name of the interface
      */
-    @XmlElement(name="name")
+    @XmlElement(name = "name")
     public String getName() {
         return name;
     }

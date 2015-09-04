@@ -2,7 +2,7 @@
  * Copyright 2015 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.db.client.impl;                                                    
+package com.emc.storageos.db.client.impl;
 
 import java.util.Map;
 import java.util.List;
@@ -27,7 +27,7 @@ public class DecommissionedDbIndex extends DbIndex {
 
     @Override
     boolean addColumn(String recordKey, CompositeColumnName column, Object value,
-                      String className, RowMutator mutator, Integer ttl,DataObject obj) {
+            String className, RowMutator mutator, Integer ttl, DataObject obj) {
 
         ColumnListMutation<IndexColumnName> indexColList =
                 mutator.getIndexColumnList(indexCF, className);
@@ -41,8 +41,8 @@ public class DecommissionedDbIndex extends DbIndex {
 
     @Override
     boolean removeColumn(String recordKey, Column<CompositeColumnName> column,
-                         String className, RowMutator mutator,
-                         Map<String,List<Column<CompositeColumnName>>> fieldColumnMap) {
+            String className, RowMutator mutator,
+            Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {
         ColumnListMutation<IndexColumnName> indexColList = mutator.getIndexColumnList(indexCF, className);
 
         UUID uuid = column.getName().getTimeUUID();
@@ -55,11 +55,11 @@ public class DecommissionedDbIndex extends DbIndex {
 
     @Override
     public String toString() {
-        StringBuilder builder  = new StringBuilder("DecommisionedDbIndex class");
+        StringBuilder builder = new StringBuilder("DecommisionedDbIndex class");
         builder.append("\t");
         builder.append(super.toString());
         builder.append("\n");
 
         return builder.toString();
     }
-} 
+}

@@ -33,17 +33,17 @@ public class StorageSystem extends DataObject {
      * 
      */
     private static final long serialVersionUID = 1L;
-    
+
     // virtual array of this storage device
     private URI _virtualArray;
     private VirtualArray _vArray;
-    
+
     @RelationIndex(cf = "RelationIndex", type = VirtualArray.class)
     @Name("varray")
     public URI getVirtualArray() {
         return _virtualArray;
     }
-    
+
     public void setVirtualArray(final URI virtualArray) {
         _virtualArray = virtualArray;
         setChanged("varray");
@@ -53,7 +53,7 @@ public class StorageSystem extends DataObject {
      * @return the _vArray
      */
     @Name("varrayObj")
-    @Relation(mappedBy="varray")
+    @Relation(mappedBy = "varray")
     public VirtualArray getVArray() {
         return _vArray;
     }

@@ -63,7 +63,6 @@ public class CoordinatorTestBase {
         dir.delete();
     }
 
-
     /**
      * Connects to test coordinator
      *
@@ -133,8 +132,8 @@ public class CoordinatorTestBase {
         zkprop.setProperty("initLimit", "5");
         zkprop.setProperty("syncLimit", "2");
         zkprop.setProperty("maxClientCnxns", "0");
-        zkprop.setProperty("autopurge.purgeInterval","30");
-        zkprop.setProperty("autopurge.snapRetainCount","16");
+        zkprop.setProperty("autopurge.purgeInterval", "30");
+        zkprop.setProperty("autopurge.snapRetainCount", "16");
         config.setProperties(zkprop);
         config.init();
 
@@ -152,7 +151,6 @@ public class CoordinatorTestBase {
         }).start();
     }
 
-
     @BeforeClass
     public static void setup() throws Exception {
         _dataDir = new File("./dqtest");
@@ -161,5 +159,5 @@ public class CoordinatorTestBase {
         }
         startCoordinator();
     }
-    
+
 }

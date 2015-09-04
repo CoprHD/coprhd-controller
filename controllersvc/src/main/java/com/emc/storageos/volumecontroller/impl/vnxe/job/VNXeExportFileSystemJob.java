@@ -41,23 +41,23 @@ import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.FileDeviceController;
 
-public class VNXeExportFileSystemJob extends VNXeJob{
-	private static final long serialVersionUID = 1L;
+public class VNXeExportFileSystemJob extends VNXeJob {
+    private static final long serialVersionUID = 1L;
     private static final Logger _logger = LoggerFactory.getLogger(VNXeExportFileSystemJob.class);
     private FileShareExport exportInfo;
     private boolean isFile;
     private String shareName;
-    
-    public VNXeExportFileSystemJob(String jobId, URI storageSystemUri, 
-    		TaskCompleter taskCompleter, FileShareExport export, String shareName, boolean isFile) {
-    	
+
+    public VNXeExportFileSystemJob(String jobId, URI storageSystemUri,
+            TaskCompleter taskCompleter, FileShareExport export, String shareName, boolean isFile) {
+
         super(jobId, storageSystemUri, taskCompleter, "exportFileSystem");
-        
-        this.exportInfo= export;
+
+        this.exportInfo = export;
         this.isFile = isFile;
         this.shareName = shareName;
     }
-    
+
     /**
      * Called to update the job status when the export file system job completes.
      *
@@ -74,13 +74,13 @@ public class VNXeExportFileSystemJob extends VNXeJob{
             VNXeApiClient vnxeApiClient = getVNXeClient(jobContext);
             String opId = getTaskCompleter().getOpId();
             StringBuilder logMsgBuilder = new StringBuilder(String.format("Updating status of job %s to %s", opId, _status.name()));
-            
+
             FileShare fsObj = null;
             Snapshot snapObj = null;
             URI objId = getTaskCompleter().getId();
             StorageSystem storageObj = dbClient.queryObject(StorageSystem.class, getStorageSystemUri());
             if (_status == JobStatus.SUCCESS) {
-            	_isSuccess = true;
+                _isSuccess = true;
                 FileExport newExport = exportInfo.getFileExport();
                 newExport.setMountPoint(ExportUtils.getFileMountPoint(exportInfo.getStoragePort(), exportInfo.getMountPath()));
                 if (isFile) {
@@ -91,17 +91,17 @@ public class VNXeExportFileSystemJob extends VNXeJob{
                     fsObj = dbClient.queryObject(FileShare.class, snapObj.getParent().getURI());
                 }
             } else if (_status == JobStatus.FAILED) {
-            	//cleanupFSExport(fsObj, dbClient);
+                // cleanupFSExport(fsObj, dbClient);
                 logMsgBuilder.append("\n");
                 logMsgBuilder.append(String.format(
-                   "Task %s failed to export file system: %s", opId, objId.toString()));
-            } 
+                        "Task %s failed to export file system: %s", opId, objId.toString()));
+            }
             _logger.info(logMsgBuilder.toString());
             if (isFile) {
-                FileDeviceController.recordFileDeviceOperation(dbClient, OperationTypeEnum.EXPORT_FILE_SYSTEM, 
-                    _isSuccess, logMsgBuilder.toString(), "", fsObj, storageObj);
+                FileDeviceController.recordFileDeviceOperation(dbClient, OperationTypeEnum.EXPORT_FILE_SYSTEM,
+                        _isSuccess, logMsgBuilder.toString(), "", fsObj, storageObj);
             } else {
-                FileDeviceController.recordFileDeviceOperation(dbClient, OperationTypeEnum.EXPORT_FILE_SNAPSHOT, 
+                FileDeviceController.recordFileDeviceOperation(dbClient, OperationTypeEnum.EXPORT_FILE_SNAPSHOT,
                         _isSuccess, logMsgBuilder.toString(), "", snapObj, fsObj, storageObj);
             }
         } catch (Exception e) {
@@ -111,121 +111,121 @@ public class VNXeExportFileSystemJob extends VNXeJob{
             super.updateStatus(jobContext);
         }
     }
-    
+
     /**
      * update FileShare after exported in VNXe
+     * 
      * @param fsOjb fileShare object in vipr
      * @param dbClient DbClient
      * @param vnxeApiClient VNXeApiClient
      */
     private void updateFSExport(FileShare fsObj, DbClient dbClient, VNXeApiClient apiClient, FileExport newExport) {
-    	_logger.info("upading file export. ");
-        FSExportMap exports= fsObj.getFsExports();
+        _logger.info("upading file export. ");
+        FSExportMap exports = fsObj.getFsExports();
         if (exports == null) {
-        	exports = new FSExportMap();
+            exports = new FSExportMap();
         }
 
         VNXeNfsShare nfsShare = apiClient.findNfsShare(fsObj.getNativeId(), shareName);
         String nfsShareId = nfsShare.getId();
         newExport.setIsilonId(nfsShareId);
-        exports.put(newExport.getFileExportKey(),newExport);
+        exports.put(newExport.getFileExportKey(), newExport);
         fsObj.setFsExports(exports);
         updateExportRules(fsObj.getId(), newExport, dbClient);
         dbClient.persistObject(fsObj);
-       
+
     }
-    
+
     private void updateExportRules(URI uri, FileExport fileExport, DbClient dbClient) {
-    	List<FileExportRule> existingRules = queryFileExports(uri, dbClient);
-    	FileExportRule newRule = getFileExportRule(uri, fileExport);
-    	if(existingRules!=null && existingRules.isEmpty()){
-    		newRule.setId(URIUtil.createId(FileExportRule.class));
-    		_logger.info("No Existing rules available for this FS Export and so creating the rule now {}", newRule);
-        	dbClient.createObject(newRule);
-    	} 
-    	else {
-    		_logger.debug("Checking inside for ExitingRule(s) available for this export");
-    		boolean isRuleFound = false;
-    		for(FileExportRule rule : existingRules) {
-        		_logger.debug("Available Export Rule {} - Matching with New Rule {}", rule, newRule);
-        		if (newRule.getFsExportIndex()!=null && rule.getFsExportIndex().equals(newRule.getFsExportIndex())) {
-        			isRuleFound = true;
-        			_logger.info("Match Found : Skipping this Rule as alreday available {}", newRule);
-        			break;
-        		}
-    		}
-    		if(!isRuleFound) {
-    			_logger.info("Creating new Export Rule {}", newRule);
-    			newRule.setId(URIUtil.createId(FileExportRule.class));
-            	dbClient.createObject(newRule);
-    		}
-    	}
+        List<FileExportRule> existingRules = queryFileExports(uri, dbClient);
+        FileExportRule newRule = getFileExportRule(uri, fileExport);
+        if (existingRules != null && existingRules.isEmpty()) {
+            newRule.setId(URIUtil.createId(FileExportRule.class));
+            _logger.info("No Existing rules available for this FS Export and so creating the rule now {}", newRule);
+            dbClient.createObject(newRule);
+        }
+        else {
+            _logger.debug("Checking inside for ExitingRule(s) available for this export");
+            boolean isRuleFound = false;
+            for (FileExportRule rule : existingRules) {
+                _logger.debug("Available Export Rule {} - Matching with New Rule {}", rule, newRule);
+                if (newRule.getFsExportIndex() != null && rule.getFsExportIndex().equals(newRule.getFsExportIndex())) {
+                    isRuleFound = true;
+                    _logger.info("Match Found : Skipping this Rule as alreday available {}", newRule);
+                    break;
+                }
+            }
+            if (!isRuleFound) {
+                _logger.info("Creating new Export Rule {}", newRule);
+                newRule.setId(URIUtil.createId(FileExportRule.class));
+                dbClient.createObject(newRule);
+            }
+        }
     }
-    
-    private FileExportRule getFileExportRule(URI uri, FileExport fileExport){
-    	
-    	FileExportRule rule = new FileExportRule();
+
+    private FileExportRule getFileExportRule(URI uri, FileExport fileExport) {
+
+        FileExportRule rule = new FileExportRule();
         rule.setAnon(fileExport.getRootUserMapping());
         rule.setExportPath(fileExport.getPath());
         if (!isFile)
         {
-        	rule.setSnapshotId(uri);
-        	
+            rule.setSnapshotId(uri);
+
         } else {
-        	rule.setFileSystemId(uri);
+            rule.setFileSystemId(uri);
         }
         rule.setSecFlavor(fileExport.getSecurityType());
-        
-        if(fileExport.getPermissions().equals(FileShareExport.Permissions.ro.name()) 
-        		&& fileExport.getClients()!=null && fileExport.getClients().size() > 0) {
-        	rule.setReadOnlyHosts(new StringSet(fileExport.getClients()));
+
+        if (fileExport.getPermissions().equals(FileShareExport.Permissions.ro.name())
+                && fileExport.getClients() != null && fileExport.getClients().size() > 0) {
+            rule.setReadOnlyHosts(new StringSet(fileExport.getClients()));
         }
-        if(fileExport.getPermissions().equals(FileShareExport.Permissions.rw.name()) 
-        		&& fileExport.getClients()!=null && fileExport.getClients().size() > 0) {
-        	rule.setReadWriteHosts(new StringSet(fileExport.getClients()));
+        if (fileExport.getPermissions().equals(FileShareExport.Permissions.rw.name())
+                && fileExport.getClients() != null && fileExport.getClients().size() > 0) {
+            rule.setReadWriteHosts(new StringSet(fileExport.getClients()));
         }
-        if(fileExport.getPermissions().equals(FileShareExport.Permissions.root.name()) 
-        		&& fileExport.getClients()!=null && fileExport.getClients().size() > 0) {
-        	rule.setRootHosts(new StringSet(fileExport.getClients()));
+        if (fileExport.getPermissions().equals(FileShareExport.Permissions.root.name())
+                && fileExport.getClients() != null && fileExport.getClients().size() > 0) {
+            rule.setRootHosts(new StringSet(fileExport.getClients()));
         }
         rule.setMountPoint(fileExport.getMountPoint());
         _logger.info("Generating FileExportRule  IsilonId ? {}", fileExport.getIsilonId());
-        if(fileExport.getIsilonId() != null){
+        if (fileExport.getIsilonId() != null) {
             rule.setDeviceExportId(fileExport.getIsilonId());
         }
         return rule;
     }
-    
+
     private List<FileExportRule> queryFileExports(URI uri, DbClient dbClient)
     {
-    	List<FileExportRule> fileExportRules = null; 
-    	
-    	
-    	try{
-    		ContainmentConstraint  containmentConstraint; 
-    	
-    		if (isFile){
-    			_logger.info("Querying all ExportRules Using FsId {}", uri);
-    			containmentConstraint = ContainmentConstraint.Factory.getFileExportRulesConstraint(uri);
-    		} else {
-    			_logger.info("Querying all ExportRules Using Snapshot Id {}", uri);
-    			containmentConstraint = ContainmentConstraint.Factory.getSnapshotExportRulesConstraint(uri);
-    		}
-	    	
-	   	  	 fileExportRules = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, FileExportRule.class,
-	    			  containmentConstraint);
-	    	
-    	}
-    	catch(Exception e){
-    		_logger.error("Error while querying {}", e);
-    	}
-    	
-    	return fileExportRules;
-    	
+        List<FileExportRule> fileExportRules = null;
+
+        try {
+            ContainmentConstraint containmentConstraint;
+
+            if (isFile) {
+                _logger.info("Querying all ExportRules Using FsId {}", uri);
+                containmentConstraint = ContainmentConstraint.Factory.getFileExportRulesConstraint(uri);
+            } else {
+                _logger.info("Querying all ExportRules Using Snapshot Id {}", uri);
+                containmentConstraint = ContainmentConstraint.Factory.getSnapshotExportRulesConstraint(uri);
+            }
+
+            fileExportRules = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, FileExportRule.class,
+                    containmentConstraint);
+
+        } catch (Exception e) {
+            _logger.error("Error while querying {}", e);
+        }
+
+        return fileExportRules;
+
     }
-    
+
     /**
      * update snapshot if the export job is for snapshot export
+     * 
      * @param dbClient
      * @param apiClient
      * @return Snapshot instance
@@ -234,15 +234,15 @@ public class VNXeExportFileSystemJob extends VNXeJob{
         _logger.info("upading snap export. ");
         URI snapId = getTaskCompleter().getId();
         Snapshot snapObj = dbClient.queryObject(Snapshot.class, snapId);
-        FSExportMap exports= snapObj.getFsExports();
+        FSExportMap exports = snapObj.getFsExports();
         if (exports == null) {
             exports = new FSExportMap();
         }
-       
+
         VNXeNfsShare nfsShare = apiClient.findSnapNfsShare(snapObj.getNativeId(), shareName);
         String nfsShareId = nfsShare.getId();
         newExport.setIsilonId(nfsShareId);
-        exports.put(newExport.getFileExportKey(),newExport);
+        exports.put(newExport.getFileExportKey(), newExport);
         snapObj.setFsExports(exports);
         updateExportRules(snapObj.getId(), newExport, dbClient);
         dbClient.persistObject(snapObj);

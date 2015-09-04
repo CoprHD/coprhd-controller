@@ -27,7 +27,7 @@ public class Resource3 extends DataObject {
     private URI res4; // Test custom callback execution order
     private Long extraFlags; // Test custom callback execution order
     private Long newFlags; // Test custom callback execution order
-    
+
     // Deliberately put this up front to make sure that the field order doesn't matter
     @Name("newFlags")
     public Long getNewFlags() {

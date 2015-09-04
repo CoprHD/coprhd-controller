@@ -35,8 +35,8 @@ import java.security.cert.X509Certificate;
  * Date: 9/23/14
  * Time: 2:43 PM
  * To change this template use File | Settings | File Templates.
-*/
- public class VcenterHostCertificateGetter {
+ */
+public class VcenterHostCertificateGetter {
     private static VcenterHostCertificateGetter instance = new VcenterHostCertificateGetter();
 
     private final static Logger _log = LoggerFactory.getLogger(VcenterHostCertificateGetter.class);
@@ -45,20 +45,29 @@ import java.security.cert.X509Certificate;
         return instance;
     }
 
-    public enum HostConnectionStatus {REACHABLE, UNREACHABLE, UNAUTHORIZED, UNKNOWN}
+    public enum HostConnectionStatus {
+        REACHABLE, UNREACHABLE, UNAUTHORIZED, UNKNOWN
+    }
 
-    private HttpResponse executeRequest(String host, Integer port, String certificatePath, String username, String password, Integer timeout) throws Exception {
-        if(host == null || host.equals("")) throw new IllegalArgumentException("Invalid host " + host);
-        if(port == null || port.equals("")) throw new IllegalArgumentException("Invalid port " + port);
-        if(username == null) throw new IllegalArgumentException("Invalid username " + username);
-        if(password == null) throw new IllegalArgumentException("Invalid password " + password);
-        if(timeout == null) throw new IllegalArgumentException("Invalid timeout " + timeout);
+    private HttpResponse
+            executeRequest(String host, Integer port, String certificatePath, String username, String password, Integer timeout)
+                    throws Exception {
+        if (host == null || host.equals(""))
+            throw new IllegalArgumentException("Invalid host " + host);
+        if (port == null || port.equals(""))
+            throw new IllegalArgumentException("Invalid port " + port);
+        if (username == null)
+            throw new IllegalArgumentException("Invalid username " + username);
+        if (password == null)
+            throw new IllegalArgumentException("Invalid password " + password);
+        if (timeout == null)
+            throw new IllegalArgumentException("Invalid timeout " + timeout);
         _log.info("Get SSL thumbprint host " + host + ", port " + port + ", certificatePath " + certificatePath + ", timeout " + timeout);
 
         HttpResponse response;
         DefaultHttpClient httpclient = null;
         HttpParams params = new BasicHttpParams();
-        if(timeout > 0) {
+        if (timeout > 0) {
             _log.info("Socket timeout set to " + timeout + " seconds");
             params.setParameter(CoreConnectionPNames.CONNECTION_TIMEOUT, timeout);
             params.setParameter(CoreConnectionPNames.SO_TIMEOUT, timeout);
@@ -70,7 +79,7 @@ import java.security.cert.X509Certificate;
             SSLHelper.configurePermissiveSSL(httpclient);
             httpclient.getCredentialsProvider().setCredentials(
                     new AuthScope(AuthScope.ANY_HOST, AuthScope.ANY_PORT),
-                    new UsernamePasswordCredentials(username, password)) ;
+                    new UsernamePasswordCredentials(username, password));
 
             // request to certificate
             HttpGet httpget = new HttpGet("https://" + host + ":" + port + certificatePath);
@@ -81,30 +90,31 @@ import java.security.cert.X509Certificate;
         } finally {
             // release connection
             try {
-                if(httpclient != null) {
-                    if(httpclient.getConnectionManager() != null) {
+                if (httpclient != null) {
+                    if (httpclient.getConnectionManager() != null) {
                         httpclient.getConnectionManager().shutdown();
                     }
                 }
-            } catch(Throwable t) {
+            } catch (Throwable t) {
                 _log.info("Ignore httpclient.getConnectionManager().shutdown() exception " + t);
             }
         }
-        if(response == null) {
+        if (response == null) {
             _log.error("HTTP response null");
             throw new Exception("HTTP response null");
         }
         return response;
     }
 
-    HostConnectionStatus getConnectionStatus(String host, Integer port, String certificatePath, String username, String password, Integer timeout)  {
+    HostConnectionStatus getConnectionStatus(String host, Integer port, String certificatePath, String username, String password,
+            Integer timeout) {
         HttpResponse response = null;
         // First, make sure can execute the request successfully
         try {
             response = executeRequest(host, port, certificatePath, username, password, timeout);
-        } catch(Throwable t) {
+        } catch (Throwable t) {
             _log.error("Error in executeRequest " + t);
-            if(t instanceof java.net.UnknownHostException) {
+            if (t instanceof java.net.UnknownHostException) {
                 _log.info("Host " + host + " is unknown");
                 return HostConnectionStatus.UNKNOWN;
             } else {
@@ -114,7 +124,7 @@ import java.security.cert.X509Certificate;
         }
 
         // Second, ensure that the response is valid
-        if(response == null || response.getStatusLine() == null) {
+        if (response == null || response.getStatusLine() == null) {
             _log.error("Null response from host " + host);
             return HostConnectionStatus.UNREACHABLE;
         }
@@ -122,10 +132,10 @@ import java.security.cert.X509Certificate;
         // Third, inspect the response
         String responseStatus = response.getStatusLine().toString().toLowerCase();
         _log.info("Host " + host + " response is " + responseStatus);
-        if(responseStatus.contains("401 unauthorized")) {
+        if (responseStatus.contains("401 unauthorized")) {
             _log.info("Unauthorized response");
             return HostConnectionStatus.UNAUTHORIZED;
-        } else if(responseStatus.contains("200 ok")) {
+        } else if (responseStatus.contains("200 ok")) {
             _log.info("Reachable response");
             return HostConnectionStatus.REACHABLE;
         } else {
@@ -134,11 +144,12 @@ import java.security.cert.X509Certificate;
         }
     }
 
-    String getSSLThumbprint(String host, Integer port, String certificatePath, String username, String password, Integer timeout) throws Exception {
+    String getSSLThumbprint(String host, Integer port, String certificatePath, String username, String password, Integer timeout)
+            throws Exception {
         HttpResponse response = null;
         try {
             response = executeRequest(host, port, certificatePath, username, password, timeout);
-        } catch(Throwable t) {
+        } catch (Throwable t) {
             _log.error("Unexepected error executing request https://" + host + ":" + port + certificatePath + t);
             throw new Exception("Unexepected error executing request https://" + host + ":" + port + certificatePath);
         }
@@ -156,11 +167,11 @@ import java.security.cert.X509Certificate;
                 cert = cert.replaceAll("-----BEGIN CERTIFICATE-----", "").replaceAll("-----END CERTIFICATE-----", "");
                 _log.info("Certificate extracted " + cert);
             }
-        } catch(Throwable t) {
+        } catch (Throwable t) {
             _log.error("Unexepected error extracting content from response " + response.getEntity().getContent() + t);
             throw new Exception("Unexepected error extracting content from response " + response.getEntity().getContent());
         }
-        if(cert == null || cert.equals("")) {
+        if (cert == null || cert.equals("")) {
             _log.error("Certificate base 64 encoded string " + cert);
             throw new Exception("Certificate base 64 encoded string " + cert);
         }
@@ -174,12 +185,13 @@ import java.security.cert.X509Certificate;
             _log.info("Decode base64 encoded certificate string");
             Base64 base64 = new Base64();
             byteArrayInputStream = new ByteArrayInputStream(base64.decode(cert));
-            _log.info("Base64 decoded"); // DO NOT PRINT THE byte[] since it breaks the next step - Could not parse certificate: java.io.IOException: DerInputStream.getLength(): lengthTag=127, too big.
-        } catch(Throwable t) {
+            _log.info("Base64 decoded"); // DO NOT PRINT THE byte[] since it breaks the next step - Could not parse certificate:
+                                         // java.io.IOException: DerInputStream.getLength(): lengthTag=127, too big.
+        } catch (Throwable t) {
             _log.error("Unexepected error decode base64 encoded certificate " + t);
             throw new Exception("Unexepected error decode base64 encoded certificate");
         }
-        if(byteArrayInputStream == null) {
+        if (byteArrayInputStream == null) {
             _log.error("Decoded base 64 byte[] null");
             throw new Exception("Decoded base 64 byte[] null");
         }
@@ -191,11 +203,11 @@ import java.security.cert.X509Certificate;
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
             certificate = (X509Certificate) cf.generateCertificate(byteArrayInputStream);
             _log.info("X509 certificate created " + certificate);
-        } catch(Throwable t) {
+        } catch (Throwable t) {
             _log.error("Unexepected error creating x509 certificate " + t);
             throw new Exception("Unexepected error creating x509 certificate");
         }
-        if(certificate == null) {
+        if (certificate == null) {
             _log.error("X509 Certificate null");
             throw new Exception("X509 Certificate null");
         }
@@ -209,11 +221,11 @@ import java.security.cert.X509Certificate;
             md.update(der);
             digest = md.digest();
             _log.info("SHA-1 hash created " + digest);
-        } catch(Throwable t) {
+        } catch (Throwable t) {
             _log.error("Unexepected error SHA-1 hashing certificate " + t);
             throw new Exception("Unexepected error SHA-1 hashing certificate");
         }
-        if(digest == null) {
+        if (digest == null) {
             _log.error("SHA-1 hash null");
             throw new Exception("SHA-1 hash null");
         }
@@ -222,15 +234,15 @@ import java.security.cert.X509Certificate;
         try {
             // convert to hex
             _log.info("Convert hash to hex");
-//			BigInteger bigInt = new BigInteger(1,digest)
-//			thumbprint = bigInt.toString(16)
+            // BigInteger bigInt = new BigInteger(1,digest)
+            // thumbprint = bigInt.toString(16)
             thumbprint = getHex(digest);
             _log.info("Hex created " + thumbprint);
-        } catch(Throwable t) {
+        } catch (Throwable t) {
             _log.error("Unexepected error converting SSL thumbprint to hex " + t);
             throw new Exception("Unexepected error converting SSL thumbprint to hex");
         }
-        if(thumbprint == null || thumbprint.equals("")) {
+        if (thumbprint == null || thumbprint.equals("")) {
             _log.error("thumbprint " + thumbprint);
             throw new Exception("thumbprint " + thumbprint);
         }
@@ -242,21 +254,21 @@ import java.security.cert.X509Certificate;
             thumbprint = thumbprint.toUpperCase();
             StringBuffer buf = new StringBuffer(thumbprint);
             int index = 2;
-            while(index < buf.toString().length()) {
+            while (index < buf.toString().length()) {
                 buf.insert(index, ':');
                 index += 3; // 2 (for chars) + 1 (for spliced colon)
             }
             hash = buf.toString();
             _log.info("Hash string formatted " + hash);
-        } catch(Throwable t) {
+        } catch (Throwable t) {
             _log.error("Unexepected error splicing colons into SSL thumbprint " + t);
             throw new Exception("Unexepected error splicing colons into SSL thumbprint");
         }
-        if(hash == null || hash.equals("")) {
+        if (hash == null || hash.equals("")) {
             _log.error("SSL thumbprint is empty");
             throw new Exception("SSL thumbprint is empty");
         }
-        if(hash.length() != 59) {
+        if (hash.length() != 59) {
             _log.error("SSL thumbprint does not appear to be a valid");
             throw new Exception("SSL thumbprint does not appear to be a valid");
         }
@@ -283,12 +295,12 @@ import java.security.cert.X509Certificate;
         }
     }
 
-    public static String getHex( byte [] raw ) {
-        if ( raw == null ) {
+    public static String getHex(byte[] raw) {
+        if (raw == null) {
             return null;
         }
-        final StringBuilder hex = new StringBuilder( 2 * raw.length );
-        for ( final byte b : raw ) {
+        final StringBuilder hex = new StringBuilder(2 * raw.length);
+        for (final byte b : raw) {
             hex.append("0123456789ABCDEF".charAt((b & 0xF0) >> 4))
                     .append("0123456789ABCDEF".charAt((b & 0x0F)));
         }

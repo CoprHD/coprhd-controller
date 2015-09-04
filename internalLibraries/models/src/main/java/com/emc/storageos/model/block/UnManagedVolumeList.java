@@ -17,20 +17,22 @@ import java.util.List;
 public class UnManagedVolumeList {
 
     private List<RelatedResourceRep> unManagedVolumes;
-    
+
     private List<NamedRelatedResourceRep> namedUnManagedVolumes;
-    
-    public UnManagedVolumeList() {}
-            
+
+    public UnManagedVolumeList() {
+    }
+
     public UnManagedVolumeList(List<RelatedResourceRep> unManagedVolumes) {
         this.unManagedVolumes = unManagedVolumes;
     }
 
     /**
-     * The list of unmanaged volumes which are available in a storage system.  
-     * Used primarily to ingest volumes into ViPR.  
+     * The list of unmanaged volumes which are available in a storage system.
+     * Used primarily to ingest volumes into ViPR.
+     * 
      * @valid none
-     */    
+     */
     @XmlElement(name = "unmanaged_volume")
     public List<RelatedResourceRep> getUnManagedVolumes() {
         if (unManagedVolumes == null) {
@@ -44,10 +46,11 @@ public class UnManagedVolumeList {
     }
 
     /**
-     * The list of unmanaged volumes with name which are available in a storage system.  
-     * Used primarily to ingest volumes into ViPR.  
+     * The list of unmanaged volumes with name which are available in a storage system.
+     * Used primarily to ingest volumes into ViPR.
+     * 
      * @valid none
-     */ 
+     */
     @XmlElement(name = "unmanaged_volume")
     public List<NamedRelatedResourceRep> getNamedUnManagedVolumes() {
         if (namedUnManagedVolumes == null) {

@@ -44,8 +44,8 @@ public class SmisDeleteVolumeJob extends SmisJob
     private static final Logger _log = LoggerFactory.getLogger(SmisDeleteVolumeJob.class);
 
     public SmisDeleteVolumeJob(CIMObjectPath cimJob,
-                               URI storageSystem,
-                               TaskCompleter taskCompleter) {
+            URI storageSystem,
+            TaskCompleter taskCompleter) {
         super(cimJob, storageSystem, taskCompleter, "DeleteVolume");
     }
 
@@ -75,7 +75,7 @@ public class SmisDeleteVolumeJob extends SmisJob
             }
 
             // If terminal job state update storage pool capacity
-            if (jobStatus == JobStatus.SUCCESS || jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR ) {
+            if (jobStatus == JobStatus.SUCCESS || jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
                 // Update capacity of storage pools.
                 for (URI poolURI : poolURIs) {
                     SmisUtils.updateStoragePoolCapacity(dbClient, client, poolURI);
@@ -91,37 +91,37 @@ public class SmisDeleteVolumeJob extends SmisJob
                     volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                     dbClient.updateAndReindexObject(volume);
                     dbClient.updateTaskOpStatus(Volume.class, volume.getId(), getTaskCompleter().getOpId(),
-                        new Operation(Operation.Status.ready.name(),
-                        String.format("Deleted volume %s", volume.getNativeId())));
+                            new Operation(Operation.Status.ready.name(),
+                                    String.format("Deleted volume %s", volume.getNativeId())));
                     if (logMsgBuilder.length() != 0) {
                         logMsgBuilder.append("\n");
                     }
                     logMsgBuilder.append(String.format("Successfully deleted volume %s", volume.getId()));
                 }
-            } else if(jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
+            } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
                 for (URI id : getTaskCompleter().getIds()) {
                     if (logMsgBuilder.length() != 0) {
                         logMsgBuilder.append("\n");
                     }
                     logMsgBuilder.append(String.format("Failed to delete volume: %s", id));
                 }
-                //if SRDF Protected Volume, then change it to a normal device.
-                //in case of array locks, target volume deletions fail some times.
+                // if SRDF Protected Volume, then change it to a normal device.
+                // in case of array locks, target volume deletions fail some times.
                 // This fix, converts a RDF device to non-rdf device in ViPr, so that this volume is exposed to UI for deletion again.
                 for (Volume volume : volumes) {
-                	if (volume.checkForSRDF()) {
-                		volume.setPersonality(NullColumnValueGetter.getNullStr());
-                		volume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
-                		volume.setLinkStatus(NullColumnValueGetter.getNullStr());
-                		if (!NullColumnValueGetter.isNullNamedURI(volume.getSrdfParent())) {
-                			volume.setSrdfParent(new NamedURI(NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullStr()));
-                			volume.setSrdfCopyMode(NullColumnValueGetter.getNullStr());
-                        	volume.setSrdfGroup(NullColumnValueGetter.getNullURI());
-                		} else if (null != volume.getSrdfTargets()){
-                			volume.getSrdfTargets().clear();
-                		}
-                	}
-                	dbClient.updateAndReindexObject(volume);
+                    if (volume.checkForSRDF()) {
+                        volume.setPersonality(NullColumnValueGetter.getNullStr());
+                        volume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
+                        volume.setLinkStatus(NullColumnValueGetter.getNullStr());
+                        if (!NullColumnValueGetter.isNullNamedURI(volume.getSrdfParent())) {
+                            volume.setSrdfParent(new NamedURI(NullColumnValueGetter.getNullURI(), NullColumnValueGetter.getNullStr()));
+                            volume.setSrdfCopyMode(NullColumnValueGetter.getNullStr());
+                            volume.setSrdfGroup(NullColumnValueGetter.getNullURI());
+                        } else if (null != volume.getSrdfTargets()) {
+                            volume.getSrdfTargets().clear();
+                        }
+                    }
+                    dbClient.updateAndReindexObject(volume);
                 }
             }
             if (logMsgBuilder.length() > 0) {
@@ -134,6 +134,5 @@ public class SmisDeleteVolumeJob extends SmisJob
             super.updateStatus(jobContext);
         }
     }
-    
-    
+
 }

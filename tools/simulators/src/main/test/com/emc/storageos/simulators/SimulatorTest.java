@@ -35,8 +35,8 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /*
-* Test client for simulator with db service enabled
-*/
+ * Test client for simulator with db service enabled
+ */
 public class SimulatorTest {
     private static Logger _log = LoggerFactory.getLogger(SimulatorTest.class);
     private String _exp_path = "/ifs/test" + System.currentTimeMillis();
@@ -48,11 +48,11 @@ public class SimulatorTest {
     public void cleanup() throws Exception {
         _main.stop();
     }
-    
+
     @Test
     public void testDb() throws Exception {
         _main = new Main();
-        _main.main(new String[]{"/" + getClass().getResource("/simulator-db-config.xml").getPath()});
+        _main.main(new String[] { "/" + getClass().getResource("/simulator-db-config.xml").getPath() });
         IsilonApiFactory factory = new IsilonApiFactory();
         factory.init();
         _client = factory.getRESTClient(URI.create("http://localhost:9999"));
@@ -63,7 +63,7 @@ public class SimulatorTest {
     @Test
     public void testInMem() throws Exception {
         _main = new Main();
-        _main.main(new String[]{ "/" + getClass().getResource("/simulator-config.xml").getPath() });
+        _main.main(new String[] { "/" + getClass().getResource("/simulator-config.xml").getPath() });
         IsilonApiFactory factory = new IsilonApiFactory();
         factory.init();
         _client = factory.getRESTClient(URI.create("http://localhost:9999"));
@@ -89,7 +89,7 @@ public class SimulatorTest {
 
         IsilonApi.IsilonList<String> children = _client.listDir(_exp_path + "/listdir", null);
         assertTrue("expected subdirs 2, got subdirs " + children.size(), children.size() == 2);
-        assertTrue("expected children " + expected + ", got " + children, 
+        assertTrue("expected children " + expected + ", got " + children,
                 children.getList().containsAll(expected));
     }
 
@@ -240,15 +240,16 @@ public class SimulatorTest {
     }
 
     /*
-    private void testStatsCurrent() throws Exception {
-        _log.info("Current stats detail: " + _client.getStatsCurrent("cluster.cpu.idle.avg",
-        new TypeToken<IsilonStats.StatValueCurrent<Integer>>() {}.getType()).toString());
-    }
-
-    private void testStatsHistory() throws Exception {
-        _log.info("History stats detail: " + _client.getStatsHistory("cluster.cpu.idle.avg", -7200,
-        new TypeToken<IsilonStats.StatValueHistory<Integer>>() {}.getType()).toString());
-    }*/
+     * private void testStatsCurrent() throws Exception {
+     * _log.info("Current stats detail: " + _client.getStatsCurrent("cluster.cpu.idle.avg",
+     * new TypeToken<IsilonStats.StatValueCurrent<Integer>>() {}.getType()).toString());
+     * }
+     * 
+     * private void testStatsHistory() throws Exception {
+     * _log.info("History stats detail: " + _client.getStatsHistory("cluster.cpu.idle.avg", -7200,
+     * new TypeToken<IsilonStats.StatValueHistory<Integer>>() {}.getType()).toString());
+     * }
+     */
 
     private void testStatsProtocols() throws Exception {
         _log.info("Protocol list: " + _client.getStatsProtocols().toString());
@@ -301,7 +302,7 @@ public class SimulatorTest {
         ExecutorService create_exe = Executors.newFixedThreadPool(numThreads);
         ExecutorService delete_exe = Executors.newFixedThreadPool(numThreads);
 
-        _log.info("create started - time " + ((System.currentTimeMillis() - now)/1000L));
+        _log.info("create started - time " + ((System.currentTimeMillis() - now) / 1000L));
 
         for (int index = 0; index < numThreads; index++) {
             final int threadIndex = index;
@@ -343,7 +344,7 @@ public class SimulatorTest {
             _log.info("Waiting for jobs to finish");
         }
 
-        _log.info("create completed - time " + ((System.currentTimeMillis() - now)/1000L));
+        _log.info("create completed - time " + ((System.currentTimeMillis() - now) / 1000L));
 
         // delete start
         Set<Integer> threadkeyset = ids.keySet();
@@ -377,10 +378,10 @@ public class SimulatorTest {
         while (!delete_exe.awaitTermination(30, TimeUnit.SECONDS)) {
             _log.info("Waiting for jobs to finish");
         }
-        _log.info("delete completed - time " + ((System.currentTimeMillis() - now)/1000L));
+        _log.info("delete completed - time " + ((System.currentTimeMillis() - now) / 1000L));
     }
 
-    public void testAll() throws Exception{
+    public void testAll() throws Exception {
         testClusterInfo();
         testListDir();
         testLoad();
@@ -393,7 +394,7 @@ public class SimulatorTest {
         testQuotaIndex();
         testListQuota();
         testParallel();
-        //testListQuotasPerf();
+        // testListQuotasPerf();
     }
 
     private void testQuotaIndex() throws Exception {
@@ -402,7 +403,7 @@ public class SimulatorTest {
 
         // create
         _client.createDir(dirName, true);
-        id = _client.createQuota(dirName , 2000);
+        id = _client.createQuota(dirName, 2000);
         _log.info("Quota created: " + id);
 
         // get
@@ -514,7 +515,7 @@ public class SimulatorTest {
 
     private void listQuotas() throws Exception {
         IsilonApi.IsilonList<IsilonSmartQuota> quotas = _client.listQuotas(null);
-        for (IsilonSmartQuota quota: quotas.getList()) {
+        for (IsilonSmartQuota quota : quotas.getList()) {
             assertEquals(Quota.NUM_PAGE, quotas.size());
         }
         while (quotas.getToken() != null && !quotas.getToken().isEmpty()) {
@@ -530,4 +531,3 @@ public class SimulatorTest {
         return formatter.format(calendar.getTime());
     }
 }
-

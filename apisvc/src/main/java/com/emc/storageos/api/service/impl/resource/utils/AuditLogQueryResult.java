@@ -26,7 +26,7 @@ import com.emc.storageos.db.client.TimeSeriesQueryResult;
 import com.emc.storageos.db.client.model.AuditLog;
 
 /**
- *  Implementation of DB time series based query result for audit logs
+ * Implementation of DB time series based query result for audit logs
  */
 public class AuditLogQueryResult implements TimeSeriesQueryResult<AuditLog> {
 

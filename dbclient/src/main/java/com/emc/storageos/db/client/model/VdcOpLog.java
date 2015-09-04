@@ -40,11 +40,11 @@ public class VdcOpLog extends DataObject {
      */
     private byte[] operationParam;
 
-     /**
+    /**
      * Current stable vdc config info, used when recovery
      */
     private byte[] vdcConfigInfo;
-   
+
     @Name("type")
     public String getOperationType() {
         return operationType;
@@ -54,7 +54,7 @@ public class VdcOpLog extends DataObject {
         this.operationType = operationType;
         setChanged("type");
     }
-    
+
     @Name("opVdcId")
     public URI getOperatedVdc() {
         return operatedVdc;
@@ -86,4 +86,3 @@ public class VdcOpLog extends DataObject {
     }
 
 }
-

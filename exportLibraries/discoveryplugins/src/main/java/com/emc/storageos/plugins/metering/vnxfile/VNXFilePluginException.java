@@ -17,20 +17,18 @@ package com.emc.storageos.plugins.metering.vnxfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
-
-
 /**
  *
  * @TODO define error codes.
  */
 public class VNXFilePluginException extends BaseCollectionException {
 
-    public static final int ERRORCODE_ILLEGALARGUMENTEXCEPTION     = 0;
-    public static final int ERRORCODE_ILLEGALACCESSEXCEPTION       = 1;
-    public static final int ERRORCODE_INVOCATIONTARGETEXCEPTION    = 2;
-    public static final int ERRORCODE_INVALID_RESPONSE             = 3;
+    public static final int ERRORCODE_ILLEGALARGUMENTEXCEPTION = 0;
+    public static final int ERRORCODE_ILLEGALACCESSEXCEPTION = 1;
+    public static final int ERRORCODE_INVOCATIONTARGETEXCEPTION = 2;
+    public static final int ERRORCODE_INVALID_RESPONSE = 3;
 
-    protected VNXFilePluginException(final boolean retryable,  final ServiceCode serviceCode, final int errorCode,
+    protected VNXFilePluginException(final boolean retryable, final ServiceCode serviceCode, final int errorCode,
             final Throwable cause, final String detailBase, final String detailKey,
             final Object[] detailParams) {
         super(retryable, serviceCode, cause, detailBase, detailKey, detailParams);

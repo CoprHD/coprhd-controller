@@ -65,26 +65,26 @@ import com.emc.storageos.volumecontroller.impl.smis.CIMConnectionFactory;
  * 
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = {"classpath*:**/standalone-plugin-context.xml"})
+@ContextConfiguration(locations = { "classpath*:**/standalone-plugin-context.xml" })
 public class SMICommunicationInterfaceTest {
     private static final Logger _LOGGER = LoggerFactory
             .getLogger(SMICommunicationInterfaceTest.class);
     private ApplicationContext _context = null;
     private DbClient _dbClient = null;
-    
+
     @Autowired
     private CoordinatorClientImpl coordinator = null;
-    
+
     @Autowired
-    private SMICommunicationInterface xiv= null;
+    private SMICommunicationInterface xiv = null;
     @Autowired
     private ConnectionManager connectionManager = null;
-    @Resource(name="configinfo")
+    @Resource(name = "configinfo")
     private Map<String, String> configinfo;
 
-    private CIMConnectionFactory cimConnectionFactory = null; 
+    private CIMConnectionFactory cimConnectionFactory = null;
     private static final String UNIT_TEST_CONFIG_FILE = "sanity";
-    
+
     private static final String providerIP = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "smis.host.ipaddress");
     private static final String providerPortStr = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "smis.host.port");
     private static final int providerPort = Integer.parseInt(providerPortStr);
@@ -95,22 +95,21 @@ public class SMICommunicationInterfaceTest {
     private static final String providerArraySerial = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "smis.host.array.serial");
     private static final String providerManfacturer = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "smis.host.manfacturer");
     private static boolean isProviderSslEnabled = Boolean.parseBoolean(providerUseSsl);
-    
-    
+
     @Before
     public void setup() {
-        //_context = new ClassPathXmlApplicationContext("/plugin-context.xml");
+        // _context = new ClassPathXmlApplicationContext("/plugin-context.xml");
         try {
             _dbClient = Cassandraforplugin.returnDBClient();
             cimConnectionFactory = new CIMConnectionFactory();
             cimConnectionFactory.setDbClient(_dbClient);
             cimConnectionFactory.setConnectionManager(connectionManager);
-                        
-        	cleanDB();
-        	
+
+            cleanDB();
+
             URI tenantURI = URIUtil.createId(TenantOrg.class);
             URI projURI = URIUtil.createId(Project.class);
-            
+
             TenantOrg tenantorg = new TenantOrg();
             tenantorg.setId(URIUtil.createId(TenantOrg.class));
             tenantorg.setLabel("some tenant");
@@ -118,7 +117,7 @@ public class SMICommunicationInterfaceTest {
                     tenantorg.getLabel()));
             _LOGGER.info("TenantOrg :" + tenantorg.getId());
             _dbClient.createObject(tenantorg);
-            
+
             Project proj = new Project();
             proj.setId(URIUtil.createId(Project.class));
             proj.setLabel("some name");
@@ -126,7 +125,7 @@ public class SMICommunicationInterfaceTest {
             _LOGGER.info("Project :" + proj.getId());
             _LOGGER.info("TenantOrg-Proj :" + proj.getTenantOrg());
             _dbClient.createObject(proj);
-            
+
             Volume vol = new Volume();
             vol.setId(URIUtil.createId(Volume.class)); // 02751
             vol.setLabel("some volume");
@@ -134,16 +133,16 @@ public class SMICommunicationInterfaceTest {
             vol.setVirtualPool(URIUtil.createId(VirtualPool.class));
             vol.setProject(new NamedURI(proj.getId(), vol.getLabel()));
             _dbClient.createObject(vol);
-            
-//            StorageProvider provider = new StorageProvider();
-//            provider.setId(URIUtil.createId(StorageProvider.class));
-//            provider.setIPAddress(providerIP);
-//            provider.setPassword(providerPassword);
-//            provider.setUserName(providerUser);
-//            provider.setPortNumber(providerPort);
-//            provider.setUseSSL(isProviderSslEnabled);
-//            provider.setInterfaceType(StorageProvider.InterfaceType.smis.name());
-//            _dbClient.createObject(provider);
+
+            // StorageProvider provider = new StorageProvider();
+            // provider.setId(URIUtil.createId(StorageProvider.class));
+            // provider.setIPAddress(providerIP);
+            // provider.setPassword(providerPassword);
+            // provider.setUserName(providerUser);
+            // provider.setPortNumber(providerPort);
+            // provider.setUseSSL(isProviderSslEnabled);
+            // provider.setInterfaceType(StorageProvider.InterfaceType.smis.name());
+            // _dbClient.createObject(provider);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -206,7 +205,7 @@ public class SMICommunicationInterfaceTest {
             @Override
             public void run() {
                 try {
-                	
+
                     smi.scan(createXIVAccessProfile());
                 } catch (BaseCollectionException e) {
                     // TODO Auto-generated catch block
@@ -214,7 +213,7 @@ public class SMICommunicationInterfaceTest {
                 }
             }
         });
-                
+
         service.submit(new Runnable() {
             @Override
             public void run() {
@@ -230,7 +229,7 @@ public class SMICommunicationInterfaceTest {
                 smi.cleanup();
             }
         });
-        
+
         service.shutdown();
         try {
             service.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
@@ -238,8 +237,8 @@ public class SMICommunicationInterfaceTest {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-    }   
-    
+    }
+
     // Need to start coordinator & DB service, before running this test
     @Test
     public void testVNXBlockPlugin() {
@@ -253,12 +252,12 @@ public class SMICommunicationInterfaceTest {
             _smiplugin.injectCache(map1);
             _smiplugin.injectDBClient(new DbClientImpl());
             _smiplugin.scan(createAccessProfile());
-            //sleeptest(_smiplugin);
+            // sleeptest(_smiplugin);
         } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-    }    
+    }
 
     // SYMMETRIX+000187910031
     private AccessProfile createAccessProfile() {
@@ -274,12 +273,12 @@ public class SMICommunicationInterfaceTest {
         _profile.setserialID(providerArraySerial);
         return _profile;
     }
-    
+
     // Need to start coordinator & DB service, before running this test
     @Test
-    public void testXIVBlockPlugin() {  
-    	StorageProvider provider = createXIVProvider();
-    	
+    public void testXIVBlockPlugin() {
+        StorageProvider provider = createXIVProvider();
+
         try {
             Map<String, Object> cache = new ConcurrentHashMap<String, Object>();
             Set<String> idset = new HashSet<String>();
@@ -287,32 +286,32 @@ public class SMICommunicationInterfaceTest {
             cache.put("000194900404-block-Volumes", idset);
             xiv.injectCache(cache);
             xiv.injectDBClient(_dbClient);
-            xiv.injectCoordinatorClient(coordinator); 
-            //scanTest(_smiplugin);
-            
+            xiv.injectCoordinatorClient(coordinator);
+            // scanTest(_smiplugin);
+
             AccessProfile profile = populateSMISAccessProfile(provider);
-            verifyDB(profile);            
-            
+            verifyDB(profile);
+
             Map<String, StorageSystemViewObject> storageSystemsCache = Collections
                     .synchronizedMap(new HashMap<String, StorageSystemViewObject>());
             profile.setCache(storageSystemsCache);
-     
+
             xiv.scan(profile);
-            
+
             DataCollectionJobUtil util = new DataCollectionJobUtil();
             util.setDbClient(_dbClient);
             util.setConfigInfo(configinfo);
             List<URI> providerList = new ArrayList<URI>();
             providerList.add(provider.getId());
-                 
-            util.performBookKeeping(storageSystemsCache, providerList);           
-   
-            //provider.getStorageSystems();
-            //profile.setSystemId(provider.getSystemId());
+
+            util.performBookKeeping(storageSystemsCache, providerList);
+
+            // provider.getStorageSystems();
+            // profile.setSystemId(provider.getSystemId());
             profile.setserialID(profile.getserialID());
-            
+
             xiv.discover(profile);
-            
+
         } catch (Exception e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -330,10 +329,10 @@ public class SMICommunicationInterfaceTest {
         provider.setInterfaceType(StorageProvider.InterfaceType.smis.name());
         provider.setManufacturer(providerManfacturer);
         _dbClient.createObject(provider);
-        
+
         return provider;
     }
-    
+
     private AccessProfile createXIVAccessProfile() {
         AccessProfile _profile = new AccessProfile();
         _profile.setInteropNamespace(providerNamespace);
@@ -341,17 +340,17 @@ public class SMICommunicationInterfaceTest {
         _profile.setUserName(providerUser);
         _profile.setPassword(providerPassword);
         _profile.setProviderPort(String.valueOf(providerPort));
-        //_profile.setnamespace("Performance");
+        // _profile.setnamespace("Performance");
         _profile.setelementType("Array");
         _profile.setSslEnable(String.valueOf(isProviderSslEnabled));
-        //_profile.setserialID(providerArraySerial);
-        
+        // _profile.setserialID(providerArraySerial);
+
         return _profile;
     }
-    
-    private AccessProfile populateSMISAccessProfile(StorageProvider provider) {        
+
+    private AccessProfile populateSMISAccessProfile(StorageProvider provider) {
         AccessProfile _profile = new AccessProfile();
-    	_profile.setSystemId(provider.getId());
+        _profile.setSystemId(provider.getId());
         _profile.setSystemClazz(provider.getClass());
         _profile.setIpAddress(provider.getIPAddress());
         _profile.setUserName(provider.getUserName());
@@ -359,38 +358,38 @@ public class SMICommunicationInterfaceTest {
         _profile.setSystemType(Type.ibmxiv.name());
         _profile.setProviderPort(String.valueOf(provider.getPortNumber()));
         _profile.setSslEnable(String.valueOf(provider.getUseSSL()));
-        _profile.setInteropNamespace(Constants.INTEROP);       
+        _profile.setInteropNamespace(Constants.INTEROP);
         _profile.setProps(configinfo);
         _profile.setCimConnectionFactory(cimConnectionFactory);
-        
+
         return _profile;
     }
-    
-    private void cleanDB() {
-		List<URI> storageProviderURIs = _dbClient.queryByType(StorageProvider.class,
-				false);
-		Iterator<StorageProvider> storageProvidersIter = _dbClient.queryIterativeObjects(StorageProvider.class,
-				storageProviderURIs);
-		List<StorageProvider> storageProviders = new ArrayList<StorageProvider>();
-		while (storageProvidersIter.hasNext()) {
-			// add to list to be deleted
-			storageProviders.add(storageProvidersIter.next());
-		}
 
-		// delete all objects in the list
-		_dbClient.removeObject(storageProviders
-				.toArray(new StorageProvider[storageProviders.size()]));
+    private void cleanDB() {
+        List<URI> storageProviderURIs = _dbClient.queryByType(StorageProvider.class,
+                false);
+        Iterator<StorageProvider> storageProvidersIter = _dbClient.queryIterativeObjects(StorageProvider.class,
+                storageProviderURIs);
+        List<StorageProvider> storageProviders = new ArrayList<StorageProvider>();
+        while (storageProvidersIter.hasNext()) {
+            // add to list to be deleted
+            storageProviders.add(storageProvidersIter.next());
+        }
+
+        // delete all objects in the list
+        _dbClient.removeObject(storageProviders
+                .toArray(new StorageProvider[storageProviders.size()]));
     }
-    
+
     private void verifyDB(AccessProfile profile) {
         URI providerURI = null;
         StorageProvider provider = null;
         String detailedStatusMessage = "Unknown Status";
-        //try {
-        	_LOGGER.info("Access Profile Details :" + profile.toString());
-            providerURI = profile.getSystemId();            
-            provider = _dbClient.queryObject(StorageProvider.class, providerURI);
-            Assert.assertNotNull(provider);
-        //}
+        // try {
+        _LOGGER.info("Access Profile Details :" + profile.toString());
+        providerURI = profile.getSystemId();
+        provider = _dbClient.queryObject(StorageProvider.class, providerURI);
+        Assert.assertNotNull(provider);
+        // }
     }
 }

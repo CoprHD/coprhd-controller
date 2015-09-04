@@ -25,7 +25,8 @@ import java.util.List;
 public class VArrayAttributeList {
     private List<AttributeList> attributes;
 
-    public VArrayAttributeList() {}
+    public VArrayAttributeList() {
+    }
 
     public VArrayAttributeList(
             List<AttributeList> attributes) {

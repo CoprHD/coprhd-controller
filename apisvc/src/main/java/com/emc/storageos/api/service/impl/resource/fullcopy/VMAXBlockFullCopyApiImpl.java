@@ -14,7 +14,6 @@
  */
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
-
 import java.net.URI;
 import java.util.Arrays;
 import java.util.List;
@@ -43,7 +42,6 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.BlockController;
 
-
 /**
  * The VMAX storage system implementation for the block full copy API.
  */
@@ -59,7 +57,7 @@ public class VMAXBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      * @param scheduler A reference to a scheduler.
      */
     public VMAXBlockFullCopyApiImpl(DbClient dbClient, CoordinatorClient coordinator,
-        Scheduler scheduler) {
+            Scheduler scheduler) {
         super(dbClient, coordinator, scheduler);
     }
 
@@ -81,22 +79,22 @@ public class VMAXBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
             if (URIUtil.isType(fcSourceObjURI, BlockSnapshot.class)) {
                 // Not supported for snapshots.
                 throw APIException.badRequests.fullCopyNotSupportedFromSnapshot(
-                    DiscoveredDataObject.Type.vmax.name(), fcSourceObjURI);
+                        DiscoveredDataObject.Type.vmax.name(), fcSourceObjURI);
             } else {
                 super.validateFullCopyCreateRequest(fcSourceObjList, count);
             }
         }
     }
-  
+
     /**
      * {@inheritDoc}
      */
     @Override
     public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray,
-        String name, boolean createInactive, int count, String taskId) {
+            String name, boolean createInactive, int count, String taskId) {
         return super.create(fcSourceObjList, varray, name, createInactive, count, taskId);
-    }    
-   
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -111,7 +109,7 @@ public class VMAXBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     @Override
     public TaskList detach(BlockObject fcSourceObj, Volume fullCopyVolume) {
         return super.detach(fcSourceObj, fullCopyVolume);
-    }    
+    }
 
     /**
      * {@inheritDoc}
@@ -149,12 +147,12 @@ public class VMAXBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
 
         // Get the storage system for the source volume.
         StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class,
-            sourceVolume.getStorageController());
+                sourceVolume.getStorageController());
         URI sourceSystemURI = sourceSystem.getId();
 
         // Create the task on the full copy volume.
         Operation op = _dbClient.createTaskOpStatus(Volume.class, fullCopyURI,
-            taskId, ResourceOperationTypeEnum.ESTABLISH_VOLUME_FULL_COPY);
+                taskId, ResourceOperationTypeEnum.ESTABLISH_VOLUME_FULL_COPY);
         fullCopyVolume.getOpStatus().put(taskId, op);
         TaskResourceRep fullCopyVolumeTask = TaskMapper.toTask(
                 fullCopyVolume, taskId, op);
@@ -163,15 +161,15 @@ public class VMAXBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
         // Invoke the controller.
         try {
             BlockController controller = getController(BlockController.class,
-                sourceSystem.getSystemType());
+                    sourceSystem.getSystemType());
             controller.establishVolumeAndFullCopyGroupRelation(sourceSystemURI, sourceVolumeURI,
-                fullCopyURI, taskId);
+                    fullCopyURI, taskId);
         } catch (InternalException ie) {
             s_logger.error(String.format("Failed to establish group relation between volume group"
                     + " and full copy group. Volume: %s, Full copy: %s",
                     sourceVolumeURI, fullCopyVolume.getId()), ie);
             super.handleFailedRequest(taskId, taskList,
-                Arrays.asList(fullCopyVolume), ie, false);
+                    Arrays.asList(fullCopyVolume), ie, false);
         }
 
         return taskList;
@@ -183,5 +181,5 @@ public class VMAXBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     @Override
     public VolumeRestRep checkProgress(URI sourceURI, Volume fullCopyVolume) {
         return super.checkProgress(sourceURI, fullCopyVolume);
-    }    
+    }
 }

@@ -23,34 +23,34 @@ import com.emc.storageos.security.geo.GeoServiceClient;
  *
  */
 public class VdcOperationLockHelper {
-    
+
     private final static Logger log = LoggerFactory.getLogger(VdcOperationLockHelper.class);
-    
+
     private final static String GLOBAL_LOCK = GeoServiceClient.VDCOP_LOCK_NAME;
     private final static long GLOBAL_LOCK_TIMEOUT = GeoServiceClient.VDCOP_LOCK_TIMEOUT;
-    
+
     private InternalDbClient dbClient;
 
     private Service serviceInfo;
-    
+
     public VdcOperationLockHelper() {
     }
 
     public void setDbClient(InternalDbClient _dbClient) {
         this.dbClient = _dbClient;
     }
-    
+
     public void setService(Service serviceInfo) {
         this.serviceInfo = serviceInfo;
     }
-    
+
     public void acquire(String vdcShortId) {
-        boolean lockAcquired=false;
+        boolean lockAcquired = false;
         String lockErrMsg = null;
         GlobalLockImpl glock = null;
         try {
             log.info("try to acquire lock for vdc operation {}", vdcShortId);
-            
+
             glock = new GlobalLockImpl(dbClient, GLOBAL_LOCK,
                     GlobalLock.GL_Mode.GL_NodeSvcShared_MODE, GLOBAL_LOCK_TIMEOUT,
                     VdcUtil.getLocalShortVdcId());
@@ -59,13 +59,13 @@ public class VdcOperationLockHelper {
                 lockAcquired = true;
             } else {
                 lockErrMsg = glock.getErrorMessage();
-                if(StringUtils.isEmpty(lockErrMsg)) {
+                if (StringUtils.isEmpty(lockErrMsg)) {
                     lockErrMsg = "Could not acquire global lock for vdc operation";
                 }
             }
-            
+
         } catch (Exception e) {
-            if(glock == null || StringUtils.isEmpty(glock.getErrorMessage())) {
+            if (glock == null || StringUtils.isEmpty(glock.getErrorMessage())) {
                 lockErrMsg = "Could not acquire global lock for vdc operation";
             }
             else {
@@ -77,11 +77,11 @@ public class VdcOperationLockHelper {
             throw GeoException.fatals.acquireLockFail(vdcShortId, lockErrMsg);
         }
     }
-    
+
     public void release(String vdcShortId) {
         try {
             log.info("try to release lock for vdc operation {}", vdcShortId);
-            
+
             GlobalLockImpl glock = new GlobalLockImpl(dbClient, GLOBAL_LOCK,
                     GlobalLock.GL_Mode.GL_NodeSvcShared_MODE, GLOBAL_LOCK_TIMEOUT,
                     VdcUtil.getLocalShortVdcId());
@@ -90,7 +90,7 @@ public class VdcOperationLockHelper {
             // don't fail if we can't release the lock; it'll eventually time out
             log.error(e.getMessage(), e);
         }
-        
+
     }
 
 }

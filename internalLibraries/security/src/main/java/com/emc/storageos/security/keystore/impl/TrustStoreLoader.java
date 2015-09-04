@@ -74,8 +74,9 @@ public class TrustStoreLoader {
 
         try {
 
-            /* the lock and version check to make sure, within one vdc only one service which uses truststore (like authsvc)
-               fill up zk truststore at same time.
+            /*
+             * the lock and version check to make sure, within one vdc only one service which uses truststore (like authsvc)
+             * fill up zk truststore at same time.
              */
             log.info("To load the trust store, trying to get the lock: {} ", CA_CERTS_LOCK);
             tsLock = coordHelper.acquireLock(CA_CERTS_LOCK);
@@ -107,7 +108,7 @@ public class TrustStoreLoader {
                     DistributedKeyStoreImpl.CA_CERTIFICATES_CONFIG_KIND,
                     DistributedKeyStoreImpl.CA_CERTIFICATES_CONFIG_ID,
                     DistributedKeyStoreImpl.CA_CERTIFICATES_CONFIG_KEY_VERSION
-            );
+                    );
             log.info("saved the new version of ca certs to ZK: {}", version);
         } catch (Exception e) {
             throw new RuntimeException(e);

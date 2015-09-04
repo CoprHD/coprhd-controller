@@ -34,10 +34,10 @@ import com.emc.storageos.security.exceptions.SecurityException;
 import javax.servlet.http.HttpServletRequest;
 
 /**
- * The class to handle invalid login attempts. 
+ * The class to handle invalid login attempts.
  * If the invalid login attempts from the same IP exceed the configured parameter (default 10) the IP will be blocked for
  * a configured life time (default 10 minutes). After that time the IP will be cleared to allow logins from that IP to proceed.
- * Successful login from a client IP will clear the record in ZK for that IP.  
+ * Successful login from a client IP will clear the record in ZK for that IP.
  *
  */
 public class InvalidLoginManager {
@@ -53,11 +53,10 @@ public class InvalidLoginManager {
     public static final String OLD_PASSWORD_INVALID_ERROR = "Old password is invalid";
     private final ScheduledExecutorService _invalidLoginCleanupExecutor = Executors.newScheduledThreadPool(1);
 
-    
     private CoordinatorClient _coordinator;
     protected DistributedDataManager _distDataManager;
-    
-    protected int _maxAuthnLoginAttemtsCount  = MAX_AUTHN_LOGIN_ATTEMPTS_COUNT;
+
+    protected int _maxAuthnLoginAttemtsCount = MAX_AUTHN_LOGIN_ATTEMPTS_COUNT;
     protected int _maxAuthnLoginAttemtsLifeTimeInMins = MAX_AUTHN_LOGIN_ATTEMPTS__LIFE_TIME_IN_MINS;
     protected int _cleanupThreadInitialDelay = CLEANUP_THREAD_INITIAL_DELAY_IN_MINS;
 
@@ -81,7 +80,7 @@ public class InvalidLoginManager {
         return _cleanupThreadInitialDelay;
     }
 
-    public void setMaxAuthnLoginAttemtsLifeTimeInMins( int maxAuthnLoginAttemtsLifeTimeInMins) {
+    public void setMaxAuthnLoginAttemtsLifeTimeInMins(int maxAuthnLoginAttemtsLifeTimeInMins) {
         this._maxAuthnLoginAttemtsLifeTimeInMins = maxAuthnLoginAttemtsLifeTimeInMins;
     }
 
@@ -96,6 +95,7 @@ public class InvalidLoginManager {
     /**
      * Check if the client IP is blocked.
      * It is blocked if there are too many invalid logins from that IP. The default value for this parameter is 10.
+     * 
      * @brief Checks if the client IP is blocked
      * @param clientIP Client IP address to be used to check the number of invalid login attempts from that IP
      * @return true if the provided client IP is blocked because of too many invalid login attempts
@@ -104,7 +104,7 @@ public class InvalidLoginManager {
         try {
             if (null != clientIP && !clientIP.isEmpty()) {
                 String zkPath = getZkPath(clientIP);
-                InvalidLogins invLogins = (InvalidLogins)_distDataManager.getData(zkPath, false);
+                InvalidLogins invLogins = (InvalidLogins) _distDataManager.getData(zkPath, false);
                 if (null != invLogins) {
                     if (isClientInvalidRecordExpired(invLogins)) {
                         removeInvalidRecord(clientIP);
@@ -116,7 +116,7 @@ public class InvalidLoginManager {
                 } else {
                     return false;
                 }
-                // This IP is blocked, too many invalid logins from that IP. 
+                // This IP is blocked, too many invalid logins from that IP.
                 // It will be cleared after MAX_AUTHN_LOGIN_ATTEMPTS__LIFE_TIME_IN_MINS from the last invalid login.
                 _log.error("The client IP is blocked, too many error logins from that IP: {}", clientIP);
             } else {
@@ -125,28 +125,29 @@ public class InvalidLoginManager {
         } catch (Exception ex) {
             _log.error("Failed to check the error login count", ex);
         }
-        return true;  
+        return true;
     }
-   
+
     private boolean isClientInvalidRecordExpired(InvalidLogins invLogins) {
-            if (null != invLogins && (getCurrentTimeInMins() - invLogins.getLastAccessTime() ) > _maxAuthnLoginAttemtsLifeTimeInMins ) {
-                return true;
-            }
+        if (null != invLogins && (getCurrentTimeInMins() - invLogins.getLastAccessTime()) > _maxAuthnLoginAttemtsLifeTimeInMins) {
+            return true;
+        }
         return false;
     }
 
     /**
      * This is NOOP if the client IP is not in ZK,
      * if exists, get a lock INVALID_LOGIN_CLEANER_LOCK and then remove the record
-     * @brief Remove the client IP from the  invalid login records list
+     * 
+     * @brief Remove the client IP from the invalid login records list
      * @param clientIP The client IP to be removed from the invalid login records list
      */
     public void removeInvalidRecord(String clientIP) {
         try {
             if (!StringUtils.isBlank(clientIP)) {
 
-                //check if zk contains the IP.
-                InvalidLogins invLogins = (InvalidLogins)_distDataManager.getData(getZkPath(clientIP), false);
+                // check if zk contains the IP.
+                InvalidLogins invLogins = (InvalidLogins) _distDataManager.getData(getZkPath(clientIP), false);
                 if (null == invLogins) {
                     _log.debug("{} doesn't in zk, return from removeInvalidRecord", clientIP);
                     return;
@@ -179,9 +180,10 @@ public class InvalidLoginManager {
             _log.error("Unexpected exception", ex);
         }
     }
-   
+
     /**
-     * Generate version specific ZK node path like /authservice/192.168.2.1_2.0 
+     * Generate version specific ZK node path like /authservice/192.168.2.1_2.0
+     * 
      * @param clientIP
      * @return generated ZK node name or null if the provided clientIP is null or empty
      */
@@ -191,9 +193,11 @@ public class InvalidLoginManager {
         }
         return null;
     }
+
     /**
      * The client failed to login. If an invalid login record exists for that client, increment the error count of that record.
      * If that record does nor exists, create new entry.
+     * 
      * @brief Update the invalid login record for this client
      * @param clientIP
      */
@@ -206,18 +210,18 @@ public class InvalidLoginManager {
                 lock = _coordinator.getLock(INVALID_LOGIN_CLEANER_LOCK);
                 lock.acquire();
                 _log.debug("Got a lock for updating the ZK");
-                InvalidLogins invLogins = (InvalidLogins)_distDataManager.getData(zkPath, false);
+                InvalidLogins invLogins = (InvalidLogins) _distDataManager.getData(zkPath, false);
                 if (null == invLogins) {
                     // New entry for this invalid login
                     _distDataManager.createNode(zkPath, false);
                     invLogins = new InvalidLogins(getCurrentTimeInMins(), 1);
-                    _log.debug("Creating new record in the ZK for the client {}",clientIP);
+                    _log.debug("Creating new record in the ZK for the client {}", clientIP);
                 } else {
                     invLogins.incrementErrorLoginCount();
                 }
                 // Update the last invalid login time stamp.
                 invLogins.setLastAccessTime(getCurrentTimeInMins());
-                _log.debug("Updating the record in the ZK for the client {}",clientIP);
+                _log.debug("Updating the record in the ZK for the client {}", clientIP);
                 _distDataManager.putData(zkPath, invLogins);
             } catch (Exception ex) {
                 _log.error("Exception for the clientIP {} ", clientIP, ex);
@@ -235,9 +239,9 @@ public class InvalidLoginManager {
         }
         return;
     }
-    
+
     /**
-     * @brief Get the current time in minutes 
+     * @brief Get the current time in minutes
      * @return The current time in minutes
      */
     protected long getCurrentTimeInMins() {
@@ -247,7 +251,8 @@ public class InvalidLoginManager {
     /**
      * Walk through the list of records for Invalid Login Attempts, and for each record check the expiration time.
      * If the record is expired, then delete that record.
-     * @brief Invalid Login Records cleanup 
+     * 
+     * @brief Invalid Login Records cleanup
      * 
      */
     protected void invLoginCleanup() {
@@ -258,7 +263,7 @@ public class InvalidLoginManager {
         try {
             // Wait for random number of seconds to avoid all nodes in the cluster to access ZK at the same time
             Random random = new Random(System.currentTimeMillis());
-            long sleepInterval = (int)(random.nextDouble() * 100000); // interval is between 0 - 100,000 milliseconds
+            long sleepInterval = (int) (random.nextDouble() * 100000); // interval is between 0 - 100,000 milliseconds
             _log.debug("Sleeping for milliseconds: {}", sleepInterval);
             Thread.sleep(sleepInterval);
             List<String> recordNames = _distDataManager.getChildren(zkRoot);
@@ -267,7 +272,7 @@ public class InvalidLoginManager {
                     String zkPath = zkRoot + "/" + clientIP;
                     visitedRecords.append(zkPath);
                     visitedRecords.append("; ");
-                    InvalidLogins invLogins = (InvalidLogins)_distDataManager.getData(zkPath, false);
+                    InvalidLogins invLogins = (InvalidLogins) _distDataManager.getData(zkPath, false);
                     if (isClientInvalidRecordExpired(invLogins)) {
                         // The invalid login record is expired. Delete it. We already have a lock.
                         _distDataManager.removeNode(zkPath);
@@ -287,22 +292,23 @@ public class InvalidLoginManager {
             _log.warn("Unexpected exception during db maintenance", ex);
         }
     }
-    
+
     /**
      * Initialize the background task to be run every hour.
      * At each run that task will walk through the Invalid Login records and clean all expired records.
+     * 
      * @brief Initialize the background thread to clean up the Invalid Login records
      */
     public void init() {
         _invalidLoginCleanupExecutor.scheduleWithFixedDelay(
-        new InvalidLoginCleaner(), _cleanupThreadInitialDelay, _maxAuthnLoginAttemtsLifeTimeInMins, TimeUnit.MINUTES);
+                new InvalidLoginCleaner(), _cleanupThreadInitialDelay, _maxAuthnLoginAttemtsLifeTimeInMins, TimeUnit.MINUTES);
         _log.info("Max invalid login attempts from the same client IP: {}", _maxAuthnLoginAttemtsCount);
         _log.info("Life time in minutes of invalid login records for a client IP: {}", _maxAuthnLoginAttemtsLifeTimeInMins);
         _log.info("Cleanup thread initial delay: {}", _cleanupThreadInitialDelay);
     }
-    
+
     /**
-     * The class to implement the Invalid Login records cleanup thread 
+     * The class to implement the Invalid Login records cleanup thread
      *
      */
     private class InvalidLoginCleaner implements Runnable {

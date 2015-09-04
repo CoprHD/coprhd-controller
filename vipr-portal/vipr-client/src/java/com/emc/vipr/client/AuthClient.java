@@ -46,7 +46,7 @@ public class AuthClient {
     public AuthClient(ClientConfig config) {
         this(config.newClient());
     }
-    
+
     public RestClient getClient() {
         return this.client;
     }
@@ -70,7 +70,7 @@ public class AuthClient {
 
     public String proxyToken() {
         ClientResponse response = client.resource("/proxytoken").get(ClientResponse.class);
-        MultivaluedMap<String,String> headers = response.getHeaders();
+        MultivaluedMap<String, String> headers = response.getHeaders();
         String proxyToken = headers.getFirst(Constants.PROXY_TOKEN_KEY);
         response.close();
         return proxyToken;
@@ -102,7 +102,7 @@ public class AuthClient {
         }
         client.getURI(String.class, builder.build());
     }
-    
+
     public boolean isLoggedIn() {
         return (client.getAuthToken() != null) && !("".equals(client.getAuthToken()));
     }

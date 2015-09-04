@@ -26,7 +26,7 @@ public class ComputeImageProvider extends BaseAssetOptionsProvider {
         debug("getting compute images");
         return api(context).computeImages().getAll();
     }
-    
+
     @Asset("computeImage")
     public List<AssetOption> getComputeImageOptions(AssetOptionsContext ctx) {
         debug("getting compute images");
@@ -35,9 +35,9 @@ public class ComputeImageProvider extends BaseAssetOptionsProvider {
             if (ComputeImage.ComputeImageStatus.AVAILABLE.name().equals(ci.getComputeImageStatus())) {
                 availCis.add(ci);
             }
-        }        
+        }
         return createBaseResourceOptions(availCis);
-    }    
+    }
 
     protected AssetOption createComputeImageOption(AssetOptionsContext ctx, ComputeImageRestRep value) {
         String label = value.getName();

@@ -19,8 +19,7 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.alert.CIMVolumeAle
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.utility.CIMConstants;
 
 @Component("alertProcessor")
-public class CIMAlertProcessor extends BaseProcessor{
-
+public class CIMAlertProcessor extends BaseProcessor {
 
     /**
      * Logger to log the debug information
@@ -51,7 +50,6 @@ public class CIMAlertProcessor extends BaseProcessor{
         super();
     }
 
-    
     /**
      * Converts the key value pairs into Alert Indication and persists into
      * Cassandra.
@@ -60,19 +58,22 @@ public class CIMAlertProcessor extends BaseProcessor{
      * @return
      */
     public void processIndication(Hashtable<String, String> notification) {
-        if (_monitoringPropertiesLoader!=null && _monitoringPropertiesLoader.isToLogIndications()) {
+        if (_monitoringPropertiesLoader != null && _monitoringPropertiesLoader.isToLogIndications()) {
             _logger.debug("Converting CimIndication into an Event");
         }
 
         try {
             if (isStorageVolumeAlert(notification)) {
-                CIMVolumeAlertRecordableDeviceEvent vAlert = new CIMVolumeAlertRecordableDeviceEvent(_dbClient, _monitoringPropertiesLoader, notification);
+                CIMVolumeAlertRecordableDeviceEvent vAlert = new CIMVolumeAlertRecordableDeviceEvent(_dbClient,
+                        _monitoringPropertiesLoader, notification);
                 _recordableEventManager.recordEvents(vAlert);
             } else if (isFileShareAlert(notification)) {
-                CIMFileShareAlertRecordableDeviceEvent fAlert = new CIMFileShareAlertRecordableDeviceEvent(_dbClient, _monitoringPropertiesLoader, notification);
+                CIMFileShareAlertRecordableDeviceEvent fAlert = new CIMFileShareAlertRecordableDeviceEvent(_dbClient,
+                        _monitoringPropertiesLoader, notification);
                 _recordableEventManager.recordEvents(fAlert);
             } else {
-                CIMOtherAlertRecordableDeviceEvent gAlert = new CIMOtherAlertRecordableDeviceEvent(_dbClient, _monitoringPropertiesLoader, notification);
+                CIMOtherAlertRecordableDeviceEvent gAlert = new CIMOtherAlertRecordableDeviceEvent(_dbClient, _monitoringPropertiesLoader,
+                        notification);
                 _recordableEventManager.recordEvents(gAlert);
             }
         } catch (Exception e) {
@@ -112,5 +113,5 @@ public class CIMAlertProcessor extends BaseProcessor{
         // value that FileShare alerts will be having
 
         return isFileShareAlert;
-    }    
+    }
 }

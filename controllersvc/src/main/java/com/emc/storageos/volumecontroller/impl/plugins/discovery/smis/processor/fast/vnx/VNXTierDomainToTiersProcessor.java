@@ -47,8 +47,6 @@ public class VNXTierDomainToTiersProcessor extends AbstractFASTPolicyProcessor {
         }
     }
 
-   
-
     @Override
     protected void setPrerequisiteObjects(List<Object> inputArgs)
             throws BaseCollectionException {

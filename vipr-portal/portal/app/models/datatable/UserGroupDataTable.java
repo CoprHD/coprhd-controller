@@ -58,7 +58,7 @@ public class UserGroupDataTable extends DataTable {
          */
         private StringBuilder getAttributesStringBuilder(UserGroupRestRep userGroupRestRep) {
             StringBuilder ss = new StringBuilder();
-            for(UserAttributeParam param : userGroupRestRep.getAttributes()) {
+            for (UserAttributeParam param : userGroupRestRep.getAttributes()) {
                 ss.append(param.getKey());
                 ss.append(" = ");
                 ss.append(param.getValues().toString());

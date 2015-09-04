@@ -29,13 +29,13 @@ import com.emc.storageos.db.client.model.RelationIndex;
  */
 @Cf("ExportMask")
 public class ExportMask extends DataObject {
-    
+
     private URI _storageDevice;
     private String indexedField;
     private String unIndexedField;
 
     @Name("storageDevice")
-    @RelationIndex(cf="RelationIndex", type=StorageDevice.class)
+    @RelationIndex(cf = "RelationIndex", type = StorageDevice.class)
     public URI getStorageDevice() {
         return _storageDevice;
     }

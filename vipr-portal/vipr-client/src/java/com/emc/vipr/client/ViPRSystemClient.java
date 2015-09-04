@@ -32,7 +32,7 @@ public class ViPRSystemClient {
     public ViPRSystemClient(ClientConfig config) {
         this.client = config.newClient();
     }
-    
+
     /**
      * Sets the authentication token to be used for this client.
      *
@@ -41,7 +41,7 @@ public class ViPRSystemClient {
     public void setAuthToken(String authToken) {
         client.setAuthToken(authToken);
     }
-    
+
     /**
      * Sets the authentication token and returns the updated client.
      *
@@ -53,7 +53,7 @@ public class ViPRSystemClient {
         setAuthToken(token);
         return this;
     }
-    
+
     /**
      * Performs an authentication login and returns the updated client.
      *

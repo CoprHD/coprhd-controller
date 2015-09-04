@@ -33,7 +33,7 @@ public abstract class VirtualPoolValidator<C extends VirtualPoolCommonParam, U e
     protected Logger _logger = LoggerFactory.getLogger(VirtualPoolValidator.class);
     public static final String NONE = "NONE";
     protected VirtualPoolValidator _nextValidator;
-    
+
     public abstract void setNextValidator(VirtualPoolValidator validator);
 
     /**
@@ -56,8 +56,10 @@ public abstract class VirtualPoolValidator<C extends VirtualPoolCommonParam, U e
         }
         return null;
     }
+
     /**
      * get Value from String Set
+     * 
      * @param key
      * @param volumeInformation
      * @return
@@ -111,7 +113,7 @@ public abstract class VirtualPoolValidator<C extends VirtualPoolCommonParam, U e
     }
 
     protected abstract void validateVirtualPoolCreateAttributeValue(
-        C createParam, DbClient dbClient);
+            C createParam, DbClient dbClient);
 
     protected abstract boolean isUpdateAttributeOn(U updateParam);
 }

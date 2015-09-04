@@ -50,11 +50,11 @@ public class Approvals extends Controller {
 
     public static void approvalsJson() {
         ViPRCatalogClient2 catalog = getCatalogClient();
-        
+
         Map<URI, OrderRestRep> orders = Maps.newHashMap();
         Map<URI, CatalogServiceRestRep> catalogServices = Maps.newHashMap();
         List<ApprovalRequestInfo> approvalRequestInfos = Lists.newArrayList();
-        
+
         List<ApprovalRestRep> approvals = catalog.approvals().getByUserTenant();
         for (ApprovalRestRep approval : approvals) {
             OrderRestRep order = null;
@@ -81,10 +81,10 @@ public class Approvals extends Controller {
                     catalogService = catalogServices.get(order.getCatalogService().getId());
                 }
             }
-            
+
             approvalRequestInfos.add(new ApprovalRequestInfo(approval, order, catalogService));
         }
-        
+
         renderJSON(DataTablesSupport.createJSON(approvalRequestInfos, params));
     }
 
@@ -151,7 +151,7 @@ public class Approvals extends Controller {
         updateParam.setMessage(message);
         getCatalogClient().approvals().update(approvalId, updateParam);
     }
-    
+
     public static class ApprovalsForm {
         @Required
         public String submit;
@@ -162,7 +162,7 @@ public class Approvals extends Controller {
             this.submit = submit;
             this.message = message;
         }
-        
+
         public String getSubmit() {
             return this.submit;
         }
@@ -170,7 +170,7 @@ public class Approvals extends Controller {
         public String getMessage() {
             return this.message;
         }
-        
+
         public void validate(String formName) {
             Validation.valid(formName, this);
         }

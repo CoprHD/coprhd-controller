@@ -46,7 +46,8 @@ public class EventManager {
     private ConcurrentLinkedQueue<TimedEvent> _eventQueue = new ConcurrentLinkedQueue<TimedEvent>();
     private AtomicLong instance_id = new AtomicLong(1);
 
-    private EventManager() {}
+    private EventManager() {
+    }
 
     public static EventManager getInstance() {
         return _eventManager;

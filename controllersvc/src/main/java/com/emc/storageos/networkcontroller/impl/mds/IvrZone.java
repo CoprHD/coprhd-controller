@@ -31,32 +31,33 @@ public class IvrZone extends BaseZoneInfo {
     public IvrZone(String name) {
         super(name);
     }
-	
-    public List<IvrZoneMember> getMembers() { 
-        if ( members == null) 
+
+    public List<IvrZoneMember> getMembers() {
+        if (members == null)
             members = new ArrayList<IvrZoneMember>();
         return members;
     }
-    
+
     public void setMembers(List<IvrZoneMember> members) {
-		this.members = members;
-	}
-    
-    
-	public void print() {
-        _log.info("zone: " + name + " (" + instanceID + ") " + (active? "active" : ""));
-        for (IvrZoneMember member : members) member.print();
+        this.members = members;
+    }
+
+    public void print() {
+        _log.info("zone: " + name + " (" + instanceID + ") " + (active ? "active" : ""));
+        for (IvrZoneMember member : members)
+            member.print();
     }
 
     /**
      * Verify if given ivr zone member is a member of ivr zone
+     * 
      * @param zoneMember
      * @return
      */
     public boolean contains(IvrZoneMember zoneMember) {
         return getMembers().contains(zoneMember);
     }
-    
+
     @Override
     public int hashCode() {
         return getName().hashCode();
@@ -64,15 +65,15 @@ public class IvrZone extends BaseZoneInfo {
 
     @Override
     public boolean equals(Object obj) {
-        if ( obj instanceof IvrZone) {
-            IvrZone ivrZone = (IvrZone)obj;
+        if (obj instanceof IvrZone) {
+            IvrZone ivrZone = (IvrZone) obj;
             List<IvrZoneMember> tmpMembers = new ArrayList<IvrZoneMember>(getMembers());
             tmpMembers.removeAll(ivrZone.getMembers());
-            
+
             return ivrZone.getName().equalsIgnoreCase(getName()) && tmpMembers.isEmpty();
         }
-        
-        return false;        
+
+        return false;
     }
 
     public NetworkSystem getIvrNetworkSystem() {
@@ -81,4 +82,5 @@ public class IvrZone extends BaseZoneInfo {
 
     public void setIvrNetworkSystem(NetworkSystem ivrNetworkSystem) {
         this.ivrNetworkSystem = ivrNetworkSystem;
-    }}
+    }
+}

@@ -12,7 +12,7 @@
  * limited to the terms and conditions of the License Agreement under which
  * it is provided by or on behalf of EMC.
  */
- 
+
 package com.emc.storageos.api.mapper.functions;
 
 import com.emc.storageos.api.mapper.DbObjectMapper;

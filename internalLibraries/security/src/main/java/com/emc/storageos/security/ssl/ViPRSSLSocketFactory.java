@@ -78,7 +78,9 @@ public class ViPRSSLSocketFactory extends SSLSocketFactory {
         }
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.ssl.SSLSocketFactory#createSocket(java.net.Socket, java.lang.String, int, boolean)
      */
     @Override
@@ -107,7 +109,9 @@ public class ViPRSSLSocketFactory extends SSLSocketFactory {
         return false;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.ssl.SSLSocketFactory#getDefaultCipherSuites()
      */
     @Override
@@ -118,7 +122,9 @@ public class ViPRSSLSocketFactory extends SSLSocketFactory {
         return defaultCipherSuites;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.ssl.SSLSocketFactory#getSupportedCipherSuites()
      */
     @Override
@@ -129,17 +135,21 @@ public class ViPRSSLSocketFactory extends SSLSocketFactory {
         return supportedCipherSuites;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.SocketFactory#createSocket(java.lang.String, int)
      */
     @Override
     public Socket createSocket(String host, int port) throws IOException,
-    UnknownHostException {
+            UnknownHostException {
         log.debug("createSocket(String host:" + host + ", int port:" + port + ")");
         return socketFactory.createSocket(host, port);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.SocketFactory#createSocket(java.net.InetAddress, int)
      */
     @Override
@@ -148,7 +158,9 @@ public class ViPRSSLSocketFactory extends SSLSocketFactory {
         return socketFactory.createSocket(host, port);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.SocketFactory#createSocket(java.lang.String, int, java.net.InetAddress, int)
      */
     @Override
@@ -160,7 +172,9 @@ public class ViPRSSLSocketFactory extends SSLSocketFactory {
         return socketFactory.createSocket(host, port, localHost, localPort);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.SocketFactory#createSocket(java.net.InetAddress, int, java.net.InetAddress, int)
      */
     @Override

@@ -15,7 +15,6 @@
 
 package com.emc.storageos.security.password.rules;
 
-
 public interface Dictionary {
 
     /**

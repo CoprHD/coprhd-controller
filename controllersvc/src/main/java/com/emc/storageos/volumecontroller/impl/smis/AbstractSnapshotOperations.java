@@ -76,13 +76,14 @@ public abstract class AbstractSnapshotOperations implements SnapshotOperations {
      * Should implement creation of a single volume snapshot. That is a volume that
      * is not in any consistency group.
      *
-     * @param storage       [required] - StorageSystem object representing the array
-     * @param snapshot      [required] - BlockSnapshot URI representing the previously created
-     *                      snap for the volume
+     * @param storage [required] - StorageSystem object representing the array
+     * @param snapshot [required] - BlockSnapshot URI representing the previously created
+     *            snap for the volume
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      */
     @Override
-    public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot, Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot, Boolean createInactive, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         try {
             BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
             _log.info("createSingleVolumeSnapshot operation START");
@@ -112,7 +113,7 @@ public abstract class AbstractSnapshotOperations implements SnapshotOperations {
 
     @Override
     public void copySnapshotToTarget(StorageSystem storage, URI snapshot,
-                                     TaskCompleter taskCompleter)
+            TaskCompleter taskCompleter)
             throws DeviceControllerException {
         // Default: no implementation because not every array needs to support this
         // functionality
@@ -120,8 +121,8 @@ public abstract class AbstractSnapshotOperations implements SnapshotOperations {
 
     @Override
     public void copyGroupSnapshotsToTarget(StorageSystem storage,
-                                           List<URI> snapshotList,
-                                           TaskCompleter taskCompleter)
+            List<URI> snapshotList,
+            TaskCompleter taskCompleter)
             throws DeviceControllerException {
         // Default: no implementation because not every array needs to support this
         // functionality
@@ -129,16 +130,18 @@ public abstract class AbstractSnapshotOperations implements SnapshotOperations {
 
     /**
      * Method for deactivating a single snapshot instance. To be used as a common utility.
-     * @param storage       [required] - StorageSystem object representing the array
-     * @param snapshot      [required] - BlockSnapshot URI representing the previously created
-     *                      snap for the volume
+     * 
+     * @param storage [required] - StorageSystem object representing the array
+     * @param snapshot [required] - BlockSnapshot URI representing the previously created
+     *            snap for the volume
      * @param syncObjectPath [required] - The CIMObjectPath representing the block snapshot's
-     *                       SE_Synchronization object.
+     *            SE_Synchronization object.
      * @throws Exception
      */
     protected void deactivateSnapshot(StorageSystem storage, BlockSnapshot snapshot, CIMObjectPath syncObjectPath)
             throws Exception {
-        CIMInstance syncObject = _helper.getInstance(storage, syncObjectPath, false, false, new String[]{SmisConstants.EMC_COPY_STATE_DESC});
+        CIMInstance syncObject = _helper.getInstance(storage, syncObjectPath, false, false,
+                new String[] { SmisConstants.EMC_COPY_STATE_DESC });
         String value = syncObject.getProperty(SmisConstants.EMC_COPY_STATE_DESC).getValue().toString();
         _log.info(String.format("Attempting to deactivate snapshot %s, EMCCopyStateDesc = %s",
                 syncObjectPath.toString(), value));
@@ -157,7 +160,8 @@ public abstract class AbstractSnapshotOperations implements SnapshotOperations {
     /**
      * Wrapper method will update the isSyncActive value of the snapshot object to the
      * 'isActive' value.
-     * @param snapshot   [required] - BlockSnapshot object to update
+     * 
+     * @param snapshot [required] - BlockSnapshot object to update
      * @param isActive [required] - Value to set
      */
     protected void setIsSyncActive(BlockSnapshot snapshot, boolean isActive) {
@@ -174,7 +178,8 @@ public abstract class AbstractSnapshotOperations implements SnapshotOperations {
     /**
      * Wrapper method will update the isActive value of the snapshot object to the
      * 'isActive' value.
-     * @param snapshots  [required] - List of BlockSnapshot objects to update
+     * 
+     * @param snapshots [required] - List of BlockSnapshot objects to update
      * @param isActive [required] - Value to set
      */
     protected void setIsSyncActive(List<BlockSnapshot> snapshots, boolean isActive) {
@@ -190,6 +195,7 @@ public abstract class AbstractSnapshotOperations implements SnapshotOperations {
 
     /**
      * Wrapper for setting the BlockSnapshot.inactive value
+     * 
      * @param snapshotURI [in] - BlockSnapshot object to update
      * @param value [in] - Value to assign to inactive
      */
@@ -207,6 +213,7 @@ public abstract class AbstractSnapshotOperations implements SnapshotOperations {
 
     /**
      * Wrapper for setting the BlockSnapshot.inactive value
+     * 
      * @param snapshotURIs [in] - List of BlockSnapshot objects to update
      * @param value [in] - Value to assign to inactive
      */
@@ -226,7 +233,7 @@ public abstract class AbstractSnapshotOperations implements SnapshotOperations {
 
     @Override
     public void terminateAnyRestoreSessions(StorageSystem storage, BlockObject from, URI volume,
-                                            TaskCompleter taskCompleter) throws Exception {
+            TaskCompleter taskCompleter) throws Exception {
         // Default: no implementation because not every array needs to support this
         // functionality
     }

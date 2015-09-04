@@ -34,7 +34,7 @@ public class ScaleIOException extends InternalException {
     public static final ScaleIOErrors errors = ExceptionMessagesProxy.create(ScaleIOErrors.class);
 
     private ScaleIOException(final ServiceCode code, final Throwable cause,
-                         final String detailBase, final String detailKey, final Object[] detailParams) {
+            final String detailBase, final String detailKey, final Object[] detailParams) {
         super(false, code, cause, detailBase, detailKey, detailParams);
     }
 }

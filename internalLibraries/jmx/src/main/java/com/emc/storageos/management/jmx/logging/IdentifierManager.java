@@ -23,13 +23,13 @@ import java.net.InetAddress;
 import java.net.UnknownHostException;
 
 public class IdentifierManager {
-    private static final String PRODUCT_IDENT_PATH  = "/opt/storageos/etc/product";
-    private static final String PRODUCT_BASE_PATH   = "/opt/storageos/etc/productbase";
-    private static final String GIT_REVISION_PATH   = "/opt/storageos/etc/gitrevision";
-    private static final String GIT_BRANCH_PATH     = "/opt/storageos/etc/gitbranch";
-    private static final String GIT_REPO_PATH       = "/opt/storageos/etc/gitrepo";
-    private static final String PLATFORM_PATH       = "/opt/storageos/etc/platform";
-    private static final String KERNEL_PATH         = "/opt/storageos/etc/kernel";
+    private static final String PRODUCT_IDENT_PATH = "/opt/storageos/etc/product";
+    private static final String PRODUCT_BASE_PATH = "/opt/storageos/etc/productbase";
+    private static final String GIT_REVISION_PATH = "/opt/storageos/etc/gitrevision";
+    private static final String GIT_BRANCH_PATH = "/opt/storageos/etc/gitbranch";
+    private static final String GIT_REPO_PATH = "/opt/storageos/etc/gitrepo";
+    private static final String PLATFORM_PATH = "/opt/storageos/etc/platform";
+    private static final String KERNEL_PATH = "/opt/storageos/etc/kernel";
     private String _productIdent;
     private String _productBase;
     private String _gitRevision;
@@ -49,25 +49,25 @@ public class IdentifierManager {
 
     private IdentifierManager() {
         String productIdent = readFile(PRODUCT_IDENT_PATH);
-        _productIdent = (productIdent == null)? "Unknown" : productIdent;
+        _productIdent = (productIdent == null) ? "Unknown" : productIdent;
 
         String productBase = readFile(PRODUCT_BASE_PATH);
-        _productBase = (productBase == null)? "Unknown" : productBase;
+        _productBase = (productBase == null) ? "Unknown" : productBase;
 
         String gitRevision = readFile(GIT_REVISION_PATH);
-        _gitRevision = (gitRevision == null)? "Unknown" : gitRevision;
+        _gitRevision = (gitRevision == null) ? "Unknown" : gitRevision;
 
         String gitBranch = readFile(GIT_BRANCH_PATH);
-        _gitBranch = (gitBranch == null)? "Unknown" : gitBranch;
+        _gitBranch = (gitBranch == null) ? "Unknown" : gitBranch;
 
         String gitRepository = readFile(GIT_REPO_PATH);
-        _gitRepository = (gitRepository == null)? "Unknown" : gitRepository;
-        
+        _gitRepository = (gitRepository == null) ? "Unknown" : gitRepository;
+
         String platform = readFile(PLATFORM_PATH);
-        _platform = (platform == null)? "Unknown" : platform;
+        _platform = (platform == null) ? "Unknown" : platform;
 
         String kernelVersion = readFile(KERNEL_PATH);
-        _kernelVersion = (kernelVersion == null)? "Unknown" : kernelVersion;
+        _kernelVersion = (kernelVersion == null) ? "Unknown" : kernelVersion;
 
         try {
             _ipAddress = InetAddress.getLocalHost().getHostAddress();
@@ -78,8 +78,9 @@ public class IdentifierManager {
 
     /**
      * Read file content
-     * @param path  file path
-     * @return      file content
+     * 
+     * @param path file path
+     * @return file content
      */
     private static String readFile(String path) {
         BufferedReader br = null;
@@ -128,6 +129,7 @@ public class IdentifierManager {
 
     /**
      * Retrieve git revision from /opt/storageos/etc/gitrevision
+     * 
      * @return
      */
     public String findGitRevision() {
@@ -140,7 +142,7 @@ public class IdentifierManager {
      * @return
      */
     public BigInteger findDeviceState() {
-        
+
         return new BigInteger("2");
     }
 

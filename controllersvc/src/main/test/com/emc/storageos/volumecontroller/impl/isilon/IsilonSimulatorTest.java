@@ -52,7 +52,7 @@ public class IsilonSimulatorTest {
     @Before
     public void setUp() throws Exception {
         // start up simulator server
-       // Main.main(new String[]{ "/" + getClass().getResource("/simulator-config.xml").getPath() } );
+        // Main.main(new String[]{ "/" + getClass().getResource("/simulator-config.xml").getPath() } );
         _isi = new IsilonFileStorageDevice();
         IsilonApiFactory factory = new IsilonApiFactory();
         factory.init();
@@ -151,4 +151,3 @@ public class IsilonSimulatorTest {
     }
 
 }
-

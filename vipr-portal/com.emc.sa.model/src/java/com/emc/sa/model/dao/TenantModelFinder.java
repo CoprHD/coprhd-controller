@@ -14,7 +14,7 @@ import org.apache.commons.lang.StringUtils;
 import java.util.List;
 
 public class TenantModelFinder<T extends DataObject> extends BaseModelFinder<T> {
-    
+
     public TenantModelFinder(Class<T> clazz, DBClientWrapper client) {
         super(clazz, client);
     }
@@ -22,7 +22,7 @@ public class TenantModelFinder<T extends DataObject> extends BaseModelFinder<T> 
     public List<T> findAll(String tenant) throws DataAccessException {
         if (StringUtils.isBlank(tenant)) {
             return Lists.newArrayList();
-        }        
+        }
         List<NamedElement> ids = findAllIds(tenant);
         return findByIds(toURIs(ids));
     }
@@ -31,11 +31,11 @@ public class TenantModelFinder<T extends DataObject> extends BaseModelFinder<T> 
         List<T> objects = findByIds(toURIs(client.findByPrefix(clazz, "label", prefix)));
         return TenantUtils.filter(objects, tenant);
     }
-    
+
     public List<NamedElement> findAllIds(String tenant) throws DataAccessException {
         if (StringUtils.isBlank(tenant)) {
             return Lists.newArrayList();
-        }        
+        }
         return client.findByAlternateId(clazz, TenantDataObject.TENANT_COLUMN_NAME, tenant);
     }
 }

@@ -59,7 +59,7 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
     }
 
     public void setGcDelayMins(int gcDelayMins) {
-       this.gcDelayMins = gcDelayMins;
+        this.gcDelayMins = gcDelayMins;
     }
 
     public void setDbClient(DbClient dbClient) {
@@ -91,6 +91,7 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
      * @param <T>
      **/
     protected abstract <T extends DataObject> GarbageCollectionRunnable genGCTask(Class<T> clazz);
+
     protected abstract void postGC();
 
     @Override
@@ -125,7 +126,7 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
      **/
     private void waitTasksToComplete() {
         log.info("Waiting for {} tasks to finish", futures.size());
-        for (Future f: futures) {
+        for (Future f : futures) {
             try {
                 f.get();
             } catch (ExecutionException | InterruptedException ex) {
@@ -137,4 +138,3 @@ abstract class GarbageCollectionExecutorLoop implements Runnable {
         log.info("GC tasks are done");
     }
 }
-

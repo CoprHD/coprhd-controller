@@ -22,15 +22,15 @@ import com.google.common.collect.Maps;
 import org.apache.commons.lang.StringUtils;
 
 public class BaseModelFinder<T extends DataObject> {
-    
+
     protected ModelClient client;
     protected Class<T> clazz;
 
     public BaseModelFinder(Class<T> clazz, ModelClient client) {
         this.clazz = clazz;
         this.client = client;
-    }    
-    
+    }
+
     protected List<URI> toURIs(StringSet in) {
         List<URI> out = Lists.newArrayList();
         if (in != null) {
@@ -40,7 +40,7 @@ public class BaseModelFinder<T extends DataObject> {
         }
         return out;
     }
-    
+
     protected List<URI> toURIs(List<NamedElement> namedElements) {
         List<URI> out = Lists.newArrayList();
         if (namedElements != null) {
@@ -49,7 +49,7 @@ public class BaseModelFinder<T extends DataObject> {
             }
         }
         return out;
-    }      
+    }
 
     public T findById(URI id) throws DataAccessException {
         if (id != null) {

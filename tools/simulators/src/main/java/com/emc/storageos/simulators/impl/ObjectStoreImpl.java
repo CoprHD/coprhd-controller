@@ -39,7 +39,7 @@ public class ObjectStoreImpl implements ObjectStore {
     private class DirObject {
         /* quota identifier, if one exists */
         private String _quota;
-        /* exports map - mapping host to export id*/
+        /* exports map - mapping host to export id */
         private ConcurrentMap<String, String> _exports;
 
         public ConcurrentMap<String, String> getExports() {
@@ -78,19 +78,19 @@ public class ObjectStoreImpl implements ObjectStore {
      * Class representing the export object
      */
     public static class ExportObject {
-        private Integer             _id;
-        private String              _comment;
-        private ArrayList<String>   _paths;
-        private ArrayList<String>   _clients;
-        private boolean             _read_only;
+        private Integer _id;
+        private String _comment;
+        private ArrayList<String> _paths;
+        private ArrayList<String> _clients;
+        private boolean _read_only;
         private IsilonExport.IsilonIdentity _map_all;
         private IsilonExport.IsilonIdentity _map_root;
-        private ArrayList<String>   _security_flavors;
+        private ArrayList<String> _security_flavors;
 
         private ExportObject(Integer id, String comment, ArrayList<String> paths,
-                             ArrayList<String> clients, boolean read_only,
-                             IsilonExport.IsilonIdentity map_all, IsilonExport.IsilonIdentity map_root,
-                             ArrayList<String> security_flavors) {
+                ArrayList<String> clients, boolean read_only,
+                IsilonExport.IsilonIdentity map_all, IsilonExport.IsilonIdentity map_root,
+                ArrayList<String> security_flavors) {
             _id = id;
             _comment = comment;
             _paths = paths;
@@ -125,7 +125,6 @@ public class ObjectStoreImpl implements ObjectStore {
         _exports = new ConcurrentHashMap<String, ExportObject>();
         _snapshots = new ConcurrentHashMap<String, String>();
     }
-
 
     /**
      * trimPath - take out leading and trailing / and replace all // with /
@@ -443,7 +442,7 @@ public class ObjectStoreImpl implements ObjectStore {
         if (start != null)
             startIndex = keyList.indexOf(start);
 
-        for (int i = 0; i < num && (startIndex+i) < keyList.size(); i++) {
+        for (int i = 0; i < num && (startIndex + i) < keyList.size(); i++) {
             String id = keyList.get(startIndex + i);
             QuotaObject quota = _quotas.get(id);
             IsilonSmartQuota isilonSmartQuota = new IsilonSmartQuota("/" + quota._path, quota._limit);

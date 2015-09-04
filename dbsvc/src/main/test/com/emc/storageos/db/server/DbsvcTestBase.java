@@ -71,8 +71,7 @@ public class DbsvcTestBase {
     protected static CoordinatorClient _coordinator = new StubCoordinatorClientImpl(
             URI.create("thrift://localhost:9160"));
     protected static EncryptionProviderImpl _encryptionProvider = new EncryptionProviderImpl();
-    protected static Map<String, List<BaseCustomMigrationCallback>> customMigrationCallbacks
-            = new HashMap<>();
+    protected static Map<String, List<BaseCustomMigrationCallback>> customMigrationCallbacks = new HashMap<>();
     protected static DbServiceStatusChecker statusChecker = null;
     protected static GeoDependencyChecker _geoDependencyChecker;
 
@@ -99,8 +98,7 @@ public class DbsvcTestBase {
         }
         dir.delete();
     }
-    
-    
+
     @BeforeClass
     public static void setup() throws IOException {
         _dbVersionInfo = new DbVersionInfo();
@@ -117,14 +115,13 @@ public class DbsvcTestBase {
         if (isDbStarted)
             stopAll();
 
-        if(_dataDir!=null){
+        if (_dataDir != null) {
             cleanDirectory(_dataDir);
-            _dataDir=null;
+            _dataDir = null;
         }
 
         _log.info("The Dbsvc is stopped");
     }
-
 
     protected static void stopAll() {
         TypeMap.clear();
@@ -176,15 +173,15 @@ public class DbsvcTestBase {
 
         ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("nodeaddrmap-var.xml");
 
-        CoordinatorClientInetAddressMap inetAddressMap = (CoordinatorClientInetAddressMap)ctx.getBean("inetAddessLookupMap");
+        CoordinatorClientInetAddressMap inetAddressMap = (CoordinatorClientInetAddressMap) ctx.getBean("inetAddessLookupMap");
 
         if (inetAddressMap == null) {
-        	_log.error("CoordinatorClientInetAddressMap is not initialized. Node address lookup will fail.");
+            _log.error("CoordinatorClientInetAddressMap is not initialized. Node address lookup will fail.");
         }
 
         _coordinator.setInetAddessLookupMap(inetAddressMap);
         _coordinator.setDbVersionInfo(_dbVersionInfo);
-        
+
         statusChecker = new DbServiceStatusChecker();
         statusChecker.setCoordinator(_coordinator);
         statusChecker.setClusterNodeCount(1);
@@ -211,8 +208,8 @@ public class DbsvcTestBase {
         List<String> vdcHosts = new ArrayList();
         vdcHosts.add("127.0.0.1");
         util.setVdcNodeList(vdcHosts);
-        util.setDbCommonInfo(new java.util.Properties()); 
-        
+        util.setDbCommonInfo(new java.util.Properties());
+
         JmxServerWrapper jmx = new JmxServerWrapper();
         if (_startJmx) {
             jmx.setEnabled(true);
@@ -225,14 +222,14 @@ public class DbsvcTestBase {
         }
 
         _encryptionProvider.setCoordinator(_coordinator);
-        
+
         _dbClient = getDbClientBase();
         PasswordUtils passwordUtils = new PasswordUtils();
         passwordUtils.setCoordinator(_coordinator);
         passwordUtils.setEncryptionProvider(_encryptionProvider);
         passwordUtils.setDbClient(_dbClient);
         util.setPasswordUtils(passwordUtils);
-        
+
         MigrationHandlerImpl handler = new MigrationHandlerImpl();
         handler.setPackages(pkgsArray);
         handler.setService(service);
@@ -243,10 +240,10 @@ public class DbsvcTestBase {
         handler.setPackages(pkgsArray);
 
         handler.setCustomMigrationCallbacks(customMigrationCallbacks);
-        
+
         DependencyChecker localDependencyChecker = new DependencyChecker(_dbClient, scanner);
         _geoDependencyChecker = new GeoDependencyChecker(_dbClient, _coordinator, localDependencyChecker);
-        
+
         _dbsvc = new DbServiceImpl();
         _dbsvc.setConfig("db-test.yaml");
         _dbsvc.setSchemaUtil(util);
@@ -289,25 +286,25 @@ public class DbsvcTestBase {
         dbClient.setBypassMigrationLock(true);
         _encryptionProvider.setCoordinator(_coordinator);
         dbClient.setEncryptionProvider(_encryptionProvider);
-        
+
         DbClientContext localCtx = new DbClientContext();
         localCtx.setClusterName("Test");
         localCtx.setKeyspaceName("Test");
         dbClient.setLocalContext(localCtx);
-        
+
         VdcUtil.setDbClient(dbClient);
 
         return dbClient;
     }
 
-    protected static CoordinatorClient getCoordinator(){
+    protected static CoordinatorClient getCoordinator() {
         return _coordinator;
     }
 
     static class MockSchemaUtil extends SchemaUtil {
         @Override
         public void insertVdcVersion(final DbClient dbClient) {
-            //Do nothing
+            // Do nothing
         }
     }
 }

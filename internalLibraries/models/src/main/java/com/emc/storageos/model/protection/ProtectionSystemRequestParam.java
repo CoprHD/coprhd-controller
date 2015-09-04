@@ -22,8 +22,9 @@ public class ProtectionSystemRequestParam {
     private String password;
     private String registrationMode;
 
-    public ProtectionSystemRequestParam() {}
-    
+    public ProtectionSystemRequestParam() {
+    }
+
     public ProtectionSystemRequestParam(String label, String systemType,
             String ipAddress, Integer portNumber, String userName,
             String password, String registrationMode) {
@@ -38,6 +39,7 @@ public class ProtectionSystemRequestParam {
 
     /**
      * The label given to the new Protection System
+     * 
      * @valid String value between 2 and 128 characters
      * @valid example: protection_system1
      */
@@ -53,6 +55,7 @@ public class ProtectionSystemRequestParam {
 
     /**
      * System type for the new Protection System
+     * 
      * @valid rp - this is only current Type available for Protection Systems
      */
     @XmlElement(required = true, name = "system_type")
@@ -66,6 +69,7 @@ public class ProtectionSystemRequestParam {
 
     /**
      * IP Address of the Protection System device
+     * 
      * @valid IPv4 only
      * @valid example: 10.27.100.99
      */
@@ -80,7 +84,8 @@ public class ProtectionSystemRequestParam {
 
     /**
      * Management Port Number of the Protection System device
-     * @valid Numerical value 1 through 65535 
+     * 
+     * @valid Numerical value 1 through 65535
      * @valid example: 7225
      */
     @XmlElement(required = true, name = "port_number")
@@ -94,6 +99,7 @@ public class ProtectionSystemRequestParam {
 
     /**
      * The user name to connect to the Protection System device management port
+     * 
      * @valid example: user1
      */
     @XmlElement(required = true, nillable = true, name = "user_name")
@@ -107,6 +113,7 @@ public class ProtectionSystemRequestParam {
 
     /**
      * The password to connect to the Protection System device management port
+     * 
      * @valid example: abc123
      */
     @XmlElement(name = "password", required = true, nillable = true)
@@ -120,6 +127,7 @@ public class ProtectionSystemRequestParam {
 
     /**
      * The registration mode for the Protection System
+     * 
      * @valid REGISTERED
      * @valid UNREGISTERED
      */
@@ -131,5 +139,5 @@ public class ProtectionSystemRequestParam {
     public void setRegistrationMode(String registrationMode) {
         this.registrationMode = registrationMode;
     }
-   
+
 }

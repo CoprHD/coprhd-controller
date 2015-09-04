@@ -52,7 +52,6 @@ import util.ProjectUtils;
 import util.VCenterUtils;
 import util.datatable.DataTablesSupport;
 
-
 @With(Common.class)
 @Restrictions({ @Restrict("TENANT_ADMIN") })
 public class HostClusters extends Controller {
@@ -115,7 +114,7 @@ public class HostClusters extends Controller {
         }
     }
 
-    @FlashException(keep=true, referrer={"create","edit"})
+    @FlashException(keep = true, referrer = { "create", "edit" })
     public static void save(HostClusterForm hostCluster) {
         hostCluster.validate("hostCluster");
         if (Validation.hasErrors()) {
@@ -135,7 +134,7 @@ public class HostClusters extends Controller {
         flash.success(MessagesUtils.get(DELETED));
         list();
     }
-    
+
     @FlashException("list")
     public static void detachStorage(@As(",") String[] ids) {
         for (URI id : ResourceUtils.uris(ids)) {
@@ -174,21 +173,21 @@ public class HostClusters extends Controller {
                 return hostRestRep.getCluster() == null || !hostRestRep.getCluster().getId().equals(clusterId);
             }
         };
-        
+
         // If we have existing hosts in the cluster, limit to that host type
         List<HostRestRep> existingHosts = ClusterUtils.getHosts(uri(id));
         if (existingHosts.size() > 0) {
-        	FilterChain<HostRestRep> hostTypeFilter = new FilterChain<HostRestRep>(new HostTypeFilter(existingHosts.get(0).getType()));
-      
-	        hosts = getViprClient().hosts().getByTenant(cluster.getTenant().getId(), hostTypeFilter.and(defaultHostResourceFilter));
+            FilterChain<HostRestRep> hostTypeFilter = new FilterChain<HostRestRep>(new HostTypeFilter(existingHosts.get(0).getType()));
+
+            hosts = getViprClient().hosts().getByTenant(cluster.getTenant().getId(), hostTypeFilter.and(defaultHostResourceFilter));
         } else {
-        	 hosts = getViprClient().hosts().getByTenant(cluster.getTenant().getId(), defaultHostResourceFilter);
+            hosts = getViprClient().hosts().getByTenant(cluster.getTenant().getId(), defaultHostResourceFilter);
         }
-        
+
         renderJSON(DataTablesSupport.createJSON(hosts, params));
     }
 
-    @FlashException(referrer={"editHosts"})
+    @FlashException(referrer = { "editHosts" })
     public static void removeHosts(String clusterId, @As(",") String[] ids) {
         if (ids != null && ids.length > 0) {
             for (String hostId : ids) {
@@ -201,7 +200,7 @@ public class HostClusters extends Controller {
         editHosts(clusterId);
     }
 
-    @FlashException(referrer={"editHosts"})
+    @FlashException(referrer = { "editHosts" })
     public static void addHosts(String clusterId, @As(",") String[] ids) {
         if (ids != null && ids.length > 0) {
             for (String hostId : ids) {
@@ -249,9 +248,9 @@ public class HostClusters extends Controller {
          * Clears all other validation error, except for the specified fields.
          * 
          * @param formName
-         *        the form name.
+         *            the form name.
          * @param fieldsToKeep
-         *        the fields to keep.
+         *            the fields to keep.
          */
         protected void clearOtherErrors(String formName, String... fieldsToKeep) {
             Set<play.data.validation.Error> errors = Sets.newHashSet();

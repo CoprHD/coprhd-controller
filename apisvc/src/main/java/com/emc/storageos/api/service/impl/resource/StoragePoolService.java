@@ -83,7 +83,6 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.google.common.base.Function;
 
-
 /**
  * StoragePool resource implementation
  */
@@ -110,7 +109,7 @@ public class StoragePoolService extends TaggedResource {
     // how many times to retry a procedure before returning failure to the user.
     // Is used with "system delete" operation.
     private int _retry_attempts;
-    
+
     private static final Logger _log = LoggerFactory.getLogger(StoragePoolService.class);
 
     @Override
@@ -121,7 +120,7 @@ public class StoragePoolService extends TaggedResource {
     public void setRetryAttempts(int retries) {
         _retry_attempts = retries;
     }
-    
+
     /**
      * Gets the storage pool with the passed id from the database.
      *
@@ -137,8 +136,8 @@ public class StoragePoolService extends TaggedResource {
         ArgValidator.checkEntityNotNull(pool, id, isIdEmbeddedInURL(id));
 
         if (!RegistrationStatus.REGISTERED.toString().equalsIgnoreCase(
-            pool.getRegistrationStatus())) {
-        	throw APIException.badRequests.resourceNotRegistered(StoragePool.class.getSimpleName(), id);
+                pool.getRegistrationStatus())) {
+            throw APIException.badRequests.resourceNotRegistered(StoragePool.class.getSimpleName(), id);
         }
 
         return pool;
@@ -152,9 +151,7 @@ public class StoragePoolService extends TaggedResource {
         return pool;
     }
 
-
-
-    /**     
+    /**
      * Gets the ids and self links for all storage pools.
      *
      * @brief List storage pools
@@ -178,7 +175,7 @@ public class StoragePoolService extends TaggedResource {
         return storagePools;
     }
 
-    /**     
+    /**
      * Gets the ids and self links for all matched VirtualPools for a given storage pool.
      *
      * @brief List matching VirtualPools for specified storage pool
@@ -189,7 +186,7 @@ public class StoragePoolService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/matched-vpools")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-	public VirtualPoolList getMatchedVirtualPoolForPool(@PathParam("id") URI id) {
+    public VirtualPoolList getMatchedVirtualPoolForPool(@PathParam("id") URI id) {
         VirtualPoolList vpools = new VirtualPoolList();
         ArgValidator.checkFieldUriType(id, StoragePool.class, "id");
         StoragePool storagePool = queryRegisteredResource(id);
@@ -205,7 +202,7 @@ public class StoragePoolService extends TaggedResource {
         return vpools;
     }
 
-    /**     
+    /**
      * Gets the data for a storage pool.
      *
      * @param id the URN of a ViPR storage pool.
@@ -229,10 +226,11 @@ public class StoragePoolService extends TaggedResource {
         return restRep;
     }
 
-    /**     
+    /**
      * Get Storage tiers associated with given Pool
      * Vmax pools, only one tier will be present always
      * Vnx pools can have multiple tiers.
+     * 
      * @param id the URN of a ViPR storage pool.
      *
      * @brief List storage pool storage tiers
@@ -243,26 +241,25 @@ public class StoragePoolService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/storage-tiers")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
-	public StorageTierList getStorageTiers(@PathParam("id") URI id) {
+    public StorageTierList getStorageTiers(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, StoragePool.class, "id");
         StoragePool storagePool = queryRegisteredResource(id);
         ArgValidator.checkEntity(storagePool, id, isIdEmbeddedInURL(id));
-        if(storagePool.getTiers() == null) {
+        if (storagePool.getTiers() == null) {
             throw APIException.badRequests.invalidParameterStoragePoolHasNoTiers(id);
         }
         StorageTierList storageTierList = new StorageTierList();
 
-            for (String tierUri : storagePool.getTiers()) {
-                StorageTier tier = _dbClient.queryObject(StorageTier.class, URI.create(tierUri));
-                if (null != tier) {
-                    storageTierList.getStorageTiers().add(toNamedRelatedResource(tier, tier.getNativeGuid()));
-                }
+        for (String tierUri : storagePool.getTiers()) {
+            StorageTier tier = _dbClient.queryObject(StorageTier.class, URI.create(tierUri));
+            if (null != tier) {
+                storageTierList.getStorageTiers().add(toNamedRelatedResource(tier, tier.getNativeGuid()));
             }
-            return storageTierList;
         }
+        return storageTierList;
+    }
 
-
-    /**     
+    /**
      * Allows the user to deregister a registered storage pool so that it is no
      * longer used by the system. This simply sets the registration_status of
      * the storage pool to UNREGISTERED.
@@ -275,7 +272,7 @@ public class StoragePoolService extends TaggedResource {
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/deregister")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public StoragePoolRestRep deregisterStoragePool(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, StoragePool.class, "id");
         StoragePool pool = queryResource(id);
@@ -298,26 +295,22 @@ public class StoragePoolService extends TaggedResource {
         return toStoragePoolRep(pool, _dbClient, _coordinator);
     }
 
-    /**     
+    /**
      * This API call only allows user to update virtual array & virtual pool
-     *  assignments for the registered storage pool.
+     * assignments for the registered storage pool.
      * <p>
-     * A pool can be associated with a virtual array either implicitly or explicitly.
-     * A pool is implicitly associated with a virtual array when the pool's storage
-     * system has one or more ports in the virtual array 
-     * (see {@link StoragePool#getConnectedVirtualArrays()}).  the pool's implicit 
-     * virtual arrays are the union of all the tagged virtual arrays of the storage 
-     * array ports. This implicit association cannot be changed or removed, it can
-     * only be overridden by an explicit assignment (see {@link StoragePool#getAssignedVirtualArrays()}).
-     * A pool's effective virtual array association is {@link StoragePool#getTaggedVirtualArrays()})
-     * <p> 
-     * Managing pools associated virtual arrays requires planning. In general, pools
-     * should be assigned to virtual arrays only when it is desired to limit the virtual
-     * arrays where they can be used. 
+     * A pool can be associated with a virtual array either implicitly or explicitly. A pool is implicitly associated with a virtual array
+     * when the pool's storage system has one or more ports in the virtual array (see {@link StoragePool#getConnectedVirtualArrays()}). the
+     * pool's implicit virtual arrays are the union of all the tagged virtual arrays of the storage array ports. This implicit association
+     * cannot be changed or removed, it can only be overridden by an explicit assignment (see {@link StoragePool#getAssignedVirtualArrays()}
+     * ). A pool's effective virtual array association is {@link StoragePool#getTaggedVirtualArrays()})
+     * <p>
+     * Managing pools associated virtual arrays requires planning. In general, pools should be assigned to virtual arrays only when it is
+     * desired to limit the virtual arrays where they can be used.
      *
      * @param id the URN of a ViPR storage pool.
      * @param storagePoolUpdates Specifies the updates to be made to the storage
-     *        pool.
+     *            pool.
      *
      * @brief Update storage pool
      * @return A StoragePoolRestRep specifying the updated storage pool info.
@@ -364,56 +357,61 @@ public class StoragePoolService extends TaggedResource {
         }
 
         Integer currentMaxSubscriptionPercentFromArray = storagePool.getMaxThinPoolSubscriptionPercentageFromArray();
-        _logger.info(String.format("Current maximum subscription percent in storage pool from array : %s ", currentMaxSubscriptionPercentFromArray));
+        _logger.info(String.format("Current maximum subscription percent in storage pool from array : %s ",
+                currentMaxSubscriptionPercentFromArray));
 
         if (null != storagePoolUpdates.getMaxPoolUtilizationPercentage()) {
-        	
-        	if(storagePoolUpdates.getMaxPoolUtilizationPercentage() <0 || storagePoolUpdates.getMaxPoolUtilizationPercentage() > 100)
-        	throw APIException.badRequests.invalidParameterPercentageExpected("max_pool_utilization_percentage",storagePoolUpdates.getMaxPoolUtilizationPercentage());
+
+            if (storagePoolUpdates.getMaxPoolUtilizationPercentage() < 0 || storagePoolUpdates.getMaxPoolUtilizationPercentage() > 100)
+                throw APIException.badRequests.invalidParameterPercentageExpected("max_pool_utilization_percentage",
+                        storagePoolUpdates.getMaxPoolUtilizationPercentage());
 
             // check that a new value does not exceed array limit
-            if(currentMaxSubscriptionPercentFromArray != null && storagePoolUpdates.getMaxPoolUtilizationPercentage() > currentMaxSubscriptionPercentFromArray) {
+            if (currentMaxSubscriptionPercentFromArray != null
+                    && storagePoolUpdates.getMaxPoolUtilizationPercentage() > currentMaxSubscriptionPercentFromArray) {
                 throw APIException.badRequests.invalidParameterValueExceedsArrayLimit("max_pool_utilization_percentage",
                         storagePoolUpdates.getMaxPoolUtilizationPercentage(), currentMaxSubscriptionPercentFromArray);
             }
-        	storagePool
+            storagePool
                     .setMaxPoolUtilizationPercentage(storagePoolUpdates.getMaxPoolUtilizationPercentage());
         }
         if (null != storagePoolUpdates.getMaxThinPoolSubscriptionPercentage()) {
-        	
-            ArgValidator.checkFieldMinimum(storagePoolUpdates.getMaxThinPoolSubscriptionPercentage(), 0, "max_thin_pool_subscription_percentage");
-        	   
-        	if(!validateMaxThinPoolSubscriptionInput(storagePool,storagePoolUpdates.getMaxThinPoolSubscriptionPercentage())) {
-        	    throw APIException.badRequests.parameterIsOnlyApplicableTo("max_thin_pool_subscription_percentage","Thin Pool");
-        	}
+
+            ArgValidator.checkFieldMinimum(storagePoolUpdates.getMaxThinPoolSubscriptionPercentage(), 0,
+                    "max_thin_pool_subscription_percentage");
+
+            if (!validateMaxThinPoolSubscriptionInput(storagePool, storagePoolUpdates.getMaxThinPoolSubscriptionPercentage())) {
+                throw APIException.badRequests.parameterIsOnlyApplicableTo("max_thin_pool_subscription_percentage", "Thin Pool");
+            }
 
             // check that a new value does not exceed array limit
-            if(currentMaxSubscriptionPercentFromArray != null && storagePoolUpdates.getMaxThinPoolSubscriptionPercentage() > currentMaxSubscriptionPercentFromArray) {
+            if (currentMaxSubscriptionPercentFromArray != null
+                    && storagePoolUpdates.getMaxThinPoolSubscriptionPercentage() > currentMaxSubscriptionPercentFromArray) {
                 throw APIException.badRequests.invalidParameterValueExceedsArrayLimit("max_thin_pool_subscription_percentage",
                         storagePoolUpdates.getMaxThinPoolSubscriptionPercentage(), currentMaxSubscriptionPercentFromArray);
             }
 
-        	storagePool
+            storagePool
                     .setMaxThinPoolSubscriptionPercentage(storagePoolUpdates.getMaxThinPoolSubscriptionPercentage());
         }
-        
-        //If unlimited resources is specified and set to true, then no need to look at max resources
-        //If unlimited resources is set to false, then max resources should also be specified. If not specified, throw error        
-        if(null != storagePoolUpdates.getIsUnlimitedResourcesSet()){
-        	if(storagePoolUpdates.getIsUnlimitedResourcesSet()){
-        		storagePool.setIsResourceLimitSet(false);
-        	} else {
-        		if(null != storagePoolUpdates.getMaxResources()) {
-        			storagePool.setIsResourceLimitSet(true);
-        			storagePool.setMaxResources(storagePoolUpdates.getMaxResources());
-        		} else {
-        			throw APIException.badRequests.parameterMaxResourcesMissing();
-        		}
-        	}
-        	
-        } else if (null != storagePoolUpdates.getMaxResources()){
-        	storagePool.setMaxResources(storagePoolUpdates.getMaxResources());
-        	storagePool.setIsResourceLimitSet(true);
+
+        // If unlimited resources is specified and set to true, then no need to look at max resources
+        // If unlimited resources is set to false, then max resources should also be specified. If not specified, throw error
+        if (null != storagePoolUpdates.getIsUnlimitedResourcesSet()) {
+            if (storagePoolUpdates.getIsUnlimitedResourcesSet()) {
+                storagePool.setIsResourceLimitSet(false);
+            } else {
+                if (null != storagePoolUpdates.getMaxResources()) {
+                    storagePool.setIsResourceLimitSet(true);
+                    storagePool.setMaxResources(storagePoolUpdates.getMaxResources());
+                } else {
+                    throw APIException.badRequests.parameterMaxResourcesMissing();
+                }
+            }
+
+        } else if (null != storagePoolUpdates.getMaxResources()) {
+            storagePool.setMaxResources(storagePoolUpdates.getMaxResources());
+            storagePool.setIsResourceLimitSet(true);
         }
         // Persist the changes and return a successful response.
         _dbClient.updateAndReindexObject(storagePool);
@@ -426,9 +424,9 @@ public class StoragePoolService extends TaggedResource {
 
         return toStoragePoolRep(storagePool, _dbClient, _coordinator);
     }
-    
-    /**     
-     * Remove a storage pool. The method would remove the deregistered storage pool and all resources 
+
+    /**
+     * Remove a storage pool. The method would remove the deregistered storage pool and all resources
      * associated with the storage pool from the database.
      * Note they are not removed from the storage system physically,
      * but become unavailable for the user.
@@ -441,26 +439,25 @@ public class StoragePoolService extends TaggedResource {
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/deactivate")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep deleteStoragePool(@PathParam("id") URI id) {
         ArgValidator.checkFieldUriType(id, StoragePool.class, "id");
         StoragePool pool = queryResource(id);
 
         if (!RegistrationStatus.UNREGISTERED.toString().equalsIgnoreCase(
-                pool.getRegistrationStatus()) || 
+                pool.getRegistrationStatus()) ||
                 DiscoveryStatus.VISIBLE.name().equalsIgnoreCase(
                         pool.getDiscoveryStatus())) {
             throw APIException.badRequests.cannotDeactivateStoragePool();
         }
-        
-        
+
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(StoragePool.class, id,
-                           taskId, ResourceOperationTypeEnum.DELETE_STORAGE_POOL);
+                taskId, ResourceOperationTypeEnum.DELETE_STORAGE_POOL);
 
-        PurgeRunnable.executePurging(_dbClient,_dbPurger,
-                                     _asynchJobService.getExecutorService(),pool,
-                                         _retry_attempts,taskId,60);
+        PurgeRunnable.executePurging(_dbClient, _dbPurger,
+                _asynchJobService.getExecutorService(), pool,
+                _retry_attempts, taskId, 60);
         return toTask(pool, taskId, op);
     }
 
@@ -479,21 +476,21 @@ public class StoragePoolService extends TaggedResource {
         evType = opType.getEvType(true);
 
         RecordableBourneEvent event = new RecordableBourneEvent(
-        /* String */evType,
-        /* tenant id */null,
-        /* user id ?? */URI.create("ViPR-User"),
-        /* project ID */null,
-        /* VirtualPool */null,
-        /* service */EVENT_SERVICE_TYPE,
-        /* resource id */storagePool,
-        /* description */description,
-        /* timestamp */System.currentTimeMillis(),
-        /* extensions */"",
-        /* native guid */null,
-        /* record type */RecordType.Event.name(),
-        /* Event Source */EVENT_SERVICE_SOURCE,
-        /* Operational Status codes */"",
-        /* Operational Status Descriptions */"");
+                /* String */evType,
+                /* tenant id */null,
+                /* user id ?? */URI.create("ViPR-User"),
+                /* project ID */null,
+                /* VirtualPool */null,
+                /* service */EVENT_SERVICE_TYPE,
+                /* resource id */storagePool,
+                /* description */description,
+                /* timestamp */System.currentTimeMillis(),
+                /* extensions */"",
+                /* native guid */null,
+                /* record type */RecordType.Event.name(),
+                /* Event Source */EVENT_SERVICE_SOURCE,
+                /* Operational Status codes */"",
+                /* Operational Status Descriptions */"");
         try {
             _evtMgr.recordEvents(event);
         } catch (Throwable th) {
@@ -504,6 +501,7 @@ public class StoragePoolService extends TaggedResource {
 
     /**
      * Verify whether thinPoolSubscriptionPercentageLimit is applicable to this pool or not.
+     * 
      * @param pool
      * @param thinPoolSubscriptionPercentageLimit
      * @return
@@ -517,17 +515,17 @@ public class StoragePoolService extends TaggedResource {
                 _log.error("Supported reousrce type for the storage pool was not set.");
                 return false;
             }
-            
+
             _log.debug("validate pool of type {} for limit of {}.", resType, thinPoolSubscriptionPercentageLimit);
             if (resType.equals(StoragePool.SupportedResourceTypes.THICK_ONLY)) {
                 return false;
             }
         }
-        
+
         return true;
     }
 
-    /**     
+    /**
      * Retrieves the id, name, and type of the resources in the registered
      * storage pool. with the passed id.
      *
@@ -552,8 +550,8 @@ public class StoragePoolService extends TaggedResource {
         // the storage pool resources
         URIQueryResultList volumeURIList = new URIQueryResultList();
         _dbClient.queryByConstraint(
-            ContainmentConstraint.Factory.getStoragePoolVolumeConstraint(id),
-            volumeURIList);
+                ContainmentConstraint.Factory.getStoragePoolVolumeConstraint(id),
+                volumeURIList);
         Iterator<URI> volumeURIIter = volumeURIList.iterator();
         while (volumeURIIter.hasNext()) {
             URI volumeURI = volumeURIIter.next();
@@ -568,8 +566,8 @@ public class StoragePoolService extends TaggedResource {
         // storage pools resources.
         URIQueryResultList fsURIList = new URIQueryResultList();
         _dbClient.queryByConstraint(
-            ContainmentConstraint.Factory.getStoragePoolFileshareConstraint(id),
-            fsURIList);
+                ContainmentConstraint.Factory.getStoragePoolFileshareConstraint(id),
+                fsURIList);
         Iterator<URI> fsURIIter = fsURIList.iterator();
         while (fsURIIter.hasNext()) {
             URI fsURI = fsURIIter.next();
@@ -583,7 +581,7 @@ public class StoragePoolService extends TaggedResource {
         return resources;
     }
 
-    /**     
+    /**
      * Retrieve resource representations based on input ids.
      *
      * @param param POST data containing the id list.
@@ -594,8 +592,8 @@ public class StoragePoolService extends TaggedResource {
      */
     @POST
     @Path("/bulk")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public StoragePoolBulkRep getBulkResources(BulkIdParam param) {
         return (StoragePoolBulkRep) super.getBulkResources(param);
@@ -611,7 +609,7 @@ public class StoragePoolService extends TaggedResource {
     public StoragePoolBulkRep queryBulkResourceReps(List<URI> ids) {
 
         Iterator<StoragePool> _dbIterator =
-            _dbClient.queryIterativeObjects(getResourceClass(), ids);
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new StoragePoolBulkRep(BulkList.wrapping(_dbIterator, new Function<StoragePool, StoragePoolRestRep>() {
             @Override
             public StoragePoolRestRep apply(StoragePool storagePool) {
@@ -628,22 +626,22 @@ public class StoragePoolService extends TaggedResource {
         verifySystemAdmin();
         return queryBulkResourceReps(ids);
     }
-    
+
     public static StoragePoolRestRep toStoragePoolRep(StoragePool pool, DbClient dbClient, CoordinatorClient coordinator) {
         boolean isBlockStoragePool = StoragePool.PoolServiceType.block.name().
-                                                      equalsIgnoreCase(pool.getPoolServiceType());
+                equalsIgnoreCase(pool.getPoolServiceType());
         Map<String, BigInteger> rawCapacityMetrics = CapacityUtils.getPoolCapacityMetrics(pool);
         Map<String, Long> capacityMetrics = CapacityUtils.preparePoolCapacityMetrics(rawCapacityMetrics);
         return map(pool, capacityMetrics, isBlockStoragePool, coordinator);
     }
 
     @Override
-    protected ResourceTypeEnum getResourceType(){
+    protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.STORAGE_POOL;
     }
 
     // Counts and returns the number of resources in a pool
-    public static Integer getNumResources(StoragePool pool, DbClient dbClient){
+    public static Integer getNumResources(StoragePool pool, DbClient dbClient) {
         String serviceType = pool.getPoolServiceType();
         if (StoragePool.PoolServiceType.file.name().equals(serviceType)) {
             return dbClient.countObjects(FileShare.class, "pool", pool.getId());
@@ -654,9 +652,10 @@ public class StoragePoolService extends TaggedResource {
         // We don't do anything if it's of type object
         return 0;
     }
-    
+
     /**
      * Checks that the pool does not have any volumes in the varrays from which it is being removed
+     * 
      * @param storagePool
      */
     private void verifyPoolNoInUseInVarrays(StoragePool storagePool) {
@@ -665,11 +664,11 @@ public class StoragePoolService extends TaggedResource {
                 storagePool.getId(), Volume.class, "pool");
         for (Volume volume : volumes) {
             // only error if the pool ends up in a state where it can no longer be used in the varray
-            // if removing the varrays reverts the pool to using implicit varrays which contains the 
+            // if removing the varrays reverts the pool to using implicit varrays which contains the
             // volumes, then it is all good.
             if (!storagePool.getTaggedVirtualArrays().contains(volume.getVirtualArray().toString())) {
                 _log.debug("The pool is in use by volume {} in varray {} which will no longer in the pool's tagged varray",
-                        volume.getLabel(),  volume.getVirtualArray().toString());
+                        volume.getLabel(), volume.getVirtualArray().toString());
                 throw APIException.badRequests.cannotChangePoolVarraysVolumeExists(
                         storagePool.getNativeGuid(), volume.getVirtualArray().toString(), volume.getLabel());
             }

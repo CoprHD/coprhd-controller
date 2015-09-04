@@ -24,15 +24,16 @@ public class CustomConfigCreateParam {
     private String value;
     private ScopeParam scope;
     private Boolean registered = true;
-    
-    public CustomConfigCreateParam() {}
-    
+
+    public CustomConfigCreateParam() {
+    }
+
     public CustomConfigCreateParam(String configType, String value) {
         this.configType = configType;
         this.value = value;
     }
-    
-    public CustomConfigCreateParam(String configType, String value,ScopeParam scope, Boolean registered) {
+
+    public CustomConfigCreateParam(String configType, String value, ScopeParam scope, Boolean registered) {
         this.configType = configType;
         this.value = value;
         this.scope = scope;
@@ -44,7 +45,7 @@ public class CustomConfigCreateParam {
      *
      * @valid none
      */
-    @XmlElement(required = true, name="config_type")
+    @XmlElement(required = true, name = "config_type")
     public String getConfigType() {
         return configType;
     }
@@ -96,7 +97,5 @@ public class CustomConfigCreateParam {
     public void setRegistered(Boolean registered) {
         this.registered = registered;
     }
-    
-    
 
 }

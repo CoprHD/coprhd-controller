@@ -60,9 +60,9 @@ public class VnxMirrorOperations extends AbstractMirrorOperations {
      * device creation, the post operations will take place, which will include the
      * creation of the target group and the group clone operation.
      *
-     * @param storage       [required] - StorageSystem object representing the array
-     * @param mirrorList    [required] - mirror URI list
-     * @param createInactive  whether the mirror needs to to be created with sync_active=true/false
+     * @param storage [required] - StorageSystem object representing the array
+     * @param mirrorList [required] - mirror URI list
+     * @param createInactive whether the mirror needs to to be created with sync_active=true/false
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      * @throws DeviceControllerException
      */
@@ -89,13 +89,15 @@ public class VnxMirrorOperations extends AbstractMirrorOperations {
                 final Volume source = _dbClient.queryObject(Volume.class, mirror.getSource());
                 sourceIds.add(source.getNativeId());
                 // Create target devices
-                final List<String> newDeviceIds = ReplicationUtils.createTargetDevices(storage, sourceGroupName, mirror.getLabel(), createInactive,
+                final List<String> newDeviceIds = ReplicationUtils.createTargetDevices(storage, sourceGroupName, mirror.getLabel(),
+                        createInactive,
                         1, poolId, mirror.getCapacity(), source.getThinlyProvisioned(), null, taskCompleter, _dbClient, _helper, _cimPath);
                 targetDeviceIds.addAll(newDeviceIds);
                 tgtToSrcMap.put(newDeviceIds.get(0), source.getNativeId());
             }
 
-            CIMObjectPath[] targetDevicePaths = _cimPath.getVolumePaths(storage, targetDeviceIds.toArray(new String[targetDeviceIds.size()]));
+            CIMObjectPath[] targetDevicePaths = _cimPath.getVolumePaths(storage,
+                    targetDeviceIds.toArray(new String[targetDeviceIds.size()]));
             CIMObjectPath[] sourceDevicePaths = _cimPath.getVolumePaths(storage, sourceIds.toArray(new String[sourceIds.size()]));
 
             // Create list replica
@@ -116,7 +118,7 @@ public class VnxMirrorOperations extends AbstractMirrorOperations {
         } catch (Exception e) {
             _log.error("Problem making SMI-S call: ", e);
             // Roll back changes
-            ReplicationUtils.rollbackCreateReplica(storage, null, targetDeviceIds, taskCompleter,_dbClient, _helper, _cimPath);
+            ReplicationUtils.rollbackCreateReplica(storage, null, targetDeviceIds, taskCompleter, _dbClient, _helper, _cimPath);
             if (mirrors != null && !mirrors.isEmpty()) {
                 for (BlockMirror mirror : mirrors) {
                     mirror.setInactive(true);
@@ -173,7 +175,7 @@ public class VnxMirrorOperations extends AbstractMirrorOperations {
     }
 
     @Override
-    public void resumeGroupMirrors(StorageSystem storage, List<URI> mirrorList,TaskCompleter taskCompleter) {
+    public void resumeGroupMirrors(StorageSystem storage, List<URI> mirrorList, TaskCompleter taskCompleter) {
         _log.info("START resumeGroupMirrors operation");
 
         try {
@@ -190,7 +192,10 @@ public class VnxMirrorOperations extends AbstractMirrorOperations {
 
     /*
      * (non-Javadoc)
-     * @see com.emc.storageos.volumecontroller.impl.smis.AbstractMirrorOperations#detachGroupMirrors(com.emc.storageos.db.client.model.StorageSystem, java.util.List, java.lang.Boolean, com.emc.storageos.volumecontroller.TaskCompleter)
+     * 
+     * @see
+     * com.emc.storageos.volumecontroller.impl.smis.AbstractMirrorOperations#detachGroupMirrors(com.emc.storageos.db.client.model.StorageSystem
+     * , java.util.List, java.lang.Boolean, com.emc.storageos.volumecontroller.TaskCompleter)
      * deleteGroup is not used for VNX
      */
     @Override
@@ -244,7 +249,8 @@ public class VnxMirrorOperations extends AbstractMirrorOperations {
             }
         }
 
-        CIMArgument[] modifyCGMirrorInput = _helper.getModifyListReplicaInputArguments(syncPaths.toArray(new CIMObjectPath[] {}), operation, copyState);
+        CIMArgument[] modifyCGMirrorInput = _helper.getModifyListReplicaInputArguments(syncPaths.toArray(new CIMObjectPath[] {}),
+                operation, copyState);
         _helper.callModifyListReplica(storageSystem, modifyCGMirrorInput);
     }
 }

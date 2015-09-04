@@ -29,7 +29,7 @@ public abstract class BaseCollectionException extends DiscoveryException {
      * An error code representing the error that occurred.
      *
      */
-    protected int             _errorCode;
+    protected int _errorCode;
 
     private static final long serialVersionUID = 1L;
 
@@ -43,8 +43,8 @@ public abstract class BaseCollectionException extends DiscoveryException {
      */
     public abstract int getErrorCode();
 
-
-    protected BaseCollectionException(final boolean retryable, final ServiceCode code, final Throwable cause, final String detailBase, final String detailKey,
+    protected BaseCollectionException(final boolean retryable, final ServiceCode code, final Throwable cause, final String detailBase,
+            final String detailKey,
             final Object[] detailParams) {
         super(retryable, code, cause, detailBase, detailKey, detailParams);
     }

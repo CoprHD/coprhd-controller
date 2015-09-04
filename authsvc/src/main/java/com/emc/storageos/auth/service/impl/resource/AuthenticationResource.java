@@ -64,7 +64,7 @@ import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.geo.RequestedTokenHelper;
 
 /**
- *  Main resource class for all authentication api
+ * Main resource class for all authentication api
  */
 @Path("/")
 public class AuthenticationResource {
@@ -76,7 +76,7 @@ public class AuthenticationResource {
 
     private final String UTF8_ENCODING = "UTF-8";
     private static final String AUTH_FORM_LOGIN_PAGE_ACTION = "action=\"";
-    public static final  String AUTH_REALM_NAME = "ViPR";
+    public static final String AUTH_REALM_NAME = "ViPR";
     private static final String FORM_LOGIN_DOC_PATH = "storageos-authsvc/docs/login.html";
     private static final String FORM_CHANGE_PASSWORD_DOC_PATH = "storageos-authsvc/docs/changePassword.html";
 
@@ -108,7 +108,6 @@ public class AuthenticationResource {
         _cacheControl = new CacheControl();
         _cacheControl.setNoCache(true);
         _cacheControl.setNoStore(true);
-
 
         String[] loginPageParts = getStaticPageParts(FORM_LOGIN_DOC_PATH);
         _cachedLoginPagePart1 = loginPageParts[0];
@@ -177,7 +176,7 @@ public class AuthenticationResource {
 
     @Autowired
     protected BasePermissionsHelper _permissionsHelper;
-    
+
     @Autowired
     protected AuditLogManager _auditMgr;
 
@@ -194,42 +193,45 @@ public class AuthenticationResource {
     public static class LoggedIn {
         public String user;
 
-        LoggedIn() {}
+        LoggedIn() {
+        }
 
         LoggedIn(String u) {
             user = u;
         }
     }
 
-    @XmlRootElement(name="LoggedOut")
+    @XmlRootElement(name = "LoggedOut")
     public static class LoggedOut {
         public String user;
 
-        LoggedOut() {}
+        LoggedOut() {
+        }
 
         LoggedOut(String u) {
             user = u;
         }
     }
-   
+
     /**
      * Create and return a Cookie object with the token
+     * 
      * @param token
      * @param setMaxAge if true sets the age of the cookie to maxlife of token. Else defaults to browser
-     * session
+     *            session
      * @return
      */
     private NewCookie createWsCookie(String cookieName, String token, boolean setMaxAge, String userAgent) {
-    	// For IE, we need to use "expires" to support rememberme functionality
-    	String ieExpires = "";
-    	int maxAge = setMaxAge ? _tokenManager.getMaxTokenLifeTimeInSecs() : NewCookie.DEFAULT_MAX_AGE;
-    	
-    	if (setMaxAge && StringUtils.contains(userAgent, "MSIE")) {
-    		ieExpires = ";expires=" + getExpiredTimeGMT(maxAge);
-    		_log.debug("Expires: " + ieExpires);
-    	}
+        // For IE, we need to use "expires" to support rememberme functionality
+        String ieExpires = "";
+        int maxAge = setMaxAge ? _tokenManager.getMaxTokenLifeTimeInSecs() : NewCookie.DEFAULT_MAX_AGE;
+
+        if (setMaxAge && StringUtils.contains(userAgent, "MSIE")) {
+            ieExpires = ";expires=" + getExpiredTimeGMT(maxAge);
+            _log.debug("Expires: " + ieExpires);
+        }
         if (token != null && !token.isEmpty()) {
-            return new NewCookie(cookieName, token  + ";HttpOnly" + ieExpires,
+            return new NewCookie(cookieName, token + ";HttpOnly" + ieExpires,
                     null, null, null, maxAge, true);
         }
         return null;
@@ -237,22 +239,23 @@ public class AuthenticationResource {
 
     /**
      * Adds a special key in the end to identify as the request is redirected back from authsvc
+     * 
      * @param service
      * @return
-     * @throws URISyntaxException 
+     * @throws URISyntaxException
      */
-    private URI getServiceURLForRedirect(String service, HttpServletRequest request) 
+    private URI getServiceURLForRedirect(String service, HttpServletRequest request)
             throws UnsupportedEncodingException, URISyntaxException {
         String serviceDecoded = URLDecoder.decode(service, UTF8_ENCODING);
         _log.debug("Original service = " + serviceDecoded);
         String newService = "";
         URI uriObject = new URI(serviceDecoded);
         String scheme = uriObject.getScheme();
-        if (StringUtils.isBlank(scheme) ) {
+        if (StringUtils.isBlank(scheme)) {
             scheme = "https";
         }
         int port = uriObject.getPort();
-        // newservice will be constructed by replacing the host component in the original service by 
+        // newservice will be constructed by replacing the host component in the original service by
         // serverName obtained from the HttpServletRequest.
         newService = scheme + "://" + request.getServerName();
         if (port > 0) {
@@ -260,30 +263,31 @@ public class AuthenticationResource {
         }
         String path = uriObject.getPath();
         if (StringUtils.isNotBlank(path)) {
-            newService += (path.startsWith("/")?"":"/") + path;  
+            newService += (path.startsWith("/") ? "" : "/") + path;
         }
         String query = uriObject.getQuery();
-        if (query != null && !query.isEmpty() ) {
-            newService += "?" + query;  
+        if (query != null && !query.isEmpty()) {
+            newService += "?" + query;
         }
         _log.debug("Updated service = " + newService);
         if (newService.contains("?")) {
             return URI.create(String.format("%s&%s", newService, RequestProcessingUtils.REDIRECT_FROM_AUTHSVC));
         }
-        return URI.create(String.format("%s?%s",newService,RequestProcessingUtils.REDIRECT_FROM_AUTHSVC));
+        return URI.create(String.format("%s?%s", newService, RequestProcessingUtils.REDIRECT_FROM_AUTHSVC));
     }
 
     /**
      * Get login token to use in subsequent api calls
+     * 
      * @brief Authenticates a user and obtains an authentication token
      * @param httpRequest request object (contains basic authentication header with credentials)
      * @param servletResponse Response object
-     * @param service Optional query parameter, to specify a URL to redirect to on successful 
-     *        authentication
+     * @param service Optional query parameter, to specify a URL to redirect to on successful
+     *            authentication
      * @prereq none
-     * @return  Response
+     * @return Response
      * @throws IOException
-     * @throws URISyntaxException 
+     * @throws URISyntaxException
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -291,7 +295,7 @@ public class AuthenticationResource {
     public Response getLoginToken(@Context HttpServletRequest httpRequest,
             @Context HttpServletResponse servletResponse,
             @QueryParam("service") String service)
-                    throws IOException {
+            throws IOException {
         String clientIP = _invLoginManager.getClientIP(httpRequest);
         isClientIPBlocked(clientIP);
         boolean setCookie = RequestProcessingUtils.isRequestingQueryParam(httpRequest, RequestProcessingUtils.REQUESTING_COOKIES);
@@ -306,34 +310,36 @@ public class AuthenticationResource {
                 throw APIException.badRequests.serviceURLBadSyntax();
             }
         }
-        // The authentication failed. Make note of that in the  ZK only if the user credentials are provided.
+        // The authentication failed. Make note of that in the ZK only if the user credentials are provided.
         if (loginStatus.areCredentialsProvided()) {
             _invLoginManager.markErrorLogin(clientIP);
         }
         return requestCredentials();
     }
-    
+
     /**
      * 
      * Generates a response ready to be returned by REST methods in this resource.
      * The response will either be an ok or 302 depending on the parameters
+     * 
      * @param service optional, service to forward to. if null, reponse will be 200.
      * @param setCookie, whether or not to set the cookie in the response
      * @param setMaxAge, whether ot not to set the max age on the cookie
      * @param loginStatus, login status containing the token to add
      * @return the response
      * @throws UnsupportedEncodingException
-     * @throws URISyntaxException 
+     * @throws URISyntaxException
      */
     private Response buildLoginResponse(String service, String source, boolean setCookie, boolean setMaxAge,
             LoginStatus loginStatus, HttpServletRequest request)
             throws UnsupportedEncodingException, URISyntaxException {
-        String authTokenName = source != null && source.equals(FROM_PORTAL) ? RequestProcessingUtils.AUTH_PORTAL_TOKEN_HEADER : RequestProcessingUtils.AUTH_TOKEN_HEADER;
+        String authTokenName = source != null && source.equals(FROM_PORTAL) ? RequestProcessingUtils.AUTH_PORTAL_TOKEN_HEADER
+                : RequestProcessingUtils.AUTH_TOKEN_HEADER;
 
         Response.ResponseBuilder resp = null;
-        if(service != null && !service.isEmpty()) {
+        if (service != null && !service.isEmpty()) {
             resp = Response.status(302).location(getServiceURLForRedirect(service, request))
-                                       .header(authTokenName, loginStatus.getToken());
+                    .header(authTokenName, loginStatus.getToken());
         } else {
             resp = Response.ok(new LoggedIn(loginStatus.getUser())).header(authTokenName, loginStatus.getToken());
         }
@@ -346,13 +352,14 @@ public class AuthenticationResource {
     }
 
     /**
-     * Try to login the user.  If not generate the form login page
+     * Try to login the user. If not generate the form login page
+     * 
      * @brief Displays form login page
      * @param httpRequest request object (contains basic authentication header with credentials)
      * @param servletResponse Response object
-     * @param service Optional query parameter, to specify a URL to redirect to on successful 
-     *        authentication
-     * @return form login page if the user is not authenticated.  
+     * @param service Optional query parameter, to specify a URL to redirect to on successful
+     *            authentication
+     * @return form login page if the user is not authenticated.
      *         OK status otherwise
      * @throws UnsupportedEncodingException
      * @prereq none
@@ -365,34 +372,34 @@ public class AuthenticationResource {
             @Context HttpServletResponse servletResponse,
             @QueryParam("service") String service,
             @QueryParam("src") String source)
-                    throws UnsupportedEncodingException, IOException {
+            throws UnsupportedEncodingException, IOException {
         String loginError = null;
         try {
             LoginStatus loginStatus = tryLogin(httpRequest, service, true, servletResponse, true);
-            if(loginStatus.loggedIn()) {
+            if (loginStatus.loggedIn()) {
                 return buildLoginResponse(service, source, true, true, loginStatus, httpRequest);
             }
-        } catch (URISyntaxException  e ) {
-        	loginError = SERVICE_URL_FORMAT_ERROR;
-        } catch ( Exception e ) {
+        } catch (URISyntaxException e) {
+            loginError = SERVICE_URL_FORMAT_ERROR;
+        } catch (Exception e) {
             loginError = MessageFormat.format(FORM_LOGIN_AUTH_ERROR_ENT, e.getMessage());
         }
 
         if (service == null) {
-            String port = httpRequest.getServerPort() != -1 ? ":"+httpRequest.getServerPort() : "";
+            String port = httpRequest.getServerPort() != -1 ? ":" + httpRequest.getServerPort() : "";
 
             // Dummy Host Name will be replaced by the actual host name during redirection
-            service = httpRequest.getScheme()+"://"+DUMMY_HOST_NAME +port+"/login";
+            service = httpRequest.getScheme() + "://" + DUMMY_HOST_NAME + port + "/login";
         }
 
         String formLP = getFormLoginPage(service, source, loginError);
         if (formLP != null) {
             return Response.ok(formLP).type(MediaType.TEXT_HTML)
-                    .cacheControl(_cacheControl).header(HEADER_PRAGMA,HEADER_PRAGMA_VALUE).build();
+                    .cacheControl(_cacheControl).header(HEADER_PRAGMA, HEADER_PRAGMA_VALUE).build();
         } else {
             _log.error("Could not generate custom (form) login page");
             return Response.status(Status.INTERNAL_SERVER_ERROR).build();
-        }       
+        }
     }
 
     /**
@@ -411,17 +418,17 @@ public class AuthenticationResource {
     @Produces({ MediaType.TEXT_HTML })
     @Path("formChangePassword")
     public Response getChangePasswordForm(@Context HttpServletRequest httpRequest,
-                                 @Context HttpServletResponse servletResponse,
-                                 @QueryParam("service") String service,
-                                 @QueryParam("src") String source)
+            @Context HttpServletResponse servletResponse,
+            @QueryParam("service") String service,
+            @QueryParam("src") String source)
             throws UnsupportedEncodingException, IOException {
 
         String loginError = null;
         if (service == null) {
-            String port = httpRequest.getServerPort() != -1 ? ":"+httpRequest.getServerPort() : "";
+            String port = httpRequest.getServerPort() != -1 ? ":" + httpRequest.getServerPort() : "";
 
             // Dummy Host Name will be replaced by the actual host name during redirection
-            service = httpRequest.getScheme()+"://"+DUMMY_HOST_NAME +port+"/login";
+            service = httpRequest.getScheme() + "://" + DUMMY_HOST_NAME + port + "/login";
         }
         String formLP = getFormChangePasswordPage(service, source, loginError);
         if (formLP != null) {
@@ -432,11 +439,12 @@ public class AuthenticationResource {
             return Response.status(Status.INTERNAL_SERVER_ERROR).build();
         }
     }
-    
+
     /**
      * Requests a proxy token corresponding to the user in the Context
      * A user must already be authenticated and have an auth-token in order to
      * be able to get a proxy token for itself.
+     * 
      * @brief Obtain a proxy token for the logged on user
      * @return Response
      * @throws IOException
@@ -447,28 +455,29 @@ public class AuthenticationResource {
     public Response getProxyToken() {
         _log.debug("Requesting proxy token");
         StorageOSUser user = getUserFromContext();
-        if(user == null) {
+        if (user == null) {
             _log.error("Unauthenticated request for a proxytoken");
             return requestCredentials();
         }
-        String proxyToken = _tokenManager.getProxyToken(user);       
+        String proxyToken = _tokenManager.getProxyToken(user);
         Response.ResponseBuilder resp = Response.ok()
-	    .header(RequestProcessingUtils.AUTH_PROXY_TOKEN_HEADER, proxyToken);
+                .header(RequestProcessingUtils.AUTH_PROXY_TOKEN_HEADER, proxyToken);
         return resp.build();
     }
-    
+
     /**
      * Logs out a user's authentication token and optionally other related tokens and proxytokens
+     * 
      * @brief User logout
      * @param force Optional query parameter, if set to true, will delete all active tokens for the user,
-     *              excluding proxy tokens. Otherwise, invalidates only the token from the request
-     *              Default value: false
+     *            excluding proxy tokens. Otherwise, invalidates only the token from the request
+     *            Default value: false
      * @param includeProxyTokens Optional query parameter, if set to true and combined with force, will delete
-     *              all active tokens, including proxy tokens for the user.
-     *              Default value: false             
-     * @param username Optional query parameter, if supplied, the user pointed by the username will 
-     *        be logged out instead of the currently logged in user (SECURITY_ADMIN role required to 
-     *        use this parameter)
+     *            all active tokens, including proxy tokens for the user.
+     *            Default value: false
+     * @param username Optional query parameter, if supplied, the user pointed by the username will
+     *            be logged out instead of the currently logged in user (SECURITY_ADMIN role required to
+     *            use this parameter)
      * @param notifyVDCs if set to true, will look if the token was copied to other VDCs and notify them
      * @return Response
      * @prereq none
@@ -478,20 +487,21 @@ public class AuthenticationResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("logout")
     public Response logout(@DefaultValue("false") @QueryParam("force") boolean force,
-                           @DefaultValue("false") @QueryParam("proxytokens") boolean includeProxyTokens,
-                           @QueryParam("username") String username, 
-                           @DefaultValue("true") @QueryParam("notifyvdcs") boolean notifyVDCs) {
+            @DefaultValue("false") @QueryParam("proxytokens") boolean includeProxyTokens,
+            @QueryParam("username") String username,
+            @DefaultValue("true") @QueryParam("notifyvdcs") boolean notifyVDCs) {
         StorageOSUser user = getUserFromContext();
         if (user != null) {
             if (StringUtils.isNotBlank(username)) {
                 boolean isTargetUserLocal = StorageOSLocalAuthenticationHandler.exists(username);
-                boolean hasRestrictedSecurityAdmin = _permissionsHelper.userHasGivenRole(user, URI.create(user.getTenantId()), Role.RESTRICTED_SECURITY_ADMIN);
+                boolean hasRestrictedSecurityAdmin = _permissionsHelper.userHasGivenRole(user, URI.create(user.getTenantId()),
+                        Role.RESTRICTED_SECURITY_ADMIN);
                 boolean hasSecurityAdmin = _permissionsHelper.userHasGivenRole(user, URI.create(user.getTenantId()), Role.SECURITY_ADMIN);
                 // if the user is security admin or restricted sec admin (if the user to be logged out is just local)
                 if (hasSecurityAdmin || (isTargetUserLocal && hasRestrictedSecurityAdmin)) {
                     // boot the user out
                     _tokenManager.deleteAllTokensForUser(username, includeProxyTokens);
-                    if (notifyVDCs && !isTargetUserLocal) { 
+                    if (notifyVDCs && !isTargetUserLocal) {
                         // broadcast the call to other vdcs if this is not a local user
                         tokenNotificationHelper.broadcastLogoutForce(user.getToken(), username);
                     }
@@ -500,7 +510,7 @@ public class AuthenticationResource {
                     throw APIException.forbidden.userNotPermittedToLogoutAnotherUser(user
                             .getUserName());
                 }
-            } else  {
+            } else {
                 if (force) {
                     // delete all tokens for this user
                     _tokenManager.deleteAllTokensForUser(user.getUserName(), includeProxyTokens);
@@ -521,7 +531,6 @@ public class AuthenticationResource {
         throw APIException.unauthorized.tokenNotFoundOrInvalidTokenProvided();
     }
 
-
     /**
      * Change a local user's password without login.
      *
@@ -532,12 +541,12 @@ public class AuthenticationResource {
      */
     @PUT
     @Path("change-password")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response changePassword(@Context HttpServletRequest httpRequest,
-                                   @Context HttpServletResponse servletResponse,
-                                   @DefaultValue("true") @QueryParam("logout_user") boolean logout,
-                                   PasswordChangeParam passwordChange) {
+            @Context HttpServletResponse servletResponse,
+            @DefaultValue("true") @QueryParam("logout_user") boolean logout,
+            PasswordChangeParam passwordChange) {
 
         String clientIP = _invLoginManager.getClientIP(httpRequest);
         isClientIPBlocked(clientIP);
@@ -575,8 +584,8 @@ public class AuthenticationResource {
      */
     @POST
     @Path("/validate-password-change")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response validateUserPasswordForChange(
             @Context HttpServletRequest httpRequest,
             PasswordChangeParam passwordParam) {
@@ -588,10 +597,10 @@ public class AuthenticationResource {
         return response;
     }
 
-
     /**
      * Authenticates a user with credentials provided in the form data of the request.
      * This method is for internal use by formlogin page.
+     * 
      * @brief INTERNAL USE
      * @return On successful authentication the client will be redirected to the provided service.
      * @throws IOException
@@ -601,11 +610,11 @@ public class AuthenticationResource {
     @Consumes("application/x-www-form-urlencoded")
     @Path("formChangePassword")
     public Response changePassword(@Context HttpServletRequest request,
-                              @Context HttpServletResponse servletResponse,
-                              @QueryParam("service") String service,
-                              @QueryParam("src") String source,
-                              @DefaultValue("true") @QueryParam("logout_user") boolean logout,
-                              MultivaluedMap<String, String> formData ) throws IOException {
+            @Context HttpServletResponse servletResponse,
+            @QueryParam("service") String service,
+            @QueryParam("src") String source,
+            @DefaultValue("true") @QueryParam("logout_user") boolean logout,
+            MultivaluedMap<String, String> formData) throws IOException {
         boolean isChangeSuccess = false;
         String message = null;
         String clientIP = _invLoginManager.getClientIP(request);
@@ -615,7 +624,7 @@ public class AuthenticationResource {
         String userPassw = formData.getFirst("password");
         String confirmPassw = formData.getFirst("confirmPassword");
 
-        if (_invLoginManager.isTheClientIPBlocked(clientIP) == true ) {
+        if (_invLoginManager.isTheClientIPBlocked(clientIP) == true) {
             _log.error("The client IP is blocked for too many invalid login attempts: " + clientIP);
             int minutes = _invLoginManager.getMaxAuthnLoginAttemtsLifeTimeInMins();
             message = String.format("%s.<br>Will be cleared within %d minutes", FORM_INVALID_LOGIN_LIMIT_ERROR, minutes);
@@ -670,6 +679,7 @@ public class AuthenticationResource {
     /**
      * Authenticates a user with credentials provided in the form data of the request.
      * This method is for internal use by formlogin page.
+     * 
      * @brief INTERNAL USE
      * @return On successful authentication the client will be redirected to the provided service.
      * @throws IOException
@@ -682,8 +692,7 @@ public class AuthenticationResource {
             @Context HttpServletResponse servletResponse,
             @QueryParam("service") String service,
             @QueryParam("src") String source,
-            MultivaluedMap<String, String> formData ) throws IOException {
-
+            MultivaluedMap<String, String> formData) throws IOException {
 
         boolean isPasswordExpired = false;
         String loginError = null;
@@ -694,7 +703,7 @@ public class AuthenticationResource {
         boolean updateInvalidLoginCount = true;
         String clientIP = _invLoginManager.getClientIP(request);
         _log.debug("Client IP: {}", clientIP);
-        if (_invLoginManager.isTheClientIPBlocked(clientIP) == true ) {
+        if (_invLoginManager.isTheClientIPBlocked(clientIP) == true) {
             _log.error("The client IP is blocked for too many invalid login attempts: " + clientIP);
             int minutes = _invLoginManager.getMaxAuthnLoginAttemtsLifeTimeInMins();
             loginError = String.format("%s.<br>Will be cleared within %d minutes", FORM_INVALID_LOGIN_LIMIT_ERROR, minutes);
@@ -703,10 +712,10 @@ public class AuthenticationResource {
 
         if (null == loginError) {
             String rememberMeStr = formData.getFirst("remember");
-            boolean rememberMe = StringUtils.isNotBlank(rememberMeStr) && 
+            boolean rememberMe = StringUtils.isNotBlank(rememberMeStr) &&
                     rememberMeStr.equalsIgnoreCase("true");
-            // Look for a token passed in the form.  If so, validate it and return it back
-            // as a cookie if valid.  Else, continue with the normal flow of formlogin to validate
+            // Look for a token passed in the form. If so, validate it and return it back
+            // as a cookie if valid. Else, continue with the normal flow of formlogin to validate
             // credentials
             String tokenFromForm = formData.getFirst(AUTH_FORM_LOGIN_TOKEN_PARAM);
             if (StringUtils.isNotBlank(tokenFromForm)) {
@@ -716,11 +725,11 @@ public class AuthenticationResource {
                         _log.debug("Form login was posted with valid token");
                         return buildLoginResponse(service, source, true, rememberMe,
                                 new LoginStatus(userDAOFromForm.getUserName(), tokenFromForm, false), request);
-                    }   
+                    }
                     _log.error("Auth token passed to this formlogin could not be validated and returned null user");
                     loginError = FORM_INVALID_AUTH_TOKEN_ERROR;
                 } catch (APIException ex) {
-                    // It is possible that  validateToken would throw if the passed in token is unparsable
+                    // It is possible that validateToken would throw if the passed in token is unparsable
                     // Unlike the regular use case for validatetoken which is done inside api calls, here we are
                     // building a response to a web page, so we need to catch this and let the rest of this method
                     // proceed which will result in requesting new credentials.
@@ -730,7 +739,7 @@ public class AuthenticationResource {
                     loginError = SERVICE_URL_FORMAT_ERROR;
                 }
             }
-            
+
             UsernamePasswordCredentials credentials = getFormCredentials(formData);
             if (null == loginError) {
                 loginError = FORM_LOGIN_BAD_CREDS_ERROR;
@@ -741,7 +750,7 @@ public class AuthenticationResource {
                     if (user != null) {
                         validateLocalUserExpiration(credentials);
                         String token = _tokenManager.getToken(user);
-                        if(token == null) {
+                        if (token == null) {
                             _log.error("Could not generate token for user: {}", user.getUserName());
                             auditOp(null, null,
                                     OperationTypeEnum.AUTHENTICATION, false, null, credentials.getUserName());
@@ -753,7 +762,7 @@ public class AuthenticationResource {
                         auditOp(URI.create(user.getTenantId()), URI.create(user.getUserName()),
                                 OperationTypeEnum.AUTHENTICATION, true, null, credentials.getUserName());
 
-                        // If remember me check box is on, set the expiration time.                 
+                        // If remember me check box is on, set the expiration time.
                         return buildLoginResponse(service, source, true,
                                 rememberMe, new LoginStatus(user.getUserName(), token, null != credentials),
                                 request);
@@ -768,7 +777,7 @@ public class AuthenticationResource {
                     isPasswordExpired = true;
                 }
             } catch (URISyntaxException e) {
-            	loginError = SERVICE_URL_FORMAT_ERROR;
+                loginError = SERVICE_URL_FORMAT_ERROR;
             }
         }
         // If we are here, request another login with appropriate error message
@@ -800,18 +809,18 @@ public class AuthenticationResource {
 
     /**
      * See if the user is already logged in or try to login the user
-     * if credentials were supplied.  Return authentication status
+     * if credentials were supplied. Return authentication status
      * 
-     * @param httpRequest 
+     * @param httpRequest
      * @param service
      * @param setCookie
      * @param servletResponse
-     * @param tokenOnly false if either token or credentials can be used to attempt the login.  True if only token is accepted.
-     * @return LoginStatus of the user.  
+     * @param tokenOnly false if either token or credentials can be used to attempt the login. True if only token is accepted.
+     * @return LoginStatus of the user.
      * @throws UnsupportedEncodingException
      * @throws IOException
      */
-    private LoginStatus tryLogin(HttpServletRequest httpRequest, String service, 
+    private LoginStatus tryLogin(HttpServletRequest httpRequest, String service,
             boolean setCookie, HttpServletResponse servletResponse, boolean tokenOnly) throws UnsupportedEncodingException, IOException {
         String newToken = null;
         String userName = null;
@@ -830,7 +839,7 @@ public class AuthenticationResource {
             if (user != null) {
                 validateLocalUserExpiration(credentials);
                 newToken = _tokenManager.getToken(user);
-                if(newToken == null) {
+                if (newToken == null) {
                     _log.error("Could not generate token for user: {}", user.getUserName());
                     throw new IllegalStateException(MessageFormat.format("Could not generate token for user: {}", user.getUserName()));
                 }
@@ -842,10 +851,10 @@ public class AuthenticationResource {
                 auditOp(null, null,
                         OperationTypeEnum.AUTHENTICATION, false, null, credentials.getUserName());
             }
-        }     
+        }
         return new LoginStatus(userName, newToken, null != credentials);
     }
-    
+
     /**
      * @param credentials User credentials to authenticate with
      * @return the User DAO object if authenticated, otherwise null
@@ -853,7 +862,7 @@ public class AuthenticationResource {
     private StorageOSUserDAO authenticateUser(UsernamePasswordCredentials credentials) {
         StorageOSUserDAO user = _authManager.authenticate(credentials);
         if (user != null) {
-            if ( null ==  user.getTenantId() || user.getTenantId().isEmpty() ) {
+            if (null == user.getTenantId() || user.getTenantId().isEmpty()) {
                 throw APIException.forbidden.userDoesNotMapToAnyTenancy(user
                         .getUserName());
             }
@@ -873,12 +882,13 @@ public class AuthenticationResource {
         }
         return null;
     }
-    
+
     /**
-      * Update the static login page with service query parameter
-      * @param service The requested service
-      * @return
-    */
+     * Update the static login page with service query parameter
+     * 
+     * @param service The requested service
+     * @return
+     */
     private String getFormLoginPage(final String service, final String source, final String error) {
 
         if (StringUtils.isBlank(_cachedLoginPagePart1) || StringUtils.isBlank(_cachedLoginPagePart2)) {
@@ -895,10 +905,10 @@ public class AuthenticationResource {
         sbFinal.append(error == null ? _cachedLoginPagePart1 : _cachedLoginPagePart1.replaceAll(FORM_LOGIN_HTML_ENT, error + "$1"));
         sbFinal.append("action=\"./formlogin?service=");
         sbFinal.append(encodedTargetService);
-        
+
         if (source != null && source.equals(FROM_PORTAL)) {
-    		sbFinal.append("&src=");
-            sbFinal.append(source);    
+            sbFinal.append("&src=");
+            sbFinal.append(source);
         }
 
         sbFinal.append("\" ");
@@ -906,7 +916,6 @@ public class AuthenticationResource {
         return sbFinal.toString();
 
     }
-
 
     /**
      * Update the static changePassword page with service query parameter
@@ -945,16 +954,17 @@ public class AuthenticationResource {
         sbFinal.append(error == null ? newPart2 : newPart2.replaceAll(FORM_LOGIN_HTML_ENT, error + "$1"));
         return sbFinal.toString();
     }
-    
+
     /**
      * Pull credentials from the header
+     * 
      * @param request
      * @return
      */
     private UsernamePasswordCredentials getCredentials(HttpServletRequest request) {
         String credentials = request.getHeader(HttpHeaders.AUTHORIZATION);
         if (credentials != null) {
-            credentials = credentials.substring(credentials.indexOf(' ')+1);
+            credentials = credentials.substring(credentials.indexOf(' ') + 1);
             try {
                 credentials = B64Code.decode(credentials, StringUtil.__ISO_8859_1);
             } catch (UnsupportedEncodingException e) {
@@ -962,7 +972,7 @@ public class AuthenticationResource {
             }
             int i = credentials.indexOf(':');
             UsernamePasswordCredentials creds =
-                    new UsernamePasswordCredentials(credentials.substring(0,i), credentials.substring(i+1));
+                    new UsernamePasswordCredentials(credentials.substring(0, i), credentials.substring(i + 1));
             return creds;
         }
         return null;
@@ -970,13 +980,14 @@ public class AuthenticationResource {
 
     /**
      * Respond with a 401 and challenge for auth
+     * 
      * @return
      * @throws IOException
      */
-    private Response requestCredentials(){
+    private Response requestCredentials() {
         Response response = Response.status(HttpServletResponse.SC_UNAUTHORIZED)
-	            .header(HttpHeaders.WWW_AUTHENTICATE, "basic realm=\""+AUTH_REALM_NAME+'"')
-                .cacheControl( _cacheControl)
+                .header(HttpHeaders.WWW_AUTHENTICATE, "basic realm=\"" + AUTH_REALM_NAME + '"')
+                .cacheControl(_cacheControl)
                 .header(HEADER_PRAGMA, HEADER_PRAGMA_VALUE)
                 .build();
         return response;
@@ -984,6 +995,7 @@ public class AuthenticationResource {
 
     /**
      * Get StorageOSUser from the security context
+     * 
      * @return
      */
     private StorageOSUser getUserFromContext() {
@@ -996,40 +1008,41 @@ public class AuthenticationResource {
         }
         return null;
     }
-    
+
     /**
      * Class to hold the username and auth token pair
      *
      */
     private class LoginStatus {
-        
+
         private String _user;
         private String _token;
         private boolean _areCredentialsProvided;
-        
+
         public LoginStatus(final String user, final String token, boolean areCredentialsProvided) {
-            _user  = user;
+            _user = user;
             _token = token;
             _areCredentialsProvided = areCredentialsProvided;
 
         }
-        
+
         /**
          * Method to return whether or not the user is logged in
-         * @return true if the user and token are not null 
+         * 
+         * @return true if the user and token are not null
          */
         public boolean loggedIn() {
             return _user != null && _token != null;
         }
-        
+
         public String getToken() {
-            return _token;        
+            return _token;
         }
-        
+
         public String getUser() {
-            return _user;        
+            return _user;
         }
-        
+
         public boolean areCredentialsProvided() {
             return _areCredentialsProvided;
         }
@@ -1037,11 +1050,12 @@ public class AuthenticationResource {
 
     /**
      * Record audit log for services
+     * 
      * @param opType audit event type (e.g. CREATE_VPOOL|TENANT etc.)
      * @param operationalStatus Status of operation (true|false)
      * @param operationStage Stage of operation.
-     *          For sync operation, it should be null;
-     *          For async operation, it should be "BEGIN" or "END";
+     *            For sync operation, it should be null;
+     *            For async operation, it should be "BEGIN" or "END";
      * @param descparams Description paramters
      */
     protected void auditOp(URI tenantId,
@@ -1055,27 +1069,27 @@ public class AuthenticationResource {
                 EVENT_SERVICE_TYPE,
                 opType,
                 System.currentTimeMillis(),
-                operationalStatus? AuditLogManager.AUDITLOG_SUCCESS : AuditLogManager.AUDITLOG_FAILURE,
+                operationalStatus ? AuditLogManager.AUDITLOG_SUCCESS : AuditLogManager.AUDITLOG_FAILURE,
                 operationStage,
                 descparams);
     }
-    
+
     /**
      * @param maxAge in seconds
      * @return GMT time of current time + maxAge
      */
     private String getExpiredTimeGMT(int maxAge) {
-    	String dateFormat = "EEE, d-MMM-yyyy HH:mm:ss zzz";
-    	SimpleDateFormat simpleDateFormat = new SimpleDateFormat(dateFormat);
-    	simpleDateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
-    	long time = System.currentTimeMillis() + maxAge * 1000; 
-    	Date expiryDate = new Date(time);
-    	return simpleDateFormat.format(expiryDate);
+        String dateFormat = "EEE, d-MMM-yyyy HH:mm:ss zzz";
+        SimpleDateFormat simpleDateFormat = new SimpleDateFormat(dateFormat);
+        simpleDateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
+        long time = System.currentTimeMillis() + maxAge * 1000;
+        Date expiryDate = new Date(time);
+        return simpleDateFormat.format(expiryDate);
     }
-
 
     /**
      * String for prompting Password Rules
+     * 
      * @return
      */
     private String getPasswordChangePromptRule() {

@@ -54,10 +54,10 @@ public class TimeSeriesSchema extends DbSchema {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof TimeSeriesSchema)) 
+        if (!(o instanceof TimeSeriesSchema))
             return false;
 
-        TimeSeriesSchema schema = (TimeSeriesSchema)o;
+        TimeSeriesSchema schema = (TimeSeriesSchema) o;
 
         if (!schema.serializerType.equals(serializerType))
             return false;

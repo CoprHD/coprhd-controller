@@ -29,80 +29,79 @@ import org.slf4j.LoggerFactory;
 
 import static com.emc.storageos.coordinator.client.model.Constants.*;
 
+public class SoftwareVersionMetadata {
+    private static final Logger log = LoggerFactory.getLogger(SoftwareVersionMetadata.class);
+    private static String IMAGE_FILE_PATH_TEMPLATE = "/.volumes/bootfs/%s/rootimg";
 
-public class SoftwareVersionMetadata {	
-	private static final Logger log = LoggerFactory.getLogger(SoftwareVersionMetadata.class);
-	private static String IMAGE_FILE_PATH_TEMPLATE = "/.volumes/bootfs/%s/rootimg";
-	
-	public static void setimageFileTemplate(String template) {
-		IMAGE_FILE_PATH_TEMPLATE = template;
-	}
+    public static void setimageFileTemplate(String template) {
+        IMAGE_FILE_PATH_TEMPLATE = template;
+    }
 
-	private static final String READ_ONLY_ACCESS_MODE = "r";
-	private static final int VERSION_METADATA_LENGTH = 20480;
-	private static final String DOWNGRADE_TO_TAG = "downgrade_to:";
-	private static final String UPGRADE_FROM_TAG = "upgrade_from:";
-	public SoftwareVersion version;
-	public List<SoftwareVersion> upgradeFromVersionsList;
-	public List<SoftwareVersion> downgradeToVersionsList;
-	
-	private SoftwareVersionMetadata(SoftwareVersion c, List<SoftwareVersion> uL, List<SoftwareVersion> dL) {
-		version = c;
-		upgradeFromVersionsList = uL;
-		downgradeToVersionsList = dL;	
-	}
-	
-	public static SoftwareVersionMetadata getInstance(SoftwareVersion v) throws IOException {
-		
-		List<SoftwareVersion> upgradeFromList = new ArrayList<SoftwareVersion>();
-		List<SoftwareVersion> downgradeToList = new ArrayList<SoftwareVersion>();
-		
-		String viprMetadataString = readFile(v);
-		
-		for (String s : viprMetadataString.split("\n")){
-			// The metadata file contains multiple lines of properties
-			if (s.startsWith(UPGRADE_FROM_TAG) && !s.trim().endsWith(":")) {
-				for (String versionStr : s.substring(UPGRADE_FROM_TAG.length()).split(",")){
-					upgradeFromList.add(new SoftwareVersion(versionStr));
-				}
-			}
-			if (s.startsWith(DOWNGRADE_TO_TAG) && !s.trim().endsWith(":")) {
-				for (String versionStr : s.substring(DOWNGRADE_TO_TAG.length()).split(",")){
-					downgradeToList.add(new SoftwareVersion(versionStr));
-				}
-			}
-		}
-		return new SoftwareVersionMetadata(v, upgradeFromList, downgradeToList);
-	}
-	
-	private static String readFile(SoftwareVersion v) throws IOException {
-		
-		String imageFilePath = String.format(IMAGE_FILE_PATH_TEMPLATE, v.toString());
-		File f = new File(imageFilePath); 
-		long size = f.length();
-		RandomAccessFile file = null;
-		try {
-			file = new RandomAccessFile(f, READ_ONLY_ACCESS_MODE);
-		} catch (FileNotFoundException e) {
-			log.error("Image file doesn't exist! Stack trace: ", e);
-			throw e;
-		}
-		byte[] buffer = new byte[VERSION_METADATA_LENGTH];
-		try {
-			file.seek(size-TRAILER_LENGTH-VERSION_METADATA_LENGTH); // Skip until the beginning of the version metadata
-			file.read(buffer, 0, VERSION_METADATA_LENGTH);
-		} catch (IOException e) {
-			log.error("IOException while extract upgrade from version info! Stack trace: ", e);
-			throw e;
-		} finally {
-			try {
-				file.close();
-			} catch (IOException e) {
-	
-			}
-		}
-		
-		String viprMetadataString = StandardCharsets.UTF_8.decode(ByteBuffer.wrap(buffer)).toString();
-		return viprMetadataString;
-	}
+    private static final String READ_ONLY_ACCESS_MODE = "r";
+    private static final int VERSION_METADATA_LENGTH = 20480;
+    private static final String DOWNGRADE_TO_TAG = "downgrade_to:";
+    private static final String UPGRADE_FROM_TAG = "upgrade_from:";
+    public SoftwareVersion version;
+    public List<SoftwareVersion> upgradeFromVersionsList;
+    public List<SoftwareVersion> downgradeToVersionsList;
+
+    private SoftwareVersionMetadata(SoftwareVersion c, List<SoftwareVersion> uL, List<SoftwareVersion> dL) {
+        version = c;
+        upgradeFromVersionsList = uL;
+        downgradeToVersionsList = dL;
+    }
+
+    public static SoftwareVersionMetadata getInstance(SoftwareVersion v) throws IOException {
+
+        List<SoftwareVersion> upgradeFromList = new ArrayList<SoftwareVersion>();
+        List<SoftwareVersion> downgradeToList = new ArrayList<SoftwareVersion>();
+
+        String viprMetadataString = readFile(v);
+
+        for (String s : viprMetadataString.split("\n")) {
+            // The metadata file contains multiple lines of properties
+            if (s.startsWith(UPGRADE_FROM_TAG) && !s.trim().endsWith(":")) {
+                for (String versionStr : s.substring(UPGRADE_FROM_TAG.length()).split(",")) {
+                    upgradeFromList.add(new SoftwareVersion(versionStr));
+                }
+            }
+            if (s.startsWith(DOWNGRADE_TO_TAG) && !s.trim().endsWith(":")) {
+                for (String versionStr : s.substring(DOWNGRADE_TO_TAG.length()).split(",")) {
+                    downgradeToList.add(new SoftwareVersion(versionStr));
+                }
+            }
+        }
+        return new SoftwareVersionMetadata(v, upgradeFromList, downgradeToList);
+    }
+
+    private static String readFile(SoftwareVersion v) throws IOException {
+
+        String imageFilePath = String.format(IMAGE_FILE_PATH_TEMPLATE, v.toString());
+        File f = new File(imageFilePath);
+        long size = f.length();
+        RandomAccessFile file = null;
+        try {
+            file = new RandomAccessFile(f, READ_ONLY_ACCESS_MODE);
+        } catch (FileNotFoundException e) {
+            log.error("Image file doesn't exist! Stack trace: ", e);
+            throw e;
+        }
+        byte[] buffer = new byte[VERSION_METADATA_LENGTH];
+        try {
+            file.seek(size - TRAILER_LENGTH - VERSION_METADATA_LENGTH); // Skip until the beginning of the version metadata
+            file.read(buffer, 0, VERSION_METADATA_LENGTH);
+        } catch (IOException e) {
+            log.error("IOException while extract upgrade from version info! Stack trace: ", e);
+            throw e;
+        } finally {
+            try {
+                file.close();
+            } catch (IOException e) {
+
+            }
+        }
+
+        String viprMetadataString = StandardCharsets.UTF_8.decode(ByteBuffer.wrap(buffer)).toString();
+        return viprMetadataString;
+    }
 }

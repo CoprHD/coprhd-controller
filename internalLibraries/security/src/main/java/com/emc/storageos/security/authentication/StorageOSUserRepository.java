@@ -35,14 +35,14 @@ import com.emc.storageos.security.exceptions.SecurityException;
 public class StorageOSUserRepository {
 
     private final Logger _logger = LoggerFactory.getLogger(StorageOSUserRepository.class);
-    
+
     private BasePermissionsHelper _permissionsHelper = null;
 
     @Autowired
     private UserFromRequestHelper _userFromRequestHelper;
-    
+
     private Map<String, StorageOSUser> _localUsers;
-    
+
     public void setLocalUsers(Map<String, StorageOSUser> localUsers) {
         _localUsers = localUsers;
     }
@@ -50,10 +50,12 @@ public class StorageOSUserRepository {
     /**
      * Default constructor
      */
-    public StorageOSUserRepository() {      }
+    public StorageOSUserRepository() {
+    }
 
     /**
      * Setter for permissions helper object
+     * 
      * @param helper
      */
     public void setPermissionsHelper(BasePermissionsHelper helper) {
@@ -63,12 +65,13 @@ public class StorageOSUserRepository {
     /**
      * From a barebone StorageOSUser add roles if it is a local user.
      * add necessary roles and root tenant id if the local user is root.
+     * 
      * @param user: StorageOSUser previously constructed
      */
     private void updateLocalUser(StorageOSUser user) {
         StorageOSUser local = _localUsers.get(user.getName());
         if (local != null) {
-            for( String role : local.getRoles() ) {
+            for (String role : local.getRoles()) {
 
                 // if local vdc is in GEO env, local user's security_admin and system_admin role
                 // need be downgraded to restricted_security_admin and restricted_system_admin.
@@ -87,28 +90,31 @@ public class StorageOSUserRepository {
             }
         }
     }
+
     /**
-     * Convenience function to allow passing just a username 
+     * Convenience function to allow passing just a username
      * (used for security disabler usercase)
+     * 
      * @param userContext
      * @return StorageOSUser object
      */
     public StorageOSUser findOne(String userContext) {
         StorageOSUser user = _userFromRequestHelper.getStorageOSUser(userContext);
-        if(user==null) {
+        if (user == null) {
             throw SecurityException.fatals.couldNotConstructUserObjectFromRequest();
         }
         addRoles(user);
         return user;
     }
-    
+
     /**
      * Find StorageOSUser object for the user record looked up from the token
+     * 
      * @param userDAO: user record
      * @return StorageOSUser instance
      */
     public StorageOSUser findOne(StorageOSUserDAO userDAO) {
-        if( userDAO == null) {
+        if (userDAO == null) {
             throw SecurityException.fatals
                     .theParametersAreNotValid(StorageOSUserDAO.class.getName());
         }
@@ -128,19 +134,20 @@ public class StorageOSUserRepository {
         TenantOrg rootTenant = _permissionsHelper.getRootTenant();
         if (user.isLocal()) {
             updateLocalUser(user);
-        } else if( rootTenant.getId().equals(URI.create(user.getTenantId())) ) {
+        } else if (rootTenant.getId().equals(URI.create(user.getTenantId()))) {
             // grab all zone roles for this user
             _permissionsHelper.populateZoneRoles(user, VdcUtil.getLocalVdc());
         }
     }
-    
+
     /**
      * Checks if a local user exists (in the repository map)
+     * 
      * @param userName
      * @return true if exists, false otherwise.
      */
     public boolean isUserLocal(String userName) {
         return _localUsers.containsKey(userName);
     }
-    
+
 }

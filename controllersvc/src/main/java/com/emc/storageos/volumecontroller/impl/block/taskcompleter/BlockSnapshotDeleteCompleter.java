@@ -53,7 +53,7 @@ public class BlockSnapshotDeleteCompleter extends BlockSnapshotTaskCompleter {
      *
      * @param dbClient [in] - DbClient for querying ViPR DB
      * @param snapshot [in] - BlockSnapshot object
-     * @param task     [in] - Task UUID for the snapshot delete operation
+     * @param task [in] - Task UUID for the snapshot delete operation
      * @return a new BlockSnapshotDeleteCompleter object
      */
     public static BlockSnapshotDeleteCompleter createCompleter(DbClient dbClient, BlockSnapshot snapshot, String task) {
@@ -63,7 +63,7 @@ public class BlockSnapshotDeleteCompleter extends BlockSnapshotTaskCompleter {
             // events for all related snaps
             List<URI> snapIds = new ArrayList<URI>();
             List<BlockSnapshot> snaps = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshot, dbClient);
-            for(BlockSnapshot snap : snaps) {
+            for (BlockSnapshot snap : snaps) {
                 snapIds.add(snap.getId());
             }
             completer.addIds(snapIds);
@@ -80,28 +80,30 @@ public class BlockSnapshotDeleteCompleter extends BlockSnapshotTaskCompleter {
                 for (URI uri : getIds()) {
                     BlockSnapshot it = dbClient.queryObject(BlockSnapshot.class, uri);
                     switch (status) {
-                    case error:
-                        dbClient.error(BlockSnapshot.class, uri, getOpId(), coded);
-                        break;
-                    default:
-                        dbClient.ready(BlockSnapshot.class, uri, getOpId());
+                        case error:
+                            dbClient.error(BlockSnapshot.class, uri, getOpId(), coded);
+                            break;
+                        default:
+                            dbClient.ready(BlockSnapshot.class, uri, getOpId());
                     }
-                    
+
                     Volume parentVolume = dbClient.queryObject(Volume.class, it.getParent().getURI());
-                    
-                    recordBlockSnapshotOperation(dbClient, OperationTypeEnum.DELETE_VOLUME_SNAPSHOT, status, eventMessage(status, parentVolume, it), it);
+
+                    recordBlockSnapshotOperation(dbClient, OperationTypeEnum.DELETE_VOLUME_SNAPSHOT, status,
+                            eventMessage(status, parentVolume, it), it);
                     _log.info("Done SnapshotDelete {}, with Status: {}", getOpId(), status.name());
                 }
             } else {
                 switch (status) {
-                case error:
-                    dbClient.error(BlockSnapshot.class, getId(), getOpId(), coded);
-                    break;
-                default:
-                    dbClient.ready(BlockSnapshot.class, getId(), getOpId());
+                    case error:
+                        dbClient.error(BlockSnapshot.class, getId(), getOpId(), coded);
+                        break;
+                    default:
+                        dbClient.ready(BlockSnapshot.class, getId(), getOpId());
                 }
 
-                recordBlockSnapshotOperation(dbClient, OperationTypeEnum.DELETE_VOLUME_SNAPSHOT, status, eventMessage(status, volume, snapshot), snapshot);
+                recordBlockSnapshotOperation(dbClient, OperationTypeEnum.DELETE_VOLUME_SNAPSHOT, status,
+                        eventMessage(status, volume, snapshot), snapshot);
             }
         } catch (Exception e) {
             _log.error("Failed updating status. SnapshotDelete {}, for task " + getOpId(), getId(), e);

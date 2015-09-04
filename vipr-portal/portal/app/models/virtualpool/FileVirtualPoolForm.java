@@ -28,7 +28,7 @@ import com.emc.vipr.client.core.util.ResourceUtils;
 public class FileVirtualPoolForm extends VirtualPoolCommonForm<FileVirtualPoolRestRep> {
     @Min(0)
     public Integer maxSnapshots;
-    
+
     public Boolean longTermRetention;
 
     @Override

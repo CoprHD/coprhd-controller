@@ -51,8 +51,9 @@ public class ExportMaskNameGenerator extends ResourceOnlyNameGenerator {
             int whatsExtra = (firstNameToUseLength + alternateNameLength) - whatsLeft;
             // Truncate the name that is longer
             if ((whatsExtra > whatsLeft) || (firstNameToUseLength == alternateNameLength)) {
-                int truncateLength = (alternateNameLength > 0) ? whatsLeft/2 : whatsLeft;
-                String adjustedFirstName = (truncateLength > firstNameToUseLength) ? firstNameToUse : firstNameToUse.substring(0, truncateLength);
+                int truncateLength = (alternateNameLength > 0) ? whatsLeft / 2 : whatsLeft;
+                String adjustedFirstName = (truncateLength > firstNameToUseLength) ? firstNameToUse : firstNameToUse.substring(0,
+                        truncateLength);
                 String adjustedAlternateName = (alternateNameLength == 0 || truncateLength > alternateNameLength) ?
                         alternateNameIfAny : alternateNameIfAny.substring(0, truncateLength);
                 result = assembleName(adjustedFirstName, secondNameToUse, adjustedAlternateName, delimiter);
@@ -73,7 +74,7 @@ public class ExportMaskNameGenerator extends ResourceOnlyNameGenerator {
     }
 
     private String assembleName(String firstNameToUse, String secondNameToUse,
-                                String alternateNameIfAny, char delimiter) {
+            String alternateNameIfAny, char delimiter) {
         StringBuilder result = new StringBuilder();
         // Assemble the name using each piece if it is non-null/empty
         if (!Strings.isNullOrEmpty(alternateNameIfAny)) {

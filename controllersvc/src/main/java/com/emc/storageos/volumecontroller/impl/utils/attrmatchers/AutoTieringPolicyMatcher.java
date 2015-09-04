@@ -40,42 +40,41 @@ import com.emc.storageos.vnxe.models.StorageResource;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.google.common.base.Joiner;
 
-
 /**
  * FastPolicyAttrMatcher is responsible to match all the pools matching FAST policy name
  * given CoS.
  * 
  */
 public class AutoTieringPolicyMatcher extends AttributeMatcher {
-    
+
     private static final Logger _logger = LoggerFactory.getLogger(AutoTieringPolicyMatcher.class);
-    
+
     @Override
     protected List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> pools, Map<String, Object> attributeMap) {
         String autoTieringPolicyName = attributeMap.get(Attributes.auto_tiering_policy_name.toString()).toString();
-       
+
         _logger.info("Pools Matching Auto Tiering Policy name attribute {} Started:{}", autoTieringPolicyName, Joiner
                 .on("\t").join(getNativeGuidFromPools(pools)));
         // defensive copy
         List<StoragePool> filteredPoolList = new ArrayList<StoragePool>();
         Set<String> fastPolicyPools = null;
-        
+
         StringSet deviceTypes = (StringSet) attributeMap.get(Attributes.system_type.toString());
-        
+
         /*
-         *  If matcher is called during provisioning, then run ranking Algorithm to get
-         *  vnx matched pool. The reason for moving ranking algorithm to provisioning is,
-         *  ranking algorithm was basically designed to get a single best matching Pool, which
-         *  can be used in provisioning.Hence, during vpool creation, if we run ranking algorithm,
-         *  we may end up in a single Pool in matched Pools List, which is not desired.
+         * If matcher is called during provisioning, then run ranking Algorithm to get
+         * vnx matched pool. The reason for moving ranking algorithm to provisioning is,
+         * ranking algorithm was basically designed to get a single best matching Pool, which
+         * can be used in provisioning.Hence, during vpool creation, if we run ranking algorithm,
+         * we may end up in a single Pool in matched Pools List, which is not desired.
          */
-        
-        //called during implicit Pool matching
-        //deviceTypes other than vmax or vnxblock's control will not come to this matcher itself.
+
+        // called during implicit Pool matching
+        // deviceTypes other than vmax or vnxblock's control will not come to this matcher itself.
         if (deviceTypes.contains(VirtualPool.SystemType.vnxblock.toString())) {
             /** return pools whose Storage System is Auto Tiering enabled */
             filteredPoolList = getAutoTieringPoolsOnVnx(pools);
-        }else  if (deviceTypes.contains(VirtualPool.SystemType.vmax.toString())) {
+        } else if (deviceTypes.contains(VirtualPool.SystemType.vmax.toString())) {
             fastPolicyPools = getAutoTieringPoolsOnVMAX(autoTieringPolicyName, attributeMap);
             Iterator<StoragePool> poolIterator = pools.iterator();
             while (poolIterator.hasNext()) {
@@ -87,7 +86,7 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
                 } else {
                     _logger.info("Ignoring pool {} as it doesn't belongs to FAST policy.", pool.getNativeGuid());
                 }
-            } 
+            }
         } else if (deviceTypes.contains(VirtualPool.SystemType.hds.name())) {
             filteredPoolList = getAutoTieringPoolsOnHDS(autoTieringPolicyName, attributeMap, pools);
         } else if (deviceTypes.contains(VirtualPool.SystemType.vnxe.toString())) {
@@ -100,7 +99,7 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
 
     @Override
     public Map<String, Set<String>> getAvailableAttribute(List<StoragePool> neighborhoodPools,
-                                URI vArrayId) {
+            URI vArrayId) {
         try {
             Set<String> policyNameSet = new HashSet<String>();
             Map<String, Set<String>> availableAttrMap = new HashMap<String, Set<String>>(1);
@@ -139,23 +138,23 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
         }
         return Collections.emptyMap();
     }
-    
+
     @Override
     protected boolean isAttributeOn(Map<String, Object> attributeMap) {
         boolean status = false;
         if (null != attributeMap && attributeMap.containsKey(Attributes.auto_tiering_policy_name.toString())
-                && !((String)attributeMap.get(Attributes.auto_tiering_policy_name.toString())).equalsIgnoreCase("NONE")){
+                && !((String) attributeMap.get(Attributes.auto_tiering_policy_name.toString())).equalsIgnoreCase("NONE")) {
             StringSet deviceTypes = (StringSet) attributeMap.get(Attributes.system_type.toString());
-            if(deviceTypes.contains(VirtualPool.SystemType.vmax.toString())||
+            if (deviceTypes.contains(VirtualPool.SystemType.vmax.toString()) ||
                     deviceTypes.contains(VirtualPool.SystemType.vnxblock.toString()) ||
                     deviceTypes.contains(VirtualPool.SystemType.vnxe.toString()) ||
-                    deviceTypes.contains(VirtualPool.SystemType.hds.name())){
+                    deviceTypes.contains(VirtualPool.SystemType.hds.name())) {
                 status = true;
             }
         }
         return status;
     }
-    
+
     /**
      * Get all storagepools associated with all the policies based on the policy name passed.
      * 
@@ -173,15 +172,16 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
                     && isAutoTieringEnabledOnStorageSystem(policy.getStorageSystem())
                     && doesGivenProvisionTypeMatchFastPolicy(
                             attributeMap.get(Attributes.provisioning_type.toString()).toString(), policy)) {
-                if(null != policy.getPools())
+                if (null != policy.getPools())
                     fastPolicyPools.addAll(policy.getPools());
             }
         }
         return fastPolicyPools;
     }
-    
+
     /**
      * return Pools, whose associated StorageSystem is Fast Enabled.
+     * 
      * @param pools
      * @return
      */
@@ -196,9 +196,10 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
         }
         return filteredPools;
     }
-    
+
     /**
      * return Pools, whose storagepool is tiering capable or not.
+     * 
      * @param pools
      * @return
      */
@@ -211,9 +212,10 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
         }
         return filteredPools;
     }
-    
+
     /**
      * Match the pools based on the policyName selected during vpool create/update.
+     * 
      * @param policyName - Vpool PolicyName to match.
      * @param attributeMap - AttributeMap.
      * @param pools - Pools to match.
@@ -242,7 +244,7 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
         }
         return filteredPools;
     }
-    
+
     private boolean isAutoTieringEnabledOnStorageSystem(URI storageSystemURI) {
         StorageSystem system = _objectCache.queryObject(StorageSystem.class,
                 storageSystemURI);
@@ -271,7 +273,6 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
         return false;
     }
 
-    
     private boolean isValidAutoTieringPolicy(AutoTieringPolicy policy) {
         if (null == policy)
             return false;
@@ -284,6 +285,7 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
      * Check whether tiering is enabled on the given system or not.
      * If true: fetch & return all tiering policies of the system.
      * If false: return nothing.
+     * 
      * @param device : device of the pool.
      * @return
      */
@@ -303,11 +305,12 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
         }
         return policyNameSet;
     }
-    
+
     /**
      * Verify whether policies associated with pool are FAST enabled or not for VMAX storage systems.
      * true: pool has FAST enabled policies.
      * false: pool doesn't support FAST.
+     * 
      * @param poolID : ID of the Pool.
      * @return
      */
@@ -319,15 +322,16 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
         Iterator<URI> fastPolicyItr = fastPolicyResult.iterator();
         while (fastPolicyItr.hasNext()) {
             AutoTieringPolicy tierPolicy = _objectCache.queryObject(AutoTieringPolicy.class, fastPolicyItr.next());
-            if(null != tierPolicy && tierPolicy.getPolicyEnabled()) {
+            if (null != tierPolicy && tierPolicy.getPolicyEnabled()) {
                 policyNameSet.add(tierPolicy.getPolicyName());
             }
         }
         return policyNameSet;
     }
-    
+
     /**
      * Fetches the AutoTieringPolicies from the DB for a given policyName and uniquepolicyname selection.
+     * 
      * @param attributeMap
      * @param policyName
      * @return
@@ -338,11 +342,11 @@ public class AutoTieringPolicyMatcher extends AttributeMatcher {
         // check if pool fast policy name is not
         if (!uniquePolicyNames) {
             _objectCache.getDbClient().queryByConstraint(
-                    AlternateIdConstraint.Factory.getAutoTieringPolicyByNativeGuidConstraint(policyName),result);
+                    AlternateIdConstraint.Factory.getAutoTieringPolicyByNativeGuidConstraint(policyName), result);
         } else {
             _objectCache.getDbClient().queryByConstraint(
-                AlternateIdConstraint.Factory.getFASTPolicyByNameConstraint(policyName),
-                result);
+                    AlternateIdConstraint.Factory.getFASTPolicyByNameConstraint(policyName),
+                    result);
         }
         return result;
     }

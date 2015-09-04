@@ -29,9 +29,9 @@ public class AddVolumesToConsistencyGroup extends WaitForTask<BlockConsistencyGr
         BlockConsistencyGroupUpdate blockConsistencyGroupUpdate = new BlockConsistencyGroupUpdate();
         BlockConsistencyGroupVolumeList volumeList = new BlockConsistencyGroupVolumeList();
         volumeList.setVolumes(volumeIds);
-        
+
         blockConsistencyGroupUpdate.setAddVolumesList(volumeList);
-        
+
         return getClient().blockConsistencyGroups().update(consistencyGroupId, blockConsistencyGroupUpdate);
     }
 }

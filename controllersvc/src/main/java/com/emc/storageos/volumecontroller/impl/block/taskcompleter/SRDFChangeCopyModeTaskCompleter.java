@@ -18,47 +18,47 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 
-public class SRDFChangeCopyModeTaskCompleter extends SRDFTaskCompleter{
+public class SRDFChangeCopyModeTaskCompleter extends SRDFTaskCompleter {
 
-	/**
-	 * serialVesionUID
-	 */
-	private static final long serialVersionUID = -5479591144305569199L;
-	private static final Logger log = LoggerFactory.getLogger(SRDFChangeCopyModeTaskCompleter.class);
+    /**
+     * serialVesionUID
+     */
+    private static final long serialVersionUID = -5479591144305569199L;
+    private static final Logger log = LoggerFactory.getLogger(SRDFChangeCopyModeTaskCompleter.class);
     private Collection<Volume> tgtVolumes;
     private String newCopyMode;
 
-	public SRDFChangeCopyModeTaskCompleter(List<URI> ids, String opId, String copyMode) {
-		super(ids, opId);
-		this.newCopyMode = copyMode;
-	}
-	
-	@Override
-	protected void complete(DbClient dbClient, Status status, ServiceCoded coded)
-			throws DeviceControllerException {
+    public SRDFChangeCopyModeTaskCompleter(List<URI> ids, String opId, String copyMode) {
+        super(ids, opId);
+        this.newCopyMode = copyMode;
+    }
+
+    @Override
+    protected void complete(DbClient dbClient, Status status, ServiceCoded coded)
+            throws DeviceControllerException {
         try {
             setDbClient(dbClient);
-          
+
             switch (status) {
-            case ready:
-            	RemoteDirectorGroup rdfGrp =null;
-            	for (Volume target : tgtVolumes) {
-            		target.setSrdfCopyMode(newCopyMode);
-            		dbClient.persistObject(target);
-            		log.info(String.format("SRDF Device source %s and target %s copy mode got changed into %s",
-            				target.getSrdfParent().toString(), target.getId().toString(), newCopyMode));
-            		if(rdfGrp == null){
-            			rdfGrp = dbClient.queryObject(RemoteDirectorGroup.class, target.getSrdfGroup());
-            		}
-            	}
-            	if(rdfGrp != null){
-            		rdfGrp.setSupportedCopyMode(newCopyMode);
-            		dbClient.persistObject(rdfGrp);
-            		log.info("RDF Group {} copy mode got changed into : {}", rdfGrp.getId(), newCopyMode);
-            	}
-            	break;
-            default:
-            	log.info("Unable to handle SRDF Link Change Copy Mode Operational status: {}", status);
+                case ready:
+                    RemoteDirectorGroup rdfGrp = null;
+                    for (Volume target : tgtVolumes) {
+                        target.setSrdfCopyMode(newCopyMode);
+                        dbClient.persistObject(target);
+                        log.info(String.format("SRDF Device source %s and target %s copy mode got changed into %s",
+                                target.getSrdfParent().toString(), target.getId().toString(), newCopyMode));
+                        if (rdfGrp == null) {
+                            rdfGrp = dbClient.queryObject(RemoteDirectorGroup.class, target.getSrdfGroup());
+                        }
+                    }
+                    if (rdfGrp != null) {
+                        rdfGrp.setSupportedCopyMode(newCopyMode);
+                        dbClient.persistObject(rdfGrp);
+                        log.info("RDF Group {} copy mode got changed into : {}", rdfGrp.getId(), newCopyMode);
+                    }
+                    break;
+                default:
+                    log.info("Unable to handle SRDF Link Change Copy Mode Operational status: {}", status);
             }
 
         } catch (Exception e) {
@@ -68,20 +68,20 @@ public class SRDFChangeCopyModeTaskCompleter extends SRDFTaskCompleter{
         }
     }
 
-	public Collection<Volume> getTgtVolumes() {
-		return tgtVolumes;
-	}
+    public Collection<Volume> getTgtVolumes() {
+        return tgtVolumes;
+    }
 
-	public void setTgtVolumes(Collection<Volume> tgtVolumes) {
-		this.tgtVolumes = tgtVolumes;
-	}
+    public void setTgtVolumes(Collection<Volume> tgtVolumes) {
+        this.tgtVolumes = tgtVolumes;
+    }
 
-	public String getNewCopyMode() {
-		return newCopyMode;
-	}
+    public String getNewCopyMode() {
+        return newCopyMode;
+    }
 
-	public void setNewCopyMode(String newCopyMode) {
-		this.newCopyMode = newCopyMode;
-	}
+    public void setNewCopyMode(String newCopyMode) {
+        this.newCopyMode = newCopyMode;
+    }
 
 }

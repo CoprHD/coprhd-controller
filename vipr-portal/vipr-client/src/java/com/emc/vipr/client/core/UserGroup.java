@@ -75,7 +75,7 @@ public class UserGroup extends AbstractCoreResources<UserGroupRestRep> implement
      * API Call: <tt>POST /vdc/admin/user-groups</tt>
      *
      * @param input
-     *        the create configuration.
+     *            the create configuration.
      * @return the created user group.
      */
     public UserGroupRestRep create(UserGroupCreateParam input) {
@@ -88,7 +88,7 @@ public class UserGroup extends AbstractCoreResources<UserGroupRestRep> implement
      * API Call: <tt>PUT /vdc/admin/user-groups</tt>
      *
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return the updated user group.
      */
     public UserGroupRestRep update(URI id, UserGroupUpdateParam input) {

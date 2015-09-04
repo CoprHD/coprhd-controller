@@ -28,13 +28,13 @@ public class CompositeColumnName {
     private @Component(ordinal = 2) String _three;
     private @Component(ordinal = 3) UUID _timeUUID;
 
-    public CompositeColumnName() {        
+    public CompositeColumnName() {
     }
-    
+
     public CompositeColumnName(String one) {
         _one = one;
     }
-    
+
     public CompositeColumnName(String one, String two) {
         _one = one;
         _two = two;

@@ -16,17 +16,18 @@ import com.emc.storageos.model.BulkRestRep;
 public class OrderBulkRep extends BulkRestRep {
 
     private List<OrderRestRep> orders;
-    
+
     public OrderBulkRep() {
-        
+
     }
 
     public OrderBulkRep(List<OrderRestRep> orders) {
         this.orders = orders;
-    }    
-    
+    }
+
     /**
      * List of projects
+     * 
      * @valid none
      * @return List of orders
      */
@@ -41,5 +42,5 @@ public class OrderBulkRep extends BulkRestRep {
     public void setOrders(List<OrderRestRep> orders) {
         this.orders = orders;
     }
-   
+
 }

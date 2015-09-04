@@ -22,7 +22,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
  * Exception thrown from {@link StorageMonitor storage monitors} when an error
  * occurs starting/stopping event monitoring for a storage device.
  */
-public class StorageMonitorException  extends DeviceControllerException {
+public class StorageMonitorException extends DeviceControllerException {
 
     // Default serial version id.
     private static final long serialVersionUID = 1L;

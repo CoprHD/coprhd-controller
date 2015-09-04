@@ -36,8 +36,7 @@ public class GeoServiceExceptionFilter extends ClientFilter {
                     String content = response.getEntity(String.class);
                     logAndThrow(status, content);
                 }
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 // Cause to fall-through to default exception
                 log.error("Failed to parse exception from the remote VDC. Parsing error message", e);
                 String content = response.getEntity(String.class);
@@ -46,7 +45,7 @@ public class GeoServiceExceptionFilter extends ClientFilter {
             }
 
             // Fallback for unknown entity types
-         }
+        }
         return response;
     }
 

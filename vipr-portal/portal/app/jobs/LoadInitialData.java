@@ -18,7 +18,7 @@ public class LoadInitialData extends Job<String> {
         if (Play.mode.isDev() && !Play.runingInTestMode()) {
             // Load any required development assets here
         }
-        
+
         ConfigPropertyUtils.loadCoordinatorProperties();
     }
 }

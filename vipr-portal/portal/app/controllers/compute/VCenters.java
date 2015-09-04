@@ -134,9 +134,9 @@ public class VCenters extends ViprResourceController {
         else {
             Boolean validateConnectionParam = params.get("validateConnection", Boolean.class);
             boolean validateConnection = validateConnectionParam != null ? validateConnectionParam.booleanValue() : false;
-            
+
             vCenter.save(validateConnection);
-            
+
             flash.success(MessagesUtils.get(SAVED, vCenter.name));
             list();
         }
@@ -144,10 +144,10 @@ public class VCenters extends ViprResourceController {
 
     @FlashException("list")
     public static void delete(@As(",") String[] ids, boolean detachStorage) {
-		for (URI id : ResourceUtils.uris(ids)) {
+        for (URI id : ResourceUtils.uris(ids)) {
             VCenterUtils.deactivateVCenter(id, detachStorage);
         }
-		flash.success(MessagesUtils.get(DELETED));
+        flash.success(MessagesUtils.get(DELETED));
         list();
     }
 
@@ -159,10 +159,10 @@ public class VCenters extends ViprResourceController {
         performSuccess(ids, new DiscoveryOperation(), DISCOVERY_STARTED);
         list();
     }
-    
+
     @FlashException("list")
     public static void detachStorage(@As(",") String[] ids) {
-        for (URI id : ResourceUtils.uris(ids)) { 
+        for (URI id : ResourceUtils.uris(ids)) {
             VCenterUtils.detachStorage(id);
         }
         flash.success(MessagesUtils.get(DETACH_STORAGE));
@@ -265,7 +265,7 @@ public class VCenters extends ViprResourceController {
                     flash.error(MessagesUtils.get("validation.vcenter.messageAndError", e.getMessage()));
                     Common.handleError();
                 }
-                
+
             }
             else {
                 try {

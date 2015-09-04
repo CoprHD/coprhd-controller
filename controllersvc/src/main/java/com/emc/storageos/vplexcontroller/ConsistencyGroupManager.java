@@ -17,29 +17,29 @@ import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.workflow.Workflow;
 
 public interface ConsistencyGroupManager {
-    
+
     /**
      * Adds the workflow steps to create the VPLEX consistency group and add
      * newly created VPLEX volumes to the consistency group.
      * 
      * @param workflow The workflow to which the steps are added.
      * @param waitFor The previous workflow step for which these steps will
-     *        wait.
+     *            wait.
      * @param vplexSystem A reference to the VPLEX storage system.
      * @param vplexVolumeURIs The URIs of the volumes to add to the consistency
-     *        group.
+     *            group.
      * @param willBeRemovedByEarlierStep true if the CG will be removed by a
-     *        prior step in the workflow, false otherwise
+     *            prior step in the workflow, false otherwise
      * 
      * @return The workflow step for which any additional steps should wait.
      * 
      * @throws ControllerException When an error occurs configuring the
-     *         consistency group workflow steps.
+     *             consistency group workflow steps.
      */
     public String addStepsForCreateConsistencyGroup(Workflow workflow, String waitFor,
-        StorageSystem vplexSystem, List<URI> vplexVolumeURIs,
-        boolean willBeRemovedByEarlierStep) throws ControllerException;
-    
+            StorageSystem vplexSystem, List<URI> vplexVolumeURIs,
+            boolean willBeRemovedByEarlierStep) throws ControllerException;
+
     /**
      * Deletes the VPLEX consistency group with the passed URI on the VPLEX
      * storage system with the passed URI. Assumes that the consistency group
@@ -51,13 +51,13 @@ public interface ConsistencyGroupManager {
      * @param opId The unique task identifier.
      * 
      * @throws InternalException When an error occurs configuring the
-     *         consistency group deletion workflow.
+     *             consistency group deletion workflow.
      */
     public void deleteConsistencyGroup(Workflow workflow, URI vplexURI, URI cgURI, String opId)
-        throws InternalException;
-    
+            throws InternalException;
+
     /**
-     * Updates the VPLEX consistency group by adding/removing the passed volumes 
+     * Updates the VPLEX consistency group by adding/removing the passed volumes
      * to/from the consistency group.
      * 
      * @param workflow The workflow.
@@ -68,12 +68,12 @@ public interface ConsistencyGroupManager {
      * @param opId The unique task identifier.
      * 
      * @throws InternalException When an error occurs configuring the
-     *         consistency update workflow.
+     *             consistency update workflow.
      */
     public void updateConsistencyGroup(Workflow workflow, URI vplexURI, URI cgURI,
-        List<URI> addVolumesList, List<URI> removeVolumesList, String opId)
-        throws InternalException;
-    
+            List<URI> addVolumesList, List<URI> removeVolumesList, String opId)
+            throws InternalException;
+
     /**
      * Deletes a consistency group volume.
      * 
@@ -83,7 +83,7 @@ public interface ConsistencyGroupManager {
      * @throws URISyntaxException
      */
     public void deleteConsistencyGroupVolume(URI vplexURI, Volume volume, String cgName) throws URISyntaxException;
-    
+
     /**
      * Adds a VPlex volume to a VPlex consistency group.
      * 
@@ -91,10 +91,10 @@ public interface ConsistencyGroupManager {
      * @param vplexVolume The VPlex virtual volume.
      * @param client The VPlex client reference.
      * @param addToViPRCg If true, removes the vplexVolume from the ViPR BlockConsistencyGroup by
-     *                    setting the CG URI reference to null on the volume. Does nothing when false.
+     *            setting the CG URI reference to null on the volume. Does nothing when false.
      */
     public void addVolumeToCg(URI cgURI, Volume vplexVolume, VPlexApiClient client, boolean addToViPRCg);
-    
+
     /**
      * Removes a VPlex volume from a VPlex consistency group.
      * 
@@ -102,9 +102,9 @@ public interface ConsistencyGroupManager {
      * @param vplexVolume The VPlex virtual volume.
      * @param client The VPlex client reference.
      * @param removeFromViPRCg If true, adds the vplexVolume to the ViPR BlockConsistencyGroup by
-     *                    setting the CG URI references on the volume.  Does nothing when false.
+     *            setting the CG URI references on the volume. Does nothing when false.
      */
     public void removeVolumeFromCg(URI cgURI, Volume vplexVolume, VPlexApiClient client, boolean removeFromViPRCg);
-    
+
     public ClusterConsistencyGroupWrapper getClusterConsistencyGroup(Volume vplexVolume, String cgName);
 }

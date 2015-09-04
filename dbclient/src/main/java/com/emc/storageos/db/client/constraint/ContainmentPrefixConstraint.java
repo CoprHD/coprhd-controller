@@ -15,7 +15,6 @@
 
 package com.emc.storageos.db.client.constraint;
 
-
 import com.emc.storageos.db.client.constraint.impl.ContainmentLabelConstraintImpl;
 import com.emc.storageos.db.client.constraint.impl.ContainmentPrefixConstraintImpl;
 import com.emc.storageos.db.client.impl.ColumnField;
@@ -27,7 +26,7 @@ import java.net.URI;
 import java.util.List;
 
 /**
- * ContainmentPrefix constraint.  For example, find volumes with its name starting
+ * ContainmentPrefix constraint. For example, find volumes with its name starting
  * with 'foo' under project X
  */
 public interface ContainmentPrefixConstraint extends Constraint {
@@ -104,12 +103,12 @@ public interface ContainmentPrefixConstraint extends Constraint {
             ColumnField field = doType.getColumnField("project");
             return new ContainmentPrefixConstraintImpl(project, consistencyGroupPrefix, field);
         }
-        
+
         public static ContainmentPrefixConstraint getConstraint(
-                                                      Class<? extends DataObject> type,
-                                                      String columeField,
-                                                      URI resourceUri,
-                                                      String prefix) {
+                Class<? extends DataObject> type,
+                String columeField,
+                URI resourceUri,
+                String prefix) {
             DataObjectType doType = TypeMap.getDoType(type);
             ColumnField field = doType.getColumnField(columeField);
             return new ContainmentPrefixConstraintImpl(resourceUri, prefix, field);

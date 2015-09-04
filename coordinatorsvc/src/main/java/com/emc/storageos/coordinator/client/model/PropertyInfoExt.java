@@ -39,16 +39,16 @@ import static com.emc.storageos.model.property.PropertyConstants.ENCRYPTEDSTRING
  * To comply with other similar classes, we gave it a dummy attribute as "targetInfoExt"
  */
 public class PropertyInfoExt extends PropertyInfoRestRep implements CoordinatorSerializable {
-    public static final String CONFIG_VERSION  = "config_version";
+    public static final String CONFIG_VERSION = "config_version";
     public static final String CONNECTEMC_TRANSPORT = "system_connectemc_transport";
     // property constants
-    public static final String ENCODING_SEPARATOR           = "\0";
-    public static final String ENCODING_EQUAL              = "=";
-    public static final String ENCODING_NEWLINE            = "\n";
-    public static final String TARGET_PROPERTY              = "upgradetargetpropertyoverride";
-    public static final String OLD_TARGET_PROPERTY          = "upgradetargetproperty";
-    public static final String TARGET_PROPERTY_ID           = "global";
-    public static final String TARGET_INFO                  = "targetInfo";
+    public static final String ENCODING_SEPARATOR = "\0";
+    public static final String ENCODING_EQUAL = "=";
+    public static final String ENCODING_NEWLINE = "\n";
+    public static final String TARGET_PROPERTY = "upgradetargetpropertyoverride";
+    public static final String OLD_TARGET_PROPERTY = "upgradetargetproperty";
+    public static final String TARGET_PROPERTY_ID = "global";
+    public static final String TARGET_INFO = "targetInfo";
 
     private static final List<String> SECRET_KEY_PROPS = new ArrayList<>(Arrays.asList(
             "ssh_host_ecdsa_key",
@@ -65,7 +65,8 @@ public class PropertyInfoExt extends PropertyInfoRestRep implements CoordinatorS
             "svcuser_id_ecdsa"
             ));
 
-    public PropertyInfoExt() {}
+    public PropertyInfoExt() {
+    }
 
     public PropertyInfoExt(Map<String, String> properties) {
         super(properties);
@@ -83,17 +84,17 @@ public class PropertyInfoExt extends PropertyInfoRestRep implements CoordinatorS
     /**
      *
      * @param withMask if true, replace all encrypted string with HIDDEN_TEXT_MASK,
-     *                 otherwise always print the real content.
+     *            otherwise always print the real content.
      * @return
      */
     public String toString(boolean withMask) {
         StringBuffer sb = new StringBuffer();
         for (Map.Entry<String, String> entry : getProperties().entrySet()) {
             sb.append(entry.getKey());
-            sb.append(ENCODING_EQUAL); 
-            // Hide encrypted string in audit log 
+            sb.append(ENCODING_EQUAL);
+            // Hide encrypted string in audit log
             if (withMask && (PropertyInfoExt.isEncryptedProperty(entry.getKey()) ||
-                    PropertyInfoExt.isSecretProperty(entry.getKey()))){
+                    PropertyInfoExt.isSecretProperty(entry.getKey()))) {
                 sb.append(HIDDEN_TEXT_MASK);
             } else {
                 sb.append(entry.getValue());
@@ -134,8 +135,8 @@ public class PropertyInfoExt extends PropertyInfoRestRep implements CoordinatorS
             final String key = entry.getKey();
             final PropertyMetadata propertyMetadata = metadata.get(key);
             if (propertyMetadata != null
-                && propertyMetadata.getReconfigRequired() != null
-                && propertyMetadata.getReconfigRequired() == true) {
+                    && propertyMetadata.getReconfigRequired() != null
+                    && propertyMetadata.getReconfigRequired() == true) {
                 return true;
             }
         }
@@ -161,14 +162,14 @@ public class PropertyInfoExt extends PropertyInfoRestRep implements CoordinatorS
                     && propertyMetadata.getNotifiers() != null) {
                 // skip those properties that have notifiters but don't require reconfig
                 if (forReconfig && (propertyMetadata.getReconfigRequired() == null ||
-                        ! propertyMetadata.getReconfigRequired())) {
+                        !propertyMetadata.getReconfigRequired())) {
                     continue;
                 }
 
                 String[] notifierTags = propertyMetadata.getNotifiers();
                 // TODO: Note that the ordering is not deterministic across properties now
                 for (String notifierTag : notifierTags) {
-                    if (! ret.contains(notifierTag))
+                    if (!ret.contains(notifierTag))
                         ret.add(notifierTag);
                 }
             }
@@ -208,11 +209,11 @@ public class PropertyInfoExt extends PropertyInfoRestRep implements CoordinatorS
         Map<String, PropertyMetadata> metadata = PropertiesMetadata.getGlobalMetadata();
 
         if (metadata != null) {
-                PropertyMetadata propertyMetadata = metadata.get(key);
-                // check property type 
-                if(propertyMetadata != null && ENCRYPTEDSTRING.equals(propertyMetadata.getType())) {
-                        return true;
-                }
+            PropertyMetadata propertyMetadata = metadata.get(key);
+            // check property type
+            if (propertyMetadata != null && ENCRYPTEDSTRING.equals(propertyMetadata.getType())) {
+                return true;
+            }
         }
         return false;
     }
@@ -258,8 +259,8 @@ public class PropertyInfoExt extends PropertyInfoRestRep implements CoordinatorS
     /**
      * Method used to construct a property object from property string
      *
-     * @param stateStr      Property string
-     * @return              Property object decoded from string
+     * @param stateStr Property string
+     * @return Property object decoded from string
      * @throws Exception
      */
     public PropertyInfo constructPropertyObj(String stateStr) throws Exception {

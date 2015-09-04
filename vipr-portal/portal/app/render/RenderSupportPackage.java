@@ -53,8 +53,7 @@ public class RenderSupportPackage extends Result {
             response.contentType = getContentType();
             response.setHeader("Content-Disposition", getContentDisposition());
             response.direct = getContent();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             throw new UnexpectedException(e);
         }
     }

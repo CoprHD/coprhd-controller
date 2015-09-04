@@ -36,10 +36,10 @@ public class SmisDeleteVmaxCGTargetVolumesJob extends SmisJob {
     private static final Logger _log = LoggerFactory.getLogger(SmisDeleteVmaxCGTargetVolumesJob.class);
 
     private String[] deviceIds;
-    
+
     public SmisDeleteVmaxCGTargetVolumesJob(CIMObjectPath cimJob, URI storageSystem, String[] deviceIds, TaskCompleter taskCompleter) {
-    	super(cimJob, storageSystem, taskCompleter, "DeleteVdevVolumes");
-        this.deviceIds=deviceIds;
+        super(cimJob, storageSystem, taskCompleter, "DeleteVdevVolumes");
+        this.deviceIds = deviceIds;
     }
 
     public void updateStatus(JobContext jobContext) throws Exception {
@@ -48,7 +48,7 @@ public class SmisDeleteVmaxCGTargetVolumesJob extends SmisJob {
         JobStatus jobStatus = getJobStatus();
         try {
             if (jobStatus == JobStatus.SUCCESS) {
-            	_log.info("Vmax target volumes successfully removed: {}", deviceIds);        
+                _log.info("Vmax target volumes successfully removed: {}", deviceIds);
             } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
                 _log.info("Failed to delete target volumes: {}", deviceIds);
             }
@@ -64,9 +64,5 @@ public class SmisDeleteVmaxCGTargetVolumesJob extends SmisJob {
             }
         }
     }
-    
+
 }
-
-
-
-

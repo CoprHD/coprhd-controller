@@ -21,7 +21,7 @@ import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
  *
  */
 public abstract class BaseTestCustomMigrationCallback extends BaseCustomMigrationCallback {
-    
+
     public abstract void verify();
 
 }

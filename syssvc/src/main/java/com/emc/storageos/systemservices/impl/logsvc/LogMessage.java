@@ -52,7 +52,9 @@ public class LogMessage {
     private byte[] firstLine;
     private List<byte[]> followingLines;
 
-    enum Status { ACCEPTED, CONTINUATION, REJECTED, REJECTED_LAST, HEADER }
+    enum Status {
+        ACCEPTED, CONTINUATION, REJECTED, REJECTED_LAST, HEADER
+    }
 
     public final static LogMessage CONTINUATION_LOGMESSAGE = new LogMessage(Status.CONTINUATION);
     public final static LogMessage REJECTED_LOGMESSAGE = new LogMessage(Status.REJECTED);
@@ -61,11 +63,11 @@ public class LogMessage {
     public boolean isContinuation() {
         return status == Status.CONTINUATION;
     }
-    
+
     public boolean isRejected() {
         return status == Status.REJECTED;
     }
-    
+
     public boolean isRejectedLast() {
         return status == Status.REJECTED_LAST;
     }
@@ -73,14 +75,14 @@ public class LogMessage {
     public boolean isHeader() {
         return status == Status.HEADER;
     }
-    
+
     private LogMessage(Status status) {
         this.status = status;
     }
-    
+
     private LogMessage() {
     }
-    
+
     public LogMessage(long date, byte[] firstline) {
         this.status = Status.ACCEPTED;
         this.firstLine = firstline;
@@ -214,7 +216,7 @@ public class LogMessage {
                 lineNumberLen);
     }
 
-    public byte[] getTimeBytes(){
+    public byte[] getTimeBytes() {
         if (timeBytesOffset == -1 || timeBytesLen == 0)
             return NULL_BYTES;
 
@@ -281,21 +283,21 @@ public class LogMessage {
      * Write the LogMessage object to a DataOutputStream
      * The serialized form of the object is:
      * =============START==============
-     * service length                     (byte)
-     * service                            (byte[])
-     * file name offset                   (short)
-     * file name length                   (short)
-     * thread name offset                 (short)
-     * thread name length                 (short)
-     * level                              (byte)
-     * line number offset                 (short)
-     * line number length                 (byte)
-     * time                               (long)
-     * timeBytes offset                   (short)
-     * timeBytes length                   (byte)
-     * message offset                     (short)
-     * message length                     (int)
-     * message                            (byte[])
+     * service length (byte)
+     * service (byte[])
+     * file name offset (short)
+     * file name length (short)
+     * thread name offset (short)
+     * thread name length (short)
+     * level (byte)
+     * line number offset (short)
+     * line number length (byte)
+     * time (long)
+     * timeBytes offset (short)
+     * timeBytes length (byte)
+     * message offset (short)
+     * message length (int)
+     * message (byte[])
      * ==============END===============
      *
      * Note that node id is set in LogNetworkReader, which is above network serialization.
@@ -305,36 +307,36 @@ public class LogMessage {
     public void write(final DataOutputStream outputStream) throws IOException {
         // 1 service
         if (service != null && service.length != 0) {
-            outputStream.write((byte)service.length);
+            outputStream.write((byte) service.length);
             outputStream.write(service);
         } else {
-            outputStream.write((byte)0);
+            outputStream.write((byte) 0);
         }
 
         // 2 file name
-        outputStream.writeShort((short)fileNameOffset);
-        outputStream.writeShort((short)fileNameLen);
+        outputStream.writeShort((short) fileNameOffset);
+        outputStream.writeShort((short) fileNameLen);
 
         // 3 thread name
-        outputStream.writeShort((short)threadNameOffset);
-        outputStream.writeShort((short)threadNameLen);
+        outputStream.writeShort((short) threadNameOffset);
+        outputStream.writeShort((short) threadNameLen);
 
         // 4 level value
-        outputStream.write((byte)level);
+        outputStream.write((byte) level);
 
         // 5 lineNumber
-        outputStream.writeShort((short)lineNumberOffset);
-        outputStream.write((byte)lineNumberLen);
+        outputStream.writeShort((short) lineNumberOffset);
+        outputStream.write((byte) lineNumberLen);
 
         // 6 time
         outputStream.writeLong(time);
 
         // 7 timeBytes
-        outputStream.writeShort((short)timeBytesOffset);
-        outputStream.write((byte)timeBytesLen);
+        outputStream.writeShort((short) timeBytesOffset);
+        outputStream.write((byte) timeBytesLen);
 
         // 8 msg combined together
-        outputStream.writeShort((short)logOffset);
+        outputStream.writeShort((short) logOffset);
         byte[] combinedMsg = getRawLogContent();
         if (combinedMsg != null && combinedMsg.length != 0) {
             outputStream.writeInt(combinedMsg.length);
@@ -356,7 +358,7 @@ public class LogMessage {
 
         // 1 service
         int svclen = inputStream.read();
-        if(svclen > 0) {
+        if (svclen > 0) {
             byte[] svcArr = new byte[svclen];
             inputStream.readFully(svcArr);
             entry.setService(svcArr);
@@ -366,7 +368,6 @@ public class LogMessage {
         int fnameOffset = inputStream.readShort();
         int fnameLen = inputStream.readShort();
         entry.setFileName(fnameOffset, fnameLen);
-
 
         // 3 thread name
         int tnameOffset = inputStream.readShort();
@@ -400,7 +401,7 @@ public class LogMessage {
 
         return entry;
     }
-    
+
     public String toStringForTest() {
         return "[" + getThreadName() + "]" + " " + getLevel() + " "
                 + getFileName() + " " + getLineNumber() + " " + getLogContent();
@@ -409,11 +410,12 @@ public class LogMessage {
     /**
      * Return original format
      * Attention: not exactly same. The begging tab is different
-     * when first line firstLine is "", then returned string's first line firstLine is 
+     * when first line firstLine is "", then returned string's first line firstLine is
      * the second line content if applicable
+     * 
      * @return
      */
-    public String toStringOriginalFormat(){
+    public String toStringOriginalFormat() {
         StringBuilder sb = new StringBuilder();
 
         sb.append(getTimeBytes()).append(" ").append("[").append(getThreadName()).append("]")
@@ -429,9 +431,10 @@ public class LogMessage {
      * Attention: not exactly same. The begging tab is different
      * when first line firstLine is "", then returned string's first line firstLine is
      * the second line content if applicable
+     * 
      * @return
      */
-    public String toStringOriginalFormatSysLog(){
+    public String toStringOriginalFormatSysLog() {
         StringBuilder sb = new StringBuilder();
 
         sb.append(getTimeBytes()).append(" ").append("[").append(getThreadName()).append("]")

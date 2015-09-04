@@ -26,7 +26,7 @@ public class ServiceMetadata {
     private boolean isControlNodeService = false;
     private boolean isExtraNodeService = false;
     private String roles;
-    
+
     public String getName() {
         return name;
     }
@@ -58,11 +58,11 @@ public class ServiceMetadata {
     public void setIsExtraNodeService(boolean isExtraNodeService) {
         this.isExtraNodeService = isExtraNodeService;
     }
-    
+
     public String getRoles() {
         return this.roles;
     }
-    
+
     public void setRoles(String roles) {
         this.roles = roles;
     }

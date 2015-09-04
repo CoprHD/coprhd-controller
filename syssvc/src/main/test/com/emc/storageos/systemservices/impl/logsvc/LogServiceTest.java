@@ -44,7 +44,6 @@ import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.WebResource;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 
-
 /**
  * JUnit test class for {@link com.emc.storageos.systemservices.impl.resource.LogService}.
  */
@@ -55,24 +54,24 @@ public class LogServiceTest {
     private static final String SYSADMIN = EnvConfig.get("sanity", "syssvc.LogServiceTest.sysAdmin");
     private static final String SYSADMIN_PASSWORD = EnvConfig.get("sanity", "syssvc.LogServiceTest.sysAdminPassword");
     private static String AUTH_TOKEN_HEADER = "X-SDS-AUTH-TOKEN";
-    private static String authToken;    
-    
+    private static String authToken;
+
     private static final String INVALID_NODE_ID = "2";
     private static final String INVALID_SEVERITY = "11";
     private static final String INVALID_TIMESTAMP = "invalidTimestamp";
 
-    @BeforeClass 
+    @BeforeClass
     public static void init() {
         disableCertificateValidation();
-        
+
         initToken();
     }
-    
+
     @Test
     /**
      * Tests the dry run of getLogs method when no args are passed.
      */
-    public void testGetLogs_NoArgs_dryRun() {            
+    public void testGetLogs_NoArgs_dryRun() {
         Client client = Client.create();
         StringBuilder resourceBuilder = new StringBuilder(GET_LOGS_URI);
         resourceBuilder.append("?");
@@ -84,9 +83,9 @@ public class LogServiceTest {
         ClientResponse response = webResource.accept(MediaType.APPLICATION_JSON)
                 .header(AUTH_TOKEN_HEADER, authToken)
                 .get(ClientResponse.class);
-        Assert.assertTrue(response.getStatus() == Response.Status.OK.getStatusCode()); 
+        Assert.assertTrue(response.getStatus() == Response.Status.OK.getStatusCode());
     }
-    
+
     @Test
     /**
      * Tests the getLogs method when an invalid node id is passed in the 
@@ -106,11 +105,11 @@ public class LogServiceTest {
         resourceBuilder.append("true");
 
         WebResource webResource = client.resource(resourceBuilder.toString());
-        ClientResponse response = webResource.accept(MediaType.APPLICATION_JSON)                
+        ClientResponse response = webResource.accept(MediaType.APPLICATION_JSON)
                 .header(AUTH_TOKEN_HEADER, authToken)
                 .get(ClientResponse.class);
         Assert.assertTrue(response.getStatus() == Response.Status.BAD_REQUEST
-            .getStatusCode());
+                .getStatusCode());
         String responseStr = response.getEntity(String.class);
         final String errMsg = MessageFormat.format("Parameter {0} is not valid", "node id");
         Assert.assertTrue(responseStr.indexOf(errMsg) != -1);
@@ -121,7 +120,7 @@ public class LogServiceTest {
      * Tests the getLogs method when an invalid severity is passed in the 
      * request parameters.
      */
-    public void testGetLogs_InvalidSeverity_dryRun() {        
+    public void testGetLogs_InvalidSeverity_dryRun() {
         Client client = Client.create();
 
         StringBuilder resourceBuilder = new StringBuilder(GET_LOGS_URI);
@@ -139,10 +138,10 @@ public class LogServiceTest {
                 .header(AUTH_TOKEN_HEADER, authToken)
                 .get(ClientResponse.class);
         Assert.assertTrue(response.getStatus() == Response.Status.BAD_REQUEST
-            .getStatusCode());
+                .getStatusCode());
         String responseStr = response.getEntity(String.class);
         final String errMsg = MessageFormat.format("Parameter {0} is not valid", "severity");
-        Assert.assertTrue(responseStr.indexOf(errMsg) != -1);        
+        Assert.assertTrue(responseStr.indexOf(errMsg) != -1);
     }
 
     @Test
@@ -152,7 +151,7 @@ public class LogServiceTest {
      */
     public void testGetLogs_InvalidTimestamp_dryRun() {
         Client client = Client.create();
-        
+
         StringBuilder resourceBuilder = new StringBuilder(GET_LOGS_URI);
         resourceBuilder.append("?");
         resourceBuilder.append(LogRequestParam.START_TIME);
@@ -168,10 +167,10 @@ public class LogServiceTest {
                 .header(AUTH_TOKEN_HEADER, authToken)
                 .get(ClientResponse.class);
         Assert.assertTrue(response.getStatus() == Response.Status.BAD_REQUEST
-            .getStatusCode());
+                .getStatusCode());
         String responseStr = response.getEntity(String.class);
         final String errMsg = MessageFormat.format("Invalid date {0}. Cannot be parsed", INVALID_TIMESTAMP);
-        Assert.assertTrue(responseStr.indexOf(errMsg) != -1);        
+        Assert.assertTrue(responseStr.indexOf(errMsg) != -1);
     }
 
     @Test
@@ -209,7 +208,7 @@ public class LogServiceTest {
                 .header(AUTH_TOKEN_HEADER, authToken)
                 .get(ClientResponse.class);
         Assert.assertTrue(response.getStatus() == Response.Status.BAD_REQUEST
-            .getStatusCode());
+                .getStatusCode());
         String responseStr = response.getEntity(String.class);
         Object[] args = new String[2];
         args[0] = startDate.toString();
@@ -217,15 +216,15 @@ public class LogServiceTest {
         final String errMsg = MessageFormat.format("Specified end time {1} is before specified start time {0}", args);
         Assert.assertTrue(responseStr.indexOf(errMsg) != -1);
     }
-    
+
     @Test
     /**
      * Tests the getLogs method when an invalid node id is passed in the 
      * request parameters.
      */
-    public void testGetLogs_InvalidNode() {          
+    public void testGetLogs_InvalidNode() {
         Client client = Client.create();
-        
+
         StringBuilder resourceBuilder = new StringBuilder(GET_LOGS_URI);
         resourceBuilder.append("?");
         resourceBuilder.append(LogRequestParam.NODE_ID);
@@ -234,10 +233,10 @@ public class LogServiceTest {
 
         WebResource webResource = client.resource(resourceBuilder.toString());
         ClientResponse response = webResource.accept(MediaType.APPLICATION_JSON)
-                .header(AUTH_TOKEN_HEADER, authToken)                
+                .header(AUTH_TOKEN_HEADER, authToken)
                 .get(ClientResponse.class);
         Assert.assertTrue(response.getStatus() == Response.Status.BAD_REQUEST
-            .getStatusCode());
+                .getStatusCode());
         String responseStr = response.getEntity(String.class);
         final String errMsg = MessageFormat.format("Parameter {0} is not valid", "node id");
         Assert.assertTrue(responseStr.indexOf(errMsg) != -1);
@@ -248,9 +247,9 @@ public class LogServiceTest {
      * Tests the getLogs method when an invalid severity is passed in the 
      * request parameters.
      */
-    public void testGetLogs_InvalidSeverity() {        
+    public void testGetLogs_InvalidSeverity() {
         Client client = Client.create();
-        
+
         StringBuilder resourceBuilder = new StringBuilder(GET_LOGS_URI);
         resourceBuilder.append("?");
         resourceBuilder.append(LogRequestParam.SEVERITY);
@@ -259,10 +258,10 @@ public class LogServiceTest {
 
         WebResource webResource = client.resource(resourceBuilder.toString());
         ClientResponse response = webResource.accept(MediaType.APPLICATION_JSON)
-               .header(AUTH_TOKEN_HEADER, authToken)               
-               .get(ClientResponse.class);
+                .header(AUTH_TOKEN_HEADER, authToken)
+                .get(ClientResponse.class);
         Assert.assertTrue(response.getStatus() == Response.Status.BAD_REQUEST
-            .getStatusCode());
+                .getStatusCode());
         String responseStr = response.getEntity(String.class);
         final String errMsg = MessageFormat.format("Parameter {0} is not valid", "severity");
         Assert.assertTrue(responseStr.indexOf(errMsg) != -1);
@@ -273,7 +272,7 @@ public class LogServiceTest {
      * Tests the getLogs method when an invalid timestamp is passed in the 
      * request parameters.
      */
-    public void testGetLogs_InvalidTimestamp() {        
+    public void testGetLogs_InvalidTimestamp() {
         Client client = Client.create();
 
         StringBuilder resourceBuilder = new StringBuilder(GET_LOGS_URI);
@@ -283,12 +282,12 @@ public class LogServiceTest {
         resourceBuilder.append(INVALID_TIMESTAMP);
 
         WebResource webResource = client.resource(resourceBuilder.toString());
-        ClientResponse response = webResource.accept(MediaType.APPLICATION_JSON)                
+        ClientResponse response = webResource.accept(MediaType.APPLICATION_JSON)
                 .header(AUTH_TOKEN_HEADER, authToken)
                 .get(ClientResponse.class);
 
         Assert.assertTrue(response.getStatus() == Response.Status.BAD_REQUEST
-            .getStatusCode());
+                .getStatusCode());
         String responseStr = response.getEntity(String.class);
         final String errMsg = MessageFormat.format("Invalid date {0}. Cannot be parsed", INVALID_TIMESTAMP);
         Assert.assertTrue(responseStr.indexOf(errMsg) != -1);
@@ -325,7 +324,7 @@ public class LogServiceTest {
                 .header(AUTH_TOKEN_HEADER, authToken)
                 .get(ClientResponse.class);
         Assert.assertTrue(response.getStatus() == Response.Status.BAD_REQUEST
-            .getStatusCode());
+                .getStatusCode());
         String responseStr = response.getEntity(String.class);
         Object[] args = new String[2];
         args[0] = startDate.toString();
@@ -334,14 +333,12 @@ public class LogServiceTest {
         Assert.assertTrue(responseStr.indexOf(errMsg) != -1);
     }
 
-
-    
     @Test
     /**
      * Tests the getLogs method when no args are passed.
      */
-    public void testGetLogs_NoArgs() {    
-        
+    public void testGetLogs_NoArgs() {
+
         // Make the request.
         Client client = Client.create();
         WebResource webResource = client.resource(GET_LOGS_URI);
@@ -355,23 +352,24 @@ public class LogServiceTest {
         String line = null;
         try {
             while ((line = reader.readLine()) != null) {
-                
+
             }
         } catch (Exception e) {
-            
-        }
-        finally {
-            try {reader.close();} catch (Exception e){}
-        }        
-    }
-    
 
-    
+        } finally {
+            try {
+                reader.close();
+            } catch (Exception e) {
+            }
+        }
+    }
+
     /**
      * Create https client after invoking the login api to get security token
+     * 
      * @return
      */
-    private static void initToken() {                
+    private static void initToken() {
         Client client = Client.create();
         client.setFollowRedirects(false);
         client.addFilter(new HTTPBasicAuthFilter(SYSADMIN, SYSADMIN_PASSWORD));
@@ -380,29 +378,35 @@ public class LogServiceTest {
         authToken = loginResp.getHeaders().getFirst(AUTH_TOKEN_HEADER);
         Assert.assertNotNull(authToken);
     }
-        
+
     /**
      * disable validation of ssl certificate
      */
     private static void disableCertificateValidation() {
         // Create a trust manager that does not validate certificate chains
-        final TrustManager[] trustAllCerts = new TrustManager[] { 
+        final TrustManager[] trustAllCerts = new TrustManager[] {
                 new X509TrustManager() {
                     @Override
-                    public X509Certificate[] getAcceptedIssuers() { 
-                        return new X509Certificate[0]; 
+                    public X509Certificate[] getAcceptedIssuers() {
+                        return new X509Certificate[0];
                     }
+
                     @Override
-                    public void checkClientTrusted(final X509Certificate[] certs, final String authType) {}
+                    public void checkClientTrusted(final X509Certificate[] certs, final String authType) {
+                    }
+
                     @Override
-                    public void checkServerTrusted(final X509Certificate[] certs, final String authType) {}
+                    public void checkServerTrusted(final X509Certificate[] certs, final String authType) {
+                    }
                 }
         };
 
         // Ignore differences between given hostname and certificate hostname
         final HostnameVerifier hv = new HostnameVerifier() {
             @Override
-            public boolean verify(final String hostname, final SSLSession session) { return true; }
+            public boolean verify(final String hostname, final SSLSession session) {
+                return true;
+            }
         };
 
         // Install the all-trusting trust manager
@@ -411,7 +415,8 @@ public class LogServiceTest {
             sc.init(null, trustAllCerts, new SecureRandom());
             HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
             HttpsURLConnection.setDefaultHostnameVerifier(hv);
-        } catch (final Exception e) {}
+        } catch (final Exception e) {
+        }
     }
-    
+
 }

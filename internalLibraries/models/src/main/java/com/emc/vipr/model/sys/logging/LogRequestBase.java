@@ -47,12 +47,12 @@ public class LogRequestBase {
     /**
      * Constructor for log level requests.
      *
-     * @param nodeIds   The list of Bourne node ids.
-     * @param logNames  The list of log file names.
-     * @param severity  The severity level to set.
+     * @param nodeIds The list of Bourne node ids.
+     * @param logNames The list of log file names.
+     * @param severity The severity level to set.
      */
-    protected LogRequestBase(List<String> nodeIds, List<String> logNames, 
-                          LogSeverity severity) {
+    protected LogRequestBase(List<String> nodeIds, List<String> logNames,
+            LogSeverity severity) {
         if (nodeIds != null) {
             this.nodeIds = nodeIds;
         }

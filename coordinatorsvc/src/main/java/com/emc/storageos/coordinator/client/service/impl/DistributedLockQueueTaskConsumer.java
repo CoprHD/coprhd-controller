@@ -7,8 +7,8 @@ import org.slf4j.LoggerFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 
 /**
- * Asynchronously consumes tasks from a {@link com.emc.storageos.coordinator.client.service.DistributedLockQueueManager}
- * using a managed thread pool.
+ * Asynchronously consumes tasks from a {@link com.emc.storageos.coordinator.client.service.DistributedLockQueueManager} using a managed
+ * thread pool.
  *
  * @author Ian Bibby
  */

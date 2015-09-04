@@ -21,7 +21,7 @@ import java.lang.annotation.*;
  * Number of shards for time series data
  */
 @Documented
-@Target({ElementType.TYPE})
+@Target({ ElementType.TYPE })
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Shards {
     /**

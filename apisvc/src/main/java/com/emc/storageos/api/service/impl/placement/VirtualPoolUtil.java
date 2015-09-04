@@ -65,8 +65,8 @@ public class VirtualPoolUtil {
     private static final Logger _log = LoggerFactory.getLogger(VirtualPoolUtil.class);
 
     private static VirtualPoolValidator autoTieringPolicyValidator = null;
-    //private static VirtualPoolValidator blockNameValidator = null;
-    //private static VirtualPoolValidator blockDescriptionValidator = null;
+    // private static VirtualPoolValidator blockNameValidator = null;
+    // private static VirtualPoolValidator blockDescriptionValidator = null;
     private static VirtualPoolValidator blockDriveTypeValidator = null;
     private static VirtualPoolValidator blockSystemTypeValidator = null;
     private static VirtualPoolValidator blockProvisioningValidator = null;
@@ -78,16 +78,14 @@ public class VirtualPoolUtil {
     private static VirtualPoolValidator blockThinVolumePreAllocationValidator = null;
     private static VirtualPoolValidator blockHostLimitValidator = null;
 
-    //private static VirtualPoolValidator fileNameValidator = null;
-    //private static VirtualPoolValidator fileDescriptionValidator = null;
+    // private static VirtualPoolValidator fileNameValidator = null;
+    // private static VirtualPoolValidator fileDescriptionValidator = null;
     private static VirtualPoolValidator fileProvisioningValidator = null;
     private static VirtualPoolValidator fileSystemTypeValidator = null;
-    
-
 
     static {
-        //blockNameValidator = new NameValidator();
-        //blockDescriptionValidator = new DescriptionValidator();
+        // blockNameValidator = new NameValidator();
+        // blockDescriptionValidator = new DescriptionValidator();
         blockSystemTypeValidator = new SystemTypeValidator();
         blockProvisioningValidator = new ProvisioningTypeValidator();
         autoTieringPolicyValidator = new AutoTieringPolicyValidator();
@@ -100,8 +98,8 @@ public class VirtualPoolUtil {
         blockRemoteProtectionValidator = new RemoteMirrorProtectionValidator();
         blockHostLimitValidator = new HostIOLimitValidator();
 
-        //blockNameValidator.setNextValidator(blockDescriptionValidator);
-        //blockDescriptionValidator.setNextValidator(blockSystemTypeValidator);
+        // blockNameValidator.setNextValidator(blockDescriptionValidator);
+        // blockDescriptionValidator.setNextValidator(blockSystemTypeValidator);
         blockSystemTypeValidator.setNextValidator(blockProvisioningValidator);
         blockProvisioningValidator.setNextValidator(autoTieringPolicyValidator);
         autoTieringPolicyValidator.setNextValidator(blockDriveTypeValidator);
@@ -114,19 +112,19 @@ public class VirtualPoolUtil {
         blockRemoteProtectionValidator.setNextValidator(blockHostLimitValidator);
     }
 
-
     /**
      * Return the FileValidatorChain entry point.
+     * 
      * @return
      */
     static {
-        //fileNameValidator = new NameValidator();
-        //fileDescriptionValidator = new DescriptionValidator();
+        // fileNameValidator = new NameValidator();
+        // fileDescriptionValidator = new DescriptionValidator();
         fileSystemTypeValidator = new SystemTypeValidator();
         fileProvisioningValidator = new ProvisioningTypeValidator();
 
-        //fileNameValidator.setNextValidator(fileDescriptionValidator);
-        //fileDescriptionValidator.setNextValidator(fileSystemTypeValidator);
+        // fileNameValidator.setNextValidator(fileDescriptionValidator);
+        // fileDescriptionValidator.setNextValidator(fileSystemTypeValidator);
         fileSystemTypeValidator.setNextValidator(fileProvisioningValidator);
     }
 
@@ -241,7 +239,7 @@ public class VirtualPoolUtil {
     @SuppressWarnings("unchecked")
     public static void validateFileVirtualPoolCreateParams(FileVirtualPoolParam param,
             DbClient dbClient) throws DatabaseException {
-        // Starts file VirtualPool validation chain using fileNameValidator. 
+        // Starts file VirtualPool validation chain using fileNameValidator.
         fileSystemTypeValidator.validateVirtualPoolCreateParam(param, dbClient);
     }
 
@@ -251,7 +249,7 @@ public class VirtualPoolUtil {
         // Starts file VirtualPool validation chain using fileNameValidator.
         fileSystemTypeValidator.validateVirtualPoolUpdateParam(cos, updateParam, dbClient);
     }
-    
+
     public static boolean isAutoTieringPolicyValidForDeviceType(
             String autoTierPolicyName, String systemType, DbClient dbClient) {
         if (null == autoTierPolicyName || autoTierPolicyName.equalsIgnoreCase("NONE"))
@@ -287,7 +285,7 @@ public class VirtualPoolUtil {
      * @return true if the vpool contains the passed protocols, false otherwise.
      */
     public static boolean checkVirtualPoolProtocols(
-        VirtualPool cos, HashSet<String> protocols, boolean matchAll) {
+            VirtualPool cos, HashSet<String> protocols, boolean matchAll) {
         if ((protocols != null) && (protocols.size() > 0)) {
             StringSet cosProtocols = cos.getProtocols();
             if ((matchAll) && (!cosProtocols.containsAll(protocols))) {
@@ -310,11 +308,10 @@ public class VirtualPoolUtil {
         return true;
     }
 
-    
-
     /**
      * Return the common protocols of vpool & pool if VirtualPool is defined with protocols.
      * Else return pool protocols.
+     * 
      * @param cosProtocols : Protocols defined in VirtualPool.
      * @param poolProtocols : Protocols supported by Pool.
      * @return : matching protocols.
@@ -325,7 +322,7 @@ public class VirtualPoolUtil {
             protocols = Sets.intersection(cosProtocols, poolProtocols);
             if (protocols.isEmpty()) {
                 protocols = getMatchingProtocolsForFilePool(cosProtocols, poolProtocols);
-           }
+            }
         } else {
             protocols = poolProtocols;
         }
@@ -334,12 +331,13 @@ public class VirtualPoolUtil {
 
     /**
      * Check whether thinVolumePreAllocationPercentage attribute is changed or not.
+     * 
      * @param thinVolumePreAllocationPercentage
      * @param thinVolumePreAllocationUpdateParam
      * @return
      */
     public static boolean checkThinVolumePreAllocationChanged(Integer thinVolumePreAllocationPercentage,
-                                                              Integer thinVolumePreAllocationUpdateParam) {
+            Integer thinVolumePreAllocationUpdateParam) {
         boolean isModified = false;
         if (null != thinVolumePreAllocationUpdateParam) {
             if (null == thinVolumePreAllocationPercentage) {
@@ -353,7 +351,7 @@ public class VirtualPoolUtil {
         }
         return isModified;
     }
-    
+
     /**
      * Check whether the protection attributes have changed.
      * 
@@ -362,84 +360,84 @@ public class VirtualPoolUtil {
      * @return true if the virtual pool has changed, false otherwise
      */
     public static boolean checkProtectionChanged(VirtualPool from, BlockVirtualPoolProtectionUpdateParam to) {
-  
-    	// If the update object is null there are no updates
-    	if (to == null) {
-    		_log.info("No virtual pool protection changes have been made");
-    		return false;
-    	}
-    	
-    	// Check for mirrored protection updates
-	    if (to.getContinuousCopies() != null) {
 
-	    	// Max native continuous copies can be changed any time -- so do not check it
+        // If the update object is null there are no updates
+        if (to == null) {
+            _log.info("No virtual pool protection changes have been made");
+            return false;
+        }
 
-	    	// Check if the mirror virtual pool has been updated
-	        if (to.getContinuousCopies().getVpool() != null 
-	        		&& from.getMirrorVirtualPool() != null
-	        		&& !from.getMirrorVirtualPool().equals(String.valueOf(to.getContinuousCopies().getVpool()))) {
-	            _log.info("Protection mirror virtual pool is being updated on virtual pool {}", from.getId());
-	            return true;
-	        } 
-	    }
-	    
-	    //Check for SRDF protection 
-	    //this condition will be triggered only if there are volumes already associated with source vpool.
-		if (to.getRemoteCopies() != null) {
-			if ((null != to.getRemoteCopies().getAdd() && !to.getRemoteCopies().getAdd().isEmpty())
-					|| (null != to.getRemoteCopies().getRemove() && !to.getRemoteCopies().getRemove().isEmpty())) {
-				// SRDF protection Copies are being modified on a vpool with volumes already in place.
-				// irrespective of whether source vpool has srdf protection,any changes to remote copies is not permitted on
-				// virtual pools with provisioned volumes.
-				_log.info("SRDF Protection cannot be added to a vpool with provisioned volumes ",from.getId());
-				return true;
+        // Check for mirrored protection updates
+        if (to.getContinuousCopies() != null) {
+
+            // Max native continuous copies can be changed any time -- so do not check it
+
+            // Check if the mirror virtual pool has been updated
+            if (to.getContinuousCopies().getVpool() != null
+                    && from.getMirrorVirtualPool() != null
+                    && !from.getMirrorVirtualPool().equals(String.valueOf(to.getContinuousCopies().getVpool()))) {
+                _log.info("Protection mirror virtual pool is being updated on virtual pool {}", from.getId());
+                return true;
             }
         }
-	    
-	    // Check for any RP protection updates
-	    if (to.getRecoverPoint() != null) {
-	    	// Has RP protection been removed?
-	    	if (to.getRecoverPoint().getAdd().isEmpty() && to.getRecoverPoint().getRemove().isEmpty() 
-        			&& to.getRecoverPoint().getSourcePolicy() == null) {
-	    		if (VirtualPool.vPoolSpecifiesProtection(from)) {
-	            	_log.info("RP protection is being removed from virtual pool {}", from.getId());
-	            	return true;	 
-	    		}
-	    	}
-	    	
-	    	// Check for source journal size updates
-	    	if (to.getRecoverPoint().getSourcePolicy() != null && to.getRecoverPoint().getSourcePolicy().getJournalSize() != null) {
-	    		if (!to.getRecoverPoint().getSourcePolicy().getJournalSize().equals(from.getJournalSize())) {
-	            	_log.info("The source policy journal size is being updated on virtual pool {}", from.getId());
-	            	return true;	
-	    		}
-	    	}
-	    	
-	    	// Check if the source policy has been removed
-	    	if (to.getRecoverPoint().getSourcePolicy() != null && to.getRecoverPoint().getSourcePolicy().getJournalSize() == null) {
-	    		if (from.getJournalSize() != null && !from.getJournalSize().equals(NullColumnValueGetter.getNullStr())) {
-	            	_log.info("The source policy is being removed from virtual pool {}", from.getId());
-	            	return true;	    			
-	    		}
-	    	}
-	    	
-	    	// Check if there are RP protection copies being added
-	    	if (to.getRecoverPoint().getAdd() != null && !to.getRecoverPoint().getAdd().isEmpty()) {
-	    		_log.info("Adding/updating RP protection copies to virtual pool {}", from.getId());
-	            return true;
-	    	}
-	    	
-	    	// Check if there are RP protection copies being removed
-        	if (to.getRecoverPoint().getRemove() != null && !to.getRecoverPoint().getRemove().isEmpty()) {
-        		_log.info("Removing RP protection copies from virtual pool {}", from.getId());
-        		return true;
-        	}
-	    }
-	    
-    	_log.info("No protection changes");
+
+        // Check for SRDF protection
+        // this condition will be triggered only if there are volumes already associated with source vpool.
+        if (to.getRemoteCopies() != null) {
+            if ((null != to.getRemoteCopies().getAdd() && !to.getRemoteCopies().getAdd().isEmpty())
+                    || (null != to.getRemoteCopies().getRemove() && !to.getRemoteCopies().getRemove().isEmpty())) {
+                // SRDF protection Copies are being modified on a vpool with volumes already in place.
+                // irrespective of whether source vpool has srdf protection,any changes to remote copies is not permitted on
+                // virtual pools with provisioned volumes.
+                _log.info("SRDF Protection cannot be added to a vpool with provisioned volumes ", from.getId());
+                return true;
+            }
+        }
+
+        // Check for any RP protection updates
+        if (to.getRecoverPoint() != null) {
+            // Has RP protection been removed?
+            if (to.getRecoverPoint().getAdd().isEmpty() && to.getRecoverPoint().getRemove().isEmpty()
+                    && to.getRecoverPoint().getSourcePolicy() == null) {
+                if (VirtualPool.vPoolSpecifiesProtection(from)) {
+                    _log.info("RP protection is being removed from virtual pool {}", from.getId());
+                    return true;
+                }
+            }
+
+            // Check for source journal size updates
+            if (to.getRecoverPoint().getSourcePolicy() != null && to.getRecoverPoint().getSourcePolicy().getJournalSize() != null) {
+                if (!to.getRecoverPoint().getSourcePolicy().getJournalSize().equals(from.getJournalSize())) {
+                    _log.info("The source policy journal size is being updated on virtual pool {}", from.getId());
+                    return true;
+                }
+            }
+
+            // Check if the source policy has been removed
+            if (to.getRecoverPoint().getSourcePolicy() != null && to.getRecoverPoint().getSourcePolicy().getJournalSize() == null) {
+                if (from.getJournalSize() != null && !from.getJournalSize().equals(NullColumnValueGetter.getNullStr())) {
+                    _log.info("The source policy is being removed from virtual pool {}", from.getId());
+                    return true;
+                }
+            }
+
+            // Check if there are RP protection copies being added
+            if (to.getRecoverPoint().getAdd() != null && !to.getRecoverPoint().getAdd().isEmpty()) {
+                _log.info("Adding/updating RP protection copies to virtual pool {}", from.getId());
+                return true;
+            }
+
+            // Check if there are RP protection copies being removed
+            if (to.getRecoverPoint().getRemove() != null && !to.getRecoverPoint().getRemove().isEmpty()) {
+                _log.info("Removing RP protection copies from virtual pool {}", from.getId());
+                return true;
+            }
+        }
+
+        _log.info("No protection changes");
         return false;
     }
-  
+
     /**
      * On an update of a block virtual pool, determines if the update request
      * modifies the high availability parameters for the virtual pool.
@@ -451,14 +449,14 @@ public class VirtualPoolUtil {
      *         being modified, false otherwise.
      */
     public static boolean checkHighAvailabilityChanged(VirtualPool vPool,
-        VirtualPoolHighAvailabilityParam haParam) {
-        
+            VirtualPoolHighAvailabilityParam haParam) {
+
         // If the HA param is null, then no HA changes were requested.
         if (haParam == null) {
             _log.info("No HA changes");
             return false;
         }
-       
+
         // Check if the virtual pool currently specify high availability.
         if (VirtualPool.vPoolSpecifiesHighAvailability(vPool)) {
             _log.info("Virtual pool specifies HA");
@@ -471,15 +469,15 @@ public class VirtualPoolUtil {
                 // availability from the virtual pool.
                 return true;
             }
-           
+
             // Check if the update request changes the high availability type.
             _log.info("HA type is {}", haParam.getType());
             if ((haParam.getType() != null)
-                && (!haParam.getType().equals(vPool.getHighAvailability()))) {
+                    && (!haParam.getType().equals(vPool.getHighAvailability()))) {
                 _log.info("HA type changed");
                 return true;
             }
- 
+
             // If the HA vArray/vPool param is null, this is not being
             // updated. Otherwise, we need to check if these are being
             // changed or removed.
@@ -498,14 +496,14 @@ public class VirtualPoolUtil {
                         haVpool = null;
                     }
                 }
-               
+
                 _log.info("Current vArray is {}", haVarray);
                 _log.info("Current vPool is {}", haVpool);
                 _log.info("HA vArray set as {}", haVarrayConnectedToRp);
-           
+
                 if ((haParam.getHaVirtualArrayVirtualPool().getVirtualArray() == null)
-                    && (haParam.getHaVirtualArrayVirtualPool().getVirtualPool() == null)
-                    && ((haVarray != null || haVpool != null))) {
+                        && (haParam.getHaVirtualArrayVirtualPool().getVirtualPool() == null)
+                        && ((haVarray != null || haVpool != null))) {
                     _log.info("Removing HA vArray/vPool params");
                     // The update request specifies an empty HA vArray/vPool
                     // param, the request is to remove these. If the virtual
@@ -513,34 +511,34 @@ public class VirtualPoolUtil {
                     // there is a change.
                     return true;
                 }
- 
+
                 _log.info("Update vArray is {}", haParam.getHaVirtualArrayVirtualPool().getVirtualArray());
                 if ((haParam.getHaVirtualArrayVirtualPool().getVirtualArray() != null)
-                    && (!String.valueOf(haParam.getHaVirtualArrayVirtualPool().getVirtualArray()).equals(haVarray))) {
+                        && (!String.valueOf(haParam.getHaVirtualArrayVirtualPool().getVirtualArray()).equals(haVarray))) {
                     // If the update param specifies an HA vArray, see if
                     // it's the same as the current value for the virtual
                     // pool.
                     _log.info("Changing vArray");
                     return true;
                 }
- 
+
                 _log.info("Update vPool is {}", haParam.getHaVirtualArrayVirtualPool().getVirtualPool());
                 if ((haParam.getHaVirtualArrayVirtualPool().getVirtualPool() != null) &&
-                		(!(String.valueOf(haParam.getHaVirtualArrayVirtualPool().getVirtualPool()).isEmpty() && haVpool == null) 
-                				&& !String.valueOf(haParam.getHaVirtualArrayVirtualPool().getVirtualPool()).equals(haVpool))) {
+                        (!(String.valueOf(haParam.getHaVirtualArrayVirtualPool().getVirtualPool()).isEmpty() && haVpool == null)
+                        && !String.valueOf(haParam.getHaVirtualArrayVirtualPool().getVirtualPool()).equals(haVpool))) {
                     // If the update param specifies an HA vPool, see if
                     // it's the same as the current value for the virtual
                     // pool. If the existing HA vpool is null and the updated HA vpool is an
-                	// empty String, there are no changes.
+                    // empty String, there are no changes.
                     _log.info("Changing vPool");
                     return true;
                 }
-                
+
                 if ((haVarrayConnectedToRp != null && !haVarrayConnectedToRp.isEmpty()
-                			&& !haParam.getHaVirtualArrayVirtualPool().getActiveProtectionAtHASite())
-                	|| ((haVarrayConnectedToRp == null || haVarrayConnectedToRp.isEmpty())
-                        		&& haParam.getHaVirtualArrayVirtualPool().getActiveProtectionAtHASite()) ) {
-                	return true;
+                        && !haParam.getHaVirtualArrayVirtualPool().getActiveProtectionAtHASite())
+                        || ((haVarrayConnectedToRp == null || haVarrayConnectedToRp.isEmpty())
+                        && haParam.getHaVirtualArrayVirtualPool().getActiveProtectionAtHASite())) {
+                    return true;
                 }
             }
         } else if (haParam.getType() != null) {
@@ -552,11 +550,12 @@ public class VirtualPoolUtil {
             return true;
         }
         return false;
-    }    
-    
+    }
+
     /**
      * Returns the Thin Volume Preallocation size based on size of the volume &
      * its percentage defined in the CoS.
+     * 
      * @param thinVolumePreAllocationPercentage
      * @param volumeSize
      * @return
@@ -564,7 +563,7 @@ public class VirtualPoolUtil {
     public static Long getThinVolumePreAllocationSize(Integer thinVolumePreAllocationPercentage, Long volumeSize) {
         return (thinVolumePreAllocationPercentage * volumeSize) / 100;
     }
-    
+
     /**
      * TODO : Need to move all these DB checks to DBSvc project check FileSystem
      * exists in DB
@@ -574,16 +573,16 @@ public class VirtualPoolUtil {
      * @return
      */
     public static boolean checkIfFileSystemExistsInDB(
-        String filesystemNativeGuid, DbClient dbClient) {
+            String filesystemNativeGuid, DbClient dbClient) {
         URIQueryResultList result = new URIQueryResultList();
         dbClient.queryByConstraint(AlternateIdConstraint.Factory
-            .getFileSystemNativeGUIdConstraint(filesystemNativeGuid), result);
+                .getFileSystemNativeGUIdConstraint(filesystemNativeGuid), result);
         if (result.iterator().hasNext()) {
             return true;
         }
         return false;
     }
-    
+
     /**
      * TODO : Need to move all these DB checks to DBSvc project
      * check Volume exists in DB
@@ -599,31 +598,33 @@ public class VirtualPoolUtil {
         Iterator<Volume> volumeItr = activeVolumes.iterator();
         return volumeItr.next();
     }
-    
+
     /**
      * Returns the protocols supported by both of vpool protocols and storage pool protocols when
      * the storage pool's protocols is set to NFS_OR_CIFS
+     * 
      * @param cosProtocols
      * @param poolProtocols
      * @return
      */
     private static Set<String> getMatchingProtocolsForFilePool(StringSet vpoolProtocols, StringSet poolProtocols) {
         Set<String> protocols = new HashSet<String>();
-        //file pool protocols could be set to NFS_OR_CIFS
+        // file pool protocols could be set to NFS_OR_CIFS
         if (poolProtocols != null && !poolProtocols.isEmpty()) {
             if (poolProtocols.contains(StorageProtocol.File.NFS_OR_CIFS.name())) {
-                if (vpoolProtocols.size() == 1 && 
-                    (vpoolProtocols.contains(StorageProtocol.File.NFS.name()) ||
-                     vpoolProtocols.contains(StorageProtocol.File.CIFS.name())) ){
-                        protocols =  vpoolProtocols;
+                if (vpoolProtocols.size() == 1 &&
+                        (vpoolProtocols.contains(StorageProtocol.File.NFS.name()) ||
+                        vpoolProtocols.contains(StorageProtocol.File.CIFS.name()))) {
+                    protocols = vpoolProtocols;
                 }
             }
         }
         return protocols;
     }
-    
+
     /**
      * Validate the DriveType for HDS systems when tiering policy selected.
+     * 
      * @param policy - AutoTierPolicy Name
      * @param sysType - SystemType
      * @param driveType - DriveType

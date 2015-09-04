@@ -32,7 +32,7 @@ public enum LogSeverity {
     INFO,
     DEBUG,
     TRACE,
-    NA; //this indicates a get logger level request, shouldn't be used elsewhere
+    NA; // this indicates a get logger level request, shouldn't be used elsewhere
 
     private final List<String> values;
 
@@ -64,4 +64,3 @@ public enum LogSeverity {
 
     public static final int MAX_LEVEL = 10;
 }
-

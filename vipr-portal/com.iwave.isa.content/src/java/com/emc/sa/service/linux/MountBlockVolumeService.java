@@ -18,10 +18,10 @@ import com.google.common.collect.Lists;
 
 @Service("Linux-MountBlockVolume")
 public class MountBlockVolumeService extends LinuxService {
-    
+
     @Param(VOLUME)
     protected URI volumeId;
-    
+
     private BlockObjectRestRep volume;
 
     @Bindable

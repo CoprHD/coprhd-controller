@@ -40,6 +40,7 @@ public abstract class AbstractAuthenticationFilter extends AbstractRequestWrappe
 
     /**
      * Forward the request to resource handler, we are done authenticating it
+     * 
      * @param servletRequest
      * @param servletResponse
      * @param reqWrapper
@@ -47,27 +48,27 @@ public abstract class AbstractAuthenticationFilter extends AbstractRequestWrappe
      * @throws ServletException
      */
     protected void forwardToService(final ServletRequest servletRequest,
-                                    final ServletResponse servletResponse,
-                                    final AbstractRequestWrapper reqWrapper)
+            final ServletResponse servletResponse,
+            final AbstractRequestWrapper reqWrapper)
             throws IOException, ServletException {
         try {
             HttpServletRequest req = (HttpServletRequest) servletRequest;
             servletRequest.getRequestDispatcher(req.getRequestURI()).forward(reqWrapper, servletResponse);
-        }  catch (WebApplicationException e) {
+        } catch (WebApplicationException e) {
             if (ServiceCodeExceptionMapper.isStackTracePrinted(e)) {
                 _log.warn("caught WebApplicationException", e);
             } else {
                 _log.warn("caught WebApplicationException: {}", e.getMessage());
             }
-            HttpServletResponse reponse = (HttpServletResponse)servletResponse;
+            HttpServletResponse reponse = (HttpServletResponse) servletResponse;
             reponse.sendError(toHTTPStatus(e), toServiceErrorXml(e));
         }
     }
 
     @Override
     public void doFilter(final ServletRequest servletRequest,
-                         final ServletResponse servletResponse,
-                         final FilterChain filterChain) throws IOException, ServletException {
+            final ServletResponse servletResponse,
+            final FilterChain filterChain) throws IOException, ServletException {
         final HttpServletResponse response = (HttpServletResponse) servletResponse;
         final HttpServletRequest request = (HttpServletRequest) servletRequest;
         AbstractRequestWrapper reqWrapper = null;

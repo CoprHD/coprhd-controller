@@ -136,30 +136,30 @@ import com.google.common.base.Function;
         Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class StorageSystemService extends TaskResourceService {
 
-    private static final Logger    _log                               = LoggerFactory
-                                                                              .getLogger(StorageSystemService.class);
-    private static final String    EVENT_SERVICE_TYPE                 = "StorageSystem";
+    private static final Logger _log = LoggerFactory
+            .getLogger(StorageSystemService.class);
+    private static final String EVENT_SERVICE_TYPE = "StorageSystem";
 
-    protected static final String  PORT_EVENT_SERVICE_SOURCE          = "StoragePortService";
-    private static final String    PORT_EVENT_SERVICE_TYPE            = "storageport";
-    protected static final String  STORAGEPORT_REGISTERED_DESCRIPTION = "Storage Port Registered";
+    protected static final String PORT_EVENT_SERVICE_SOURCE = "StoragePortService";
+    private static final String PORT_EVENT_SERVICE_TYPE = "storageport";
+    protected static final String STORAGEPORT_REGISTERED_DESCRIPTION = "Storage Port Registered";
 
-    protected static final String  POOL_EVENT_SERVICE_SOURCE          = "StoragePoolService";
-    private static final String    POOL_EVENT_SERVICE_TYPE            = "storagepool";
-    protected static final String  STORAGEPOOL_REGISTERED_DESCRIPTION = "Storage Pool Registered";
+    protected static final String POOL_EVENT_SERVICE_SOURCE = "StoragePoolService";
+    private static final String POOL_EVENT_SERVICE_TYPE = "storagepool";
+    protected static final String STORAGEPOOL_REGISTERED_DESCRIPTION = "Storage Pool Registered";
 
     private static final String TRUE_STR = "true";
-    
+
     private static final String FALSE_STR = "false";
-    
+
     @Autowired
     private RecordableEventManager _evtMgr;
 
     @Autowired
-    private RPHelper               rpHelper;
+    private RPHelper rpHelper;
 
     @Autowired
-    private PortMetricsProcessor   portMetricsProcessor;
+    private PortMetricsProcessor portMetricsProcessor;
 
     @Override
     public String getServiceType() {
@@ -1331,21 +1331,21 @@ public class StorageSystemService extends TaskResourceService {
         }
 
         RecordableBourneEvent event = new RecordableBourneEvent(
-        /* String */evType,
-        /* tenant id */null,
-        /* user id ?? */URI.create("ViPR-User"),
-        /* project ID */null,
-        /* VirtualPool */null,
-        /* service */service,
-        /* resource id */resourcdId,
-        /* description */description,
-        /* timestamp */System.currentTimeMillis(),
-        /* extensions */"",
-        /* native guid */null,
-        /* record type */RecordType.Event.name(),
-        /* Event Source */eventSource,
-        /* Operational Status codes */"",
-        /* Operational Status Descriptions */"");
+                /* String */evType,
+                /* tenant id */null,
+                /* user id ?? */URI.create("ViPR-User"),
+                /* project ID */null,
+                /* VirtualPool */null,
+                /* service */service,
+                /* resource id */resourcdId,
+                /* description */description,
+                /* timestamp */System.currentTimeMillis(),
+                /* extensions */"",
+                /* native guid */null,
+                /* record type */RecordType.Event.name(),
+                /* Event Source */eventSource,
+                /* Operational Status codes */"",
+                /* Operational Status Descriptions */"");
         try {
             _evtMgr.recordEvents(event);
         } catch (Throwable th) {
@@ -1576,7 +1576,7 @@ public class StorageSystemService extends TaskResourceService {
      * @param id
      *            the URN of a ViPR storage system
      * @prereq none
-     * @param vPoolId 
+     * @param vPoolId
      *            the URN of the Virtual Pool
      * @param exportType
      *            Specifies the type of UnManaged Volume.
@@ -1635,7 +1635,7 @@ public class StorageSystemService extends TaskResourceService {
      * @param id
      *            the URN of a ViPR storage system
      * @prereq none
-     * @param vPoolId 
+     * @param vPoolId
      *            the URN of the Virtual Pool
      * @param exportType
      *            Specifies the type of UnManaged FileSystem.

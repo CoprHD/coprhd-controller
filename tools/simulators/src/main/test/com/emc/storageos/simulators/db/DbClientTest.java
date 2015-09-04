@@ -65,9 +65,9 @@ public class DbClientTest extends DbSvcBase {
     /**
      * Create uri
      *
-     * @param prefix    prefix string
-     * @param id        unique id
-     * @return          uri
+     * @param prefix prefix string
+     * @param id unique id
+     * @return uri
      */
     private URI createURI(String prefix, String id) {
         return URI.create(String.format("urn:" + prefix + ":%1$s", id));
@@ -138,8 +138,7 @@ public class DbClientTest extends DbSvcBase {
         objectStoreImplDb.createDir("ifs/test111/test222/test333", true);
         String id = objectStoreImplDb.createQuota("ifs/test111/test222/test333", 10000L);
 
-        Quota quota
-                = dbClient.queryQuotaIndex(createURI("quota", id));
+        Quota quota = dbClient.queryQuotaIndex(createURI("quota", id));
         assertNotNull(quota);
         assertNotNull(dbClient.queryObject(Directory.class, quota.getDirectory()));
     }
@@ -162,8 +161,7 @@ public class DbClientTest extends DbSvcBase {
             assertTrue(true);
         }
 
-        Directory directory
-                = dbClient.queryObject(Directory.class, new URI("urn:dir:ifs/test111/test222/test333"));
+        Directory directory = dbClient.queryObject(Directory.class, new URI("urn:dir:ifs/test111/test222/test333"));
         assertEquals(directory.getQuota(), ObjectStoreImplDb._emptyURI);
     }
 

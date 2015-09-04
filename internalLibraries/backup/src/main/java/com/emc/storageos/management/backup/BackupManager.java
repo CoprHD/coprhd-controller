@@ -43,14 +43,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-
 public class BackupManager implements BackupManagerMBean {
     private static final Logger log = LoggerFactory.getLogger(BackupManager.class);
     public static final String MBEAN_NAME = "org.emc.storageos.management.backup:type=BackupManager";
     private static final int DEFAULT_DISK_QUOTA_GB = 50;
     private static final String MD5_SUFFIX = ".md5";
     private static final String DF_COMMAND = "/bin/df";
-    private static final long DF_COMMAND_TIMEOUT = 120000; 
+    private static final long DF_COMMAND_TIMEOUT = 120000;
     private static final String SPACE_VALUE = "\\s+";
 
     static File backupDir;
@@ -61,12 +60,13 @@ public class BackupManager implements BackupManagerMBean {
 
     private BackupHandler backupHandler;
     private Integer backupUsedDiskMaxPercentage;
-    private Integer backupDisabledDiskUsedPercentage; 
+    private Integer backupDisabledDiskUsedPercentage;
 
     /**
      * Sets local location which stores backup files
+     * 
      * @param backupDirParam
-     *      The new location path
+     *            The new location path
      */
     public void setBackupDir(final File backupDirParam) {
         if (backupDirParam == null) {
@@ -91,8 +91,9 @@ public class BackupManager implements BackupManagerMBean {
 
     /**
      * Sets name of current node
+     * 
      * @param nodeNameParam
-     *          The name of node
+     *            The name of node
      */
     public void setNodeName(String nodeNameParam) {
         Preconditions.checkArgument(nodeNameParam != null && !nodeNameParam.trim().isEmpty(),
@@ -105,10 +106,11 @@ public class BackupManager implements BackupManagerMBean {
     }
 
     /**
-    * Sets coordinator client
-    * @param coordinatorClient
-    *          The instance of CoordinatorClient
-    */
+     * Sets coordinator client
+     * 
+     * @param coordinatorClient
+     *            The instance of CoordinatorClient
+     */
     public void setCoordinatorClient(CoordinatorClient coordinatorClient) {
         this.coordinatorClient = coordinatorClient;
     }
@@ -129,8 +131,9 @@ public class BackupManager implements BackupManagerMBean {
 
     /**
      * Sets instance of BackupHandler
+     * 
      * @param backupHandler
-     *          The detail instance of BackupHandler
+     *            The detail instance of BackupHandler
      */
     public void setBackupHandler(BackupHandler backupHandler) {
         this.backupHandler = backupHandler;
@@ -152,7 +155,7 @@ public class BackupManager implements BackupManagerMBean {
             return DEFAULT_DISK_QUOTA_GB;
         }
         long diskTotalKB = dataDiskStats.getDataUsedKB() + dataDiskStats.getDataAvailKB();
-        int quotaGB = (int)((diskTotalKB * getBackupMaxUsedDiskPercentage()) / (100 * 1024 *1024));
+        int quotaGB = (int) ((diskTotalKB * getBackupMaxUsedDiskPercentage()) / (100 * 1024 * 1024));
         log.info("Quota is {} GB", quotaGB);
         return quotaGB;
     }
@@ -194,7 +197,7 @@ public class BackupManager implements BackupManagerMBean {
 
         File[] backupFiles = backupDir.listFiles();
         if (backupFiles != null && backupFiles.length != 0) {
-            for (File file : backupFiles) {                
+            for (File file : backupFiles) {
                 if (!file.isDirectory()) {
                     continue;
                 }
@@ -214,7 +217,7 @@ public class BackupManager implements BackupManagerMBean {
         log.debug("Quota size: {}\tCurrent backup size: {}", backupQuotaByte, currentSize);
         if (currentSize > backupQuotaByte)
             throw BackupException.fatals.backupSizeExceedQuota(
-                    getReadableSize(backupQuotaByte), 
+                    getReadableSize(backupQuotaByte),
                     getReadableSize(currentSize - backupQuotaByte));
     }
 
@@ -223,11 +226,11 @@ public class BackupManager implements BackupManagerMBean {
         if (size < BackupConstants.KILOBYTE) {
             sizeStr = String.format("%dB", size);
         } else if (size < BackupConstants.MEGABYTE) {
-            sizeStr = String.format("%dKB", size/BackupConstants.KILOBYTE); 
+            sizeStr = String.format("%dKB", size / BackupConstants.KILOBYTE);
         } else if (size < BackupConstants.GIGABYTE) {
-            sizeStr = String.format("%dMB", size/BackupConstants.MEGABYTE);
+            sizeStr = String.format("%dMB", size / BackupConstants.MEGABYTE);
         } else {
-            sizeStr = String.format("%dGB",size/BackupConstants.GIGABYTE); 
+            sizeStr = String.format("%dGB", size / BackupConstants.GIGABYTE);
         }
         return sizeStr;
     }
@@ -239,17 +242,17 @@ public class BackupManager implements BackupManagerMBean {
             return;
         }
         long dataTotalKB = dataDiskStatus.getDataUsedKB() + dataDiskStatus.getDataAvailKB();
-        int diskUsedPercentage = (int)(dataDiskStatus.getDataUsedKB() * 100 / dataTotalKB);
-        log.info("Disk used percentage limit: {}\tCurrent Disk used percentage: {}", 
+        int diskUsedPercentage = (int) (dataDiskStatus.getDataUsedKB() * 100 / dataTotalKB);
+        log.info("Disk used percentage limit: {}\tCurrent Disk used percentage: {}",
                 getBackupDisabledDiskPercentage(), diskUsedPercentage);
         if (diskUsedPercentage > getBackupDisabledDiskPercentage()) {
             throw BackupException.fatals.backupDisabledAsDiskFull(
                     diskUsedPercentage, getBackupDisabledDiskPercentage());
         }
     }
- 
+
     private DataDiskStats getDataDiskStats() {
-        final String[] cmd = {DF_COMMAND};
+        final String[] cmd = { DF_COMMAND };
         Exec.Result result = Exec.sudo(DF_COMMAND_TIMEOUT, cmd);
         if (!result.exitedNormally() || result.getExitValue() != 0) {
             log.error("getDataDiskStats() is unsuccessful. Command exit value is: {}",
@@ -275,8 +278,8 @@ public class BackupManager implements BackupManagerMBean {
     @Override
     public void create(final String backupTag) {
         Preconditions.checkArgument(backupTag != null
-                        && !backupTag.trim().isEmpty()
-                        && backupTag.length() < 256,
+                && !backupTag.trim().isEmpty()
+                && backupTag.length() < 256,
                 "Invalid backup name: %s", backupTag);
         Preconditions.checkNotNull(backupHandler);
         if (!backupHandler.isNeed())
@@ -301,8 +304,9 @@ public class BackupManager implements BackupManagerMBean {
     /**
      * Compresses backup folder to package and delete both backup folder and compress package if any
      * exception thrown.
+     * 
      * @param backupFolder
-     *          The folder which will be compressed
+     *            The folder which will be compressed
      */
     private File compressBackupFolder(File backupFolder) {
         File backupZip = new File(backupFolder.getParentFile(),
@@ -323,10 +327,11 @@ public class BackupManager implements BackupManagerMBean {
 
     /**
      * Computes md5 of specified file and save the result to another file.
+     * 
      * @param targetFile
-     *          The file which needs to record md5
+     *            The file which needs to record md5
      * @param md5FileName
-     *          The file to save the md5 result
+     *            The file to save the md5 result
      */
     private void computeMd5(File targetFile, String md5FileName) {
         Preconditions.checkArgument(targetFile != null && targetFile.exists(),
@@ -372,10 +377,10 @@ public class BackupManager implements BackupManagerMBean {
                 continue;
             for (File file : backupFiles) {
                 BackupSetInfo backupSetInfo = new BackupSetInfo();
-		backupSetInfo.setName(file.getName());
-		backupSetInfo.setCreateTime(file.lastModified());
-		backupSetInfo.setSize(file.length());
-		backupSetInfoList.add(backupSetInfo);
+                backupSetInfo.setName(file.getName());
+                backupSetInfo.setCreateTime(file.lastModified());
+                backupSetInfo.setSize(file.length());
+                backupSetInfoList.add(backupSetInfo);
             }
         }
         log.info("Backup is listed successfully: {}", backupSetInfoList);
@@ -411,7 +416,7 @@ public class BackupManager implements BackupManagerMBean {
     /**
      * Executes clean up operations here:
      * <p>
-     *     1. Unregister MBean from PlatformMBeanServer
+     * 1. Unregister MBean from PlatformMBeanServer
      */
     public void shutdown() {
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
@@ -422,4 +427,3 @@ public class BackupManager implements BackupManagerMBean {
         }
     }
 }
-

@@ -52,33 +52,43 @@ import com.emc.storageos.services.util.EnvConfig;
 
 public class RecoverPointClientIntegrationTest {
 
-    
     private static final String UNIT_TEST_CONFIG_FILE = "sanity";
-    
+
     private boolean isSymmDevices = false;
-    
-    private static final String site1InternalSiteName = "0x5fd991b1295c0901";   
-    
-    private static final String BourneRPTestProdLUN2WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestProdLUN2WWN");
-    private static final String BourneRPTestCDPLUN2WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestCDPLUN2WWN");
-    private static final String BourneRPTestProdLUN1WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestProdLUN1WWN");
-    private static final String BourneRPTestCDPLUN1WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestCDPLUN1WWN");
-    private static final String BourneRPTestJrnlLUN1WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestJrnlLUN1WWN");
-    private static final String BourneRPTestJrnlLUN2WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestJrnlLUN2WWN");
-    private static final String BourneRPTestJrnlLUN3WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestJrnlLUN3WWN");
-    private static final String BourneRPTestJrnlLUN4WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestJrnlLUN4WWN");
+
+    private static final String site1InternalSiteName = "0x5fd991b1295c0901";
+
+    private static final String BourneRPTestProdLUN2WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE,
+            "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestProdLUN2WWN");
+    private static final String BourneRPTestCDPLUN2WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE,
+            "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestCDPLUN2WWN");
+    private static final String BourneRPTestProdLUN1WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE,
+            "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestProdLUN1WWN");
+    private static final String BourneRPTestCDPLUN1WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE,
+            "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestCDPLUN1WWN");
+    private static final String BourneRPTestJrnlLUN1WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE,
+            "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestJrnlLUN1WWN");
+    private static final String BourneRPTestJrnlLUN2WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE,
+            "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestJrnlLUN2WWN");
+    private static final String BourneRPTestJrnlLUN3WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE,
+            "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestJrnlLUN3WWN");
+    private static final String BourneRPTestJrnlLUN4WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE,
+            "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestJrnlLUN4WWN");
     // Site ID: 2
-    private static final String BourneRPTestCRRLUN1WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestCRRLUN1WWN");
-    private static final String BourneRPTestCRRLUN2WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestCRRLUN2WWN");
-    private static final String BourneRPTestJrnlLUN5WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestJrnlLUN5WWN");
-    private static final String BourneRPTestJrnlLUN6WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestJrnlLUN6WWN");
-    
+    private static final String BourneRPTestCRRLUN1WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE,
+            "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestCRRLUN1WWN");
+    private static final String BourneRPTestCRRLUN2WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE,
+            "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestCRRLUN2WWN");
+    private static final String BourneRPTestJrnlLUN5WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE,
+            "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestJrnlLUN5WWN");
+    private static final String BourneRPTestJrnlLUN6WWN = EnvConfig.get(UNIT_TEST_CONFIG_FILE,
+            "recoverpoint.RecoverPointClientIntegrationTest.BourneRPTestJrnlLUN6WWN");
+
     private static final String RP_USERNAME = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RP_USERNAME");
     private static final String RP_PASSWORD = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RP_PASSWORD");
     private static final String RPSiteToUse = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RPSiteToUse");
     private static final String RPSystemName = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.RPSystemName");
     private static final String SITE_MGMT_IPV4 = EnvConfig.get(UNIT_TEST_CONFIG_FILE, "recoverpoint.SITE_MGMT_IPV4");
-   
 
     private static final String FAKE_WWN = "6006016018C12D00";
     private static RecoverPointClient rpClient;
@@ -88,7 +98,7 @@ public class RecoverPointClientIntegrationTest {
     private static final String postURI = ":7225/fapi/version4_1" + "?wsdl";
 
     private static final String site2InternalSiteName = "";
-    
+
     private static String Bookmarkname = "";
 
     @BeforeClass
@@ -97,19 +107,19 @@ public class RecoverPointClientIntegrationTest {
     }
 
     public static void setupClient(String ip, String username, String password) {
-        URI endpoint=null;
+        URI endpoint = null;
         try {
             endpoint = new URI(preURI + RPSiteToUse + postURI);
             List<URI> endpoints = new ArrayList<URI>();
             endpoints.add(endpoint);
             new RecoverPointClientFactory();
-			rpClient = RecoverPointClientFactory.getClient(URI.create("http://anykey.com/"), endpoints, username, password);
+            rpClient = RecoverPointClientFactory.getClient(URI.create("http://anykey.com/"), endpoints, username, password);
         } catch (URISyntaxException e) {
             logger.error(e.getMessage(), e);
         } catch (RecoverPointException e) {
-			e.printStackTrace();
-		}
-        
+            e.printStackTrace();
+        }
+
         logger = LoggerFactory.getLogger(RecoverPointClientTest.class);
         logger.error("Hello error");
         logger.debug("Hello debug");
@@ -147,7 +157,7 @@ public class RecoverPointClientIntegrationTest {
         try {
             topologies = rpClient.getClusterTopology();
             for (String topology : topologies) {
-            	logger.info("Topology: " + topology);
+                logger.info("Topology: " + topology);
             }
         } catch (RecoverPointException e) {
             foundError = true;
@@ -155,7 +165,7 @@ public class RecoverPointClientIntegrationTest {
         }
 
     }
-    
+
     @Test
     public void TestGetAllSites() {
         RPSystem rpSystem = new RPSystem();
@@ -261,7 +271,7 @@ public class RecoverPointClientIntegrationTest {
                 WWNs = rpClient.getInitiatorWWNs(rpSite.getInternalSiteName());
                 if (WWNs == null || WWNs.size() < 1) {
                     foundError = true;
-                    fail ("No WWNs were returned");
+                    fail("No WWNs were returned");
                 }
                 if (!foundError) {
                     logger.info("TestRecoverPointServiceGetSiteWWNs PASSED.  Found " + WWNs.size() + " Initiator WWNs");
@@ -274,7 +284,7 @@ public class RecoverPointClientIntegrationTest {
         }
     }
 
-    //@Test
+    // @Test
     public void TestWwnUtils() {
         logger.info("Testing WWN Converter");
 
@@ -284,9 +294,7 @@ public class RecoverPointClientIntegrationTest {
         logger.info("TestWwnUtils PASSED.");
     }
 
-
-
-    //@Test
+    // @Test
     public void TestGetProtectionInfoForVolume() {
         logger.info("Testing RecoverPoint Get Protection Info For Volume");
         RecoverPointVolumeProtectionInfo protectionInfo = null;
@@ -302,11 +310,12 @@ public class RecoverPointClientIntegrationTest {
             foundError = true;
             fail("Failed to find protection info for WWN: " + BourneRPTestProdLUN1WWN);
         }
-        if (!foundError){
+        if (!foundError) {
             // Verify this is a source
             if (protectionInfo.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_SOURCE) {
                 logger.info("RecoverPoint Get Protection Info For Volume PASSED");
-                logger.info("Protected source volume " + BourneRPTestProdLUN1WWN + " is on CG Name: " + protectionInfo.getRpProtectionName());
+                logger.info("Protected source volume " + BourneRPTestProdLUN1WWN + " is on CG Name: "
+                        + protectionInfo.getRpProtectionName());
             } else {
                 foundError = true;
                 fail("Volume " + BourneRPTestProdLUN1WWN + " did not map to a protected source volume");
@@ -323,7 +332,7 @@ public class RecoverPointClientIntegrationTest {
             foundError = true;
             fail("Failed to find protection info for WWN: " + BourneRPTestCRRLUN1WWN);
         }
-        if (!foundError){
+        if (!foundError) {
             // Verify this is a source
             if (protectionInfo.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_TARGET) {
                 logger.info("RecoverPoint Get Protection Info For Volume PASSED");
@@ -344,7 +353,7 @@ public class RecoverPointClientIntegrationTest {
             foundError = true;
             fail("Failed to find protection info for WWN: " + BourneRPTestJrnlLUN1WWN);
         }
-        if (!foundError){
+        if (!foundError) {
             // Verify this is a source
             if (protectionInfo.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.SOURCE_JOURNAL) {
                 logger.info("RecoverPoint Get Protection Info For Volume PASSED");
@@ -365,7 +374,7 @@ public class RecoverPointClientIntegrationTest {
             foundError = true;
             fail("Failed to find protection info for WWN: " + BourneRPTestJrnlLUN5WWN);
         }
-        if (!foundError){
+        if (!foundError) {
             // Verify this is a source
             if (protectionInfo.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.TARGET_JOURNAL) {
                 logger.info("RecoverPoint Get Protection Info For Volume PASSED");
@@ -377,7 +386,8 @@ public class RecoverPointClientIntegrationTest {
         }
         logger.info("TestGetProtectionInfoForVolumeAndEnableAndDisable PASSED");
     }
-    //@Test
+
+    // @Test
     public void TestStopStartPauseResume() {
         logger.info("Testing RecoverPoint Stop, Start, Pause, Resume");
         RecoverPointVolumeProtectionInfo protectionInfo = null;
@@ -398,7 +408,7 @@ public class RecoverPointClientIntegrationTest {
             fail("Failed to find protection info for WWN: " + BourneRPTestProdLUN1WWN);
         }
 
-        if (!foundError ) {
+        if (!foundError) {
             logger.info("Testing RecoverPoint Disable/Enable using source");
             try {
                 logger.info("Disable CG: " + protectionInfo.getRpProtectionName());
@@ -413,7 +423,7 @@ public class RecoverPointClientIntegrationTest {
             }
         }
 
-        if (!foundError ) {
+        if (!foundError) {
             logger.info("Testing RecoverPoint Pause/Resume using source");
             try {
                 logger.info("Pause CG: " + protectionInfo.getRpProtectionName());
@@ -421,14 +431,15 @@ public class RecoverPointClientIntegrationTest {
                 rpClient.getCGState(protectionInfo);
                 logger.info("Resume CG: " + protectionInfo.getRpProtectionName());
                 rpClient.resumeTransfer(protectionInfo);
-                rpClient.getCGState(protectionInfo);;
+                rpClient.getCGState(protectionInfo);
+                ;
 
             } catch (RecoverPointException e) {
                 foundError = true;
                 fail(e.getMessage());
             }
         }
-        if (!foundError ) {
+        if (!foundError) {
             logger.info("Testing RecoverPoint Disable/Enable using CRR");
             try {
                 logger.info("Disable CG copy: " + crrCopyProtectionInfo.getRpProtectionName());
@@ -443,7 +454,7 @@ public class RecoverPointClientIntegrationTest {
             }
         }
 
-        if (!foundError ) {
+        if (!foundError) {
             logger.info("Testing RecoverPoint Pause/Resume using CRR");
             try {
                 logger.info("Pause CG copy: " + crrCopyProtectionInfo.getRpProtectionName());
@@ -458,7 +469,7 @@ public class RecoverPointClientIntegrationTest {
                 fail(e.getMessage());
             }
         }
-        if (!foundError ) {
+        if (!foundError) {
             logger.info("Testing RecoverPoint Disable/Enable using CDP");
             try {
                 logger.info("Disable CG copy: " + cdpCopyProtectionInfo.getRpProtectionName());
@@ -473,7 +484,7 @@ public class RecoverPointClientIntegrationTest {
             }
         }
 
-        if (!foundError ) {
+        if (!foundError) {
             logger.info("Testing RecoverPoint Pause/Resume using CDP");
             try {
                 logger.info("Pause CG copy: " + cdpCopyProtectionInfo.getRpProtectionName());
@@ -495,17 +506,17 @@ public class RecoverPointClientIntegrationTest {
         logger.info("Testing RecoverPoint Create CG");
 
         try {
-            //RecreateCG();
+            // RecreateCG();
             RecreateCGCDPOnly();
-            //RecoverPointVolumeProtectionInfo prodInfo = rpClient.getProtectionInfoForVolume(BourneRPTestProdLUN1WWN);
-            //rpClient.deleteCG(prodInfo);
+            // RecoverPointVolumeProtectionInfo prodInfo = rpClient.getProtectionInfoForVolume(BourneRPTestProdLUN1WWN);
+            // rpClient.deleteCG(prodInfo);
             logger.info("TestRecoverPointServiceCreateDeleteCG PASSED");
         } catch (RecoverPointException e) {
             fail(e.getMessage());
         }
     }
 
-    //@Test
+    // @Test
     public void TestCreateRPBookmarks() {
         boolean foundError = false;
         logger.info("Testing RecoverPoint Create Bookmark");
@@ -520,7 +531,7 @@ public class RecoverPointClientIntegrationTest {
         }
     }
 
-    //@Test
+    // @Test
     public void TestEnableDisableRPBookmarks() throws InterruptedException {
         boolean foundError = false;
         logger.info("Testing RecoverPoint Enable/Disable Bookmark");
@@ -529,7 +540,7 @@ public class RecoverPointClientIntegrationTest {
         try {
             RecreateCGAndBookmark();
             enableParams.setBookmark(Bookmarkname);
-            Set<String> WWNSetForTest =new HashSet<String>();
+            Set<String> WWNSetForTest = new HashSet<String>();
             WWNSetForTest.add(BourneRPTestCRRLUN1WWN);
             WWNSetForTest.add(BourneRPTestCRRLUN2WWN);
             enableParams.setVolumeWWNSet(WWNSetForTest);
@@ -556,7 +567,7 @@ public class RecoverPointClientIntegrationTest {
         try {
             RecreateCGAndBookmark();
             restoreParams.setBookmark(Bookmarkname);
-            Set<String> WWNSetForTest =new HashSet<String>();
+            Set<String> WWNSetForTest = new HashSet<String>();
             WWNSetForTest.add(BourneRPTestCRRLUN1WWN);
             WWNSetForTest.add(BourneRPTestCRRLUN2WWN);
             restoreParams.setVolumeWWNSet(WWNSetForTest);
@@ -572,7 +583,7 @@ public class RecoverPointClientIntegrationTest {
         }
     }
 
-    //@Test
+    // @Test
     public void TestFailoverTestAndTestCancel() {
         logger.info("Testing RecoverPoint Failover Cancel For Volume");
         RecoverPointVolumeProtectionInfo protectionInfo = null;
@@ -589,7 +600,7 @@ public class RecoverPointClientIntegrationTest {
             fail("Failed to find protection info for WWN: " + BourneRPTestCRRLUN1WWN);
         }
 
-        if (!foundError){
+        if (!foundError) {
             // Verify this is a source
             if (protectionInfo.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_TARGET) {
                 logger.info("Protected target volume " + BourneRPTestCRRLUN1WWN + " is on CG Name: " + protectionInfo.getRpProtectionName());
@@ -622,12 +633,12 @@ public class RecoverPointClientIntegrationTest {
             foundError = true;
             fail(e.getMessage());
         }
-        if (!foundError){
+        if (!foundError) {
             logger.info("TestFailoverTestAndTestCancel PASSED");
         }
     }
 
-    //@Test
+    // @Test
     public void TestFailoverTestAndFailoverAndFailback() {
         logger.info("Testing RecoverPoint Failover Cancel For Volume");
         RecoverPointVolumeProtectionInfo protectionInfo = null;
@@ -650,7 +661,7 @@ public class RecoverPointClientIntegrationTest {
             foundError = true;
             fail("Failed to find protection info for WWN: " + BourneRPTestProdLUN1WWN);
         }
-        if (!foundError){
+        if (!foundError) {
             // Verify this is a target
             if (protectionInfo.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_TARGET) {
                 logger.info("Protected target volume " + BourneRPTestCRRLUN1WWN + " is on CG Name: " + protectionInfo.getRpProtectionName());
@@ -687,12 +698,12 @@ public class RecoverPointClientIntegrationTest {
             foundError = true;
             fail(e.getMessage());
         }
-        if (!foundError){
+        if (!foundError) {
             logger.info("TestFailoverTestAndFailoverAndFailback PASSED");
         }
     }
 
-    //@Test
+    // @Test
     public void TestFailover() {
         logger.info("Testing RecoverPoint Failover For Volume");
         RecoverPointVolumeProtectionInfo protectionInfo = null;
@@ -715,7 +726,7 @@ public class RecoverPointClientIntegrationTest {
             foundError = true;
             fail("Failed to find protection info for WWN: " + BourneRPTestProdLUN1WWN);
         }
-        if (!foundError){
+        if (!foundError) {
             // Verify this is a source
             if (protectionInfo.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_TARGET) {
                 logger.info("RecoverPoint Get Protection Info For Volume PASSED");
@@ -731,13 +742,13 @@ public class RecoverPointClientIntegrationTest {
         failbackRequest.setCopyVolumeInfo(failbackProtectionInfo);
         try {
             // try {
-            //	logger.info("Delete the CDP copy");
-            //	RecoverPointVolumeProtectionInfo deleteCopyInfo = null;
-            //	deleteCopyInfo = rpClient.getProtectionInfoForVolume(BourneRPTestCDPLUN1WWN);
-            //	rpClient.deleteCopy(deleteCopyInfo);
-            //} catch (Exception e) {
-            //	logger.info("Ignore error deleting CDP copy");
-            //}
+            // logger.info("Delete the CDP copy");
+            // RecoverPointVolumeProtectionInfo deleteCopyInfo = null;
+            // deleteCopyInfo = rpClient.getProtectionInfoForVolume(BourneRPTestCDPLUN1WWN);
+            // rpClient.deleteCopy(deleteCopyInfo);
+            // } catch (Exception e) {
+            // logger.info("Ignore error deleting CDP copy");
+            // }
             logger.info("Failover start");
             rpClient.failoverCopy(failoverRequest);
             logger.info("Sleep 15 seconds before failback");
@@ -751,18 +762,18 @@ public class RecoverPointClientIntegrationTest {
             foundError = true;
             fail(e.getMessage());
         }
-        if (!foundError){
+        if (!foundError) {
             logger.info("TestFailover PASSED");
         }
     }
 
-    //@Test
+    // @Test
     public void TestExceptionUseCases() throws InterruptedException {
         boolean foundError = false;
         logger.info("Testing RecoverPoint Exception Use Cases");
 
         try {
-            //RecreateCGAndBookmark();
+            // RecreateCGAndBookmark();
             logger.info("Pause Pause Resume on a CG Copy");
             RecoverPointVolumeProtectionInfo protectionInfo = null;
             protectionInfo = rpClient.getProtectionInfoForVolume(BourneRPTestCRRLUN1WWN);
@@ -795,7 +806,7 @@ public class RecoverPointClientIntegrationTest {
             Random randomnumber = new Random();
             Bookmarkname += Math.abs(randomnumber.nextInt());
             params.setBookmark(Bookmarkname);
-            Set<String> WWNSetToBookmark =new HashSet<String>();
+            Set<String> WWNSetToBookmark = new HashSet<String>();
             WWNSetToBookmark.add(BourneRPTestCRRLUN1WWN);
             WWNSetToBookmark.add(BourneRPTestCRRLUN2WWN);
             params.setVolumeWWNSet(WWNSetToBookmark);
@@ -804,7 +815,7 @@ public class RecoverPointClientIntegrationTest {
             MultiCopyEnableImageRequestParams enableParams = new MultiCopyEnableImageRequestParams();
             MultiCopyEnableImageRequestParams enableParams1 = new MultiCopyEnableImageRequestParams();
             MultiCopyDisableImageRequestParams disableParams = new MultiCopyDisableImageRequestParams();
-            Set<String> WWNSetForTest =new HashSet<String>();
+            Set<String> WWNSetForTest = new HashSet<String>();
             WWNSetForTest.add(BourneRPTestCRRLUN1WWN);
             WWNSetForTest.add(BourneRPTestCRRLUN2WWN);
             enableParams.setVolumeWWNSet(WWNSetForTest);
@@ -832,7 +843,7 @@ public class RecoverPointClientIntegrationTest {
         }
     }
 
-    //@Test
+    // @Test
     public void TestUpdateProtectionJournal() throws InterruptedException {
         logger.info("Testing RecoverPoint Update CG Protection Journal");
 
@@ -840,8 +851,8 @@ public class RecoverPointClientIntegrationTest {
             RecreateCGSmall();
             RecoverPointVolumeProtectionInfo protectionTargetInfo = rpClient.getProtectionInfoForVolume(BourneRPTestCRRLUN1WWN);
             RecoverPointVolumeProtectionInfo protectionProdInfo = rpClient.getProtectionInfoForVolume(BourneRPTestProdLUN1WWN);
-//            rpClient.addJournalToCopy(protectionTargetInfo, BourneRPTestJrnlLUN6WWN);
-//            rpClient.addJournalToCopy(protectionProdInfo, BourneRPTestJrnlLUN3WWN);
+            // rpClient.addJournalToCopy(protectionTargetInfo, BourneRPTestJrnlLUN6WWN);
+            // rpClient.addJournalToCopy(protectionProdInfo, BourneRPTestJrnlLUN3WWN);
             logger.info("Journals added.  Sleep 10 seconds before removing them");
             Thread.sleep(10000);
             rpClient.deleteJournalFromCopy(protectionTargetInfo, BourneRPTestJrnlLUN6WWN);
@@ -853,7 +864,7 @@ public class RecoverPointClientIntegrationTest {
         }
     }
 
-    //@Test
+    // @Test
     public void TestUpdateProtectionAddCopy() throws InterruptedException {
         logger.info("Testing RecoverPoint Update CG Protection Add Copy");
 
@@ -883,7 +894,7 @@ public class RecoverPointClientIntegrationTest {
     }
 
     @Test
-public void RecreateCGSmall() throws RecoverPointException {
+    public void RecreateCGSmall() throws RecoverPointException {
 
         RecoverPointVolumeProtectionInfo protectionInfo = null;
         try {
@@ -897,29 +908,29 @@ public void RecreateCGSmall() throws RecoverPointException {
         }
         logger.info("Create the CG with one replication set");
 
-        //CGRequestParams createCGParams = CreateCGParamsHelper(true, true, 1);
-        //rpClient.createCG(createCGParams);
+        // CGRequestParams createCGParams = CreateCGParamsHelper(true, true, 1);
+        // rpClient.createCG(createCGParams);
     }
 
-public void RecreateCGCDPOnly() throws RecoverPointException {
+    public void RecreateCGCDPOnly() throws RecoverPointException {
 
-    RecoverPointVolumeProtectionInfo protectionInfo = null;
-    try {
-        protectionInfo = rpClient.getProtectionInfoForVolume(BourneRPTestProdLUN1WWN);
-    } catch (RecoverPointException e) {
-        logger.info("Ignore getProtectionInfoForVolume error");
+        RecoverPointVolumeProtectionInfo protectionInfo = null;
+        try {
+            protectionInfo = rpClient.getProtectionInfoForVolume(BourneRPTestProdLUN1WWN);
+        } catch (RecoverPointException e) {
+            logger.info("Ignore getProtectionInfoForVolume error");
+        }
+        if (protectionInfo != null) {
+            logger.info("Delete previous CG (if it exists)");
+            rpClient.deleteCG(protectionInfo);
+        }
+        logger.info("Create the CG with one replication set");
+
+        // CreateCGRequestParams createCGParams = CreateCGParamsHelper(true, false, 2);
+        CGRequestParams createCGParams = CreateCGParamsHelper(true, false, 1);
+
+        rpClient.createCG(createCGParams, false, false);
     }
-    if (protectionInfo != null) {
-        logger.info("Delete previous CG (if it exists)");
-        rpClient.deleteCG(protectionInfo);
-    }
-    logger.info("Create the CG with one replication set");
-
-    //CreateCGRequestParams createCGParams = CreateCGParamsHelper(true, false, 2);
-    CGRequestParams createCGParams = CreateCGParamsHelper(true, false, 1);
-
-    rpClient.createCG(createCGParams, false, false);
-}
 
     public void RecreateCGAndBookmark() throws RecoverPointException {
         CreateBookmarkRequestParams params = new CreateBookmarkRequestParams();
@@ -927,7 +938,7 @@ public void RecreateCGCDPOnly() throws RecoverPointException {
         Random randomnumber = new Random();
         Bookmarkname += Math.abs(randomnumber.nextInt());
         params.setBookmark(Bookmarkname);
-        Set<String> WWNSetToBookmark =new HashSet<String>();
+        Set<String> WWNSetToBookmark = new HashSet<String>();
         WWNSetToBookmark.add(BourneRPTestCRRLUN1WWN);
         WWNSetToBookmark.add(BourneRPTestCRRLUN2WWN);
         params.setVolumeWWNSet(WWNSetToBookmark);
@@ -1043,7 +1054,7 @@ public void RecreateCGCDPOnly() throws RecoverPointException {
         List<CreateCopyParams> copyList = new ArrayList<CreateCopyParams>();
         copyList.add(prodCopyParams);
 
-        if (createCDP){
+        if (createCDP) {
             CreateVolumeParams localJournalParams = new CreateVolumeParams();
             localJournalParams.setWwn(BourneRPTestJrnlLUN2WWN);
             localJournalParams.setInternalSiteName(site1InternalSiteName);
@@ -1064,7 +1075,7 @@ public void RecreateCGCDPOnly() throws RecoverPointException {
             copyList.add(localCopyParams);
         }
 
-        if (createCRR){
+        if (createCRR) {
             CreateVolumeParams remoteJournalParams = new CreateVolumeParams();
             remoteJournalParams.setWwn(BourneRPTestJrnlLUN5WWN);
             remoteJournalParams.setInternalSiteName(site2InternalSiteName);

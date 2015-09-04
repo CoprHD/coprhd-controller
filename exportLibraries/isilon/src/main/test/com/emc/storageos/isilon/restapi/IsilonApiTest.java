@@ -30,12 +30,12 @@ import java.rmi.server.ExportException;
 import java.util.*;
 
 /*
-* Test client for IsilonRESTClient
-*/
+ * Test client for IsilonRESTClient
+ */
 public class IsilonApiTest {
     private static final Logger _log = LoggerFactory.getLogger(IsilonApiTest.class);
     private String _test_path = "/ifs/ER201";
-    //private String _test_path = "/ifs/testDirNew";
+    // private String _test_path = "/ifs/testDirNew";
     private String _test_snapshot_path = "/ifs/.snapshot/testDir";
     private String _test_path10 = "/ifs/testDir10";
     private static String uri = EnvConfig.get("sanity", "isilon.uri");
@@ -50,7 +50,7 @@ public class IsilonApiTest {
         _factory.init();
         _client = _factory.getRESTClient(URI.create(uri), userName, password);    // 7.0 BETA 3
     }
-    
+
     @Test
     public void testClusterInfo() throws Exception {
         System.out.println("Get Cluster info.");
@@ -62,6 +62,7 @@ public class IsilonApiTest {
         System.out.println("Get Cluster config.");
         System.out.println("Cluster config: " + _client.getClusterConfig().toString());
     }
+
     @Test
     public void testLists() throws Exception {
         IsilonApi.IsilonList<String> got = _client.listDir("/ifs", null);
@@ -74,13 +75,12 @@ public class IsilonApiTest {
         }
     }
 
-
     @Test
     public void testSMBShares() throws Exception {
 
         String clusterName = _client.getClusterConfig().getName();
         // Create directory for SMB shares
-        String testSMBDir = _test_path+"/testSMB01";
+        String testSMBDir = _test_path + "/testSMB01";
         _client.createDir(testSMBDir, true);
 
         if (!_client.existsDir(testSMBDir)) {
@@ -88,7 +88,7 @@ public class IsilonApiTest {
         }
 
         // SMB share tests
-        String mapableShareName = (clusterName != null)? "\\\\" + clusterName + "\\" + "smbShareTestER10" : "smbShareTestER10";
+        String mapableShareName = (clusterName != null) ? "\\\\" + clusterName + "\\" + "smbShareTestER10" : "smbShareTestER10";
         System.out.println("SMB Share name: " + mapableShareName);
         String shareId = _client.createShare(new IsilonSMBShare("smbShareTestER10", testSMBDir, "smb test share", "allow", "full"));
         Assert.assertTrue("SMB share create failed.", (shareId != null && !shareId.isEmpty()));
@@ -105,14 +105,14 @@ public class IsilonApiTest {
 
         _client.deleteShare(shareId);
         try {
-             share = _client.getShare(shareId);
-             Assert.assertTrue("Deleted SMB share still gettable.", false);
+            share = _client.getShare(shareId);
+            Assert.assertTrue("Deleted SMB share still gettable.", false);
         } catch (IsilonException e) {
         }
 
         // Test smb share for snapshots
-       // String dir = "/ifs/testDir";
-       // String snapPath = "/ifs/.snapshot/test_snap/testDir";
+        // String dir = "/ifs/testDir";
+        // String snapPath = "/ifs/.snapshot/test_snap/testDir";
         String snapPath = "/ifs/.snapshot/test_snap/ER201/testSMB01";
         String snap_id = _client.createSnapshot("test_snap", testSMBDir);
 
@@ -132,8 +132,8 @@ public class IsilonApiTest {
         _client.deleteShare(snapShareId);
 
         try {
-             share = _client.getShare(snapShareId);
-             Assert.assertTrue("Deleted SMB share still gettable.", false);
+            share = _client.getShare(snapShareId);
+            Assert.assertTrue("Deleted SMB share still gettable.", false);
         } catch (IsilonException e) {
         }
 
@@ -148,18 +148,17 @@ public class IsilonApiTest {
         _client.deleteDir(_test_path, true);
     }
 
-
     @Test
     public void testDirectoriesAndSnapshots() throws Exception {
 
         /* directory for api tests - start */
-        //System.out.println("Start: " + System.currentTimeMillis());
+        // System.out.println("Start: " + System.currentTimeMillis());
         _client.createDir(_test_path);
-        //System.out.println("End: " + System.currentTimeMillis());
+        // System.out.println("End: " + System.currentTimeMillis());
         if (!_client.existsDir(_test_path)) {
             throw new Exception("Create directory --- " + _test_path + ": failed");
         }
-        System.out.println("Created directory: " +_test_path);
+        System.out.println("Created directory: " + _test_path);
         _client.deleteDir(_test_path, true);
 
         String dir = _test_path + "/test2";
@@ -169,11 +168,11 @@ public class IsilonApiTest {
             throw new Exception("Create directory --- " + dir1 + ": failed");
         }
         _client.deleteDir(dir, true);
-       // _client.deleteDir("/ifs/sos/urn:storageos:FileShare:2ab41fb8-c6e3-4b7c-b990-bd9a6b3ae365:", true);
-        //System.out.println("End: " + System.currentTimeMillis());
+        // _client.deleteDir("/ifs/sos/urn:storageos:FileShare:2ab41fb8-c6e3-4b7c-b990-bd9a6b3ae365:", true);
+        // System.out.println("End: " + System.currentTimeMillis());
         Assert.assertFalse("Directory delete failed.", _client.existsDir(dir));
 
-        /*  snapshot tests - start  */
+        /* snapshot tests - start */
         // - create
         String snap_id = _client.createSnapshot("test_snap", _test_path);
         // - list/get
@@ -214,7 +213,7 @@ public class IsilonApiTest {
             }
         } catch (IsilonException ex) {
         }
-            /* snapshot tests - done  */
+        /* snapshot tests - done */
 
         // existsDir - negative
         try {
@@ -234,7 +233,6 @@ public class IsilonApiTest {
         }
     }
 
-
     @Test
     public void testQuotas() throws Exception {
 
@@ -242,9 +240,9 @@ public class IsilonApiTest {
         if (!_client.existsDir(_test_path)) {
             throw new Exception("Create directory --- " + _test_path + ": failed");
         }
-        System.out.println("Created directory: " +_test_path);
+        System.out.println("Created directory: " + _test_path);
 
-        /* SmartQuota tests - start     */
+        /* SmartQuota tests - start */
         // test limit quota
         // - create
         String qid = _client.createQuota(_test_path, 404800000000L); // quota in bytes --- 20MB
@@ -254,7 +252,7 @@ public class IsilonApiTest {
         IsilonSmartQuota quota = _client.getQuota(qid);
         Assert.assertTrue(qid.compareTo(quota.getId()) == 0
                 && _test_path.compareTo(quota.getPath()) == 0
-                && quota.getThresholds().getHard() == 404800000000L); //20480000);
+                && quota.getThresholds().getHard() == 404800000000L); // 20480000);
         Assert.assertTrue("Usage Physical is greater than hard quota", quota.getUsagePhysical() <= quota.getThresholds().getHard());
 
         // - list
@@ -283,7 +281,7 @@ public class IsilonApiTest {
         if (!_client.existsDir(_test_path10)) {
             throw new Exception("Create directory --- " + _test_path10 + ": failed");
         }
-        System.out.println("Created directory: " +_test_path10);
+        System.out.println("Created directory: " + _test_path10);
         // - create
         String qid_acc = _client.createQuota(_test_path10); // no limit --- accounting quota
         System.out.println("Quota created: id: " + qid_acc);
@@ -296,7 +294,7 @@ public class IsilonApiTest {
 
         // end of accounting quota test
 
-        //- delete
+        // - delete
         _client.deleteQuota(qid);
         try {
             quota = _client.getQuota(qid);
@@ -323,27 +321,29 @@ public class IsilonApiTest {
     /**
      * Small function to clean exports form cluster.
      * Do not run as a test.
+     * 
      * @throws Exception
      */
-    //@Test
+    // @Test
     public void testExportDelete() throws Exception {
 
         String parentDirectory = "/ifs/";
         int dirCount = _client.listDir(parentDirectory, null).size();
         System.out.println("Directories count in " + parentDirectory + " is: " + dirCount);
 
-//        String exportId = null;
-//
-//        for (int i = 1039; i < 1080; i++)   {
-//            exportId = String.valueOf(i);
-//            try {
-//                _client.deleteExport(exportId);
-//                System.out.println("Deleted export: " + exportId);
-//            } catch (Exception ex)  {
-//                System.out.println("Exception when deleting export: " + exportId);
-//            }
-//        }
+        // String exportId = null;
+        //
+        // for (int i = 1039; i < 1080; i++) {
+        // exportId = String.valueOf(i);
+        // try {
+        // _client.deleteExport(exportId);
+        // System.out.println("Deleted export: " + exportId);
+        // } catch (Exception ex) {
+        // System.out.println("Exception when deleting export: " + exportId);
+        // }
+        // }
     }
+
     //
 
     @Test
@@ -353,7 +353,7 @@ public class IsilonApiTest {
         if (!_client.existsDir(_test_path)) {
             throw new Exception("Create directory --- " + _test_path + ": failed");
         }
-        System.out.println("Created directory: " +_test_path);
+        System.out.println("Created directory: " + _test_path);
 
         // create snapshot
         String snapName = "test_snap";
@@ -382,7 +382,7 @@ public class IsilonApiTest {
         Assert.assertTrue(Integer.parseInt(export1Id) > 0);
         IsilonExport exp1 = _client.getExport(export1Id);
         Assert.assertTrue(exp1.getId().toString().equals(export1Id));
-        //Assert.assertFalse(exp1.getReadOnly());
+        // Assert.assertFalse(exp1.getReadOnly());
         Assert.assertTrue(exp1.getSecurityFlavors().get(0).equals("unix"));
         Assert.assertTrue(exp1.getMap_root().getUser().equals("nobody"));
         System.out.println("Export created: " + exp1);
@@ -475,16 +475,15 @@ public class IsilonApiTest {
 
     }
 
-
     @Test
     public void testEvents() throws Exception {
         List<IsilonEvent> events = _client.listEvents(null).getList();
-        for (IsilonEvent e: events) {
-            _log.info (e.toString());
+        for (IsilonEvent e : events) {
+            _log.info(e.toString());
 
-           // System.out.println(e.toString());
+            // System.out.println(e.toString());
             Assert.assertTrue("Event type is null", e.getEventId() != null);
-            Assert.assertTrue("Event unique id is null", e.getInstanceId() !=null);
+            Assert.assertTrue("Event unique id is null", e.getInstanceId() != null);
             Assert.assertTrue("Latest time is not positive", e.getLatestTime() > 0);
             Assert.assertTrue("Device Id is negative", e.getDevId() >= 0);
         }
@@ -497,82 +496,83 @@ public class IsilonApiTest {
         ArrayList<IsilonStats.Protocol> protocols = _client.getStatsProtocols();
         Assert.assertTrue("Get stat protocols failed", protocols != null && protocols.isEmpty() == false);
 
-/*   // TODO: commented out. Need to rewrite to work with new Isilon statistics API
-        // get "node.clientstats.proto.nfs" stat
-        HashMap<String, IsilonStats.StatValueCurrent<ArrayList<IsilonStats.StatsClientProto>>> currentAll =
-                _client.getStatsCurrent("node.clientstats.proto.nfs",
-                new TypeToken<ArrayList<IsilonStats.StatsClientProto>>() {}.getType());
-        ArrayList<IsilonStats.StatsClientProto> values = currentAll.get("1").getValue();
-        for (IsilonStats.StatsClientProto value: values) {
-            String client = value.getClientAddr();
-            float outBw = value.getOutBW();
-            float inBw = value.getInBW();
-            long readOps = value.getReadOps();
-            long writeOps = value.getWriteOps();
-            _log.info(String.format("%s: outBW(%s), inBW(%s), ops(%s)",
-                    client, outBw, inBw, readOps+writeOps));
-        }
-        // To Do - set begin as last polled time
-        HashMap<String, IsilonStats.StatValueHistory<ArrayList<IsilonStats.StatsClientProto>>> hist =
-                _client.getStatsHistory("node.clientstats.proto.nfs", 0,
-                new TypeToken<ArrayList<IsilonStats.StatsClientProto>>() {}.getType());
-        if (!hist.isEmpty()) {
-            HashMap<Long, ArrayList<IsilonStats.StatsClientProto>> hValues = hist.get("1").getValues();
-            // add up the last hr
-            class HostStat {
-                public long reads = 0;
-                public long writes = 0;
-                ArrayList<Float> outBw = new ArrayList<Float>();
-                ArrayList<Float> inBw = new ArrayList<Float>();
-                private float getAvg(ArrayList<Float> inArray) {
-                    float sum = 0;
-                    for (int i = 0; i < inArray.size(); i++) {
-                        sum += inArray.get(i);
-                    }
-                    return sum/inArray.size();
-                }
-                public float getOutBWAvg() {
-                    return getAvg(outBw);
-                }
-                public float getInBWAvg() {
-                    return getAvg(inBw);
-                }
-            }
-            HashMap<String, HostStat> hostStats = new HashMap<String, HostStat>();
-            Iterator<Map.Entry<Long, ArrayList<IsilonStats.StatsClientProto>>> it =
-                    hValues.entrySet().iterator();
-            while(it.hasNext()) {
-                Map.Entry <Long, ArrayList<IsilonStats.StatsClientProto>> entry = it.next();
-                // To Do - check timestamp
-                ArrayList<IsilonStats.StatsClientProto> entryValues = entry.getValue();
-                for (IsilonStats.StatsClientProto value: entryValues) {
-                    String client = value.getClientAddr();
-                    float outBw = value.getOutBW();
-                    float inBw = value.getInBW();
-                    if (!hostStats.containsKey(client)) {
-                        hostStats.put(client, new HostStat());
-                    }
-                    HostStat stat = hostStats.get(client);
-                    if (outBw > 0)
-                        stat.outBw.add(outBw);
-                    if (inBw > 0)
-                        stat.inBw.add(inBw);
-                    stat.reads += value.getReadOps();
-                    stat.writes += value.getWriteOps();
-                }
-            }
-            Iterator<Map.Entry <String, HostStat>> resultsIt = hostStats.entrySet().iterator();
-            while(it.hasNext()){
-                Map.Entry <String, HostStat> result = resultsIt.next();
-                _log.info(String.format("%s: OutBW(%s), InBW(%s), ops(%s)",
-                        result.getKey(), result.getValue().getOutBWAvg(), result.getValue().getInBWAvg(),
-                        result.getValue().reads + result.getValue().writes));
-            }
-        }
-        // generic stats queries
-        _log.info("Current stats detail: " + _client.getStatsCurrent("node.uptime",
-                new TypeToken<Integer>() {}.getType()).toString());
-*/
+        /*
+         * // TODO: commented out. Need to rewrite to work with new Isilon statistics API
+         * // get "node.clientstats.proto.nfs" stat
+         * HashMap<String, IsilonStats.StatValueCurrent<ArrayList<IsilonStats.StatsClientProto>>> currentAll =
+         * _client.getStatsCurrent("node.clientstats.proto.nfs",
+         * new TypeToken<ArrayList<IsilonStats.StatsClientProto>>() {}.getType());
+         * ArrayList<IsilonStats.StatsClientProto> values = currentAll.get("1").getValue();
+         * for (IsilonStats.StatsClientProto value: values) {
+         * String client = value.getClientAddr();
+         * float outBw = value.getOutBW();
+         * float inBw = value.getInBW();
+         * long readOps = value.getReadOps();
+         * long writeOps = value.getWriteOps();
+         * _log.info(String.format("%s: outBW(%s), inBW(%s), ops(%s)",
+         * client, outBw, inBw, readOps+writeOps));
+         * }
+         * // To Do - set begin as last polled time
+         * HashMap<String, IsilonStats.StatValueHistory<ArrayList<IsilonStats.StatsClientProto>>> hist =
+         * _client.getStatsHistory("node.clientstats.proto.nfs", 0,
+         * new TypeToken<ArrayList<IsilonStats.StatsClientProto>>() {}.getType());
+         * if (!hist.isEmpty()) {
+         * HashMap<Long, ArrayList<IsilonStats.StatsClientProto>> hValues = hist.get("1").getValues();
+         * // add up the last hr
+         * class HostStat {
+         * public long reads = 0;
+         * public long writes = 0;
+         * ArrayList<Float> outBw = new ArrayList<Float>();
+         * ArrayList<Float> inBw = new ArrayList<Float>();
+         * private float getAvg(ArrayList<Float> inArray) {
+         * float sum = 0;
+         * for (int i = 0; i < inArray.size(); i++) {
+         * sum += inArray.get(i);
+         * }
+         * return sum/inArray.size();
+         * }
+         * public float getOutBWAvg() {
+         * return getAvg(outBw);
+         * }
+         * public float getInBWAvg() {
+         * return getAvg(inBw);
+         * }
+         * }
+         * HashMap<String, HostStat> hostStats = new HashMap<String, HostStat>();
+         * Iterator<Map.Entry<Long, ArrayList<IsilonStats.StatsClientProto>>> it =
+         * hValues.entrySet().iterator();
+         * while(it.hasNext()) {
+         * Map.Entry <Long, ArrayList<IsilonStats.StatsClientProto>> entry = it.next();
+         * // To Do - check timestamp
+         * ArrayList<IsilonStats.StatsClientProto> entryValues = entry.getValue();
+         * for (IsilonStats.StatsClientProto value: entryValues) {
+         * String client = value.getClientAddr();
+         * float outBw = value.getOutBW();
+         * float inBw = value.getInBW();
+         * if (!hostStats.containsKey(client)) {
+         * hostStats.put(client, new HostStat());
+         * }
+         * HostStat stat = hostStats.get(client);
+         * if (outBw > 0)
+         * stat.outBw.add(outBw);
+         * if (inBw > 0)
+         * stat.inBw.add(inBw);
+         * stat.reads += value.getReadOps();
+         * stat.writes += value.getWriteOps();
+         * }
+         * }
+         * Iterator<Map.Entry <String, HostStat>> resultsIt = hostStats.entrySet().iterator();
+         * while(it.hasNext()){
+         * Map.Entry <String, HostStat> result = resultsIt.next();
+         * _log.info(String.format("%s: OutBW(%s), InBW(%s), ops(%s)",
+         * result.getKey(), result.getValue().getOutBWAvg(), result.getValue().getInBWAvg(),
+         * result.getValue().reads + result.getValue().writes));
+         * }
+         * }
+         * // generic stats queries
+         * _log.info("Current stats detail: " + _client.getStatsCurrent("node.uptime",
+         * new TypeToken<Integer>() {}.getType()).toString());
+         */
         _log.info("Done");
     }
 }

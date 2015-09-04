@@ -63,7 +63,7 @@ public class ExpireRule implements Rule {
         Calendar expireDate = ph.getExpireDate();
         Calendar now = Calendar.getInstance();
 
-        if (expireDate == null ) {
+        if (expireDate == null) {
             Long lastChangedTime = password.getLatestChangedTime();
             expireDate = Calendar.getInstance();
             expireDate.setTimeInMillis(lastChangedTime);

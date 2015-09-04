@@ -42,7 +42,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 /**
- *  Class derived helper methods for role/acl db access and implements methods converting them for api access
+ * Class derived helper methods for role/acl db access and implements methods converting them for api access
  */
 public class PermissionsHelper extends BasePermissionsHelper {
     private int _maxRoleAclEntries = 100;
@@ -53,6 +53,7 @@ public class PermissionsHelper extends BasePermissionsHelper {
 
     /**
      * Constructor - takes db client
+     * 
      * @param dbClient
      */
     public PermissionsHelper(DbClient dbClient) {
@@ -61,6 +62,7 @@ public class PermissionsHelper extends BasePermissionsHelper {
 
     /**
      * Converts StringSetMap of permissions into a list of assignment entries as used by the API
+     * 
      * @param roleAssignments
      * @return
      */
@@ -76,7 +78,7 @@ public class PermissionsHelper extends BasePermissionsHelper {
                 } else if (rowKey.getType().equals(PermissionsKey.Type.SID)) {
                     entry.setSubjectId(rowKey.getValue());
                 }
-                for (String role: roleAssignment.getValue()) {
+                for (String role : roleAssignment.getValue()) {
                     if ((forZone && isRoleZoneLevel(role)) || (!forZone && isRoleTenantLevel(role))) {
                         entry.getRoles().add(role);
                     }
@@ -115,7 +117,7 @@ public class PermissionsHelper extends BasePermissionsHelper {
                 principal.setType(StorageOSPrincipal.Type.Group);
             } else if (entry.getSubjectId() != null) {
                 entry.setSubjectId(entry.getSubjectId().trim());
-                key = new PermissionsKey (PermissionsKey.Type.SID, entry.getSubjectId());
+                key = new PermissionsKey(PermissionsKey.Type.SID, entry.getSubjectId());
                 principal.setName(entry.getSubjectId());
                 principal.setType(StorageOSPrincipal.Type.User);
             } else {
@@ -137,8 +139,8 @@ public class PermissionsHelper extends BasePermissionsHelper {
 
             if (!CollectionUtils.isEmpty(_localUsers)) {
                 throw APIException.badRequests
-                .invalidEntryForRoleAssignmentSubjectIdsCannotBeALocalUsers(StringUtils
-                        .join(_localUsers, ", "));
+                        .invalidEntryForRoleAssignmentSubjectIdsCannotBeALocalUsers(StringUtils
+                                .join(_localUsers, ", "));
             }
             return resulStringSetMap;
         }
@@ -163,7 +165,7 @@ public class PermissionsHelper extends BasePermissionsHelper {
                     for (String role : roleAssignment.getRoles()) {
                         if (!isValidRole(role)) {
                             throw APIException.badRequests
-                            .invalidEntryForRoleAssignment(role);
+                                    .invalidEntryForRoleAssignment(role);
                         }
                         rolesMap.put(key.toString(), role.toUpperCase());
                     }
@@ -189,15 +191,16 @@ public class PermissionsHelper extends BasePermissionsHelper {
 
     /**
      * Update role assignments on a given tenant
+     * 
      * @param tenant TenantOrg object
-     * @param changes  RoleAssignmentChanges
+     * @param changes RoleAssignmentChanges
      * @param filter RoleInputFilter for the roles allowed
      */
     public void updateRoleAssignments(TenantOrg tenant, RoleAssignmentChanges changes,
             RoleInputFilter filter) {
 
         // in GEO scenario, root shouldn't be assigned with any tenant roles
-        if (!CollectionUtils.isEmpty(changes.getAdd()) && ! VdcUtil.isLocalVdcSingleSite() ) {
+        if (!CollectionUtils.isEmpty(changes.getAdd()) && !VdcUtil.isLocalVdcSingleSite()) {
             StringSetMap roleAssignments =
                     filter.convertFromRolesAdd(changes.getAdd(), false);
 
@@ -205,34 +208,34 @@ public class PermissionsHelper extends BasePermissionsHelper {
                 if (roleAssignment.getKey().equalsIgnoreCase("root")) {
                     throw APIException.badRequests.invalidRoleAssignments(
                             "root can't be assigned with tenant roles in GEO scenario"
-                    );
+                            );
                 }
             }
         }
-
 
         updateRoleAssignments(tenant.getRoleAssignments(), changes, filter);
     }
 
     /**
      * Update role assignments on a given virtual data center
+     * 
      * @param vdc VirtualDataCenter object
-     * @param changes  RoleAssignmentChanges
+     * @param changes RoleAssignmentChanges
      * @param filter RoleInputFilter for the roles allowed
      */
     public void updateRoleAssignments(VirtualDataCenter vdc, RoleAssignmentChanges changes,
-                                      RoleInputFilter filter) {
+            RoleInputFilter filter) {
         updateRoleAssignments(vdc.getRoleAssignments(), changes, filter);
     }
 
     private void updateRoleAssignments(StringSetMap originalRoleAssignments, RoleAssignmentChanges changes,
-                                      RoleInputFilter filter) {
+            RoleInputFilter filter) {
         if (!CollectionUtils.isEmpty(changes.getRemove())) {
             StringSetMap rolesRemoved =
                     filter.convertFromRolesRemove(changes.getRemove());
             for (Map.Entry<String, AbstractChangeTrackingSet<String>> roleAssignment : rolesRemoved.entrySet()) {
                 String rowKey = roleAssignment.getKey();
-                for(String role : roleAssignment.getValue()) {
+                for (String role : roleAssignment.getValue()) {
                     originalRoleAssignments.remove(rowKey, role);
                 }
             }
@@ -254,19 +257,16 @@ public class PermissionsHelper extends BasePermissionsHelper {
 
             for (Map.Entry<String, AbstractChangeTrackingSet<String>> roleAssignment : roleAssignments.entrySet()) {
                 String rowKey = roleAssignment.getKey();
-                for(String role : roleAssignment.getValue()) {
+                for (String role : roleAssignment.getValue()) {
                     originalRoleAssignments.put(rowKey, role);
                 }
             }
         }
     }
 
-
-
-
-
     /**
      * Converts StringSetMap of acls into a list of ACLEntrys as used by the API
+     * 
      * @param acls
      * @return
      */
@@ -284,7 +284,7 @@ public class PermissionsHelper extends BasePermissionsHelper {
                 } else if (rowKey.getType().equals(PermissionsKey.Type.TENANT)) {
                     entry.setTenant(rowKey.getValue());
                 }
-                for (String priv: ace.getValue()) {
+                for (String priv : ace.getValue()) {
                     // skip owner
                     if (priv.equalsIgnoreCase(ACL.OWN.toString())) {
                         continue;
@@ -303,7 +303,6 @@ public class PermissionsHelper extends BasePermissionsHelper {
      * Abstract class for filtering acl entries from input
      */
     public static abstract class ACLInputFilter {
-
 
         protected abstract PermissionsKey getPermissionKeyForEntry(ACLEntry entry)
                 throws InternalException;
@@ -375,6 +374,7 @@ public class PermissionsHelper extends BasePermissionsHelper {
     public static class UsageACLFilter extends PermissionsHelper.ACLInputFilter {
         private final BasePermissionsHelper _helper;
         private final String _specifier;
+
         public UsageACLFilter(BasePermissionsHelper helper, String specifier) {
             _helper = helper;
             _specifier = specifier;
@@ -383,7 +383,6 @@ public class PermissionsHelper extends BasePermissionsHelper {
         public UsageACLFilter(BasePermissionsHelper helper) {
             this(helper, null);
         }
-
 
         @Override
         public PermissionsKey getPermissionKeyForEntry(ACLEntry entry)
@@ -430,6 +429,7 @@ public class PermissionsHelper extends BasePermissionsHelper {
 
     /**
      * Update the acls from request
+     * 
      * @param obj Object on which acls need to be updated
      * @param changes ACLAssignmentChanges from the request
      * @param filter ACLInputFilter for this object
@@ -440,7 +440,7 @@ public class PermissionsHelper extends BasePermissionsHelper {
             StringSetMap acls = filter.convertFromACLEntries(changes.getRemove(), false);
             for (Map.Entry<String, AbstractChangeTrackingSet<String>> aclAssignment : acls.entrySet()) {
                 String rowKey = aclAssignment.getKey();
-                for(String ace : aclAssignment.getValue()) {
+                for (String ace : aclAssignment.getValue()) {
                     obj.removeAcl(rowKey, ace);
                 }
             }
@@ -462,7 +462,7 @@ public class PermissionsHelper extends BasePermissionsHelper {
 
             for (Map.Entry<String, AbstractChangeTrackingSet<String>> aclAssignment : acls.entrySet()) {
                 String rowKey = aclAssignment.getKey();
-                for(String ace : aclAssignment.getValue()) {
+                for (String ace : aclAssignment.getValue()) {
                     obj.addAcl(rowKey, ace);
                 }
             }
@@ -471,19 +471,19 @@ public class PermissionsHelper extends BasePermissionsHelper {
 
     public void checkTenantHasAccessToVirtualArray(URI tenantId,
             VirtualArray varray) {
-        if(!tenantHasUsageACL(tenantId, varray)) {
+        if (!tenantHasUsageACL(tenantId, varray)) {
             throw APIException.forbidden.tenantCannotAccessVirtualArray(varray.getLabel());
         }
     }
 
     public void checkTenantHasAccessToVirtualPool(URI tenantId, VirtualPool vpool) {
-        if(!tenantHasUsageACL(tenantId, vpool)) {
+        if (!tenantHasUsageACL(tenantId, vpool)) {
             throw APIException.forbidden.tenantCannotAccessVirtualPool(vpool.getLabel());
         }
     }
-    
+
     public void checkTenantHasAccessToComputeVirtualPool(URI tenantId, ComputeVirtualPool vcpool) {
-        if(!tenantHasUsageACL(tenantId, vcpool)) {
+        if (!tenantHasUsageACL(tenantId, vcpool)) {
             throw APIException.forbidden.tenantCannotAccessComputeVirtualPool(vcpool.getLabel());
         }
     }

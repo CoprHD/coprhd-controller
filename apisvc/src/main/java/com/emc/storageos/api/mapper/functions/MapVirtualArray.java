@@ -9,7 +9,7 @@ import com.emc.storageos.model.varray.VirtualArrayRestRep;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.google.common.base.Function;
 
-public class MapVirtualArray implements Function<VirtualArray,VirtualArrayRestRep> {
+public class MapVirtualArray implements Function<VirtualArray, VirtualArrayRestRep> {
     public static final MapVirtualArray instance = new MapVirtualArray();
 
     public static MapVirtualArray getInstance() {

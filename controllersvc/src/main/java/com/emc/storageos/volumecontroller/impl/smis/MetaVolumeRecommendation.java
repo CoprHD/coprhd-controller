@@ -22,15 +22,15 @@ import org.slf4j.LoggerFactory;
 public class MetaVolumeRecommendation {
     private static final Logger _log = LoggerFactory.getLogger(MetaVolumeRecommendation.class);
 
-    private static final int BYTESCONVERTER= 1024;
+    private static final int BYTESCONVERTER = 1024;
 
     private boolean _createMetaVolumes = false;
     private long _metaMemberSize = 0;
     private long _metaMemberCount = 0;
     private Volume.CompositionType _metaVolumeType = Volume.CompositionType.STRIPED;
 
-
-    public  MetaVolumeRecommendation() {}
+    public MetaVolumeRecommendation() {
+    }
 
     public boolean isCreateMetaVolumes() {
         return _createMetaVolumes;
@@ -70,8 +70,8 @@ public class MetaVolumeRecommendation {
         } else if (recommendation != null) {
             return (isCreateMetaVolumes() == recommendation.isCreateMetaVolumes() &&
                     getMetaMemberSize() == recommendation.getMetaMemberSize() &&
-                    getMetaMemberCount() == recommendation.getMetaMemberCount() &&
-                    getMetaVolumeType().equals(recommendation.getMetaVolumeType()));
+                    getMetaMemberCount() == recommendation.getMetaMemberCount() && getMetaVolumeType().equals(
+                    recommendation.getMetaVolumeType()));
         } else {
             return false;
         }

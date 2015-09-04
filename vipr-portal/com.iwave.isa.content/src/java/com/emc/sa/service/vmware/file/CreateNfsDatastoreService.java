@@ -35,7 +35,7 @@ public class CreateNfsDatastoreService extends VMwareHostService {
     protected String mountPoint;
     @Param(DATASTORE_NAME)
     protected String datastoreName;
-    @Param(value=STORAGE_IO_CONTROL, required=false)
+    @Param(value = STORAGE_IO_CONTROL, required = false)
     protected Boolean storageIOControl;
 
     private FileShareRestRep fileSystem;
@@ -60,13 +60,13 @@ public class CreateNfsDatastoreService extends VMwareHostService {
         else {
             datastores.add(vmware.createNfsDatastore(host, fileSystem, export, datacenterId, datastoreName));
         }
-        
+
         if (hostId != null) {
             ExecutionUtils.addAffectedResource(hostId.toString());
         }
-        
+
         for (Datastore datastore : datastores) {
-            vmware.setStorageIOControl(datastore,  storageIOControl);
+            vmware.setStorageIOControl(datastore, storageIOControl);
         }
     }
 

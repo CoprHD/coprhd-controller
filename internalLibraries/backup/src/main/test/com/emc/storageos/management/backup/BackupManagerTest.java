@@ -37,7 +37,7 @@ public class BackupManagerTest extends BackupTestBase {
 
     private static final Logger log = LoggerFactory.getLogger(BackupManagerTest.class);
 
-    private static String invalidChars[] = new String[] {null, "", " ", "  "};
+    private static String invalidChars[] = new String[] { null, "", " ", "  " };
     private static File backupFolder;
 
     @BeforeClass
@@ -60,7 +60,7 @@ public class BackupManagerTest extends BackupTestBase {
         backupManager.create(backupName);
         createBackup(backupName, zkBackupHandler);
         createBackup(backupName, geoDbBackupHandler);
-        File backupDir  = new File(backupFolder, backupName);
+        File backupDir = new File(backupFolder, backupName);
         if (!backupDir.exists())
             Assert.assertTrue(backupDir.mkdirs());
         File[] backupFiles = backupDir.listFiles(new FilenameFilter() {
@@ -166,4 +166,3 @@ public class BackupManagerTest extends BackupTestBase {
         backupManager.delete(backupName);
     }
 }
-

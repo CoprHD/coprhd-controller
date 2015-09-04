@@ -20,7 +20,6 @@ import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import java.security.KeyStore;
 import java.util.List;
 
-
 /**
  * Vdc Controller Interface
  */
@@ -30,7 +29,7 @@ public interface VdcController {
      *
      */
     public void connectVdc(VirtualDataCenter vdc, String task, List<Object> taskParams) throws InternalException;
-    
+
     /**
      * Remove vdc from geo system
      */

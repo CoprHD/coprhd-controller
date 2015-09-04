@@ -70,17 +70,17 @@ public class AuditService extends ResourceService {
     /**
      * Retrieves the bulk auditlogs and alerts in a specified time bucket (minute
      * or hour).
-     *     
+     * 
      * @param timeBucket Time bucket for retrieval of auditlogs. Acceptable
      *            formats are: yyyy-MM-dd'T'HH for hour bucket,
      *            yyyy-MM-dd'T'HH:mm for minute bucket
-     * @param language   Lanuage for the auditlog description. "en_US" by default
+     * @param language Lanuage for the auditlog description. "en_US" by default
      * @brief Show audit logs for time period
      * @return Output stream of auditlogs or an error status.
      */
     @GET
     @Path("/logs")
-    @Produces( { MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_AUDITOR })
     public Response getAuditLogs(@QueryParam("time_bucket") final String timeBucket,
             @QueryParam("language") @DefaultValue("en_US") final String language, @Context HttpHeaders header) {
@@ -141,11 +141,11 @@ public class AuditService extends ResourceService {
                         throw APIException.badRequests.invalidTimeBucket(time);
                     }
                 } catch (final IllegalArgumentException e) {
-                	throw APIException.badRequests.invalidTimeBucket(time, e);
+                    throw APIException.badRequests.invalidTimeBucket(time, e);
                 }
 
                 if (timeBucket == null) {
-                	throw APIException.badRequests.invalidTimeBucket(time);
+                    throw APIException.badRequests.invalidTimeBucket(time);
                 }
 
                 BufferedWriter out = new BufferedWriter(new OutputStreamWriter(outputStream));

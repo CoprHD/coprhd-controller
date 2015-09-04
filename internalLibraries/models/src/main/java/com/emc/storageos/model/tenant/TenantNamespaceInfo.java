@@ -13,8 +13,9 @@ import java.util.List;
 public class TenantNamespaceInfo {
     private String name;
 
-    public TenantNamespaceInfo() {}
-    
+    public TenantNamespaceInfo() {
+    }
+
     public TenantNamespaceInfo(String name) {
         this.name = name;
     }

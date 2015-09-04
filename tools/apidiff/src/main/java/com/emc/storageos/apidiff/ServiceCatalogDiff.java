@@ -79,7 +79,7 @@ public class ServiceCatalogDiff {
         while (newApiMapIterator.hasNext()) {
             Map.Entry<ApiIdentifier, ApiDescriptor> entry = newApiMapIterator.next();
             ApiDescriptor oldApiResource = oldServiceCatalog.getApiMap().get(entry.getKey());
-            if ( oldApiResource == null)
+            if (oldApiResource == null)
                 continue;
 
             Pair<String, String> paramDiff = compareParameter(oldApiResource.getParameters(),
@@ -104,10 +104,11 @@ public class ServiceCatalogDiff {
 
     /**
      * Compares two parameter list in old resource and new resource
+     * 
      * @param oldParameters
-     *          The list of old parameters
+     *            The list of old parameters
      * @param newParameters
-     *          The list of new parameters
+     *            The list of new parameters
      * @return pair of different parameter string if they are different, else null
      */
     public Pair<String, String> compareParameter(List<String> oldParameters, List<String> newParameters) {
@@ -131,10 +132,11 @@ public class ServiceCatalogDiff {
 
     /**
      * Compares two string which are well formed XML
+     * 
      * @param oldXml
-     *          The old xml string
+     *            The old xml string
      * @param newXml
-     *          The new xml string
+     *            The new xml string
      * @return pair of different xml string if they are different, else null
      */
     public Pair<String, String> compareXml(String oldXml, String newXml) {

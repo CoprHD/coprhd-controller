@@ -65,7 +65,7 @@ public class DataObjectType {
     private Map<String, ColumnField> _columnFieldMap = new HashMap<String, ColumnField>();
     private EncryptionProvider _encryptionProvider;
     private List<ColumnField> _preprocessedFields;
-    
+
     private Class<? extends DataObject> _instrumentedClazz;
     // a map of mapped by field name to it's associated lazy loaded field
     // only for mapped by fields within the same class as the lazy loaded field
@@ -141,24 +141,25 @@ public class DataObjectType {
         return Collections.unmodifiableCollection(_columnFieldMap.values());
     }
 
-    public static boolean isColumnField(String className, PropertyDescriptor pd){
+    public static boolean isColumnField(String className, PropertyDescriptor pd) {
         if (pd.getName().equals("class")) {
             return false;
         }
-        
+
         Method readMethod = pd.getReadMethod();
         Method writeMethod = pd.getWriteMethod();
-        if (readMethod==null || writeMethod==null) {
-        	_log.info("{}.{} no getter or setter method, skip",className, pd.getName());
+        if (readMethod == null || writeMethod == null) {
+            _log.info("{}.{} no getter or setter method, skip", className, pd.getName());
             return false;
         }
-         // Skip Transient Properties
+        // Skip Transient Properties
         if (readMethod.isAnnotationPresent(Transient.class) || writeMethod.isAnnotationPresent(Transient.class)) {
-        	_log.info("{}.{} has Transient annotation, skip",className, pd.getName());
+            _log.info("{}.{} has Transient annotation, skip", className, pd.getName());
             return false;
         }
         return true;
     }
+
     /**
      * Initializes cf & all column metadata for this data type
      */
@@ -168,19 +169,19 @@ public class DataObjectType {
                 StringSerializer.get(),
                 CompositeColumnNameSerializer.get());
         BeanInfo bInfo;
-        try{
+        try {
             bInfo = Introspector.getBeanInfo(_clazz);
         } catch (IntrospectionException ex) {
-        	throw DatabaseException.fatals.serializationFailedInitializingBeanInfo(_clazz, ex);
+            throw DatabaseException.fatals.serializationFailedInitializingBeanInfo(_clazz, ex);
         }
         PropertyDescriptor[] pds = bInfo.getPropertyDescriptors();
-        
+
         for (int i = 0; i < pds.length; i++) {
             PropertyDescriptor pd = pds[i];
             // skip class property
-            if(!isColumnField(bInfo.getBeanDescriptor().getBeanClass().getName(), pd)){
-            	_log.info("Not column field, skip {}.{}",bInfo.getBeanDescriptor().getBeanClass().getName(), pd.getName());
-            	continue;
+            if (!isColumnField(bInfo.getBeanDescriptor().getBeanClass().getName(), pd)) {
+                _log.info("Not column field, skip {}.{}", bInfo.getBeanDescriptor().getBeanClass().getName(), pd.getName());
+                continue;
             }
 
             ColumnField col = new ColumnField(this, pd);
@@ -189,7 +190,7 @@ public class DataObjectType {
                 continue;
             }
             _columnFieldMap.put(col.getName(), col);
-            
+
             if (col.isLazyLoaded()) {
                 _lazyLoadedFields.add(col);
             }
@@ -199,9 +200,9 @@ public class DataObjectType {
         Collection<ColumnField> fields = _columnFieldMap.values();
         for (ColumnField field : fields) {
             DbIndex index = field.getIndex();
-            if( index instanceof  AggregateDbIndex ) {
-                String[] groupByArr =  ((AggregateDbIndex)index).getGroupBy();
-                for(String groupByName : groupByArr) {
+            if (index instanceof AggregateDbIndex) {
+                String[] groupByArr = ((AggregateDbIndex) index).getGroupBy();
+                for (String groupByName : groupByArr) {
                     ColumnField groupField = _columnFieldMap.get(groupByName);
                     if (groupField == null) {
                         DatabaseException.fatals.invalidAnnotation("AggregateIndex", "property " + groupByName +
@@ -217,7 +218,7 @@ public class DataObjectType {
                     groupField.getDependentFields().add(field);
                     field.getRefFields().add(groupField);
                 }
-                if(field.getRefFields().size()>0) {
+                if (field.getRefFields().size() > 0) {
                     _preprocessedFields.add(field);
                 }
             }
@@ -225,10 +226,10 @@ public class DataObjectType {
 
         // initialization for lazy loading
         lazyLoadInit();
-        
+
     }
 
-    public boolean needPreprocessing(){
+    public boolean needPreprocessing() {
         return !_preprocessedFields.isEmpty();
     }
 
@@ -242,10 +243,11 @@ public class DataObjectType {
      * @return data object instance
      * @throws DatabaseException
      */
-    public <T  extends DataObject> T deserialize(Class<T> clazz, Row<String, CompositeColumnName> row, IndexCleanupList cleanupList) {
+    public <T extends DataObject> T deserialize(Class<T> clazz, Row<String, CompositeColumnName> row, IndexCleanupList cleanupList) {
         return deserialize(clazz, row, cleanupList, null);
     }
-    public <T  extends DataObject> T deserialize(Class<T> clazz, Row<String, CompositeColumnName> row, IndexCleanupList cleanupList,
+
+    public <T extends DataObject> T deserialize(Class<T> clazz, Row<String, CompositeColumnName> row, IndexCleanupList cleanupList,
             LazyLoader lazyLoader)
             throws DatabaseException {
         if (!_clazz.isAssignableFrom(clazz)) {
@@ -253,7 +255,7 @@ public class DataObjectType {
         }
         try {
             String key = row.getKey();
-            Class<? extends DataObject> type = (_instrumentedClazz==null) ? clazz : _instrumentedClazz;
+            Class<? extends DataObject> type = (_instrumentedClazz == null) ? clazz : _instrumentedClazz;
             DataObject obj = DataObject.createInstance(type, URI.create(row.getKey()));
             Iterator<Column<CompositeColumnName>> it = row.getColumns().iterator();
             while (it.hasNext()) {
@@ -266,19 +268,19 @@ public class DataObjectType {
                     _log.debug("an unexpected column in db, it might because geo system has multiple vdc but in different version");
                 }
             }
-            cleanupList.addObject(key,obj);
+            cleanupList.addObject(key, obj);
             obj.trackChanges();
-            
+
             setLazyLoaders(obj, lazyLoader);
-            
+
             return clazz.cast(obj);
         } catch (final InstantiationException e) {
-        	throw DatabaseException.fatals.deserializationFailed(clazz, e);
+            throw DatabaseException.fatals.deserializationFailed(clazz, e);
         } catch (final IllegalAccessException e) {
-        	throw DatabaseException.fatals.deserializationFailed(clazz, e);
+            throw DatabaseException.fatals.deserializationFailed(clazz, e);
         }
     }
-    
+
     /**
      * Serializes data object into database updates
      *
@@ -305,7 +307,7 @@ public class DataObjectType {
         }
         try {
             boolean indexFieldsModified = false;
-            URI id = (URI)_idField.getPropertyDescriptor().getReadMethod().invoke(val);
+            URI id = (URI) _idField.getPropertyDescriptor().getReadMethod().invoke(val);
             if (id == null) {
                 throw new IllegalArgumentException();
             }
@@ -313,32 +315,33 @@ public class DataObjectType {
                 setMappedByField(val, field);
                 indexFieldsModified |= field.serialize(val, mutator);
             }
-            
+
             setLazyLoaders(val, lazyLoader);
-            
+
             return indexFieldsModified;
         } catch (final IllegalAccessException e) {
-        	throw DatabaseException.fatals.serializationFailedId(val.getId(), e);
+            throw DatabaseException.fatals.serializationFailedId(val.getId(), e);
         } catch (final InvocationTargetException e) {
-        	throw DatabaseException.fatals.serializationFailedId(val.getId(), e);
+            throw DatabaseException.fatals.serializationFailedId(val.getId(), e);
         }
     }
 
-    <T extends DataObject> void deserializeColumns( T object,  Row<String, CompositeColumnName> row, List<ColumnField> columns, boolean clear){
+    <T extends DataObject> void
+            deserializeColumns(T object, Row<String, CompositeColumnName> row, List<ColumnField> columns, boolean clear) {
 
-        Map<String,ColumnField> columnMap = new HashMap<String,ColumnField>();
-        for(ColumnField column : columns){
-            columnMap.put(column.getName(),column);
+        Map<String, ColumnField> columnMap = new HashMap<String, ColumnField>();
+        for (ColumnField column : columns) {
+            columnMap.put(column.getName(), column);
         }
         Iterator<Column<CompositeColumnName>> it = row.getColumns().iterator();
         while (it.hasNext()) {
             Column<CompositeColumnName> column = it.next();
             ColumnField columnField = columnMap.get(column.getName().getOne());
-            if(columnField != null) {
+            if (columnField != null) {
                 columnField.deserialize(column, object);
             }
         }
-        if( clear ) {
+        if (clear) {
             for (String columnField : columnMap.keySet()) {
                 object.clearChangedValue(columnField);
             }
@@ -350,26 +353,25 @@ public class DataObjectType {
         }
     }
 
-
-     List<ColumnField> getRefUnsetColumns(DataObject object){
-        Map<String,ColumnField> refColumns = new HashMap<String,ColumnField>();
-        for (ColumnField field:_preprocessedFields) {
+    List<ColumnField> getRefUnsetColumns(DataObject object) {
+        Map<String, ColumnField> refColumns = new HashMap<String, ColumnField>();
+        for (ColumnField field : _preprocessedFields) {
             // we only with primitive types only, no StringSets, etc types are allowed
-            if(!object.isChanged(field.getName())){
-               continue;
+            if (!object.isChanged(field.getName())) {
+                continue;
             }
             List<ColumnField> fields = field.getRefFields();
-            for(ColumnField refField : fields) {
+            for (ColumnField refField : fields) {
                 if (!object.isChanged(refField.getName())) {
-                    refColumns.put(refField.getName(),refField);
+                    refColumns.put(refField.getName(), refField);
                 }
             }
         }
         return new ArrayList<>(refColumns.values());
     }
 
-    List<ColumnField> getDependentForModifiedColumns(DataObject object){
-        Map<String,ColumnField> depColumns = new HashMap<String,ColumnField>();
+    List<ColumnField> getDependentForModifiedColumns(DataObject object) {
+        Map<String, ColumnField> depColumns = new HashMap<String, ColumnField>();
         Iterator<ColumnField> fieldIt = _columnFieldMap.values().iterator();
         while (fieldIt.hasNext()) {
             ColumnField field = fieldIt.next();
@@ -378,20 +380,20 @@ public class DataObjectType {
                     object.isChanged(field.getName())) {
                 for (ColumnField depField : field.getDependentFields()) {
                     if (!object.isChanged(depField.getName())) {
-                        depColumns.put(depField.getName(),depField);
+                        depColumns.put(depField.getName(), depField);
                     }
                 }
             }
         }
         return new ArrayList<>(depColumns.values());
     }
-    
+
     /**
      * sets up lazy loading for all lazy loading fields in this model class
      */
     private void lazyLoadInit() {
         for (ColumnField field : _lazyLoadedFields) {
-            
+
             ColumnField mappedByField = getColumnField(field.getMappedByField());
             if (mappedByField != null) {
                 _mappedByToLazyLoadedField.put(mappedByField.getName(), field);
@@ -404,16 +406,16 @@ public class DataObjectType {
      * instrument model classes to override getter and setter methods to enable lazy loading
      */
     private void instrumentModelClasses() {
-        
+
         long start = Calendar.getInstance().getTime().getTime();
-        
+
         if (_lazyLoadedFields.isEmpty()) {
             // no error here; just means there are no lazy loaded fields in this model class
             return;
         }
-        
+
         CtClass instrumentedClass = null;
-        
+
         try {
             ClassPool pool = ClassPool.getDefault();
             CtClass modelClass = pool.get(_clazz.getCanonicalName());
@@ -421,7 +423,7 @@ public class DataObjectType {
                     ".vipr-dbmodel$$" + _clazz.getSimpleName();
             instrumentedClass = pool.getAndRename(LazyLoadedDataObject.class.getName(), instrumentedClassName);
             instrumentedClass.setSuperclass(modelClass);
-            
+
         } catch (CannotCompileException e) {
             _log.error(String.format("Compile error instrumenting data model class %s", _clazz.getCanonicalName()));
             _log.error(e.getMessage(), e);
@@ -432,38 +434,39 @@ public class DataObjectType {
             throw DatabaseException.fatals.serializationFailedClass(_clazz, e);
         }
         long totalClassTime = Calendar.getInstance().getTime().getTime() - start;
-        
+
         long startFieldTime = Calendar.getInstance().getTime().getTime();
         for (ColumnField field : _lazyLoadedFields) {
             PropertyDescriptor pd = field.getPropertyDescriptor();
             String fieldName = field.getName();
-            
+
             try {
-                
+
                 CtClass modelClass = ClassPool.getDefault().get(pd.getReadMethod().getDeclaringClass().getCanonicalName());
-                
-                String quotedFieldName = "\""+fieldName+"\"";
+
+                String quotedFieldName = "\"" + fieldName + "\"";
                 if (DataObject.class.isAssignableFrom(pd.getPropertyType())) {
-                    
+
                     // override the getter for the lazy loaded object and add code to load the object
                     CtMethod readMethod = modelClass.getDeclaredMethod(pd.getReadMethod().getName());
                     // read method checks for isLoaded and loads if not loaded
                     CtMethod instReadMethod = CtNewMethod.delegator(readMethod, instrumentedClass);
                     String before = String.format("load(%s, this);", quotedFieldName);
-                    _log.debug(String.format("creating new method %s for instrumented class %s: %s", 
+                    _log.debug(String.format("creating new method %s for instrumented class %s: %s",
                             instReadMethod.getName(), instrumentedClass.getName(), before));
                     instReadMethod.insertBefore(before);
                     instrumentedClass.addMethod(instReadMethod);
-                    
-                    // override the setter for the mapped by field and add code to invalidate the 
+
+                    // override the setter for the mapped by field and add code to invalidate the
                     // lazy loaded object (so that it will be re-loaded the next time it's accessed)
                     String mappedByFieldName = field.getMappedByField();
                     ColumnField mappedByField = getColumnField(mappedByFieldName);
                     if (mappedByField != null) {
-                        CtMethod mappedByWriteMethod = modelClass.getDeclaredMethod(mappedByField.getPropertyDescriptor().getWriteMethod().getName());
+                        CtMethod mappedByWriteMethod = modelClass.getDeclaredMethod(mappedByField.getPropertyDescriptor().getWriteMethod()
+                                .getName());
                         CtMethod instMappedByWriteMethod = CtNewMethod.delegator(mappedByWriteMethod, instrumentedClass);
                         String mappedByCode = String.format("invalidate(%s);", quotedFieldName);
-                        _log.debug(String.format("creating new method %s for instrumented class %s: %s", 
+                        _log.debug(String.format("creating new method %s for instrumented class %s: %s",
                                 instMappedByWriteMethod.getName(), instrumentedClass.getName(), mappedByCode));
                         instMappedByWriteMethod.insertAfter(mappedByCode);
                         instrumentedClass.addMethod(instMappedByWriteMethod);
@@ -473,7 +476,7 @@ public class DataObjectType {
                 CtMethod writeMethod = modelClass.getDeclaredMethod(pd.getWriteMethod().getName());
                 CtMethod instWriteMethod = CtNewMethod.delegator(writeMethod, instrumentedClass);
                 String writeMethodDef = String.format("refreshMappedByField(%s, this);", quotedFieldName);
-                _log.debug(String.format("creating new method %s for instrumented class %s: %s", 
+                _log.debug(String.format("creating new method %s for instrumented class %s: %s",
                         instWriteMethod.getName(), instrumentedClass.getName(), writeMethodDef));
                 instWriteMethod.insertAfter(writeMethodDef);
                 instrumentedClass.addMethod(instWriteMethod);
@@ -482,14 +485,15 @@ public class DataObjectType {
                 _log.error(e.getMessage(), e);
                 throw DatabaseException.fatals.serializationFailedClass(_clazz, e);
             } catch (NotFoundException e) {
-                _log.error(String.format("Field %s in data model class %s must have both a write method and a read method", fieldName, _clazz.getCanonicalName()));
+                _log.error(String.format("Field %s in data model class %s must have both a write method and a read method", fieldName,
+                        _clazz.getCanonicalName()));
                 _log.error(e.getMessage(), e);
                 throw DatabaseException.fatals.serializationFailedClass(_clazz, e);
             }
         }
-        
+
         long totalFieldTime = Calendar.getInstance().getTime().getTime() - startFieldTime;
-        
+
         start = Calendar.getInstance().getTime().getTime();
         if (instrumentedClass != null) {
             try {
@@ -501,13 +505,14 @@ public class DataObjectType {
             }
         }
         totalClassTime += Calendar.getInstance().getTime().getTime() - start;
-        
-        _log.info(String.format("Class instrumentation for %s: total time: %d; class time: %d; field time: %d; avg per field: %f", 
-                _clazz.getName(), totalClassTime+totalFieldTime, totalClassTime, totalFieldTime, (float)totalFieldTime/(float)_lazyLoadedFields.size()));
+
+        _log.info(String.format("Class instrumentation for %s: total time: %d; class time: %d; field time: %d; avg per field: %f",
+                _clazz.getName(), totalClassTime + totalFieldTime, totalClassTime, totalFieldTime, (float) totalFieldTime
+                        / (float) _lazyLoadedFields.size()));
     }
-    
+
     private void setLazyLoaders(DataObject obj, LazyLoader lazyLoader) {
-        
+
         if (lazyLoader == null) {
             return;
         }
@@ -517,7 +522,7 @@ public class DataObjectType {
             instrumentedObj = (DataObjectInstrumented) obj;
             instrumentedObj.initLazyLoading(lazyLoader);
         }
-        
+
         for (ColumnField lazyLoadedField : _lazyLoadedFields) {
 
             // if the mapped by field is a stringset in the same class, we need to keep that
@@ -549,23 +554,24 @@ public class DataObjectType {
             instrumentedObj.enableLazyLoading();
         }
     }
-    
+
     Class<? extends DataObject> getInstrumentedType() {
         return _instrumentedClazz;
     }
-    
+
     // if the mapped by field for a lazy loaded field is null and the lazy loaded field is not null
     // we can set the mapped by field to match the lazy loaded field
-    // this covers the case where we create a new DataObject instance, set the lazy loaded field 
+    // this covers the case where we create a new DataObject instance, set the lazy loaded field
     // without setting the mapped by field and then persist it.
     private void setMappedByField(DataObject obj, ColumnField mappedByField) {
-        
+
         ColumnField lazyLoadedField = _mappedByToLazyLoadedField.get(mappedByField.getName());
         if (lazyLoadedField == null) {
             return;
         }
         if (mappedByField.getPropertyDescriptor().getReadMethod() == null) {
-            _log.error("mapped by field " + mappedByField.getName() + " for lazy loaded field " + lazyLoadedField.getName() + " must have a read method");
+            _log.error("mapped by field " + mappedByField.getName() + " for lazy loaded field " + lazyLoadedField.getName()
+                    + " must have a read method");
             return;
         }
         if (lazyLoadedField.getPropertyDescriptor().getReadMethod() == null) {
@@ -575,18 +581,18 @@ public class DataObjectType {
         try {
             Object mappedByValue = mappedByField.getPropertyDescriptor().getReadMethod().invoke(obj);
             Object lazyLoadedValue = lazyLoadedField.getPropertyDescriptor().getReadMethod().invoke(obj);
-       
+
             if (null == mappedByValue && null != lazyLoadedValue) {
                 if (DataObject.class.isAssignableFrom(lazyLoadedValue.getClass()) &&
                         URI.class.isAssignableFrom(mappedByField.getPropertyDescriptor().getPropertyType())) {
                     DataObject lazyLoadedDbObj = (DataObject) lazyLoadedValue;
                     mappedByField.getPropertyDescriptor().getWriteMethod().invoke(obj, lazyLoadedDbObj.getId());
-                } else if (Collection.class.isAssignableFrom(lazyLoadedValue.getClass()) && 
+                } else if (Collection.class.isAssignableFrom(lazyLoadedValue.getClass()) &&
                         StringSet.class.isAssignableFrom(mappedByField.getPropertyDescriptor().getPropertyType())) {
                     StringSet stringSet = new StringSet();
                     for (Object listElem : (Collection) lazyLoadedValue) {
                         if (DataObject.class.isAssignableFrom(listElem.getClass())) {
-                            stringSet.add(((DataObject)listElem).getId().toString());
+                            stringSet.add(((DataObject) listElem).getId().toString());
                         }
                     }
                     mappedByField.getPropertyDescriptor().getWriteMethod().invoke(obj, stringSet);

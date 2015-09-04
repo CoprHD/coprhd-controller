@@ -30,12 +30,13 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageProvider.ConnectionStatus;
 
 public class DataDomainUtils {
-	
+
     private static final Logger _log = LoggerFactory.getLogger(DataDomainUtils.class);
-	
-	/**
+
+    /**
      * Get DataDomain device represented by the StorageDevice
-     * @param device    StorageDevice object
+     * 
+     * @param device StorageDevice object
      * @return DataDomainClient object
      * @throws com.emc.storageos.datadomain.restapi.errorhandling.DataDomainApiException
      */
@@ -43,29 +44,29 @@ public class DataDomainUtils {
             DataDomainClientFactory ddClientFactory) throws DataDomainApiException {
         DataDomainClient ddClient = null;
         if (provider != null) {
-            ddClient = (DataDomainClient)ddClientFactory.getRESTClient(
-                           DataDomainApiConstants.newDataDomainBaseURI(
-                               provider.getIPAddress(),
-                               provider.getPortNumber()),
-                               provider.getUserName(),
-                               provider.getPassword());
+            ddClient = (DataDomainClient) ddClientFactory.getRESTClient(
+                    DataDomainApiConstants.newDataDomainBaseURI(
+                            provider.getIPAddress(),
+                            provider.getPortNumber()),
+                    provider.getUserName(),
+                    provider.getPassword());
         }
         return ddClient;
     }
-	
-	/**
+
+    /**
      * Refresh DataDomain connections.
      *
      * @param ddProviderList the DataDomain provider list
      * @param dbClient the db client
      * @return the list of active providers
      */
-    public static List<URI> refreshDDConnections(final List<StorageProvider> ddProviderList, 
-            DbClient dbClient, DataDomainClientFactory ddClientFactory){
+    public static List<URI> refreshDDConnections(final List<StorageProvider> ddProviderList,
+            DbClient dbClient, DataDomainClientFactory ddClientFactory) {
         List<URI> activeProviders = new ArrayList<URI>();
-        for (StorageProvider storageProvider: ddProviderList) {
+        for (StorageProvider storageProvider : ddProviderList) {
             try {
-                // Is the DDMC reachable 
+                // Is the DDMC reachable
                 DataDomainClient ddClient = getDataDomainClient(storageProvider, ddClientFactory);
                 if (ddClient == null) {
                     storageProvider.setConnectionStatus(ConnectionStatus.NOTCONNECTED.name());

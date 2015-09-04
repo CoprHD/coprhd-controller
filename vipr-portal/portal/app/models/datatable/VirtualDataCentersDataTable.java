@@ -14,7 +14,7 @@ import util.datatable.DataTable;
 import com.emc.storageos.model.vdc.VirtualDataCenterRestRep;
 
 public class VirtualDataCentersDataTable extends DataTable {
-   
+
     public VirtualDataCentersDataTable() {
         addColumn("name").setRenderFunction("renderLink");
         addColumn("apiEndpoint");
@@ -56,7 +56,7 @@ public class VirtualDataCentersDataTable extends DataTable {
             if (vdc.getLastSeenTimeInMillis() != null) {
                 lastSeen = vdc.getLastSeenTimeInMillis();
             }
-            
+
             canReconnect = vdc.canReconnect();
             canDisconnect = vdc.canDisconnect();
             canDelete = vdc.canDelete();

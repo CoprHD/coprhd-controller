@@ -22,8 +22,8 @@ import java.util.List;
 public class ScaleIOMapVolumeToSDCCommand extends AbstractScaleIOQueryCommand<ScaleIOMapVolumeToSDCResult> {
 
     private static final String MAPPED_SUCCESSFULLY = "MappedSuccessfully";
-    //     Successfully mapped volume with ID e9e5163500000000 to SDC with ID 5509377100000000.
-    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[]{
+    // Successfully mapped volume with ID e9e5163500000000 to SDC with ID 5509377100000000.
+    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[] {
             new ParsePattern("Successfully mapped volume with ID \\w+ to SDC with ID \\w+\\.", MAPPED_SUCCESSFULLY)
     };
 

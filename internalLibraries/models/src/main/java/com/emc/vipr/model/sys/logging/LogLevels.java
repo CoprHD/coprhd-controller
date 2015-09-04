@@ -26,7 +26,7 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @XmlRootElement(name = "log-levels")
 public class LogLevels {
-    
+
     private List<LogLevel> logLevels;
 
     @XmlElement(name = "levels")
@@ -35,7 +35,7 @@ public class LogLevels {
             logLevels = new ArrayList<LogLevel>();
         return logLevels;
     }
-    
+
     public void setLogLevels(List<LogLevel> logLevels) {
         this.logLevels = logLevels;
     }
@@ -52,18 +52,18 @@ public class LogLevels {
         private String svcName = "";
         // The severity of the message.
         private LogSeverity severity;
-    
+
         public LogLevel() {
-    
+
         }
-    
-        //Constructor for Service logs
+
+        // Constructor for Service logs
         public LogLevel(String nodeId, String svcName, String severity) {
             this.nodeId = nodeId;
             this.svcName = svcName;
             this.severity = LogSeverity.find(severity.toUpperCase());
         }
-    
+
         /**
          * Getter for the Bourne node identifier on which the message was logged.
          *
@@ -73,7 +73,7 @@ public class LogLevels {
         public String getNodeId() {
             return nodeId;
         }
-    
+
         /**
          * Setter for the Bourne node identifier on which the message was logged.
          *
@@ -82,7 +82,7 @@ public class LogLevels {
         public void setNodeId(String nodeId) {
             this.nodeId = nodeId;
         }
-    
+
         /**
          * Getter for the name of the service that logged the message.
          *
@@ -92,7 +92,7 @@ public class LogLevels {
         public String getSvcName() {
             return svcName;
         }
-    
+
         /**
          * Setter for the name of the service that logged the message.
          *
@@ -101,7 +101,7 @@ public class LogLevels {
         public void setSvcName(String svcName) {
             this.svcName = svcName;
         }
-    
+
         /**
          * Getter for the severity level of the message.
          *
@@ -111,7 +111,7 @@ public class LogLevels {
         public LogSeverity getSeverity() {
             return severity;
         }
-    
+
         /**
          * Setter for the severity level of the message.
          *

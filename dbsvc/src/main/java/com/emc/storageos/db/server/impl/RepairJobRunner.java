@@ -87,12 +87,12 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
      * Flag to indicate if current job is aborted
      */
     private boolean _aborted = false;
-    
+
     /**
      * Token that is successfully repaired
      */
     private String _lastToken = null;
-    
+
     /**
      * Flag to indicate if restrict db repair at local site
      */
@@ -118,7 +118,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
      * @param startToken
      */
     public RepairJobRunner(StorageServiceMBean svcProxy, String keySpaceName, ScheduledExecutorService exe, boolean isLocal,
-                           ProgressNotificationListener listener, String startToken, String clusterStateDigest) {
+            ProgressNotificationListener listener, String startToken, String clusterStateDigest) {
         this.svcProxy = svcProxy;
         this.keySpaceName = keySpaceName;
         _exe = exe;
@@ -142,7 +142,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
 
     /**
      * Return sorted primary ranges on local node
-     */   
+     */
     public static List<StringTokenRange> getLocalRanges(String keyspace) {
 
         Collection<Range<Token>> ranges = StorageService.instance.getLocalRanges(keyspace);
@@ -152,7 +152,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
 
         ArrayList<StringTokenRange> result = new ArrayList<>();
         Iterator<Range<Token>> iter = sortedRanges.iterator();
-        while(iter.hasNext()) {
+        while (iter.hasNext()) {
             Range<Token> range = iter.next();
             List<String> startAndEnd = range.asList();
             if (startAndEnd.size() != 2) {
@@ -177,14 +177,14 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
         }
         return -1;
     }
- 
+
     /**
      * Execute DB repair job for local primary ranges on DHT ring. If _lastToken is
      * not null, the repair job starts from _lastToken
      * 
      * It is supposed to execute this method on all nodes of the cluster so that
      * full DHT ring is repaired.
-     
+     * 
      * @return True for success. Otherwise failure
      * @throws IOException
      * @throws InterruptedException
@@ -205,7 +205,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
             return _success;
         }
 
-        _log.info("Run repair job for {}. Total # local ranges {}", 
+        _log.info("Run repair job for {}. Total # local ranges {}",
                 this.keySpaceName, _totalRepairSessions);
 
         // Find start token, in case the token is no longer in ring, we have to start from beginning
@@ -222,7 +222,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
         try {
             _aborted = false;
             _success = true;
-            while(_completedRepairSessions < _totalRepairSessions) {
+            while (_completedRepairSessions < _totalRepairSessions) {
 
                 String currentDigest = DbRepairRunnable.getClusterStateDigest();
                 if (!this.clusterStateDigest.equals(currentDigest)) {
@@ -245,22 +245,22 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
                 }
 
                 _lastToken = range.end;
-                _completedRepairSessions ++;
+                _completedRepairSessions++;
                 _log.info("{} repair sessions finished. Current progress {}%", _completedRepairSessions, getProgress());
             }
         } finally {
             jobMonitorHandle.cancel(false);
             _log.info("Stopped repair job monitor");
         }
-        
+
         // Reset lastToken after a successful full repair of local primary ranges
         if (_success)
             _lastToken = null;
-        
+
         _log.info("Db repair consumes {} minutes", (System.currentTimeMillis() - _startTimeInMillis) / 60000);
         return _success;
     }
- 
+
     /**
      * Start background task to monitor job progress. If job could not move
      * ahead for _maxWaitInMinutes, the job is thought as hanging and we force
@@ -315,7 +315,7 @@ public class RepairJobRunner implements NotificationListener, AutoCloseable {
         }
         return -1;
     }
-    
+
     /**
      * Get job start time in milliseconds since epoc.
      * 

@@ -40,29 +40,29 @@ public class AnnotationValue implements SchemaObject {
     // the following fields are used to distinguish instances
     private String name;
     private String value;
-    
+
     private SchemaObject parent;
-    
+
     public AnnotationValue() {
     }
 
     public AnnotationValue(RuntimeType runtimeType, Method method, SchemaObject parent) {
         this.runtimeType = new RuntimeType(runtimeType);
-        
+
         this.parent = parent;
 
         this.name = method.getName();
         try {
             Object val = method.invoke(runtimeType.getAnnotation());
             if (val instanceof Class) {
-                this.value = ((Class)val).getSimpleName();
-                this.runtimeType.setMigrationCallback((Class<? extends MigrationCallback>)val);
-            } else if (val instanceof Enum[]){
-            	Enum[] vals = (Enum[]) val;
-            	for(int i = 0; i < vals.length; i ++) {
-            		this.value = vals[i].name();
-            	}
-            	this.runtimeType.setMigrationCallback(null);
+                this.value = ((Class) val).getSimpleName();
+                this.runtimeType.setMigrationCallback((Class<? extends MigrationCallback>) val);
+            } else if (val instanceof Enum[]) {
+                Enum[] vals = (Enum[]) val;
+                for (int i = 0; i < vals.length; i++) {
+                    this.value = vals[i].name();
+                }
+                this.runtimeType.setMigrationCallback(null);
             } else {
                 this.value = val.toString();
                 this.runtimeType.setMigrationCallback(null);
@@ -113,7 +113,7 @@ public class AnnotationValue implements SchemaObject {
         if (!(o instanceof AnnotationValue))
             return false;
 
-        AnnotationValue annotationValue = (AnnotationValue)o;
+        AnnotationValue annotationValue = (AnnotationValue) o;
 
         if (!annotationValue.getName().equals(getName()))
             return false;
@@ -153,4 +153,3 @@ public class AnnotationValue implements SchemaObject {
         this.parent = parent;
     }
 }
-

@@ -3,6 +3,7 @@
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.impl;
+
 /**
  *  Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
@@ -116,9 +117,12 @@ public class ColumnField {
 
     // not set for MultiValue[List|Map] types
     private CompositeColumnName _compositeName;
-    
+
     private boolean _lazyLoaded;
-    public boolean isLazyLoaded() { return _lazyLoaded;}
+
+    public boolean isLazyLoaded() {
+        return _lazyLoaded;
+    }
 
     private List<ColumnField> refFields = new ArrayList<>();
     private List<ColumnField> dependentFields = new ArrayList<>();
@@ -129,6 +133,7 @@ public class ColumnField {
     public List<ColumnField> getRefFields() {
         return refFields;
     }
+
     // Dependent Fields depend on (i.e. might need) the current field for serialization
     public List<ColumnField> getDependentFields() {
         return dependentFields;
@@ -148,6 +153,7 @@ public class ColumnField {
 
     /**
      * Get property descriptor for this field
+     * 
      * @return
      */
     public PropertyDescriptor getPropertyDescriptor() {
@@ -183,6 +189,7 @@ public class ColumnField {
 
     /**
      * Get reference type of the indexed field
+     * 
      * @return
      */
     public Class<? extends DataObject> getIndexRefType() {
@@ -191,6 +198,7 @@ public class ColumnField {
 
     /**
      * Get parent type as string
+     * 
      * @return
      */
     public Class<? extends DataObject> getDataObjectType() {
@@ -199,11 +207,13 @@ public class ColumnField {
 
     /**
      * Get whether the column is encrypted
+     * 
      * @return true if encrypted, false otherwise.
      */
     public boolean isEncrypted() {
         return _encrypt;
     }
+
     /**
      * Sets/overrides TTL value
      */
@@ -213,6 +223,7 @@ public class ColumnField {
 
     /**
      * Get current TTL configuration
+     * 
      * @return
      */
     public Integer getTtl() {
@@ -221,10 +232,11 @@ public class ColumnField {
 
     /**
      * Get value of deactivateIfEmpty
+     * 
      * @return
      */
     public boolean deactivateIfEmpty() {
-    	return _deactivateIfEmpty;
+        return _deactivateIfEmpty;
     }
 
     /**
@@ -235,11 +247,11 @@ public class ColumnField {
      */
     public String getPrefixIndexRowKey(String text) {
         if (index instanceof PrefixDbIndex)
-            return ((PrefixDbIndex)index).getRowKey(text);
+            return ((PrefixDbIndex) index).getRowKey(text);
 
         if (index instanceof ScopedLabelDbIndex)
-            return ((ScopedLabelDbIndex)index).getRowKey(text);
-        
+            return ((ScopedLabelDbIndex) index).getRowKey(text);
+
         throw new RuntimeException(String.format("The index %s is not a PrefixDbIndex or ScopedLabelDbIndex", index));
     }
 
@@ -324,8 +336,9 @@ public class ColumnField {
         }
         ColumnValue.setEncryptedStringField(column, _property, obj, encryptionProvider);
     }
+
     /**
-     * Generate queries for removing given column.  Caller is expected to execute generated queries
+     * Generate queries for removing given column. Caller is expected to execute generated queries
      *
      * @param recordKey record row key
      * @param column column to
@@ -333,7 +346,7 @@ public class ColumnField {
      * @param fieldColumnMap column map for the record. it might need to remove indexes for dependent fields
      */
     public boolean removeColumn(String recordKey, Column<CompositeColumnName> column, RowMutator mutator,
-                                Map<String,List<Column<CompositeColumnName>>> fieldColumnMap) {
+            Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {
         CompositeColumnName columnName = column.getName();
 
         // remove record
@@ -355,25 +368,23 @@ public class ColumnField {
     }
 
     private boolean removeColumn(String recordKey, Column<CompositeColumnName> column, RowMutator mutator) {
-        return removeColumn(recordKey,column,mutator,null);
+        return removeColumn(recordKey, column, mutator, null);
     }
 
     public boolean removeIndex(String recordKey, Column<CompositeColumnName> column, RowMutator mutator,
-                               Map<String,List<Column<CompositeColumnName>>> fieldColumnMap,
-                               DataObject obj) {
+            Map<String, List<Column<CompositeColumnName>>> fieldColumnMap,
+            DataObject obj) {
 
         // remove index
         return index.removeColumn(recordKey, column, _parentType.getDataObjectClass().getSimpleName(), mutator, fieldColumnMap, obj);
     }
 
     public boolean removeIndex(String recordKey, Column<CompositeColumnName> column, RowMutator mutator,
-                               Map<String,List<Column<CompositeColumnName>>> fieldColumnMap) {
+            Map<String, List<Column<CompositeColumnName>>> fieldColumnMap) {
 
         // remove index
         return index.removeColumn(recordKey, column, _parentType.getDataObjectClass().getSimpleName(), mutator, fieldColumnMap);
     }
-
-
 
     /**
      * Generate queries for inserting a given column. Caller is expected to
@@ -389,7 +400,7 @@ public class ColumnField {
     private boolean addColumn(String recordKey, CompositeColumnName column, Object val,
             RowMutator mutator, DataObject obj) throws DatabaseException {
         if (_encrypt && _parentType.getEncryptionProvider() != null) {
-            val = _parentType.getEncryptionProvider().encrypt((String)val);
+            val = _parentType.getEncryptionProvider().encrypt((String) val);
         }
 
         // insert record
@@ -397,20 +408,19 @@ public class ColumnField {
                 mutator.getRecordColumnList(_parentType.getCF(), recordKey);
         ColumnValue.setColumn(recordColList, column, val, _ttl);
 
-        if ( index == null || val == null) {
+        if (index == null || val == null) {
             return false;
         }
 
         // insert index
         return index.addColumn(recordKey, column, val, _parentType.getDataObjectClass().getSimpleName(),
-                                mutator, _ttl, obj);
+                mutator, _ttl, obj);
     }
 
     private boolean addColumn(String recordKey, CompositeColumnName column, Object val,
-                             RowMutator mutator) throws DatabaseException {
-        return addColumn(recordKey,column,val,mutator,null);
+            RowMutator mutator) throws DatabaseException {
+        return addColumn(recordKey, column, val, mutator, null);
     }
-
 
     /**
      * Serializes object field into database updates
@@ -424,7 +434,7 @@ public class ColumnField {
         try {
             String id = obj.getId().toString();
 
-            if (isLazyLoaded() || _property.getReadMethod()==null) {
+            if (isLazyLoaded() || _property.getReadMethod() == null) {
                 return false;
             }
 
@@ -443,7 +453,7 @@ public class ColumnField {
                     break;
                 }
                 case TrackingSet: {
-                    AbstractChangeTrackingSet valueSet = (AbstractChangeTrackingSet)val;
+                    AbstractChangeTrackingSet valueSet = (AbstractChangeTrackingSet) val;
                     Set<?> addedSet = valueSet.getAddedSet();
                     if (addedSet != null) {
                         Iterator<?> it = valueSet.getAddedSet().iterator();
@@ -469,7 +479,7 @@ public class ColumnField {
                     break;
                 }
                 case TrackingMap: {
-                    AbstractChangeTrackingMap valueMap = (AbstractChangeTrackingMap)val;
+                    AbstractChangeTrackingMap valueMap = (AbstractChangeTrackingMap) val;
                     Set<String> changedSet = valueMap.getChangedKeySet();
                     if (changedSet != null) {
                         Iterator<String> it = valueMap.getChangedKeySet().iterator();
@@ -478,7 +488,7 @@ public class ColumnField {
                             Object entryVal = valueMap.get(key);
                             CompositeColumnName colName = getColumnName(key, mutator);
                             if (_clockIndValue != null) {
-                                int ordinal = ((ClockIndependentValue)entryVal).ordinal();
+                                int ordinal = ((ClockIndependentValue) entryVal).ordinal();
                                 colName = getColumnName(key, String.format("%08d", ordinal), mutator);
                             }
                             changed |= addColumn(id, colName, valueMap.valToByte(entryVal),
@@ -495,7 +505,7 @@ public class ColumnField {
                                 Object removedVal = valueMap.getRemovedValue(key);
                                 if (removedVal != null) {
                                     colName = getColumnName(key, String.format("%08d",
-                                            ((ClockIndependentValue)removedVal).ordinal()), mutator);
+                                            ((ClockIndependentValue) removedVal).ordinal()), mutator);
                                 }
                             }
 
@@ -510,7 +520,7 @@ public class ColumnField {
                     break;
                 }
                 case TrackingSetMap: {
-                    AbstractChangeTrackingSetMap valueMap = (AbstractChangeTrackingSetMap)val;
+                    AbstractChangeTrackingSetMap valueMap = (AbstractChangeTrackingSetMap) val;
 
                     Set<String> keys = valueMap.keySet();
                     if (keys != null) {
@@ -549,18 +559,17 @@ public class ColumnField {
                     if (!obj.isChanged(_name)) {
                         break;
                     }
-                    AbstractSerializableNestedObject nestedObject = (AbstractSerializableNestedObject)val;
+                    AbstractSerializableNestedObject nestedObject = (AbstractSerializableNestedObject) val;
                     changed |= addColumn(id, getColumnName(null, mutator), nestedObject.toBytes(), mutator);
                 }
             }
             return changed;
         } catch (final InvocationTargetException e) {
-        	throw DatabaseException.fatals.serializationFailedId(obj.getId(), e);
+            throw DatabaseException.fatals.serializationFailedId(obj.getId(), e);
         } catch (final IllegalAccessException e) {
-        	throw DatabaseException.fatals.serializationFailedId(obj.getId(), e);
+            throw DatabaseException.fatals.serializationFailedId(obj.getId(), e);
         }
     }
-
 
     /**
      * Get column name for this field
@@ -602,7 +611,7 @@ public class ColumnField {
         }
         return null;
     }
-    
+
     /**
      * Time UUID is always required for inactive field. We depends on the
      * timestamp to validate modification time of inactive field
@@ -637,6 +646,7 @@ public class ColumnField {
     /**
      * Sets the field as changed, for a complete overwrite
      * used from migration handlers to create index entries
+     * 
      * @param obj
      * @return
      * @throws DatabaseException
@@ -649,17 +659,17 @@ public class ColumnField {
             }
             switch (_colType) {
                 case TrackingSet: {
-                    AbstractChangeTrackingSet valueSet = (AbstractChangeTrackingSet)val;
+                    AbstractChangeTrackingSet valueSet = (AbstractChangeTrackingSet) val;
                     valueSet.markAllForOverwrite();
                     break;
                 }
                 case TrackingMap: {
-                    AbstractChangeTrackingMap valueMap = (AbstractChangeTrackingMap)val;
+                    AbstractChangeTrackingMap valueMap = (AbstractChangeTrackingMap) val;
                     valueMap.markAllForOverwrite();
                     break;
                 }
                 case TrackingSetMap: {
-                    AbstractChangeTrackingSetMap valueMap = (AbstractChangeTrackingSetMap)val;
+                    AbstractChangeTrackingSetMap valueMap = (AbstractChangeTrackingSetMap) val;
                     Set<String> keys = valueMap.keySet();
                     if (keys != null) {
                         Iterator<String> it = keys.iterator();
@@ -679,22 +689,22 @@ public class ColumnField {
         }
     }
 
-
     /**
      * Helper to reflect on PropertyDescriptor and fill out _type and _name
      * information;
      */
     private void processProperty() {
         // ignore if no get method
-        if (_property.getReadMethod() == null) return;
+        if (_property.getReadMethod() == null)
+            return;
 
         Method readMethod = _property.getReadMethod();
-        
+
         Annotation[] annotations = readMethod.getAnnotations();
 
         ColumnFamily<String, IndexColumnName> indexCF = null;
         int minPrefixChars;
-        
+
         boolean isLazyLoadable = false;
         boolean hasRelationIndex = false;
 
@@ -704,7 +714,7 @@ public class ColumnField {
                 _colType = ColumnType.Id;
                 _name = "Id";
             } else if (a instanceof Name) {
-                _name = ((Name)a).value();
+                _name = ((Name) a).value();
                 if (Number.class.isAssignableFrom(_valueType) ||
                         _valueType == URI.class ||
                         _valueType == String.class ||
@@ -726,54 +736,55 @@ public class ColumnField {
                     _colType = ColumnType.TrackingMap;
                 } else if (AbstractChangeTrackingSetMap.class.isAssignableFrom(_valueType)) {
                     _colType = ColumnType.TrackingSetMap;
-                } else if (AbstractSerializableNestedObject.class.isAssignableFrom(_valueType)){
+                } else if (AbstractSerializableNestedObject.class.isAssignableFrom(_valueType)) {
                     _colType = ColumnType.NestedObject;
                     _compositeName = new CompositeColumnName(_name);
                 } else if (Collection.class.isAssignableFrom(_valueType)
-                        || DataObject.class.isAssignableFrom(_valueType)){
+                        || DataObject.class.isAssignableFrom(_valueType)) {
                     isLazyLoadable = true;
                 } else {
                     throw new IllegalArgumentException(_name + " " + _valueType + " " + _property
                             + " " + _parentType.getDataObjectClass());
                 }
             } else if (a instanceof Ttl) {
-                _ttl = ((Ttl)a).value();
+                _ttl = ((Ttl) a).value();
             } else if (a instanceof RelationIndex) {
                 indexCF = new ColumnFamily<String, IndexColumnName>(
-                        ((RelationIndex)a).cf(), StringSerializer.get(), IndexColumnNameSerializer.get());
-                _indexRefType = ((RelationIndex)a).type().equals(DataObject.class) ? null : ((RelationIndex)a).type();
-                _deactivateIfEmpty = ((RelationIndex)a).deactivateIfEmpty();
+                        ((RelationIndex) a).cf(), StringSerializer.get(), IndexColumnNameSerializer.get());
+                _indexRefType = ((RelationIndex) a).type().equals(DataObject.class) ? null : ((RelationIndex) a).type();
+                _deactivateIfEmpty = ((RelationIndex) a).deactivateIfEmpty();
                 index = new RelationDbIndex(indexCF);
             } else if (a instanceof AlternateId) {
-                indexCF = new ColumnFamily<String, IndexColumnName>(((AlternateId)a).value(), StringSerializer.get(),
+                indexCF = new ColumnFamily<String, IndexColumnName>(((AlternateId) a).value(), StringSerializer.get(),
                         IndexColumnNameSerializer.get());
                 index = new AltIdDbIndex(indexCF);
             } else if (a instanceof NamedRelationIndex) {
-                indexCF = new ColumnFamily<String, IndexColumnName>(((NamedRelationIndex)a).cf(), StringSerializer.get(),
+                indexCF = new ColumnFamily<String, IndexColumnName>(((NamedRelationIndex) a).cf(), StringSerializer.get(),
                         IndexColumnNameSerializer.get());
-                _indexRefType = ((NamedRelationIndex)a).type().equals(DataObject.class) ? null : ((NamedRelationIndex)a).type();
+                _indexRefType = ((NamedRelationIndex) a).type().equals(DataObject.class) ? null : ((NamedRelationIndex) a).type();
                 index = new NamedRelationDbIndex(indexCF);
             } else if (a instanceof PrefixIndex) {
-                indexCF = new ColumnFamily<String, IndexColumnName>(((PrefixIndex)a).cf(), StringSerializer.get(),
+                indexCF = new ColumnFamily<String, IndexColumnName>(((PrefixIndex) a).cf(), StringSerializer.get(),
                         IndexColumnNameSerializer.get());
-                 minPrefixChars = ((PrefixIndex)a).minChars();
+                minPrefixChars = ((PrefixIndex) a).minChars();
                 index = new PrefixDbIndex(indexCF, minPrefixChars);
             } else if (a instanceof PermissionsIndex && AbstractChangeTrackingSetMap.class.isAssignableFrom(_valueType)) {
-                indexCF = new ColumnFamily<String, IndexColumnName>(((PermissionsIndex)a).value(), StringSerializer.get(),
+                indexCF = new ColumnFamily<String, IndexColumnName>(((PermissionsIndex) a).value(), StringSerializer.get(),
                         IndexColumnNameSerializer.get());
                 index = new PermissionsDbIndex(indexCF);
             } else if (a instanceof Encrypt && _valueType == String.class) {
                 _encrypt = true;
             } else if (a instanceof ScopedLabelIndex) {
-                ScopedLabelIndex scopeLabelIndex = (ScopedLabelIndex)a;
+                ScopedLabelIndex scopeLabelIndex = (ScopedLabelIndex) a;
                 indexCF = new ColumnFamily<String, IndexColumnName>(scopeLabelIndex.cf(),
-                                        StringSerializer.get(), IndexColumnNameSerializer.get());
+                        StringSerializer.get(), IndexColumnNameSerializer.get());
                 minPrefixChars = scopeLabelIndex.minChars();
                 index = new ScopedLabelDbIndex(indexCF, minPrefixChars);
             } else if (a instanceof ClockIndependent) {
-                _clockIndValue = ((ClockIndependent)a).value();
+                _clockIndValue = ((ClockIndependent) a).value();
             } else if (a instanceof DecommissionedIndex && Boolean.class.isAssignableFrom(_valueType)) {
-                if (!_property.getName().equals(DataObject.INACTIVE_FIELD_NAME) || _parentType.getDataObjectClass().getAnnotation(NoInactiveIndex.class) == null) {
+                if (!_property.getName().equals(DataObject.INACTIVE_FIELD_NAME)
+                        || _parentType.getDataObjectClass().getAnnotation(NoInactiveIndex.class) == null) {
                     indexCF = new ColumnFamily<String, IndexColumnName>(((DecommissionedIndex) a).value(), StringSerializer.get(),
                             IndexColumnNameSerializer.get());
                     index = new DecommissionedDbIndex(indexCF);
@@ -784,18 +795,18 @@ public class ColumnField {
                 _indexByKey = true;
             } else if (a instanceof Relation) {
                 hasRelationIndex = true;
-                if (((Relation)a).type().equals(DataObject.class)) {
+                if (((Relation) a).type().equals(DataObject.class)) {
                     _mappedByType = _valueType;
                 } else {
-                    _mappedByType = ((Relation)a).type();
+                    _mappedByType = ((Relation) a).type();
                 }
-                _mappedByField = ((Relation)a).mappedBy();
-            } else if ( a instanceof AggregatedIndex) {
+                _mappedByField = ((Relation) a).mappedBy();
+            } else if (a instanceof AggregatedIndex) {
                 indexCF = new ColumnFamily<String, IndexColumnName>(
-                        ((AggregatedIndex)a).cf(), StringSerializer.get(), IndexColumnNameSerializer.get());
-                String groupBy = ((AggregatedIndex)a).groupBy();
-                boolean global = ((AggregatedIndex)a).classGlobal();
-                index = new AggregateDbIndex(indexCF,groupBy,global);
+                        ((AggregatedIndex) a).cf(), StringSerializer.get(), IndexColumnNameSerializer.get());
+                String groupBy = ((AggregatedIndex) a).groupBy();
+                boolean global = ((AggregatedIndex) a).classGlobal();
+                index = new AggregateDbIndex(indexCF, groupBy, global);
             }
         }
 
@@ -806,12 +817,11 @@ public class ColumnField {
                     String.format("@Name annotation missing from field '%s' in class '%s'", fieldName, className));
         }
 
-
         if (index != null) {
             index.setFieldName(_name);
             index.setIndexByKey(_indexByKey);
         }
-        
+
         if (isLazyLoadable && hasRelationIndex) {
             _lazyLoaded = true;
         }
@@ -831,9 +841,9 @@ public class ColumnField {
         }
     }
 
-    private Object setFieldValue(DataObject obj,Object value) {
+    private Object setFieldValue(DataObject obj, Object value) {
         try {
-            return _property.getWriteMethod().invoke(obj,value);
+            return _property.getWriteMethod().invoke(obj, value);
         } catch (final InvocationTargetException e) {
             throw DatabaseException.fatals.serializationFailedId(obj.getId(), e);
         } catch (final IllegalAccessException e) {
@@ -841,19 +851,18 @@ public class ColumnField {
         }
     }
 
-
-    public static Object getFieldValue(ColumnField field, DataObject obj){
+    public static Object getFieldValue(ColumnField field, DataObject obj) {
         return field.getFieldValue(obj);
     }
 
     void check() {
         Method method = _property.getReadMethod();
         Annotation[] annotations = method.getAnnotations();
-        for (Annotation a: annotations) {
+        for (Annotation a : annotations) {
             boolean foundError = false;
             if (a instanceof IndexByKey) {
                 String errMsgHeader = String.format("The method %s.%s() has @IndexByKey but:",
-                                       _parentType.getDataObjectClass().getName(), method.getName());
+                        _parentType.getDataObjectClass().getName(), method.getName());
 
                 String errMsg = errMsgHeader;
 
@@ -866,9 +875,9 @@ public class ColumnField {
                 }
 
                 if (!AbstractChangeTrackingMap.class.isAssignableFrom(_valueType) &&
-                    !AbstractChangeTrackingSet.class.isAssignableFrom(_valueType)) {
+                        !AbstractChangeTrackingSet.class.isAssignableFrom(_valueType)) {
 
-                    String warnMsg = errMsgHeader+"\nThe return type should be subclass of AbstractChangeTrackingMap/Set";
+                    String warnMsg = errMsgHeader + "\nThe return type should be subclass of AbstractChangeTrackingMap/Set";
                     _log.warn(warnMsg);
                 }
 
@@ -877,7 +886,7 @@ public class ColumnField {
                 }
             }
         }
-   }
+    }
 
     /**
      * @return the _mapedByType
@@ -892,7 +901,7 @@ public class ColumnField {
     public String getMappedByField() {
         return _mappedByField;
     }
-    
+
     public void prepareForLazyLoading(DataObject obj, LazyLoader lazyLoader, StringSet mappedBy) {
         if (isLazyLoaded()) {
             try {

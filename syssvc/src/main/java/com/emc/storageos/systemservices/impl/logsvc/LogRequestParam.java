@@ -17,9 +17,8 @@ package com.emc.storageos.systemservices.impl.logsvc;
 /**
  * Class defines the log service request parameter names.
  * <p/>
- * Note that using a class rather than an enum because the values are used in
- * the JAX-RS QueryParam annotations in the LogService resource, which require a
- * constant expression.
+ * Note that using a class rather than an enum because the values are used in the JAX-RS QueryParam annotations in the LogService resource,
+ * which require a constant expression.
  */
 public class LogRequestParam {
 

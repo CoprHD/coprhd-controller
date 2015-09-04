@@ -14,7 +14,6 @@
  */
 package com.emc.storageos.db.client.model;
 
-
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Iterator;
@@ -46,40 +45,39 @@ public class SMISProvider extends DataObject {
     private String _password;
     // SMI-S flag indicates whether or not to use SSL protocol.
     private Boolean _useSSL;
-    //IPAddress alternateID is already used inStorageDevice,
-    //hence used provider ID : IPAddress:portNumber as ID
+    // IPAddress alternateID is already used inStorageDevice,
+    // hence used provider ID : IPAddress:portNumber as ID
     private String _providerID;
-    //Provider Description.
+    // Provider Description.
     private String _description;
-    //Provider manfacturer.
+    // Provider manfacturer.
     private String _manufacturer;
-    //Provider version.
+    // Provider version.
     private String _versionString;
     // ConnectionStatus tells whether provider is connected to Bourne or not.
     private String _connectionStatus = ConnectionStatus.NOTCONNECTED.toString();
 
-    //Status of a Scan Job
+    // Status of a Scan Job
     private String _scanStatus = DataCollectionJobStatus.CREATED.toString();
 
-    //Status Message of a Last Scan Job
+    // Status Message of a Last Scan Job
     private String _lastScanStatusMessage;
 
-    //Last Scan Time of a Scan Job
+    // Last Scan Time of a Scan Job
     private Long _lastScanTime = 0L;
 
-    //Next Scan Time of a Scan Job
+    // Next Scan Time of a Scan Job
     private Long _nextScanTime = 0L;
 
     private Long _successScanTime = 0L;
 
     private String _registrationStatus = RegistrationStatus.UNREGISTERED.toString();
 
-    //used in finding out whether or not the Provider is Compatible
+    // used in finding out whether or not the Provider is Compatible
     private String _compatibilityStatus = CompatibilityStatus.UNKNOWN.name();
 
-    //list of decommissioned Systems
+    // list of decommissioned Systems
     private StringSet _decommissionedSystems;
-
 
     /**
      * ConnectionStatus enum.
@@ -90,10 +88,9 @@ public class SMISProvider extends DataObject {
     }
 
     /*********************************************************
-     * AlternateIDIndex - ProviderID (IPAddress-portNumber)  *
-     * RelationIndex - Empty                                 *
+     * AlternateIDIndex - ProviderID (IPAddress-portNumber) *
+     * RelationIndex - Empty *
      *********************************************************/
-
 
     @Name("ipAddress")
     public String getIPAddress() {
@@ -102,7 +99,8 @@ public class SMISProvider extends DataObject {
 
     public void setIPAddress(String ipAddress) {
         _ipAddress = ipAddress;
-        if(null != _portNumber ) setProviderID(_ipAddress+"-"+_portNumber);
+        if (null != _portNumber)
+            setProviderID(_ipAddress + "-" + _portNumber);
         setChanged("ipAddress");
     }
 
@@ -113,7 +111,8 @@ public class SMISProvider extends DataObject {
 
     public void setPortNumber(Integer portNumber) {
         _portNumber = portNumber;
-        if(null != _ipAddress ) setProviderID(_ipAddress+"-"+_portNumber);
+        if (null != _ipAddress)
+            setProviderID(_ipAddress + "-" + _portNumber);
         setChanged("portNumber");
     }
 
@@ -153,7 +152,6 @@ public class SMISProvider extends DataObject {
         setChanged("storageSystems");
     }
 
-
     @Name("storageSystems")
     @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
     @IndexByKey
@@ -167,7 +165,9 @@ public class SMISProvider extends DataObject {
     }
 
     @Name("decommissionedSystems")
-    public StringSet getDecommissionedSystems( ) { return _decommissionedSystems; }
+    public StringSet getDecommissionedSystems() {
+        return _decommissionedSystems;
+    }
 
     @Name("description")
     public String getDescription() {
@@ -254,6 +254,7 @@ public class SMISProvider extends DataObject {
         _lastScanStatusMessage = statusMessage;
         setChanged("lastScanStatusMessage");
     }
+
     @Name("lastScanStatusMessage")
     public String getLastScanStatusMessage() {
         return _lastScanStatusMessage;
@@ -305,13 +306,13 @@ public class SMISProvider extends DataObject {
     public Long getSuccessScanTime() {
         return _successScanTime;
     }
+
     public void setSuccessScanTime(Long time) {
         _successScanTime = time;
         setChanged("successScanTime");
     }
 
     public void addStorageSystem(DbClient dbClient, StorageSystem storage, boolean activeProvider) throws DatabaseException {
-
 
         if (activeProvider) {
             storage.setSmisProviderIP(getIPAddress());
@@ -327,7 +328,7 @@ public class SMISProvider extends DataObject {
         storage.getProviders().add(getId().toString());
         dbClient.persistObject(storage);
 
-        if (getStorageSystems() == null)  {
+        if (getStorageSystems() == null) {
             setStorageSystems(new StringSet());
         }
         getStorageSystems().add(storage.getId().toString());
@@ -339,13 +340,13 @@ public class SMISProvider extends DataObject {
         if (storage.getProviders() != null) {
             storage.getProviders().remove(getId().toString());
         }
-        if (storage.getActiveProviderURI().equals(getId()) ) {
+        if (storage.getActiveProviderURI().equals(getId())) {
             Iterator<String> iter = storage.getProviders().iterator();
-            if (iter.hasNext())  {
+            if (iter.hasNext()) {
                 try {
                     storage.setActiveProviderURI(new URI(iter.next()));
+                } catch (URISyntaxException ex) {
                 }
-                catch (URISyntaxException ex)  {}
             }
             else {
                 storage.setActiveProviderURI(null);
@@ -353,17 +354,18 @@ public class SMISProvider extends DataObject {
         }
         dbClient.persistObject(storage);
 
-        if (getStorageSystems() != null)  {
+        if (getStorageSystems() != null) {
             getStorageSystems().remove(storage.getId().toString());
         }
         dbClient.persistObject(this);
     }
 
-    public void removeDecommissionedSystem( DbClient dbClient, String systemNativeGuid ) {
-        List<URI> oldResources = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getDecommissionedResourceNativeGuidConstraint(systemNativeGuid) );
-        if(oldResources != null )
+    public void removeDecommissionedSystem(DbClient dbClient, String systemNativeGuid) {
+        List<URI> oldResources = dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getDecommissionedResourceNativeGuidConstraint(systemNativeGuid));
+        if (oldResources != null)
         {
-            for( URI decomObj : oldResources)  {
+            for (URI decomObj : oldResources) {
                 _decommissionedSystems.remove(decomObj.toString());
             }
             dbClient.persistObject(this);
@@ -371,8 +373,8 @@ public class SMISProvider extends DataObject {
 
     }
 
-    public boolean connected(){
-        return ConnectionStatus.valueOf(_connectionStatus)==ConnectionStatus.CONNECTED;
+    public boolean connected() {
+        return ConnectionStatus.valueOf(_connectionStatus) == ConnectionStatus.CONNECTED;
     }
 
 }

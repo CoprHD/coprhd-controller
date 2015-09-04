@@ -27,13 +27,13 @@ import com.emc.vipr.client.impl.RestClient;
  * @param <R> Type of the underlying resource running the operation.
  */
 public class Tasks<R> {
-	
-	private final static Logger log = LoggerFactory.getLogger(Tasks.class);
-	
-	private final int TASKS_EXECUTION_TERMINATION_SECONDS;
-	
-	private ExecutorService taskExecutor;
-	
+
+    private final static Logger log = LoggerFactory.getLogger(Tasks.class);
+
+    private final int TASKS_EXECUTION_TERMINATION_SECONDS;
+
+    private ExecutorService taskExecutor;
+
     private List<Task<R>> tasks;
 
     public Tasks(RestClient client, List<TaskResourceRep> tasks, Class<? extends R> resourceClass) {
@@ -67,7 +67,7 @@ public class Tasks<R> {
         }
         return null;
     }
-    
+
     /**
      * Retrieves the latest task in the list that has finished processing.
      *
@@ -77,7 +77,7 @@ public class Tasks<R> {
         if (tasks.size() > 0) {
             Collections.sort(tasks, new LatestFinishedTaskComparator());
             Task<R> latestTask = tasks.get(0);
-            if(latestTask.getEndTime() != null) {
+            if (latestTask.getEndTime() != null) {
                 return latestTask;
             }
         }
@@ -105,32 +105,32 @@ public class Tasks<R> {
      * @return This tasks.
      */
     public Tasks<R> waitFor(final long timeoutMillis) throws ViPRException {
-        
-    	final CountDownLatch countdown = new CountDownLatch(tasks.size());
+
+        final CountDownLatch countdown = new CountDownLatch(tasks.size());
         final List<TaskResourceRep> taskImpls = new ArrayList<>();
         for (final Task<R> task : tasks) {
             taskExecutor.execute(new Runnable() {
                 @Override
                 public void run() {
-                	try{
-                		task.doTaskWait(timeoutMillis);
-                		taskImpls.add(task.getTaskResource());
-                	}finally{
-                		countdown.countDown();
-                	}
+                    try {
+                        task.doTaskWait(timeoutMillis);
+                        taskImpls.add(task.getTaskResource());
+                    } finally {
+                        countdown.countDown();
+                    }
                 }
             });
         }
-        
+
         try {
-        	countdown.await();
-        	taskExecutor.shutdown();
+            countdown.await();
+            taskExecutor.shutdown();
         } catch (InterruptedException e) {
             log.error(e.getMessage(), e);
         }
         TaskUtil.checkForErrors(taskImpls);
         return this;
-    }    
+    }
 
     /**
      * Waits for tasks to complete (go into a pending or error state). If an error occurs
@@ -168,7 +168,7 @@ public class Tasks<R> {
         }
         return resources;
     }
-    
+
     protected static class LatestFinishedTaskComparator implements Comparator<Task> {
         public int compare(Task task1, Task task2) {
             if (task1.getEndTime() == null && task2.getEndTime() == null) {

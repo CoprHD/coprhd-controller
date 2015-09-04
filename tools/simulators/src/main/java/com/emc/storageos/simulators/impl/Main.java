@@ -29,9 +29,9 @@ public class Main {
         try {
             SLF4JBridgeHandler.install();
             FileSystemXmlApplicationContext ctx = new FileSystemXmlApplicationContext(args);
-            simservice = (StorageCtlrSimulator)ctx.getBean(SERVICE_BEAN);
+            simservice = (StorageCtlrSimulator) ctx.getBean(SERVICE_BEAN);
             simservice.start();
-        } catch(Exception e) {
+        } catch (Exception e) {
             _log.error("failed to start {}:", SERVICE_BEAN, e);
         }
     }

@@ -20,21 +20,19 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLServerSocketFactory;
 
-
 public class PermissiveX509KeyManager implements KeyManager {
-	
-    public KeyManager[] getPermissiveX509KeyManager() throws NoSuchAlgorithmException, KeyStoreException, CertificateException, IOException, GeneralSecurityException {
-		KeyStore keyStore;
-		keyStore = KeyStore.getInstance(System.getProperty("javax.net.ssl.keyStoreType"));
-		FileInputStream ksfis = new FileInputStream(System.getProperty("javax.net.ssl.keyStore"));
-		char[] kspasswd = System.getProperty("javax.net.ssl.keyStorePassword").toCharArray();
-		keyStore.load(ksfis, kspasswd);
-		KeyManagerFactory kmf = KeyManagerFactory.getInstance("X509");
-		
-		kmf.init(keyStore,kspasswd);
+
+    public KeyManager[] getPermissiveX509KeyManager() throws NoSuchAlgorithmException, KeyStoreException, CertificateException,
+            IOException, GeneralSecurityException {
+        KeyStore keyStore;
+        keyStore = KeyStore.getInstance(System.getProperty("javax.net.ssl.keyStoreType"));
+        FileInputStream ksfis = new FileInputStream(System.getProperty("javax.net.ssl.keyStore"));
+        char[] kspasswd = System.getProperty("javax.net.ssl.keyStorePassword").toCharArray();
+        keyStore.load(ksfis, kspasswd);
+        KeyManagerFactory kmf = KeyManagerFactory.getInstance("X509");
+
+        kmf.init(keyStore, kspasswd);
         return kmf.getKeyManagers();
     }
-    
 
-    
 }

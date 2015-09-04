@@ -39,9 +39,9 @@ public class ResourceController extends Controller {
         List<ProjectRestRep> projects = ProjectUtils.getProjects(tenantId);
         Collections.sort(projects, new Comparator<ProjectRestRep>() {
             @Override
-            public int compare(ProjectRestRep  proj1, ProjectRestRep  proj2)
+            public int compare(ProjectRestRep proj1, ProjectRestRep proj2)
             {
-                return  proj1.getName().compareTo(proj2.getName());
+                return proj1.getName().compareTo(proj2.getName());
             }
         });
         return projects;

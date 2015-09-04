@@ -27,8 +27,9 @@ public class VirtualArrayAssignmentChanges {
     private VirtualArrayAssignments add;
     private VirtualArrayAssignments remove;
 
-    public VirtualArrayAssignmentChanges() {}
-    
+    public VirtualArrayAssignmentChanges() {
+    }
+
     public VirtualArrayAssignmentChanges(VirtualArrayAssignments add,
             VirtualArrayAssignments remove) {
         this.add = add;
@@ -62,5 +63,5 @@ public class VirtualArrayAssignmentChanges {
     public boolean hasAdded() {
         return add != null && add.getVarrays().size() > 0;
     }
-    
+
 }

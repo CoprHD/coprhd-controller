@@ -41,8 +41,8 @@ import com.emc.storageos.model.valid.Range;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 /**
- * Validates input against JAXB annotations.   JAXB itself doesn't
- * provide a OOB way of validating against annotated classes.  Since
+ * Validates input against JAXB annotations. JAXB itself doesn't
+ * provide a OOB way of validating against annotated classes. Since
  * we don't want to rug around a schema for validation, I am writing
  * this code...
  */
@@ -98,7 +98,7 @@ public class InputValidator {
         }
 
         private Class clazz;
-        private Map<String,FieldInfo> fieldInfo  = new HashMap<String, FieldInfo>();
+        private Map<String, FieldInfo> fieldInfo = new HashMap<String, FieldInfo>();
 
         /**
          * Constructor
@@ -121,30 +121,30 @@ public class InputValidator {
                 for (int j = 0; j < annotations.length; j++) {
                     Annotation a = annotations[j];
                     if (a instanceof XmlElement) {
-                        XmlElement e = (XmlElement)a;
+                        XmlElement e = (XmlElement) a;
                         FieldInfo fi = getField(field);
                         fi.required = e.required();
                         fi.nillable = e.nillable();
                         String name = e.name();
-                        if(!JAXB_DEFAULT.equals(name)){
+                        if (!JAXB_DEFAULT.equals(name)) {
                             fi.name = name;
                         }
                     } else if (a instanceof EnumType) {
-                        EnumType e = (EnumType)a;
+                        EnumType e = (EnumType) a;
                         FieldInfo fi = getField(field);
                         fi.enumType = e.value();
                     } else if (a instanceof Length) {
-                        Length l = (Length)a;
+                        Length l = (Length) a;
                         FieldInfo fi = getField(field);
-                        fi.min = (long)l.min();
-                        fi.max = (long)l.max();
+                        fi.min = (long) l.min();
+                        fi.max = (long) l.max();
                     } else if (a instanceof Range) {
-                        Range l = (Range)a;
+                        Range l = (Range) a;
                         FieldInfo fi = getField(field);
                         fi.min = l.min();
                         fi.max = l.max();
                     } else if (a instanceof Endpoint) {
-                        Endpoint l = (Endpoint)a;
+                        Endpoint l = (Endpoint) a;
                         FieldInfo fi = getField(field);
                         fi.type = l.type();
                     }
@@ -153,42 +153,41 @@ public class InputValidator {
 
             try {
                 PropertyDescriptor[] descriptors = Introspector.getBeanInfo(clazz).getPropertyDescriptors();
-                for (PropertyDescriptor descriptor: descriptors) {
+                for (PropertyDescriptor descriptor : descriptors) {
                     Annotation[] annotations = descriptor.getReadMethod().getAnnotations();
-                    for (Annotation a: annotations) {
+                    for (Annotation a : annotations) {
                         if (a instanceof XmlElement) {
-                            XmlElement e = (XmlElement)a;
+                            XmlElement e = (XmlElement) a;
                             FieldInfo fi = getField(descriptor);
                             fi.required = e.required();
                             fi.nillable = e.nillable();
                             String name = e.name();
-                            if(!JAXB_DEFAULT.equals(name))
+                            if (!JAXB_DEFAULT.equals(name))
                                 fi.name = name;
                         } else if (a instanceof EnumType) {
-                            EnumType e = (EnumType)a;
+                            EnumType e = (EnumType) a;
                             FieldInfo fi = getField(descriptor);
                             fi.enumType = e.value();
                         } else if (a instanceof Length) {
-                            Length l = (Length)a;
+                            Length l = (Length) a;
                             FieldInfo fi = getField(descriptor);
-                            fi.min = (long)l.min();
-                            fi.max = (long)l.max();
+                            fi.min = (long) l.min();
+                            fi.max = (long) l.max();
                         } else if (a instanceof Range) {
-                            Range l = (Range)a;
+                            Range l = (Range) a;
                             FieldInfo fi = getField(descriptor);
                             fi.min = l.min();
                             fi.max = l.max();
                         } else if (a instanceof Endpoint) {
-                            Endpoint l = (Endpoint)a;
+                            Endpoint l = (Endpoint) a;
                             FieldInfo fi = getField(descriptor);
                             fi.type = l.type();
                         }
                     }
                 }
-            }
-            catch (IntrospectionException e) {
+            } catch (IntrospectionException e) {
                 _log.error("Unexpected exception:", e);
-                throw APIException.internalServerErrors.genericApisvcError(e.getMessage(),e);
+                throw APIException.internalServerErrors.genericApisvcError(e.getMessage(), e);
             }
         }
 
@@ -235,7 +234,7 @@ public class InputValidator {
         @SuppressWarnings("unchecked")
         public void validate(Object val) {
             if (!clazz.isInstance(val)) {
-            	throw APIException.badRequests.notAnInstanceOf(clazz.getSimpleName());
+                throw APIException.badRequests.notAnInstanceOf(clazz.getSimpleName());
             }
             try {
                 Iterator<Map.Entry<String, FieldInfo>> it = fieldInfo.entrySet().iterator();
@@ -253,7 +252,7 @@ public class InputValidator {
 
                     // nillable check
                     if (!fi.nillable) {
-                        if (fieldVal instanceof String && ((String)fieldVal).trim().isEmpty()) {
+                        if (fieldVal instanceof String && ((String) fieldVal).trim().isEmpty()) {
                             throw APIException.badRequests.requiredParameterMissingOrEmpty(fi.name);
                         }
                     }
@@ -261,7 +260,7 @@ public class InputValidator {
                     // enum type check
                     if (fi.enumType != null && fieldVal instanceof String) {
                         try {
-                            Enum.valueOf(fi.enumType, (String)fieldVal);
+                            Enum.valueOf(fi.enumType, (String) fieldVal);
                         } catch (IllegalArgumentException e) {
                             throw APIException.badRequests.invalidField(fi.name,
                                     (String) fieldVal, e);
@@ -270,26 +269,26 @@ public class InputValidator {
 
                     // endpoint type check
                     if (fi.type != null && fi.type instanceof Endpoint.EndpointType && fieldVal instanceof String) {
-                        if (!EndpointUtility.isValidEndpoint((String)fieldVal, (Endpoint.EndpointType)fi.type)) {
+                        if (!EndpointUtility.isValidEndpoint((String) fieldVal, (Endpoint.EndpointType) fi.type)) {
                             throw APIException.badRequests.invalidField(fi.name,
-                                    (String)fieldVal);
+                                    (String) fieldVal);
                         }
                     }
 
                     // trim strings
                     if (fieldVal instanceof String) {
-                        fi.setValue(val, ((String)fieldVal).trim());
+                        fi.setValue(val, ((String) fieldVal).trim());
                     }
 
                     // length check
                     if (fieldVal instanceof String && (fi.min != null || fi.max != null)) {
-                        int length = ((String)fieldVal).length();
+                        int length = ((String) fieldVal).length();
                         ArgValidator.checkFieldRange(length, fi.min, fi.max, "length");
                     }
 
                     // range check
                     if (fieldVal instanceof Number && (fi.min != null || fi.max != null)) {
-                        Number value = (Number)fieldVal;
+                        Number value = (Number) fieldVal;
                         ArgValidator.checkFieldRange(value.longValue(), fi.min, fi.max, fi.name);
                     }
 
@@ -297,7 +296,7 @@ public class InputValidator {
                     if (fieldVal instanceof Collection) {
                         ParameterizedType paramType = (ParameterizedType) fi.getGenericType();
                         Type elementType = paramType.getActualTypeArguments()[0];
-                        
+
                         if (elementType.equals(String.class)) {
                             boolean needNillCheck = false;
                             boolean needLengthCheck = false;
@@ -308,7 +307,7 @@ public class InputValidator {
                                 needLengthCheck = true;
 
                             // trim all the elements
-                            Iterator<String> iterator = ((Collection<String>)fieldVal).iterator();
+                            Iterator<String> iterator = ((Collection<String>) fieldVal).iterator();
                             Collection<String> trimmedList = new ArrayList<String>();
                             while (iterator.hasNext()) {
                                 String element = iterator.next().trim();
@@ -319,16 +318,16 @@ public class InputValidator {
                                 }
 
                                 // length check
-                                if (needLengthCheck) 
+                                if (needLengthCheck)
                                     lengthCheck(element, fi);
 
                                 iterator.remove();
                                 trimmedList.add(element);
                             }
                             for (String element : trimmedList) {
-                                // have to iterator over trimmedList since some Collection 
+                                // have to iterator over trimmedList since some Collection
                                 // implementations have overridden addAll(), like StringSet
-                                ((Collection<String>)fieldVal).add(element);
+                                ((Collection<String>) fieldVal).add(element);
                             }
 
                         } else if (elementType.equals(Number.class)) {
@@ -341,20 +340,18 @@ public class InputValidator {
                         }
                     }
                 }
-            }
-            catch (InvocationTargetException e) {
+            } catch (InvocationTargetException e) {
                 _log.error("Unexpected exception:", e);
-                throw APIException.internalServerErrors.genericApisvcError(e.getMessage(),e);
-            }
-            catch (IllegalAccessException e) {
+                throw APIException.internalServerErrors.genericApisvcError(e.getMessage(), e);
+            } catch (IllegalAccessException e) {
                 _log.error("Unexpected exception:", e);
-                throw APIException.internalServerErrors.genericApisvcError(e.getMessage(),e);
+                throw APIException.internalServerErrors.genericApisvcError(e.getMessage(), e);
             }
         }
 
         private void lengthCheck(String fieldVal, FieldInfo fi) {
             int length = fieldVal.length();
-            ArgValidator.checkFieldRange(length,  fi.min, fi.max, "length");
+            ArgValidator.checkFieldRange(length, fi.min, fi.max, "length");
         }
 
         private void rangeCheck(Number value, FieldInfo fi) {

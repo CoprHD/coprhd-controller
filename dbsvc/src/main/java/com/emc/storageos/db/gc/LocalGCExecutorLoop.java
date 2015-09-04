@@ -43,12 +43,13 @@ class LocalGCExecutorLoop extends GarbageCollectionExecutorLoop {
      **/
     @Override
     protected <T extends DataObject> boolean canRunGCOnClass(Class<T> clazz) {
-        //local GC on run on local DB
+        // local GC on run on local DB
         return KeyspaceUtil.isLocal(clazz);
     }
 
     /**
      * Generate GC task for class
+     * 
      * @param clazz the GC will run on
      * @return a GC task
      **/

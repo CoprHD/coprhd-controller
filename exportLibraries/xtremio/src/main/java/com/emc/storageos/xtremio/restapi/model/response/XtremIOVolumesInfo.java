@@ -20,11 +20,11 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value="xtremio_volumes_info")
+@JsonRootName(value = "xtremio_volumes_info")
 public class XtremIOVolumesInfo {
-    
+
     @SerializedName("volumes")
-    @JsonProperty(value="volumes")
+    @JsonProperty(value = "volumes")
     private XtremIOVolumeInfo[] volumeInfo;
 
     public XtremIOVolumeInfo[] getVolumeInfo() {

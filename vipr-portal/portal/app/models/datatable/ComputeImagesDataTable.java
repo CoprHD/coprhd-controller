@@ -4,13 +4,11 @@
  */
 package models.datatable;
 
-
 import models.ComputeImageTypes;
 import util.StringOption;
 import util.datatable.DataTable;
 
 import com.emc.storageos.model.compute.ComputeImageRestRep;
-
 
 public class ComputeImagesDataTable extends DataTable {
 
@@ -23,7 +21,7 @@ public class ComputeImagesDataTable extends DataTable {
         setDefaultSort("name", "asc");
     }
 
-    public static class ComputeImagesInfo  {
+    public static class ComputeImagesInfo {
         public String id;
         public String name;
         public String imageName;
@@ -31,7 +29,6 @@ public class ComputeImagesDataTable extends DataTable {
         public String imageUrl;
         public String computeImageStatus;
         public String discoveryStatus;
-
 
         public ComputeImagesInfo() {
         }
@@ -45,12 +42,12 @@ public class ComputeImagesDataTable extends DataTable {
             this.computeImageStatus = computeImage.getComputeImageStatus();
             String displayStatus = computeImage.getComputeImageStatus();
             if (displayStatus.equalsIgnoreCase("AVAILABLE")) {
-            	this.discoveryStatus ="COMPLETE";
+                this.discoveryStatus = "COMPLETE";
             } else if (displayStatus.equalsIgnoreCase("NOT_AVAILABLE")) {
-            	this.discoveryStatus ="ERROR";
+                this.discoveryStatus = "ERROR";
             } else {
-            	this.discoveryStatus = displayStatus;
-            }            
+                this.discoveryStatus = displayStatus;
+            }
         }
     }
 }

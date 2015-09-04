@@ -45,11 +45,11 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
 /**
- * Tests internal tenant api 
+ * Tests internal tenant api
  * Note: requires some manual configuration for ad and license
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = {"classpath:coordinatorclient-var.xml"})
+@ContextConfiguration(locations = { "classpath:coordinatorclient-var.xml" })
 public class InternalVirtualArrayApiTest extends ApiTestBase {
     private String _server = "localhost";
     private String _apiServer = "https://" + _server + ":8443";
@@ -63,11 +63,11 @@ public class InternalVirtualArrayApiTest extends ApiTestBase {
     @XmlRootElement(name = "results")
     public static class Resources {
         public List<SearchResultResourceRep> resource;
-    } 
+    }
 
     @Before
-    public void setup () throws Exception {
-        
+    public void setup() throws Exception {
+
         _internalVarrayClient = new InternalVirtualArrayServiceClient();
         _internalVarrayClient.setCoordinatorClient(_coordinatorClient);
         _internalVarrayClient.setServer(_server);
@@ -82,7 +82,7 @@ public class InternalVirtualArrayApiTest extends ApiTestBase {
         _rootToken = (String) _savedTokens.get("root");
 
         updateADConfig();
-        updateRootTenantAttrs();        
+        updateRootTenantAttrs();
 
         rTAdminGr = createHttpsClient(TENANTADMIN, AD_PASSWORD, urls);
 
@@ -94,7 +94,7 @@ public class InternalVirtualArrayApiTest extends ApiTestBase {
         long timestamp = System.currentTimeMillis();
 
         // 1. CREATE subtenants
-        String subtenant_url =  "/tenants/"+_rootTenantId.toString()+"/subtenants";
+        String subtenant_url = "/tenants/" + _rootTenantId.toString() + "/subtenants";
 
         TenantCreateParam tenantParam = new TenantCreateParam();
         String subtenant_label = "subtenant" + String.valueOf(timestamp);
@@ -113,13 +113,13 @@ public class InternalVirtualArrayApiTest extends ApiTestBase {
         tenantParam.getUserMappings().add(tenantMapping);
 
         TenantOrgRestRep subtenant = rTAdminGr.path(subtenant_url)
-                            .header(RequestProcessingUtils.AUTH_TOKEN_HEADER, _rootToken)
-                            .post(TenantOrgRestRep.class, tenantParam);
+                .header(RequestProcessingUtils.AUTH_TOKEN_HEADER, _rootToken)
+                .post(TenantOrgRestRep.class, tenantParam);
         Assert.assertTrue(subtenant.getName().equals(subtenant_label));
         Assert.assertEquals(1, subtenant.getUserMappings().size());
 
         // 2. create neighborhoods for test
-        VirtualArrayCreateParam neighborhoodParam  = new VirtualArrayCreateParam();
+        VirtualArrayCreateParam neighborhoodParam = new VirtualArrayCreateParam();
         neighborhoodParam.setLabel("nb1" + String.valueOf(timestamp));
         VirtualArrayRestRep n1 = rSys.path("/vdc/varrays").post(VirtualArrayRestRep.class, neighborhoodParam);
         Assert.assertNotNull(n1.getId());
@@ -140,7 +140,7 @@ public class InternalVirtualArrayApiTest extends ApiTestBase {
         try {
             URI tmpvarryId = URI.create(String.format("urn:storageos:VirtualArray:%1$s:%2$s", UUID.randomUUID().toString(), "vdc1"));
             rProtectionType = _internalVarrayClient.getProtectionType(tmpvarryId);
-        } catch ( APIException e) {
+        } catch (APIException e) {
             Assert.assertEquals(ServiceCode.API_URL_ENTITY_NOT_FOUND, e.getServiceCode());
         }
 
@@ -153,7 +153,6 @@ public class InternalVirtualArrayApiTest extends ApiTestBase {
         rProtectionType = _internalVarrayClient.getProtectionType(n1.getId());
         Assert.assertTrue(resp != null);
         Assert.assertTrue(rProtectionType.isEmpty());
-
 
         // 7. set registered status to true
         Boolean bDeviceRegistered = true;
@@ -168,7 +167,7 @@ public class InternalVirtualArrayApiTest extends ApiTestBase {
         Assert.assertTrue(bDeviceRegistered == rDeviceRegistered);
 
         // 9. try to delete nh1
-        ClientResponse deleteResp = rSys.path("/vdc/varrays/"+n1.getId().toString()+"/deactivate").post(ClientResponse.class);
+        ClientResponse deleteResp = rSys.path("/vdc/varrays/" + n1.getId().toString() + "/deactivate").post(ClientResponse.class);
         Assert.assertTrue(deleteResp != null);
         Assert.assertTrue(deleteResp.getStatus() == 400);
 
@@ -180,13 +179,13 @@ public class InternalVirtualArrayApiTest extends ApiTestBase {
         Assert.assertTrue(resp3.getObjectSettings().getDeviceRegistered().equals(bDeviceRegistered));
 
         // 10. delete nh1
-        deleteResp = rSys.path("/vdc/varrays/"+n1.getId().toString()+"/deactivate").post(ClientResponse.class);
+        deleteResp = rSys.path("/vdc/varrays/" + n1.getId().toString() + "/deactivate").post(ClientResponse.class);
         Assert.assertTrue(deleteResp != null);
         Assert.assertTrue(deleteResp.getStatus() == 200);
     }
-      
+
     @After
     public void teardown() throws Exception {
-                
+
     }
 }

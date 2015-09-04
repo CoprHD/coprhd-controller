@@ -15,14 +15,16 @@ import java.util.List;
 public class ProjectList {
     private List<NamedRelatedResourceRep> projects;
 
-    public ProjectList() {}
-    
+    public ProjectList() {
+    }
+
     public ProjectList(List<NamedRelatedResourceRep> projects) {
         this.projects = projects;
     }
 
     /**
      * List of projects
+     * 
      * @valid none
      * @return Projects list
      */

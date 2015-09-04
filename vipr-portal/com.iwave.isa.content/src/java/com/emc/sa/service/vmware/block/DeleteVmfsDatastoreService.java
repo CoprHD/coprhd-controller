@@ -23,27 +23,27 @@ public class DeleteVmfsDatastoreService extends VMwareHostService {
     protected List<String> datastoreNames;
 
     private Map<Datastore, List<VolumeRestRep>> datastores;
-    
+
     @Override
     public void precheck() throws Exception {
         super.precheck();
         datastores = Maps.newHashMap();
         acquireHostLock();
-        for(String datastoreName : datastoreNames){
-           	Datastore datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
-	        vmware.verifyDatastoreForRemoval(datastore);
-	        List<VolumeRestRep> volumes = vmware.findVolumesBackingDatastore(host, datastore);
-	        datastores.put(datastore, volumes);
+        for (String datastoreName : datastoreNames) {
+            Datastore datastore = vmware.getDatastore(datacenter.getLabel(), datastoreName);
+            vmware.verifyDatastoreForRemoval(datastore);
+            List<VolumeRestRep> volumes = vmware.findVolumesBackingDatastore(host, datastore);
+            datastores.put(datastore, volumes);
         }
     }
 
     @Override
     public void execute() throws Exception {
-    	
-    	for(Map.Entry<Datastore, List<VolumeRestRep>> entry : datastores.entrySet()){
-	        vmware.deleteVmfsDatastore(entry.getValue(), hostId, entry.getKey());
-    	}
-    	if (hostId != null) {
+
+        for (Map.Entry<Datastore, List<VolumeRestRep>> entry : datastores.entrySet()) {
+            vmware.deleteVmfsDatastore(entry.getValue(), hostId, entry.getKey());
+        }
+        if (hostId != null) {
             ExecutionUtils.addAffectedResource(hostId.toString());
         }
     }

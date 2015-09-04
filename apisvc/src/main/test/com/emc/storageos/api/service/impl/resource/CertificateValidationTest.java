@@ -11,15 +11,14 @@ import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
 
-
 public class CertificateValidationTest {
 
     private static final Logger _log = LoggerFactory.getLogger(CertificateValidationTest.class);
 
     /**
-     *  the certificate is a vipr auto-generated one, and it is for 1+0 cluster.
-     *  VIP: 10.247.101.102 (lglw1102.lss.emc.com)
-     *  vipr1: 10.247.101.103 (lglw1103.lss.emc.com)
+     * the certificate is a vipr auto-generated one, and it is for 1+0 cluster.
+     * VIP: 10.247.101.102 (lglw1102.lss.emc.com)
+     * vipr1: 10.247.101.103 (lglw1103.lss.emc.com)
      */
     @Test
     public void validateSelfSignedCert() throws Exception {
@@ -77,11 +76,9 @@ public class CertificateValidationTest {
         }
     }
 
-
     private String convertStreamToString(java.io.InputStream is) {
         java.util.Scanner s = new java.util.Scanner(is).useDelimiter("\\A");
         return s.hasNext() ? s.next() : "";
     }
-
 
 }

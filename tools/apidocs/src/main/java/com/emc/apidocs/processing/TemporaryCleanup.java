@@ -40,19 +40,25 @@ public class TemporaryCleanup {
     public static void fixPath(ApiMethod apiMethod) {
         apiMethod.path = "/?accessmode";
         apiMethod.urlFormat = "Host Style: http://bucketname.ns1.emc.com/?accessmode\n" +
-                              "Path Style: http://ns1.emc.com/bucketname/?accessmode";
+                "Path Style: http://ns1.emc.com/bucketname/?accessmode";
     }
 
     public static void fixComment(ApiMethod apiMethod) {
-        apiMethod.description = apiMethod.description.replace("<p><a href= \"Retrieve_service_descriptor_api_services_{serviceId}.html\">Retrieve service descriptor</a> provides information on retrieving the parameters of the service required for the payload.</p>","");
+        apiMethod.description = apiMethod.description
+                .replace(
+                        "<p><a href= \"Retrieve_service_descriptor_api_services_{serviceId}.html\">Retrieve service descriptor</a> provides information on retrieving the parameters of the service required for the payload.</p>",
+                        "");
     }
 
     public static void fixCommentLink(ApiMethod apiMethod) {
-        apiMethod.description = apiMethod.description.replace("<p><a href= \"Retrieve_service_descriptor_api_services_{serviceId}.html\">Retrieve service descriptor</a> provides information on retrieving the parameters of the service required for the payload.</p>", "");
+        apiMethod.description = apiMethod.description
+                .replace(
+                        "<p><a href= \"Retrieve_service_descriptor_api_services_{serviceId}.html\">Retrieve service descriptor</a> provides information on retrieving the parameters of the service required for the payload.</p>",
+                        "");
     }
 
     public static void fixFabricPath(ApiService apiService) {
-        apiService.path = apiService.path.replaceFirst("/external/","/vdc/fabric/");
+        apiService.path = apiService.path.replaceFirst("/external/", "/vdc/fabric/");
     }
 
     public static void fixFabricRoles(ApiMethod apiMethod) {

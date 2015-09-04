@@ -52,33 +52,33 @@ public class UnmanagedHelper {
         boolean isIngestable = getValue(entries, IS_INGESTABLE, true);
         return isIngestable;
     }
-    
-    public static boolean isVolumeExported(List<StringHashMapEntry> characteristicsEntries){
-    	return getValue(characteristicsEntries, IS_VOLUME_EXPORTED, true);
+
+    public static boolean isVolumeExported(List<StringHashMapEntry> characteristicsEntries) {
+        return getValue(characteristicsEntries, IS_VOLUME_EXPORTED, true);
     }
-    
-    public static boolean isMirror(List<StringHashMapEntry> characteristicsEntries){
-    	return getValue(characteristicsEntries, IS_LOCAL_MIRROR, true);
+
+    public static boolean isMirror(List<StringHashMapEntry> characteristicsEntries) {
+        return getValue(characteristicsEntries, IS_LOCAL_MIRROR, true);
     }
-    
-    public static boolean isSnapShot(List<StringHashMapEntry> characteristicsEntries){
-    	return getValue(characteristicsEntries, IS_SNAP_SHOT, true);
+
+    public static boolean isSnapShot(List<StringHashMapEntry> characteristicsEntries) {
+        return getValue(characteristicsEntries, IS_SNAP_SHOT, true);
     }
-    
-    public static boolean isClone(List<StringHashMapEntry> characteristicsEntries){
-    	return getValue(characteristicsEntries, IS_FULL_COPY, true);
+
+    public static boolean isClone(List<StringHashMapEntry> characteristicsEntries) {
+        return getValue(characteristicsEntries, IS_FULL_COPY, true);
     }
-    
-    public static String getLabel(UnManagedVolumeRestRep volume){
-    	String label = getInfoField(volume, DEVICE_LABEL);
-    	if(label == null || "".equals(label)){
-    		label = volume.getName();
-    	}
-    	return label;
+
+    public static String getLabel(UnManagedVolumeRestRep volume) {
+        String label = getInfoField(volume, DEVICE_LABEL);
+        if (label == null || "".equals(label)) {
+            label = volume.getName();
+        }
+        return label;
     }
-    
+
     private static String getValue(List<StringHashMapEntry> entries, String key) {
-        for (StringHashMapEntry entry: entries) {
+        for (StringHashMapEntry entry : entries) {
             if ((key != null && key.length() > 0) && key.equals(entry.getName())) {
                 return entry.getValue();
             }
@@ -90,8 +90,7 @@ public class UnmanagedHelper {
         String value = getValue(entries, key);
         try {
             return Boolean.parseBoolean(value);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             // nothing to do here. We'll just return 0;
         }
         return defaultValue;
@@ -102,7 +101,7 @@ public class UnmanagedHelper {
             return "";
         }
 
-        for (Entry entry: volume.getVolumeInformation()) {
+        for (Entry entry : volume.getVolumeInformation()) {
             if (key.equals(entry.getKey())) {
                 return entry.getValue();
             }
@@ -114,8 +113,7 @@ public class UnmanagedHelper {
         String value = getInfoField(volume, key);
         try {
             return Long.parseLong(value);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             // nothing to do here. We'll just return the default
         }
         return defaultValue;

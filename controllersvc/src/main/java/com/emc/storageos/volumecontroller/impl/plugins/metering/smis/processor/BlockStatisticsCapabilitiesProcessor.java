@@ -31,6 +31,7 @@ import com.emc.storageos.plugins.common.domainmodel.Operation;
 
 /**
  * Used to collect the CIM CLOCK_TICK_INTERVAL returned by CIM_BlockStatisticsCapabilities.
+ * 
  * @author watson
  */
 public class BlockStatisticsCapabilitiesProcessor extends Processor {

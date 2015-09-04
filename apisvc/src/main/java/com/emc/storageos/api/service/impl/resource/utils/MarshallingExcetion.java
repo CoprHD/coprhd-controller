@@ -21,7 +21,6 @@ package com.emc.storageos.api.service.impl.resource.utils;
  */
 public class MarshallingExcetion extends Exception {
 
-
     private static final long serialVersionUID = 1L;
 
     public MarshallingExcetion(String string, Exception e) {

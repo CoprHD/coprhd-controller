@@ -14,8 +14,6 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis.job;
 
-
-
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Operation;
 
@@ -45,7 +43,7 @@ import java.util.Map;
 /**
  * An SMI-S job
  */
-public class SmisJob extends  Job implements Serializable
+public class SmisJob extends Job implements Serializable
 {
     private static final Logger _logger = LoggerFactory.getLogger(SmisJob.class);
     private static final String CIM_OBJECT_NAME = "cimobject";
@@ -57,8 +55,9 @@ public class SmisJob extends  Job implements Serializable
     private static final String JOB_PROPERTY_KEY_PERCENT_COMPLETE = "PercentComplete";
     private static final String JOB_PROPERTY_KEY_OPERATIONAL_STS = "OperationalStatus";
     private static final String JOB_PROPERTY_KEY_ERROR_DESC = "ErrorDescription";
-    private static final long ERROR_TRACKING_LIMIT = 2*60*60*1000; // tracking limit for transient errors. set for 2 hours
-    private static final long POST_PROCESSING_ERROR_TRACKING_LIMIT = 20*60*1000; // tracking limit for transient errors in post processing, 20 minutes
+    private static final long ERROR_TRACKING_LIMIT = 2 * 60 * 60 * 1000; // tracking limit for transient errors. set for 2 hours
+    private static final long POST_PROCESSING_ERROR_TRACKING_LIMIT = 20 * 60 * 1000; // tracking limit for transient errors in post
+                                                                                     // processing, 20 minutes
     protected JobPollResult _pollResult = new JobPollResult();
     private String _id;
     protected String _errorDescription = null;
@@ -84,23 +83,23 @@ public class SmisJob extends  Job implements Serializable
     }
 
     public CIMObjectPath getCimJob() {
-        return (CIMObjectPath)_map.get(CIM_OBJECT_NAME);
+        return (CIMObjectPath) _map.get(CIM_OBJECT_NAME);
     }
 
     public URI getStorageSystemURI() {
-        return (URI)_map.get(STORAGE_SYSTEM_URI_NAME);
+        return (URI) _map.get(STORAGE_SYSTEM_URI_NAME);
     }
 
     public TaskCompleter getTaskCompleter() {
-        return (TaskCompleter)_map.get(TASK_COMPLETER_NAME);
+        return (TaskCompleter) _map.get(TASK_COMPLETER_NAME);
     }
 
     public String getJobName() {
-        return (String)_map.get(JOB_NAME_NAME);
+        return (String) _map.get(JOB_NAME_NAME);
     }
 
     private long getErrorTrackingStartTime() {
-        return (Long)_map.get(ERROR_TRACKING_START_TIME);
+        return (Long) _map.get(ERROR_TRACKING_START_TIME);
     }
 
     public void setErrorTrackingStartTime(long trackingStartTime) {
@@ -108,7 +107,7 @@ public class SmisJob extends  Job implements Serializable
     }
 
     private long getPostProcessingErrorTrackingStartTime() {
-        return (Long)_map.get(POST_PROCESSING_ERROR_TRACKING_START_TIME);
+        return (Long) _map.get(POST_PROCESSING_ERROR_TRACKING_START_TIME);
     }
 
     public void setPostProcessingErrorTrackingStartTime(long trackingStartTime) {
@@ -163,7 +162,7 @@ public class SmisJob extends  Job implements Serializable
         CIMProperty<Object> instanceID = null;
         try {
             CIMObjectPath cimJob = getCimJob();
-            instanceID = (CIMProperty<Object>)cimJob.getKey("InstanceID");
+            instanceID = (CIMProperty<Object>) cimJob.getKey("InstanceID");
             _pollResult.setJobName(getJobName());
             _pollResult.setJobId(instanceID.getValue().toString());
             _pollResult.setJobPercentComplete(_percentComplete);
@@ -174,7 +173,7 @@ public class SmisJob extends  Job implements Serializable
             // poll only if job is not in terminal status
             if (_status == JobStatus.IN_PROGRESS || _status == JobStatus.ERROR) {
                 String[] jobPathPropertyKeys =
-                        {JOB_PROPERTY_KEY_PERCENT_COMPLETE, JOB_PROPERTY_KEY_OPERATIONAL_STS, JOB_PROPERTY_KEY_ERROR_DESC};
+                { JOB_PROPERTY_KEY_PERCENT_COMPLETE, JOB_PROPERTY_KEY_OPERATIONAL_STS, JOB_PROPERTY_KEY_ERROR_DESC };
                 CIMInstance jobPathInstance = null;
                 _logger.info("SmisJob: Looking up job: id {}, provider: {} ", instanceID.getValue(), _smisIPAddress);
                 WBEMClient wbemClient = getWBEMClient(jobContext.getDbClient(), jobContext.getCimConnectionFactory());
@@ -220,11 +219,11 @@ public class SmisJob extends  Job implements Serializable
                 }
             }
         } catch (WBEMException we) {
-            if(we.getID() == WBEMException.CIM_ERR_NOT_FOUND) {
+            if (we.getID() == WBEMException.CIM_ERR_NOT_FOUND) {
                 _status = JobStatus.FAILED;
                 _errorDescription = we.getMessage();
                 _logger.error(String.format("SMI-S job not found. Marking as failed as we cannot determine status. " +
-                                "User may retry the operation to be sure: Name: %s, ID: %s, Desc: %s",
+                        "User may retry the operation to be sure: Name: %s, ID: %s, Desc: %s",
                         getJobName(), instanceID.getValue().toString(), _errorDescription), we);
             } else {
                 processTransientError(instanceID.getValue().toString(), trackingPeriodInMillis, we.getMessage(), we);
@@ -245,7 +244,7 @@ public class SmisJob extends  Job implements Serializable
                     _postProcessingStatus = JobStatus.FAILED;
                     _errorDescription = we.getMessage();
                     _logger.error(String.format("SMI-S job not found. Marking as failed as we cannot determine status. " +
-                                    "User may retry the operation to be sure: Name: %s, ID: %s, Desc: %s",
+                            "User may retry the operation to be sure: Name: %s, ID: %s, Desc: %s",
                             getJobName(), instanceID.getValue().toString(), _errorDescription), we);
                 } else {
                     processPostProcessingError(instanceID.getValue().toString(), trackingPeriodInMillis, we.getMessage(), we);
@@ -253,7 +252,7 @@ public class SmisJob extends  Job implements Serializable
             } catch (Exception e) {
                 setFatalErrorStatus(e.getMessage());
                 _logger.error("Problem while trying to update status", e);
-            }  finally {
+            } finally {
                 if (isJobInTerminalFailedState()) {
                     // Have to process job completion since updateStatus may not did this.
                     ServiceError error = DeviceControllerErrors.smis.jobFailed(_errorDescription);
@@ -276,7 +275,7 @@ public class SmisJob extends  Job implements Serializable
             _logger.error("Error while reading storage system:", e);
         }
 
-        client = cimConnectionFactory.getConnection(system.getSmisProviderIP(),system.getSmisPortNumber().toString())
+        client = cimConnectionFactory.getConnection(system.getSmisProviderIP(), system.getSmisPortNumber().toString())
                 .getCimClient();
         return client;
     }
@@ -289,8 +288,8 @@ public class SmisJob extends  Job implements Serializable
             getTaskCompleter().error(jobContext.getDbClient(), error);
         }
         // else {
-            // do nothing
-        //}
+        // do nothing
+        // }
     }
 
     public String getJobID() {
@@ -347,10 +346,10 @@ public class SmisJob extends  Job implements Serializable
         _errorDescription = errorMessage;
         if (ex != null) {
             _logger.error(String.format("Error while processing SmisJob - Name: %s, ID: %s, Desc: %s Status: %s",
-                                    getJobName(), jobId, _errorDescription, _status), ex);
+                    getJobName(), jobId, _errorDescription, _status), ex);
         } else {
             _logger.error(String.format("Error while processing SmisJob - Name: %s, ID: %s, Desc: %s Status: %s",
-                                                getJobName(), jobId, _errorDescription, _status));
+                    getJobName(), jobId, _errorDescription, _status));
         }
 
         // Check if job tracking limit was reached. Set status to FATAL_ERROR in such a case.
@@ -383,11 +382,13 @@ public class SmisJob extends  Job implements Serializable
             setPostProcessingErrorTrackingStartTime(System.currentTimeMillis());
         }
         long postProcessingErrorTrackingTime = System.currentTimeMillis() - getPostProcessingErrorTrackingStartTime();
-        _logger.info(String.format("Tracking time of SmisJob in post processing error - %s, Name: %s, ID: %s. Status: %s, PostProcessing status: %s .",
+        _logger.info(String.format(
+                "Tracking time of SmisJob in post processing error - %s, Name: %s, ID: %s. Status: %s, PostProcessing status: %s .",
                 postProcessingErrorTrackingTime, getJobName(), jobId, _status, _postProcessingStatus));
         if (postProcessingErrorTrackingTime > POST_PROCESSING_ERROR_TRACKING_LIMIT) {
             _postProcessingStatus = JobStatus.FAILED;
-            _logger.error(String.format("Reached tracking time limit for SmisJob post processing - Name: %s, ID: %s. Set post processing status to %s .",
+            _logger.error(String.format(
+                    "Reached tracking time limit for SmisJob post processing - Name: %s, ID: %s. Set post processing status to %s .",
                     getJobName(), jobId, _postProcessingStatus));
         }
     }
@@ -396,9 +397,9 @@ public class SmisJob extends  Job implements Serializable
         return (getJobStatus() == Job.JobStatus.SUCCESS ||
                 getJobStatus() == Job.JobStatus.FAILED || getJobStatus() == Job.JobStatus.FATAL_ERROR) &&
                 (getJobPostProcessingStatus() == Job.JobStatus.SUCCESS ||
-                 getJobPostProcessingStatus() == Job.JobStatus.FAILED || getJobPostProcessingStatus() == Job.JobStatus.FATAL_ERROR);
+                        getJobPostProcessingStatus() == Job.JobStatus.FAILED || getJobPostProcessingStatus() == Job.JobStatus.FATAL_ERROR);
 
-        }
+    }
 
     public boolean isJobInTerminalFailedState() {
         return (isJobInTerminalState() && (getJobStatus() != Job.JobStatus.SUCCESS || getJobPostProcessingStatus() != Job.JobStatus.SUCCESS));

@@ -57,7 +57,7 @@ public class StorageGroupProcessor extends StorageProcessor {
     private Logger logger = LoggerFactory.getLogger(StorageGroupProcessor.class);
     private List<Object> _args;
     private DbClient dbClient;
-    
+
     @Override
     public void processResult(
             Operation operation, Object resultObj, Map<String, Object> keyMap)
@@ -74,7 +74,7 @@ public class StorageGroupProcessor extends StorageProcessor {
             StorageSystem device = dbClient.queryObject(StorageSystem.class, systemId);
             // Process these only for VMAX3 Systems.
             if (device.checkIfVmax3()) {
-                
+
                 if (keyMap.containsKey(Constants.STORAGE_GROUPS_PROCESSED)) {
                     processedSGs = (List<CIMObjectPath>) keyMap.get(Constants.STORAGE_GROUPS_PROCESSED);
                 }
@@ -103,7 +103,7 @@ public class StorageGroupProcessor extends StorageProcessor {
             processedSGs.clear();
         }
     }
-    
+
     /**
      * Find the volumes associated with the SG and extract the SLOName and set
      * it in keyMap.

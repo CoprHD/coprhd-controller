@@ -46,7 +46,6 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.util.Iterator;
 
-
 /**
  * validates if a user/group is valid for the given domain of AD/LDAP
  */
@@ -122,11 +121,11 @@ public class Validator {
         String endpoint = null;
 
         int attempts = 0;
-        while(attempts < _MAX_VALIDATION_RETRIES) {
+        while (attempts < _MAX_VALIDATION_RETRIES) {
             _log.debug("Validation attempt {}", ++attempts);
             AuthSvcInternalApiClientIterator authSvcClientItr = new AuthSvcInternalApiClientIterator(_authSvcEndPointLocator, _coordinator);
             try {
-                if(authSvcClientItr.hasNext()) {
+                if (authSvcClientItr.hasNext()) {
                     endpoint = authSvcClientItr.peek().toString();
                     _log.info("isValidPrincipal(): {}", endpoint);
 
@@ -135,7 +134,7 @@ public class Validator {
 
                     _log.debug("Status: {}", status);
 
-                    if( status == ClientResponse.Status.OK.getStatusCode() ) {
+                    if (status == ClientResponse.Status.OK.getStatusCode()) {
                         return true;
                     } else if (status == ClientResponse.Status.BAD_REQUEST.getStatusCode()
                             || status == ClientResponse.Status.INTERNAL_SERVER_ERROR.getStatusCode()) {
@@ -191,7 +190,7 @@ public class Validator {
                     } else if (status == ClientResponse.Status.BAD_REQUEST
                             .getStatusCode()
                             || status == ClientResponse.Status.INTERNAL_SERVER_ERROR
-                            .getStatusCode()) {
+                                    .getStatusCode()) {
                         ServiceErrorRestRep errorXml =
                                 response.getEntity(ServiceErrorRestRep.class);
                         error.append(errorXml.getDetailedMessage());
@@ -214,19 +213,20 @@ public class Validator {
     /**
      * Sends an internal api call to authsvc to validate authentication provider
      * basic connectivity parameters
+     * 
      * @param param has the basic connectivity parameters
-     * @param errorString  will be set to an error message if the validation fails
-     * @return  true if validation succeeded.  False otherwise.
+     * @param errorString will be set to an error message if the validation fails
+     * @return true if validation succeeded. False otherwise.
      */
     public static boolean isUsableAuthenticationProvider(AuthnProviderParamsToValidate param,
             StringBuilder errorString) {
         String endpoint = null;
         int attempts = 0;
-        while(attempts < _MAX_VALIDATION_RETRIES) {
+        while (attempts < _MAX_VALIDATION_RETRIES) {
             _log.debug("Validation attempt {}", ++attempts);
             AuthSvcInternalApiClientIterator authSvcClientItr = new AuthSvcInternalApiClientIterator(_authSvcEndPointLocator, _coordinator);
             try {
-                if(authSvcClientItr.hasNext()) {
+                if (authSvcClientItr.hasNext()) {
                     endpoint = authSvcClientItr.peek().toString();
                     _log.info("isAuthenticationProvider(): {}", endpoint);
 
@@ -237,9 +237,9 @@ public class Validator {
                     _log.debug("Status: {}", status);
                     _log.debug("Response entity: {}", errorRaw);
 
-                    if( status == ClientResponse.Status.OK.getStatusCode() ) {
+                    if (status == ClientResponse.Status.OK.getStatusCode()) {
                         return true;
-                    } else if( status == ClientResponse.Status.BAD_REQUEST.getStatusCode()) {
+                    } else if (status == ClientResponse.Status.BAD_REQUEST.getStatusCode()) {
                         errorString.append(errorRaw);
                         return false;
                     } else {
@@ -253,8 +253,7 @@ public class Validator {
         return false;
     }
 
-
-    public static void setAuthSvcEndPointLocator(AuthSvcEndPointLocator authSvcEndPointLocator ) {
+    public static void setAuthSvcEndPointLocator(AuthSvcEndPointLocator authSvcEndPointLocator) {
         _authSvcEndPointLocator = authSvcEndPointLocator;
     }
 
@@ -268,6 +267,7 @@ public class Validator {
 
     /**
      * determines if a username exists in the local storageos user repository
+     * 
      * @param name
      * @return true if yes, false if no
      */
@@ -290,21 +290,21 @@ public class Validator {
     public static UserTenantList getUserTenants(String username, TenantOrg tenant) {
         String endpoint = null;
         int attempts = 0;
-        while(attempts < _MAX_VALIDATION_RETRIES) {
+        while (attempts < _MAX_VALIDATION_RETRIES) {
             _log.debug("Get user tenants attempt {}", ++attempts);
             AuthSvcInternalApiClientIterator authSvcClientItr = new AuthSvcInternalApiClientIterator(_authSvcEndPointLocator, _coordinator);
             try {
-                if(authSvcClientItr.hasNext()) {
+                if (authSvcClientItr.hasNext()) {
                     endpoint = authSvcClientItr.peek().toString();
 
                     //
                     String queryParameters = "?username=" + username;
                     if (tenant != null) {
                         queryParameters += "&tenantURI=" + tenant.getId();
-                        if (tenant.getUserMappings() != null ) {
+                        if (tenant.getUserMappings() != null) {
                             String userMappingStr = MarshallUtil.ConvertTenantUserMappingToString(tenant);
                             String encodedUserMapping = URLEncoder.encode(userMappingStr);
-                            queryParameters += "&usermappings=" + encodedUserMapping ;
+                            queryParameters += "&usermappings=" + encodedUserMapping;
                         }
                     }
 
@@ -313,10 +313,11 @@ public class Validator {
 
                     _log.debug("Status: {}", status);
 
-                    if( status == ClientResponse.Status.OK.getStatusCode() ) {
+                    if (status == ClientResponse.Status.OK.getStatusCode()) {
                         return response.getEntity(UserTenantList.class);
-                    } else if( status == ClientResponse.Status.BAD_REQUEST.getStatusCode()) {
-                        throw APIException.badRequests.theParametersAreNotValid(response.hasEntity() ? response.getEntity(String.class) : "Bad request");
+                    } else if (status == ClientResponse.Status.BAD_REQUEST.getStatusCode()) {
+                        throw APIException.badRequests.theParametersAreNotValid(response.hasEntity() ? response.getEntity(String.class)
+                                : "Bad request");
                     } else {
                         _log.info("Unexpected response code {}.", status);
                     }
@@ -328,7 +329,7 @@ public class Validator {
             }
         }
         throw SecurityException.retryables
-        .requiredServiceUnvailable(ServiceLocatorInfo.AUTH_SVC.getServiceName());
+                .requiredServiceUnvailable(ServiceLocatorInfo.AUTH_SVC.getServiceName());
     }
 
     /**
@@ -351,8 +352,8 @@ public class Validator {
 
                     final ClientResponse response =
                             authSvcClientItr
-                            .put(URI.create(_URI_REFRESH + "?username="
-                                    + URLEncoder.encode(username, "UTF-8")), null);
+                                    .put(URI.create(_URI_REFRESH + "?username="
+                                            + URLEncoder.encode(username, "UTF-8")), null);
                     final int status = response.getStatus();
 
                     _log.debug("Status: {}", status);

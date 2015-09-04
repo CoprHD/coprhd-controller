@@ -39,7 +39,7 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
 
     // VPlex fields
     private List<StringSetMapAdapter.Entry> systemConsistencyGroups;
-    
+
     /**
      * Related storage controller
      *
@@ -100,7 +100,7 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
     public void setVolumes(List<RelatedResourceRep> volumes) {
         this.volumes = volumes;
     }
-    
+
     /**
      * The mapping of protection systems/storage systems to consistency groups that
      * are mapped to by the BlockConsistencyGroup.
@@ -108,33 +108,33 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
      * @valid none
      */
     @XmlElement(name = "system_consistency_groups")
-    public List<StringSetMapAdapter.Entry> getSystemConsistencyGroups(){ 
-        return systemConsistencyGroups; 
+    public List<StringSetMapAdapter.Entry> getSystemConsistencyGroups() {
+        return systemConsistencyGroups;
     }
-    
-    public void setSystemConsistencyGroups(List<StringSetMapAdapter.Entry> systemConsistencyGroups) { 
+
+    public void setSystemConsistencyGroups(List<StringSetMapAdapter.Entry> systemConsistencyGroups) {
         this.systemConsistencyGroups = systemConsistencyGroups;
-    }    
-    
+    }
+
     /**
      * The types of the block consistency group
      *
      * @valid none
      */
     @XmlElement(name = "types")
-    public Set<String> getTypes(){ 
+    public Set<String> getTypes() {
         if (types == null) {
             types = new HashSet<String>();
         }
         return types;
     }
-    
-    public void setTypes(Set<String> types) { 
+
+    public void setTypes(Set<String> types) {
         this.types = types;
     }
-    
+
     /**
-     * The RecoverPoint protection system.  Applies only to CGs of type RP.
+     * The RecoverPoint protection system. Applies only to CGs of type RP.
      *
      * @valid none
      */
@@ -148,10 +148,10 @@ public class BlockConsistencyGroupRestRep extends DataObjectRestRep {
     }
 
     /**
-     * The RecoverPoint consistency group id.  Applies only to CGs of type RP.
+     * The RecoverPoint consistency group id. Applies only to CGs of type RP.
      *
      * @valid none
-     */    
+     */
     @XmlElement(name = "rp_consistency_group_id")
     public String getRpConsistenyGroupId() {
         return rpConsistenyGroupId;

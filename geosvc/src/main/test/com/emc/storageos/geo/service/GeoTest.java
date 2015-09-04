@@ -54,10 +54,10 @@ import com.emc.storageos.model.varray.*;
  * ApiTest class to exercise the core geo functionality
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = {"classpath:coordinatorclient-var.xml"})
+@ContextConfiguration(locations = { "classpath:coordinatorclient-var.xml" })
 public class GeoTest extends ApiTestBase {
     private String server = System.getenv("APP_HOST_NAMES");
-    //private String coordinatorURI = "coordinator://localhost:2181";
+    // private String coordinatorURI = "coordinator://localhost:2181";
     private GeoServiceClient geoClient;
 
     @Autowired
@@ -67,7 +67,6 @@ public class GeoTest extends ApiTestBase {
     private URI virtualPoolId;
     private List<URI> ids;
     private int virtualArrayCount;
-
 
     private URI projectId;
 
@@ -81,20 +80,20 @@ public class GeoTest extends ApiTestBase {
         geoClient.addFilter(new ServiceClientRetryFilter(geoClient.getClientMaxRetries(), geoClient.getClientRetryInterval()));
         geoClient.addFilter(new GeoServiceExceptionFilter());
 
-        //prepare test data
+        // prepare test data
         createVirtualArrays();
         createVirtualPools();
     }
 
-    private void createVirtualArrays () {
+    private void createVirtualArrays() {
         ids = new ArrayList<URI>();
         virtualArrayCount = 10;
 
         System.out.println("create virtualArrays");
 
         for (int i = 0; i < virtualArrayCount; i++) {
-            VirtualArrayCreateParam neighborhoodParam  = new VirtualArrayCreateParam();
-            neighborhoodParam.setLabel("foo"+i);
+            VirtualArrayCreateParam neighborhoodParam = new VirtualArrayCreateParam();
+            neighborhoodParam.setLabel("foo" + i);
             VirtualArrayRestRep n = rSys.path("/vdc/varrays").post(VirtualArrayRestRep.class, neighborhoodParam);
             URI id = n.getId();
             Assert.assertNotNull(id);
@@ -121,7 +120,7 @@ public class GeoTest extends ApiTestBase {
         virtualPoolId = cos.getId();
         Assert.assertNotNull(virtualPoolId);
 
-        System.out.println("The VirtualPool ID:"+ virtualPoolId);
+        System.out.println("The VirtualPool ID:" + virtualPoolId);
     }
 
     private void createSubTenant() {
@@ -131,7 +130,7 @@ public class GeoTest extends ApiTestBase {
         /*
          * CREATE subtenant
          */
-        String subtenant_url =  "/tenants/"+rootTenantId.toString()+"/subtenants";
+        String subtenant_url = "/tenants/" + rootTenantId.toString() + "/subtenants";
         TenantCreateParam tenantParam = new TenantCreateParam();
         String subtenant1_label = "subtenant1";
         tenantParam.setLabel(subtenant1_label);
@@ -146,7 +145,7 @@ public class GeoTest extends ApiTestBase {
         // Add an attribute scope to the mapping
         UserMappingAttributeParam tenantAttr = new UserMappingAttributeParam();
         Date now = new Date();
-        tenantAttr.setKey("departMent"+now);
+        tenantAttr.setKey("departMent" + now);
         tenantAttr.setValues(Collections.singletonList(SUBTENANT1_ATTR));
         tenantMapping.setAttributes(Collections.singletonList(tenantAttr));
 
@@ -176,29 +175,29 @@ public class GeoTest extends ApiTestBase {
         if (geoClient != null)
             geoClient.shutdown();
 
-        //delete created virtual arrays
+        // delete created virtual arrays
         System.out.println("delete virtual arrays");
 
         for (URI id : ids) {
-            rSys.path("/vdc/varrays/"+id+"/deactivate").post();
+            rSys.path("/vdc/varrays/" + id + "/deactivate").post();
         }
 
-        System.out.println("delete virutalPool: "+ virtualPoolId);
+        System.out.println("delete virutalPool: " + virtualPoolId);
 
         if (virtualPoolId != null)
-            rSys.path("/block/vpools/"+virtualPoolId+"/deactivate").post();
+            rSys.path("/block/vpools/" + virtualPoolId + "/deactivate").post();
 
         System.out.println("delete project: " + projectId);
         if (projectId != null)
-            rSys.path("/projects/"+projectId+"/deactivate").post();
+            rSys.path("/projects/" + projectId + "/deactivate").post();
 
         System.out.println("delete tenant: " + subtenant1Id);
         if (subtenant1Id != null) {
-            rSys.path("/tenants/"+subtenant1Id+"/deactivate").post();
+            rSys.path("/tenants/" + subtenant1Id + "/deactivate").post();
         }
 
         if (_goodADConfig != null)
-            rSys.path("/vdc/admin/authnproviders/"+ _goodADConfig).delete();
+            rSys.path("/vdc/admin/authnproviders/" + _goodADConfig).delete();
     }
 
     @Test
@@ -216,7 +215,7 @@ public class GeoTest extends ApiTestBase {
         testCleanDbFlag();
         testVersion();
     }
-    
+
     private void testQueryByType() throws Exception {
         Iterator<URI> it = geoClient.queryByType(VirtualArray.class, true);
         Assert.assertNotNull(it);
@@ -244,14 +243,14 @@ public class GeoTest extends ApiTestBase {
         int count = 0;
         List<URI> ids;
 
-        while(true) {
+        while (true) {
             ids = geoClient.queryByType(VirtualArray.class, true, startId, 3);
 
             if (ids.isEmpty())
-                break; //reach the end
+                break; // reach the end
             count += ids.size();
 
-            startId = ids.get(ids.size()-1);
+            startId = ids.get(ids.size() - 1);
         }
 
         Assert.assertEquals(virtualArrayCount, count);
@@ -259,8 +258,8 @@ public class GeoTest extends ApiTestBase {
 
     private void testQueryObject() throws Exception {
         VirtualArray obj = geoClient.queryObject(VirtualArray.class, id1);
-        Assert.assertNotNull("Failed to find the VirtualArray "+ id1, obj);
-        Assert.assertEquals("The VirtualArray ID should be "+ id1, obj.getId(), id1);
+        Assert.assertNotNull("Failed to find the VirtualArray " + id1, obj);
+        Assert.assertEquals("The VirtualArray ID should be " + id1, obj.getId(), id1);
 
         obj = geoClient.queryObject(VirtualArray.class, id2);
         Assert.assertNotNull("Failed to find the VirtalArray " + id2, obj);
@@ -275,9 +274,9 @@ public class GeoTest extends ApiTestBase {
         Iterator<VirtualArray> objs = geoClient.queryObjects(VirtualArray.class, ids);
 
         Assert.assertNotNull("Failed to find VirtualArray objects with IDs " + ids, objs);
-        while(objs.hasNext()) {
+        while (objs.hasNext()) {
             VirtualArray obj = objs.next();
-            Assert.assertTrue("The VirtualArray object has unexpected ID "+ obj.getId(), ids.contains(obj.getId()));
+            Assert.assertTrue("The VirtualArray object has unexpected ID " + obj.getId(), ids.contains(obj.getId()));
         }
     }
 
@@ -290,7 +289,7 @@ public class GeoTest extends ApiTestBase {
         Iterator<VirtualArray> objs = geoClient.queryObjectsField(VirtualArray.class, "label", ids);
 
         Assert.assertNotNull("Failed to query field 'label' of VirtualArray objects", objs);
-        while(objs.hasNext()) {
+        while (objs.hasNext()) {
             VirtualArray obj = objs.next();
             Assert.assertTrue("The VirtalArray object has unexpected ID " + obj.getId(), ids.contains(obj.getId()));
         }
@@ -334,14 +333,14 @@ public class GeoTest extends ApiTestBase {
         URI startId = null;
         int count = 0;
 
-        while(true) {
+        while (true) {
             URIQueryResultList ret = new URIQueryResultList();
             geoClient.queryByConstraint(constraint, ret, startId, 3);
 
             Iterator<URI> it = ret.iterator();
 
             if (!it.hasNext())
-                break; //reach the end
+                break; // reach the end
 
             while (it.hasNext()) {
                 startId = it.next();
@@ -357,105 +356,108 @@ public class GeoTest extends ApiTestBase {
     }
 
     private void testSyncVdcConfig() throws Exception {
-        /* Since the VirtualDataCenter is not a GeoVisibleResource,
-           This test is not valid anymore, TODO: Qin will work on this
-        VirtualDataCenterSyncListParam vdcConfigList = new VirtualDataCenterSyncListParam();
-        List<VirtualDataCenterSyncParam> list = vdcConfigList.getVirtualDataCenters();
-        VirtualDataCenterSyncParam vdcConfig = new VirtualDataCenterSyncParam();
-        vdcConfig.setId(new URI("vdc1"));
-        vdcConfig.setVersion(1L);
-        vdcConfig.setHostCount(1);
-        vdcConfig.setHostList(new HashMap<String,String>(){{put("standalone","1.1.1.1");
-                }});
-        list.add(vdcConfig);
-
-        vdcConfig = new VirtualDataCenterSyncParam();
-        vdcConfig.setId(new URI("vdc2"));
-        vdcConfig.setVersion(1L);
-        vdcConfig.setHostCount(1);
-        vdcConfig.setHostList(new HashMap<String,String>(){{put("standalone","1.1.1.2");
-                }});
-        list.add(vdcConfig);
-
-        vdcConfig = new VirtualDataCenterSyncParam();
-        vdcConfig.setId(new URI("vdc3"));
-        vdcConfig.setVersion(1L);
-        vdcConfig.setHostCount(1);
-        vdcConfig.setHostList(new HashMap<String,String>(){{put("standalone","1.1.1.3");
-                }});
-        list.add(vdcConfig);
-
-        geoClient.syncVdcConfig(vdcConfigList);
-        Assert.assertEquals(countRowOf(VirtualDataCenter.class), 3);
-        */
+        /*
+         * Since the VirtualDataCenter is not a GeoVisibleResource,
+         * This test is not valid anymore, TODO: Qin will work on this
+         * VirtualDataCenterSyncListParam vdcConfigList = new VirtualDataCenterSyncListParam();
+         * List<VirtualDataCenterSyncParam> list = vdcConfigList.getVirtualDataCenters();
+         * VirtualDataCenterSyncParam vdcConfig = new VirtualDataCenterSyncParam();
+         * vdcConfig.setId(new URI("vdc1"));
+         * vdcConfig.setVersion(1L);
+         * vdcConfig.setHostCount(1);
+         * vdcConfig.setHostList(new HashMap<String,String>(){{put("standalone","1.1.1.1");
+         * }});
+         * list.add(vdcConfig);
+         * 
+         * vdcConfig = new VirtualDataCenterSyncParam();
+         * vdcConfig.setId(new URI("vdc2"));
+         * vdcConfig.setVersion(1L);
+         * vdcConfig.setHostCount(1);
+         * vdcConfig.setHostList(new HashMap<String,String>(){{put("standalone","1.1.1.2");
+         * }});
+         * list.add(vdcConfig);
+         * 
+         * vdcConfig = new VirtualDataCenterSyncParam();
+         * vdcConfig.setId(new URI("vdc3"));
+         * vdcConfig.setVersion(1L);
+         * vdcConfig.setHostCount(1);
+         * vdcConfig.setHostList(new HashMap<String,String>(){{put("standalone","1.1.1.3");
+         * }});
+         * list.add(vdcConfig);
+         * 
+         * geoClient.syncVdcConfig(vdcConfigList);
+         * Assert.assertEquals(countRowOf(VirtualDataCenter.class), 3);
+         */
     }
 
     private void testRemoveVdcConfig() throws Exception {
-        /* Since the VirtualDataCenter is not a GeoVisible resource,
+        /*
+         * Since the VirtualDataCenter is not a GeoVisible resource,
          * we can't use geoClient to do the query on it
          * TODO: Qin will work on this
-        VirtualDataCenterSyncListParam vdcConfigList = new VirtualDataCenterSyncListParam();
-        List<VirtualDataCenterSyncParam> list = vdcConfigList.getVirtualDataCenters();
-        VirtualDataCenterSyncParam vdcConfig = new VirtualDataCenterSyncParam();
-        vdcConfig.setId(new URI("vdc1"));
-        vdcConfig.setVersion(2L);
-        vdcConfig.setHostCount(1);
-        vdcConfig.setHostList(new HashMap<String,String>(){{put("standalone","1.1.2.1");
-                }});
-        list.add(vdcConfig);
-
-        geoClient.syncVdcConfig(vdcConfigList);
-
-        Assert.assertEquals(countRowOf(VirtualDataCenter.class), 1);
+         * VirtualDataCenterSyncListParam vdcConfigList = new VirtualDataCenterSyncListParam();
+         * List<VirtualDataCenterSyncParam> list = vdcConfigList.getVirtualDataCenters();
+         * VirtualDataCenterSyncParam vdcConfig = new VirtualDataCenterSyncParam();
+         * vdcConfig.setId(new URI("vdc1"));
+         * vdcConfig.setVersion(2L);
+         * vdcConfig.setHostCount(1);
+         * vdcConfig.setHostList(new HashMap<String,String>(){{put("standalone","1.1.2.1");
+         * }});
+         * list.add(vdcConfig);
+         * 
+         * geoClient.syncVdcConfig(vdcConfigList);
+         * 
+         * Assert.assertEquals(countRowOf(VirtualDataCenter.class), 1);
          */
     }
 
     private void testCleanDbFlag() throws Exception {
-        /* Same as above
-        VirtualDataCenterSyncListParam vdcConfigList = new VirtualDataCenterSyncListParam();
-        List<VirtualDataCenterSyncParam> list = vdcConfigList.getVirtualDataCenters();
-        VirtualDataCenterSyncParam vdcConfig = new VirtualDataCenterSyncParam();
-        vdcConfig.setId(new URI("vdc1"));
-        vdcConfig.setVersion(3L);
-        vdcConfig.setHostCount(1);
-        vdcConfig.setHostList(new HashMap<String,String>(){{put("standalone","1.1.3.1");
-                }});
-        list.add(vdcConfig);
-
-        vdcConfig = new VirtualDataCenterSyncParam();
-        vdcConfig.setId(new URI("vdc2"));
-        vdcConfig.setVersion(3L);
-        vdcConfig.setHostCount(1);
-        vdcConfig.setHostList(new HashMap<String,String>(){{put("standalone","1.1.3.2");
-                }});
-        list.add(vdcConfig);
-
-        vdcConfigList.setAssignedVdcId("vdc2");
-
-        geoClient.syncVdcConfig(vdcConfigList);
-
-        checkCleanDbFlag(Constants.DBSVC_NAME);
-        checkCleanDbFlag(Constants.GEODBSVC_NAME);
-
-        VirtualDataCenter vdc = geoClient.queryObject(VirtualDataCenter.class, new URI("vdc2"));
-        Assert.assertTrue(vdc.getLocal());
-        */
+        /*
+         * Same as above
+         * VirtualDataCenterSyncListParam vdcConfigList = new VirtualDataCenterSyncListParam();
+         * List<VirtualDataCenterSyncParam> list = vdcConfigList.getVirtualDataCenters();
+         * VirtualDataCenterSyncParam vdcConfig = new VirtualDataCenterSyncParam();
+         * vdcConfig.setId(new URI("vdc1"));
+         * vdcConfig.setVersion(3L);
+         * vdcConfig.setHostCount(1);
+         * vdcConfig.setHostList(new HashMap<String,String>(){{put("standalone","1.1.3.1");
+         * }});
+         * list.add(vdcConfig);
+         * 
+         * vdcConfig = new VirtualDataCenterSyncParam();
+         * vdcConfig.setId(new URI("vdc2"));
+         * vdcConfig.setVersion(3L);
+         * vdcConfig.setHostCount(1);
+         * vdcConfig.setHostList(new HashMap<String,String>(){{put("standalone","1.1.3.2");
+         * }});
+         * list.add(vdcConfig);
+         * 
+         * vdcConfigList.setAssignedVdcId("vdc2");
+         * 
+         * geoClient.syncVdcConfig(vdcConfigList);
+         * 
+         * checkCleanDbFlag(Constants.DBSVC_NAME);
+         * checkCleanDbFlag(Constants.GEODBSVC_NAME);
+         * 
+         * VirtualDataCenter vdc = geoClient.queryObject(VirtualDataCenter.class, new URI("vdc2"));
+         * Assert.assertTrue(vdc.getLocal());
+         */
     }
 
     public void testVersion() {
         String version = geoClient.getViPRVersion();
         Assert.assertNotNull("version should not be null", version);
-        Assert.assertTrue("version response '" + version + 
+        Assert.assertTrue("version response '" + version +
                 "' does not start with 'vipr-" + version, version.startsWith("vipr-"));
-    }    
-    
+    }
+
     @SuppressWarnings("unused")
-    private int countRowOf(Class<? extends GeoVisibleResource > clazz) throws Exception {
+    private int countRowOf(Class<? extends GeoVisibleResource> clazz) throws Exception {
         Iterator<URI> it = geoClient.queryByType(clazz, true);
 
         int count = 0;
-        while(it.hasNext()) {
-            count ++;
+        while (it.hasNext()) {
+            count++;
             it.next();
         }
 
@@ -467,7 +469,7 @@ public class GeoTest extends ApiTestBase {
         String kind = coordinatorClient.getDbConfigPath(svcName);
         String id = svcName.equals(Constants.DBSVC_NAME) ? "db-standalone" : "geodb-standalone";
         Configuration config = coordinatorClient.queryConfiguration(kind, id);
-        //Assert.assertEquals(config.getConfig(Constants.RESET_DB), 
-        //        String.valueOf(true));
+        // Assert.assertEquals(config.getConfig(Constants.RESET_DB),
+        // String.valueOf(true));
     }
 }

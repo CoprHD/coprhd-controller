@@ -60,8 +60,8 @@ public class LDAPsources extends ViprResourceController {
     protected static final String UNKNOWN = "LDAPsources.unknown";
     protected static final String MODEL_NAME = "LDAPsources";
     public static final String EXPECTED_GEO_VERSION_FOR_LDAP_GROUP_SUPPORT = AuthnProvider.getExpectedGeoVDCVersionForLDAPGroupSupport();
-    private static final String [] DEFAULT_GROUP_OBJECT_CLASSES = {"groupOfNames", "groupOfUniqueNames", "posixGroup", "organizationalRole"};
-    private static final String [] DEFAULT_GROUP_MEMBER_ATTRIBUTES = {"member", "uniqueMember", "memberUid", "roleOccupant"};
+    private static final String[] DEFAULT_GROUP_OBJECT_CLASSES = { "groupOfNames", "groupOfUniqueNames", "posixGroup", "organizationalRole" };
+    private static final String[] DEFAULT_GROUP_MEMBER_ATTRIBUTES = { "member", "uniqueMember", "memberUid", "roleOccupant" };
 
     //
     // Add reference data so that they can be reference in html template
@@ -72,7 +72,7 @@ public class LDAPsources extends ViprResourceController {
         renderArgs.put("authSourceTypeList", Arrays.asList(EnumOption.options(AuthSourceType.values())));
 
         renderArgs.put("adType", AuthSourceType.ad);
-        
+
         renderArgs.put("ldapType", AuthSourceType.ldap);
 
         renderArgs.put("searchScopeTypeList", SearchScopes.options(SearchScopes.ONELEVEL, SearchScopes.SUBTREE));
@@ -150,7 +150,7 @@ public class LDAPsources extends ViprResourceController {
         edit(new LDAPsourcesForm(authnProvider));
     }
 
-    @FlashException(keep=true)
+    @FlashException(keep = true)
     public static void save(LDAPsourcesForm ldapSources) {
         ldapSources.validate("ldapSources");
         if (Validation.hasErrors()) {
@@ -189,9 +189,9 @@ public class LDAPsources extends ViprResourceController {
 
         @Required
         public List<String> domains;
-        
+
         public List<String> groupObjectClasses;
-        
+
         public List<String> groupMemberAttributes;
 
         public String groupAttribute;
@@ -285,7 +285,7 @@ public class LDAPsources extends ViprResourceController {
             param.setDomainChanges(getDomainChanges(provider));
             param.setGroupWhitelistValueChanges(getGroupWhitelistValueChanges(provider));
             param.setServerUrlChanges(getServerUrlChanges(provider));
-            
+
             param.setGroupObjectClassChanges(getGroupObjectClassChanges(provider));
             param.setGroupMemberAttributeChanges(getGroupMemberAttributeChanges(provider));
 
@@ -416,8 +416,8 @@ public class LDAPsources extends ViprResourceController {
             boolean groupObjectClassesEmpty = checkIfEmptyList(this.groupObjectClasses);
             boolean groupMemberAttributesEmpty = checkIfEmptyList(this.groupMemberAttributes);
 
-            //Return error if only one of either objectClasses or memberAttributes
-            //is entered and other one is empty.
+            // Return error if only one of either objectClasses or memberAttributes
+            // is entered and other one is empty.
             if (groupObjectClassesEmpty ^ groupMemberAttributesEmpty) {
                 if (groupObjectClassesEmpty) {
                     Validation.addError(fieldName + ".groupObjectClasses",
@@ -441,7 +441,7 @@ public class LDAPsources extends ViprResourceController {
         boolean isGroupAttributeBlankOrNull(String groupAttribute) {
             boolean isBlankOrNull = false;
             if (StringUtils.isBlank(groupAttribute) ||
-                    groupAttribute.equalsIgnoreCase("null")){
+                    groupAttribute.equalsIgnoreCase("null")) {
                 isBlankOrNull = true;
             }
             return isBlankOrNull;

@@ -30,17 +30,17 @@ public class Snapshot extends FileObject implements ProjectResourceSnapshot {
 
     // Project the snapshot was associated to
     private NamedURI _project;
-    
+
     // native device ID to be indexed - this field is not exposed to client
     private String _nativeId;
 
     // native device ID to be indexed - this field is not exposed to client
     private String _nativeGuid;
 
-    //RO Checkpoint baseline associated with a created Snapshot from a fileshare
+    // RO Checkpoint baseline associated with a created Snapshot from a fileshare
     private String _checkpointBaseline;
 
-    //Generated name
+    // Generated name
     private String _name;
 
     @Name("timestamp")
@@ -77,7 +77,7 @@ public class Snapshot extends FileObject implements ProjectResourceSnapshot {
         this._nativeId = nativeId;
         setChanged("nativeId");
     }
-    
+
     @AlternateId("AltIdIndex")
     @Name("nativeGuid")
     public String getNativeGuid() {
@@ -88,17 +88,18 @@ public class Snapshot extends FileObject implements ProjectResourceSnapshot {
         this._nativeGuid = nativeGuid;
         setChanged("nativeGuid");
     }
-    
+
     @NamedRelationIndex(cf = "NamedRelationIndex", type = Project.class)
     @Name("project")
     public NamedURI getProject() {
         return _project;
     }
+
     public void setProject(NamedURI project) {
         _project = project;
         setChanged("project");
     }
-    
+
     @Name("name")
     public String getName() {
         return _name;
@@ -118,6 +119,5 @@ public class Snapshot extends FileObject implements ProjectResourceSnapshot {
         this._checkpointBaseline = checkpointBaseline;
         setChanged("checkpointbaseline");
     }
-
 
 }

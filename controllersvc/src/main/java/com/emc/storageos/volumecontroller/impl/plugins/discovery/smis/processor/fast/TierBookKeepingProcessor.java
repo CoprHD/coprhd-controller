@@ -58,7 +58,8 @@ public class TierBookKeepingProcessor extends AbstractFASTPolicyProcessor {
      * @throws IOException
      */
     private void performStorageTierBookKeeping(URI storageSystemUri) throws IOException {
-        List<URI> storageTierUris = _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceStorageTierConstraint(storageSystemUri));
+        List<URI> storageTierUris = _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getStorageDeviceStorageTierConstraint(storageSystemUri));
         List<StorageTier> storageTiers = _dbClient.queryObject(StorageTier.class,
                 storageTierUris);
         for (StorageTier tier : storageTiers) {

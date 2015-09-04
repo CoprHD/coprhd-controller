@@ -79,7 +79,7 @@ public class CapacityPoolProcessor extends Processor {
                 processVolumeCapacity(volumeInstanceChunks.getResponses(),
                         keyMap);
             }
-        }catch (Exception e) {
+        } catch (Exception e) {
             _logger.error("Provisioned Capacity failure :", e);
         } finally {
             resultObj = null;
@@ -98,6 +98,7 @@ public class CapacityPoolProcessor extends Processor {
     /**
      * Process volume capacity, iterates over the given chunk and process
      * each volume capacity.
+     * 
      * @param volumeInstances {@link CloseableIterator} instance
      * @param keyMap {@link Map} instance
      */

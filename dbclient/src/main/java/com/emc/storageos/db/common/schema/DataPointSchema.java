@@ -28,7 +28,7 @@ public class DataPointSchema extends DbSchema {
 
     @Override
     public boolean equals(Object o) {
-        if (!(o instanceof DataPointSchema)) 
+        if (!(o instanceof DataPointSchema))
             return false;
 
         return super.equals(o);

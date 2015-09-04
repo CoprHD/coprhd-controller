@@ -14,7 +14,6 @@
  */
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
-
 import java.net.URI;
 import java.util.List;
 
@@ -32,16 +31,16 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
  * The VNXe storage system implementation for the block full copy API.
  */
 public class VNXEBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
-    
+
     /**
      * Constructor
      * 
      * @param dbClient A reference to a database client.
      * @param coordinator A reference to the coordinator client.
-     * @param scheduler A reference to a scheduler. 
+     * @param scheduler A reference to a scheduler.
      */
     public VNXEBlockFullCopyApiImpl(DbClient dbClient, CoordinatorClient coordinator,
-        Scheduler scheduler) {
+            Scheduler scheduler) {
         super(dbClient, coordinator, scheduler);
     }
 
@@ -60,16 +59,16 @@ public class VNXEBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     public void validateFullCopyCreateRequest(List<BlockObject> fcSourceObjList, int count) {
         throw APIException.methodNotAllowed.notSupportedForVNXE();
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray,
-        String name, boolean createInactive, int count, String taskId) {
-        throw APIException.methodNotAllowed.notSupportedForVNXE();        
+            String name, boolean createInactive, int count, String taskId) {
+        throw APIException.methodNotAllowed.notSupportedForVNXE();
     }
-    
+
     /**
      * {@inheritDoc}
      */

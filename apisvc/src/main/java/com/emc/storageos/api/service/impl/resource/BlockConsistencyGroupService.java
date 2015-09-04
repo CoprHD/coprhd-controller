@@ -110,19 +110,19 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 @DefaultPermissions(read_roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, read_acls = { ACL.OWN,
         ACL.ALL }, write_roles = { Role.TENANT_ADMIN }, write_acls = { ACL.OWN, ACL.ALL })
 public class BlockConsistencyGroupService extends TaskResourceService {
-    
+
     private static final Logger _log = LoggerFactory.getLogger(BlockConsistencyGroupService.class);
     private static final int CG_MAX_LIMIT = 64;
-    
+
     // A reference to the placement manager.
     private PlacementManager _placementManager;
-    
+
     // A reference to the block service.
     private BlockService _blockService;
-    
+
     // Block service implementations
     private Map<String, BlockServiceApi> _blockServiceApis;
-    
+
     /**
      * Setter for the placement manager.
      * 
@@ -144,11 +144,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     public void setBlockServiceApis(final Map<String, BlockServiceApi> serviceInterfaces) {
         _blockServiceApis = serviceInterfaces;
     }
-    
+
     private BlockServiceApi getBlockServiceImpl(final String type) {
         return _blockServiceApis.get(type);
     }
-    
+
     private BlockServiceApi getBlockServiceImpl(final BlockConsistencyGroup cg) {
         BlockServiceApi blockServiceApiImpl = null;
         if (cg.checkForType(Types.RP)) {
@@ -160,26 +160,26 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         }
         return blockServiceApiImpl;
     }
-    
+
     @Override
     protected DataObject queryResource(final URI id) {
         ArgValidator.checkUri(id);
-        
+
         final Class<? extends DataObject> clazz = URIUtil.isType(id, BlockSnapshot.class) ? BlockSnapshot.class
                 : BlockConsistencyGroup.class;
-        
+
         final DataObject consistencyGroup = _permissionsHelper.getObjectById(id, clazz);
-        
+
         ArgValidator.checkEntityNotNull(consistencyGroup, id, isIdEmbeddedInURL(id));
-        
+
         return consistencyGroup;
     }
-    
+
     @Override
     protected URI getTenantOwner(final URI id) {
         return null;
     }
-    
+
     /**
      * Create a new consistency group
      * 
@@ -187,7 +187,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * volume create operations:
      * 
      * 1. Create CG object in Bourne 2. Operation will be synchronous
-     *      
+     * 
      * 
      * @prereq none
      * 
@@ -202,13 +202,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     public BlockConsistencyGroupRestRep createConsistencyGroup(
             final BlockConsistencyGroupCreate param) {
         checkForDuplicateName(param.getName(), BlockConsistencyGroup.class);
-        
+
         // Validate name
         ArgValidator.checkFieldNotEmpty(param.getName(), "name");
-        
-		//Validate name not greater than 64 characters
+
+        // Validate name not greater than 64 characters
         ArgValidator.checkFieldLengthMaximum(param.getName(), CG_MAX_LIMIT, "name");
-		
+
         // Validate project
         ArgValidator.checkFieldUriType(param.getProject(), Project.class, "project");
         final Project project = _dbClient.queryObject(Project.class, param.getProject());
@@ -216,23 +216,23 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 .checkEntity(project, param.getProject(), isIdEmbeddedInURL(param.getProject()));
         // Verify the user is authorized.
         verifyUserIsAuthorizedForRequest(project);
-        
+
         // Create Consistency Group in db
         final BlockConsistencyGroup consistencyGroup = new BlockConsistencyGroup();
         consistencyGroup.setId(URIUtil.createId(BlockConsistencyGroup.class));
         consistencyGroup.setLabel(param.getName());
         consistencyGroup.setProject(new NamedURI(project.getId(), param.getName()));
         consistencyGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(), param.getName()));
-        
+
         _dbClient.createObject(consistencyGroup);
-        
+
         return map(consistencyGroup, null, _dbClient);
-        
+
     }
-    
+
     /**
      * Show details for a specific consistency group
-     *      
+     * 
      * 
      * @prereq none
      * 
@@ -247,13 +247,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public BlockConsistencyGroupRestRep getConsistencyGroup(@PathParam("id") final URI id) {
         ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, "id");
-        
+
         // Query for the consistency group
         final BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(id);
-        
+
         // Get the implementation for the CG.
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
-        
+
         // Get the CG volumes
         List<Volume> volumes = blockServiceApiImpl.getActiveCGVolumes(consistencyGroup);
 
@@ -261,19 +261,19 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         if (volumes.isEmpty()) {
             return map(consistencyGroup, null, _dbClient);
         }
-        
+
         Set<URI> volumeURIs = new HashSet<URI>();
         for (Volume volume : volumes) {
             volumeURIs.add(volume.getId());
         }
         return map(consistencyGroup, volumeURIs, _dbClient);
     }
-    
+
     /**
      * Deletes a consistency group
      * 
      * Do not delete if snapshots exist for consistency group
-     *      
+     * 
      * 
      * @prereq Dependent snapshot resources must be deleted
      * 
@@ -302,8 +302,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // RP + VPlex CGs cannot be be deleted without VPlex controller intervention.
         if (consistencyGroup.getTypes().contains(Types.SRDF.toString()) ||
-                (consistencyGroup.getTypes().contains(Types.RP.toString()) && 
-                        !consistencyGroup.getTypes().contains(Types.VPLEX.toString())) ||
+                (consistencyGroup.getTypes().contains(Types.RP.toString()) &&
+                !consistencyGroup.getTypes().contains(Types.VPLEX.toString())) ||
                 deleteUncreatedConsistencyGroup(consistencyGroup)) {
             final URIQueryResultList cgVolumesResults = new URIQueryResultList();
             _dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()),
@@ -344,10 +344,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 consistencyGroup.getLabel()));
         return finishDeactivateTask(consistencyGroup, task);
     }
-    
+
     /**
-     * Check to see if the consistency group is active and not created.  In
-     * this case we can delete the consistency group.  Otherwise we should
+     * Check to see if the consistency group is active and not created. In
+     * this case we can delete the consistency group. Otherwise we should
      * not delete the consistency group.
      * 
      * @param consistencyGroup
@@ -358,13 +358,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     private boolean deleteUncreatedConsistencyGroup(
             final BlockConsistencyGroup consistencyGroup) {
         // If the consistency group is active and not created we can delete it,
-    	// otherwise we cannot.
-    	return (!consistencyGroup.getInactive() && !consistencyGroup.created());
+        // otherwise we cannot.
+        return (!consistencyGroup.getInactive() && !consistencyGroup.created());
     }
-    
+
     /**
      * Retrieve resource representations based on input ids.
-     *      
+     * 
      * 
      * @prereq none
      * 
@@ -385,10 +385,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     public BlockConsistencyGroupBulkRep getBulkResources(final BulkIdParam param) {
         return (BlockConsistencyGroupBulkRep) super.getBulkResources(param);
     }
-    
+
     /**
      * Creates a consistency group snapshot
-     *      
+     * 
      * 
      * @prereq none
      * 
@@ -407,35 +407,35 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             final BlockConsistencyGroupSnapshotCreate param) {
         // Query Consistency Group
         final BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(consistencyGroupId);
-        
+
         // Ensure that the Consistency Group has been created on all of its defined
         // system types.
         if (!consistencyGroup.created()) {
             throw APIException.badRequests.consistencyGroupNotCreated();
         }
-        
+
         // Maintain pre-2.2 functionality for VPLEX CGs created prior to
         // release 2.2, which does not allow snapping a consistency group.
         URI cgStorageControllerURI = consistencyGroup.getStorageController();
         if (!NullColumnValueGetter.isNullURI(cgStorageControllerURI)) {
             // No snapshots for VPLEX consistency groups.
             StorageSystem cgStorageController = _dbClient.queryObject(
-                StorageSystem.class, cgStorageControllerURI);
+                    StorageSystem.class, cgStorageControllerURI);
             if ((DiscoveredDataObject.Type.vplex.name().equals(cgStorageController
-                .getSystemType())) && (!consistencyGroup.checkForType(Types.LOCAL))) {
+                    .getSystemType())) && (!consistencyGroup.checkForType(Types.LOCAL))) {
                 throw APIException.badRequests.cannotCreateSnapshotOfVplexCG();
             }
         }
-        
+
         // Get the block service implementation
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
-        
+
         // Get the volumes in the consistency group.
         List<Volume> volumeList = blockServiceApiImpl.getActiveCGVolumes(consistencyGroup);
-        
+
         // Generate task id
         String taskId = UUID.randomUUID().toString();
-        
+
         // Set snapshot type.
         String snapshotType = BlockSnapshot.TechnologyType.NATIVE.toString();
         if (consistencyGroup.checkForType(BlockConsistencyGroup.Types.RP)) {
@@ -449,45 +449,46 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         if (consistencyGroup.checkForType(BlockConsistencyGroup.Types.RP)) {
             for (Volume volumeToSnap : volumeList) {
                 // Get the RP source volume.
-                if (volumeToSnap.getPersonality() != null && volumeToSnap.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
+                if (volumeToSnap.getPersonality() != null
+                        && volumeToSnap.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())) {
                     snapVolume = volumeToSnap;
                     break;
                 }
             }
-        } else if (!volumeList.isEmpty()){
+        } else if (!volumeList.isEmpty()) {
             // Any volume.
             snapVolume = volumeList.get(0);
         }
-            
+
         // Validate the snapshot request.
         String snapshotName = param.getName();
         blockServiceApiImpl.validateCreateSnapshot(snapVolume, volumeList, snapshotType, snapshotName, getFullCopyManager());
-        
+
         // Set the create inactive flag.
         final Boolean createInactive = param.getCreateInactive() == null ? Boolean.FALSE
-            : param.getCreateInactive();
+                : param.getCreateInactive();
 
         // Prepare and create the snapshots for the group.
         List<URI> snapIdList = new ArrayList<URI>();
         List<BlockSnapshot> snapshotList = new ArrayList<BlockSnapshot>();
         TaskList response = new TaskList();
         snapshotList.addAll(blockServiceApiImpl.prepareSnapshots(
-            volumeList, snapshotType, snapshotName, snapIdList, taskId));
+                volumeList, snapshotType, snapshotName, snapIdList, taskId));
         for (BlockSnapshot snapshot : snapshotList) {
             response.getTaskList().add(toTask(snapshot, taskId));
         }
         blockServiceApiImpl.createSnapshot(snapVolume, snapIdList, snapshotType, createInactive, taskId);
-       
+
         auditBlockConsistencyGroup(OperationTypeEnum.CREATE_CONSISTENCY_GROUP_SNAPSHOT,
                 AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, param.getName(),
                 consistencyGroup.getId().toString());
-        
+
         return response;
     }
-    
+
     /**
      * List snapshots in the consistency group
-     *      
+     * 
      * 
      * @prereq none
      * 
@@ -502,7 +503,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @Path("/{id}/protection/snapshots")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public SnapshotList getConsistencyGroupSnapshots(@PathParam("id") final URI consistencyGroupId) {
-        
+
         ArgValidator.checkUri(consistencyGroupId);
         final Class<? extends DataObject> clazz = URIUtil.isType(consistencyGroupId,
                 BlockSnapshot.class) ? BlockSnapshot.class : BlockConsistencyGroup.class;
@@ -510,14 +511,14 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 clazz);
         ArgValidator.checkEntityNotNull(consistencyGroup, consistencyGroupId,
                 isIdEmbeddedInURL(consistencyGroupId));
-        
+
         SnapshotList list = new SnapshotList();
         List<URI> snapshotsURIs = new ArrayList<URI>();
         // Find all volumes assigned to the group
         final URIQueryResultList cgSnapshotsResults = new URIQueryResultList();
         _dbClient.queryByConstraint(getBlockSnapshotByConsistencyGroup(consistencyGroupId),
                 cgSnapshotsResults);
-        
+
         if (!cgSnapshotsResults.iterator().hasNext()) {
             return list;
         }
@@ -525,7 +526,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             URI snapshot = cgSnapshotsResults.iterator().next();
             snapshotsURIs.add(snapshot);
         }
-        
+
         List<BlockSnapshot> snapshots = _dbClient.queryObject(BlockSnapshot.class, snapshotsURIs);
         List<NamedRelatedResourceRep> activeSnapshots = new ArrayList<NamedRelatedResourceRep>();
         List<NamedRelatedResourceRep> inactiveSnapshots = new ArrayList<NamedRelatedResourceRep>();
@@ -536,16 +537,16 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 activeSnapshots.add(toNamedRelatedResource(snapshot));
             }
         }
-        
+
         list.getSnapList().addAll(inactiveSnapshots);
         list.getSnapList().addAll(activeSnapshots);
-        
+
         return list;
     }
-    
+
     /**
      * Show the specified Consistency Group Snapshot
-     *      
+     * 
      * 
      * @prereq none
      * 
@@ -568,10 +569,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         verifySnapshotIsForConsistencyGroup(snapshot, consistencyGroup);
         return BlockMapper.map(_dbClient, snapshot);
     }
-    
+
     /**
      * Activate the specified Consistency Group Snapshot
-     *      
+     * 
      * 
      * @prereq Create consistency group snapshot as inactive
      * 
@@ -589,10 +590,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskResourceRep activateConsistencyGroupSnapshot(
             @PathParam("id") final URI consistencyGroupId, @PathParam("sid") final URI snapshotId) {
-        
+
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.ACTIVATE_CONSISTENCY_GROUP_SNAPSHOT);
-        
+
         final BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(consistencyGroupId);
         final BlockSnapshot snapshot = (BlockSnapshot) queryResource(snapshotId);
         verifySnapshotIsForConsistencyGroup(snapshot, consistencyGroup);
@@ -600,9 +601,9 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 snapshot.getStorageController());
         final BlockController controller = getController(BlockController.class,
                 device.getSystemType());
-        
+
         final String task = UUID.randomUUID().toString();
-        
+
         // If the snapshot is already active, there would be no need to queue another request to
         // activate it again.
         if (snapshot.getIsSyncActive()) {
@@ -611,22 +612,22 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             _dbClient.createTaskOpStatus(BlockSnapshot.class, snapshot.getId(), task, op);
             return toTask(snapshot, task, op);
         }
-        
+
         _dbClient.createTaskOpStatus(BlockSnapshot.class, snapshot.getId(), task, op);
-        
+
         try {
             final List<URI> snapshotList = new ArrayList<URI>();
             // Query all the snapshots by snapshot label
             final List<BlockSnapshot> snaps = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshot, _dbClient);
-            
+
             // Build a URI list with all the snapshots ids
-            for(BlockSnapshot snap : snaps) {
+            for (BlockSnapshot snap : snaps) {
                 snapshotList.add(snap.getId());
             }
-            
+
             // Activate snapshots
             controller.activateSnapshot(device.getId(), snapshotList, task);
-            
+
         } catch (final ControllerException e) {
             throw new ServiceCodeException(
                     CONTROLLER_ERROR,
@@ -634,16 +635,16 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                     "An exception occurred when activating consistency group snapshot {0}. Caused by: {1}",
                     new Object[] { snapshotId, e.getMessage() });
         }
-        
+
         auditBlockConsistencyGroup(OperationTypeEnum.ACTIVATE_CONSISTENCY_GROUP_SNAPSHOT,
                 AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, snapshot.getId()
                         .toString(), snapshot.getLabel());
         return toTask(snapshot, task, op);
     }
-    
+
     /**
      * Deactivate the specified Consistency Group Snapshot
-     *      
+     * 
      * 
      * @prereq none
      * 
@@ -661,7 +662,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskList deactivateConsistencyGroupSnapshot(
             @PathParam("id") final URI consistencyGroupId, @PathParam("sid") final URI snapshotId) {
-        
+
         final BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(consistencyGroupId);
         final BlockSnapshot snapshot = (BlockSnapshot) queryResource(snapshotId);
 
@@ -670,7 +671,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Generate task id
         final String task = UUID.randomUUID().toString();
         TaskList response = new TaskList();
-        
+
         // Not an error if the snapshot we try to delete is already deleted
         if (snapshot.getInactive()) {
             Operation op = new Operation();
@@ -680,35 +681,35 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             response.getTaskList().add(toTask(snapshot, task, op));
             return response;
         }
-        
+
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
 
         if (snapshot.getConsistencyGroup() != null) {
             // Collect all the BlockSnapshots if part of a CG.
             snapshots = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshot, _dbClient);
         }
-        
+
         for (BlockSnapshot snap : snapshots) {
-            Operation snapOp = _dbClient.createTaskOpStatus(BlockSnapshot.class, snap.getId(), task, 
+            Operation snapOp = _dbClient.createTaskOpStatus(BlockSnapshot.class, snap.getId(), task,
                     ResourceOperationTypeEnum.DEACTIVATE_CONSISTENCY_GROUP_SNAPSHOT);
             response.getTaskList().add(toTask(snap, task, snapOp));
         }
-        
+
         Volume volume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
         BlockServiceApi blockServiceApiImpl = BlockService.getBlockServiceImpl(volume, _dbClient);
-        
+
         blockServiceApiImpl.deleteSnapshot(snapshot, task);
-        
+
         auditBlockConsistencyGroup(OperationTypeEnum.DELETE_CONSISTENCY_GROUP_SNAPSHOT,
                 AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, snapshot.getId()
                         .toString(), snapshot.getLabel());
-        
+
         return response;
     }
-    
+
     /**
      * Restore the specified consistency group snapshot
-     *      
+     * 
      * 
      * @prereq Activate consistency group snapshot
      * 
@@ -726,13 +727,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskResourceRep restoreConsistencyGroupSnapshot(
             @PathParam("id") final URI consistencyGroupId, @PathParam("sid") final URI snapshotId) {
-        
+
         // Get the consistency group and snapshot and verify the snapshot
         // is actually associated with the consistency group.
         final BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(consistencyGroupId);
         final BlockSnapshot snapshot = (BlockSnapshot) queryResource(snapshotId);
         verifySnapshotIsForConsistencyGroup(snapshot, consistencyGroup);
-        
+
         // Get the storage system for the consistency group.
         StorageSystem storage = _permissionsHelper.getObjectById(consistencyGroup.getStorageController(), StorageSystem.class);
         if (storage.checkIfVmax3()) {
@@ -742,26 +743,26 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // Get the parent volume.
         final Volume snapshotParentVolume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
-        
+
         // Get the block implementation
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
-        
+
         // Validate the snapshot restore.
         blockServiceApiImpl.validateRestoreSnapshot(snapshot, snapshotParentVolume);
 
         // Create the restore operation task for the snapshot.
         final String taskId = UUID.randomUUID().toString();
         final Operation op = _dbClient.createTaskOpStatus(BlockSnapshot.class,
-            snapshot.getId(), taskId, ResourceOperationTypeEnum.RESTORE_CONSISTENCY_GROUP_SNAPSHOT);
-                
+                snapshot.getId(), taskId, ResourceOperationTypeEnum.RESTORE_CONSISTENCY_GROUP_SNAPSHOT);
+
         // Restore the snapshot. The controllers will handle the fact that
         // this is a consistency group snapshot.
         blockServiceApiImpl.restoreSnapshot(snapshot, snapshotParentVolume, taskId);
-        
+
         auditBlockConsistencyGroup(OperationTypeEnum.RESTORE_CONSISTENCY_GROUP_SNAPSHOT,
                 AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN,
                 snapshotId.toString(), consistencyGroupId.toString(), snapshot.getStorageController().toString());
-        
+
         return toTask(snapshot, taskId, op);
     }
 
@@ -780,12 +781,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      */
     public void auditBlockConsistencyGroup(final OperationTypeEnum auditType,
             final String operationalStatus, final String operationStage, final Object... descparams) {
-        
+
         _auditMgr.recordAuditLog(URI.create(getUserFromContext().getTenantId()),
                 URI.create(getUserFromContext().getName()), "block", auditType,
                 System.currentTimeMillis(), operationalStatus, operationStage, descparams);
     }
-    
+
     private void verifyUserIsAuthorizedForRequest(final Project project) {
         StorageOSUser user = getUserFromContext();
         if (!(_permissionsHelper.userHasGivenRole(user, project.getTenantOrg().getURI(),
@@ -794,7 +795,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
         }
     }
-    
+
     /**
      * Block consistency group is not a zone level resource
      * 
@@ -804,18 +805,18 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     protected boolean isZoneLevelResource() {
         return false;
     }
-    
+
     @Override
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP;
     }
-    
+
     @SuppressWarnings("unchecked")
     @Override
     public Class<BlockConsistencyGroup> getResourceClass() {
         return BlockConsistencyGroup.class;
     }
-    
+
     /**
      * Retrieve volume representations based on input ids.
      * 
@@ -831,7 +832,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         return new BlockConsistencyGroupBulkRep(BulkList.wrapping(_dbIterator,
                 MapBlockConsistencyGroup.getInstance(_dbClient)));
     }
-    
+
     @Override
     protected BulkRestRep queryFilteredBulkResourceReps(final List<URI> ids) {
         Iterator<BlockConsistencyGroup> _dbIterator = _dbClient.queryIterativeObjects(
@@ -841,7 +842,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         return new BlockConsistencyGroupBulkRep(BulkList.wrapping(_dbIterator,
                 MapBlockConsistencyGroup.getInstance(_dbClient), filter));
     }
-    
+
     /**
      * Get search results by name in zone or project.
      * 
@@ -860,7 +861,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         }
         return resRepList;
     }
-    
+
     /**
      * Get search results by project alone.
      * 
@@ -874,7 +875,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 resRepList);
         return resRepList;
     }
-    
+
     /**
      * Get object specific permissions filter
      * 
@@ -884,10 +885,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             final StorageOSUser user, final PermissionsHelper permissionsHelper) {
         return new ProjOwnedResRepFilter(user, permissionsHelper, BlockConsistencyGroup.class);
     }
-    
+
     /**
      * Update the specified consistency group
-     *      
+     * 
      * 
      * @prereq none
      * 
@@ -903,57 +904,57 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskResourceRep updateConsistencyGroup(@PathParam("id") final URI id,
             final BlockConsistencyGroupUpdate param) {
-        
+
         // Get the consistency group.
         BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(id);
-        
+
         // Verify a volume was specified to be added or removed.
         if (!param.hasEitherAddOrRemoveVolumes()) {
             throw APIException.badRequests.noVolumesToBeAddedRemovedFromCG();
         }
-        
+
         // cannot update RP consistency groups
         if (consistencyGroup.getTypes().contains(Types.RP.toString())) {
             throw APIException.badRequests.notAllowedOnRPConsistencyGroups();
         }
-        
+
         // TODO require a check if requested list contains all volumes/replicas?
-        //          For replicas, check replica count with volume count in CG
-        
+        // For replicas, check replica count with volume count in CG
+
         StorageSystem cgStorageSystem = null;
 
         // if consistency group is not created yet, then get the storage system from the block object to be added
         // This method also supports adding volumes or replicas to CG (VMAX - SMIS 8.0.x)
         if (!consistencyGroup.created()
-                && param.hasVolumesToAdd()) { //we just need to check the case of add volumes in this case
+                && param.hasVolumesToAdd()) { // we just need to check the case of add volumes in this case
             BlockObject bo = BlockObject.fetch(_dbClient, param.getAddVolumesList().getVolumes().get(0));
             cgStorageSystem = _permissionsHelper.getObjectById(
                     bo.getStorageController(), StorageSystem.class);
         } else {
             // Get the storage system for the consistency group.
             cgStorageSystem = _permissionsHelper.getObjectById(
-                consistencyGroup.getStorageController(), StorageSystem.class);
+                    consistencyGroup.getStorageController(), StorageSystem.class);
         }
-        
+
         // VPlex, VNX, ScaleIO, and VMax volumes only
         String systemType = cgStorageSystem.getSystemType();
         if (!systemType.equals(DiscoveredDataObject.Type.vplex.name())
-            && !systemType.equals(DiscoveredDataObject.Type.vnxblock.name())
-            && !systemType.equals(DiscoveredDataObject.Type.vmax.name())
+                && !systemType.equals(DiscoveredDataObject.Type.vnxblock.name())
+                && !systemType.equals(DiscoveredDataObject.Type.vmax.name())
                 && !systemType.equals(DiscoveredDataObject.Type.vnxe.name())
                 && !systemType.equals(DiscoveredDataObject.Type.ibmxiv.name())
                 && !systemType.equals(DiscoveredDataObject.Type.scaleio.name())) {
             throw APIException.methodNotAllowed.notSupported();
         }
-        
+
         // Get any volumes currently in the consistency group.
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
-        
+
         // Adding/removing volumes to/from a consistency group
         // is not supported when the consistency group has active
         // snapshots.
-        //  - This is supported for SMIS 8.0.3
-        if(!cgStorageSystem.getUsingSmis80()) {
+        // - This is supported for SMIS 8.0.3
+        if (!cgStorageSystem.getUsingSmis80()) {
             URIQueryResultList cgSnapshotsResults = new URIQueryResultList();
             _dbClient.queryByConstraint(getBlockSnapshotByConsistencyGroup(id), cgSnapshotsResults);
             Iterator<URI> cgSnapshotsIter = cgSnapshotsResults.iterator();
@@ -964,7 +965,6 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 }
             }
         }
-
 
         // Verify that the add and remove lists do not contain the same volume.
         if (param.hasBothAddAndRemoveVolumes()) {
@@ -980,20 +980,19 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             }
         }
 
-        
         List<Volume> cgVolumes = blockServiceApiImpl.getActiveCGVolumes(consistencyGroup);
-        
+
         // Adding/removing volumes to/from a consistency group
-        // is not supported when the consistency group has 
+        // is not supported when the consistency group has
         // volumes with full copies to which they are still
         // attached or has volumes that are full copies that
         // are still attached to their source volumes.
-        //  - This is supported for SMIS 8.0.3
-        if(!cgStorageSystem.getUsingSmis80()) {
+        // - This is supported for SMIS 8.0.3
+        if (!cgStorageSystem.getUsingSmis80()) {
             getFullCopyManager().verifyConsistencyGroupCanBeUpdated(consistencyGroup,
-                cgVolumes);
+                    cgVolumes);
         }
-        
+
         // Verify the volumes to be removed.
         List<URI> removeVolumesList = new ArrayList<URI>();
         if (param.hasVolumesToRemove()) {
@@ -1002,8 +1001,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 if (URIUtil.isType(volumeURI, Volume.class)) {
                     Volume volume = _permissionsHelper.getObjectById(volumeURI, Volume.class);
                     ArgValidator.checkEntity(volume, volumeURI, false);
-                    if (!BlockFullCopyUtils.isVolumeFullCopy((Volume)volume, _dbClient)) {
-                        blockServiceApiImpl.verifyRemoveVolumeFromCG((Volume)volume, cgVolumes);
+                    if (!BlockFullCopyUtils.isVolumeFullCopy((Volume) volume, _dbClient)) {
+                        blockServiceApiImpl.verifyRemoveVolumeFromCG((Volume) volume, cgVolumes);
                     }
                 }
                 removeVolumesList.add(volumeURI);
@@ -1019,33 +1018,33 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Verify the volumes to be added.
         List<URI> addVolumesList = new ArrayList<URI>();
         if (param.hasVolumesToAdd()) {
-            for (URI volumeURI : param.getAddVolumesList().getVolumes()) {       
+            for (URI volumeURI : param.getAddVolumesList().getVolumes()) {
                 // Validate the volume to be added exists.
                 Volume volume = null;
                 boolean isReplica = true;
                 if (URIUtil.isType(volumeURI, Volume.class)) {
                     volume = _permissionsHelper.getObjectById(volumeURI, Volume.class);
                     ArgValidator.checkEntity(volume, volumeURI, false);
-                    if (!BlockFullCopyUtils.isVolumeFullCopy((Volume)volume, _dbClient)) {
+                    if (!BlockFullCopyUtils.isVolumeFullCopy((Volume) volume, _dbClient)) {
                         isReplica = false;
-                        blockServiceApiImpl.verifyAddVolumeToCG((Volume)volume, consistencyGroup,
+                        blockServiceApiImpl.verifyAddVolumeToCG((Volume) volume, consistencyGroup,
                                 cgVolumes, cgStorageSystem);
                     }
                 }
                 if (isReplica) {
                     verifyAddReplicaToCG(volumeURI, consistencyGroup, cgStorageSystem);
                 }
-                
+
                 // IBM XIV specific checking
                 if (systemType.equals(DiscoveredDataObject.Type.ibmxiv.name())) {
                     // all volumes should be on the same storage pool
                     if (xivPoolURI == null) {
-                        xivPoolURI = ((Volume)volume).getPool();
+                        xivPoolURI = ((Volume) volume).getPool();
                     }
                     else {
-                        if (!xivPoolURI.equals(((Volume)volume).getPool())) {
+                        if (!xivPoolURI.equals(((Volume) volume).getPool())) {
                             throw APIException.badRequests
-                            .invalidParameterIBMXIVConsistencyGroupVolumeNotInPool(volumeURI, xivPoolURI);
+                                    .invalidParameterIBMXIVConsistencyGroupVolumeNotInPool(volumeURI, xivPoolURI);
                         }
                     }
                 }
@@ -1059,16 +1058,16 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // Call the block service API to update the consistency group.
         return blockServiceApiImpl.updateConsistencyGroup(cgStorageSystem, cgVolumes,
-            consistencyGroup, addVolumesList, removeVolumesList, taskId);
+                consistencyGroup, addVolumesList, removeVolumesList, taskId);
     }
-    
+
     /**
      * Validates the replicas to be added to Consistency group.
-     *  - verifies that the replicas are not internal objects,
-     *  - checks if the given CG is its source volume's CG,
-     *  - validates that the replica is not in any other CG,
-     *  - verifies the project for the replicas to be added is same
-     *     as the project for the consistency group.
+     * - verifies that the replicas are not internal objects,
+     * - checks if the given CG is its source volume's CG,
+     * - validates that the replica is not in any other CG,
+     * - verifies the project for the replicas to be added is same
+     * as the project for the consistency group.
      */
     private void verifyAddReplicaToCG(URI blockURI, BlockConsistencyGroup cg,
             StorageSystem cgStorageSystem) {
@@ -1135,11 +1134,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * @param consistencyGroup A reference to a consistency group
      */
     private void verifySnapshotIsForConsistencyGroup(BlockSnapshot snapshot,
-        BlockConsistencyGroup consistencyGroup) {
+            BlockConsistencyGroup consistencyGroup) {
         URI snapshotCGURI = snapshot.getConsistencyGroup();
         if ((NullColumnValueGetter.isNullURI(snapshotCGURI)) || (!snapshotCGURI.equals(consistencyGroup.getId()))) {
             throw APIException.badRequests.snapshotIsNotForConsistencyGroup(
-                snapshot.getLabel(), consistencyGroup.getLabel());
+                    snapshot.getLabel(), consistencyGroup.getLabel());
         }
     }
 
@@ -1159,7 +1158,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         Operation status = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, id, task, op);
         return toTask(consistencyGroup, task, status);
     }
-    
+
     /**
      * Creates a consistency group full copy.
      * 
@@ -1177,7 +1176,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @Path("/{id}/protection/full-copies")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ANY })
     public TaskList createConsistencyGroupFullCopy(@PathParam("id") URI cgURI,
-        VolumeFullCopyCreateParam param) {
+            VolumeFullCopyCreateParam param) {
         // Verify the consistency group in the requests and get the
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
@@ -1188,7 +1187,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // fact that the volume is in a CG.
         return getFullCopyManager().createFullCopy(cgVolumes.get(0).getId(), param);
     }
-    
+
     /**
      * Activate the specified consistency group full copy.
      * 
@@ -1210,15 +1209,15 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Verify the consistency group in the request and get the
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
-        
+
         // Verify the full copy.
         URI fcSourceURI = verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
-        
+
         // Activate the full copy. Note that it will take into account the
         // fact that the volume is in a CG.
         return getFullCopyManager().activateFullCopy(fcSourceURI, fullCopyURI);
     }
-    
+
     /**
      * Detach the specified consistency group full copy.
      * 
@@ -1240,15 +1239,15 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Verify the consistency group in the request and get the
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
-        
+
         // Verify the full copy.
         URI fcSourceURI = verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
-        
+
         // Detach the full copy. Note that it will take into account the
         // fact that the volume is in a CG.
         return getFullCopyManager().detachFullCopy(fcSourceURI, fullCopyURI);
     }
-    
+
     /**
      * Restore the specified consistency group full copy.
      * 
@@ -1270,15 +1269,15 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Verify the consistency group in the request and get the
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
-        
+
         // Verify the full copy.
         URI fcSourceURI = verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
-        
+
         // Restore the full copy. Note that it will take into account the
         // fact that the volume is in a CG.
         return getFullCopyManager().restoreFullCopy(fcSourceURI, fullCopyURI);
     }
-    
+
     /**
      * Resynchronize the specified consistency group full copy.
      * 
@@ -1300,15 +1299,15 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Verify the consistency group in the request and get the
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
-        
+
         // Verify the full copy.
         URI fcSourceURI = verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
-        
+
         // Resynchronize the full copy. Note that it will take into account the
         // fact that the volume is in a CG.
         return getFullCopyManager().resynchronizeFullCopy(fcSourceURI, fullCopyURI);
     }
-    
+
     /**
      * Deactivate the specified consistency group full copy.
      * 
@@ -1326,15 +1325,15 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @Path("/{id}/protection/full-copies/{fcid}/deactivate")
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskList deactivateConsistencyGroupFullCopy(@PathParam("id") URI cgURI,
-        @PathParam("fcid") URI fullCopyURI) {
-        
+            @PathParam("fcid") URI fullCopyURI) {
+
         // Verify the consistency group in the request and get the
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
-        
+
         // Verify the full copy.
         verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
-        
+
         // Full copies are volumes, and volumes are deleted by the
         // block service. The block service deactivate method will
         // ensure that full copies in CGs results in all associated
@@ -1363,20 +1362,20 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // Verify the consistency group in the request and get the
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
-        
-        // Cycle over the volumes in the consistency group and 
+
+        // Cycle over the volumes in the consistency group and
         // get the full copies for each volume in the group.
         NamedVolumesList cgFullCopyList = new NamedVolumesList();
         for (Volume cgVolume : cgVolumes) {
             NamedVolumesList cgVolumeFullCopies = getFullCopyManager().getFullCopiesForSource(cgVolume.getId());
             cgFullCopyList.getVolumes().addAll(cgVolumeFullCopies.getVolumes());
         }
-        
+
         return cgFullCopyList;
     }
-    
+
     /**
-     * Get the specified consistency group full copy.   
+     * Get the specified consistency group full copy.
      * 
      * @prereq none
      * 
@@ -1392,14 +1391,14 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     @Path("/{id}/protection/full-copies/{fcid}")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public VolumeRestRep getConsistencyGroupFullCopy(@PathParam("id") URI cgURI,
-        @PathParam("fcid") URI fullCopyURI) {
+            @PathParam("fcid") URI fullCopyURI) {
         // Verify the consistency group in the request and get the
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
-        
+
         // Verify the full copy.
         verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
-        
+
         // Get and return the full copy.
         return getFullCopyManager().getFullCopy(fullCopyURI);
     }
@@ -1412,11 +1411,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      */
     private BlockFullCopyManager getFullCopyManager() {
         BlockFullCopyManager fcManager = new BlockFullCopyManager(_dbClient,
-            _permissionsHelper, _auditMgr, _coordinator, _placementManager, sc, uriInfo,
-            _request, null);
+                _permissionsHelper, _auditMgr, _coordinator, _placementManager, sc, uriInfo,
+                _request, null);
         return fcManager;
     }
-    
+
     /**
      * Verifies the CG passe din the request is valid and contains volumes.
      * 
@@ -1433,20 +1432,20 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         if (!consistencyGroup.created()) {
             throw APIException.badRequests.consistencyGroupNotCreated();
         }
-        
+
         // Get the block service implementation.
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl(consistencyGroup);
-        
+
         // Get the volumes in the consistency group.
         List<Volume> cgVolumes = blockServiceApiImpl.getActiveCGVolumes(consistencyGroup);
         if (cgVolumes.size() <= 0) {
             throw APIException.badRequests
-                .fullCopyOperationNotAllowedOnEmptyCG(consistencyGroup.getLabel());
+                    .fullCopyOperationNotAllowedOnEmptyCG(consistencyGroup.getLabel());
         }
-        
+
         return cgVolumes;
     }
-    
+
     /**
      * Verifies that the passed full copy URI and ensure that it
      * represents a full copy for a volume in the passed list of
@@ -1461,11 +1460,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     private URI verifyFullCopyForCopyRequest(URI fullCopyURI, List<Volume> cgVolumes) {
         // Get the full copy source.
         Volume fullCopyVolume = (Volume) BlockFullCopyUtils.queryFullCopyResource(
-            fullCopyURI, uriInfo, true, _dbClient);
+                fullCopyURI, uriInfo, true, _dbClient);
         URI fcSourceURI = fullCopyVolume.getAssociatedSourceVolume();
         if (NullColumnValueGetter.isNullURI(fcSourceURI)) {
             throw APIException.badRequests
-                .fullCopyOperationNotAllowedNotAFullCopy(fullCopyVolume.getLabel());
+                    .fullCopyOperationNotAllowedNotAFullCopy(fullCopyVolume.getLabel());
         }
 
         // Verify the source is in the consistency group.
@@ -1478,7 +1477,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         }
         if (!sourceInCG) {
             throw APIException.badRequests
-                .fullCopyOperationNotAllowedSourceNotInCG(fullCopyVolume.getLabel());
+                    .fullCopyOperationNotAllowedSourceNotInCG(fullCopyVolume.getLabel());
         }
         return fcSourceURI;
     }

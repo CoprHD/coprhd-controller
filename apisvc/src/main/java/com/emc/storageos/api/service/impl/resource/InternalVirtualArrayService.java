@@ -45,6 +45,7 @@ public class InternalVirtualArrayService extends ResourceService {
 
     /**
      * Get virtual array object from id
+     * 
      * @param id the URN of a ViPR virtual array object
      * @return
      */
@@ -60,14 +61,15 @@ public class InternalVirtualArrayService extends ResourceService {
 
     /**
      * Set protection type for varray
+     * 
      * @param id the URN of a ViPR varray
      * @param value the value of the protection type
      * @return the updated virtual array info
      */
     @PUT
     @Path("/{id}/protectionType")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public VirtualArrayRestRep setProtectionType(@PathParam("id") URI id, @QueryParam("value") String protectionType) {
         if (protectionType == null || protectionType.isEmpty()) {
             throw APIException.badRequests.invalidParameterProtectionTypeIsEmpty();
@@ -84,12 +86,13 @@ public class InternalVirtualArrayService extends ResourceService {
 
     /**
      * Get protectionType attached with a virtual array
+     * 
      * @param id the URN of a ViPR varray
      * @return the VirtualArrayInternalFlags
      */
     @GET
     @Path("/{id}/protectionType")
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public VirtualArrayInternalFlags getProtectionType(@PathParam("id") URI id) {
 
         String protectionType = "";
@@ -112,14 +115,14 @@ public class InternalVirtualArrayService extends ResourceService {
      * @param id the URN of a ViPR varry
      * @prereq none
      * @brief unset protection type field
-     * @return No data returned in response body     
+     * @return No data returned in response body
      */
     @DELETE
     @Path("/{id}/protectionType")
     public Response unsetProtectionType(@PathParam("id") URI id) {
         VirtualArray varray = getVirtualArrayById(id, true);
 
-        String origProtectionType = (varray.getProtectionType() == null) ? "": varray.getProtectionType();
+        String origProtectionType = (varray.getProtectionType() == null) ? "" : varray.getProtectionType();
 
         varray.setProtectionType("");
         _dbClient.persistObject(varray);
@@ -130,14 +133,15 @@ public class InternalVirtualArrayService extends ResourceService {
 
     /**
      * Set device registered flag for varray
+     * 
      * @param id the URN of a ViPR varray
      * @param value the device registered status
      * @return the updated virtual array info
      */
     @PUT
     @Path("/{id}/deviceRegistered")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public VirtualArrayRestRep setDeviceRegistered(@PathParam("id") URI id, @QueryParam("value") boolean deviceRegistered) {
 
         VirtualArray varray = getVirtualArrayById(id, true);
@@ -152,12 +156,13 @@ public class InternalVirtualArrayService extends ResourceService {
 
     /**
      * Get device registered status of a virtual array
+     * 
      * @param id the URN of a ViPR varray
      * @return the VirtualArrayInternalFlags
      */
     @GET
     @Path("/{id}/deviceRegistered")
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public VirtualArrayInternalFlags getDeviceRegistered(@PathParam("id") URI id) {
         VirtualArray varray = getVirtualArrayById(id, true);
 
@@ -169,4 +174,3 @@ public class InternalVirtualArrayService extends ResourceService {
         return varrayInternalFlags;
     }
 }
-

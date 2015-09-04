@@ -100,24 +100,24 @@ public class BlockMirrorTaskCompleter extends TaskCompleter {
 
             Volume volume = (Volume) extParam[1];
             switch (opType) {
-            case CREATE_VOLUME_MIRROR:
-                if (opStatus) {
+                case CREATE_VOLUME_MIRROR:
+                    if (opStatus) {
+                        AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, mirror.getId()
+                                .toString(), mirror.getLabel(), volume.getId().toString());
+                    } else {
+                        AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage,
+                                mirror.getLabel(), volume.getId().toString());
+                    }
+                    break;
+                case DEACTIVATE_VOLUME_MIRROR:
+                case DELETE_VOLUME_MIRROR:
+                case DETACH_VOLUME_MIRROR:
+                case FRACTURE_VOLUME_MIRROR:
                     AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, mirror.getId()
                             .toString(), mirror.getLabel(), volume.getId().toString());
-                } else {
-                    AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage,
-                            mirror.getLabel(), volume.getId().toString());
-                }
-                break;
-            case DEACTIVATE_VOLUME_MIRROR:
-            case DELETE_VOLUME_MIRROR:
-            case DETACH_VOLUME_MIRROR:
-            case FRACTURE_VOLUME_MIRROR:
-                AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, mirror.getId()
-                        .toString(), mirror.getLabel(), volume.getId().toString());
-                break;
-            default:
-                _log.error("unrecognized volume mirror operation type");
+                    break;
+                default:
+                    _log.error("unrecognized volume mirror operation type");
             }
         } catch (Exception e) {
             _log.error("Failed to record volume mirror operation {}, err: ", opType.toString(), e);

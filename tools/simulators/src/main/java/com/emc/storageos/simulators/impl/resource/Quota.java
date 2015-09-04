@@ -44,10 +44,10 @@ public class Quota extends BaseResource {
     }
 
     @GET
-    @Produces({MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_JSON })
     public Response listQuotas(@QueryParam("resume") String resume) {
         try {
-            QuotaResponse quotaResp  = new QuotaResponse();
+            QuotaResponse quotaResp = new QuotaResponse();
 
             // fetch an extra quota to use it's id as the resume token
             List<IsilonSmartQuota> list = _objectStore.listQuotas(resume, NUM_PAGE + 1);
@@ -73,7 +73,7 @@ public class Quota extends BaseResource {
 
     @GET
     @Path("/{id}")
-    @Produces({MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_JSON })
     public Response getQuota(@PathParam("id") String id) {
         try {
             IsilonSmartQuota isilonSmartQuota = _objectStore.getQuota(id);
@@ -94,16 +94,16 @@ public class Quota extends BaseResource {
     }
 
     @POST
-    @Produces({MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_JSON })
     public Response createQuota(String obj) {
-        try{
+        try {
             IsilonSmartQuota quota = new Gson().fromJson(obj, IsilonSmartQuota.class);
             String id = _objectStore.createQuota(quota.getPath(), quota.getThresholds().getHard());
 
             _log.info("Quota create: " + id + " obj: " + obj);
 
             return Response.ok(StandardResponse.getSuccessIdResponse(id)).build();
-        } catch(Exception e) {
+        } catch (Exception e) {
             _log.error("createQuota exception. obj : " + obj, e);
             return Response.serverError().entity(StandardResponse.getErrorResponse(e.getMessage())).build();
         }
@@ -118,7 +118,7 @@ public class Quota extends BaseResource {
             _log.info("Quota delete: " + id);
 
             return Response.ok().build();
-        } catch(Exception e) {
+        } catch (Exception e) {
             _log.error("deleteQuota exception. id : " + id, e);
             return Response.serverError().entity(StandardResponse.getErrorResponse(e.getMessage())).build();
         }

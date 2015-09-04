@@ -49,7 +49,7 @@ public class ArgsCreator {
     protected Util _util;
     protected static final Logger _logger = LoggerFactory.getLogger(ArgsCreator.class);
 
-    public ArgsCreator ( Util util ) {
+    public ArgsCreator(Util util) {
         _util = util;
     }
 
@@ -87,7 +87,7 @@ public class ArgsCreator {
         CIMObjectPath path = CimObjectPathCreator.createInstance(items[1], items[0]);
         return path;
     }
-    
+
     public final Object getIntValue32(final Argument arg, final Map<String, Object> keyMap, int index) {
         return getUnsignedInteger32(arg);
     }
@@ -460,7 +460,7 @@ public class ArgsCreator {
     public final Object getIntValue64_CIMWrapper(
             final Argument arg, final Map<String, Object> keyMap, int index) {
         UnsignedInteger64 value = getUnsignedInteger64(arg);
-        
+
         if (null != value) {
             UnsignedInteger64 val = new UnsignedInteger64(value.toString());
             return new CIMArgument<Object>(arg.get_name(), CIMDataType.UINT64_T, val);
@@ -481,41 +481,45 @@ public class ArgsCreator {
             nameList.add(valarg.get_name());
         }
     }
+
     /**
      * Creates UnsignedInteger16 instance for the give Argument.value.
+     * 
      * @param arg
      * @return
      */
-    public final UnsignedInteger16 getUnsignedInteger16(final Argument arg){
+    public final UnsignedInteger16 getUnsignedInteger16(final Argument arg) {
         UnsignedInteger16 value = null;
-        if(arg.get_value()!=null){
-            value = new UnsignedInteger16((String)arg.get_value());
+        if (arg.get_value() != null) {
+            value = new UnsignedInteger16((String) arg.get_value());
         }
         return value;
     }
-    
+
     /**
      * Creates UnsignedInteger32 instance for the give Argument.value.
+     * 
      * @param arg
      * @return
      */
-    public final UnsignedInteger32 getUnsignedInteger32(final Argument arg){
+    public final UnsignedInteger32 getUnsignedInteger32(final Argument arg) {
         UnsignedInteger32 value = null;
-        if(arg.get_value()!=null){
-            value = new UnsignedInteger32((String)arg.get_value());
+        if (arg.get_value() != null) {
+            value = new UnsignedInteger32((String) arg.get_value());
         }
         return value;
     }
-    
+
     /**
      * Creates UnsignedInteger64 instance for the give Argument.value.
+     * 
      * @param arg
      * @return
      */
-    public final UnsignedInteger64 getUnsignedInteger64(final Argument arg){
+    public final UnsignedInteger64 getUnsignedInteger64(final Argument arg) {
         UnsignedInteger64 value = null;
-        if(arg.get_value()!=null){
-            value = new UnsignedInteger64((String)arg.get_value());
+        if (arg.get_value() != null) {
+            value = new UnsignedInteger64((String) arg.get_value());
         }
         return value;
     }

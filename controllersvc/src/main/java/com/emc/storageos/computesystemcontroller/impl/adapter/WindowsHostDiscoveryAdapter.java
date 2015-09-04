@@ -49,18 +49,18 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
     }
 
     protected void init() {
-    	List<AuthnProvider> authProviders = new ArrayList<AuthnProvider>();
-    	Iterables.addAll(authProviders, getModelClient().of(AuthnProvider.class).findAll(true));
+        List<AuthnProvider> authProviders = new ArrayList<AuthnProvider>();
+        Iterables.addAll(authProviders, getModelClient().of(AuthnProvider.class).findAll(true));
         KerberosUtil.initializeKerberos(authProviders);
     }
 
     @Override
     protected void discoverHost(Host host, HostStateChange changes) {
         init();
-      
+
         WindowsVersion version = getVersion(host);
         host.setOsVersion(version.toString());
-      
+
         if (getVersionValidator().isValidWindowsVersion(version)) {
             host.setCluster(findCluster(host));
             host.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
@@ -69,9 +69,9 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
         }
         else {
             host.setCompatibilityStatus(CompatibilityStatus.INCOMPATIBLE.name());
-            save(host);          
+            save(host);
             throw ComputeSystemControllerException.exceptions.incompatibleHostVersion(
-            		getSupportedType(), version.toString(), getVersionValidator().getWindowsMinimumVersion(false).toString());
+                    getSupportedType(), version.toString(), getVersionValidator().getWindowsMinimumVersion(false).toString());
         }
     }
 
@@ -99,7 +99,8 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                         }
                     }
 
-                    List<String> clusterIpAddresses = WindowsClusterUtils.getClusterIpAddresses(clusterToNetworkInterfaces.get(clusterName));
+                    List<String> clusterIpAddresses = WindowsClusterUtils
+                            .getClusterIpAddresses(clusterToNetworkInterfaces.get(clusterName));
 
                     // Find the cluster by address
                     URI cluster = findClusterByAddresses(host.getTenant(), HostType.Windows, clusterIpAddresses);
@@ -131,12 +132,11 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
             // Host is not currently in a Windows Cluster
             return NullColumnValueGetter.getNullURI();
-        }
-        catch (WinRMException e) {
+        } catch (WinRMException e) {
             throw new RuntimeException(e);
         }
     }
-    
+
     protected WindowsVersion getVersion(Host host) {
         WindowsSystemWinRM system = createWindowsSystem(host);
         try {
@@ -145,8 +145,7 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                 version = new WindowsVersion("-");
             }
             return version;
-        }
-        catch (WinRMException e) {
+        } catch (WinRMException e) {
             throw new RuntimeException(e);
         }
     }
@@ -155,51 +154,48 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
     protected void discoverInitiators(Host host, List<Initiator> oldInitiators, HostStateChange changes) {
         WindowsSystemWinRM windows = createWindowsSystem(host);
         List<Initiator> addedInitiators = new ArrayList<Initiator>();
-        
+
         try {
             for (FibreChannelHBA hba : windows.listFibreChannelHBAs()) {
-            	Initiator initiator;
-            	if (findInitiatorByPort(oldInitiators, hba.getPortWWN()) == null) {
-            		initiator = getOrCreateInitiator(oldInitiators, hba.getPortWWN());
-            		addedInitiators.add(initiator);
-            	} else {
-            		initiator = getOrCreateInitiator(oldInitiators, hba.getPortWWN());
-            	}
+                Initiator initiator;
+                if (findInitiatorByPort(oldInitiators, hba.getPortWWN()) == null) {
+                    initiator = getOrCreateInitiator(oldInitiators, hba.getPortWWN());
+                    addedInitiators.add(initiator);
+                } else {
+                    initiator = getOrCreateInitiator(oldInitiators, hba.getPortWWN());
+                }
                 discoverFCInitiator(host, initiator, hba);
             }
-        }
-        catch (WinRMSoapException e) {
+        } catch (WinRMSoapException e) {
             info("Could not retrieve fibre channel HBAs: %s", e.getMessage());
             clearInitiators(oldInitiators, Protocol.FC.name());
-        }
-        catch (WinRMException e) {
+        } catch (WinRMException e) {
             warn(e, "Error while retrieving fibre channel HBAs: %s", e.getMessage());
             clearInitiators(oldInitiators, Protocol.FC.name());
         }
         try {
             for (String iqn : windows.listIScsiInitiators()) {
-            	Initiator initiator;
-            	if (findInitiatorByPort(oldInitiators, iqn) == null) {
-            		initiator = getOrCreateInitiator(oldInitiators, iqn);
-            		addedInitiators.add(initiator);
-            	} else {
-            		initiator = getOrCreateInitiator(oldInitiators, iqn);
-            	}
+                Initiator initiator;
+                if (findInitiatorByPort(oldInitiators, iqn) == null) {
+                    initiator = getOrCreateInitiator(oldInitiators, iqn);
+                    addedInitiators.add(initiator);
+                } else {
+                    initiator = getOrCreateInitiator(oldInitiators, iqn);
+                }
                 discoverISCSIInitiator(host, initiator, iqn);
             }
-        }
-        catch (WinRMSoapException e) {
+        } catch (WinRMSoapException e) {
             info("Could not retrieve iSCSI interfaces: %s", e.getMessage());
             clearInitiators(oldInitiators, Protocol.iSCSI.name());
-        }
-        catch (WinRMException e) {
+        } catch (WinRMException e) {
             warn(e, "Error while retrieving iSCSI interfaces: %s", e.getMessage());
             clearInitiators(oldInitiators, Protocol.iSCSI.name());
         }
-        
+
         // update export groups with new initiators if host is in use.
         if (addedInitiators.size() > 0) {
-            Collection<URI> addedInitiatorIds = Lists.newArrayList(Collections2.transform(addedInitiators, CommonTransformerFunctions.fctnDataObjectToID()));
+            Collection<URI> addedInitiatorIds = Lists.newArrayList(Collections2.transform(addedInitiators,
+                    CommonTransformerFunctions.fctnDataObjectToID()));
             changes.setNewInitiators(addedInitiatorIds);
         }
     }
@@ -237,8 +233,7 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                     discoverIp6Interface(host, ipInterface, adapter);
                 }
             }
-        }
-        catch (WinRMException e) {
+        } catch (WinRMException e) {
             warn(e, "Error while retrieving IP interfaces: %s", e.getMessage());
             oldIpInterfaces.clear();
         }
@@ -280,13 +275,13 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                 return "Login failed, invalid username or password";
             }
         }
-        
+
         return super.getErrorMessage(t);
     }
 
-	public void setDbCLient(DbClient dbClient) {
-		super.setDbClient(dbClient);
-	}
+    public void setDbCLient(DbClient dbClient) {
+        super.setDbClient(dbClient);
+    }
 
     /**
      * Gets the primary network adapter by returning adapter with lowest index (name)
@@ -309,19 +304,20 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
 
     /**
      * Removes initiators from list that have the given protocol
+     * 
      * @param initiators list of initiators
      * @param protocol protocol to compare and remove
      */
     private void clearInitiators(List<Initiator> initiators, String protocol) {
         Iterator<Initiator> iterator = initiators.iterator();
-        while(iterator.hasNext()) {
+        while (iterator.hasNext()) {
             Initiator initiator = iterator.next();
             if (StringUtils.equals(initiator.getProtocol(), protocol)) {
                 iterator.remove();
             }
         }
     }
-    
+
     @Override
     protected void setNativeGuid(Host host) {
         WindowsSystemWinRM windows = createWindowsSystem(host);
@@ -334,8 +330,7 @@ public class WindowsHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                 host.setNativeGuid(adapter.getMacAddress());
                 save(host);
             }
-        }
-        catch (WinRMException e) {
+        } catch (WinRMException e) {
             throw new RuntimeException(e);
         }
     }

@@ -26,7 +26,6 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 public class AutoTieringPolicyValidator extends VirtualPoolValidator<BlockVirtualPoolParam, BlockVirtualPoolUpdateParam> {
-   
 
     @Override
     public void setNextValidator(VirtualPoolValidator validator) {
@@ -53,20 +52,20 @@ public class AutoTieringPolicyValidator extends VirtualPoolValidator<BlockVirtua
                             .equalsIgnoreCase(updateParam.getSystemType())) {
                 throw APIException.badRequests.missingParameterSystemTypeforAutoTiering();
             }
-        
+
         if (null != updateParam.getSystemType()) {
             if (!VirtualPool.SystemType.vmax.toString().equalsIgnoreCase(updateParam.getSystemType())
                     && !VirtualPool.SystemType.vnxblock.toString().equalsIgnoreCase(
                             updateParam.getSystemType())
                     && !VirtualPool.SystemType.vnxe.toString().equalsIgnoreCase(
-                                    updateParam.getSystemType())
+                            updateParam.getSystemType())
                     && !VirtualPool.SystemType.hds.toString().equalsIgnoreCase(
-                                            updateParam.getSystemType()))
+                            updateParam.getSystemType()))
                 throw APIException.badRequests.invalidParameterSystemTypeforAutoTiering();
             if (!VirtualPoolUtil.isAutoTieringPolicyValidForDeviceType(
-                updateParam.getAutoTieringPolicyName(), updateParam.getSystemType(), dbClient))
+                    updateParam.getAutoTieringPolicyName(), updateParam.getSystemType(), dbClient))
                 throw APIException.badRequests.invalidAutoTieringPolicy();
-        } 
+        }
         else if (null != arrayInfo
                 && null != arrayInfo.get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE)) {
             StringSet deviceTypes = arrayInfo.get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE);
@@ -77,7 +76,7 @@ public class AutoTieringPolicyValidator extends VirtualPoolValidator<BlockVirtua
             }
             for (String deviceType : deviceTypes) {
                 if (!VirtualPoolUtil.isAutoTieringPolicyValidForDeviceType(
-                    updateParam.getAutoTieringPolicyName(), deviceType, dbClient))
+                        updateParam.getAutoTieringPolicyName(), deviceType, dbClient))
                     throw APIException.badRequests.invalidAutoTieringPolicy();
             }
         }
@@ -94,10 +93,10 @@ public class AutoTieringPolicyValidator extends VirtualPoolValidator<BlockVirtua
                 && !VirtualPool.SystemType.vnxe.toString().equalsIgnoreCase(
                         createParam.getSystemType())
                 && !VirtualPool.SystemType.hds.toString().equalsIgnoreCase(
-                                createParam.getSystemType()))
+                        createParam.getSystemType()))
             throw APIException.badRequests.invalidParameterSystemTypeforAutoTiering();
         if (!VirtualPoolUtil.isAutoTieringPolicyValidForDeviceType(
-            createParam.getAutoTieringPolicyName(), createParam.getSystemType(), dbClient)) {
+                createParam.getAutoTieringPolicyName(), createParam.getSystemType(), dbClient)) {
             throw APIException.badRequests.invalidAutoTieringPolicy();
         }
         StringSet systemTypeSet = new StringSet();

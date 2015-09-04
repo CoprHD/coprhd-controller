@@ -79,7 +79,7 @@ import com.iwave.ext.linux.model.MultiPathEntry;
 import com.iwave.ext.linux.model.PowerPathDevice;
 
 public class LinuxSupport {
-     
+
     private final LinuxSystemCLI targetSystem;
     private final List<Initiator> hostPorts;
 
@@ -161,8 +161,8 @@ public class LinuxSupport {
             }
         }
         if (connections == 0) {
-            Object[] detailArgs = new Object[]{volume.getId(), buildInitiatorsString(initiators)};
-            Object[] messageArgs = new Object[]{sourceIqns, targetIqns};
+            Object[] detailArgs = new Object[] { volume.getId(), buildInitiatorsString(initiators) };
+            Object[] messageArgs = new Object[] { sourceIqns, targetIqns };
             ExecutionUtils.fail("failTask.LinuxSupport.iqnConnectivity", detailArgs, messageArgs);
         }
     }
@@ -177,52 +177,52 @@ public class LinuxSupport {
         return sb.toString().substring(0, sb.toString().lastIndexOf(","));
     }
 
-	private void updateMultipathingSoftware(boolean usePowerPath) {
-		if (usePowerPath) {
-	        updatePowerPathEntries();
-		}
-		else {
-			updateMultipathEntries();
-		}
-	}
+    private void updateMultipathingSoftware(boolean usePowerPath) {
+        if (usePowerPath) {
+            updatePowerPathEntries();
+        }
+        else {
+            updateMultipathEntries();
+        }
+    }
 
-	public void removeLunz() {
+    public void removeLunz() {
         List<LunInfo> lunz = execute(new FindLunz());
         for (LunInfo lun : lunz) {
             execute(new RemoveLunz(lun.getHost(), lun.getChannel(), lun.getId()));
         }
     }
-	
-	protected boolean checkForMultipathingSoftware() {
-		String powerPathError = checkForPowerPath();
+
+    protected boolean checkForMultipathingSoftware() {
+        String powerPathError = checkForPowerPath();
         if (powerPathError == null) {
-        	return true;
+            return true;
         }
-        
+
         String multipathError = checkForMultipath();
         if (multipathError == null) {
-        	return false;
+            return false;
         }
-        
-        ExecutionUtils.fail("failTask.LinuxSupport.noMultipath", new Object[]{}, powerPathError, multipathError);
+
+        ExecutionUtils.fail("failTask.LinuxSupport.noMultipath", new Object[] {}, powerPathError, multipathError);
         return false; // we'll never get here as .fail will throw an exception
-	}
+    }
 
     public String checkForMultipath() {
         return execute(new CheckForMultipath());
     }
-    
-	public String checkForPowerPath() {
-		return execute(new CheckForPowerPath());
-	}
+
+    public String checkForPowerPath() {
+        return execute(new CheckForPowerPath());
+    }
 
     public void updateMultipathEntries() {
         execute(new UpdateMultiPathEntries());
     }
-    
+
     private void updatePowerPathEntries() {
-		execute(new UpdatePowerPathEntries());
-	}
+        execute(new UpdatePowerPathEntries());
+    }
 
     public List<HBAInfo> findHBAs(Collection<Initiator> ports) {
         return execute(new FindHBAs(BlockStorageUtils.getPortNames(ports)));
@@ -243,22 +243,21 @@ public class LinuxSupport {
     public MultiPathEntry findMultiPathEntry(BlockObjectRestRep volume) {
         return execute(new FindMultiPathEntryForVolume(volume));
     }
-    
 
-	public PowerPathDevice findPowerPathEntry(BlockObjectRestRep volume) {
-		return execute(new FindPowerPathEntryForVolume(volume));
-	}
+    public PowerPathDevice findPowerPathEntry(BlockObjectRestRep volume) {
+        return execute(new FindPowerPathEntryForVolume(volume));
+    }
 
     public void removeMultipathEntries(Collection<MultiPathEntry> entries) {
         for (MultiPathEntry entry : entries) {
             execute(new RemoveMultipathEntry(entry));
         }
     }
-    
+
     public void removePowerPathDevices(Collection<PowerPathDevice> devices) {
-    	for (PowerPathDevice device : devices) {
-    		execute(new RemovePowerPathDevice(device));
-    	}
+        for (PowerPathDevice device : devices) {
+            execute(new RemovePowerPathDevice(device));
+        }
     }
 
     public void verifyMountPoint(String path) {
@@ -278,11 +277,11 @@ public class LinuxSupport {
     }
 
     public void findMultipathEntries(List<VolumeSpec> volumes) {
-    	execute(new FindMultiPathEntriesForMountPoint(volumes));
+        execute(new FindMultiPathEntriesForMountPoint(volumes));
     }
-    
+
     public void findPowerPathDevices(List<VolumeSpec> volumes) {
-    	execute(new FindPowerPathEntriesForMountPoint(volumes));
+        execute(new FindPowerPathEntriesForMountPoint(volumes));
     }
 
     public void formatVolume(String device, String fsType, String blockSize) {
@@ -323,7 +322,7 @@ public class LinuxSupport {
 
     public void setVolumeMountPointTag(BlockObjectRestRep volume, String mountPoint) {
         ExecutionUtils.execute(new SetBlockVolumeMachineTag(volume.getId(), getMountPointTagName(), mountPoint));
-        ExecutionUtils.addRollback(new RemoveBlockVolumeMachineTag(volume.getId(),getMountPointTagName()));
+        ExecutionUtils.addRollback(new RemoveBlockVolumeMachineTag(volume.getId(), getMountPointTagName()));
         addAffectedResource(volume.getId());
     }
 
@@ -341,7 +340,8 @@ public class LinuxSupport {
     public void ensureVolumesAreMounted(Collection<VolumeSpec> volumes) {
         for (VolumeSpec volume : volumes) {
             if (LinuxUtils.getMountPoint(targetSystem.getHostId(), getMountPoints(), volume.viprVolume) == null) {
-                ExecutionUtils.fail("failTask.LinuxSupport.ensureVolumesAreMounted", volume.viprVolume.getId(), volume.viprVolume.getName());
+                ExecutionUtils
+                        .fail("failTask.LinuxSupport.ensureVolumesAreMounted", volume.viprVolume.getId(), volume.viprVolume.getName());
             }
         }
     }
@@ -352,8 +352,8 @@ public class LinuxSupport {
         execute(new ResizeFileSystem(device));
         execute(new CheckFileSystem(device, true));
     }
-    
-    public  <T extends BlockObjectRestRep> String getDevice(T volume, boolean usePowerPath) {
+
+    public <T extends BlockObjectRestRep> String getDevice(T volume, boolean usePowerPath) {
         // TODO : this could probably be implemented using RetryableTask
         try {
             // we will retry this up to 5 times
@@ -366,9 +366,9 @@ public class LinuxSupport {
                     else {
                         return LinuxUtils.getDeviceForEntry(findMultiPathEntry(volume));
                     }
-                }
-                catch (IllegalStateException e) {
-                    String errorMessage = String.format("Unable to find device for WWN %s. %s more attempts will be made.", volume.getWwn(), remainingAttempts);
+                } catch (IllegalStateException e) {
+                    String errorMessage = String.format("Unable to find device for WWN %s. %s more attempts will be made.",
+                            volume.getWwn(), remainingAttempts);
                     if (remainingAttempts == 0) {
                         getDeviceFailed(volume, errorMessage, e);
                     }
@@ -377,21 +377,20 @@ public class LinuxSupport {
                     refreshStorage(Collections.singleton(volume), usePowerPath);
                 }
             }
-        }
-        catch (InterruptedException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        
+
         return null;
     }
-    
+
     protected <T extends BlockObjectRestRep> void getDeviceFailed(T volume, String errorMessage, IllegalStateException exception) {
         ExecutionUtils.fail("failTask.getDeviceName", volume.getWwn(), errorMessage, exception.getMessage());
     }
 
-	public void checkForFileSystemCompatibility(String fsType) {
-		execute(new CheckForFileSystemCompatibility(fsType));
-	}
+    public void checkForFileSystemCompatibility(String fsType) {
+        execute(new CheckForFileSystemCompatibility(fsType));
+    }
 
     public void resizeVolume(BlockObjectRestRep volume, Double newSizeInGB) {
         BlockStorageUtils.expandVolume(volume.getId(), newSizeInGB);
@@ -401,12 +400,12 @@ public class LinuxSupport {
         execute(new ResizePartition(device));
         execute(new RescanPartitionMap(device));
     }
-    
+
     public void resizeMultipathPath(String device) {
         execute(new ResizeMultipathPath(device));
     }
-    
-    protected <T> T  execute(LinuxExecutionTask<T> task) {
+
+    protected <T> T execute(LinuxExecutionTask<T> task) {
         task.setTargetSystem(targetSystem);
 
         return ViPRExecutionUtils.execute(task);
@@ -429,7 +428,7 @@ public class LinuxSupport {
             for (String content : contents) {
                 if (content.startsWith(deviceName)) {
                     logInfo("linux.support.powerpath.name", deviceName);
-                    return StringUtils.substringBeforeLast(device,  "/")+"/"+content;
+                    return StringUtils.substringBeforeLast(device, "/") + "/" + content;
                 }
             }
             ExecutionUtils.fail("failTask.LinuxSupport.getPrimaryPartitionDevice", device, device);
@@ -450,11 +449,11 @@ public class LinuxSupport {
             return execute(new GetMultipathBlockDevices(dmname));
         }
     }
-    
+
     public void rescanBlockDevices(List<String> devices) {
         execute(new RescanBlockDevices(devices));
     }
-    
+
     public String getParentDevice(String device, boolean usePowerPath) {
         if (usePowerPath) {
             return execute(new GetPowerpathPrimaryPartitionDeviceParent(device));
@@ -467,7 +466,7 @@ public class LinuxSupport {
     protected String getParentMultipathDevice(String device) {
         String parentDeviceDmName = execute(new GetMultipathPrimaryPartitionDeviceParentDmName(device));
         MultiPathEntry multipathEntry = execute(new FindMultiPathEntryForDmName(parentDeviceDmName));
-        return StringUtils.substringBeforeLast(device, "/")+"/"+multipathEntry.getName();
+        return StringUtils.substringBeforeLast(device, "/") + "/" + multipathEntry.getName();
     }
 
 }

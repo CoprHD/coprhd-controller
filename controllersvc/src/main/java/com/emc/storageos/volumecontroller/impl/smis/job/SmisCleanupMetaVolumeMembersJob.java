@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis.job;
 
-
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StringMap;
@@ -38,14 +37,14 @@ public class SmisCleanupMetaVolumeMembersJob extends SmisJob {
     URI storageSystemURI;
     URI volumeURI;
 
-    public SmisCleanupMetaVolumeMembersJob(CIMObjectPath cimJob, URI storageSystemURI, URI volumeURI, CleanupMetaVolumeMembersCompleter cleanupCompleter) {
+    public SmisCleanupMetaVolumeMembersJob(CIMObjectPath cimJob, URI storageSystemURI, URI volumeURI,
+            CleanupMetaVolumeMembersCompleter cleanupCompleter) {
 
         super(cimJob, storageSystemURI, cleanupCompleter, "CleanupMetaVolumeMembers");
         this.cleanupCompleter = cleanupCompleter;
         this.storageSystemURI = storageSystemURI;
         this.volumeURI = volumeURI;
     }
-
 
     @Override
     public void updateStatus(JobContext jobContext) throws Exception {
@@ -65,14 +64,14 @@ public class SmisCleanupMetaVolumeMembersJob extends SmisJob {
                 // clean meta volume members in source step data
                 String sourceStepId = cleanupCompleter.getSourceStepId();
                 WorkflowService.getInstance().storeStepData(sourceStepId, new ArrayList<String>());
-                // Reset list  of meta member volumes in the meta head
+                // Reset list of meta member volumes in the meta head
                 Volume metaHead = dbClient.queryObject(Volume.class, volumeURI);
                 if (metaHead.getMetaVolumeMembers() != null) {
                     metaHead.getMetaVolumeMembers().clear();
                     dbClient.persistObject(metaHead);
                 }
                 cleanupCompleter.complete(Workflow.StepState.SUCCESS, null);
-            } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR ) {
+            } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailedOp("CleanupMetaVolumeMembersJob");
                 cleanupCompleter.complete(Workflow.StepState.ERROR, serviceError);
             }

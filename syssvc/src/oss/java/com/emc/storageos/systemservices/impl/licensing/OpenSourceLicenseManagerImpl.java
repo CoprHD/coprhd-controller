@@ -36,8 +36,8 @@ import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
 import com.emc.vipr.model.sys.licensing.License;
 import com.emc.vipr.model.sys.licensing.LicenseFeature;
 
-public class OpenSourceLicenseManagerImpl implements LicenseManager{
-    
+public class OpenSourceLicenseManagerImpl implements LicenseManager {
+
     private CoordinatorClientExt _coordinator;
     private static final Logger _log = LoggerFactory.getLogger(OpenSourceLicenseManagerImpl.class);
 
@@ -51,21 +51,20 @@ public class OpenSourceLicenseManagerImpl implements LicenseManager{
     @Override
     public void addLicense(License license)
             throws LocalRepositoryException, CoordinatorClientException {
-        //adding license is not allowed on opensource deployments
-    }   
-    
+        // adding license is not allowed on opensource deployments
+    }
 
     /**
      * Check if it is a one-node deployment required by trial package in vipr 1.1
+     * 
      * @return true if it is a 1+0 vipr deployment
      */
     public boolean isTrialPackage() {
         // check if it is 1+0 deployment of controller
-        return (_coordinator.getNodeCount() == 1 && 
-            Constants.CONTROL_NODE_SYSSVC_ID_PATTERN.matcher(
-               _coordinator.getMySvcId()).matches());
+        return (_coordinator.getNodeCount() == 1 && Constants.CONTROL_NODE_SYSSVC_ID_PATTERN.matcher(
+                _coordinator.getMySvcId()).matches());
     }
- 
+
     /**
      * Check if the license is a trial license. For Opensource it's always true.
      * 
@@ -75,10 +74,10 @@ public class OpenSourceLicenseManagerImpl implements LicenseManager{
     @Override
     public boolean isTrialLicense(License license) {
         return true;
-    }	
- 
+    }
+
     /**
-     * Returns a full license object complete with features. 
+     * Returns a full license object complete with features.
      * 
      * @return
      */
@@ -100,10 +99,10 @@ public class OpenSourceLicenseManagerImpl implements LicenseManager{
 
         license.addLicenseFeature(licenseFeature);
         license.setLicenseText(LICENSE_TEXT);
-       
+
         return license;
     }
-    
+
     /**
      * Verify if product is licensed for the specified feature.
      * 
@@ -112,9 +111,9 @@ public class OpenSourceLicenseManagerImpl implements LicenseManager{
     public boolean isProductLicensed(LicenseType licenseType) {
         return true;
     }
-    
+
     /**
-     * Get all license info (features) from coordinator.     
+     * Get all license info (features) from coordinator.
      * 
      * @return LicenseInfoListExt which represent a list of license features
      * @throws Exception
@@ -122,7 +121,7 @@ public class OpenSourceLicenseManagerImpl implements LicenseManager{
     public LicenseInfoListExt getLicenseInfoListFromCoordinator() {
         return null;
     }
-    
+
     /**
      * Get license info for a specific license type from coordinator.
      * 
@@ -132,7 +131,7 @@ public class OpenSourceLicenseManagerImpl implements LicenseManager{
     public LicenseInfoExt getLicenseInfoFromCoordinator(LicenseType licenseType) {
         return null;
     }
-    
+
     /**
      * Get raw license text in LicenseTextInfo from coordinator.
      * 
@@ -142,7 +141,7 @@ public class OpenSourceLicenseManagerImpl implements LicenseManager{
     public LicenseTextInfo getLicenseTextFromCoordinator() throws Exception {
         return null;
     }
-        
+
     /**
      * Update Coordinator Service with the customers actual raw license file text.
      * 
@@ -152,16 +151,16 @@ public class OpenSourceLicenseManagerImpl implements LicenseManager{
     public void updateCoordinatorWithLicenseText(License license)
             throws CoordinatorClientException {
     }
-    
+
     /**
      * Update Coordinator Service with license information.
      * 
      * @throws CoordinatorClientException
      */
-    public void updateCoordinatorWithLicenseInfo(LicenseInfoExt licenseInfo) 
+    public void updateCoordinatorWithLicenseInfo(LicenseInfoExt licenseInfo)
             throws CoordinatorClientException {
     }
-     
+
     /**
      * Verify if the license has expired.
      * 
@@ -173,7 +172,7 @@ public class OpenSourceLicenseManagerImpl implements LicenseManager{
     }
 
     /**
-     * Verify if storage capacity currently used has exceeded the licensed capacity from the license file.  
+     * Verify if storage capacity currently used has exceeded the licensed capacity from the license file.
      * 
      * @param licenseInfo
      * @return true if capacity is exceeded
@@ -181,7 +180,7 @@ public class OpenSourceLicenseManagerImpl implements LicenseManager{
     public boolean isCapacityExceeded(LicenseInfoExt licenseInfo) {
         return false;
     }
-    
+
     /**
      * Gets capacity from controller.
      * List of returned resources include volume, file and free storage pool capacities.
@@ -191,7 +190,7 @@ public class OpenSourceLicenseManagerImpl implements LicenseManager{
         List<Service> services = _coordinator.locateAllServices(
                 LicenseConstants.API_SVC_LOOKUP_KEY,
                 LicenseConstants.SERVICE_LOOKUP_VERSION, null, null);
-        for(Service service: services) {
+        for (Service service : services) {
             try {
                 // service could be null, if so get next service.
                 if (service != null) {
@@ -208,9 +207,9 @@ public class OpenSourceLicenseManagerImpl implements LicenseManager{
         throw APIException.internalServerErrors.getObjectError("controller capacity",
                 null);
     }
-    
+
     /**
-     * Get a instance of the SysClient for the base url. 
+     * Get a instance of the SysClient for the base url.
      * 
      * @return
      */
@@ -222,21 +221,22 @@ public class OpenSourceLicenseManagerImpl implements LicenseManager{
         _log.info("Calling URI: " + baseNodeURL);
         return SysClientFactory.getSysClient(URI.create(baseNodeURL));
     }
-    
+
     /**
      * Get a target info lock from coordinator.
+     * 
      * @return
      */
     public boolean getTargetInfoLock() {
         return true;
     }
-    
+
     /**
      * calls coordinator client to release a target version lock.
      */
     public void releaseTargetVersionLock() {
     }
-   
+
     /**
      * Set the CoordinatorClientExt
      * 

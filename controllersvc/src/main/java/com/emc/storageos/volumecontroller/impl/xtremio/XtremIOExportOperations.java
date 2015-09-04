@@ -65,10 +65,10 @@ import com.google.common.collect.Collections2;
 
 public class XtremIOExportOperations implements ExportMaskOperations {
     private static final Logger _log = LoggerFactory.getLogger(XtremIOExportOperations.class);
-	
+
     XtremIOClientFactory xtremioRestClientFactory;
     DbClient dbClient;
-    
+
     @Autowired
     private DataSourceFactory dataSourceFactory;
     @Autowired
@@ -190,8 +190,8 @@ public class XtremIOExportOperations implements ExportMaskOperations {
             String clusterName = null;
             client = getXtremIOClient(storage);
             Iterator<Initiator> iniItr = initiators.iterator();
-            while(iniItr.hasNext()) {
-            Initiator initiator = iniItr.next();
+            while (iniItr.hasNext()) {
+                Initiator initiator = iniItr.next();
                 String igName = null;
                 if (null != initiator.getHostName()) {
                     // initiators already grouped by Host
@@ -202,7 +202,7 @@ public class XtremIOExportOperations implements ExportMaskOperations {
                 if (igName != null && !igName.isEmpty()) {
                     groupInitiatorsByIG.put(igName, initiator);
                 } else {
-                    //initiator not found in Array, remove from DB
+                    // initiator not found in Array, remove from DB
                     exportMask.removeFromExistingInitiators(initiator);
                     exportMask.removeFromUserCreatedInitiators(initiator);
                     iniItr.remove();
@@ -224,7 +224,7 @@ public class XtremIOExportOperations implements ExportMaskOperations {
                 }
             }
             dbClient.updateAndReindexObject(exportMask);
-           
+
             if (!failedIGs.isEmpty()) {
                 String errMsg = "Export Operations failed deleting these initiators: ".concat(Joiner.on(", ").join(
                         failedIGs));
@@ -247,7 +247,6 @@ public class XtremIOExportOperations implements ExportMaskOperations {
             taskCompleter.error(dbClient, serviceError);
             return;
         }
-        
 
     }
 
@@ -260,32 +259,32 @@ public class XtremIOExportOperations implements ExportMaskOperations {
 
     @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
-    	try {
-    		_log.info("Refreshing Initiator labels in ViPR.. ");
+        try {
+            _log.info("Refreshing Initiator labels in ViPR.. ");
             XtremIOClient client = getXtremIOClient(storage);
             List<XtremIOInitiator> initiators = client.getXtremIOInitiatorsInfo();
             List<Initiator> initiatorObjs = new ArrayList<Initiator>();
             for (XtremIOInitiator initiator : initiators) {
                 @SuppressWarnings("deprecation")
                 List<URI> initiatorUris = dbClient
-                        .queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(initiator.getPortAddress()));                
+                        .queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(initiator.getPortAddress()));
                 if (initiatorUris.isEmpty()) {
-                	_log.info("No initiator objects in vipr db for port address {}",initiator.getPortAddress());
+                    _log.info("No initiator objects in vipr db for port address {}", initiator.getPortAddress());
                     continue;
                 } else {
                     Initiator initiatorObj = dbClient.queryObject(Initiator.class, initiatorUris.get(0));
-                    _log.info("Updating Initiator label from {} to {} in ViPR DB",initiatorObj.getLabel(), initiator.getName());
+                    _log.info("Updating Initiator label from {} to {} in ViPR DB", initiatorObj.getLabel(), initiator.getName());
                     initiatorObj.setLabel(initiator.getName());
                     initiatorObjs.add(initiatorObj);
                 }
             }
             if (!initiatorObjs.isEmpty()) {
-            	 dbClient.updateAndReindexObject(initiatorObjs);
+                dbClient.updateAndReindexObject(initiatorObjs);
             }
         } catch (Exception e) {
             _log.warn("Refreshing XtremIO Initiator ports failed", e);
         }
-    	//CTRL-13080 fix - refresh mask will not be used by XtremIo exports, hence returning null is not an issue.
+        // CTRL-13080 fix - refresh mask will not be used by XtremIo exports, hence returning null is not an issue.
         return null;
     }
 
@@ -323,7 +322,6 @@ public class XtremIOExportOperations implements ExportMaskOperations {
             _log.info("List of reusable IGs found {} with size : {}",
                     Joiner.on(",").join(groupInitiatorsByIG.asMap().entrySet()),
                     groupInitiatorsByIG.size());
-            
 
             List<URI> failedVolumes = new ArrayList<URI>();
             for (URI volumeUri : volumes) {
@@ -349,7 +347,8 @@ public class XtremIOExportOperations implements ExportMaskOperations {
 
                     if (xtremIOVolume.getLunMaps().size() == 0) {
                         // handle scenarios where volumes gets unexported already
-                        _log.info("Volume  {} doesn't have any existing export available on Array, unexported already.",xtremIOVolume.toString());
+                        _log.info("Volume  {} doesn't have any existing export available on Array, unexported already.",
+                                xtremIOVolume.toString());
                         exportMask.removeFromUserCreatedVolumes(blockObj);
                         exportMask.removeVolume(blockObj.getId());
                         continue;
@@ -416,7 +415,7 @@ public class XtremIOExportOperations implements ExportMaskOperations {
             // Clean IGs if empty
 
             deleteInitiatorGroup(groupInitiatorsByIG, client);
-            // delete IG Folder as well if IGs are empty            
+            // delete IG Folder as well if IGs are empty
             deleteInitiatorGroupFolder(client, clusterName, hostName, storage);
 
             taskCompleter.ready(dbClient);
@@ -445,11 +444,11 @@ public class XtremIOExportOperations implements ExportMaskOperations {
 
         return igName;
     }
-    
+
     private String getInitiatorGroupFolderName(String clusterName, String hostName, StorageSystem storage) {
         String igFolderName = "";
-        if(clusterName != null && !clusterName.isEmpty()) {
-            //cluster
+        if (clusterName != null && !clusterName.isEmpty()) {
+            // cluster
             DataSource dataSource = dataSourceFactory.createXtremIOClusterInitiatorGroupFolderNameDataSource(
                     clusterName, storage);
             igFolderName = customConfigHandler.getComputedCustomConfigValue(
@@ -459,27 +458,25 @@ public class XtremIOExportOperations implements ExportMaskOperations {
                     hostName, storage);
             igFolderName = customConfigHandler.getComputedCustomConfigValue(
                     CustomConfigConstants.XTREMIO_HOST_INITIATOR_GROUP_FOLDER_NAME, storage.getSystemType(), dataSource);
-        }        
-        
+        }
+
         return igFolderName;
     }
-
-   
 
     private void addInitiatorToInitiatorGroup(XtremIOClient client, String clusterName,
             String hostName, List<Initiator> initiatorsToBeCreated, Set<String> igNames,
             ExportMask exportMask, StorageSystem storage)
             throws Exception {
         XtremIOInitiatorGroup igGroup = null;
-        //create initiator group folder and initiator group
+        // create initiator group folder and initiator group
         String igFolderName = getInitiatorGroupFolderName(clusterName, hostName, storage);
-        
+
         if (null == client.getInitiatorGroupFolder(XtremIOConstants.ROOT_FOLDER
                 .concat(igFolderName))) {
             _log.info("Creating IG Folder with name {}", igFolderName);
             client.createInitiatorGroupFolder(igFolderName);
         }
-            
+
         DataSource dataSource = dataSourceFactory.createXtremIOInitiatorGroupNameDataSource(
                 hostName, storage);
         String igName = customConfigHandler.getComputedCustomConfigValue(
@@ -503,7 +500,7 @@ public class XtremIOExportOperations implements ExportMaskOperations {
             igNames.add(igGroup.getName());
             _log.info("Found Initiator Group {} with # initiators {}", igGroup.getName(),
                     igGroup.getNumberOfInitiators());
-          
+
         }
 
         // add all the left out initiators to this folder
@@ -524,10 +521,12 @@ public class XtremIOExportOperations implements ExportMaskOperations {
             } catch (Exception e) {
                 // assume initiator already part of another group look for
                 // port_address_not_unique
-            	//CTRL-5956 - Few Initiators cannot be registered on XtremIO Array, throw exception even if one initiator registration fails.
-                _log.warn("Initiator {} already available or not able to register the same on Array. Rediscover the Array and try again.", remainingInitiator.getInitiatorPort());
-            	throw e;
-                
+                // CTRL-5956 - Few Initiators cannot be registered on XtremIO Array, throw exception even if one initiator registration
+                // fails.
+                _log.warn("Initiator {} already available or not able to register the same on Array. Rediscover the Array and try again.",
+                        remainingInitiator.getInitiatorPort());
+                throw e;
+
             }
         }
     }
@@ -585,9 +584,9 @@ public class XtremIOExportOperations implements ExportMaskOperations {
                 addInitiatorToInitiatorGroup(client, clusterName, hostName, initiatorsToBeCreated,
                         igNames, exportMask, storage);
             }
-            
+
             if (igNames.isEmpty()) {
-            	ServiceError serviceError = DeviceControllerException.errors.xtremioInitiatorGroupsNotDetected(storage.getNativeGuid());
+                ServiceError serviceError = DeviceControllerException.errors.xtremioInitiatorGroupsNotDetected(storage.getNativeGuid());
                 taskCompleter.error(dbClient, serviceError);
                 return;
             }
@@ -625,10 +624,10 @@ public class XtremIOExportOperations implements ExportMaskOperations {
                 for (String igName : igNames) {
                     for (List<Object> lunMapEntries : xtremIOVolume.getLunMaps()) {
                         @SuppressWarnings("unchecked")
-                        //This can't be null
+                        // This can't be null
                         List<Object> igDetails = (List<Object>) lunMapEntries.get(0);
-                        if (null == igDetails.get(1) || null == lunMapEntries.get(2)){
-                            _log.warn("IG Name is null in returned lun map response for volume {}",xtremIOVolume.toString());
+                        if (null == igDetails.get(1) || null == lunMapEntries.get(2)) {
+                            _log.warn("IG Name is null in returned lun map response for volume {}", xtremIOVolume.toString());
                             continue;
                         }
                         String igNameToProcess = (String) igDetails.get(1);
@@ -681,7 +680,7 @@ public class XtremIOExportOperations implements ExportMaskOperations {
 
         if (null != igFolder && "0".equalsIgnoreCase(igFolder.getNumberOfIGs())) {
             try {
-                _log.info("# of IGs  {} in Folder {}",igFolder.getNumberOfIGs(),clusterName);
+                _log.info("# of IGs  {} in Folder {}", igFolder.getNumberOfIGs(), clusterName);
                 client.deleteInitiatorGroupFolder(XtremIOConstants.ROOT_FOLDER.concat(tempIGFolderName));
             } catch (Exception e) {
                 _log.warn("Deleting Initatiator Group Folder{} fails", clusterName, e);
@@ -717,6 +716,6 @@ public class XtremIOExportOperations implements ExportMaskOperations {
             List<URI> volumeURIs, VirtualPool newVirtualPool, boolean rollback,
             TaskCompleter taskCompleter) throws Exception {
         // TODO Auto-generated method stub
-        
+
     }
 }

@@ -36,22 +36,23 @@ public class Main {
         try {
             SLF4JBridgeHandler.install();
             FileSystemXmlApplicationContext ctx = new FileSystemXmlApplicationContext(args);
-            ControllerService svc = (ControllerService)ctx.getBean(SERVICE_BEAN);
+            ControllerService svc = (ControllerService) ctx.getBean(SERVICE_BEAN);
 
             // set default uncaught exception handler (primarily to get thread dump on OOM error)
             Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
-                public void uncaughtException( final Thread t, final Throwable e ) {
+                public void uncaughtException(final Thread t, final Throwable e) {
                     try {
-                        String errorMsg = String.format("Uncaught throwable: %s , message: %s, thread name: %s", e.getClass().getName(), e.getMessage(), t.getName());
+                        String errorMsg = String.format("Uncaught throwable: %s , message: %s, thread name: %s", e.getClass().getName(),
+                                e.getMessage(), t.getName());
                         _log.error(errorMsg, e);
                         ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
                         ThreadInfo[] threadInfos = threadMXBean.dumpAllThreads(true, true);
                         StringBuilder stackTraceBuilder = new StringBuilder("Full JVM Thread Dump:\n");
-                    for (int i=0 ; i< threadInfos.length; i++) {
+                        for (int i = 0; i < threadInfos.length; i++) {
                             stackTraceBuilder.append(threadInfos[i].toString());
                         }
                         _log.error(stackTraceBuilder.toString());
-                    } catch(Throwable th) {
+                    } catch (Throwable th) {
                         _log.error("Error in default uncaught exception handler for {}:", SERVICE_BEAN, th);
                         System.exit(1);
                     }
@@ -59,9 +60,9 @@ public class Main {
             });
 
             svc.start();
-       } catch(Exception e) {
+        } catch (Exception e) {
             _log.error("failed to start {}:", SERVICE_BEAN, e);
             System.exit(1);
-       }
-   }
+        }
+    }
 }

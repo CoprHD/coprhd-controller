@@ -48,26 +48,26 @@ public class VplexMirrorDeactivateCompleter extends VplexMirrorTaskCompleter {
             Volume sourceVplexVolume = dbClient.queryObject(Volume.class, mirror.getSource());
 
             switch (status) {
-            case error:
-                dbClient.error(VplexMirror.class, mirror.getId(), getOpId(), coded);
-                dbClient.error(Volume.class, sourceVplexVolume.getId(), getOpId(), coded);
-                break;
-            default:
-                _log.info("Removing mirror {} from source volume {}", mirror.getId().toString(),
-                        sourceVplexVolume.getId().toString());
-                sourceVplexVolume.getMirrors().remove(mirror.getId().toString());
-                dbClient.persistObject(sourceVplexVolume);
-                if(mirror.getAssociatedVolumes() != null && !mirror.getAssociatedVolumes().isEmpty()){
-                    for(String volumeUri : mirror.getAssociatedVolumes()){
-                        Volume assocVolume = dbClient.queryObject(Volume.class, URI.create(volumeUri));
-                        if(assocVolume != null && !assocVolume.getInactive()){
-                            dbClient.markForDeletion(assocVolume);
+                case error:
+                    dbClient.error(VplexMirror.class, mirror.getId(), getOpId(), coded);
+                    dbClient.error(Volume.class, sourceVplexVolume.getId(), getOpId(), coded);
+                    break;
+                default:
+                    _log.info("Removing mirror {} from source volume {}", mirror.getId().toString(),
+                            sourceVplexVolume.getId().toString());
+                    sourceVplexVolume.getMirrors().remove(mirror.getId().toString());
+                    dbClient.persistObject(sourceVplexVolume);
+                    if (mirror.getAssociatedVolumes() != null && !mirror.getAssociatedVolumes().isEmpty()) {
+                        for (String volumeUri : mirror.getAssociatedVolumes()) {
+                            Volume assocVolume = dbClient.queryObject(Volume.class, URI.create(volumeUri));
+                            if (assocVolume != null && !assocVolume.getInactive()) {
+                                dbClient.markForDeletion(assocVolume);
+                            }
                         }
                     }
-                }
-                dbClient.markForDeletion(mirror);
-                dbClient.ready(VplexMirror.class, mirror.getId(), getOpId());
-                dbClient.ready(Volume.class, sourceVplexVolume.getId(), getOpId());
+                    dbClient.markForDeletion(mirror);
+                    dbClient.ready(VplexMirror.class, mirror.getId(), getOpId());
+                    dbClient.ready(Volume.class, sourceVplexVolume.getId(), getOpId());
             }
 
             recordVplexMirrorOperation(dbClient, OperationTypeEnum.DEACTIVATE_VOLUME_MIRROR,

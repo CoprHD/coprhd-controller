@@ -118,7 +118,7 @@ public class SanSwitches extends ViprResourceController {
         edit(new SanSwitchForm(networkSystem));
     }
 
-    @FlashException(keep=true, referrer={"create","edit"})
+    @FlashException(keep = true, referrer = { "create", "edit" })
     public static void save(SanSwitchForm sanSwitch) {
         sanSwitch.validate("sanSwitch");
         if (Validation.hasErrors()) {

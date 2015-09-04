@@ -67,7 +67,7 @@ public class QueryService {
     }
 
     public void setDependencyChecker(DependencyChecker dependencyChecker) {
-        this.dependencyChecker =dependencyChecker;
+        this.dependencyChecker = dependencyChecker;
     }
 
     private StreamingOutput getStreamingOutput(final Object obj) {
@@ -94,10 +94,10 @@ public class QueryService {
     }
 
     @GET
-    @Path(GeoServiceClient.GEO_VISIBLE+"{name}")
-    @Produces({MediaType.APPLICATION_OCTET_STREAM})
+    @Path(GeoServiceClient.GEO_VISIBLE + "{name}")
+    @Produces({ MediaType.APPLICATION_OCTET_STREAM })
     public Response queryByType(@PathParam("name") String className, @QueryParam("active_only") boolean activeOnly,
-                                @QueryParam("start_id") URI startId, @QueryParam("max_count") Integer maxCount) throws DatabaseException {
+            @QueryParam("start_id") URI startId, @QueryParam("max_count") Integer maxCount) throws DatabaseException {
 
         ArgValidator.checkFieldNotNull(className, "name");
 
@@ -110,15 +110,15 @@ public class QueryService {
                 ids = dbClient.queryByType(clazz, activeOnly, startId, maxCount);
 
             return genResourcesResponse(ids.iterator());
-        }catch (ClassNotFoundException e) {
+        } catch (ClassNotFoundException e) {
             log.error("e=", e);
             throw APIException.badRequests.invalidParameter("name", className);
         }
     }
 
     @GET
-    @Path(GeoServiceClient.GEO_VISIBLE+"{name}/object/{id}")
-    @Produces({MediaType.APPLICATION_OCTET_STREAM})
+    @Path(GeoServiceClient.GEO_VISIBLE + "{name}/object/{id}")
+    @Produces({ MediaType.APPLICATION_OCTET_STREAM })
     public Response queryObject(@PathParam("name") String className, @PathParam("id") URI id) throws DatabaseException {
         ArgValidator.checkFieldNotNull(className, "name");
         ArgValidator.checkUri(id);
@@ -127,17 +127,17 @@ public class QueryService {
             Class clazz = Class.forName(className);
             DataObject obj = dbClient.queryObject(clazz, id);
             return Response.ok(getStreamingOutput(obj), MediaType.APPLICATION_OCTET_STREAM).build();
-        }catch (ClassNotFoundException e) {
+        } catch (ClassNotFoundException e) {
             log.error("e=", e);
             throw APIException.badRequests.invalidParameter("name", className);
         }
     }
 
     @GET
-    @Path(GeoServiceClient.DEPENDENCIES+"{name}/{id}/")
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Path(GeoServiceClient.DEPENDENCIES + "{name}/{id}/")
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public String checkDependencies(@PathParam("name") String className, @PathParam("id") URI id,
-                                      @QueryParam("active_only") boolean activeOnly) throws DatabaseException {
+            @QueryParam("active_only") boolean activeOnly) throws DatabaseException {
         ArgValidator.checkFieldNotNull(className, "name");
         ArgValidator.checkUri(id);
 
@@ -145,7 +145,7 @@ public class QueryService {
             Class clazz = Class.forName(className);
 
             if (!KeyspaceUtil.isGlobal(clazz)) {
-                Throwable cause = new Throwable(className+" is not in geodb");
+                Throwable cause = new Throwable(className + " is not in geodb");
                 throw APIException.badRequests.invalidParameter("name", className, cause);
             }
 
@@ -156,7 +156,7 @@ public class QueryService {
 
             return "";
 
-        }catch (ClassNotFoundException e) {
+        } catch (ClassNotFoundException e) {
             log.error("e=", e);
             throw APIException.badRequests.invalidParameter("name", className);
         }
@@ -164,8 +164,8 @@ public class QueryService {
 
     @POST
     @Path("geo-visible/{name}/objects")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_OCTET_STREAM})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_OCTET_STREAM })
     public Response queryObjects(@PathParam("name") String className, BulkIdParam ids) throws DatabaseException {
         ArgValidator.checkFieldNotNull(className, "name");
 
@@ -174,7 +174,7 @@ public class QueryService {
             Iterator<DataObject> it = dbClient.queryIterativeObjects(clazz, ids.getIds());
 
             return genResourcesResponse(it);
-        }catch (ClassNotFoundException e) {
+        } catch (ClassNotFoundException e) {
             log.error("e=", e);
             throw APIException.badRequests.invalidParameter("name", className);
         }
@@ -182,10 +182,10 @@ public class QueryService {
 
     @POST
     @Path("geo-visible/{name}/field/{fieldName}")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_OCTET_STREAM})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_OCTET_STREAM })
     public Response queryObjectsField(@PathParam("name") String className, @PathParam("fieldName") String fieldName,
-                                BulkIdParam ids) throws DatabaseException {
+            BulkIdParam ids) throws DatabaseException {
         List<URI> resourceIds = ids.getIds();
 
         try {
@@ -193,7 +193,7 @@ public class QueryService {
             Iterator<DataObject> it = dbClient.queryIterativeObjectField(clazz, fieldName, resourceIds);
 
             return genResourcesResponse(it);
-        }catch (ClassNotFoundException e) {
+        } catch (ClassNotFoundException e) {
             log.error("e=", e);
             throw APIException.badRequests.invalidParameter("name", className);
         }
@@ -201,23 +201,23 @@ public class QueryService {
 
     @POST
     @Path("geo-visible/constraint/{className}")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_OCTET_STREAM})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_OCTET_STREAM })
     public Response queryByConstraint(@PathParam("className") String className, ConstraintDescriptor constraintDescriptor,
-                                      @QueryParam("start_id") URI startId, @QueryParam("max_count") Integer maxCount) throws DatabaseException {
+            @QueryParam("start_id") URI startId, @QueryParam("max_count") Integer maxCount) throws DatabaseException {
         Constraint condition;
 
         try {
             condition = constraintDescriptor.toConstraint();
-        }catch(ClassNotFoundException | IllegalAccessException
-               | InvocationTargetException | NoSuchMethodException | InstantiationException e) {
+        } catch (ClassNotFoundException | IllegalAccessException
+                | InvocationTargetException | NoSuchMethodException | InstantiationException e) {
             throw APIException.badRequests.invalidParameter(constraintDescriptor.getClass().getName(), constraintDescriptor.toString(), e);
         }
 
         try {
-            Class clazz =Class.forName(className);
+            Class clazz = Class.forName(className);
 
-            QueryResultList<?>  resultList = (QueryResultList<?>)clazz.newInstance();
+            QueryResultList<?> resultList = (QueryResultList<?>) clazz.newInstance();
 
             if (maxCount == null)
                 dbClient.queryByConstraint(condition, resultList);
@@ -225,7 +225,7 @@ public class QueryService {
                 dbClient.queryByConstraint(condition, resultList, startId, maxCount);
 
             return genResourcesResponse(resultList);
-        }catch(ClassNotFoundException | InstantiationException | IllegalAccessException e) {
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e) {
             log.error("Can't find the class e=", e);
             throw APIException.badRequests.invalidParameter("className", className);
         }
@@ -259,4 +259,3 @@ public class QueryService {
         return Response.ok(getStreamingOutput(resp), MediaType.APPLICATION_OCTET_STREAM).build();
     }
 }
-

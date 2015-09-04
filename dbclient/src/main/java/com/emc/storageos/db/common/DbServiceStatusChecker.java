@@ -42,6 +42,7 @@ public class DbServiceStatusChecker {
 
     /**
      * Set coordinator
+     * 
      * @param coordinator
      */
     public void setCoordinator(CoordinatorClient coordinator) {
@@ -57,11 +58,12 @@ public class DbServiceStatusChecker {
     }
 
     public void setServiceName(String serviceName) {
-    	this.serviceName = serviceName;
+        this.serviceName = serviceName;
     }
-    
+
     /**
      * Set ClusterNodeCount
+     * 
      * @param clusterNodeCount
      */
     public void setClusterNodeCount(int clusterNodeCount) {
@@ -84,7 +86,7 @@ public class DbServiceStatusChecker {
     }
 
     /**
-     *  Checks to see if any node in the cluster has entered a certain state
+     * Checks to see if any node in the cluster has entered a certain state
      */
     private boolean isAnyNodeInState(String state, boolean isVersioned) throws Exception {
         List<Configuration> configs = coordinator.queryAllConfiguration(
@@ -100,7 +102,7 @@ public class DbServiceStatusChecker {
     }
 
     /**
-     *  Checks to see if the cassandra cluster finished entering a certain state
+     * Checks to see if the cassandra cluster finished entering a certain state
      */
     private boolean isClusterStateDone(String state, boolean isVersioned, String svcName) throws Exception {
         if (clusterNodeCount == 0) {
@@ -114,7 +116,7 @@ public class DbServiceStatusChecker {
             Configuration config = configs.get(i);
             String value = config.getConfig(state);
             if (value != null && Boolean.parseBoolean(value)) {
-                count ++;
+                count++;
             }
         }
         return (count == clusterNodeCount);
@@ -140,10 +142,10 @@ public class DbServiceStatusChecker {
                 }
                 Thread.sleep(WAIT_INTERVAL_IN_SEC * 1000);
             } catch (InterruptedException ex) {
-            } catch (FatalCoordinatorException ex){
-            	log.error("fatal coodinator exception", ex);
-            	throw ex;
-            }catch (Exception ex) {
+            } catch (FatalCoordinatorException ex) {
+                log.error("fatal coodinator exception", ex);
+                throw ex;
+            } catch (Exception ex) {
                 log.error("exception checking node status", ex);
             }
         }
@@ -184,11 +186,11 @@ public class DbServiceStatusChecker {
 
     public void waitForAllNodesNumTokenAdjusted() {
         while (true) {
-            if (this.clusterNodeCount == 1){
-            	log.info("no adjust toke for single node vipr, skip");
-            	return;
+            if (this.clusterNodeCount == 1) {
+                log.info("no adjust toke for single node vipr, skip");
+                return;
             }
-            
+
             List<Configuration> cfgs = this.coordinator.queryAllConfiguration(this.coordinator.getDbConfigPath(this.serviceName));
             int adjustedCount = 0;
             for (Configuration cfg : cfgs) {
@@ -221,18 +223,18 @@ public class DbServiceStatusChecker {
         waitForAllNodesToBecome(DbConfigConstants.MIGRATION_INIT, true, svcName);
     }
 
-     public boolean isMigrationDone() {
+    public boolean isMigrationDone() {
         String targetVersion = coordinator.getTargetDbSchemaVersion();
         String currentVersion = coordinator.getCurrentDbSchemaVersion();
         log.debug("current version {}, target version {}", currentVersion,
-                        targetVersion);
+                targetVersion);
         if (currentVersion != null && currentVersion.equals(targetVersion)) {
             log.debug("migration done already");
             return true;
         }
         return false;
     }
- 
+
     public void waitForMigrationDone() {
         final String prefix = "Waiting for current version to match target version ...";
         log.warn(prefix);

@@ -35,7 +35,6 @@ import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
-
 /*
  * Detail implementation of vdc controller
  */
@@ -52,7 +51,7 @@ public class VdcControllerImpl implements VdcController {
     private VdcConfigHelper helper;
 
     private Service serviceInfo;
-    
+
     @Autowired
     private VdcOperationLockHelper vdcLockHelper;
 
@@ -66,23 +65,23 @@ public class VdcControllerImpl implements VdcController {
     public void setDbClient(InternalDbClient dbClient) {
         this.dbClient = dbClient;
     }
-    
+
     public void setVdcHelper(VdcConfigHelper helper) {
         this.helper = helper;
     }
-    
+
     public void setVdcOperationLockHelper(VdcOperationLockHelper helper) {
         this.vdcLockHelper = helper;
     }
-    
+
     public void setPermissionsHelper(BasePermissionsHelper permissionsHelper) {
         this.permissionsHelper = permissionsHelper;
     }
-    
+
     public void setSignatureGenerator(InternalApiSignatureKeyGenerator generator) {
         this.apiSignatureGenerator = generator;
     }
-    
+
     public void setGeoClientManager(GeoClientCacheManager clientManager) {
         this.geoClientCache = clientManager;
     }
@@ -107,7 +106,7 @@ public class VdcControllerImpl implements VdcController {
         // during connect vdc process, the whole system will rolling reboot to apply
         // the new system properity, we shall not redo the finished steps
         ConnectVdcTaskOp vdcOp = new ConnectVdcTaskOp(dbClient, geoClientCache, helper,
-                serviceInfo, localVdc, task, (Properties)taskParams.get(0), apiSignatureGenerator, _keyStore);
+                serviceInfo, localVdc, task, (Properties) taskParams.get(0), apiSignatureGenerator, _keyStore);
         log.info("Initialize ConnectVdcTaskOp done. ");
         vdcOp.setLockHelper(vdcLockHelper);
         vdcOp.setBasePermissionHelper(permissionsHelper);
@@ -141,7 +140,8 @@ public class VdcControllerImpl implements VdcController {
     public void disconnectVdc(VirtualDataCenter vdcToBeDisconnected, String task, List<Object> taskParams) throws InternalException {
         log.info("Starting to disconnect vdc {} info in the system, task id {}", vdcToBeDisconnected.getShortId(), task);
 
-        DisconnectVdcTaskOp vdcOp = new DisconnectVdcTaskOp(dbClient, geoClientCache, helper, serviceInfo, vdcToBeDisconnected, task,_keyStore);
+        DisconnectVdcTaskOp vdcOp = new DisconnectVdcTaskOp(dbClient, geoClientCache, helper, serviceInfo, vdcToBeDisconnected, task,
+                _keyStore);
         log.info("Initialize DisconnectVdcTaskOp done. ");
         vdcOp.setLockHelper(vdcLockHelper);
         vdcOp.handle();
@@ -152,7 +152,7 @@ public class VdcControllerImpl implements VdcController {
         log.info("Starting to reconnect vdc {} info in the system, task id {}", vdcToBeReconnected.getShortId(), task);
 
         ReconnectVdcTaskOp vdcOp = new ReconnectVdcTaskOp(dbClient, geoClientCache, helper,
-                serviceInfo, vdcToBeReconnected, task,  _keyStore);
+                serviceInfo, vdcToBeReconnected, task, _keyStore);
         log.info("Initialize ReconnectVdcTaskOp done. ");
         vdcOp.setLockHelper(vdcLockHelper);
         vdcOp.handle();

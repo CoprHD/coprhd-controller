@@ -11,7 +11,6 @@
 
 package com.emc.storageos.cimadapter.connections.cim;
 
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -87,18 +86,18 @@ public class CimListener implements IndicationListener {
 
     // A logger reference.
     private static final Logger s_logger = LoggerFactory.getLogger(CimListener.class);
-    
+
     private int defaultSMISSSLPort;
-    
+
     // keystore and trust store locations
-    private static String _keystoreLocation = System.getProperty(ServicesConstants.KEYSTORE_BASE_PATH_VARIABLE) + 
+    private static String _keystoreLocation = System.getProperty(ServicesConstants.KEYSTORE_BASE_PATH_VARIABLE) +
             ServicesConstants.KEYSTORE_FILE_NAME;
-    private static String _trustStoreLocation = System.getProperty(ServicesConstants.TRUSTSTORE_BASE_PATH_VARIABLE) + 
+    private static String _trustStoreLocation = System.getProperty(ServicesConstants.TRUSTSTORE_BASE_PATH_VARIABLE) +
             ServicesConstants.TRUSTSTORE_FILE_NAME;
-    
+
     /**
      * Indications's thread pool to handle indications from smis.
-     * Executors.newFixedThreadPool will give unbound thread pool. 
+     * Executors.newFixedThreadPool will give unbound thread pool.
      * So no need to bother about RejectedExecutionHandler here.
      */
     private ExecutorService executorService = Executors.newFixedThreadPool(50);
@@ -107,9 +106,9 @@ public class CimListener implements IndicationListener {
      * Constructs a listener given the passed configuration.
      * 
      * @param info The listener configuration extracted from the Spring
-     *        configuration file.
+     *            configuration file.
      * @param indicationConsumers The list of consumers to receive published
-     *        events.
+     *            events.
      */
     public CimListener(CimListenerInfo info, CimIndicationConsumerList indicationConsumers) {
         String hostIP = info.getHostIP();
@@ -182,7 +181,7 @@ public class CimListener implements IndicationListener {
             while (_listener == null) {
                 s_logger.info("Starting listener at {}", _url);
                 _listener = WBEMListenerFactory.getListener(CimConstants.CIM_CLIENT_PROTOCOL);
-    
+
                 // It can take a few attempts to reacquire the TCP port immediately
                 // after releasing it.
                 try {
@@ -210,7 +209,7 @@ public class CimListener implements IndicationListener {
                     }
                 }
             }
-    
+
             s_logger.info("Listening at {}", _url);
             _isRunning = true;
             _isPaused = false;
@@ -230,7 +229,7 @@ public class CimListener implements IndicationListener {
      * @param url The destination URL.
      * @param indication The CIM indication.
      * @param wasQueued true if this indication is from the queue, false
-     *        otherwise.
+     *            otherwise.
      */
     private void indicationOccured(String url, CIMInstance indication, boolean wasQueued) {
         if (wasQueued) {
@@ -241,16 +240,16 @@ public class CimListener implements IndicationListener {
         Runnable indicationWorker = new IndicationWorkerThread(url, indication, wasQueued);
         executorService.execute(indicationWorker);
     }
-    
+
     /**
      * Worker thread to spawn indications into the processors through thread pool.
      */
-    public class IndicationWorkerThread implements Runnable{
-        
+    public class IndicationWorkerThread implements Runnable {
+
         String url;
         CIMInstance indication;
         boolean wasQueued;
-        
+
         public IndicationWorkerThread(String url, CIMInstance indication, boolean wasQueued) {
             this.url = url;
             this.indication = indication;
@@ -259,7 +258,7 @@ public class CimListener implements IndicationListener {
 
         @Override
         public void run() {
-         // Awful quick-fix to filter out a nuisance.
+            // Awful quick-fix to filter out a nuisance.
             s_logger.debug("Inside IndicationWorkerThread");
             try {
                 CimIndicationSet data = new CimIndicationSet(indication);
@@ -319,7 +318,7 @@ public class CimListener implements IndicationListener {
                 s_logger.debug("{} Rejected: {}", new Object[] { url, indication.toString() });
             }
         }
-        
+
     }
 
     /**
@@ -377,12 +376,13 @@ public class CimListener implements IndicationListener {
             _listener = null;
         }
     }
-    
+
     /**
      * close's exiting tcp secure port 7012 and re'opens new socket to indications from smi-s provider.
+     * 
      * @throws IOException
      */
-    public synchronized void restart() throws IOException{
+    public synchronized void restart() throws IOException {
         s_logger.info("listener restart initiated");
         stop();
         startup();
@@ -427,7 +427,7 @@ public class CimListener implements IndicationListener {
             consumer.consumeIndication(processedIndication);
         }
     }
-    
+
     /**
      * 
      * @param connectionInfo
@@ -438,8 +438,8 @@ public class CimListener implements IndicationListener {
      * @throws KeyManagementException
      * @throws ConnectionManagerException
      */
-    public void getClientCertificate(CimConnectionInfo connectionInfo) 
-            throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException, 
+    public void getClientCertificate(CimConnectionInfo connectionInfo)
+            throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException,
             KeyManagementException, ConnectionManagerException {
         char[] passphrase;
         String passphraseStr = "changeit";
@@ -455,10 +455,10 @@ public class CimListener implements IndicationListener {
         s_logger.debug("Created trust manager");
         context.init(null, new TrustManager[] { tm }, null);
         SSLSocketFactory factory = context.getSocketFactory();
-        
+
         String smiHost = connectionInfo.getHost();
         int smiPort = defaultSMISSSLPort;
-        if(connectionInfo.getUseSSL()){
+        if (connectionInfo.getUseSSL()) {
             smiPort = connectionInfo.getPort();
         }
 
@@ -504,11 +504,13 @@ public class CimListener implements IndicationListener {
         out2.close();
         s_logger.debug("Created/updated the trust store: {}",
                 _trustStoreLocation);
-        
+
         restart();
     }
+
     /**
      * Gives trustStore
+     * 
      * @param trustStoreFileName
      * @param passphrase
      * @return
@@ -517,7 +519,7 @@ public class CimListener implements IndicationListener {
      * @throws CertificateException
      * @throws IOException
      */
-    private static KeyStore getTrustStore(String trustStoreFileName, char[] passphrase) 
+    private static KeyStore getTrustStore(String trustStoreFileName, char[] passphrase)
             throws KeyStoreException, NoSuchAlgorithmException, CertificateException, IOException {
         InputStream in = null;  // We will provide null when we need to create a new keystore
         File file = new File(trustStoreFileName);

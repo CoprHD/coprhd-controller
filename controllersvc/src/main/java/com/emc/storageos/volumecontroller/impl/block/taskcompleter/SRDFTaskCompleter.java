@@ -38,9 +38,9 @@ public class SRDFTaskCompleter extends TaskCompleter {
      */
     private static final Logger _logger = LoggerFactory
             .getLogger(SRDFTaskCompleter.class);
-    
+
     private DbClient dbClient;
-    
+
     protected List<Volume> volumeCache;
 
     /**
@@ -72,16 +72,16 @@ public class SRDFTaskCompleter extends TaskCompleter {
     protected DbClient getDbClient() {
         return dbClient;
     }
-    
+
     protected Volume getTargetVolume() {
         for (Volume v : getVolumes()) {
-            if (!NullColumnValueGetter.isNullNamedURI(v.getSrdfParent())  && !v.getSrdfParent().getURI().toString().equalsIgnoreCase("null")) {
+            if (!NullColumnValueGetter.isNullNamedURI(v.getSrdfParent()) && !v.getSrdfParent().getURI().toString().equalsIgnoreCase("null")) {
                 return v;
             }
         }
         throw new IllegalStateException("Expected a target volume with an non-null SRDF parent");
     }
-    
+
     protected Volume getSourceVolume() {
         for (Volume v : getVolumes()) {
             if (v.getSrdfTargets() != null) {
@@ -90,14 +90,14 @@ public class SRDFTaskCompleter extends TaskCompleter {
         }
         throw new IllegalStateException("Expected a source volume with an non-null SRDF parent");
     }
-    
+
     protected List<Volume> getVolumes() {
         if (volumeCache == null) {
             volumeCache = getDbClient().queryObject(Volume.class, getIds());
         }
         return volumeCache;
     }
-    
+
     protected Set<String> getVolumeIds() {
         Set<String> volumeIds = new HashSet<String>();
         for (Volume volume : volumeCache) {
@@ -105,92 +105,93 @@ public class SRDFTaskCompleter extends TaskCompleter {
         }
         return volumeIds;
     }
-    
+
     /**
-    *
-    * @param dbClient
-    * @param evtType
-    * @param status
-    * @param desc
-    * @throws Exception
-    */
-   public void recordBourneSRDFEvent(DbClient dbClient, URI volumeUri,
-                                              String evtType,
-                                              Operation.Status status, String desc)
-           throws Exception {
+     *
+     * @param dbClient
+     * @param evtType
+     * @param status
+     * @param desc
+     * @throws Exception
+     */
+    public void recordBourneSRDFEvent(DbClient dbClient, URI volumeUri,
+            String evtType,
+            Operation.Status status, String desc)
+            throws Exception {
 
-       RecordableEventManager eventManager = new RecordableEventManager();
-       eventManager.setDbClient(dbClient);
+        RecordableEventManager eventManager = new RecordableEventManager();
+        eventManager.setDbClient(dbClient);
 
-       Volume volObj = dbClient.queryObject(Volume.class, volumeUri);
-       RecordableBourneEvent event = ControllerUtils
-               .convertToRecordableBourneEvent(volObj, evtType,
-                       desc, "", dbClient,
-                       ControllerUtils.BLOCK_EVENT_SERVICE,
-                       RecordType.Event.name(),
-                       ControllerUtils.BLOCK_EVENT_SOURCE);
+        Volume volObj = dbClient.queryObject(Volume.class, volumeUri);
+        RecordableBourneEvent event = ControllerUtils
+                .convertToRecordableBourneEvent(volObj, evtType,
+                        desc, "", dbClient,
+                        ControllerUtils.BLOCK_EVENT_SERVICE,
+                        RecordType.Event.name(),
+                        ControllerUtils.BLOCK_EVENT_SOURCE);
 
-       try {
-           eventManager.recordEvents(event);
-           _logger.info("Bourne {} event recorded", evtType);
-       } catch (Throwable th) {
-           _logger.error(
-                   "Failed to record event. Event description: {}. Error: ",
-                   evtType, th);
-       }
-   }
-   
-   /**
-    * Record block volume related event and audit
-    * @param dbClient  db client
-    * @param opType    operation type
-    * @param status    operation status
-    * @param extParam  parameters array from which we could generate detail audit message
-    */
-   public void recordSRDFOperation(DbClient dbClient, OperationTypeEnum opType, Operation.Status status, Object... extParam) {
-       try {
-           boolean opStatus = (Operation.Status.ready == status)? true: false;
-           String evType;
-           evType = opType.getEvType(opStatus);
-           String evDesc = opType.getDescription();
-           String opStage = AuditLogManager.AUDITOP_END;
-           _logger.info("opType: {} detail: {}", opType.toString(), evType.toString() + ':' + evDesc);
+        try {
+            eventManager.recordEvents(event);
+            _logger.info("Bourne {} event recorded", evtType);
+        } catch (Throwable th) {
+            _logger.error(
+                    "Failed to record event. Event description: {}. Error: ",
+                    evtType, th);
+        }
+    }
 
-           recordBourneSRDFEvent(dbClient, getId(), evType, status, evDesc);
+    /**
+     * Record block volume related event and audit
+     * 
+     * @param dbClient db client
+     * @param opType operation type
+     * @param status operation status
+     * @param extParam parameters array from which we could generate detail audit message
+     */
+    public void recordSRDFOperation(DbClient dbClient, OperationTypeEnum opType, Operation.Status status, Object... extParam) {
+        try {
+            boolean opStatus = (Operation.Status.ready == status) ? true : false;
+            String evType;
+            evType = opType.getEvType(opStatus);
+            String evDesc = opType.getDescription();
+            String opStage = AuditLogManager.AUDITOP_END;
+            _logger.info("opType: {} detail: {}", opType.toString(), evType.toString() + ':' + evDesc);
 
-           String id = (String)extParam[0];
-           switch (opType) {
-               case CREATE_SRDF_LINK:
-                   AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, extParam);
-                   break;
-               case SUSPEND_SRDF_LINK:
-                   AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, extParam);
-                   break;
-               case DETACH_SRDF_LINK:
-                   AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, extParam);
-                   break;
-               case PAUSE_SRDF_LINK:
-                   AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, extParam);
-                   break;
-               case RESUME_SRDF_LINK:
-                   AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, extParam);
-                   break;
-               case FAILOVER_SRDF_LINK:
-                   AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, extParam);
-                   break;
-               case SWAP_SRDF_VOLUME:
-                   AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, extParam);
-                   break;
-               case STOP_SRDF_LINK:
-            	   AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, extParam);
-                   break;
-               default:
-                   _logger.error("unrecognized SRDF operation type");
-           }
-       } catch (Exception e) {
-           _logger.error("Failed to record SRDF operation {}, err: {}", opType.toString(), e);
-       }
-   }
+            recordBourneSRDFEvent(dbClient, getId(), evType, status, evDesc);
+
+            String id = (String) extParam[0];
+            switch (opType) {
+                case CREATE_SRDF_LINK:
+                    AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, extParam);
+                    break;
+                case SUSPEND_SRDF_LINK:
+                    AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, extParam);
+                    break;
+                case DETACH_SRDF_LINK:
+                    AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, extParam);
+                    break;
+                case PAUSE_SRDF_LINK:
+                    AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, extParam);
+                    break;
+                case RESUME_SRDF_LINK:
+                    AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, extParam);
+                    break;
+                case FAILOVER_SRDF_LINK:
+                    AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, extParam);
+                    break;
+                case SWAP_SRDF_VOLUME:
+                    AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, extParam);
+                    break;
+                case STOP_SRDF_LINK:
+                    AuditBlockUtil.auditBlock(dbClient, opType, opStatus, opStage, extParam);
+                    break;
+                default:
+                    _logger.error("unrecognized SRDF operation type");
+            }
+        } catch (Exception e) {
+            _logger.error("Failed to record SRDF operation {}, err: {}", opType.toString(), e);
+        }
+    }
 
     protected Volume.LinkStatus getVolumeSRDFLinkStatusForSuccess() {
         return Volume.LinkStatus.OTHER;
@@ -203,25 +204,27 @@ public class SRDFTaskCompleter extends TaskCompleter {
      * @return volume access state for that volume.
      */
     protected Volume.VolumeAccessState getVolumeAccessStateForSuccess(Volume v) {
-    	// If this volume is a source and exported to a host, the volume is write-disabled.  Otherwise it is readwrite.
-    	if (v.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString()) && v.getLinkStatus().equals(Volume.LinkStatus.FAILED_OVER.name())) {
-    		// Check to see if it's exported
+        // If this volume is a source and exported to a host, the volume is write-disabled. Otherwise it is readwrite.
+        if (v.getPersonality().equals(Volume.PersonalityTypes.SOURCE.toString())
+                && v.getLinkStatus().equals(Volume.LinkStatus.FAILED_OVER.name())) {
+            // Check to see if it's exported
             URIQueryResultList exportGroups = new URIQueryResultList();
             getDbClient().queryByConstraint(ContainmentConstraint.
                     Factory.getBlockObjectExportGroupConstraint(v.getId()), exportGroups);
             if (exportGroups != null && exportGroups.iterator().hasNext()) {
-            	// A source volume that is in an export group is write-disabled.
-            	return Volume.VolumeAccessState.READABLE;
+                // A source volume that is in an export group is write-disabled.
+                return Volume.VolumeAccessState.READABLE;
             } else {
-            	return Volume.VolumeAccessState.NOT_READY;
+                return Volume.VolumeAccessState.NOT_READY;
             }
-    	} else if (v.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString()) && !v.getLinkStatus().equals(Volume.LinkStatus.FAILED_OVER.name())) {
-    		// A target volume in any state other than FAILED_OVER is NOT_READY.
-    		return Volume.VolumeAccessState.NOT_READY;
-    	}
-    	
-    	// Any other state is READWRITE
-    	return Volume.VolumeAccessState.READWRITE;
+        } else if (v.getPersonality().equals(Volume.PersonalityTypes.TARGET.toString())
+                && !v.getLinkStatus().equals(Volume.LinkStatus.FAILED_OVER.name())) {
+            // A target volume in any state other than FAILED_OVER is NOT_READY.
+            return Volume.VolumeAccessState.NOT_READY;
+        }
+
+        // Any other state is READWRITE
+        return Volume.VolumeAccessState.READWRITE;
     }
 
     protected void updateVolumeStatus(DbClient dbClient, Operation.Status status) {
@@ -232,15 +235,15 @@ public class SRDFTaskCompleter extends TaskCompleter {
                     v.setLinkStatus(getVolumeSRDFLinkStatusForSuccess().name());
                     v.setAccessState(getVolumeAccessStateForSuccess(v).name());
                     if (v.getSrdfTargets() != null) {
-                    	List<URI> targetVolumeURIs = new ArrayList<URI>();
-                    	for (String targetId : v.getSrdfTargets()) {
-                    		targetVolumeURIs.add(URI.create(targetId));
-                    	}
-                    	List<Volume> targetVolumes = dbClient.queryObject(Volume.class, targetVolumeURIs);
-                    	for (Volume targetVolume : targetVolumes) {
+                        List<URI> targetVolumeURIs = new ArrayList<URI>();
+                        for (String targetId : v.getSrdfTargets()) {
+                            targetVolumeURIs.add(URI.create(targetId));
+                        }
+                        List<Volume> targetVolumes = dbClient.queryObject(Volume.class, targetVolumeURIs);
+                        for (Volume targetVolume : targetVolumes) {
                             targetVolume.setLinkStatus(getVolumeSRDFLinkStatusForSuccess().name());
                             targetVolume.setAccessState(getVolumeAccessStateForSuccess(targetVolume).name());
-                    	}
+                        }
                         dbClient.updateAndReindexObject(targetVolumes);
                     }
                 }

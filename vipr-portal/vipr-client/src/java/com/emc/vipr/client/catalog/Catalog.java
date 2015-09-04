@@ -51,14 +51,15 @@ public class Catalog {
      * @param parameters Parameters used to match for asset dependencies.
      * @return Options for this asset type.
      */
-    public List<Option> getAssetOptions(String asset, Map<String,Object> parameters) {
+    public List<Option> getAssetOptions(String asset, Map<String, Object> parameters) {
         UriBuilder uriBuilder = client.uriBuilder(ASSET_OPTIONS_URL);
         if (parameters != null) {
-            for (Map.Entry<String,Object> param: parameters.entrySet()) {
+            for (Map.Entry<String, Object> param : parameters.entrySet()) {
                 uriBuilder = uriBuilder.queryParam(param.getKey(), param.getValue());
             }
         }
-        List<Option> apiList = getApiListUri(client, new GenericType<List<Option>>() {}, uriBuilder.build(asset));
+        List<Option> apiList = getApiListUri(client, new GenericType<List<Option>>() {
+        }, uriBuilder.build(asset));
         return apiList;
     }
 
@@ -69,12 +70,13 @@ public class Catalog {
      *
      * @param asset Name of the asset to retrieve dependencies for.
      * @param service The serviceId of the service descriptor or ID of the catalog service.
-     *                The service is used to compute dependencies for a particular service form.
+     *            The service is used to compute dependencies for a particular service form.
      * @return Dependencies for this asset type.
      */
     public List<Reference> getAssetDependencies(String asset, String service) {
         UriBuilder uriBuilder = client.uriBuilder(ASSET_DEPS_URL).queryParam("service", service);
-        List<Reference> apiList = getApiListUri(client, new GenericType<List<Reference>>() {}, uriBuilder.build(asset));
+        List<Reference> apiList = getApiListUri(client, new GenericType<List<Reference>>() {
+        }, uriBuilder.build(asset));
         return apiList;
     }
 
@@ -159,7 +161,7 @@ public class Catalog {
      * @return Information on submitted order.
      * @throws ValidationException
      */
-    public OrderInfo order(String serviceId, Map<String,Object> parameters) throws ValidationException {
+    public OrderInfo order(String serviceId, Map<String, Object> parameters) throws ValidationException {
         return doOrder(client.uriBuilder(SERVICE_URL).build(serviceId), parameters);
     }
 
@@ -173,7 +175,7 @@ public class Catalog {
      * @return Information on submitted order.
      * @throws ValidationException
      */
-    public OrderInfo order(String serviceId, MultivaluedMap<String,String> parameters) throws ValidationException {
+    public OrderInfo order(String serviceId, MultivaluedMap<String, String> parameters) throws ValidationException {
         return doOrder(client.uriBuilder(SERVICE_URL).build(serviceId), parameters);
     }
 
@@ -187,7 +189,7 @@ public class Catalog {
      * @return Information on submitted order.
      * @throws ValidationException
      */
-    public OrderInfo orderByPath(String path, Map<String,Object> parameters) throws ValidationException {
+    public OrderInfo orderByPath(String path, Map<String, Object> parameters) throws ValidationException {
         return doOrder(catalogPath(path), parameters);
     }
 
@@ -201,25 +203,25 @@ public class Catalog {
      * @return Information on submitted order.
      * @throws ValidationException
      */
-    public OrderInfo orderByPath(String path, MultivaluedMap<String,String> parameters) throws ValidationException {
+    public OrderInfo orderByPath(String path, MultivaluedMap<String, String> parameters) throws ValidationException {
         return doOrder(catalogPath(path), parameters);
     }
 
-    private OrderInfo doOrder(URI uri, Map<String,Object> parameters) {
+    private OrderInfo doOrder(URI uri, Map<String, Object> parameters) {
         WebResource.Builder builder = client.getClient().resource(uri).accept(
-            client.getConfig().getMediaType()).type(MediaType.APPLICATION_FORM_URLENCODED);
+                client.getConfig().getMediaType()).type(MediaType.APPLICATION_FORM_URLENCODED);
         return builder.post(OrderInfo.class, toMultiValuedMap(parameters));
     }
 
     private OrderInfo doOrder(URI uri, MultivaluedMap parameters) {
         WebResource.Builder builder = client.getClient().resource(uri).accept(
-            client.getConfig().getMediaType()).type(MediaType.APPLICATION_FORM_URLENCODED);
+                client.getConfig().getMediaType()).type(MediaType.APPLICATION_FORM_URLENCODED);
         return builder.post(OrderInfo.class, parameters);
     }
 
-    private MultivaluedMap toMultiValuedMap(Map<String,Object> parameters) {
+    private MultivaluedMap toMultiValuedMap(Map<String, Object> parameters) {
         MultivaluedMapImpl map = new MultivaluedMapImpl();
-        for (Map.Entry<String,Object> entry: parameters.entrySet()) {
+        for (Map.Entry<String, Object> entry : parameters.entrySet()) {
             map.add(entry.getKey(), entry.getValue().toString());
         }
         return map;

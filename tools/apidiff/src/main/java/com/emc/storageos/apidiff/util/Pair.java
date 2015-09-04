@@ -19,7 +19,7 @@ package com.emc.storageos.apidiff.util;
  * General class to record a pair of records, it can be used to save old/new version of same kind of
  * data, or just prepare data as dual tuple.
  */
-public class Pair<L,R> {
+public class Pair<L, R> {
     private final L left;
     private final R right;
 
@@ -54,8 +54,8 @@ public class Pair<L,R> {
         if (this.getClass() != pair.getClass())
             return false;
 
-        return this.left.equals(((Pair<?,?>) pair).getLeft()) &&
-                this.right.equals(((Pair<?,?>) pair).getRight());
+        return this.left.equals(((Pair<?, ?>) pair).getLeft()) &&
+                this.right.equals(((Pair<?, ?>) pair).getRight());
     }
 
     @Override

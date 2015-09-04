@@ -29,31 +29,31 @@ public class VdcPreCheckParam2 {
     private List<String> blackList = new ArrayList<>();
     private List<String> whiteList = new ArrayList<>();
     private boolean precheckFailed = false;
-    private String  defaultVdcState;
+    private String defaultVdcState;
     private boolean isAllNotReachable;
-    
-    @XmlElement(name="vdcIds")
+
+    @XmlElement(name = "vdcIds")
     public List<URI> getVdcIds() {
         if (vdcIds == null) {
             vdcIds = new ArrayList<>();
         }
         return vdcIds;
     }
-    
+
     public void setVdcIds(List<URI> vdcIds) {
         this.vdcIds = vdcIds;
     }
 
-    @XmlElement(name="config_change_type")
+    @XmlElement(name = "config_change_type")
     public VdcConfig.ConfigChangeType getConfigChangeType() {
         return configChangeType;
     }
-    
-    public void setConfigChangeType(VdcConfig.ConfigChangeType type ) {
+
+    public void setConfigChangeType(VdcConfig.ConfigChangeType type) {
         configChangeType = type;
     }
 
-    @XmlElement(name="precheck_failed")
+    @XmlElement(name = "precheck_failed")
     public boolean isPrecheckFailed() {
         return precheckFailed;
     }
@@ -62,7 +62,7 @@ public class VdcPreCheckParam2 {
         this.precheckFailed = precheckFailed;
     }
 
-    @XmlElement(name="default_vdc_state")
+    @XmlElement(name = "default_vdc_state")
     public String getDefaultVdcState() {
         return defaultVdcState;
     }
@@ -71,10 +71,9 @@ public class VdcPreCheckParam2 {
         this.defaultVdcState = defaultVdcState;
     }
 
-
-    @XmlElement(name="blacklist")
+    @XmlElement(name = "blacklist")
     public List<String> getBlackList() {
-        if(blackList == null) {
+        if (blackList == null) {
             blackList = new ArrayList<>();
         }
         return blackList;
@@ -84,7 +83,7 @@ public class VdcPreCheckParam2 {
         this.blackList = blackList;
     }
 
-    @XmlElement(name="whitelist")
+    @XmlElement(name = "whitelist")
     public List<String> getWhiteList() {
         return whiteList;
     }
@@ -93,7 +92,7 @@ public class VdcPreCheckParam2 {
         this.whiteList = whiteList;
     }
 
-    @XmlElement(name="isAllReachable")
+    @XmlElement(name = "isAllReachable")
     public boolean getIsAllNotReachable() {
         return isAllNotReachable;
     }

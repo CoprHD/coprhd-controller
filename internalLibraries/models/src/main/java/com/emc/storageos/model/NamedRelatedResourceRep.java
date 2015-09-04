@@ -24,7 +24,8 @@ public class NamedRelatedResourceRep extends RelatedResourceRep {
 
     private String name;
 
-    public NamedRelatedResourceRep() {}
+    public NamedRelatedResourceRep() {
+    }
 
     public NamedRelatedResourceRep(URI id, RestLinkRep selfLink, String name) {
         super(id, selfLink);
@@ -33,12 +34,14 @@ public class NamedRelatedResourceRep extends RelatedResourceRep {
 
     /**
      * The name of the resource
+     * 
      * @valid none
      */
     @XmlElement(name = "name")
     public String getName() {
         return name;
     }
+
     public void setName(String name) {
         this.name = name;
     }

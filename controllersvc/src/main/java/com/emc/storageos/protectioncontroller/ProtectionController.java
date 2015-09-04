@@ -28,23 +28,23 @@ public interface ProtectionController extends Controller {
     /**
      * Connect to the protection controller with the given address and credentials.
      *
-     * @param protection   URI for the protection controller.
+     * @param protection URI for the protection controller.
      */
     public void connect(URI protection) throws InternalException;
 
     /**
      * Disconnect from the protection controller.
      *
-     * @param protection           URI of the protection controller.
+     * @param protection URI of the protection controller.
      */
     public void disconnect(URI protection) throws InternalException;
 
     /**
      * Discover the given protection device or protection set which is registered with Bourne
      * 
-     * @param tasks  for discovery jobs.
+     * @param tasks for discovery jobs.
      * @throws InternalException
      */
     public void discover(AsyncTask[] tasks) throws InternalException;
-    
+
 }

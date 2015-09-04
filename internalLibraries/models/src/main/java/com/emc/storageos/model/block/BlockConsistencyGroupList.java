@@ -30,8 +30,9 @@ public class BlockConsistencyGroupList {
      */
     private List<NamedRelatedBlockConsistencyGroupRep> consistencyGroupList;
 
-    public BlockConsistencyGroupList() {}
-    
+    public BlockConsistencyGroupList() {
+    }
+
     public BlockConsistencyGroupList(
             List<NamedRelatedBlockConsistencyGroupRep> consistencyGroupList) {
         super();

@@ -27,9 +27,9 @@ import com.emc.storageos.xtremio.restapi.model.response.XtremIOSystem;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 
 public class XtremIOProvUtils {
-	
+
     private static final Logger _log = LoggerFactory.getLogger(XtremIOProvUtils.class);
-  
+
     public static void updateStoragePoolCapacity(XtremIOClient client, DbClient dbClient, StoragePool storagePool) {
         try {
             StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storagePool.getStorageDevice());
@@ -38,22 +38,22 @@ public class XtremIOProvUtils {
                     storagePool.calculateFreeCapacityWithoutReservations(),
                     storagePool.getSubscribedCapacity()));
             List<XtremIOSystem> systems = client.getXtremIOSystemInfo();
-            for(XtremIOSystem system : systems) {
-            	if(system.getSerialNumber().equalsIgnoreCase(storageSystem.getSerialNumber())) {
-            		storagePool.setFreeCapacity(system.getTotalCapacity() - system.getUsedCapacity());
-            		dbClient.persistObject(storagePool);
-            		break;
-            	}
+            for (XtremIOSystem system : systems) {
+                if (system.getSerialNumber().equalsIgnoreCase(storageSystem.getSerialNumber())) {
+                    storagePool.setFreeCapacity(system.getTotalCapacity() - system.getUsedCapacity());
+                    dbClient.persistObject(storagePool);
+                    break;
+                }
             }
             _log.info(String.format("New storage pool capacity data for \n  pool %s/%s --- \n  free capacity: %s; subscribed capacity: %s",
                     storageSystem.getId(), storagePool.getId(),
                     storagePool.calculateFreeCapacityWithoutReservations(),
                     storagePool.getSubscribedCapacity()));
-        } catch(Exception e) {
-        	_log.warn("Problem when updating pool capacity for pool {}", storagePool.getNativeGuid());
+        } catch (Exception e) {
+            _log.warn("Problem when updating pool capacity for pool {}", storagePool.getNativeGuid());
         }
     }
-    
+
     public static XtremIOVolume isVolumeAvailableInArray(XtremIOClient client, String label) {
         XtremIOVolume volume = null;
         try {
@@ -63,7 +63,7 @@ public class XtremIOProvUtils {
         }
         return volume;
     }
-    
+
     public static XtremIOVolume isSnapAvailableInArray(XtremIOClient client, String label) {
         XtremIOVolume volume = null;
         try {

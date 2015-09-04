@@ -24,7 +24,7 @@ import javax.ws.rs.core.Response;
 public class ClusterIdentity extends BaseResource {
 
     @GET
-    @Produces({MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_JSON })
     public Response getIdentity() {
         StringBuilder str = new StringBuilder();
         str.append("{\"description\":\"\",");

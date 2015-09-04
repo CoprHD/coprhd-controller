@@ -169,8 +169,8 @@ public class KeyCertificateAlgorithmValuesHolder {
         if (ipv6VipAddress != null // got the dns name for the VIP ipv6 address
                 && !ipv6VipAddress.getCanonicalHostName().equalsIgnoreCase(
                         ipv6VipAddress.getHostAddress())) {
-            //this will return the dns name
-            return ipv6VipAddress.getCanonicalHostName(); 
+            // this will return the dns name
+            return ipv6VipAddress.getCanonicalHostName();
         }
         // default to the ipv4 address
         return ipv4VipAddress.getHostAddress();
@@ -190,7 +190,7 @@ public class KeyCertificateAlgorithmValuesHolder {
         String[] propsStrings = result.getStdOutput().split(LINE_DELIMITER);
         PropertyInfoExt props = new PropertyInfoExt(propsStrings);
         String keyAndCertPem = props.getProperty(V1_SSL_CERT_PROPERTY_NAME);
-        if(keyAndCertPem == null) {
+        if (keyAndCertPem == null) {
             log.info("Deprecated property " + V1_SSL_CERT_PROPERTY_NAME + " not configured in previous version.");
         }
         return keyAndCertPem;

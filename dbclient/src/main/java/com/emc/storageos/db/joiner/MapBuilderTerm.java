@@ -21,6 +21,7 @@ import java.util.Set;
 
 /**
  * A Map "term" represents a single push operation.
+ * 
  * @author watson
  *
  */

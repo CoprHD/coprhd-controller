@@ -53,7 +53,7 @@ public class StorageVolumeEventProcessor extends BaseProcessor {
             String nativeGuid = NativeGUIDGenerator.generateNativeGuid(notification);
             // First search in ViPR DB for volumes
             List<URI> resourceURIs = new ArrayList<URI>();
-            _logger.info("nativeGuid :{}",nativeGuid);
+            _logger.info("nativeGuid :{}", nativeGuid);
             resourceURIs = getDbClient().queryByConstraint(AlternateIdConstraint.Factory.getVolumeNativeGuidConstraint(nativeGuid));
             if (resourceURIs.size() == 0) {
                 // This has to be a snapshot GUID.

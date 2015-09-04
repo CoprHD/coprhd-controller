@@ -19,7 +19,8 @@ public class StorageSystemProviderRequestParam {
     private String systemType;
     private String serialNumber;
 
-    public StorageSystemProviderRequestParam() {}
+    public StorageSystemProviderRequestParam() {
+    }
 
     /**
      * Type of the storage system
@@ -41,9 +42,6 @@ public class StorageSystemProviderRequestParam {
      * @valid openstack,
      * @valid scaleio;
      */
-
-
-
 
     @XmlElement(name = "system_type", required = true)
     public String getSystemType() {
@@ -67,5 +65,5 @@ public class StorageSystemProviderRequestParam {
     public void setSerialNumber(String serialNumber) {
         this.serialNumber = serialNumber;
     }
-    
+
 }

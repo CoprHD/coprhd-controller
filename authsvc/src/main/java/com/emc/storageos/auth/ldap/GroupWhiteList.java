@@ -26,7 +26,7 @@ public class GroupWhiteList {
     private Pattern[] _compiledPatterns;
 
     public static final GroupWhiteList SID = new GroupWhiteList("objectSid",
-        "*");
+            "*");
 
     /**
      * Default constructor
@@ -98,7 +98,7 @@ public class GroupWhiteList {
                 int i = 0;
                 for (String value : _values) {
                     _compiledPatterns[i] = Pattern.compile(value.replace("*",
-                        ".*"), Pattern.CASE_INSENSITIVE|Pattern.UNICODE_CASE);
+                            ".*"), Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
                     i++;
                 }
             }

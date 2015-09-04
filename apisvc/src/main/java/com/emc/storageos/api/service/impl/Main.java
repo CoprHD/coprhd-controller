@@ -38,9 +38,9 @@ public class Main {
             ctx.load(args);
             ctx.refresh();
 
-            ProvisioningService apiservice = (ProvisioningService)ctx.getBean(SERVICE_BEAN);
+            ProvisioningService apiservice = (ProvisioningService) ctx.getBean(SERVICE_BEAN);
             apiservice.start();
-        } catch(Exception e) {
+        } catch (Exception e) {
             _log.error("failed to start {}:", SERVICE_BEAN, e);
             System.exit(1);
         }

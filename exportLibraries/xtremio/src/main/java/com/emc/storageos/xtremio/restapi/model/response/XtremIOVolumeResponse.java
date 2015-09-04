@@ -21,7 +21,7 @@ import com.google.gson.annotations.SerializedName;
 
 public class XtremIOVolumeResponse {
     @SerializedName("links")
-    @JsonProperty(value="links")
+    @JsonProperty(value = "links")
     private XtremIOResponseContent[] volumes;
 
     public XtremIOResponseContent[] getVolumes() {

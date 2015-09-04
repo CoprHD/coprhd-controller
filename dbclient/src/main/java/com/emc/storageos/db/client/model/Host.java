@@ -9,7 +9,7 @@ import java.net.URI;
 import com.emc.storageos.db.client.util.EndpointUtility;
 
 /**
- * A compute host to which a volume or file system can be exported. 
+ * A compute host to which a volume or file system can be exported.
  * The host can be a stand-alone computer (server), or a server in
  * an ESX cluster that is managed by a Vcenter.
  * 
@@ -18,14 +18,14 @@ import com.emc.storageos.db.client.util.EndpointUtility;
  */
 @Cf("Host")
 public class Host extends AbstractComputeSystem {
-    
+
     public static enum ProvisioningJobStatus {
         NONE,
         IN_PROGRESS,
         COMPLETE,
         ERROR
     }
-    
+
     private String _type;
     private String _hostName;
     private Integer _portNumber;
@@ -41,11 +41,13 @@ public class Host extends AbstractComputeSystem {
     private Boolean discoverable;
     private String provisioningStatus;
     /**
-     * This is for recording the volumeId that was used in the OsInstallation phase. Will be used to remove the associated volume when deactivating a Host
+     * This is for recording the volumeId that was used in the OsInstallation phase. Will be used to remove the associated volume when
+     * deactivating a Host
      */
     private URI bootVolumeId;
     /**
-     * This is for recording the ComputeVirtualPool that was used to create the host (bare metal) - will be used to determine if the VCP is in use
+     * This is for recording the ComputeVirtualPool that was used to create the host (bare metal) - will be used to determine if the VCP is
+     * in use
      */
     private URI computeVirtualPoolId;
     public static String ALTER_ID_FIELD = "hostName";
@@ -63,6 +65,7 @@ public class Host extends AbstractComputeSystem {
 
     /**
      * Sets the type of host
+     * 
      * @see HostType
      * @param type the host type
      */
@@ -84,7 +87,7 @@ public class Host extends AbstractComputeSystem {
     /**
      * Sets the login account name
      * 
-     * @param username  the login account name
+     * @param username the login account name
      */
     public void setUsername(String username) {
         this._userName = username;
@@ -114,6 +117,7 @@ public class Host extends AbstractComputeSystem {
 
     /**
      * The short or fully qualified host name
+     * 
      * @return the short or fully qualified host name
      */
     @Name("hostName")
@@ -124,6 +128,7 @@ public class Host extends AbstractComputeSystem {
 
     /**
      * Sets the short or fully qualified host name or an IP address
+     * 
      * @param hostName the host name
      */
     public void setHostName(String hostName) {
@@ -165,7 +170,7 @@ public class Host extends AbstractComputeSystem {
     /**
      * Sets the cluster when the host is in a cluster.
      * 
-     * @param cluster the cluster URI 
+     * @param cluster the cluster URI
      */
     public void setCluster(URI cluster) {
         _cluster = cluster;
@@ -239,6 +244,7 @@ public class Host extends AbstractComputeSystem {
 
     /**
      * This field is currently not used. Any values passed into it will be ignored.
+     * 
      * @return null
      */
     @RelationIndex(cf = "RelationIndex", type = Project.class)
@@ -249,11 +255,12 @@ public class Host extends AbstractComputeSystem {
 
     /**
      * This field is currently not used. Any values passed into it will be ignored.
-     * @param project 
+     * 
+     * @param project
      */
     public void setProject(URI project) {
-//        _project = project;
-//        setChanged("project");
+        // _project = project;
+        // setChanged("project");
     }
 
     /**
@@ -268,13 +275,13 @@ public class Host extends AbstractComputeSystem {
 
     /**
      * Sets the flag that indicates if SSL should be used when communicating with the host
+     * 
      * @param useSsl true or false to indicate if SSL should be used
      */
     public void setUseSSL(Boolean useSsl) {
         this._useSsl = useSsl;
         setChanged("useSSL");
     }
-
 
     /**
      * Returns the name of the data center in vcenter where this host resides
@@ -315,7 +322,7 @@ public class Host extends AbstractComputeSystem {
 
     @Override
     public Object[] auditParameters() {
-        return new Object[] {getHostName(), 
+        return new Object[] { getHostName(),
                 getVcenterDataCenter(), getCluster(), getTenant(), getId() };
     }
 
@@ -326,12 +333,12 @@ public class Host extends AbstractComputeSystem {
     public enum HostType {
         Windows, HPUX, Linux, Esx, AIX, AIXVIO, SUNVCS, No_OS, Other
     }
-    
+
     @RelationIndex(cf = "RelationIndex", type = Volume.class)
     @Name("bootVolumeId")
     public URI getBootVolumeId() {
         return bootVolumeId;
-}
+    }
 
     public void setBootVolumeId(URI bootVolumeId) {
         this.bootVolumeId = bootVolumeId;
@@ -359,7 +366,7 @@ public class Host extends AbstractComputeSystem {
         this.uuid = uuid;
         setChanged("uuid");
     }
-    
+
     @Name("provisioningStatus")
     public String getProvisioningStatus() {
         return provisioningStatus;
@@ -369,6 +376,5 @@ public class Host extends AbstractComputeSystem {
         this.provisioningStatus = provisioningStatus;
         setChanged("provisioningStatus");
     }
-    
-    
+
 }

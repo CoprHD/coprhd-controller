@@ -19,7 +19,8 @@ import java.util.Map;
  */
 @FastTags.Namespace("Branding")
 public class BrandingTags extends FastTags {
-    public static void _applicationName(Map<?, ?> args, Closure body, PrintWriter out, GroovyTemplate.ExecutableTemplate template, int fromLine) {
+    public static void _applicationName(Map<?, ?> args, Closure body, PrintWriter out, GroovyTemplate.ExecutableTemplate template,
+            int fromLine) {
         out.write(getApplicationName());
     }
 

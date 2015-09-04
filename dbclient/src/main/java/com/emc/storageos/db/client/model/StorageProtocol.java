@@ -33,15 +33,15 @@ public class StorageProtocol {
         FC,                 // block
         FCoE,               // FC block protocol with Ethernet transport
         ScaleIO;            // ScaleIO Data Clients
-        
+
         private static final Set<String> protocols = new HashSet<String>();
-        
-        static{
-            for(Block protocol: EnumSet.allOf(Block.class)) {
+
+        static {
+            for (Block protocol : EnumSet.allOf(Block.class)) {
                 protocols.add(protocol.name());
             }
         }
-        
+
         public static boolean isProtocolSupported(String protocol) {
             return protocols.contains(protocol);
         }
@@ -74,10 +74,10 @@ public class StorageProtocol {
      * @return
      */
     public static Transport block2Transport(String protocol) {
-    	if (protocol == null) {
-    		return null;
+        if (protocol == null) {
+            return null;
         }
-    	if (Block.iSCSI.name().equals(protocol))
+        if (Block.iSCSI.name().equals(protocol))
             return Transport.IP;
         if (Block.FCoE.name().equals(protocol))
             return Transport.Ethernet;
@@ -92,8 +92,8 @@ public class StorageProtocol {
     /**
      * Check if block protocol selection is good.
      *
-     * @param type          VirtualPool type: block or file
-     * @param protocols     set of protocol names to be validated
+     * @param type VirtualPool type: block or file
+     * @param protocols set of protocol names to be validated
      * @return
      */
     public static boolean checkProtocols(VirtualPool.Type type, Set<String> protocols) {
@@ -103,7 +103,7 @@ public class StorageProtocol {
             while (it.hasNext()) {
                 if (type.name().equals(VirtualPool.Type.block.name())) {
                     Block.valueOf(it.next());
-                } else if (type.name().equals(VirtualPool.Type.file.name())){
+                } else if (type.name().equals(VirtualPool.Type.file.name())) {
                     File.valueOf(it.next());
                 } else {
                     return false;
@@ -117,6 +117,7 @@ public class StorageProtocol {
 
     /**
      * Validate initiator node and port formats for the given protocol.
+     * 
      * @param protocol
      * @param initiatorNode
      * @param initiatorPort
@@ -127,9 +128,8 @@ public class StorageProtocol {
             return WWNUtility.isValidWWN(initiatorNode) && WWNUtility.isValidWWN(initiatorPort);
         }
         if (Block.iSCSI.name().equals(protocol)) {
-         return (iSCSIUtility.isValidIQNPortName(initiatorPort) || 
-        		 iSCSIUtility.isValidEUIPortName(initiatorPort) );
-    
+            return (iSCSIUtility.isValidIQNPortName(initiatorPort) || iSCSIUtility.isValidEUIPortName(initiatorPort));
+
         }
         return true;
     }

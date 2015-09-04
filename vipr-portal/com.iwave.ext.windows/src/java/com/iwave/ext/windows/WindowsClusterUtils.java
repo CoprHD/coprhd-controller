@@ -20,7 +20,7 @@ import org.apache.commons.lang.StringUtils;
 /**
  */
 public class WindowsClusterUtils {
-    private static final String CLUSTER_SERVICE_NAME  = "clussvc";
+    private static final String CLUSTER_SERVICE_NAME = "clussvc";
 
     public static Win32Service findClusterService(List<Win32Service> services) {
         for (Win32Service service : services) {
@@ -49,11 +49,9 @@ public class WindowsClusterUtils {
         try {
             InetAddress address = Inet4Address.getByName(hostName);
             hostAddress = address.getHostAddress();
+        } catch (UnknownHostException e) {
+            throw new RuntimeException("Unable to resolve hostname " + hostName, e);
         }
-        catch (UnknownHostException e) {
-            throw new RuntimeException("Unable to resolve hostname "+hostName,e);
-        }
-
 
         for (Map.Entry<String, List<MSClusterNetworkInterface>> entry : clusters.entrySet()) {
             for (MSClusterNetworkInterface networkInterface : entry.getValue()) {

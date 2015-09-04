@@ -16,7 +16,6 @@ package com.emc.storageos.auth.ldap;
 
 import java.util.Arrays;
 
-
 /**
  * RootDSE. Requires LDAP v3 support.
  * 
@@ -80,7 +79,7 @@ public class RootDSE {
             return;
         }
         this.supportedLDAPVersion = new int[supportedLDAPVersion.length];
-        for (int i = 0; i<supportedLDAPVersion.length; i++) {
+        for (int i = 0; i < supportedLDAPVersion.length; i++) {
             try {
                 this.supportedLDAPVersion[i] = Integer.parseInt(supportedLDAPVersion[i]);
             } catch (NumberFormatException ex) {

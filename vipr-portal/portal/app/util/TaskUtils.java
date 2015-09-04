@@ -42,8 +42,7 @@ public class TaskUtils {
         if (taskId != null) {
             try {
                 return getViprClient().tasks().get(taskId);
-            }
-            catch (ViPRHttpException e) {
+            } catch (ViPRHttpException e) {
                 // Anything other than 404 is an error
                 if (e.getHttpCode() != 404) {
                     throw e;

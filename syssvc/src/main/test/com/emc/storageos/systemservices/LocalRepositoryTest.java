@@ -26,10 +26,9 @@ import com.emc.storageos.systemservices.impl.upgrade.LocalRepository;
 import org.junit.Assert;
 import org.junit.Test;
 
-
 public class LocalRepositoryTest {
     @Test
-    public void localRepositoryTest(){
+    public void localRepositoryTest() {
         // getVersions() returns an empty List but never null
         LocalRepository _localRepo = LocalRepository.getInstance();
         try {
@@ -37,7 +36,7 @@ public class LocalRepositoryTest {
             SoftwareVersion current = state.getCurrentVersion();
             Assert.assertNotNull(current);
             System.out.println("current=" + current);
-            
+
             List<SoftwareVersion> available = state.getVersions();
             Assert.assertNotNull(available);
             System.out.println("available=");

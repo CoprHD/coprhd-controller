@@ -167,7 +167,7 @@ public class JSONMarshaller extends Marshaller {
     }
 
     private void writeEntry(byte[] key, byte[] firstLine, int valueOffset, int valueLength,
-                            boolean isStr) throws IOException {
+            boolean isStr) throws IOException {
         outputStream.write(RETURN);
         outputStream.write(TAB);
         outputStream.write(TAB);
@@ -188,40 +188,41 @@ public class JSONMarshaller extends Marshaller {
 
     /**
      * Escape the ", / and \ char from JSON string
+     * 
      * @param msg
      * @throws IOException
      */
     private void escapeJSONChars(byte[] msg) throws IOException {
         int mark = 0;
-        for (int i = 0; i < msg.length; i ++ ) {
+        for (int i = 0; i < msg.length; i++) {
             if (msg[i] == (byte) '"' || msg[i] == (byte) '\\' || msg[i] == (byte) '/') {
                 outputStream.write(msg, mark, i - mark);
-                outputStream.write((char)'\\');
+                outputStream.write((char) '\\');
                 mark = i;
-            }else if (msg[i] == (byte) '\r') {
+            } else if (msg[i] == (byte) '\r') {
                 outputStream.write(msg, mark, i - mark);
-                outputStream.write((char)'\\');
-                outputStream.write((char)'r');
+                outputStream.write((char) '\\');
+                outputStream.write((char) 'r');
                 mark = i + 1;
-            }else if (msg[i] == (byte) '\n') {
+            } else if (msg[i] == (byte) '\n') {
                 outputStream.write(msg, mark, i - mark);
-                outputStream.write((char)'\\');
-                outputStream.write((char)'n');
+                outputStream.write((char) '\\');
+                outputStream.write((char) 'n');
                 mark = i + 1;
-            }else if (msg[i] == (byte) '\b') {
+            } else if (msg[i] == (byte) '\b') {
                 outputStream.write(msg, mark, i - mark);
-                outputStream.write((char)'\\');
-                outputStream.write((char)'b');
+                outputStream.write((char) '\\');
+                outputStream.write((char) 'b');
                 mark = i + 1;
-            }else if (msg[i] == (byte) '\f') {
+            } else if (msg[i] == (byte) '\f') {
                 outputStream.write(msg, mark, i - mark);
-                outputStream.write((char)'\\');
-                outputStream.write((char)'f');
+                outputStream.write((char) '\\');
+                outputStream.write((char) 'f');
                 mark = i + 1;
-            }else if (msg[i] == (byte) '\t') {
+            } else if (msg[i] == (byte) '\t') {
                 outputStream.write(msg, mark, i - mark);
-                outputStream.write((char)'\\');
-                outputStream.write((char)'t');
+                outputStream.write((char) '\\');
+                outputStream.write((char) 't');
                 mark = i + 1;
             }
         }

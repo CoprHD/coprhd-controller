@@ -38,13 +38,13 @@ public class AnnotationTypeDiff extends Diff {
 
     public AnnotationTypeDiff(AnnotationType src, AnnotationType tgt) {
         type = src.getType();
-        
+
         for (AnnotationValue av : src.getValueList()) {
             av.setParent(src);
         }
 
-        valueCT = CollectionChangeTracker.<AnnotationValue, AnnotationValueDiff>newInstance(
-                AnnotationValue.class, AnnotationValueDiff.class, src.getValueList(), 
+        valueCT = CollectionChangeTracker.<AnnotationValue, AnnotationValueDiff> newInstance(
+                AnnotationValue.class, AnnotationValueDiff.class, src.getValueList(),
                 tgt.getValueList());
     }
 
@@ -80,7 +80,7 @@ public class AnnotationTypeDiff extends Diff {
      * annotation values of new annotations
      */
     public List<AnnotationValue> getNewAnnotationValues() {
-        if (valueCT != null) 
+        if (valueCT != null)
             return valueCT.getNewList();
 
         return new ArrayList<AnnotationValue>();

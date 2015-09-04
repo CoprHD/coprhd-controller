@@ -16,12 +16,12 @@ import static com.emc.storageos.db.client.model.uimodels.InitialSetup.*;
 
 public class SetupUtils {
     private static boolean complete = false;
-    
+
     public static boolean isSetupComplete() {
         if (StorageOsPlugin.isEnabled()) {
             CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
             Configuration setupConfig = coordinatorClient.queryConfiguration(CONFIG_KIND, CONFIG_ID);
-            complete = (setupConfig != null) && 
+            complete = (setupConfig != null) &&
                     StringUtils.equals(setupConfig.getConfig(COMPLETE), Boolean.TRUE.toString());
         }
         // In Dev mode we don't have coordinator so assume always setup
@@ -31,7 +31,7 @@ public class SetupUtils {
         else {
             complete = false;
         }
-        
+
         return complete;
     }
 
@@ -39,7 +39,7 @@ public class SetupUtils {
         if (complete) {
             return;
         }
-        
+
         if (StorageOsPlugin.isEnabled()) {
             CoordinatorClient coordinatorClient = StorageOsPlugin.getInstance().getCoordinatorClient();
             ConfigurationImpl config = new ConfigurationImpl();

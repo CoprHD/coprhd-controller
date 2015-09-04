@@ -167,7 +167,7 @@ public class ServiceCatalog extends Controller {
      * Creates the breadcrumbs for the entire catalog.
      * 
      * @param catalog
-     *        the service catalog.
+     *            the service catalog.
      * @return the mapping of category ID to breadcrumb list.
      */
     @Util
@@ -184,7 +184,7 @@ public class ServiceCatalog extends Controller {
      * Creates the breadcrumbs for the catalog service.
      * 
      * @param service
-     *        the catalog service.
+     *            the catalog service.
      * @return the breadcrumb list.
      */
     @Util
@@ -201,7 +201,7 @@ public class ServiceCatalog extends Controller {
      * Creates the breadcrumbs for the catalog category.
      * 
      * @param category
-     *        the catalog category.
+     *            the catalog category.
      * @return the breacrumb list.
      */
     @Util
@@ -213,13 +213,13 @@ public class ServiceCatalog extends Controller {
      * Adds a breadcrumb to the end of the list, constructing its path based on the breadcrumb at the end of the list.
      * 
      * @param breadcrumbs
-     *        the list of breadcrumbs.
+     *            the list of breadcrumbs.
      * @param id
-     *        the breadcrumb ID.
+     *            the breadcrumb ID.
      * @param name
-     *        the breadcrumb name, used to construct the path.
+     *            the breadcrumb name, used to construct the path.
      * @param title
-     *        the breadcrumb title.
+     *            the breadcrumb title.
      */
     @Util
     public static void addBreadCrumb(List<BreadCrumb> breadcrumbs, String id, String name, String title) {
@@ -232,9 +232,9 @@ public class ServiceCatalog extends Controller {
      * purposes.
      * 
      * @param breadcrumbs
-     *        the breadcrumbs.
+     *            the breadcrumbs.
      * @param title
-     *        the breadcrumb title.
+     *            the breadcrumb title.
      */
     @Util
     public static void addBreadCrumb(List<BreadCrumb> breadcrumbs, String title) {
@@ -245,7 +245,7 @@ public class ServiceCatalog extends Controller {
      * Gets the last path entry from the breadcrumb list.
      * 
      * @param breadcrumbs
-     *        the breadcrumbs.
+     *            the breadcrumbs.
      * @return the last path or empty string if there are no breadcrumbs.
      */
     private static String getLastPath(List<BreadCrumb> breadcrumbs) {
@@ -261,9 +261,9 @@ public class ServiceCatalog extends Controller {
      * Creates a breadcrumb list for the given category.
      * 
      * @param categoryId
-     *        the ID of the category to create the breadcrumb for.
+     *            the ID of the category to create the breadcrumb for.
      * @param catalog
-     *        the catalog.
+     *            the catalog.
      * @return the breadcrumb list.
      */
     @Util
@@ -301,7 +301,6 @@ public class ServiceCatalog extends Controller {
 
         public List<CategoryDef> categories = Lists.newArrayList();
         public List<ServiceDef> services = Lists.newArrayList();
-
 
         public CategoryDef getSubCategory(String name) {
             for (CategoryDef subcategory : categories) {

@@ -24,8 +24,7 @@ public class BlockConsistencyGroupUtils {
     public static BlockConsistencyGroupRestRep getBlockConsistencyGroup(String id) {
         try {
             return getBlockConsistencyGroup(uri(id));
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }
@@ -42,7 +41,7 @@ public class BlockConsistencyGroupUtils {
     }
 
     public static NamedRelatedResourceRep getBlockConsistencyGroupRef(URI id) {
-       return createNamedRef(getViprClient().blockConsistencyGroups().get(id));
+        return createNamedRef(getViprClient().blockConsistencyGroups().get(id));
     }
 
     public static List<BlockConsistencyGroupRestRep> getBlockConsistencyGroups(String projectId) {

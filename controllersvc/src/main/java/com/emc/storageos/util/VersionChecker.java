@@ -27,6 +27,7 @@ public class VersionChecker {
 
     /**
      * Compare the two versions
+     * 
      * @param minimumSupportedVersion
      * @param version - version discovered
      * @return 0 if versions are equal,
@@ -42,12 +43,13 @@ public class VersionChecker {
         version = version.trim();
 
         // split by dots, parentheses, and adjoining letters and numbers
-        String[] versionToVerifyWith = Pattern.compile("[\\.|\\)|\\(| ]|(?<=\\D)(?=\\d)|(?<=\\d)(?=\\D)", Pattern.DOTALL).split(minimumSupportedVersion);
+        String[] versionToVerifyWith = Pattern.compile("[\\.|\\)|\\(| ]|(?<=\\D)(?=\\d)|(?<=\\d)(?=\\D)", Pattern.DOTALL).split(
+                minimumSupportedVersion);
         String[] versionProvided = Pattern.compile("[\\.|\\)|\\(| ]|(?<=\\D)(?=\\d)|(?<=\\d)(?=\\D)", Pattern.DOTALL).split(version);
 
         // to remove leading zeroes from the first part. For vnxblock, the version is 05.32
         versionToVerifyWith[0] = versionToVerifyWith[0].replaceFirst("^0*", "");
-        versionProvided[0] = versionProvided[0].replaceFirst("^0*", "");            
+        versionProvided[0] = versionProvided[0].replaceFirst("^0*", "");
 
         int i = 0;
         while (i < versionProvided.length && i < versionToVerifyWith.length
@@ -79,10 +81,10 @@ public class VersionChecker {
      */
     public static String getMinimumSupportedVersion(DiscoveredDataObject.Type systemType) {
         String minimumSupportedVersion = null;
-        if (systemType!=null) {
+        if (systemType != null) {
             String minimumSupportedVersionKey = getLookupKeyBasedOnSystemType(systemType.toString());
             // Get and return supported version from co-ordinator.
-            minimumSupportedVersion = ControllerUtils.getPropertyValueFromCoordinator(coordinator, minimumSupportedVersionKey);            
+            minimumSupportedVersion = ControllerUtils.getPropertyValueFromCoordinator(coordinator, minimumSupportedVersionKey);
         }
         return minimumSupportedVersion;
     }

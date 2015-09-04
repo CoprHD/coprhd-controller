@@ -12,16 +12,17 @@ package com.emc.cloud.platform.ucs.model.ext;
  *
  */
 public enum OutStatus {
-	
-	SUCCESS("success"),FAILURE("failure");
-	
-	String value;
-	OutStatus(String enumText){
-		value = enumText;
-	}
-	
-	public String getValue(){
-		return value;
-	}
+
+    SUCCESS("success"), FAILURE("failure");
+
+    String value;
+
+    OutStatus(String enumText) {
+        value = enumText;
+    }
+
+    public String getValue() {
+        return value;
+    }
 
 }

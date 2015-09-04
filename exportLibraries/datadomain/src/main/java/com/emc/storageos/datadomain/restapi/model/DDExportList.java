@@ -23,17 +23,17 @@ import java.util.List;
 /**
  * Created by zeldib on 2/10/14.
  */
-@JsonRootName(value="nfs_exports")
+@JsonRootName(value = "nfs_exports")
 public class DDExportList {
 
     private List<DDExportInfo> exports;
 
-	public List<DDExportInfo> getExports() {
-		return exports;
-	}
+    public List<DDExportInfo> getExports() {
+        return exports;
+    }
 
-	public void setExports(List<DDExportInfo> exports) {
-		this.exports = exports;
-	}
+    public void setExports(List<DDExportInfo> exports) {
+        this.exports = exports;
+    }
 
 }

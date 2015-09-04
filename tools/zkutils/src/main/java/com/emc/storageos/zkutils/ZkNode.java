@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Represent a Node in zookeeper, 
+ * Represent a Node in zookeeper,
  * only need to care the 2 member variables: path and children list.
  */
 public class ZkNode {

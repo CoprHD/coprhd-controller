@@ -71,11 +71,13 @@ public class IpReconfigManager implements Runnable {
     private IpReconfigListener ipReconfigListener = null;
 
     private static Properties ovfProperties;    // local ovfenv properties
+
     public static void setOvfProperties(Properties ovfProps) {
         ovfProperties = ovfProps;
     }
+
     public static Map<String, String> getOvfProperties() {
-        return (Map)ovfProperties;
+        return (Map) ovfProperties;
     }
 
     /**
@@ -84,7 +86,7 @@ public class IpReconfigManager implements Runnable {
     private final ConnectionStateListener _connectionListener = new ConnectionStateListener() {
         @Override
         public void stateChanged(final CuratorFramework client, final ConnectionState newState) {
-            log.info("Entering stateChanged method : {}",newState);
+            log.info("Entering stateChanged method : {}", newState);
             if (newState == ConnectionState.CONNECTED || newState == ConnectionState.RECONNECTED) {
                 addIpreconfigListener();
             }
@@ -142,7 +144,7 @@ public class IpReconfigManager implements Runnable {
      */
     @Override
     public void run() {
-        while(true) {
+        while (true) {
             try {
                 handleIpReconfig();
 
@@ -160,21 +162,21 @@ public class IpReconfigManager implements Runnable {
      * 2. It launches a polling executor to handle two special scenarios -- procedure timeout and missed ZK event
      * 3. It also will cleanup env if the procedure is failed etc.
      */
-    private synchronized void handleIpReconfig() throws Exception{
+    private synchronized void handleIpReconfig() throws Exception {
         config = _coordinator.getCoordinatorClient().queryConfiguration(IpReconfigConstants.CONFIG_KIND, IpReconfigConstants.CONFIG_ID);
-        if(config == null) {
+        if (config == null) {
             log.info("no ipreconfig request coming in yet.");
             return;
         }
 
-        if(isRollback()) {
+        if (isRollback()) {
             return;
         }
 
         if (!isStarted(config)) {
             // Barely do nothing if stauts is SUCCEED or FAILED
             log.info("ip reconfig procedure is not started.");
-            if(isFailed(config)) {
+            if (isFailed(config)) {
                 // cleanup local temp files when the procedure failed
                 log.info("ip reconfig procedure failed. cleanup...");
                 IpReconfigUtil.cleanupLocalFiles();
@@ -185,14 +187,14 @@ public class IpReconfigManager implements Runnable {
         }
 
         expiration_time = Long.valueOf(config.getConfig(IpReconfigConstants.CONFIG_EXPIRATION_KEY));
-        if(System.currentTimeMillis() >= expiration_time) {
+        if (System.currentTimeMillis() >= expiration_time) {
             // set procedure failed when it is expired
             setFailed(IpReconfigConstants.ERRSTR_TIMEOUT);
             return;
         }
 
         // start polling executor
-        startPollExecutor();        
+        startPollExecutor();
 
         // drive ip reconfiguration status machine
         driveIpReconfigStateMachine();
@@ -201,23 +203,24 @@ public class IpReconfigManager implements Runnable {
     /**
      * Handle core status change for the ip reconfig procedure
      * For each node, the status could be
-     *   1. None
-     *      System just receiving ip reconfiguration request.
-     *   2. LOCALAWARE_LOCALPERSISTENT
-     *      Local node has got the new IPs persisted while it has no idea of other nodes' status.
-     *   3. LOCALAWARE_CLUSTERPERSISTENT
-     *      Local node knows the new IPs has been persisted in cluster domain, but not sure if all other nodes know about the fact yet.
-     *      Local node would try to guess if the new IPs has been committed in cluster domain in some failure scenarios.
-     *   4. CLUSTERACK_CLUSTERPERSISTENT
-     *      Every node knows the new IPs has been persisted in cluster domain and get the same acknowledgement from others.
-     *      During next reboot, local node would commit the new IPs directly at this status.
-     *   5. LOCAL_SUCCEED  (Set after reboot)
-     *      New IP has taken effect in local node.
-     *      The whole procedure would be set to SUCCEED when all the nodes' status are set to LOCAL_SUCCEED
+     * 1. None
+     * System just receiving ip reconfiguration request.
+     * 2. LOCALAWARE_LOCALPERSISTENT
+     * Local node has got the new IPs persisted while it has no idea of other nodes' status.
+     * 3. LOCALAWARE_CLUSTERPERSISTENT
+     * Local node knows the new IPs has been persisted in cluster domain, but not sure if all other nodes know about the fact yet.
+     * Local node would try to guess if the new IPs has been committed in cluster domain in some failure scenarios.
+     * 4. CLUSTERACK_CLUSTERPERSISTENT
+     * Every node knows the new IPs has been persisted in cluster domain and get the same acknowledgement from others.
+     * During next reboot, local node would commit the new IPs directly at this status.
+     * 5. LOCAL_SUCCEED (Set after reboot)
+     * New IP has taken effect in local node.
+     * The whole procedure would be set to SUCCEED when all the nodes' status are set to LOCAL_SUCCEED
      * Each node would go to next status only if all the cluster nodes are at least in the same status.
+     * 
      * @throws Exception
      */
-    private void driveIpReconfigStateMachine() throws Exception{
+    private void driveIpReconfigStateMachine() throws Exception {
         log.info("driving ipreconfig state machine ...");
 
         // Start to handle ip reconfig procedure if it is started and not expired.
@@ -244,21 +247,21 @@ public class IpReconfigManager implements Runnable {
                 case LOCALAWARE_LOCALPERSISTENT:
                     // Local node persists the NewIP, while it has no idea of other nodes' status.
                     target_nodestatus = IpReconfigConstants.NodeStatus.LOCALAWARE_CLUSTERPERSISTENT;
-                    if(isReadyForNextStatus(localnode_status, target_nodestatus)) {
+                    if (isReadyForNextStatus(localnode_status, target_nodestatus)) {
                         setNodeStatus(target_nodestatus.toString());
                     }
                     break;
                 case LOCALAWARE_CLUSTERPERSISTENT:
                     // Local node is aware of NewIP is persisted in cluster domain, but has no idea if other nodes know the fact.
                     target_nodestatus = IpReconfigConstants.NodeStatus.CLUSTERACK_CLUSTERPERSISTENT;
-                    if(isReadyForNextStatus(localnode_status, target_nodestatus)) {
+                    if (isReadyForNextStatus(localnode_status, target_nodestatus)) {
                         setNodeStatus(target_nodestatus.toString());
                     }
                     break;
                 case CLUSTERACK_CLUSTERPERSISTENT:
                     // Every node knows the new IPs has been persisted in cluster domain and get the same acknowledgement from others.
                     target_nodestatus = IpReconfigConstants.NodeStatus.LOCAL_SUCCEED;
-                    if(isReadyForNextStatus(localnode_status, target_nodestatus)) {
+                    if (isReadyForNextStatus(localnode_status, target_nodestatus)) {
                         // After all nodes are in ClusterACK_ClusterPersistent, we will
                         // 1. powoff cluster
                         // 2. commit new IP during next reboot
@@ -278,7 +281,7 @@ public class IpReconfigManager implements Runnable {
             switch (localnode_status) {
                 case LOCALAWARE_CLUSTERPERSISTENT:
                     // The current node confirms there are quorum nodes are using new IPs and then
-                    // adopt the newIPs during bootstrap.  We need to jump it to ClusterACK_ClusterPersistent status
+                    // adopt the newIPs during bootstrap. We need to jump it to ClusterACK_ClusterPersistent status
                     log.info("jumping to ClusterACK_ClusterPersistent status...");
                     setNodeStatus(IpReconfigConstants.NodeStatus.CLUSTERACK_CLUSTERPERSISTENT.toString());
                     break;
@@ -291,7 +294,7 @@ public class IpReconfigManager implements Runnable {
                 case LOCAL_SUCCEED:
                     // New IP has taken effect in local node, set total status to "Succeed" when all nodes are "Local_Succeed".
                     target_nodestatus = IpReconfigConstants.NodeStatus.CLUSTER_SUCCEED;
-                    if(isReadyForNextStatus(localnode_status, target_nodestatus)) {
+                    if (isReadyForNextStatus(localnode_status, target_nodestatus)) {
                         setSucceed();
                     }
                     break;
@@ -306,13 +309,14 @@ public class IpReconfigManager implements Runnable {
 
     /**
      * check the current node is read to go to next status
+     * 
      * @param currNodeStatus
      * @param targetNodeStatus
      * @return
      */
     private boolean isReadyForNextStatus(IpReconfigConstants.NodeStatus currNodeStatus, IpReconfigConstants.NodeStatus targetNodeStatus) {
         boolean bReadyForNextStatus = true;
-        for (int i=1; i<=nodeCount; i++) {
+        for (int i = 1; i <= nodeCount; i++) {
             String node_status_key = String.format(IpReconfigConstants.CONFIG_NODESTATUS_KEY, i);
             IpReconfigConstants.NodeStatus node_status = IpReconfigConstants.NodeStatus.valueOf(config.getConfig(node_status_key));
             if (node_status.ordinal() < currNodeStatus.ordinal()) {
@@ -329,10 +333,11 @@ public class IpReconfigManager implements Runnable {
 
     /**
      * set local node status
+     * 
      * @param nodestatus
      * @throws Exception
      */
-    private void setNodeStatus(String nodestatus) throws Exception{
+    private void setNodeStatus(String nodestatus) throws Exception {
         log.info("changing to node status:{}", nodestatus);
         IpReconfigUtil.writeNodeStatusFile(nodestatus);
         persistZKNodeStatus(nodestatus);
@@ -340,10 +345,11 @@ public class IpReconfigManager implements Runnable {
 
     /**
      * persist node status into ZK
+     * 
      * @param nodestatus
      * @throws Exception
      */
-    private void persistZKNodeStatus(String nodestatus) throws Exception{
+    private void persistZKNodeStatus(String nodestatus) throws Exception {
         String nodestatus_key = String.format(IpReconfigConstants.CONFIG_NODESTATUS_KEY, localNodeId);
         config.setConfig(nodestatus_key, nodestatus);
         _coordinator.getCoordinatorClient().persistServiceConfiguration(config);
@@ -351,9 +357,10 @@ public class IpReconfigManager implements Runnable {
 
     /**
      * Set ipreconfig status as successful and set end time
+     * 
      * @throws Exception
      */
-    private void setSucceed() throws Exception{
+    private void setSucceed() throws Exception {
         log.info("Succeed to reconfig cluster ip!");
         setStatus(ClusterNetworkReconfigStatus.Status.SUCCEED);
         FileUtils.deleteFile(IpReconfigConstants.NODESTATUS_PATH);
@@ -361,10 +368,11 @@ public class IpReconfigManager implements Runnable {
 
     /**
      * Set ipreconfig status as failed and error message
+     * 
      * @param error
      * @throws Exception
      */
-    private void setFailed(String error) throws Exception{
+    private void setFailed(String error) throws Exception {
         log.error("ipreconfig failed. Error: {}", error);
         config.setConfig(IpReconfigConstants.CONFIG_STATUS_KEY, ClusterNetworkReconfigStatus.Status.FAILED.toString());
         config.setConfig(IpReconfigConstants.CONFIG_ERROR_KEY, error);
@@ -373,6 +381,7 @@ public class IpReconfigManager implements Runnable {
 
     /**
      * set final status for ip reconfig procedure
+     * 
      * @param reconfigStatus
      * @throws Exception
      */
@@ -383,6 +392,7 @@ public class IpReconfigManager implements Runnable {
 
     /**
      * set final error info for ip reconfig procedure
+     * 
      * @param error
      * @throws Exception
      */
@@ -393,6 +403,7 @@ public class IpReconfigManager implements Runnable {
 
     /**
      * check if ip reconfiguraiton is started
+     * 
      * @param config
      * @return true/false
      */
@@ -403,6 +414,7 @@ public class IpReconfigManager implements Runnable {
 
     /**
      * check if ip reconfiguraiton is succeed
+     * 
      * @param config
      * @return true/false
      */
@@ -413,6 +425,7 @@ public class IpReconfigManager implements Runnable {
 
     /**
      * check if ip reconfiguraiton is failed
+     * 
      * @param config
      * @return true/false
      */
@@ -423,6 +436,7 @@ public class IpReconfigManager implements Runnable {
 
     /**
      * Check if cluster is under ip reconfiguration procedure
+     * 
      * @return
      */
     public synchronized boolean underIpReconfiguration() {
@@ -438,7 +452,7 @@ public class IpReconfigManager implements Runnable {
      */
     class IpReconfigListener implements NodeListener {
         public String getPath() {
-            String path = String.format("/config/%s/%s",IpReconfigConstants.CONFIG_KIND, IpReconfigConstants.CONFIG_ID);
+            String path = String.format("/config/%s/%s", IpReconfigConstants.CONFIG_KIND, IpReconfigConstants.CONFIG_ID);
             return path;
         }
 
@@ -456,7 +470,7 @@ public class IpReconfigManager implements Runnable {
          */
         @Override
         public void connectionStateChanged(State state) {
-            log.info("ipreconfig connection state changed to {}",state);
+            log.info("ipreconfig connection state changed to {}", state);
             if (state.equals(State.CONNECTED)) {
                 log.info("Curator (re)connected. Waking up the ip reconfig procedure...");
                 wakeup();
@@ -476,7 +490,7 @@ public class IpReconfigManager implements Runnable {
      * Poweroff/Reboot the node
      */
     public void halt_node(String postOperation) throws Exception {
-        Thread.sleep(6*1000);
+        Thread.sleep(6 * 1000);
         if (postOperation.equals("poweroff")) {
             localRepository.poweroff();
         } else {
@@ -488,10 +502,11 @@ public class IpReconfigManager implements Runnable {
      * Launch polling executor which will handle
      * 1. Procedure expiration scenario
      * 2. Underlying missed notification event
+     * 
      * @throws Exception
      */
     private void startPollExecutor() throws Exception {
-        if(_pollExecutor != null && !_pollExecutor.isTerminated())
+        if (_pollExecutor != null && !_pollExecutor.isTerminated())
             return;
 
         log.info("starting polling executor ...");
@@ -503,7 +518,8 @@ public class IpReconfigManager implements Runnable {
                     while (true) {
                         synchronized (this) {
                             // Check if procedure expired periodically, set failed and exit polling thread.
-                            config = _coordinator.getCoordinatorClient().queryConfiguration(IpReconfigConstants.CONFIG_KIND, IpReconfigConstants.CONFIG_ID);
+                            config = _coordinator.getCoordinatorClient().queryConfiguration(IpReconfigConstants.CONFIG_KIND,
+                                    IpReconfigConstants.CONFIG_ID);
                             if (config != null && isStarted(config)) {
                                 expiration_time = Long.valueOf(config.getConfig(IpReconfigConstants.CONFIG_EXPIRATION_KEY));
                                 if (expiration_time < System.currentTimeMillis()) {
@@ -527,10 +543,11 @@ public class IpReconfigManager implements Runnable {
 
     /**
      * Stop polling executor
+     * 
      * @throws Exception
      */
     private void stopPollExecutor() throws Exception {
-        if(_pollExecutor != null && !_pollExecutor.isTerminated()) {
+        if (_pollExecutor != null && !_pollExecutor.isTerminated()) {
             log.info("stopping polling executor ...");
             _pollExecutor.shutdownNow();
         }
@@ -541,11 +558,12 @@ public class IpReconfigManager implements Runnable {
      * User might rollback even before the last ip reconfigured is finished.
      * So we always need to set the last ip reconfiguration status to failure to avoid
      * that ip reconfiguration is triggered again.
+     * 
      * @return true if user is trying to rollback ip conf.
      */
-    private boolean isRollback(){
+    private boolean isRollback() {
         try {
-            if(FileUtils.exists(IpReconfigConstants.NODESTATUS_PATH)) {
+            if (FileUtils.exists(IpReconfigConstants.NODESTATUS_PATH)) {
                 IpReconfigConstants.NodeStatus localnode_status =
                         IpReconfigConstants.NodeStatus.valueOf(IpReconfigUtil.readNodeStatusFile());
                 if (localnode_status == IpReconfigConstants.NodeStatus.LOCAL_ROLLBACK) {
@@ -563,11 +581,12 @@ public class IpReconfigManager implements Runnable {
 
     /**
      * trigger ip reconfiguration
+     * 
      * @param clusterIpInfo
      * @param postOperation
      * @throws Exception
      */
-    public void triggerIpReconfig(ClusterIpInfo clusterIpInfo, String postOperation) throws Exception{
+    public void triggerIpReconfig(ClusterIpInfo clusterIpInfo, String postOperation) throws Exception {
         // 1. validate cluster ip reconfig parameter
         validateParameter(clusterIpInfo, postOperation);
 
@@ -577,7 +596,7 @@ public class IpReconfigManager implements Runnable {
         // 3. check if there is already another ip reconfiguration procedure is in progress
         synchronized (this) {
             config = _coordinator.getCoordinatorClient().queryConfiguration(IpReconfigConstants.CONFIG_KIND, IpReconfigConstants.CONFIG_ID);
-            if(config !=null) {
+            if (config != null) {
                 if (isStarted(config)) {
                     String errmsg = "Cluster is already under ip reconfiguration.";
                     log.error(errmsg);
@@ -593,7 +612,7 @@ public class IpReconfigManager implements Runnable {
     /**
      * Sanity check if cluster env is qualified
      */
-    private void sanityCheckEnv() throws Exception{
+    private void sanityCheckEnv() throws Exception {
         // 1. check if platform is supported
         checkPlatform();
 
@@ -601,7 +620,7 @@ public class IpReconfigManager implements Runnable {
         checkClusterStatus();
 
         // 3. check if cluster is in GEO env
-        if(!VdcUtil.isLocalVdcSingleSite()) { 
+        if (!VdcUtil.isLocalVdcSingleSite()) {
             String errmsg = "Cluster is in GEO env.";
             log.error(errmsg);
             throw new IllegalStateException(errmsg);
@@ -610,12 +629,13 @@ public class IpReconfigManager implements Runnable {
 
     /**
      * Valide cluster ip reconfig param
+     * 
      * @param clusterIpInfo
      * @param postOperation
      * @return error msg
      * @throws Exception
      */
-    private void validateParameter(ClusterIpInfo clusterIpInfo, String postOperation) throws Exception{
+    private void validateParameter(ClusterIpInfo clusterIpInfo, String postOperation) throws Exception {
         boolean bValid = true;
         String errmsg = "";
 
@@ -625,7 +645,7 @@ public class IpReconfigManager implements Runnable {
         }
 
         errmsg = clusterIpInfo.validate(nodeCount);
-        if(!errmsg.isEmpty()) {
+        if (!errmsg.isEmpty()) {
             bValid = false;
         }
 
@@ -638,7 +658,7 @@ public class IpReconfigManager implements Runnable {
      * Check if platform is supported
      */
     private void checkPlatform() {
-        if (PlatformUtils.isVMwareVapp()){
+        if (PlatformUtils.isVMwareVapp()) {
             log.info("Platform(VApp) is unsupported for ip reconfiguraiton");
             throw new UnsupportedOperationException("VApp is unsupported for ip reconfiguration");
         }
@@ -649,7 +669,7 @@ public class IpReconfigManager implements Runnable {
      */
     private void checkClusterStatus() throws Exception {
         ClusterInfo.ClusterState controlNodeState = _coordinator.getCoordinatorClient().getControlNodesState();
-        if(controlNodeState == null ||
+        if (controlNodeState == null ||
                 !controlNodeState.equals(ClusterInfo.ClusterState.STABLE)) {
             String errmsg = "Cluster is not stable.";
             log.error(errmsg);
@@ -660,15 +680,16 @@ public class IpReconfigManager implements Runnable {
     /**
      * Initiate ip reconfig procedure by creating ipreconfig config znode in ZK
      * The config znode include:
-     *      ipinfo
-     *      procedure status
-     *      each node's status
-     *      expiration time for the procedure
-     * @param clusterIpInfo   The new cluster ip info
+     * ipinfo
+     * procedure status
+     * each node's status
+     * expiration time for the procedure
+     * 
+     * @param clusterIpInfo The new cluster ip info
      * @param postOperation
      * @throws Exception
      */
-    private void initIpReconfig(ClusterIpInfo clusterIpInfo, String postOperation) throws Exception{
+    private void initIpReconfig(ClusterIpInfo clusterIpInfo, String postOperation) throws Exception {
         ClusterIpInfo ipinfo = new ClusterIpInfo(clusterIpInfo.getIpv4Setting(), clusterIpInfo.getIpv6Setting());
         log.info("Initiating ip reconfiguraton procedure {}", ipinfo.toString());
 
@@ -677,17 +698,17 @@ public class IpReconfigManager implements Runnable {
         cfg.setId(IpReconfigConstants.CONFIG_ID);
         cfg.setConfig(IpReconfigConstants.CONFIG_IPINFO_KEY, new String(Base64.encodeBase64(ipinfo.serialize()), UTF_8));
         cfg.setConfig(IpReconfigConstants.CONFIG_STATUS_KEY, ClusterNetworkReconfigStatus.Status.STARTED.toString());
-        for(int i=1; i<=ipinfo.getIpv4Setting().getNetworkAddrs().size(); i++) {
+        for (int i = 1; i <= ipinfo.getIpv4Setting().getNetworkAddrs().size(); i++) {
             String nodestatus_key = String.format(IpReconfigConstants.CONFIG_NODESTATUS_KEY, i);
             cfg.setConfig(nodestatus_key, IpReconfigConstants.NodeStatus.None.toString());
         }
 
         // Set ip reconfiguration timeout to 1 day
         // 1. For poweroff case, user might need to change subnet or even migrate VMs,
-        //    thus we should set timeout longer for the procedure to be finished.
-        //    Later we should extend API for user to set desired expiration time
+        // thus we should set timeout longer for the procedure to be finished.
+        // Later we should extend API for user to set desired expiration time
         // 2. For directly reboot case, it would be better to set longer timeout as well to cover
-        //    underlying unexpected node bootstrap issue which needs manual recovery etc.
+        // underlying unexpected node bootstrap issue which needs manual recovery etc.
         expiration_time = System.currentTimeMillis() + IPRECONFIG_TIMEOUT;
 
         cfg.setConfig(IpReconfigConstants.CONFIG_EXPIRATION_KEY, String.valueOf(expiration_time));
@@ -699,15 +720,17 @@ public class IpReconfigManager implements Runnable {
 
     /**
      * query current status&error for ip reconfig procedure
+     * 
      * @return
      * @throws Exception
      */
     public synchronized ClusterNetworkReconfigStatus queryClusterNetworkReconfigStatus() throws Exception {
         ClusterNetworkReconfigStatus ipReconfigStatus = new ClusterNetworkReconfigStatus();
         config = _coordinator.getCoordinatorClient().queryConfiguration(IpReconfigConstants.CONFIG_KIND, IpReconfigConstants.CONFIG_ID);
-        if(config !=null) {
+        if (config != null) {
 
-            ClusterNetworkReconfigStatus.Status status = ClusterNetworkReconfigStatus.Status.valueOf(config.getConfig(IpReconfigConstants.CONFIG_STATUS_KEY));
+            ClusterNetworkReconfigStatus.Status status = ClusterNetworkReconfigStatus.Status.valueOf(config
+                    .getConfig(IpReconfigConstants.CONFIG_STATUS_KEY));
             ipReconfigStatus.setStatus(status);
             if (isFailed(config)) {
                 String errmsg = config.getConfig(IpReconfigConstants.CONFIG_ERROR_KEY);
@@ -720,6 +743,7 @@ public class IpReconfigManager implements Runnable {
 
     /**
      * query current cluster ip info
+     * 
      * @return
      * @throws Exception
      */
@@ -728,4 +752,3 @@ public class IpReconfigManager implements Runnable {
     }
 
 }
-

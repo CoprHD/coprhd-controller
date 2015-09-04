@@ -42,9 +42,9 @@ public class Workflows extends AbstractCoreResources<WorkflowRestRep> {
      * Gets a list of workflows from the given path.
      * 
      * @param path
-     *        the path to get.
+     *            the path to get.
      * @param args
-     *        the path arguments.
+     *            the path arguments.
      * @return the list of workflows.
      */
     protected List<WorkflowRestRep> getList(String path, Object... args) {
@@ -102,7 +102,7 @@ public class Workflows extends AbstractCoreResources<WorkflowRestRep> {
      * API Call: <tt>GET /vdc/workflows/{id}/steps</tt>
      * 
      * @param id
-     *        the ID of the workflow.
+     *            the ID of the workflow.
      * @return the list of workflow steps.
      */
     public List<WorkflowStepRestRep> getSteps(URI id) {
@@ -116,7 +116,7 @@ public class Workflows extends AbstractCoreResources<WorkflowRestRep> {
      * API Call: <tt>GET /vdc/workflows/steps/{id}</tt>
      * 
      * @param id
-     *        the ID of the workflow step.
+     *            the ID of the workflow step.
      * @return the workflow step.
      */
     public WorkflowStepRestRep getStep(URI id) {

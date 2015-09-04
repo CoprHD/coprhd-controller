@@ -21,13 +21,13 @@ public class ScaleIOQueryStoragePoolCommand extends AbstractScaleIOQueryCommand<
 
     public static final String STORAGE_POOL_TOTAL_CAPACITY = "StoragePoolTotalCapacity";
     public static final String STORAGE_POOL = "StoragePoolInfo";
-    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[]{
+    private final static ParsePattern[] PARSING_CONFIG = new ParsePattern[] {
             new ParsePattern(ScaleIOContants.REGEX_CAPACITY + " total capacity", STORAGE_POOL_TOTAL_CAPACITY),
             new ParsePattern("Storage pool\\s+(.*?) has (\\d+) volumes and" + ScaleIOContants.REGEX_CAPACITY +
                     " available for volume allocation.*", STORAGE_POOL),
             new ParsePattern("Storage pool\\s+(.*?) has (\\d+) volumes and" + ScaleIOContants.REGEX_BYTES_CAPACITY +
                     "available for volume allocation.*", STORAGE_POOL),
-             new ParsePattern("Storage Pool\\s+(.*?)\\s+\\(Id:\\s+\\w+\\)\\s+has (\\d+) volumes and" + ScaleIOContants.REGEX_CAPACITY +
+            new ParsePattern("Storage Pool\\s+(.*?)\\s+\\(Id:\\s+\\w+\\)\\s+has (\\d+) volumes and" + ScaleIOContants.REGEX_CAPACITY +
                     " available for volume allocation.*", STORAGE_POOL),
             new ParsePattern("Storage Pool\\s+(.*?)\\s+\\(Id:\\s+\\w+\\)\\s+has (\\d+) volumes and" + ScaleIOContants.REGEX_BYTES_CAPACITY +
                     "available for volume allocation.*", STORAGE_POOL)

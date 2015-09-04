@@ -26,10 +26,9 @@ import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
 
 public class BlockSnapshotReplicationGroupInstanceMigrationTest extends DbSimpleMigrationTestBase {
     private static final Logger log = LoggerFactory.getLogger(BlockSnapshotReplicationGroupInstanceMigrationTest.class);
-    
 
     private URI snapURI = null;
-    
+
     private String groupInstance = null;
 
     @BeforeClass
@@ -55,7 +54,7 @@ public class BlockSnapshotReplicationGroupInstanceMigrationTest extends DbSimple
     }
 
     @Override
-    protected void prepareData() throws Exception { 
+    protected void prepareData() throws Exception {
         prepareSnapData();
     }
 
@@ -63,7 +62,7 @@ public class BlockSnapshotReplicationGroupInstanceMigrationTest extends DbSimple
     protected void verifyResults() throws Exception {
         verifySnapResults();
     }
-    
+
     /**
      * Prepares the data for RP volume tests.
      * 
@@ -77,25 +76,24 @@ public class BlockSnapshotReplicationGroupInstanceMigrationTest extends DbSimple
         snapshot.setId(snapURI);
         snapshot.setSnapshotGroupInstance(groupInstance);
         _dbClient.createObject(snapshot);
-            
+
     }
 
     /**
      * Verifies the results for migrating volumes
      * 
      * @throws Exception When an error occurs verifying the Volume
-     *         migration results.
+     *             migration results.
      */
     private void verifySnapResults() throws Exception {
         log.info("Verifying updated snapshot sresults for BlockSnapshotReplicationGroupInstanceMigration.");
 
         BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapURI);
-            
+
         Assert.assertNotNull("replicationGroupInstance shouldn't be null", snap.getReplicationGroupInstance());
         Assert.assertEquals("replicationGroupInstance should be set from the snapGroupInstance", groupInstance,
-                                    snap.getReplicationGroupInstance());
-        
-    }
+                snap.getReplicationGroupInstance());
 
+    }
 
 }

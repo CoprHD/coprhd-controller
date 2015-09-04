@@ -31,34 +31,34 @@ import com.emc.storageos.db.client.upgrade.callbacks.ExportGroupTypeConverter;
  * It doesn't test upgrade. It tests converter with same schema as there is no schema change.
  */
 public class ExportGroupTypeConverterTest {
-	private DbClientImpl _dbClient = null;
+    private DbClientImpl _dbClient = null;
 
-	@Before
-	public void setup() {
-		// get DB client
-		ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext(
-				"dbutils-conf.xml");
-		_dbClient = (DbClientImpl) ctx.getBean("dbclient");
-		_dbClient.start();
-	}
+    @Before
+    public void setup() {
+        // get DB client
+        ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext(
+                "dbutils-conf.xml");
+        _dbClient = (DbClientImpl) ctx.getBean("dbclient");
+        _dbClient.start();
+    }
 
-	@After
-	public void cleanup() {
-		if (_dbClient != null) {
-			_dbClient.stop();
-		}
-	}
-	
-	@Test
-	public void testConverter() throws Exception {
-		ExportGroupTypeMigrationTest typeMigrationTest = new ExportGroupTypeMigrationTest();
-		typeMigrationTest.setDbClient(_dbClient);
-		typeMigrationTest.prepareData();
-		
-		ExportGroupTypeConverter typeConvertor = new ExportGroupTypeConverter();
-		typeConvertor.setDbClient(_dbClient);
-		typeConvertor.process();
-		
-		typeMigrationTest.verifyResults();
-	}
+    @After
+    public void cleanup() {
+        if (_dbClient != null) {
+            _dbClient.stop();
+        }
+    }
+
+    @Test
+    public void testConverter() throws Exception {
+        ExportGroupTypeMigrationTest typeMigrationTest = new ExportGroupTypeMigrationTest();
+        typeMigrationTest.setDbClient(_dbClient);
+        typeMigrationTest.prepareData();
+
+        ExportGroupTypeConverter typeConvertor = new ExportGroupTypeConverter();
+        typeConvertor.setDbClient(_dbClient);
+        typeConvertor.process();
+
+        typeMigrationTest.verifyResults();
+    }
 }

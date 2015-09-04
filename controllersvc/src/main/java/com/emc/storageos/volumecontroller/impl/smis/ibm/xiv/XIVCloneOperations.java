@@ -163,65 +163,65 @@ public class XIVCloneOperations implements CloneOperations {
         _dbClient.persistObject(clone);
         taskCompleter.ready(_dbClient);
     }
-    
+
     @Override
     public void restoreFromSingleClone(StorageSystem storageSystem, URI clone, TaskCompleter completer) {
         _log.info("START restoreFromSingleClone operation");
         // no operation, set to ready
         completer.ready(_dbClient);
-    
+
     }
-    
+
     @Override
-    public void fractureSingleClone(StorageSystem storageSystem, URI sourceVolume, 
+    public void fractureSingleClone(StorageSystem storageSystem, URI sourceVolume,
             URI clone, TaskCompleter completer) {
         _log.info("START fractureSingleClone operation");
         // no operation, set to ready
         completer.ready(_dbClient);
     }
-    
+
     @Override
     public void resyncSingleClone(StorageSystem storageSystem, URI clone, TaskCompleter completer) {
         _log.info("START resyncSingleClone operation");
         // no operation, set to ready
         completer.ready(_dbClient);
     }
-    
+
     @Override
     public void createGroupClone(StorageSystem storage, List<URI> cloneList,
-                                  Boolean createInactive, TaskCompleter taskCompleter) {
-     // no operation, set to ready
+            Boolean createInactive, TaskCompleter taskCompleter) {
+        // no operation, set to ready
         taskCompleter.ready(_dbClient);
     }
 
     @Override
     public void activateGroupClones(StorageSystem storage, List<URI> clone, TaskCompleter taskCompleter) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-        
+
     }
 
     @Override
     public void restoreGroupClones(StorageSystem storageSystem, List<URI> clone, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-        
+
     }
 
     @Override
     public void fractureGroupClones(StorageSystem storageSystem, List<URI> clone, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-        
+
     }
 
     @Override
     public void resyncGroupClones(StorageSystem storageSystem, List<URI> clone, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-        
+
     }
 
     @Override
-    public void detachGroupClones(StorageSystem storageSystem, List<URI> clone,TaskCompleter completer) {
+    public void detachGroupClones(StorageSystem storageSystem, List<URI> clone, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-        
+
     }
 
     @Override

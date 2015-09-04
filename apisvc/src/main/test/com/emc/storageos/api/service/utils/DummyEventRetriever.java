@@ -69,7 +69,6 @@ public class DummyEventRetriever implements EventRetriever {
             e.printStackTrace();
         }
 
-       
         for (Event event : events) {
             if (type == MediaType.APPLICATION_XML_TYPE) {
                 marshaller.marshal(event, writer);

@@ -47,7 +47,7 @@ public class DistributedSemaphoreTest extends CoordinatorTestBase {
     public void testDistributedSemaphore() throws Exception {
         final DistributedSemaphore mySem = connectClient().getSemaphore(SEMAPHORE_NAME_TEST1, 1);
         _logger.info("*** DistributedSemaphoreTest start");
-        for(int i=0; i<POOLSIZE; i++) {
+        for (int i = 0; i < POOLSIZE; i++) {
             _logger.info(": spawning worker number : " + i);
             _workers1.execute(new Runnable() {
                 @Override
@@ -97,7 +97,7 @@ public class DistributedSemaphoreTest extends CoordinatorTestBase {
     public void testDistributedSemaphoreFiniteWait() throws Exception {
         final DistributedSemaphore mySem = connectClient().getSemaphore(SEMAPHORE_NAME_TEST2, 1);
         _logger.info("*** DistributedSemaphoreFiniteWaitTest start");
-        for(int i=0; i<POOLSIZE; i++) {
+        for (int i = 0; i < POOLSIZE; i++) {
             _logger.info(": spawning worker number : " + i);
             _workers2.execute(new Runnable() {
                 @Override
@@ -109,7 +109,7 @@ public class DistributedSemaphoreTest extends CoordinatorTestBase {
                         try {
                             _logger.info(": Going to acquire lease.");
                             lease = mySem.acquireLease(50, TimeUnit.MILLISECONDS);
-                            if(lease == null) {
+                            if (lease == null) {
                                 _logger.info(": Could not acquire lease.");
                                 Thread.sleep(rand.nextInt(500));
                             } else {
@@ -119,12 +119,12 @@ public class DistributedSemaphoreTest extends CoordinatorTestBase {
                             _logger.info(": Problem when acquiring lease or doing work.");
                             Assert.assertNull(e);
                         } finally {
-                            if(lease != null) {
+                            if (lease != null) {
                                 _logger.info(": Work done .. going to return lease.");
                                 try {
                                     mySem.returnLease(lease);
                                     lease = null;
-                                } catch(Exception e)  {
+                                } catch (Exception e) {
                                     _logger.info(": Problem while returning lease: " + lease.toString());
                                     Assert.assertNull(lease);
                                 }

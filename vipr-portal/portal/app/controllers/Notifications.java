@@ -4,7 +4,6 @@
  */
 package controllers;
 
-
 import static util.BourneUtil.getCatalogClient;
 import static util.CatalogServiceUtils.getCatalogService;
 import static util.OrderUtils.getOrder;
@@ -29,7 +28,7 @@ import controllers.util.Models;
 
 @With(Common.class)
 public class Notifications extends Controller {
-    
+
     private static final int WAIT_DELAY = 5000;
     private static final String APPROVAL_REQUEST_TYPE = "ApprovalRequest";
     private static final String ORDER_TYPE = "Order";
@@ -44,7 +43,7 @@ public class Notifications extends Controller {
                 OrderRestRep order = getOrder(approval.getOrder());
                 if (order != null) {
                     CatalogServiceRestRep service = getCatalogService(order.getCatalogService());
-        
+
                     Notification notification = new Notification();
                     notification.id = approval.getId().toString();
                     notification.orderId = order.getId().toString();
@@ -53,7 +52,8 @@ public class Notifications extends Controller {
                         notification.message = MessagesUtils.get("notification.approvalPending", service.getTitle(),
                                 order.getSubmittedBy());
                     }
-                    notification.lastUpdated = approval.getDateActioned() != null ? approval.getDateActioned() : approval.getCreationTime().getTime();
+                    notification.lastUpdated = approval.getDateActioned() != null ? approval.getDateActioned() : approval.getCreationTime()
+                            .getTime();
                     notifications.add(notification);
                 }
             }

@@ -16,12 +16,12 @@
 package com.emc.storageos.systemservices.impl.eventhandler.handler;
 
 public class AlertEventHandler implements IEventHandler {
-	
-	public String handleEvent() {
-		String xmlResult = null;
-		
-		// Parse and collect the event logs and send it across to the coordinator 
-		
-		return xmlResult;
-	}
+
+    public String handleEvent() {
+        String xmlResult = null;
+
+        // Parse and collect the event logs and send it across to the coordinator
+
+        return xmlResult;
+    }
 }

@@ -36,8 +36,7 @@ public class MessagesTest {
         try {
             parent.get("child");
             Assert.fail("Parent bundle should not have contained 'child' key");
-        }
-        catch (MissingResourceException e) {
+        } catch (MissingResourceException e) {
         }
         Assert.assertEquals("Child", child.get("child"));
 

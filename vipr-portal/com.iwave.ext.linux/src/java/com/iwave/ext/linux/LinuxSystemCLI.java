@@ -52,47 +52,50 @@ public class LinuxSystemCLI {
     /** The ID of the host to which this CLI connects */
     private URI hostId;
 
-    public LinuxSystemCLI() {}
+    public LinuxSystemCLI() {
+    }
+
     public LinuxSystemCLI(String host, String username, String password) {
         this.host = host;
         this.username = username;
         this.password = password;
     }
+
     public LinuxSystemCLI(String host, int port, String username, String password) {
         this.host = host;
         this.port = port;
         this.username = username;
         this.password = password;
     }
-    
+
     public String getHost() {
         return host;
     }
-    
+
     public void setHost(String host) {
         this.host = host;
     }
-    
+
     public int getPort() {
         return port;
     }
-    
+
     public void setPort(int port) {
         this.port = port;
     }
-    
+
     public String getUsername() {
         return username;
     }
-    
+
     public void setUsername(String username) {
         this.username = username;
     }
-    
+
     public String getPassword() {
         return password;
     }
-    
+
     public void setPassword(String password) {
         this.password = password;
     }
@@ -110,13 +113,13 @@ public class LinuxSystemCLI {
         command.setCommandExecutor(executor);
         command.execute();
     }
-    
+
     public Set<String> getAllDiskDevices() {
         FdiskListCommand command = new FdiskListCommand();
         executeCommand(command);
         return command.getResults();
     }
-    
+
     public Set<String> getNonMappedDiskDevices() {
         FdiskListCommand command = new FdiskListCommand();
         command.setIncludeMapper(false);
@@ -124,7 +127,7 @@ public class LinuxSystemCLI {
         executeCommand(command);
         return command.getResults();
     }
-    
+
     public Set<String> getMappedDiskDevices() {
         FdiskListCommand command = new FdiskListCommand();
         command.setIncludeMapper(true);
@@ -132,85 +135,86 @@ public class LinuxSystemCLI {
         executeCommand(command);
         return command.getResults();
     }
-    
-	/**
+
+    /**
      * Given a name modify it if necessary to make it unique within a list of names
+     * 
      * @param name to make unique
      * @param names list of existing names
      * @return a name that will be unique within list of names
      */
     static String createUniqueName(String name, List<String> names) {
-		String result = name;
-		if(name != null && names != null && names.size() > 0 ) {
-			boolean found = false;
-			for(String currentName: names) {
-				if(name.equals(currentName)) {
-					found = true;
-					break;
-				}
-			}
-			if(found) {
-				result = createUniqueName(name + "1", names);
-			}
-		}
-		return result;
-	}
-    
-	public void formatExt4(String device) {
+        String result = name;
+        if (name != null && names != null && names.size() > 0) {
+            boolean found = false;
+            for (String currentName : names) {
+                if (name.equals(currentName)) {
+                    found = true;
+                    break;
+                }
+            }
+            if (found) {
+                result = createUniqueName(name + "1", names);
+            }
+        }
+        return result;
+    }
+
+    public void formatExt4(String device) {
         Mke2fsCommand command = new Mke2fsCommand();
         command.setDevice(device);
         command.setJournaling();
         command.setType("ext4");
         executeCommand(command);
     }
-    
+
     public void mkdir(String dir) {
         MkdirCommand command = new MkdirCommand(true);
         command.setDir(dir);
         executeCommand(command);
     }
-    
+
     public void addFSTabMount(String device, String mountPt, String fsType) {
         AddToFSTabCommand command = new AddToFSTabCommand();
         command.setOptions(device, mountPt, fsType);
         executeCommand(command);
     }
-    
+
     public void mountAll() {
         MountCommand command = new MountCommand();
         command.setMountAll();
         executeCommand(command);
     }
-    
+
     public Set<String> listWWNs() {
         ListWWNsCommand command = new ListWWNsCommand();
         executeCommand(command);
         return command.getResults();
     }
-    
+
     public List<HBAInfo> listHBAs() {
         ListHBAInfoCommand command = new ListHBAInfoCommand();
         executeCommand(command);
         return command.getResults();
     }
-    
+
     public List<IPInterface> listIPInterfaces() {
         ListIPInterfacesCommand command = new ListIPInterfacesCommand();
         executeCommand(command);
         return command.getResults();
     }
-    
+
     public List<MultiPathEntry> listMultiPathEntries() {
         ListMultiPathEntriesCommand command = new ListMultiPathEntriesCommand();
         executeCommand(command);
         return command.getResults();
     }
-    
+
     public void rescanDevices() {
         RescanDevicesCommand command = new RescanDevicesCommand();
         executeCommand(command);
     }
-    
+
     public Map<String, Integer> getDeviceToLunMapping(String mpathName) {
         GetDeviceLunMappingCommand command = new GetDeviceLunMappingCommand();
         command.setMpathName(mpathName);
@@ -248,7 +252,7 @@ public class LinuxSystemCLI {
         executeCommand(command);
         return command.getResults();
     }
-    
+
     public CommandOutput executeCommand(String commandString) {
         LinuxCommand command = new LinuxCommand();
         command.setCommand(commandString);

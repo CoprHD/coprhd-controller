@@ -37,93 +37,93 @@ import com.emc.storageos.systemservices.impl.eventhandler.util.SystemConfigManag
 
 public class ConfigEventHandler implements IEventHandler {
 
-	private Document doc;
+    private Document doc;
 
-	public String handleEvent() {
+    public String handleEvent() {
 
-		String xmlResult = null;
+        String xmlResult = null;
 
-		try {
-			DocumentBuilderFactory docFactory = DocumentBuilderFactory
-					.newInstance();
-			DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
-			this.doc = docBuilder.newDocument();
+        try {
+            DocumentBuilderFactory docFactory = DocumentBuilderFactory
+                    .newInstance();
+            DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+            this.doc = docBuilder.newDocument();
 
-		} catch (ParserConfigurationException e) {
+        } catch (ParserConfigurationException e) {
 
-			e.printStackTrace();
-		}
+            e.printStackTrace();
+        }
 
-		createConfigXML();
+        createConfigXML();
 
-		xmlResult = serializeXMLDoc();
+        xmlResult = serializeXMLDoc();
 
-		return xmlResult;
-		
-	}
+        return xmlResult;
 
-	private void createConfigXML() {
+    }
 
-		Element root = doc.createElement(SystemConfigConstants.SOFTWARE_VERSION);
-		doc.appendChild(root);
+    private void createConfigXML() {
 
-		/**
-		 * Get the information from the utility class SystemConfigManager and
-		 * populate the XML elements
-		 */
+        Element root = doc.createElement(SystemConfigConstants.SOFTWARE_VERSION);
+        doc.appendChild(root);
 
-		// Get Software Version
-		Element version = doc.createElement(SystemConfigConstants.SOFTWARE_VERSION);
-		version.appendChild(doc.createTextNode(SystemConfigManager
-				.getSoftwareVersion()));
-		root.appendChild(version);
+        /**
+         * Get the information from the utility class SystemConfigManager and
+         * populate the XML elements
+         */
 
-		// Get Node List
-		Element nodelist = doc.createElement(SystemConfigConstants.NODE_LIST);
-		List<String> nlist = SystemConfigManager.getNodeList();
-		Attr numNodes = doc.createAttribute(SystemConfigConstants.NUM_NODE_ATTR);
-		numNodes.setValue(String.valueOf(nlist.size()));
-		nodelist.setAttributeNode(numNodes);
+        // Get Software Version
+        Element version = doc.createElement(SystemConfigConstants.SOFTWARE_VERSION);
+        version.appendChild(doc.createTextNode(SystemConfigManager
+                .getSoftwareVersion()));
+        root.appendChild(version);
 
-		Iterator<String> nodeIter = nlist.iterator();
-		while (nodeIter.hasNext()) {
-			Element node = doc.createElement(SystemConfigConstants.NODE);
-			node.appendChild(doc.createTextNode(nodeIter.next()));
-			nodelist.appendChild(node);
-		}
-		root.appendChild(nodelist);
+        // Get Node List
+        Element nodelist = doc.createElement(SystemConfigConstants.NODE_LIST);
+        List<String> nlist = SystemConfigManager.getNodeList();
+        Attr numNodes = doc.createAttribute(SystemConfigConstants.NUM_NODE_ATTR);
+        numNodes.setValue(String.valueOf(nlist.size()));
+        nodelist.setAttributeNode(numNodes);
 
-		// Get List of Hotfix applied
-		Element hflist = doc.createElement(SystemConfigConstants.HOTFIX_LIST);
-		Iterator<String> hfIter = SystemConfigManager.getHotfixLIst().iterator();
-		while (hfIter.hasNext()) {
-			Element hf = doc.createElement(SystemConfigConstants.HOTFIX);
-			hf.appendChild(doc.createTextNode(hfIter.next()));
-			hflist.appendChild(hf);
-		}
+        Iterator<String> nodeIter = nlist.iterator();
+        while (nodeIter.hasNext()) {
+            Element node = doc.createElement(SystemConfigConstants.NODE);
+            node.appendChild(doc.createTextNode(nodeIter.next()));
+            nodelist.appendChild(node);
+        }
+        root.appendChild(nodelist);
 
-		root.appendChild(hflist);
-	}
+        // Get List of Hotfix applied
+        Element hflist = doc.createElement(SystemConfigConstants.HOTFIX_LIST);
+        Iterator<String> hfIter = SystemConfigManager.getHotfixLIst().iterator();
+        while (hfIter.hasNext()) {
+            Element hf = doc.createElement(SystemConfigConstants.HOTFIX);
+            hf.appendChild(doc.createTextNode(hfIter.next()));
+            hflist.appendChild(hf);
+        }
 
-	private String serializeXMLDoc() {
-		String xmlConfigStr = null;
-		try {
-			StringWriter writer = new StringWriter();
-			StreamResult result = new StreamResult(writer);
+        root.appendChild(hflist);
+    }
 
-			TransformerFactory transformerFactory = TransformerFactory
-					.newInstance();
-			Transformer transformer = transformerFactory.newTransformer();
-			DOMSource source = new DOMSource(this.doc);
-			transformer.transform(source, result);
+    private String serializeXMLDoc() {
+        String xmlConfigStr = null;
+        try {
+            StringWriter writer = new StringWriter();
+            StreamResult result = new StreamResult(writer);
 
-			StringWriter strWriter = (StringWriter) result.getWriter();
-			xmlConfigStr = strWriter.getBuffer().toString();
-			
-		} catch (TransformerException e) {
-			e.printStackTrace();
-		}
-		return xmlConfigStr;
-	}
+            TransformerFactory transformerFactory = TransformerFactory
+                    .newInstance();
+            Transformer transformer = transformerFactory.newTransformer();
+            DOMSource source = new DOMSource(this.doc);
+            transformer.transform(source, result);
+
+            StringWriter strWriter = (StringWriter) result.getWriter();
+            xmlConfigStr = strWriter.getBuffer().toString();
+
+        } catch (TransformerException e) {
+            e.printStackTrace();
+        }
+        return xmlConfigStr;
+    }
 
 }

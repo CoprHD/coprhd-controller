@@ -36,12 +36,13 @@ public class Main {
 
     public static Map<String, List<Pair<String, String>>> serviceNamingMap =
             new HashMap<String, List<Pair<String, String>>>();
+
     public static void loadProperties(final String fileName) {
         try {
             String serviceName = null;
             for (String line : IOUtils.readLines(new FileInputStream(fileName))) {
                 String lineStr = line.trim();
-                if (lineStr.length() ==0 || lineStr.startsWith(Constants.COMMENT_MARKER))
+                if (lineStr.length() == 0 || lineStr.startsWith(Constants.COMMENT_MARKER))
                     continue;
                 String[] items = lineStr.split(Constants.TITLE_MARKER);
                 if (items[0].length() == 0) {
@@ -56,9 +57,9 @@ public class Main {
                 }
             }
         } catch (Exception e) {
-            throw new RuntimeException("Error reading Group File "+fileName, e);
+            throw new RuntimeException("Error reading Group File " + fileName, e);
         }
-        //System.out.println("Service Naming Map Size: "+serviceNamingMap.size());
+        // System.out.println("Service Naming Map Size: "+serviceNamingMap.size());
     }
 
     private static void usage() {

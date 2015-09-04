@@ -16,9 +16,10 @@ import com.emc.storageos.model.BulkRestRep;
 public class IpInterfaceBulkRep extends BulkRestRep {
 
     private List<IpInterfaceRestRep> ipInterfaces;
-    
+
     /**
      * List of IPv4 or IPv6 interfaces of a host that exists in ViPR.
+     * 
      * @valid none
      */
     @XmlElement(name = "ip_interface")

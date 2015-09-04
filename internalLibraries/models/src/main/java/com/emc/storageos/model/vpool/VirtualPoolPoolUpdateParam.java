@@ -24,11 +24,12 @@ import org.codehaus.jackson.annotate.JsonProperty;
  */
 @XmlRootElement(name = "vpool_pool_update")
 public class VirtualPoolPoolUpdateParam {
-    
+
     private StoragePoolAssignmentChanges storagePoolAssignmentChanges;
 
-    public VirtualPoolPoolUpdateParam() {}
-    
+    public VirtualPoolPoolUpdateParam() {
+    }
+
     public VirtualPoolPoolUpdateParam(
             StoragePoolAssignmentChanges storagePoolAssignmentChanges) {
         this.storagePoolAssignmentChanges = storagePoolAssignmentChanges;
@@ -48,5 +49,5 @@ public class VirtualPoolPoolUpdateParam {
             StoragePoolAssignmentChanges storagePoolAssignmentChanges) {
         this.storagePoolAssignmentChanges = storagePoolAssignmentChanges;
     }
-    
+
 }

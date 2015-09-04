@@ -52,18 +52,18 @@ public class LoggingOps {
         JMXConnector conn = initJMXConnector(logName);
 
         try {
-            Object[] params = {level, expirInMin, scope};
-            String[] sigs = {"java.lang.String", "int", "java.lang.String"};
-            initMBeanServerConnection(conn).invoke(initObjectName(), LoggingMBean.OPERATION_SET, 
+            Object[] params = { level, expirInMin, scope };
+            String[] sigs = { "java.lang.String", "int", "java.lang.String" };
+            initMBeanServerConnection(conn).invoke(initObjectName(), LoggingMBean.OPERATION_SET,
                     params, sigs);
         } catch (IOException e) {
-            throw new IllegalStateException("IOException",e);
+            throw new IllegalStateException("IOException", e);
         } catch (MBeanException e) {
-            throw new IllegalStateException("MBeanException",e);
+            throw new IllegalStateException("MBeanException", e);
         } catch (InstanceNotFoundException e) {
-            throw new IllegalStateException("InstanceNotFoundException",e);
+            throw new IllegalStateException("InstanceNotFoundException", e);
         } catch (ReflectionException e) {
-            throw new IllegalStateException("ReflectionException",e);
+            throw new IllegalStateException("ReflectionException", e);
         } finally {
             close(conn);
         }
@@ -73,18 +73,18 @@ public class LoggingOps {
         JMXConnector conn = initJMXConnector(logName);
 
         try {
-            return (String) initMBeanServerConnection(conn).getAttribute(initObjectName(), 
+            return (String) initMBeanServerConnection(conn).getAttribute(initObjectName(),
                     LoggingMBean.ATTRIBUTE_NAME);
         } catch (IOException e) {
-            throw new IllegalStateException("IOException",e);
+            throw new IllegalStateException("IOException", e);
         } catch (MBeanException e) {
-            throw new IllegalStateException("MBeanException",e);
+            throw new IllegalStateException("MBeanException", e);
         } catch (AttributeNotFoundException e) {
-            throw new IllegalStateException("AttributeNotFoundException",e);
+            throw new IllegalStateException("AttributeNotFoundException", e);
         } catch (InstanceNotFoundException e) {
-            throw new IllegalStateException("InstanceNotFoundException",e);
+            throw new IllegalStateException("InstanceNotFoundException", e);
         } catch (ReflectionException e) {
-            throw new IllegalStateException("ReflectionException",e);
+            throw new IllegalStateException("ReflectionException", e);
         } finally {
             close(conn);
         }
@@ -105,18 +105,18 @@ public class LoggingOps {
         try {
             scanner = new Scanner(new File(logPidFileName));
             int pid = scanner.nextInt();
-            log.debug("Got pid {} from pid file {}", pid, logPidFileName); 
+            log.debug("Got pid {} from pid file {}", pid, logPidFileName);
 
             vm = VirtualMachine.attach(String.valueOf(pid));
-            String connectorAddress = 
+            String connectorAddress =
                     vm.getAgentProperties().getProperty(CONNECTOR_ADDRESS);
             if (connectorAddress == null) {
                 String agent = vm.getSystemProperties().getProperty("java.home") +
-                             File.separator + "lib" + File.separator + 
-                             "management-agent.jar";
+                        File.separator + "lib" + File.separator +
+                        "management-agent.jar";
                 vm.loadAgent(agent);
-         
-                connectorAddress = 
+
+                connectorAddress =
                         vm.getAgentProperties().getProperty(CONNECTOR_ADDRESS);
             }
 
@@ -125,9 +125,9 @@ public class LoggingOps {
         } catch (FileNotFoundException e) {
             throw new IllegalStateException("Cannot find file " + logPidFileName, e);
         } catch (MalformedURLException e) {
-            throw new IllegalStateException("MalformedURLException:",e);
+            throw new IllegalStateException("MalformedURLException:", e);
         } catch (IOException e) {
-            throw new IllegalStateException("IOException when getting the MBean server" 
+            throw new IllegalStateException("IOException when getting the MBean server"
                     + "connection:", e);
         } catch (AttachNotSupportedException e) {
             throw new IllegalStateException("Process cannot be attached:", e);

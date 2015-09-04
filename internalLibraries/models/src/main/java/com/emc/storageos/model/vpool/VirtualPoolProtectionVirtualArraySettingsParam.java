@@ -22,15 +22,16 @@ import javax.xml.bind.annotation.XmlRootElement;
 /**
  * Specifies protection parameters for the VirtualPool when created or retrieved.
  */
-@XmlRootElement(name="protection_varray_vpool")
+@XmlRootElement(name = "protection_varray_vpool")
 public class VirtualPoolProtectionVirtualArraySettingsParam {
 
     private URI varray;
     private URI vpool;
     private ProtectionCopyPolicy copyPolicy;
 
-    public VirtualPoolProtectionVirtualArraySettingsParam() {}
-    
+    public VirtualPoolProtectionVirtualArraySettingsParam() {
+    }
+
     public VirtualPoolProtectionVirtualArraySettingsParam(URI varray,
             URI vpool, ProtectionCopyPolicy copyPolicy) {
         this.varray = varray;

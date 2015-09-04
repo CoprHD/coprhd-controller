@@ -22,18 +22,21 @@ import java.net.URI;
 public interface ProjectResourceSnapshot {
     /**
      * get parent id
+     * 
      * @return
      */
     public NamedURI getParent();
 
     /**
      * get parent DataObject class
+     * 
      * @return
      */
     public Class<? extends DataObject> parentClass();
 
     /**
      * get project
+     * 
      * @return
      */
     public NamedURI getProject();

@@ -15,12 +15,11 @@
 
 package com.emc.storageos.isilon.restapi;
 
-
 import java.util.ArrayList;
 
 public class IsilonStoragePool {
 
-    //[{"disk_usage":{"available":15754415955968,"total":16921439059968,"used":94310457344},"entry_id":1,"name":"x200_5.5tb_200gb-ssd_6gb"}]
+    // [{"disk_usage":{"available":15754415955968,"total":16921439059968,"used":94310457344},"entry_id":1,"name":"x200_5.5tb_200gb-ssd_6gb"}]
 
     private DiskUsage disk_usage;
     private String entry_id;
@@ -30,10 +29,11 @@ public class IsilonStoragePool {
         public Long available;
         public Long total;
         public Long used;
+
         public String toString() {
             StringBuilder str = new StringBuilder();
             str.append("[ available: " + available);
-            str.append(", total: " +  total);
+            str.append(", total: " + total);
             str.append(", used: " + used + "]");
             return str.toString();
         }
@@ -44,26 +44,27 @@ public class IsilonStoragePool {
         return disk_usage;
     }
 
-    public String getEntry_id(){
+    public String getEntry_id() {
         return entry_id;
     }
+
     public String getName() {
         return name;
     }
 
-    public Long getAvailable(){
+    public Long getAvailable() {
         return getDiskUsage().available;
     }
 
-    public Long getUsed(){
+    public Long getUsed() {
         return getDiskUsage().used;
     }
 
-    public Long getTotal(){
+    public Long getTotal() {
         return getDiskUsage().total;
     }
 
-    public String getNativeId(){
+    public String getNativeId() {
         return getName();
     }
 }

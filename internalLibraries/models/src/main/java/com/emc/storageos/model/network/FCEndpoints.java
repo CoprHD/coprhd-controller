@@ -15,18 +15,20 @@ import java.util.List;
  * also be included by the NetworkSystem.
  *
  */
-@XmlRootElement(name="fc_endpoints")
+@XmlRootElement(name = "fc_endpoints")
 public class FCEndpoints {
     private List<FCEndpointRestRep> connections;
 
-    public FCEndpoints() {}
-    
+    public FCEndpoints() {
+    }
+
     public FCEndpoints(List<FCEndpointRestRep> connections) {
         this.connections = connections;
     }
 
     /**
      * List of FC (Fibre Channel) endpoints discovered by a network system.
+     * 
      * @valid none
      */
     @XmlElement(name = "fc_endpoint")

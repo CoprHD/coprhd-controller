@@ -32,7 +32,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 /**
  * AttributeMatcher is base class for all attribute matchers which provides base functionality
  * of identifying the valid matchers and finding the right pools for a given set of attribute matchers.
- * All new attribute matchers should just extend this and implement their own logic to match pools 
+ * All new attribute matchers should just extend this and implement their own logic to match pools
  * against new attributes.
  */
 public abstract class AttributeMatcher {
@@ -40,18 +40,18 @@ public abstract class AttributeMatcher {
      * DbClient reference.
      */
     private static final Logger _logger = LoggerFactory
-    .getLogger(AttributeMatcher.class);
+            .getLogger(AttributeMatcher.class);
 
     protected ObjectLocalCache _objectCache;
 
     protected CoordinatorClient _coordinator;
-    
+
     public static final String VPOOL_MATCHERS = "vpoolMatchers";
-    
+
     public static final String PLACEMENT_MATCHERS = "placementMatchers";
 
     public static final String BASIC_PLACEMENT_MATCHERS = "basicPlacementMatchers";
-    
+
     public static enum Attributes {
         vpool_type,
         varrays,
@@ -81,11 +81,12 @@ public abstract class AttributeMatcher {
         remote_copy,
         long_term_retention_policy
     }
-    
+
     /**
      * This method responsible to run the matchers even if there is CoS attribute on/off.
      * attributeOn => match pools based on the CoS attribute value set.
-     * attributeOff => match pools when a CoS attribute value not set. 
+     * attributeOff => match pools when a CoS attribute value not set.
+     * 
      * @param pools : List of pools to match this attribute.
      * @return matchedPools : list of pools matching.
      */
@@ -97,11 +98,12 @@ public abstract class AttributeMatcher {
             matchedPools = matchStoragePoolsWithAttributeOff(pools, attributeMap);
         }
         return matchedPools;
-        
+
     }
-    
+
     /**
      * Returns the StorageSystem object for the given StoragePool.
+     * 
      * @param storageSystemMap
      * @param pool
      * @return StorageSystem
@@ -116,13 +118,14 @@ public abstract class AttributeMatcher {
         storageSystemMap.put(storageSystemURI, system);
         return system;
     }
-    
+
     /**
      * Match pools if a attribute value is not set.
+     * 
      * @param pools : list of pools to match.
      * @param attributeMap : map contains the list of attribute values to match.
      */
-    protected  List<StoragePool> matchStoragePoolsWithAttributeOff(List<StoragePool> pools, Map<String, Object> attributeMap) {
+    protected List<StoragePool> matchStoragePoolsWithAttributeOff(List<StoragePool> pools, Map<String, Object> attributeMap) {
         return pools;
     }
 
@@ -130,22 +133,25 @@ public abstract class AttributeMatcher {
      * Check whether attribute value is set or not.
      * Ex. If CoS protocols is set then this method returns true else false.
      * So, Based on this method return value, AttributeMatcher will run.
+     * 
      * @param attributeMap : map contains the list of attribute values to match.
      * @return
      */
     protected abstract boolean isAttributeOn(Map<String, Object> attributeMap);
-    
+
     /**
      * Matches the list of storagePools and returns only the pools
      * which are matching with the attribute.
+     * 
      * @param allPools : List of pools to match against each vpool attribute.
      * @param attributeMap : map contains the list of attribute values to match.
      * @return matchedpools:
      */
     protected abstract List<StoragePool> matchStoragePoolsWithAttributeOn(List<StoragePool> allPools, Map<String, Object> attributeMap);
-    
+
     /**
      * For debug purpose, which lists the matched Pool Native Guids
+     * 
      * @param pools
      * @return
      */
@@ -156,15 +162,16 @@ public abstract class AttributeMatcher {
         }
         return poolURIList;
     }
-    
+
     /**
      * set Cache.
+     * 
      * @param cache
      */
     public void setObjectCache(ObjectLocalCache cache) {
         _objectCache = cache;
     }
-    
+
     /**
      * set CoordinatorClient.
      *
@@ -176,7 +183,7 @@ public abstract class AttributeMatcher {
 
     /**
      * Returns a Map contains AttributeName as key and its supported values else empty map.
-     * By default this will return empty map and if someone wants 
+     * By default this will return empty map and if someone wants
      * to show available attribute & its supported values, they must override this method
      * and return the available attributes..
      * 
@@ -190,7 +197,7 @@ public abstract class AttributeMatcher {
      * @return
      */
     public Map<String, Set<String>> getAvailableAttribute(List<StoragePool> neighborhoodPools,
-                                    URI varrayUri) {
+            URI varrayUri) {
         return Collections.emptyMap();
     }
 }

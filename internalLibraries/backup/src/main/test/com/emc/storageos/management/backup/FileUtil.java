@@ -27,16 +27,18 @@ import java.nio.channels.FileChannel;
 
 public class FileUtil {
 
-    private FileUtil() {}
+    private FileUtil() {
+    }
 
     /**
      * Creates file by specified name and length, the content of file is random string.
+     * 
      * @param folder
-     *          The folder which contains file
+     *            The folder which contains file
      * @param name
-     *          The name of file
+     *            The name of file
      * @param length
-     *          The length of file
+     *            The length of file
      * @return Instance of File
      * @throws IOException
      */
@@ -53,10 +55,11 @@ public class FileUtil {
 
     /**
      * Creates file with specified length
+     * 
      * @param file
-     *          The file instance to accept data
+     *            The file instance to accept data
      * @param length
-     *          The size of file data
+     *            The size of file data
      * @throws IOException
      */
     public static void createEmptyFile(File file, long length) throws IOException {
@@ -64,7 +67,7 @@ public class FileUtil {
             throw new IllegalArgumentException("File instance is null or length is not positive");
         try (FileOutputStream fOut = new FileOutputStream(file);
                 FileChannel fChannel = fOut.getChannel()) {
-            fChannel.write(ByteBuffer.allocate(1), length-1);
+            fChannel.write(ByteBuffer.allocate(1), length - 1);
         }
     }
 }

@@ -34,10 +34,10 @@ import com.sun.jersey.spi.container.servlet.ServletContainer;
  * Storage controller simulator default implementation
  */
 public class StorageCtlrSimulatorImpl implements StorageCtlrSimulator {
-    private Server              _server;
-    private Application         _app;
-    private int                 _port;
-    private DbSvcBase           _dbsvc;
+    private Server _server;
+    private Application _app;
+    private int _port;
+    private DbSvcBase _dbsvc;
 
     public void setPort(int port) {
         _port = port;

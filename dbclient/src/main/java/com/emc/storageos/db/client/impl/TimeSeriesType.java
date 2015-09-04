@@ -63,7 +63,7 @@ public class TimeSeriesType<T extends TimeSeriesSerializer.DataPoint> implements
     }
 
     /**
-     * Gets shard index to use for next data point.  Note that shard
+     * Gets shard index to use for next data point. Note that shard
      * index should be calculated by
      *
      * getAndIncrementBucketIndex % shard count
@@ -93,13 +93,13 @@ public class TimeSeriesType<T extends TimeSeriesSerializer.DataPoint> implements
     }
 
     /**
-     * Returns row ID to use for current time (UTC).  Takes into account
-     * bucket granularity and shard count.  Row ID does not use data
+     * Returns row ID to use for current time (UTC). Takes into account
+     * bucket granularity and shard count. Row ID does not use data
      * point's time because it's used as a way to
      *
-     * 1. load balance across rows.  Data point's time stamps
-     *   do not guarantee such things since time series data source
-     *   could be out of whack
+     * 1. load balance across rows. Data point's time stamps
+     * do not guarantee such things since time series data source
+     * could be out of whack
      * 2. serve as collection time stamp
      *
      * This means that this time series implementation is not
@@ -115,19 +115,19 @@ public class TimeSeriesType<T extends TimeSeriesSerializer.DataPoint> implements
         return getRowId(null);
     }
 
-    public boolean getCompactOptimized(){
+    public boolean getCompactOptimized() {
         return _compactionOptimized;
     }
 
     /**
-     * Return row Id to use for given time. 
+     * Return row Id to use for given time.
      * 
      * @param time
      * @return row id to use for next insertion
      */
     public String getRowId(DateTime time) {
-        if(time == null) {
-        	time = new DateTime(DateTimeZone.UTC);
+        if (time == null) {
+            time = new DateTime(DateTimeZone.UTC);
         }
         StringBuilder rowId = new StringBuilder(_prefixFormatter.print(time));
         rowId.append(getNextShardIndex());
@@ -236,13 +236,13 @@ public class TimeSeriesType<T extends TimeSeriesSerializer.DataPoint> implements
         for (int i = 0; i < annotations.length; i++) {
             Annotation a = annotations[i];
             if (a instanceof Cf) {
-                _cfName = ((Cf)a).value();
+                _cfName = ((Cf) a).value();
             } else if (a instanceof Shards) {
-                _shardCount = ((Shards)a).value();
-            } else if (a instanceof CompactionOptimized ) {
+                _shardCount = ((Shards) a).value();
+            } else if (a instanceof CompactionOptimized) {
                 _compactionOptimized = true;
             } else if (a instanceof BucketGranularity) {
-                _bucketGranularity = ((BucketGranularity)a).value();
+                _bucketGranularity = ((BucketGranularity) a).value();
                 switch (_bucketGranularity) {
                     case SECOND:
                         _prefixFormatter = DateTimeFormat.forPattern("yyyyMMddHHmmss-");
@@ -274,7 +274,7 @@ public class TimeSeriesType<T extends TimeSeriesSerializer.DataPoint> implements
                 }
                 _supportedGranularity = Collections.unmodifiableList(_supportedGranularity);
             } else if (a instanceof Ttl) {
-                _ttl = ((Ttl)a).value();
+                _ttl = ((Ttl) a).value();
             } else {
                 throw new IllegalArgumentException("Unexpected annotation");
             }

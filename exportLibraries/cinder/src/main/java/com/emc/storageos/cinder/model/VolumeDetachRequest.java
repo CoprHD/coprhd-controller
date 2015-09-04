@@ -18,31 +18,31 @@ package com.emc.storageos.cinder.model;
 import com.google.gson.annotations.SerializedName;
 
 public class VolumeDetachRequest {
-    
+
     /**
      * Json model representation for volume detach request
      * 
      * for iSCSI
      * 
-     * {"os-terminate_connection": 
-            {"connector": 
-                {
-                    "initiator": "<IQN>",
-                    "host": "<HOST FQDN or IP ADDRESS>"
-                }
-            }
-       }
+     * {"os-terminate_connection":
+     * {"connector":
+     * {
+     * "initiator": "<IQN>",
+     * "host": "<HOST FQDN or IP ADDRESS>"
+     * }
+     * }
+     * }
      *
      * for FC (wwpn without colon)
      * 
-     * {"os-terminate_connection": 
-            {"connector": 
-                {
-                    "wwpns": ["<WWPN1>", "<WWPN2>"],
-                    "host": "<HOST FQDN or IP ADDRESS>"
-                }
-            }
-       }
+     * {"os-terminate_connection":
+     * {"connector":
+     * {
+     * "wwpns": ["<WWPN1>", "<WWPN2>"],
+     * "host": "<HOST FQDN or IP ADDRESS>"
+     * }
+     * }
+     * }
      */
 
     @SerializedName("os-terminate_connection")

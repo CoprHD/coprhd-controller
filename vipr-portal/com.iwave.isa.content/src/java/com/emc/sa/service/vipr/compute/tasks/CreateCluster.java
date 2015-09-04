@@ -19,7 +19,7 @@ public class CreateCluster extends ViPRExecutionTask<ClusterRestRep> {
 
     @Override
     public ClusterRestRep executeTask() throws Exception {
-    	ClusterCreateParam clusterCreateParam = new ClusterCreateParam(clusterName);
-    	return getClient().clusters().create(getOrderTenant(), clusterCreateParam);
+        ClusterCreateParam clusterCreateParam = new ClusterCreateParam(clusterName);
+        return getClient().clusters().create(getOrderTenant(), clusterCreateParam);
     }
 }

@@ -51,63 +51,65 @@ public class ApiTest_AuthnProviderUtils {
     private final static String DEFAULT_TEST_SECOND_DOMAIN = "sanity.local";
     private final static String DEFAULT_TEST_ONE_LETTER_DOMAIN = "d";
 
-    private final static String[] DEFAULT_TEST_LDAP_SERVER_GROUP_OBJECT_CLASSES = {"groupofnames", "groupofuniquenames", "posixgroup", "organizationalrole"};
-    private final static String[] DEFAULT_TEST_LDAP_SERVER_GROUP_MEMBER_ATTRIBUTES = {"member", "uniquemember", "memberuid", "roleoccupant"};
+    private final static String[] DEFAULT_TEST_LDAP_SERVER_GROUP_OBJECT_CLASSES = { "groupofnames", "groupofuniquenames", "posixgroup",
+            "organizationalrole" };
+    private final static String[] DEFAULT_TEST_LDAP_SERVER_GROUP_MEMBER_ATTRIBUTES = { "member", "uniquemember", "memberuid",
+            "roleoccupant" };
 
-    //ldapViPRUserGroup - groupOfNames object class.
-    //ldapViPRUserGroupNew - groupOfNames object class.
-    //ldapViPRUserGroupOrgRole - organizationalRole object class.
-    //ldapViPRUniqueNameGroup - groupOfUniqueNames object class.
-    //ldapViPRPosixGroup - posixGroup object class.
-    //ldapViPRUserGroupNewOuter - groupOfNames object class.
-    //Marketing - groupOfUniqueNames object class.
-    //MarketingNew - groupOfUniqueNames object class.
-    //MarketingOuter - groupOfUniqueNames object class.
-    private final static String[] DEFAULT_TEST_LDAP_GROUPS = {"ldapViPRUserGroup", "ldapViPRUserGroupNew", "ldapViPRUserGroupOrgRole",
-            "ldapViPRUniqueNameGroup", "ldapViPRPosixGroup", "ldapViPRUserGroupNewOuter", "Marketing", "MarketingNew", "MarketingOuter"};
+    // ldapViPRUserGroup - groupOfNames object class.
+    // ldapViPRUserGroupNew - groupOfNames object class.
+    // ldapViPRUserGroupOrgRole - organizationalRole object class.
+    // ldapViPRUniqueNameGroup - groupOfUniqueNames object class.
+    // ldapViPRPosixGroup - posixGroup object class.
+    // ldapViPRUserGroupNewOuter - groupOfNames object class.
+    // Marketing - groupOfUniqueNames object class.
+    // MarketingNew - groupOfUniqueNames object class.
+    // MarketingOuter - groupOfUniqueNames object class.
+    private final static String[] DEFAULT_TEST_LDAP_GROUPS = { "ldapViPRUserGroup", "ldapViPRUserGroupNew", "ldapViPRUserGroupOrgRole",
+            "ldapViPRUniqueNameGroup", "ldapViPRPosixGroup", "ldapViPRUserGroupNewOuter", "Marketing", "MarketingNew", "MarketingOuter" };
 
-    //ldapViPRUser1 - is a member of ldapViPRUserGroup and Marketing.
-    //ldapViPRUser2, ldapViPRUser4, ldapViPRUserGroup - is a member of  ldapViPRUserGroupNew.
-    //ldapViPRUserGroupNew - is a member of ldapViPRUserGroupNewOuter.
-    //ldapViPRUserGroupNewOuter - is a member of ldapViPRUniqueNameGroup.
-    //Marketing - is a member of MarketingNew.
-    //MarketingNew - is a member of MarketingOuter.
-    //ldapViPRUserGroupNewOuter, MarketingOuter - is a member of ldapViPRUserGroupOrgRole
-    //ldapViPRUser5 - has attributes departmentNumber = [ENG, DEV] and localityName = [Boston].
-    //ldapViPRUser6 - has attributes departmentNumber = [ENG, QE] and localityName = [New York].
-    //ldapViPRUser7 - has attributes departmentNumber = [ENG, QE, MANAGE] and localityName = [Boston].
-    private final static String[] DEFAULT_TEST_LDAP_USERS_UID = {"ldapViPRUser1", "ldapViPRUser2", "ldapViPRUser3", "ldapViPRUser4",
-            "ldapViPRUser5", "ldapViPRUser6", "ldapViPRUser7"};
+    // ldapViPRUser1 - is a member of ldapViPRUserGroup and Marketing.
+    // ldapViPRUser2, ldapViPRUser4, ldapViPRUserGroup - is a member of ldapViPRUserGroupNew.
+    // ldapViPRUserGroupNew - is a member of ldapViPRUserGroupNewOuter.
+    // ldapViPRUserGroupNewOuter - is a member of ldapViPRUniqueNameGroup.
+    // Marketing - is a member of MarketingNew.
+    // MarketingNew - is a member of MarketingOuter.
+    // ldapViPRUserGroupNewOuter, MarketingOuter - is a member of ldapViPRUserGroupOrgRole
+    // ldapViPRUser5 - has attributes departmentNumber = [ENG, DEV] and localityName = [Boston].
+    // ldapViPRUser6 - has attributes departmentNumber = [ENG, QE] and localityName = [New York].
+    // ldapViPRUser7 - has attributes departmentNumber = [ENG, QE, MANAGE] and localityName = [Boston].
+    private final static String[] DEFAULT_TEST_LDAP_USERS_UID = { "ldapViPRUser1", "ldapViPRUser2", "ldapViPRUser3", "ldapViPRUser4",
+            "ldapViPRUser5", "ldapViPRUser6", "ldapViPRUser7" };
 
     private final static String DEFAULT_TEST_LDAP_SERVER_NON_MANAGER_BIND_DN = "uid=ldapViPRUser1,ou=Users,ou=ViPR,dc=maxcrc,dc=com";
 
     private final static String DEFAULT_TEST_TENANT_USERS_PASSWORD = "secret";
 
-    private final String[] TEST_DEFAULT_ATTRIBUTE_KEYS = {"departmentNumber", "l"}; //l means localityName
-    private final String[] TEST_DEFAULT_ATTRIBUTE_DEPARTMENT_VALUES = {"ENG", "QE", "DEV", "MANAGE"};
-    private final String[] TEST_DEFAULT_ATTRIBUTE_LOCALITY_VALUES = {"Boston", "New York", "West Coast"};
+    private final String[] TEST_DEFAULT_ATTRIBUTE_KEYS = { "departmentNumber", "l" }; // l means localityName
+    private final String[] TEST_DEFAULT_ATTRIBUTE_DEPARTMENT_VALUES = { "ENG", "QE", "DEV", "MANAGE" };
+    private final String[] TEST_DEFAULT_ATTRIBUTE_LOCALITY_VALUES = { "Boston", "New York", "West Coast" };
 
-    public Set<String> getDefaultGroupObjectClasses(){
+    public Set<String> getDefaultGroupObjectClasses() {
         return new HashSet<String>(Arrays.asList(DEFAULT_TEST_LDAP_SERVER_GROUP_OBJECT_CLASSES));
     }
 
-    public Set<String> getDefaultGroupMemberAttributes(){
+    public Set<String> getDefaultGroupMemberAttributes() {
         return new HashSet<String>(Arrays.asList(DEFAULT_TEST_LDAP_SERVER_GROUP_MEMBER_ATTRIBUTES));
     }
 
-    public String getGroupObjectClass(int index){
+    public String getGroupObjectClass(int index) {
         return DEFAULT_TEST_LDAP_SERVER_GROUP_OBJECT_CLASSES[index];
     }
 
-    public String getGroupMemberAttribute(int index){
+    public String getGroupMemberAttribute(int index) {
         return DEFAULT_TEST_LDAP_SERVER_GROUP_MEMBER_ATTRIBUTES[index];
     }
 
-    public String getDefaultGroupAttribute(){
+    public String getDefaultGroupAttribute() {
         return DEFAULT_TEST_LDAP_SERVER_GROUP_ATTRIBUTE;
     }
 
-    public AuthnCreateParam getDefaultAuthnCreateParam (String description) {
+    public AuthnCreateParam getDefaultAuthnCreateParam(String description) {
         AuthnCreateParam param = new AuthnCreateParam();
         param.setLabel(DEFAULT_TEST_LDAP_AUTHN_PROVIDER_LABEL);
         if (StringUtils.isNotBlank(description)) {
@@ -132,7 +134,7 @@ public class ApiTest_AuthnProviderUtils {
         return param;
     }
 
-    public AuthnUpdateParam getAuthnUpdateParamFromAuthnProviderRestResp (AuthnProviderRestRep createResponse) {
+    public AuthnUpdateParam getAuthnUpdateParamFromAuthnProviderRestResp(AuthnProviderRestRep createResponse) {
         AuthnUpdateParam param = new AuthnUpdateParam();
         param.setLabel(createResponse.getName());
         param.setDescription(createResponse.getDescription());
@@ -154,23 +156,23 @@ public class ApiTest_AuthnProviderUtils {
         return param;
     }
 
-    public Set<String> getDefaultLDAPGroups () {
-        return new HashSet<String> (Arrays.asList(DEFAULT_TEST_LDAP_GROUPS));
+    public Set<String> getDefaultLDAPGroups() {
+        return new HashSet<String>(Arrays.asList(DEFAULT_TEST_LDAP_GROUPS));
     }
 
-    public String getLDAPGroup (int index) {
+    public String getLDAPGroup(int index) {
         return DEFAULT_TEST_LDAP_GROUPS[index];
     }
 
-    public Set<String> getDefaultLDAPUsers () {
-        return new HashSet<String> (Arrays.asList(DEFAULT_TEST_LDAP_USERS_UID));
+    public Set<String> getDefaultLDAPUsers() {
+        return new HashSet<String>(Arrays.asList(DEFAULT_TEST_LDAP_USERS_UID));
     }
 
-    public String getLDAPUser (int index) {
+    public String getLDAPUser(int index) {
         return DEFAULT_TEST_LDAP_USERS_UID[index];
     }
 
-    public String getLDAPUserPassword () {
+    public String getLDAPUserPassword() {
         return DEFAULT_TEST_TENANT_USERS_PASSWORD;
     }
 
@@ -186,11 +188,11 @@ public class ApiTest_AuthnProviderUtils {
         return DEFAULT_TEST_ONE_LETTER_DOMAIN;
     }
 
-    public String getUserWithDomain(int index){
+    public String getUserWithDomain(int index) {
         return DEFAULT_TEST_LDAP_USERS_UID[index] + "@" + getAuthnProviderDomain();
     }
 
-    public String getAuthnProviderBaseURL () {
+    public String getAuthnProviderBaseURL() {
         return AUTHN_PROVIDER_BASE_URL;
     }
 
@@ -198,31 +200,31 @@ public class ApiTest_AuthnProviderUtils {
         return String.format(AUTHN_PROVIDER_EDIT_URL, id);
     }
 
-    public String getNonManagerDN () {
+    public String getNonManagerDN() {
         return DEFAULT_TEST_LDAP_SERVER_NON_MANAGER_BIND_DN;
     }
 
-    public Set<String> getDefaultAttributeKeys(){
+    public Set<String> getDefaultAttributeKeys() {
         return new HashSet<String>(Arrays.asList(TEST_DEFAULT_ATTRIBUTE_KEYS));
     }
 
-    public Set<String> getDefaultAttributeDepartmentValues(){
+    public Set<String> getDefaultAttributeDepartmentValues() {
         return new HashSet<String>(Arrays.asList(TEST_DEFAULT_ATTRIBUTE_DEPARTMENT_VALUES));
     }
 
-    public Set<String> getDefaultAttributeLocalityValues(){
+    public Set<String> getDefaultAttributeLocalityValues() {
         return new HashSet<String>(Arrays.asList(TEST_DEFAULT_ATTRIBUTE_LOCALITY_VALUES));
     }
 
-    public String getAttributeKey(int index){
+    public String getAttributeKey(int index) {
         return TEST_DEFAULT_ATTRIBUTE_KEYS[index];
     }
 
-    public String getAttributeDepartmentValue(int index){
+    public String getAttributeDepartmentValue(int index) {
         return TEST_DEFAULT_ATTRIBUTE_DEPARTMENT_VALUES[index];
     }
 
-    public String getAttributeLocalityValue(int index){
+    public String getAttributeLocalityValue(int index) {
         return TEST_DEFAULT_ATTRIBUTE_LOCALITY_VALUES[index];
     }
 }

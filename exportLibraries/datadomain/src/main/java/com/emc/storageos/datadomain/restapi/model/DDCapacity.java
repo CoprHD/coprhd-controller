@@ -32,21 +32,24 @@ public class DDCapacity {
     public long getTotal() {
         return total;
     }
-    public void setTotal(long total){
+
+    public void setTotal(long total) {
         this.total = total;
     }
 
     public long getUsed() {
         return used;
     }
-    public void setUsed(long used){
+
+    public void setUsed(long used) {
         this.used = used;
     }
 
     public long getAvailable() {
         return available;
     }
-    public void setAvailable(long available){
+
+    public void setAvailable(long available) {
         this.available = available;
     }
 

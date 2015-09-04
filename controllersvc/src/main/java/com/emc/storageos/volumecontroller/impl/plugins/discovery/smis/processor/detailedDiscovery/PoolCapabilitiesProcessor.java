@@ -39,47 +39,46 @@ import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.
  * ai(ref-pool, null, EMC_StoragePoolCapabilities...) => Instances of EMC_StorageCapabilities.
  * 
  * and add the response to the KeyMap for further processing.
- * Currently this call is supported only for vmax3 systems. 
+ * Currently this call is supported only for vmax3 systems.
  * 
  */
 public class PoolCapabilitiesProcessor extends PoolProcessor {
-    
+
     private Logger _logger = LoggerFactory.getLogger(PoolCapabilitiesProcessor.class);
     private DbClient _dbClient;
 
     @Override
-	public void processResult(Operation operation, Object resultObj,
-			Map<String, Object> keyMap) throws BaseCollectionException {
-		try {
-			@SuppressWarnings("unchecked")
-			final Iterator<CIMInstance> it = (Iterator<CIMInstance>) resultObj;
-			_dbClient = (DbClient) keyMap.get(Constants.dbClient);
-			AccessProfile profile = (AccessProfile) keyMap
-					.get(Constants.ACCESSPROFILE);
-			StorageSystem device = getStorageSystem(_dbClient,
-					profile.getSystemId());
-			// Process the response only for vmax3 systems.
-			if (device.checkIfVmax3()) {
-				while (it.hasNext()) {
-					CIMInstance capabilitiesInstance = null;
-					try {
-						capabilitiesInstance = it.next();
-						String instanceID = capabilitiesInstance.getPropertyValue(
-								Constants.INSTANCEID).toString();
-						addPath(keyMap, operation.get_result(), capabilitiesInstance.getObjectPath());
-					} catch (Exception e) {
-						_logger.warn(
-								"Pool Capabilities detailed discovery failed for {}-->{}",
-								capabilitiesInstance.getObjectPath(), getMessage(e));
-					}
-				}
-			}
-		} catch (Exception e) {
-			_logger.error("Pool Capabilities detailed discovery failed", e);
-		}
-	}
+    public void processResult(Operation operation, Object resultObj,
+            Map<String, Object> keyMap) throws BaseCollectionException {
+        try {
+            @SuppressWarnings("unchecked")
+            final Iterator<CIMInstance> it = (Iterator<CIMInstance>) resultObj;
+            _dbClient = (DbClient) keyMap.get(Constants.dbClient);
+            AccessProfile profile = (AccessProfile) keyMap
+                    .get(Constants.ACCESSPROFILE);
+            StorageSystem device = getStorageSystem(_dbClient,
+                    profile.getSystemId());
+            // Process the response only for vmax3 systems.
+            if (device.checkIfVmax3()) {
+                while (it.hasNext()) {
+                    CIMInstance capabilitiesInstance = null;
+                    try {
+                        capabilitiesInstance = it.next();
+                        String instanceID = capabilitiesInstance.getPropertyValue(
+                                Constants.INSTANCEID).toString();
+                        addPath(keyMap, operation.get_result(), capabilitiesInstance.getObjectPath());
+                    } catch (Exception e) {
+                        _logger.warn(
+                                "Pool Capabilities detailed discovery failed for {}-->{}",
+                                capabilitiesInstance.getObjectPath(), getMessage(e));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            _logger.error("Pool Capabilities detailed discovery failed", e);
+        }
+    }
 
- 
     @Override
     protected void setPrerequisiteObjects(List<Object> inputArgs)
             throws BaseCollectionException {

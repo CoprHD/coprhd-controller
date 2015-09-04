@@ -14,22 +14,24 @@ import java.util.List;
 /**
  * Snapshot creation response
  */
-@XmlRootElement(name="consistent_volumes")
+@XmlRootElement(name = "consistent_volumes")
 public class RelatedVolumeList {
 
     private List<NamedRelatedResourceRep> volumeList;
 
-    public RelatedVolumeList() {}
-    
+    public RelatedVolumeList() {
+    }
+
     public RelatedVolumeList(List<NamedRelatedResourceRep> volumeList) {
         this.volumeList = volumeList;
     }
 
     /**
-     * List of volumes. 
+     * List of volumes.
+     * 
      * @valid none
      */
-    @XmlElement(name="consistent_volume")
+    @XmlElement(name = "consistent_volume")
     public List<NamedRelatedResourceRep> getVolumeList() {
         if (volumeList == null) {
             volumeList = new ArrayList<NamedRelatedResourceRep>();

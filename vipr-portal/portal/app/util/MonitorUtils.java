@@ -23,15 +23,15 @@ public class MonitorUtils {
     public static List<NodeStats> getNodeStats() {
         return getNodeStats(getSysClient());
     }
-    
+
     public static List<NodeHealth> getNodeHealth() {
-    	return getNodeHealth(getSysClient());
+        return getNodeHealth(getSysClient());
     }
 
     public static StorageStats getStorageStats() {
-    	return getStorageStats(getSysClient());
+        return getStorageStats(getSysClient());
     }
-    
+
     public static List<NodeDiagnostics> getNodeDiagnostics() {
         return getNodeDiagnotics(getSysClient());
     }
@@ -39,17 +39,17 @@ public class MonitorUtils {
     public static List<NodeStats> getNodeStats(ViPRSystemClient client) {
         return client.health().getStats().getNodeStatsList();
     }
-    
+
     public static List<NodeHealth> getNodeHealth(ViPRSystemClient client) {
         return client.health().getHealth().getNodeHealthList();
     }
-    
+
     public static StorageStats getStorageStats(ViPRSystemClient client) {
         return client.health().getStorageStats();
     }
-    
+
     public static List<NodeDiagnostics> getNodeDiagnotics(ViPRSystemClient client) {
-       return client.health().getDiagnostics(null).getNodeDiagnosticsList();
+        return client.health().getDiagnostics(null).getNodeDiagnosticsList();
     }
 
     public static NodeStats getNodeStats(String nodeId) {
@@ -60,8 +60,7 @@ public class MonitorUtils {
                 }
             }
             return null;
-        }
-        catch (ServiceErrorException e) {
+        } catch (ServiceErrorException e) {
             if (e.getHttpCode() == 400) {
                 return null;
             }
@@ -71,31 +70,29 @@ public class MonitorUtils {
 
     public static NodeHealth getNodeHealth(String nodeId) {
         try {
-            for (NodeHealth node: getSysClient().health().getHealth(Lists.newArrayList(nodeId)).getNodeHealthList()) {
+            for (NodeHealth node : getSysClient().health().getHealth(Lists.newArrayList(nodeId)).getNodeHealthList()) {
                 if (node.getNodeId().equals(nodeId)) {
                     return node;
                 }
             }
             return null;
-        }
-        catch (ServiceErrorException e) {
+        } catch (ServiceErrorException e) {
             if (e.getHttpCode() == 400) {
                 return null;
             }
             throw e;
         }
     }
-    
+
     public static NodeDiagnostics getNodeDiagnostics(String nodeId) {
         try {
-            for (NodeDiagnostics node: getSysClient().health().getDiagnostics(Lists.newArrayList(nodeId)).getNodeDiagnosticsList()) {
+            for (NodeDiagnostics node : getSysClient().health().getDiagnostics(Lists.newArrayList(nodeId)).getNodeDiagnosticsList()) {
                 if (node.getNodeId().equals(nodeId)) {
                     return node;
                 }
             }
             return null;
-        }
-        catch (ServiceErrorException e) {
+        } catch (ServiceErrorException e) {
             if (e.getHttpCode() == 400) {
                 return null;
             }

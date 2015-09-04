@@ -47,7 +47,7 @@ import com.emc.storageos.db.client.model.StringSetMap;
 @SuppressWarnings("serial")
 @Cf("VirtualDataCenter")
 public class VirtualDataCenter extends DataObject {
- private static final Logger log = LoggerFactory.getLogger(VirtualDataCenter.class);
+    private static final Logger log = LoggerFactory.getLogger(VirtualDataCenter.class);
 
     public static enum ConnectionStatus {
         ISOLATED,           // This Vdc is single site, not connected with others for a Geo system
@@ -80,7 +80,7 @@ public class VirtualDataCenter extends DataObject {
     private ConnectionStatus connectionStatus;
 
     /**
-     * The status of geo replication 
+     * The status of geo replication
      */
     private GeoReplicationStatus repStatus;
 
@@ -98,7 +98,7 @@ public class VirtualDataCenter extends DataObject {
      * new HMAC signing key for this VDC
      */
     private String securityNewKey;
-        
+
     /**
      * Optional description of the VDC
      */
@@ -113,12 +113,12 @@ public class VirtualDataCenter extends DataObject {
      * Internal version for this VDC object, used for change synchronization
      */
     private Long version;
-    
+
     /**
      * Number of hosts in this VDC
      */
     private Integer hostCount;
-        
+
     /**
      * Map of IPv4 adresses in the VDC
      * <nodeId, IPv4Address>
@@ -142,17 +142,17 @@ public class VirtualDataCenter extends DataObject {
     private String shortId;
 
     private StringSetMap _roleAssignments;
-    
+
     /**
      * Command endpoint using by data service for geo replication support
      */
     private String geoCommandEndpoint;
-    
+
     /**
      * Data endpoint using by data service for geo replication support
      */
     private String geoDataEndpoint;
-    
+
     @Name("apiEndpoint")
     public String getApiEndpoint() {
         return apiEndpoint;
@@ -162,7 +162,7 @@ public class VirtualDataCenter extends DataObject {
         this.apiEndpoint = apiEndpoint;
         setChanged("apiEndpoint");
     }
-    
+
     @Encrypt
     @Name("secretKey")
     public String getSecretKey() {
@@ -199,6 +199,7 @@ public class VirtualDataCenter extends DataObject {
     public String getCertificateChain() {
         return certificate_chain;
     }
+
     public void setCertificateChain(String certificate_chain) {
         this.certificate_chain = certificate_chain;
         setChanged("certificate_chain");
@@ -244,7 +245,7 @@ public class VirtualDataCenter extends DataObject {
         setChanged("hostCount");
     }
 
-      @Name("hostIPv4AddressesMap")
+    @Name("hostIPv4AddressesMap")
     public StringMap getHostIPv4AddressesMap() {
         return hostIPv4AddressMap;
     }
@@ -292,7 +293,7 @@ public class VirtualDataCenter extends DataObject {
     public String getShortId() {
         return shortId;
     }
-    
+
     public void setShortId(String shortId) {
         this.shortId = shortId;
         setChanged("shortId");
@@ -349,8 +350,8 @@ public class VirtualDataCenter extends DataObject {
     public void setGeoDataEndpoint(String geoDataEndpoint) {
         this.geoDataEndpoint = geoDataEndpoint;
         setChanged("geoDataEndpoint");
-    }   
-    
+    }
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder(this.getClass().getName());
@@ -373,4 +374,3 @@ public class VirtualDataCenter extends DataObject {
         return builder.toString();
     }
 }
-

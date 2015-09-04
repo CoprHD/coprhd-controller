@@ -19,14 +19,15 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 /**
  * Product name class
  *
- *  Product name is initialized by bean file. It is used
- *  SoftwareVersion and the whole upgrade machinery depends on this name
- *   e.g. "vipr"
+ * Product name is initialized by bean file. It is used
+ * SoftwareVersion and the whole upgrade machinery depends on this name
+ * e.g. "vipr"
  */
 public class ProductName {
     private static String _name;
 
-    protected ProductName() {}
+    protected ProductName() {
+    }
 
     public void setName(String name) {
         _name = name;

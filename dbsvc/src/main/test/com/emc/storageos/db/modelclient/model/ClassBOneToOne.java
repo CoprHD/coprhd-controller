@@ -26,7 +26,7 @@ import com.emc.storageos.db.client.model.Relation;
  */
 @Cf("ClassB")
 public class ClassBOneToOne extends DataObject {
-    
+
     private ClassAOneToOne ainstance;
 
     @Relation(type = ClassAOneToOne.class, mappedBy = "bId")

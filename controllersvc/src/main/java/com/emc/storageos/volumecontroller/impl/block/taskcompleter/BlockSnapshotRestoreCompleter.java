@@ -35,13 +35,13 @@ public class BlockSnapshotRestoreCompleter extends BlockSnapshotTaskCompleter {
     private static final Logger _log = LoggerFactory.getLogger(BlockSnapshotRestoreCompleter.class);
     public static final String SNAPSHOT_RESTORED_MSG = "Restored volume %s from snapshot %s";
     public static final String SNAPSHOT_RESTORE_FAILED_MSG = "Failed to restore volume %s from snapshot %s";
-    
+
     private Boolean _updateAndRecordOp = true;
 
     public BlockSnapshotRestoreCompleter(BlockSnapshot snapshot, String task) {
         super(BlockSnapshot.class, snapshot.getId(), task);
     }
-    
+
     public BlockSnapshotRestoreCompleter(BlockSnapshot snapshot, String task, Boolean updateAndRecordOp) {
         super(BlockSnapshot.class, snapshot.getId(), task);
         _updateAndRecordOp = updateAndRecordOp;
@@ -57,31 +57,33 @@ public class BlockSnapshotRestoreCompleter extends BlockSnapshotTaskCompleter {
                     // For snapshot based on a consistency group, set status and send
                     // events for all related snaps
                     List<BlockSnapshot> snaps = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshot, dbClient);
-                    for(BlockSnapshot snap : snaps) {
+                    for (BlockSnapshot snap : snaps) {
                         URI uri = snap.getId();
                         BlockSnapshot it = dbClient.queryObject(BlockSnapshot.class, uri);
                         switch (status) {
-                        case error:
-                            dbClient.error(BlockSnapshot.class, uri, getOpId(), coded);
-                            break;
-                        default:
-                            dbClient.ready(BlockSnapshot.class, uri, getOpId());
+                            case error:
+                                dbClient.error(BlockSnapshot.class, uri, getOpId(), coded);
+                                break;
+                            default:
+                                dbClient.ready(BlockSnapshot.class, uri, getOpId());
                         }
-    
-                        recordBlockSnapshotOperation(dbClient, OperationTypeEnum.RESTORE_VOLUME_SNAPSHOT, status, eventMessage(status, volume, it), it, volume);
+
+                        recordBlockSnapshotOperation(dbClient, OperationTypeEnum.RESTORE_VOLUME_SNAPSHOT, status,
+                                eventMessage(status, volume, it), it, volume);
                         _log.info(String.format("Completed CG snapshot restore of snap %s (%s), with status %s",
                                 it.getLabel(), uri.toString(), status.name()));
                     }
                 } else {
                     switch (status) {
-                    case error:
-                        dbClient.error(BlockSnapshot.class, getId(), getOpId(), coded);
-                        break;
-                    default:
-                        dbClient.ready(BlockSnapshot.class, getId(), getOpId());
+                        case error:
+                            dbClient.error(BlockSnapshot.class, getId(), getOpId(), coded);
+                            break;
+                        default:
+                            dbClient.ready(BlockSnapshot.class, getId(), getOpId());
                     }
-    
-                    recordBlockSnapshotOperation(dbClient, OperationTypeEnum.RESTORE_VOLUME_SNAPSHOT, status, eventMessage(status, volume, snapshot), snapshot, volume);
+
+                    recordBlockSnapshotOperation(dbClient, OperationTypeEnum.RESTORE_VOLUME_SNAPSHOT, status,
+                            eventMessage(status, volume, snapshot), snapshot, volume);
                 }
             }
             _log.info("Done SnapshotRestore {}, with Status: {}", getOpId(), status.name());
@@ -91,7 +93,7 @@ public class BlockSnapshotRestoreCompleter extends BlockSnapshotTaskCompleter {
         }
     }
 
-	private String eventMessage(Operation.Status status, Volume volume, BlockSnapshot snapshot) {
+    private String eventMessage(Operation.Status status, Volume volume, BlockSnapshot snapshot) {
         return (status == Operation.Status.ready) ?
                 String.format(SNAPSHOT_RESTORED_MSG, volume.getLabel(), snapshot.getLabel()) :
                 String.format(SNAPSHOT_RESTORE_FAILED_MSG, volume.getLabel(), snapshot.getLabel());

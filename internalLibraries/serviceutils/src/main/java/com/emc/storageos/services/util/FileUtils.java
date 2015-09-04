@@ -25,6 +25,7 @@ public class FileUtils {
 
     /**
      * Read serialized object from a file
+     * 
      * @param name
      * @return
      * @throws ClassNotFoundException
@@ -38,6 +39,7 @@ public class FileUtils {
 
     /**
      * Write serialized object into a file
+     * 
      * @param obj
      * @param name
      * @throws IOException
@@ -94,6 +96,7 @@ public class FileUtils {
 
     /**
      * Write byte array into a regular file
+     * 
      * @param filePath
      * @param content
      * @throws IOException
@@ -106,12 +109,13 @@ public class FileUtils {
 
     /**
      * check if a file exists.
+     * 
      * @param filepath
      * @return
      */
     public static boolean exists(String filepath) {
         File f = new File(filepath);
-        if(f.exists()) {
+        if (f.exists()) {
             return true;
         }
         return false;
@@ -119,6 +123,7 @@ public class FileUtils {
 
     /**
      * Delete a file
+     * 
      * @param filePath
      * @throws IOException
      */
@@ -133,6 +138,7 @@ public class FileUtils {
 
     /**
      * Get the value of property with specific key
+     * 
      * @param file
      * @param key
      * @return value of the key
@@ -156,16 +162,16 @@ public class FileUtils {
     public static void chmod(File file, String perms) {
         if (file == null || file.exists() == false)
             return;
-        String[] cmds = {"/bin/chmod", "-R", perms, file.getAbsolutePath()};
+        String[] cmds = { "/bin/chmod", "-R", perms, file.getAbsolutePath() };
         Exec.Result result = Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
         if (result.execFailed() || result.getExitValue() != 0)
             throw new IllegalStateException(String.format("Execute command failed: %s", result));
     }
 
     public static void chown(File file, String owner, String group) {
-        if(file == null || file.exists() == false)
+        if (file == null || file.exists() == false)
             return;
-        String[] cmds = {"/bin/chown", "-R", owner + ":" + group, file.getAbsolutePath()};
+        String[] cmds = { "/bin/chown", "-R", owner + ":" + group, file.getAbsolutePath() };
         Exec.Result result = Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
         if (result.execFailed() || result.getExitValue() != 0)
             throw new IllegalStateException(String.format("Execute command failed: %s", result));

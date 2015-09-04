@@ -6,8 +6,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * This class extends the default
- * {@link com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueScheduler.DequeueValidator} in order
+ * This class extends the default {@link com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueScheduler.DequeueValidator}
+ * in order
  * to check the availability of an owner lock at the time #validate is called.
  *
  * @author Ian Bibby

@@ -24,8 +24,10 @@ import com.emc.storageos.db.client.upgrade.MigrateIndexHelper;
  *
  */
 public class NetworkVarrayIndexMigration extends BaseCustomMigrationCallback {
-    
-    /* (non-Javadoc)
+
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback#process()
      */
     @Override

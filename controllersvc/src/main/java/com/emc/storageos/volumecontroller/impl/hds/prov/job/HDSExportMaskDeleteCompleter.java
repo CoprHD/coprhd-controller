@@ -36,11 +36,10 @@ public class HDSExportMaskDeleteCompleter extends ExportTaskCompleter {
         super(ExportGroup.class, egUri, emUri, task);
     }
 
-
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
-                      
+
             _log.info(String.format("Done ExportMaskDelete - Id: %s, OpId: %s, status: %s",
                     getId().toString(), getOpId(), status.name()));
         } catch (Exception e) {

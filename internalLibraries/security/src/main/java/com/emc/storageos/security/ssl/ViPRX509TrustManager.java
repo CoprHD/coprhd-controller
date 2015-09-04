@@ -92,9 +92,9 @@ public class ViPRX509TrustManager implements X509TrustManager {
         }
     }
 
-
-
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.ssl.X509TrustManager#checkClientTrusted(java.security.cert.X509Certificate[], java.lang.String)
      */
     @Override
@@ -117,7 +117,9 @@ public class ViPRX509TrustManager implements X509TrustManager {
         }
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.ssl.X509TrustManager#checkServerTrusted(java.security.cert.X509Certificate[], java.lang.String)
      */
     @Override
@@ -140,8 +142,9 @@ public class ViPRX509TrustManager implements X509TrustManager {
         }
     }
 
-
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.ssl.X509TrustManager#getAcceptedIssuers()
      */
     @Override

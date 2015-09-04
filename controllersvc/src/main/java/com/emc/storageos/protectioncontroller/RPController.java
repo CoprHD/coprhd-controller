@@ -23,7 +23,7 @@ import java.util.List;
 /**
  * RecoverPoint Controller
  */
-public interface RPController extends ProtectionController {  
+public interface RPController extends ProtectionController {
     /**
      * Perform protection operation
      *
@@ -36,10 +36,11 @@ public interface RPController extends ProtectionController {
      * @throws InternalException
      */
     public void performProtectionOperation(URI protectionDevice, URI id, URI copyID, String op, String task) throws InternalException;
-    
+
     /**
      * Create a snapshot or snapshots of a volume or volumes.
      * Open issue: need to allow snapshots with different VirtualPool & pool
+     * 
      * @param protectionDevice RP protection system URI
      * @param storageDevice storage device of the volume
      * @param snapshotList list of snapshots
@@ -49,11 +50,12 @@ public interface RPController extends ProtectionController {
      * @throws InternalException
      */
     public void createSnapshot(URI protectionDevice, URI storageDevice, List<URI> snapshotList,
-                               Boolean createInactive, String task) throws InternalException;
+            Boolean createInactive, String task) throws InternalException;
 
     /**
      * Restore an RP bookmark. This will enable the specified bookmark on the CG if the CG is not already enabled. This step is
      * required for RP bookmark restores.
+     * 
      * @param protectionDevice RP protection system URI
      * @param storageDevice storage device of the volume
      * @param snapshotId snapshot URI

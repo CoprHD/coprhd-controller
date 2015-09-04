@@ -36,9 +36,9 @@ import org.junit.Assert;
 public class RecoverPointBlockSnapshotMigrationTest extends DbSimpleMigrationTestBase {
     private static final Logger log = LoggerFactory.getLogger(RecoverPointBlockSnapshotMigrationTest.class);
     private static final String DEVICE_LABEL = "targetVolumeDeviceLabel";
-    
+
     private URI snapURI = null;
-    
+
     @BeforeClass
     public static void setup() throws IOException {
         customMigrationCallbacks.put("2.2", new ArrayList<BaseCustomMigrationCallback>() {
@@ -62,7 +62,7 @@ public class RecoverPointBlockSnapshotMigrationTest extends DbSimpleMigrationTes
     }
 
     @Override
-    protected void prepareData() throws Exception { 
+    protected void prepareData() throws Exception {
         prepareSnapData();
     }
 
@@ -70,7 +70,7 @@ public class RecoverPointBlockSnapshotMigrationTest extends DbSimpleMigrationTes
     protected void verifyResults() throws Exception {
         verifySnapResults();
     }
-    
+
     /**
      * Prepares the data for RP BlockSnapshot migration tests.
      * 
@@ -82,12 +82,12 @@ public class RecoverPointBlockSnapshotMigrationTest extends DbSimpleMigrationTes
         URI protectionSystemUri = URIUtil.createId(ProtectionSystem.class);
         ps.setId(protectionSystemUri);
         _dbClient.createObject(ps);
-        
+
         VirtualArray targetVarray = new VirtualArray();
         URI targetVarrayUri = URIUtil.createId(VirtualArray.class);
         targetVarray.setId(targetVarrayUri);
         _dbClient.createObject(targetVarray);
-        
+
         Volume targetVolume = new Volume();
         URI targetVolumeUri = URIUtil.createId(Volume.class);
         targetVolume.setId(targetVolumeUri);
@@ -95,7 +95,7 @@ public class RecoverPointBlockSnapshotMigrationTest extends DbSimpleMigrationTes
         targetVolume.setDeviceLabel(DEVICE_LABEL);
         targetVolume.setVirtualArray(targetVarrayUri);
         _dbClient.createObject(targetVolume);
-        
+
         Volume parentVolume = new Volume();
         URI volumeUri = URIUtil.createId(Volume.class);
         parentVolume.setId(volumeUri);
@@ -104,7 +104,7 @@ public class RecoverPointBlockSnapshotMigrationTest extends DbSimpleMigrationTes
         rpTargets.add(targetVolume.getId().toString());
         parentVolume.setRpTargets(rpTargets);
         _dbClient.createObject(parentVolume);
-       
+
         BlockSnapshot snapshot = new BlockSnapshot();
         snapURI = URIUtil.createId(BlockSnapshot.class);
         snapshot.setId(snapURI);
@@ -114,18 +114,18 @@ public class RecoverPointBlockSnapshotMigrationTest extends DbSimpleMigrationTes
         snapshot.setVirtualArray(targetVarrayUri);
         _dbClient.createObject(snapshot);
     }
-    
+
     /**
      * Verifies the results for migrating RP BlockSnapshots.
      * 
      * @throws Exception When an error occurs verifying the BlockSnapshot
-     *         migration results.
+     *             migration results.
      */
     private void verifySnapResults() throws Exception {
         log.info("Verifying updated snapshot sresults for BlockSnapshotReplicationGroupInstanceMigration.");
 
         BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapURI);
-            
+
         Assert.assertNotNull("deviceLabel should be set.", snap.getDeviceLabel());
         Assert.assertTrue("deviceLabel should be set to " + DEVICE_LABEL, snap.getDeviceLabel().equals(DEVICE_LABEL));
     }

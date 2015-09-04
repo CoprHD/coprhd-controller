@@ -58,7 +58,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     @Autowired
     private ServiceBeacon _svcBeacon;
     @Autowired
-    private CoordinatorClientExt _coordinator;    
+    private CoordinatorClientExt _coordinator;
 
     @Autowired
     private RecoveryManager _recoveryMgr;
@@ -70,13 +70,14 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     public void setUpgradeManager(UpgradeManager upgradeMgr) {
         _upgradeMgr = upgradeMgr;
     }
-    
+
     public void setClusterPoller(ClusterAddressPoller _clusterPoller) {
         this._clusterPoller = _clusterPoller;
     }
 
     /**
      * Set SysClient timeout
+     * 
      * @param timeout
      */
     public void setSysClientTimeout(int timeout) {
@@ -92,36 +93,36 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     }
 
     private void startUpgradeManager() {
-        _upgradeManagerThread =  new Thread(_upgradeMgr);
+        _upgradeManagerThread = new Thread(_upgradeMgr);
         _upgradeManagerThread.setName("UpgradeManager");
         _upgradeManagerThread.start();
     }
 
     private void startSecretsManager() {
-        _secretsManagerThread =  new Thread(_secretsMgr);
+        _secretsManagerThread = new Thread(_secretsMgr);
         _secretsManagerThread.setName("SecretsManager");
         _secretsManagerThread.start();
     }
 
     private void startPropertyManager() {
-        _propertyManagerThread =  new Thread(_propertyMgr);
+        _propertyManagerThread = new Thread(_propertyMgr);
         _propertyManagerThread.setName("PropertyManager");
         _propertyManagerThread.start();
     }
 
     private void startNewVersionCheck() {
-        if(_coordinator.isControlNode()) {
+        if (_coordinator.isControlNode()) {
             RemoteRepository.setCoordinator(_coordinator);
             RemoteRepository.startRemoteRepositoryCacheUpdate();
         }
     }
-    
+
     private void stopNewVersionCheck() {
-        if(_coordinator.isControlNode()) {
+        if (_coordinator.isControlNode()) {
             RemoteRepository.stopRemoteRepositoryCacheUpdate();
         }
     }
-    
+
     private void initSysClientFactory() {
         SysClientFactory.setKeyGenerator(_keyGenerator);
         SysClientFactory.setTimeout(_timeout);
@@ -129,7 +130,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     }
 
     private void startIpReconfigManager() {
-        _ipreconfigManagerThread =  new Thread(_ipreconfigMgr);
+        _ipreconfigManagerThread = new Thread(_ipreconfigMgr);
         _ipreconfigManagerThread.setName("IpReconfigManager");
         _ipreconfigManagerThread.start();
     }
@@ -146,10 +147,10 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
             initServer();
             initSysClientFactory();
             _server.start();
-            
+
             // only data node needs to poll the cluster's address change
-            if(!_coordinator.isControlNode()) {
-            	_clusterPoller.start();
+            if (!_coordinator.isControlNode()) {
+                _clusterPoller.start();
             }
             startNewVersionCheck();
             startUpgradeManager();
@@ -158,7 +159,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
             startIpReconfigManager();
             _recoveryMgr.init();
             startSystemAudit(_dbClient);
-            _svcBeacon.start();            
+            _svcBeacon.start();
         } else {
             throw new Exception("No app found.");
         }
@@ -170,6 +171,6 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
         _secretsMgr.stop();
         _propertyMgr.stop();
         stopNewVersionCheck();
-        _server.stop();        
+        _server.stop();
     }
 }

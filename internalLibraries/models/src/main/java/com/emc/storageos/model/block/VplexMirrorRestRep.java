@@ -31,5 +31,5 @@ import com.emc.storageos.model.RelatedResourceRep;
 @XmlAccessorType(XmlAccessType.PROPERTY)
 @XmlRootElement(name = "block_mirror")
 public class VplexMirrorRestRep extends BlockMirrorRestRep {
-    
+
 }

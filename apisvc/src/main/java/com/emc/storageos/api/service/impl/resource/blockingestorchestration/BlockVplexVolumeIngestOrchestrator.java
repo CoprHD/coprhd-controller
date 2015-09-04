@@ -60,6 +60,7 @@ import com.google.common.base.Joiner;
 public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchestrator {
     private static final Logger _logger = LoggerFactory.getLogger(BlockVplexVolumeIngestOrchestrator.class);
 
+    // best practice two paths from each VPLEX director for paths in a backend export group
     private static final int DEFAULT_BACKEND_NUMPATHS = 4;
     
     // maps storage system URIs to StorageSystem objects

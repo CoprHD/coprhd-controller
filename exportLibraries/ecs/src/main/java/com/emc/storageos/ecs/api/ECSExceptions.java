@@ -17,6 +17,9 @@ public interface ECSExceptions {
     public ECSException isSystemAdminFailed(final URI baseUrl, final int status);
     
     @DeclareServiceCode(ServiceCode.ECS_STORAGEPOOL_ERROR)
-    public ECSException getStoragePoolsFailed(final URI baseUrl, final int status);
+    public ECSException getStoragePoolsAccessFailed(final URI baseUrl, final int status);
     
+    @DeclareServiceCode(ServiceCode.ECS_STATS_ERROR)
+    public ECSException getStoragePoolsFailed(final String response, final Throwable cause);
+
 }

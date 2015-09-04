@@ -531,6 +531,7 @@ public enum ServiceCode {
     ECS_RETURN_PARAM_ERROR(65001),
     ECS_LOGINVALIDATE_ERROR(65002),
     ECS_STORAGEPOOL_ERROR(650003),
+    ECS_STATS_ERROR(65004),
 
     // ****************************
     // Old style of Service codes

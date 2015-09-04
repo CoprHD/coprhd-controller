@@ -100,7 +100,7 @@ public class ECSApi {
     		}
     		
     		if (clientResp.getStatus() != 200) {
-    			throw ECSException.exceptions.getStoragePoolsFailed(_baseUrl, clientResp.getStatus());
+    			throw ECSException.exceptions.getStoragePoolsAccessFailed(_baseUrl, clientResp.getStatus());
     		}
     	}
     	
@@ -145,7 +145,7 @@ public class ECSApi {
     		    		}
     		    		
     		    		if (clientRespVarray.getStatus() != 200) {
-    		    			throw ECSException.exceptions.getStoragePoolsFailed(_baseUrl, clientRespVarray.getStatus());
+    		    			throw ECSException.exceptions.getStoragePoolsAccessFailed(_baseUrl, clientRespVarray.getStatus());
     		    		}
     		    	}
     		    	
@@ -158,11 +158,24 @@ public class ECSApi {
     			pool.setTotalCapacity(storagepoolTotalCapacity);
     			pool.setFreeCapacity(storagepoolFreeCapacity);
     			ecsPools.add(pool);
+    			
+    			if (clientRespVarray != null) {
+    				clientRespVarray.close();
+                }
     		}
-    	} catch(Exception e) {
-    		int a = 0;
-    		//throws JSONException;
-    	} 	
+    	} catch (Exception e) {
+            String response = String.format("%1$s", (clientResp == null) ? "" : clientResp);
+            String response2 = String.format("%1$s", (clientRespVarray == null) ? "" : clientRespVarray);
+            response = response + response2;
+            throw ECSException.exceptions.getStoragePoolsFailed(response, e);
+        } finally {
+            if (clientResp != null) {
+                clientResp.close();
+            }
+            if (clientRespVarray != null) {
+            	clientRespVarray.close();
+            }
+        }
 
         return ecsPools;
     }

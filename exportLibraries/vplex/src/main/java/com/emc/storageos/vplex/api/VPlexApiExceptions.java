@@ -723,4 +723,7 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException failedGettingDeviceStructure(String reason);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException backendIngestionContextLoadFailure(String reason);
 }

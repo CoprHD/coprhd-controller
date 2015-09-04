@@ -16,7 +16,6 @@ import java.util.TreeMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.api.service.impl.resource.blockingestorchestration.IngestionException;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -303,14 +302,14 @@ public class VplexBackendIngestionContext {
                     String reason = "could not determine backend storage volumes for " 
                             + getSupportingDeviceName() + ": " + ex.getLocalizedMessage();
                     _logger.error(reason);
-                    throw IngestionException.exceptions.generalException(reason);
+                    throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(reason);
                 }
             } else {
                 String reason = "could not determine backend storage volumes for " 
                         + getSupportingDeviceName() 
                         + ": failed for both simple and RAID-1 top-level device configurations";
                 _logger.error(reason);
-                throw IngestionException.exceptions.generalException(reason);
+                throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(reason);
             }
         }
 
@@ -472,7 +471,7 @@ public class VplexBackendIngestionContext {
                     // clones on both legs of distributed volumes
                     // still want to collect the data for testing, though
                     if (!this.isLocal()) {
-                        throw IngestionException.exceptions.generalException(
+                        throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(
                                 "currently can't ingest clones on distributed volumes, sorry");
                     }
                     
@@ -550,7 +549,7 @@ public class VplexBackendIngestionContext {
             // clones on both legs of distributed volumes
             // still want to collect the data for testing, though
             if (!this.isLocal()) {
-                throw IngestionException.exceptions.generalException(
+                throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(
                         "currently can't ingest clones on distributed volumes, sorry");
             }
             
@@ -676,7 +675,7 @@ public class VplexBackendIngestionContext {
                         reason += " associatedVolumeSource is " + associatedVolumeSource;
                         reason += " and associatedVolumeMirror is " + associatedVolumeMirror;
                         _logger.error(reason);
-                        throw IngestionException.exceptions.generalException(reason);
+                        throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(reason);
                     }
                 }
             }
@@ -1167,7 +1166,8 @@ public class VplexBackendIngestionContext {
                 }
             }
         } else {
-            throw IngestionException.exceptions.generalException("could not load deviceToUnManagedVolumeMap");
+            throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(
+                    "could not load deviceToUnManagedVolumeMap");
         }
         _logger.info("creating deviceToUnManagedVolumeMap took {} ms", new Date().getTime() - dingleTimer);
         return deviceToUnManagedVolumeMap;

@@ -2299,9 +2299,16 @@ public class RecoverPointScheduler implements Scheduler {
 		if (vpoolChangeVolume != null 
 			        && !NullColumnValueGetter.isNullURI(vpoolChangeVolume.getRpJournalVolume()) 
 			        && !isMPStandby) {
-			Volume existingJournalVolume = dbClient.queryObject(Volume.class, vpoolChangeVolume.getRpJournalVolume());			
-			storageSystemURI = existingJournalVolume.getPool();
-			journalStoragePool = dbClient.queryObject(StoragePool.class, existingJournalVolume.getPool());
+			Volume existingJournalVolume = dbClient.queryObject(Volume.class, vpoolChangeVolume.getRpJournalVolume());	
+			if (RPHelper.isVPlexVolume(existingJournalVolume)) {
+			    URI backingVolumeURI = URI.create(existingJournalVolume.getAssociatedVolumes().iterator().next());
+			    Volume backingVolume = dbClient.queryObject(Volume.class, backingVolumeURI);
+			    journalStoragePool = dbClient.queryObject(StoragePool.class, backingVolume.getPool());
+			} else {
+			    journalStoragePool = dbClient.queryObject(StoragePool.class, existingJournalVolume.getPool());
+			}
+			
+			storageSystemURI = existingJournalVolume.getStorageController();						
 			foundJournal = true;
 		} else {
 			for (Recommendation journalStoragePoolRec : journalRec) {    		

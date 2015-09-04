@@ -250,6 +250,8 @@
                 <ref bean="authLockoutTimeHandler" />
                 <ref bean="ldapConnectionTimeoutHandler" />
                 <bean class="com.emc.storageos.systemservices.impl.propertyhandler.UpgradeCheckFrequencyRuleHandler" />
+                <bean class="com.emc.storageos.systemservices.impl.propertyhandler.TokenLifeTimeHandler" />
+                <bean class="com.emc.storageos.systemservices.impl.propertyhandler.TokenIdleTimeHandler" />
             </list>
         </property>
     </bean>

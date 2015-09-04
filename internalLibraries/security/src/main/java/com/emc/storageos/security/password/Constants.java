@@ -86,6 +86,17 @@ public class Constants {
 
     public static final String SYSTEM_PASSWORD_EXPIRY_FORMAT = "system_%s_expiry_date"; // NOSONAR
 
+    // token expire time constants
+    public static final String TOKEN_LIFE_TIME = "token_life_time_in_minutes";
+    public static final int MIN_TOKEN_LIFE_TIME = 5;
+    public static final int MAX_TOKEN_LIFE_TIME = 1440;
+    public static final int DEFAULT_TOKEN_LIFE_TIME = 8 * 60; // 8 hrs
+
+    public static final String TOKEN_IDLE_TIME = "token_idle_time_in_minutes";
+    public static final int MIN_TOKEN_IDLE_TIME = 5;
+    public static final int MAX_TOKEN_IDLE_TIME = 1440;
+    public static final int DEFAULT_TOKEN_IDLE_TIME = 2 * 60; // 2 hrs
+
     // Login attempts and lockout constants
     public static final String AUTH_LOGIN_ATTEMPTS = "max_auth_login_attempts";
     public static final int MIN_AUTH_LOGIN_ATTEMPTS = 0;

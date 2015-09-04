@@ -29,9 +29,17 @@ public class VPlexStorageSystemInfo extends VPlexResourceInfo {
         return uniqueId;
     }
 
+    /**
+     * Check if the storageSystemNativeGuid matches with Vplex 
+     * storage systems unique Id.
+     * 
+     * @param storageSystemNativeGuid
+     * @return
+     */
     public boolean matches(String storageSystemNativeGuid) {
-
-        if (storageSystemNativeGuid.endsWith(getUniqueId())) {
+        s_logger.info(String.format("Matching the storageSystemNativeGuid %s with %s",
+                storageSystemNativeGuid, getUniqueId()));
+        if (storageSystemNativeGuid.contains(getUniqueId().trim())) {
             return true;
         }
 

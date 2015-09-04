@@ -126,7 +126,7 @@ public abstract class TaskResourceService extends TaggedResource {
      * @param tenants - in] List or Tenant URIs
      * @param dataObjects - [in] List of DataObjects to check
      */
-    protected void deleteCheckForPendingTasks(Collection<URI> tenants, Collection<? extends DataObject> dataObjects) {
+    protected void checkForPendingTasks(Collection<URI> tenants, Collection<? extends DataObject> dataObjects) {
         Set<URI> objectURIsThatHavePendingTasks = getObjectURIsThatHavePendingTasks(tenants);
 
         // Search through the list of Volumes to see if any are in the pending list
@@ -150,11 +150,10 @@ public abstract class TaskResourceService extends TaggedResource {
         // a pending task against them. Need to signal an error
         if (!pendingObjectLabels.isEmpty()) {
             String pendingListStr = Joiner.on(',').join(pendingObjectLabels);
-            _log.warn(String.format(
-                    "Attempted to run delete operation against these DataObjects while there are tasks pending against them: %s",
+            _log.warn(String.format("Attempted to execute operation against these resources while there are tasks pending against them: %s", 
                     pendingListStr));
             throw APIException.badRequests.
-                    cannotDeleteObjectWhilePendingTask(pendingListStr);
+                    cannotExecuteOperationWhilePendingTask(pendingListStr);
         }
     }
 }

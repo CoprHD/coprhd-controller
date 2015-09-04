@@ -1,24 +1,22 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.xtremio.restapi.model.response;
 
 import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.annotate.JsonRootName;
 
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value = "xtremio_initiator_info")
-public class XtremIOInitiatorInfo {
+public class XtremIOXMS {
 
     @SerializedName("name")
     @JsonProperty(value = "name")
     private String name;
 
-    @SerializedName("href")
-    @JsonProperty(value = "href")
-    private String href;
+    @SerializedName("version")
+    @JsonProperty(value = "version")
+    private String version;
 
     public String getName() {
         return name;
@@ -28,12 +26,16 @@ public class XtremIOInitiatorInfo {
         this.name = name;
     }
 
-    public String getHref() {
-        return href;
+    public String getVersion() {
+        return version;
     }
 
-    public void setHref(String href) {
-        this.href = href;
+    public void setVersion(String version) {
+        this.version = version;
     }
 
+    @Override
+    public String toString() {
+        return "XtremIOXMS [name=" + name + ", version=" + version + "]";
+    }
 }

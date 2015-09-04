@@ -1567,109 +1567,104 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray varray,
             VirtualPool vpool, List<Recommendation> recommendations, String task,
             VirtualPoolCapabilityValuesWrapper capabilities) throws InternalException {
-
-        // Prepare the Bourne Volumes to be created and associated
-        // with the actual storage system volumes created. Also create
-        // a BlockTaskList containing the list of task resources to be
-        // returned for the purpose of monitoring the volume creation
-        // operation for each volume to be created.
-        String volumeLabel = param.getName();
-        TaskList taskList = new TaskList();
-        // List to store the volume descriptors for the Block Orchestration
-        List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
-        // Store capabilities of the CG, so they make it down to the controller
-        if (vpool.getRpCopyMode() != null) {
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.RP_COPY_MODE, vpool.getRpCopyMode());
-        }
-        if (vpool.getRpRpoType() != null &&
-                NullColumnValueGetter.isNotNullValue(vpool.getRpRpoType())) {
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.RP_RPO_TYPE, vpool.getRpRpoType());
-        }
-        if (vpool.checkRpRpoValueSet()) {
-            capabilities.put(VirtualPoolCapabilityValuesWrapper.RP_RPO_VALUE, vpool.getRpRpoValue());
-        }
-
-        // Prepare the volumes
-        List<URI> volumeURIs = new ArrayList<URI>();
-        try {
+    	
+    	List<URI> volumeURIs = new ArrayList<URI>();
+    	TaskList taskList = new TaskList();
+    	
+    	try {
+	        // Prepare the Bourne Volumes to be created and associated
+	        // with the actual storage system volumes created. Also create
+	        // a BlockTaskList containing the list of task resources to be
+	        // returned for the purpose of monitoring the volume creation
+	        // operation for each volume to be created.
+	        String volumeLabel = param.getName();
+	     
+	        // List to store the volume descriptors for the Block Orchestration
+	        List<VolumeDescriptor> volumeDescriptors = new ArrayList<VolumeDescriptor>();
+	        // Store capabilities of the CG, so they make it down to the controller
+	        if (vpool.getRpCopyMode() != null) {
+	            capabilities.put(VirtualPoolCapabilityValuesWrapper.RP_COPY_MODE, vpool.getRpCopyMode());
+	        }
+	        if (vpool.getRpRpoType() != null &&
+	                NullColumnValueGetter.isNotNullValue(vpool.getRpRpoType())) {
+	            capabilities.put(VirtualPoolCapabilityValuesWrapper.RP_RPO_TYPE, vpool.getRpRpoType());
+	        }
+	        if (vpool.checkRpRpoValueSet()) {
+	            capabilities.put(VirtualPoolCapabilityValuesWrapper.RP_RPO_VALUE, vpool.getRpRpoValue());
+	        }
+	
+	        // Prepare the volumes	        
             volumeURIs = prepareRecommendedVolumes(param, task, taskList, project,
-                                                                varray, vpool, 
-                                                                capabilities.getResourceCount(), 
-                                                                recommendations, volumeLabel, capabilities, 
-                                                                volumeDescriptors);
-        } catch (Exception e) {
-            throw e;
-        }
-        
-        // Execute the volume creations requests for each recommendation.
-        Iterator<Recommendation> recommendationsIter = recommendations.iterator();
-        while (recommendationsIter.hasNext()) {
-            RPProtectionRecommendation recommendation = (RPProtectionRecommendation)recommendationsIter.next();
-            try {
-                volumeDescriptors.addAll(createVolumeDescriptors(recommendation, volumeURIs, capabilities));                
-                logDescriptors(volumeDescriptors);
-                
-                BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
-                        BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
-                
-                // Check to see if this is a regular volume create or change virtual pool(add RP protection)
-                URI changeVirtualPoolVolumeURI = VolumeDescriptor.getVirtualPoolChangeVolume(volumeDescriptors);
-                boolean isChangeVpool = (changeVirtualPoolVolumeURI != null);                
-             
-                // TODO might be able to use param.getSize() instead of the below code to find requestedVolumeCapactity
-                Long requestedVolumeCapactity = 0L;
-                for (URI volumeURI : volumeURIs) {
-                    Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-                    if (Volume.PersonalityTypes.SOURCE.name().equalsIgnoreCase(volume.getPersonality())) {
-                        requestedVolumeCapactity = volume.getCapacity();
-                        break;
-                    }
-                }
-                
-                computeProtectionCapacity(volumeURIs, requestedVolumeCapactity, false, isChangeVpool, null);
-                
-                if (isChangeVpool) {                    
-                    _log.info("Add Recoverpoint Protection to existing volume");                                       
-                    controller.changeVirtualPool(volumeDescriptors, task);
-                }
-                else {
-                    _log.info("Create RP volumes");
-                    controller.createVolumes(volumeDescriptors, task);
-                }
-                
-            } catch (InternalException e) {
+	                                                                varray, vpool, 
+	                                                                capabilities.getResourceCount(), 
+	                                                                recommendations, volumeLabel, capabilities, 
+	                                                                volumeDescriptors);
+	            
+	        // Execute the volume creations requests for each recommendation.
+	        Iterator<Recommendation> recommendationsIter = recommendations.iterator();
+	        while (recommendationsIter.hasNext()) {
+	            RPProtectionRecommendation recommendation = (RPProtectionRecommendation)recommendationsIter.next();
+	      
+	                volumeDescriptors.addAll(createVolumeDescriptors(recommendation, volumeURIs, capabilities));                
+	                logDescriptors(volumeDescriptors);
+	                
+	                BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
+	                        BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
+	                
+	                // Check to see if this is a regular volume create or change virtual pool(add RP protection)
+	                URI changeVirtualPoolVolumeURI = VolumeDescriptor.getVirtualPoolChangeVolume(volumeDescriptors);
+	                boolean isChangeVpool = (changeVirtualPoolVolumeURI != null);                
+	             
+	                // TODO might be able to use param.getSize() instead of the below code to find requestedVolumeCapactity
+	                Long requestedVolumeCapactity = 0L;
+	                for (URI volumeURI : volumeURIs) {
+	                    Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+	                    if (Volume.PersonalityTypes.SOURCE.name().equalsIgnoreCase(volume.getPersonality())) {
+	                        requestedVolumeCapactity = volume.getCapacity();
+	                        break;
+	                    }
+	                }
+	                
+	                computeProtectionCapacity(volumeURIs, requestedVolumeCapactity, false, isChangeVpool, null);
+	                
+	                if (isChangeVpool) {                    
+	                    _log.info("Add Recoverpoint Protection to existing volume");                                       
+	                    controller.changeVirtualPool(volumeDescriptors, task);
+	                }
+	                else {
+	                    _log.info("Create RP volumes");
+	                    controller.createVolumes(volumeDescriptors, task);
+	                }
+	        	}	                
+            } catch (Exception e) {
                 if (_log.isErrorEnabled()) {
                     _log.error("Controller error", e);
                 }
 
-                String errorMsg = String.format("Controller error: %s", e.getMessage());
-                
-                if (volumeURIs != null) {
-                    for (URI volumeURI : volumeURIs) {
-                        Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
-                        if (volume!=null) {
-                            TaskResourceRep volumeTask = toTask(volume, task);
-                            volumeTask.setState(Operation.Status.error.name());
-                            volumeTask.setMessage(errorMsg);
-                            Operation statusUpdate = new Operation(Operation.Status.error.name(), errorMsg);
-                            _dbClient.updateTaskOpStatus(Volume.class, volumeTask.getResource()
-                                    .getId(), task, statusUpdate);
-                            if (Volume.PersonalityTypes.SOURCE.name().equalsIgnoreCase(volume.getPersonality())) {
-                                taskList.getTaskList().add(volumeTask);
-                            }
+                String errorMsg = String.format("Controller error: %s", e.getMessage()); 
+                _log.error("Create volume failed - %s", errorMsg);
+                for (URI volumeURI : volumeURIs) {
+                    Volume volume = _dbClient.queryObject(Volume.class, volumeURI);
+                    if (volume!=null) {
+                        TaskResourceRep volumeTask = toTask(volume, task);
+                        volumeTask.setState(Operation.Status.error.name());
+                        volumeTask.setMessage(errorMsg);
+                        Operation statusUpdate = new Operation(Operation.Status.error.name(), errorMsg);
+                        _dbClient.updateTaskOpStatus(Volume.class, volumeTask.getResource()
+                                .getId(), task, statusUpdate);
+                        if (Volume.PersonalityTypes.SOURCE.name().equalsIgnoreCase(volume.getPersonality())) {
+                            taskList.getTaskList().add(volumeTask);
                         }
                     }
-                    throw e;
                 }
-
+                 
                 // If there was a controller error creating the volumes,
                 // throw an internal server error and include the task
                 // information in the response body, which will inform
                 // the user what succeeded and what failed.
                 throw new WebApplicationException(Response
                     .status(Response.Status.INTERNAL_SERVER_ERROR).entity(taskList).build());
-            }            
-        }
+            }                    
         
         return taskList;
     }
@@ -2444,13 +2439,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param snapshotType The snapshot technology type.
      * @param createInactive true if the snapshots should be created but not
      *        activated, false otherwise.
+     * @param readOnly true if the snapshot should be read only, false otherwise
      * @param taskId The unique task identifier.
      */
     @Override
     public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
-        String snapshotType, Boolean createInactive, String taskId) {       	
-    	boolean vplex = RPHelper.isVPlexVolume(reqVolume);
-    	ProtectionSystem protectionSystem = _dbClient.queryObject(ProtectionSystem.class, reqVolume.getProtectionController());     
+            String snapshotType, Boolean createInactive, Boolean readOnly, String taskId) {
+        boolean vplex = RPHelper.isVPlexVolume(reqVolume);
+        ProtectionSystem protectionSystem = _dbClient.queryObject(ProtectionSystem.class, reqVolume.getProtectionController());
         URI storageControllerURI = null;
         if (vplex) {     
           Volume backendVolume = vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(reqVolume);
@@ -2462,13 +2458,14 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         if (isProtectionBasedSnapshot(reqVolume, snapshotType)) {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageControllerURI);
             RPController controller = (RPController) getController(RPController.class, protectionSystem.getSystemType());
-            controller.createSnapshot(protectionSystem.getId(), storageSystem.getId(), snapshotURIs, createInactive, taskId);   
+            controller.createSnapshot(protectionSystem.getId(), storageSystem.getId(), snapshotURIs, createInactive, readOnly, taskId);
         } else {
             if (vplex) {
-                super.createSnapshot(vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(reqVolume), snapshotURIs, snapshotType, createInactive, taskId);
+                super.createSnapshot(vplexBlockServiceApiImpl.getVPLEXSnapshotSourceVolume(reqVolume), snapshotURIs, snapshotType,
+                        createInactive, readOnly, taskId);
             }
             else {
-                super.createSnapshot(reqVolume, snapshotURIs, snapshotType, createInactive, taskId);
+                super.createSnapshot(reqVolume, snapshotURIs, snapshotType, createInactive, readOnly, taskId);
             }
         }     
     }

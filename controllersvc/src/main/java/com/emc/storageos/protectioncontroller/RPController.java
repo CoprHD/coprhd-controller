@@ -5,10 +5,10 @@
 
 package com.emc.storageos.protectioncontroller;
 
-import com.emc.storageos.svcs.errorhandling.resources.InternalException;
-
 import java.net.URI;
 import java.util.List;
+
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 
 /**
  * RecoverPoint Controller
@@ -35,12 +35,13 @@ public interface RPController extends ProtectionController {
      * @param storageDevice storage device of the volume
      * @param snapshotList list of snapshots
      * @param createInactive (unused)
+     * @param readOnly
      * @param task task ID
      * 
      * @throws InternalException
      */
     public void createSnapshot(URI protectionDevice, URI storageDevice, List<URI> snapshotList,
-            Boolean createInactive, String task) throws InternalException;
+            Boolean createInactive, Boolean readOnly, String task) throws InternalException;
 
     /**
      * Delete a snapshot

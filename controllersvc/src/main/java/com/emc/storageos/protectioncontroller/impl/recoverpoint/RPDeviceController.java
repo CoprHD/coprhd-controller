@@ -3836,11 +3836,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * (non-Javadoc)
      *
      * @see com.emc.storageos.protectioncontroller.RPController#createSnapshot(java.net.URI, java.net.URI, java.util.List,
-     * java.lang.Boolean, java.lang.String)
+     * java.lang.Boolean, java.lang.Boolean, java.lang.String)
      */
     @Override
     public void createSnapshot(URI protectionDevice, URI storageURI, List<URI> snapshotList,
-            Boolean createInactive, String opId) throws InternalException {
+            Boolean createInactive, Boolean readOnly, String opId) throws InternalException {
         TaskCompleter completer = new BlockSnapshotCreateCompleter(snapshotList, opId);
         Map<URI, Integer> snapshotMap = new HashMap<URI, Integer>();
         try {
@@ -3905,7 +3905,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 waitFor = addEnableImageAccessStep(workflow, system, snapshotMap, waitFor);
 
                 // Step 3 - Invoke block storage doCreateSnapshot
-                waitFor = addCreateBlockSnapshotStep(workflow, waitFor, storageURI, snapshotList, createInactive, system);
+                waitFor = addCreateBlockSnapshotStep(workflow, waitFor, storageURI, snapshotList, createInactive, readOnly, system);
 
                 // Step 4 - Disable image access
                 addBlockSnapshotDisableImageAccessStep(workflow, waitFor, snapshotList, system);
@@ -3936,17 +3936,18 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param storageURI UID of the storage system
      * @param snapshotList List of snaphots in the request
      * @param createInactive Specifies whether the snapshot is created and activated or just created
+     * @param readOnly Specifies whether the snapshot should be created as read only
      * @param rpSystem Protection system
      * @return This method step, so the caller can wait on this for invoking subsequent step(s).
      */
     private String addCreateBlockSnapshotStep(Workflow workflow, String waitFor, URI storageURI,
-            List<URI> snapshotList, Boolean createInactive, ProtectionSystem rpSystem) throws InternalException {
+            List<URI> snapshotList, Boolean createInactive, Boolean readOnly, ProtectionSystem rpSystem) throws InternalException {
 
         String stepId = workflow.createStepId();
         // Now add the steps to create the block snapshot on the storage system
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageURI);
         Workflow.Method createBlockSnapshotMethod = new Workflow.Method(METHOD_CREATE_BLOCK_SNAPSHOT_STEP, storageURI, snapshotList,
-                createInactive);
+                createInactive, readOnly);
         Workflow.Method rollbackCreateBlockSnapshotMethod = new Workflow.Method(METHOD_ROLLBACK_CREATE_BLOCK_SNAPSHOT);
 
         workflow.createStep(STEP_CREATE_BLOCK_SNAPSHOT, "Create Block Snapshot subtask for RP: ",
@@ -3964,16 +3965,17 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param storageURI Storage System URI
      * @param snapshotList List of snaps in the request
      * @param createInactive Specifies whether the snapshot is created and activated or just created
+     * @param readOnly Specifies whether the snapshot is created as read only
      * @param stepId workflow step Id for this step.
      * @return true if successful, false otherwise
      */
     public boolean createBlockSnapshotStep(URI storageURI,
-            List<URI> snapshotList, Boolean createInactive, String stepId) {
+            List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageURI);
             BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
-            controller.createSnapshot(storageURI, snapshotList, createInactive, stepId);
+            controller.createSnapshot(storageURI, snapshotList, createInactive, readOnly, stepId);
         } catch (Exception e) {
             WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(e));
             return false;

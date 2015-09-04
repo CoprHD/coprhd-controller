@@ -301,12 +301,13 @@ public interface BlockStorageDevice {
     /**
      * @param storage
      * @param snapshotList
+     * @param createInactive
+     * @param readOnly
      * @param taskCompleter
      * @throws DeviceControllerException
      */
     public void doCreateSnapshot(StorageSystem storage, List<URI> snapshotList,
-            Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
-
+            Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException;
     /**
      * Activate a snapshot. Activation means that the source and target synchronization will be
      * established.
@@ -331,6 +332,17 @@ public interface BlockStorageDevice {
     public void doRestoreFromSnapshot(StorageSystem storage, URI volume, URI snapshot,
             TaskCompleter taskCompleter) throws DeviceControllerException;
 
+    /**
+     * Resynchronize snapsht
+     * @param storage Storage system the snapshot created on
+     * @param volume The URI of the snapshot's parent volume
+     * @param snapshot The URI of the snapshot to be resynchronized
+     * @param taskCompleter The task completer
+     * @throws DeviceControllerException
+     */
+    public void doResyncSnapshot(StorageSystem storage, URI volume, URI snapshot,
+            TaskCompleter taskCompleter) throws DeviceControllerException;
+    
     /**
      * Create a mirror for a volume
      * 

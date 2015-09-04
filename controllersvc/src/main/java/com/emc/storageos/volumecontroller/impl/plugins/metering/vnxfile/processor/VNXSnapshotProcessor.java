@@ -50,8 +50,8 @@ public class VNXSnapshotProcessor extends VNXFileProcessor {
                 processErrorStatus(status, keyMap);
             } else {
                 List<Object> snapshotList = getQueryResponse(responsePacket);
-                // fs check point info
-                getSnapTotalCapacityOfFSs(snapshotList, keyMap);
+                // file system check point info
+                getSnapTotalCapacityOfFileSystems(snapshotList, keyMap);
 
                 Iterator<Object> snapshotItr = snapshotList.iterator();
                 if (snapshotItr.hasNext()) {
@@ -119,7 +119,7 @@ public class VNXSnapshotProcessor extends VNXFileProcessor {
      * @param snapshotList
      * @param keyMap
      */
-    private void getSnapTotalCapacityOfFSs(final List<Object> snapshotList,
+    private void getSnapTotalCapacityOfFileSystems(final List<Object> snapshotList,
             Map<String, Object> keyMap) {
         // snapshot map with fsId's
         Map<String, Map<String, Long>> snapCapFSMap = new HashMap<String, Map<String, Long>>();

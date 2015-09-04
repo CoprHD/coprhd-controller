@@ -106,7 +106,6 @@ public class StoragePortService extends TaggedResource {
 
     private static final String EVENT_SERVICE_TYPE = "storageport";
 
-    @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
     }
@@ -301,7 +300,6 @@ public class StoragePortService extends TaggedResource {
         _log.info("Checking for updates to storage port virtual array assignments.");
         boolean virtualArraysUpdated = updateStoragePortVirtualArrays(storagePort,
                 storagePortUpdates.getVarrayChanges());
-
 
         /**
          * This is applicable only for Cinder Storage System's port

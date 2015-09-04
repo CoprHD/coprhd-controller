@@ -52,6 +52,7 @@
                 <ref bean="hdsHostModeOption" />
                 <ref bean="vplexStorageViewName"/>
                 <ref bean="vplexMigrationSpeed"/>
+                <ref bean="vplexVmaxMaskingViewMaximumVolumes"/>
                 <ref bean="nasDynamicPerformancePlacementEnabled"/>
             </list>
         </property>

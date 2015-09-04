@@ -156,7 +156,6 @@ public class VNXFileSystemUsageProcessor extends VNXFileProcessor {
                 _logger.info("processFileShareInfo - FileSystem native id  {}  and file system total size{}", 
                         fsNativeId, String.valueOf(totalSpace));
             }
-            //new code
             _logger.info("Filesystems found - {} ", fsCapacityMap.size());
             keyMap.put(VNXFileConstants.FILE_CAPACITY_MAP, fsCapacityMap);
         }

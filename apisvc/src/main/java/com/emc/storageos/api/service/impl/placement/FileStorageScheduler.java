@@ -86,6 +86,7 @@ public class FileStorageScheduler {
                 .getRecommendationsForPools(vArray.getId().toString(),
                         candidatePools, capabilities);
 
+        // Get the File recommendation based on virtual nas servers!!!
         List<FileRecommendation> recommendations = getRecommendedStoragePortsForVNAS(
                 vPool, vArray.getId(), poolRecommendations, project);
         // We need to place all the resources. If we can't then
@@ -187,7 +188,7 @@ public class FileStorageScheduler {
 
         List<FileRecommendation> result = new ArrayList<FileRecommendation>();
 
-        _log.debug(
+        _log.info(
                 "Get matching recommendations based on assigned VNAS in project {}",
                 project);
 
@@ -195,7 +196,7 @@ public class FileStorageScheduler {
                 vPool);
 
         if (vNASList == null || vNASList.isEmpty()) {
-            _log.debug(
+            _log.info(
                     "Get matching recommendations based on free VNAS in varray {}",
                     vArrayURI);
             vNASList = getUnassignedVNASServers(vArrayURI, vPool);
@@ -212,7 +213,7 @@ public class FileStorageScheduler {
                 sortVNASListOnStaticLoad(vNASList);
             }
 
-            vNAS = getTheLeastUsedVNASServer(vNASList, poolRecommendations);
+            vNAS = getTheLeastUsedVNASServerBasedOnPoolRecommendation(vNASList, poolRecommendations);
         }
 
         for (Recommendation recommendation : poolRecommendations) {
@@ -259,11 +260,24 @@ public class FileStorageScheduler {
 
             @Override
             public int compare(VirtualNAS v1, VirtualNAS v2) {
-
+                
+            	// 1. Sort virtual nas servers based on dynamic load factor 'avgPercentBusy'.
+            	// 2. If multiple virtual nas servers found to be similar performance,
+            	//    sort the virtual nas based on capacity and then number of storage objects!!!
                 int value = 0;
-                Long storageCapacityOfV1 = MetricsKeys.getLong(MetricsKeys.storageCapacity, v1.getMetrics());
-                Long storageCapacityOfV2 = MetricsKeys.getLong(MetricsKeys.storageCapacity, v2.getMetrics());
-                value = storageCapacityOfV1.compareTo(storageCapacityOfV2);
+                Double avgUsedPercentV1 = MetricsKeys.getDoubleOrNull(MetricsKeys.avgPercentBusy, v1.getMetrics());
+                Double avgUsedPercentV2 = MetricsKeys.getDoubleOrNull(MetricsKeys.avgPercentBusy, v2.getMetrics());
+                if (avgUsedPercentV1 != null && avgUsedPercentV2 != null) {
+                    value = avgUsedPercentV1.compareTo(avgUsedPercentV2);
+                } else {
+                    value = 0;
+                }
+                
+                if (value == 0) {
+                	Long storageCapacityOfV1 = MetricsKeys.getLong(MetricsKeys.storageCapacity, v1.getMetrics());
+                	Long storageCapacityOfV2 = MetricsKeys.getLong(MetricsKeys.storageCapacity, v2.getMetrics());
+                	value = storageCapacityOfV1.compareTo(storageCapacityOfV2);
+                }
 
                 if (value == 0) {
                     Long storageObjectsOfV1 = MetricsKeys.getLong(MetricsKeys.storageObjects, v1.getMetrics());
@@ -271,15 +285,6 @@ public class FileStorageScheduler {
                     value = storageObjectsOfV1.compareTo(storageObjectsOfV2);
                 }
 
-                if (value == 0) {
-                    Double avgUsedPercentV1 = MetricsKeys.getDoubleOrNull(MetricsKeys.avgPercentBusy, v1.getMetrics());
-                    Double avgUsedPercentV2 = MetricsKeys.getDoubleOrNull(MetricsKeys.avgPercentBusy, v2.getMetrics());
-                    if (avgUsedPercentV1 != null && avgUsedPercentV2 != null) {
-                        value = avgUsedPercentV1.compareTo(avgUsedPercentV2);
-                    } else {
-                        value = 0;
-                    }
-                }
                 return value;
             }
         });
@@ -298,7 +303,10 @@ public class FileStorageScheduler {
 
             @Override
             public int compare(VirtualNAS v1, VirtualNAS v2) {
-                Long storageCapacityOfV1 = MetricsKeys.getLong(MetricsKeys.storageCapacity, v1.getMetrics());
+            	// 1. Sort virtual nas servers based on static load factor 'storageCapacity'.
+            	// 2. If multiple virtual nas servers found to be similar performance,
+            	//    sort the virtual nas based on number of storage objects!!!
+            	Long storageCapacityOfV1 = MetricsKeys.getLong(MetricsKeys.storageCapacity, v1.getMetrics());
                 Long storageCapacityOfV2 = MetricsKeys.getLong(MetricsKeys.storageCapacity, v2.getMetrics());
 
                 int value = storageCapacityOfV1.compareTo(storageCapacityOfV2);
@@ -362,7 +370,10 @@ public class FileStorageScheduler {
                 }
             }
         }
-
+        if(vNASList != null) {
+        	_log.info("Got  {} un-assigned vNas servers in the vArray {}",
+        			vNASList.size(), vArrayURI);
+        }
         return vNASList;
     }
 
@@ -443,7 +454,7 @@ public class FileStorageScheduler {
      * @return vNAS
      * 
      */
-    private VirtualNAS getTheLeastUsedVNASServer(List<VirtualNAS> vNASList,
+    private VirtualNAS getTheLeastUsedVNASServerBasedOnPoolRecommendation(List<VirtualNAS> vNASList,
             List<Recommendation> poolRecommendations) {
 
         List<URI> storageSystemURIList = new ArrayList<URI>();
@@ -461,7 +472,7 @@ public class FileStorageScheduler {
             }
 
         }
-
+        _log.info("No overlapping virtual nas server found by pool recommendation");
         return null;
     }
 
@@ -485,7 +496,7 @@ public class FileStorageScheduler {
 
         if (vNASServerIdSet != null && !vNASServerIdSet.isEmpty()) {
 
-            _log.debug("Number of vNAS servers assigned to this project: {}",
+            _log.info("Number of vNAS servers assigned to this project: {}",
                     vNASServerIdSet.size());
 
             List<URI> vNASURIList = new ArrayList<URI>();
@@ -523,7 +534,11 @@ public class FileStorageScheduler {
             }
 
         }
-
+        if(vNASList != null){
+        	 _log.info(
+                     "Got {} assigned VNAS servers for project {}",
+                     vNASList.size(), project);
+        }
         return vNASList;
 
     }

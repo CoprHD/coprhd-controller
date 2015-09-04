@@ -246,27 +246,6 @@ public class StoragePortAssociationHelper {
             	}
             }
             
-            if(remPorts != null && !remPorts.isEmpty()) {
-            	Map<String, List<NetworkLite>> vNasNetworkRemMap = getVNasNetworksMap(remPorts, dbClient);
-            	if(!vNasNetworkRemMap.isEmpty()){
-            		for(Map.Entry<String, List<NetworkLite>> vNasEntry : vNasNetworkRemMap.entrySet()){
-            			String nativeId = vNasEntry.getKey();
-            			VirtualNAS vNas = findvNasByNativeId(nativeId, dbClient);
-            			if( vNas != null ){
-            				for(NetworkLite network : vNasEntry.getValue()){
-            					Set<String> varraySet = new HashSet<String>(network.getAssignedVirtualArrays());
-            					if(vNas.getAssignedVirtualArrays() == null){
-            						vNas.setAssignedVirtualArrays(new StringSet());
-            					}
-            					vNas.getAssignedVirtualArrays().addAll(varraySet);
-            				}
-            				modifiedServers.add(vNas);
-            			}
-
-            		}
-            	}
-            }
-            
             if(!modifiedServers.isEmpty()){
             	dbClient.persistObject(modifiedServers);
             }	

@@ -672,12 +672,23 @@ public class VplexBackendIngestionContext {
         long start = System.currentTimeMillis();
         _logger.info("getting unmanaged mirrors");
         if (!getMirrorMap().isEmpty()) {
+            
+            //
+            // the mirrorMap is structured like: Map<ClusterName, Map<SlotNumber, VPlexDeviceInfo>>
+            //
+            
             for (Entry<String, Map<String, VPlexDeviceInfo>> mirrorMapEntry : getMirrorMap().entrySet()) {
+                
                 _logger.info("looking at mirrors for device leg on cluster " + mirrorMapEntry.getKey());
                 Map<String, VPlexDeviceInfo> slotToDeviceMap = mirrorMapEntry.getValue();
+                
                 if (null != slotToDeviceMap && !slotToDeviceMap.isEmpty()) {
+                    
+                    // figure out the source and target (mirror) UnManagedVolumes for this leg
                     UnManagedVolume associatedVolumeSource = null;
                     UnManagedVolume associatedVolumeMirror = null;
+                    
+                    // source will be in slot-0, target/mirror will be in slot-1
                     for (Entry<String, VPlexDeviceInfo> entry : slotToDeviceMap.entrySet()) {
                         if (SLOT_0.equals(entry.getKey())) {
                             _logger.info("looking at slot-0");
@@ -688,12 +699,18 @@ public class VplexBackendIngestionContext {
                             associatedVolumeMirror = getAssociatedVolumeForComponentDevice(entry.getValue());
                         }
                     }
+                    
+                    // once found, wire them together:
                     if (null != associatedVolumeMirror && null != associatedVolumeSource) {
+                        // 1. remove the mirror volume from the general backend volumes
                         _logger.info("removing mirror volume {} from associated "
                                 + "vols and adding to mirrors", associatedVolumeMirror.getLabel());
                         getUnmanagedBackendVolumes().remove(associatedVolumeMirror);
-                        _logger.info("getUnmanagedBackendVolumes() is now: " + getUnmanagedBackendVolumes());
+
+                        // 2. add the mirror the unmanagedMirrors map that will be returned by this method
                         unmanagedMirrors.put(associatedVolumeMirror, slotToDeviceMap.get("1").getPath());
+                        
+                        // 3. update the source volume with the target mirror information
                         StringSet set = new StringSet();
                         set.add(associatedVolumeMirror.getNativeGuid());
                         _logger.info("adding mirror set {} to source unmanaged volume {}", 
@@ -701,11 +718,14 @@ public class VplexBackendIngestionContext {
                         associatedVolumeSource.putVolumeInfo(SupportedVolumeInformation.MIRRORS.toString(), set);
                         associatedVolumeSource.putVolumeInfo(
                                 SupportedVolumeInformation.VPLEX_NATIVE_MIRROR_TARGET_VOLUME.toString(), set);
+                        
+                        // 4. update the target volume with the source volume information
                         set = new StringSet();
                         set.add(associatedVolumeSource.getNativeGuid());
                         associatedVolumeMirror.putVolumeInfo(
                                 SupportedVolumeInformation.VPLEX_NATIVE_MIRROR_SOURCE_VOLUME.toString(), set);
-                        // need to go ahead and persist any changes to backend volume info
+                        
+                        // 5. need to go ahead and persist any changes to backend volume info
                         _dbClient.persistObject(associatedVolumeSource);
                         _dbClient.persistObject(associatedVolumeMirror);
                     } else {

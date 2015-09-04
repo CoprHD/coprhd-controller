@@ -253,7 +253,7 @@ public class ComputeImageService extends TaskResourceService {
             	
             	ComputeImageServer imageServer = _dbClient.queryObject(ComputeImageServer.class,imageServerId);
            
-            	if (reImport || !imageServer.getComputeImage().contains(ci.getId().toString())){
+            	if (reImport || imageServer.getComputeImage()== null || !imageServer.getComputeImage().contains(ci.getId().toString())){
             		
             		hasImportTask = true;
             	}
@@ -277,16 +277,16 @@ public class ComputeImageService extends TaskResourceService {
      * @param id
      *            compute image URN.
      * @brief Delete compute image
-     * @return List of Asycn tasks to remove the image from multiple image serevers returned in response body
+     * @return Async task remove the image from multiple image serevers returned in response body
      */
     @POST
     @Path("/{id}/deactivate")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-    public TaskList deleteComputeImage(@PathParam("id") URI id, @QueryParam("force") String force) {
+    public TaskResourceRep deleteComputeImage(@PathParam("id") URI id, @QueryParam("force") String force) {
         log.info("deleteComputeImage: {}", id);
-        TaskList taskList = new TaskList();
+        
         ComputeImage ci = queryObject(ComputeImage.class, id, true);
         ArgValidator.checkEntity(ci, id, isIdEmbeddedInURL(id));
 
@@ -308,13 +308,10 @@ public class ComputeImageService extends TaskResourceService {
 
             auditOp(OperationTypeEnum.DELETE_COMPUTE_IMAGE, true, AuditLogManager.AUDITOP_BEGIN, ci.getId().toString(),
                     ci.getImageUrl());
-            List<URI> ids = _dbClient.queryByType(ComputeImageServer.class, true);
-            for (URI imageServerId : ids){
-            	ComputeImageServer imageServer = _dbClient.queryObject(ComputeImageServer.class,imageServerId);
-            	if (imageServer.getComputeImage().contains(ci.getId().toString())){
-            		taskList.addTask(doRemoveImage(ci,imageServer));
-            	}
-            }
+            
+            return doRemoveImage(ci);
+            	
+            
             
         } else if (ComputeImage.ComputeImageStatus.IN_PROGRESS.name().equals(ci.getComputeImageStatus())) {
             if (force == null || !force.equals("true")) {
@@ -323,20 +320,20 @@ public class ComputeImageService extends TaskResourceService {
             else { // delete is forced
                 _dbClient.markForDeletion(ci);
                 auditOp(OperationTypeEnum.DELETE_COMPUTE_IMAGE, true, null, ci.getId().toString(), ci.getImageUrl());
-                taskList.addTask(getReadyOp(ci, ResourceOperationTypeEnum.REMOVE_IMAGE));
+                return getReadyOp(ci, ResourceOperationTypeEnum.REMOVE_IMAGE);
             }
         } else { // NOT_AVAILABLE
             _dbClient.markForDeletion(ci);
             auditOp(OperationTypeEnum.DELETE_COMPUTE_IMAGE, true, null, ci.getId().toString(), ci.getImageUrl());
-            taskList.addTask(getReadyOp(ci, ResourceOperationTypeEnum.REMOVE_IMAGE));
+            return getReadyOp(ci, ResourceOperationTypeEnum.REMOVE_IMAGE);
         }
-        return taskList;
+        
     }
 
     /*
      * Schedules the remove task.
      */
-    private TaskResourceRep doRemoveImage(ComputeImage ci,ComputeImageServer imageServer) {
+    private TaskResourceRep doRemoveImage(ComputeImage ci) {
         log.info("doRemoveImage");
         ImageServerController controller = getController(ImageServerController.class, null);
        
@@ -345,9 +342,9 @@ public class ComputeImageService extends TaskResourceService {
         op.setResourceType(ResourceOperationTypeEnum.REMOVE_IMAGE);
         
         _dbClient.createTaskOpStatus(ComputeImage.class, ci.getId(), task._opId, op);
-        controller.deleteImage(task,imageServer.getId());
+        controller.deleteImage(task);
         
-        log.info("Removing image "+ci.getImageName()+ " from server "+ imageServer.getImageServerIp());
+        log.info("Removing image "+ci.getImageName());
         
         
         return TaskMapper.toTask(ci, task._opId, op);

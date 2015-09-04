@@ -299,8 +299,10 @@ public class ImageServerControllerImpl implements ImageServerController {
         try{
 	        List<URI> ids = dbClient.queryByType(ComputeImageServer.class, true);
 	        for (URI imageServerId : ids){
+	        	log.info("import to server:"+imageServerId.toString());
 	        	ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class,imageServerId);
-	        	if (!imageServer.getComputeImage().contains(ciId.toString())){
+	        	if (imageServer.getComputeImage()== null || !imageServer.getComputeImage().contains(ciId.toString())){
+	        		log.info("verify Image Server");
 	        		 boolean imageServerVerified = verifyImageServer(imageServer);
 	                 if (!imageServerVerified) {	
 	                     throw ImageServerControllerException.exceptions.imageServerNotSetup("Can't perform image import: "
@@ -595,28 +597,36 @@ public class ImageServerControllerImpl implements ImageServerController {
     }
 
     @Override
-    public void deleteImage(AsyncTask task,URI imageServerId) throws InternalException {
+    public void deleteImage(AsyncTask task) throws InternalException {
         log.info("deleteImage " + task._id);
 
         URI ciId = task._id;
-        ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class, imageServerId);
+        
         TaskCompleter completer = null;
         try {
             completer = new ComputeImageCompleter(ciId, task._opId, OperationTypeEnum.DELETE_COMPUTE_IMAGE, EVENT_SERVICE_TYPE);
-            boolean imageServerVerified = verifyImageServer(imageServer);
-
-            if (!imageServerVerified) {
-            	throw ImageServerControllerException.exceptions.imageServerNotSetup("Can't delete image: " + imageServerErrorMsg);
-            }
-
             Workflow workflow = workflowService.getNewWorkflow(this, DELETE_IMAGE_WF, true, task._opId);
-            workflow.createStep(DELETE_IMAGE_STEP,
-                    String.format("removing image %s", ciId), null,
-                    ciId, ciId.toString(),
-                    this.getClass(),
-                    new Workflow.Method("deleteImageMethod", ciId,imageServer.getId()),
-                    null,
-                    null);
+            List<URI> ids = dbClient.queryByType(ComputeImageServer.class, true);
+            for (URI imageServerId : ids){
+            	ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class,imageServerId);
+            	if (imageServer.getComputeImage()!=null && imageServer.getComputeImage().contains(ciId.toString())){
+            		boolean imageServerVerified = verifyImageServer(imageServer);
+
+                    if (!imageServerVerified) {
+                    	throw ImageServerControllerException.exceptions.imageServerNotSetup("Can't delete image: " + imageServerErrorMsg);
+                    }
+
+                   
+                    workflow.createStep(DELETE_IMAGE_STEP,
+                            String.format("removing image %s", ciId), null,
+                            ciId, ciId.toString(),
+                            this.getClass(),
+                            new Workflow.Method("deleteImageMethod", ciId,imageServer.getId()),
+                            null,
+                            null);
+            	}
+            }
+            
             workflow.executePlan(completer, "Success");
         } catch (Exception e) {
             log.error("deleteImage caught an exception.", e);

@@ -171,6 +171,10 @@ public class ViPRCoreClient {
         return new ObjectVirtualPools(this, client);
     }
     
+    public ObjectBuckets objectBuckets() {
+        return new ObjectBuckets(this, client);
+    }
+    
     public ComputeVirtualPools computeVpools() {
         return new ComputeVirtualPools(this, client);
     }

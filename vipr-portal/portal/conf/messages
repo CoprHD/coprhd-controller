@@ -3049,6 +3049,15 @@ resources.varray=Virtual Array
 resources.vpool=Virtual Pool
 
 resources.bucket.deleteLink=Delete Bucket
+resources.bucket.deleteLink.FULL=Full
+resources.bucket.deleteLink.VIPR_ONLY=Inventory Only
+resources.bucket.notfound=Bucket Not Found
+resources.buckets.deactivate=Created %s tasks to delete buckets.
+resources.bucket.deactivate=Created task to delete bucket.
+resources.buckets.unknown=Unknown Bucket with ID '%s'
+resources.buckets.deleteConfirm=Are you sure you want to delete the selected buckets?
+resources.buckets.deleteConfirm.FULL=Are you sure you want to delete the selected buckets fully?
+resources.buckets.deleteConfirm.VIPR_ONLY=Are you sure you want to delete the selected buckets from the inventory?
 
 resources.exports.none=No Exports
 resources.exportgroups.deleteConfirm=Are you sure you want to delete the selected export groups?

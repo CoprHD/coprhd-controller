@@ -3,7 +3,17 @@
   <dd>${vcenter.osVersion ?: '-'}</dd>
   
   <dt>&{'vCenter.datacenters'}</dt>
-  <dd>${ dataCenters.collect{ it.name }.join(", ") ?: '-' }</dd>
-  
+  #{if util.VCenterUtils.canUpdateACLs()}
+    <dd>
+      #{list dataCenters, as:'datacenter'}
+        <a href="" onclick="showDatacenterTenantUpdateDialog('${datacenter.id}', '${datacenter.name}', '${datacenter.tenant?.id}', '${vcenter.id}')">${datacenter.name}</a>#{if !datacenter_isLast}, #{/if}
+      #{/list}
+      #{else}&nbsp;#{/else}
+    </dd>
+  #{/if}
+  #{else}
+     <dd>${ dataCenters.collect{ it.name }.join(", ") ?: '-' }</dd>
+  #{/else}
+
   #{discoveryDetails vcenter/}
 </dl>

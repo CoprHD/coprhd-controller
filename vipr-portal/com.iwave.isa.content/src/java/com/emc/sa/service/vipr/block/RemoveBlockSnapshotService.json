@@ -18,7 +18,8 @@
     },
     
     snapshots:{
-      type:"assetType.vipr.blockSnapshotOrConsistencyGroup"
+      type:"assetType.vipr.blockSnapshotOrConsistencyGroup",
+      select: "many"
     }  
 
   }

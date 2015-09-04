@@ -1963,13 +1963,15 @@ public class RecoverPointScheduler implements Scheduler {
         sourceJournalRecommendation.setVirtualArray(sourceJournal.getVirtualArray());       
         sourceJournalRecommendation.setVirtualPool(sourceJournalVpool); 
         sourceJournalRecommendation.setInternalSiteName(sourceJournal.getInternalSiteName());
+        sourceJournalRecommendation.setSize(sourceJournal.getCapacity());
+        sourceJournalRecommendation.setResourceCount(1);
         
         if (VirtualPool.vPoolSpecifiesHighAvailability(sourceJournalVpool)) {
         	VPlexRecommendation vplexRec = new VPlexRecommendation();
         	vplexRec.setVPlexStorageSystem(sourceJournal.getStorageController());
         	vplexRec.setVirtualArray(sourceJournal.getVirtualArray());
         	vplexRec.setVirtualPool(sourceJournalVpool);
-        	sourceJournalRecommendation.setVirtualVolumeRecommendation(vplexRec);
+        	sourceJournalRecommendation.setVirtualVolumeRecommendation(vplexRec);        	
         }        
         recommendation.setSourceJournalRecommendation(sourceJournalRecommendation);
         
@@ -1983,6 +1985,8 @@ public class RecoverPointScheduler implements Scheduler {
             standbyJournalRecommendation.setVirtualArray(standbyJournal.getVirtualArray());       
             standbyJournalRecommendation.setVirtualPool(standbyJournalVpool); 
             standbyJournalRecommendation.setInternalSiteName(standbyJournal.getInternalSiteName());
+            standbyJournalRecommendation.setSize(standbyJournal.getCapacity());
+            standbyJournalRecommendation.setResourceCount(1);
             
             if (VirtualPool.vPoolSpecifiesHighAvailability(standbyJournalVpool)) {
             	VPlexRecommendation vplexRec = new VPlexRecommendation();
@@ -2001,6 +2005,8 @@ public class RecoverPointScheduler implements Scheduler {
     	    sourceRecommendation.setInternalSiteName(sourceVolume.getInternalSiteName());
     	    sourceRecommendation.setVirtualArray(sourceVolume.getVirtualArray());
     	    sourceRecommendation.setVirtualPool(dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool()));
+    	    sourceRecommendation.setSize(sourceVolume.getCapacity());
+    	    sourceRecommendation.setResourceCount(capabilities.getResourceCount());
     	    
     	    //Build vplex recommendation of the source if specified
     	    VirtualPool sourceVirtualPool = dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool());
@@ -2024,13 +2030,15 @@ public class RecoverPointScheduler implements Scheduler {
 	    		RPRecommendation haRec = new RPRecommendation();
 	    		for (String associatedVolume : sourceVolume.getAssociatedVolumes()) {
 	    			Volume haVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolume));
+	    			haRec.setSize(haVolume.getCapacity());
+	    			haRec.setResourceCount(capabilities.getResourceCount());
 	    			if (!haVolume.getVirtualArray().equals(sourceVolume.getVirtualArray())){
 	    				VPlexRecommendation haVirtualRecommendation = new VPlexRecommendation();
 	    				haVirtualRecommendation.setVPlexStorageSystem(sourceVolume.getStorageController());
 	    				haVirtualRecommendation.setVirtualArray(sourceVolume.getVirtualArray());
 	    				haVirtualRecommendation.setVirtualPool(sourceVirtualPool);
 	    				haVirtualRecommendation.setSourceStoragePool(haVolume.getPool());
-	    				haVirtualRecommendation.setSourceStorageSystem(haVolume.getStorageController());
+	    				haVirtualRecommendation.setSourceStorageSystem(haVolume.getStorageController());	    		
 	    				haRec.setVirtualVolumeRecommendation(haVirtualRecommendation);
 	    			}
 	    		}
@@ -2048,6 +2056,8 @@ public class RecoverPointScheduler implements Scheduler {
 	             StoragePool targetPool = dbClient.queryObject(StoragePool.class, targetVolume.getPool());
 	             targetRecommendation.setSourceStoragePool(targetPool.getId());
 	             targetRecommendation.setSourceStorageSystem(targetPool.getStorageDevice());
+	             targetRecommendation.setSize(targetVolume.getCapacity());
+	             targetRecommendation.setResourceCount(capabilities.getResourceCount());
 	             
 	             if (VirtualPool.vPoolSpecifiesHighAvailability(targetVpool)) {
 	            	 VPlexRecommendation targetVplexRec = new VPlexRecommendation();
@@ -2064,26 +2074,29 @@ public class RecoverPointScheduler implements Scheduler {
 	             
 	             
 	             //Build target Journals
-	             RPRecommendation journalRecommendation = new RPRecommendation();
+	             RPRecommendation targetJournalRecommendation = new RPRecommendation();
 	             Volume targetJournal = dbClient.queryObject(Volume.class, targetVolume.getRpJournalVolume());
 	             VirtualPool targetJournalVpool = dbClient.queryObject(VirtualPool.class, targetJournal.getVirtualPool());
-	             journalRecommendation.setSourceStoragePool(targetJournal.getPool());
-	             journalRecommendation.setSourceStorageSystem(targetJournal.getStorageController());
-	             journalRecommendation.setVirtualPool(targetJournalVpool);
-	             journalRecommendation.setVirtualArray(targetJournal.getVirtualArray());
+	             targetJournalRecommendation.setSourceStoragePool(targetJournal.getPool());
+	             targetJournalRecommendation.setSourceStorageSystem(targetJournal.getStorageController());
+	             targetJournalRecommendation.setVirtualPool(targetJournalVpool);
+	             targetJournalRecommendation.setVirtualArray(targetJournal.getVirtualArray());
+	             targetJournalRecommendation.setSize(targetJournal.getCapacity());
+	             targetJournalRecommendation.setResourceCount(1);
+	             targetJournalRecommendation.setInternalSiteName(targetJournal.getInternalSiteName());
 	             	             
 	             if (VirtualPool.vPoolSpecifiesHighAvailability(targetJournalVpool)) {
 	            	 VPlexRecommendation targetJournalVplexRec = new VPlexRecommendation();
 	            	 targetJournalVplexRec.setVPlexStorageSystem(targetJournal.getStorageController());
 	            	 targetJournalVplexRec.setVirtualArray(targetJournal.getVirtualArray());
 	            	 targetJournalVplexRec.setVirtualPool(targetJournalVpool);
-	            	 journalRecommendation.setVirtualVolumeRecommendation(targetJournalVplexRec);
+	            	 targetJournalRecommendation.setVirtualVolumeRecommendation(targetJournalVplexRec);
 	             }
 	             
 	             if (recommendation.getTargetJournalRecommendations() == null) {
 	            	 recommendation.setTargetJournalRecommendations(new ArrayList<RPRecommendation>());
 	             }
-	             recommendation.getTargetJournalRecommendations().add(journalRecommendation);
+	             recommendation.getTargetJournalRecommendations().add(targetJournalRecommendation);
 	        }
  
 	        

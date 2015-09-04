@@ -2,15 +2,15 @@ package com.emc.storageos.api.mapper;
 
 import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFields;
 
-import com.emc.storageos.db.client.model.Standby;
-import com.emc.storageos.model.dr.StandbyRestRep;
+import com.emc.storageos.db.client.model.Site;
+import com.emc.storageos.model.dr.SiteRestRep;
 
-public class StandbyMapper {
-    public static StandbyRestRep map(Standby from) {
+public class SiteMapper {
+    public static SiteRestRep map(Site from) {
         if (from == null) {
             return null;
         }
-        StandbyRestRep to = new StandbyRestRep();
+        SiteRestRep to = new SiteRestRep();
         mapDataObjectFields(from, to);
         to.setUuid(from.getUuid());
         to.setName(from.getName());

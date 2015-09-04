@@ -5,7 +5,6 @@
 package com.emc.storageos.model.dr;
 
 import java.util.Map;
-import java.util.Set;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
@@ -14,9 +13,9 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.DataObjectRestRep;
 
-@XmlRootElement(name = "standby")
+@XmlRootElement(name = "site")
 @XmlAccessorType(XmlAccessType.PROPERTY)
-public class StandbyRestRep extends DataObjectRestRep {
+public class SiteRestRep extends DataObjectRestRep {
 
     private String uuid;
     private String name;
@@ -72,7 +71,7 @@ public class StandbyRestRep extends DataObjectRestRep {
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        builder.append("StandbyRestRep [uuid=");
+        builder.append("SiteRestRep [uuid=");
         builder.append(uuid);
         builder.append(", name=");
         builder.append(name);

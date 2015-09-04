@@ -5,16 +5,15 @@
 package com.emc.storageos.model.dr;
 
 import java.util.Map;
-import java.util.Set;
 
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-@XmlRootElement(name = "standby_add")
+@XmlRootElement(name = "site_add")
 @XmlAccessorType(XmlAccessType.PROPERTY)
-public class StandbyAddParam {
+public class SiteAddParam {
     private String uuid;
     private String name;
     private String vip;

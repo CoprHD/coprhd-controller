@@ -6,37 +6,37 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.dr.StandbyAddParam;
-import com.emc.storageos.model.dr.StandbyList;
-import com.emc.storageos.model.dr.StandbyRestRep;
+import com.emc.storageos.model.dr.SiteAddParam;
+import com.emc.storageos.model.dr.SiteList;
+import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.vdc.VirtualDataCenterRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
 
-public class Standby extends AbstractCoreResources<StandbyRestRep> implements TopLevelResources<VirtualDataCenterRestRep> {
+public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevelResources<VirtualDataCenterRestRep> {
 
-    public Standby(ViPRCoreClient parent, RestClient client) {
-        super(parent, client, StandbyRestRep.class, PathConstants.SITE_URL);
+    public Site(ViPRCoreClient parent, RestClient client) {
+        super(parent, client, SiteRestRep.class, PathConstants.SITE_URL);
     }
 
-    public Standby(ViPRCoreClient parent, RestClient client, Class<StandbyRestRep> resourceClass, String baseUrl) {
+    public Site(ViPRCoreClient parent, RestClient client, Class<SiteRestRep> resourceClass, String baseUrl) {
         super(parent, client, resourceClass, baseUrl);
     }
 
-    public StandbyRestRep create(StandbyAddParam input) {
-        return client.post(StandbyRestRep.class, input, PathConstants.SITE_URL);
+    public SiteRestRep create(SiteAddParam input) {
+        return client.post(SiteRestRep.class, input, PathConstants.SITE_URL);
     }
 
     @Override
     public List<? extends NamedRelatedResourceRep> list() {
-        StandbyList response = client.get(StandbyList.class, PathConstants.SITE_URL);
-        return defaultList(response.getStandbys());
+        SiteList response = client.get(SiteList.class, PathConstants.SITE_URL);
+        return defaultList(response.getSites());
     }
 
-    public StandbyRestRep delete(URI id) {
-        return client.delete(StandbyRestRep.class, getIdUrl(), id);
+    public SiteRestRep delete(URI id) {
+        return client.delete(SiteRestRep.class, getIdUrl(), id);
     }
 
     @Override

@@ -8,8 +8,8 @@ package com.emc.storageos.db.client.model;
  * Representation for a ViPR standby
  */
 @SuppressWarnings("serial")
-@Cf("Standby")
-public class Standby extends DataObject {
+@Cf("Site")
+public class Site extends DataObject {
 
     private String uuid;
     private String name;

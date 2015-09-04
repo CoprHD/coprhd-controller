@@ -30,6 +30,7 @@ import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.util.NetworkUtil;
 import com.emc.storageos.volumecontroller.impl.StoragePoolAssociationHelper;
+import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
 
 /**
  * A helper class to manage/update the network associations in the following cases
@@ -60,6 +61,57 @@ public class NetworkAssociationHelper {
      * @param remEps the removed endpoints
      */
     public static void handleNetworkUpdated(Network network, Collection<URI> addVarrays, Collection<URI> remVarray,
+            Collection<String> addEps, Collection<String> remEps, DbClient dbClient, CoordinatorClient coordinator) {
+
+        // First update removed endpoints
+        List<StoragePort> remPorts = getEndPointsStoragePorts(remEps, dbClient);
+        if (!remPorts.isEmpty()) {
+            // clear all network and varrays associations
+            clearPortAssociations(remPorts, dbClient);
+        }
+
+        List<StoragePort> addPorts = getEndPointsStoragePorts(addEps, dbClient);
+        if (!addPorts.isEmpty()) {
+            // update the ports implicitly connected varrays
+            updatePortAssociations(network, addPorts, dbClient);
+        }
+
+        List<StoragePort> createdAndUpdatedPorts = new ArrayList<StoragePort>(addPorts);
+        if ((addVarrays != null && !addVarrays.isEmpty()) || (remVarray != null && !remVarray.isEmpty())) {
+            // varray changed, update existing ports in the network
+            List<StoragePort> updatedPorts = getNetworkStoragePorts(network.getId().toString(), addEps, dbClient);
+            createdAndUpdatedPorts.addAll(updatedPorts);
+            updatePortAssociations(network, updatedPorts, dbClient);
+        }
+
+        if (!remPorts.isEmpty() ||
+                (addVarrays != null && !addVarrays.isEmpty()) || (remVarray != null && !remVarray.isEmpty())) {
+            // when ports are removed or varrays changed, a full recompute of connected networks is needed
+            setNetworkConnectedVirtualArrays(network, true, dbClient);
+        } else if (!addPorts.isEmpty()) {
+            // update the network implicitly connected varrays based on added ports
+            updateConnectedVirtualArrays(network, addPorts, true, dbClient);
+        }
+        
+        // now I need to handle pools
+        StoragePoolAssociationHelper.handleNetworkUpdated(network, addVarrays, remVarray, createdAndUpdatedPorts, remPorts, dbClient,
+                coordinator);
+        
+        // Update the virtual nas with network changes!!!
+        StoragePortAssociationHelper.runUpdateVirtualNasAssociationsProcess(addPorts, remPorts, dbClient);
+    }
+    
+    /**
+     * When this call is made, the update already took place. Further the list of endpoints and
+     * varrays are filtered to what was effectively added and not what was requested by the user.
+     * 
+     * @param network the network that was changed.
+     * @param addVarrays the varrays added to the network
+     * @param remVarray the varrays removed from the network
+     * @param addEps the added endpoints
+     * @param remEps the removed endpoints
+     */
+    public static void handleNetworkUpdatedForVNasPorts(Network network, Collection<URI> addVarrays, Collection<URI> remVarray,
             Collection<String> addEps, Collection<String> remEps, DbClient dbClient, CoordinatorClient coordinator) {
 
         // First update removed endpoints

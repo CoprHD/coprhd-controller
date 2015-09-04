@@ -396,7 +396,7 @@ public class NetworkService extends TaggedResource {
     public NetworkRestRep createNetwork(NetworkCreate param) {
         _log.info("createNetwork: started for param: name {} and type {}",
                 param.getLabel(), param.getTransportType());
-
+        
         // check for active network with same name
         ArgValidator.checkFieldNotEmpty(param.getLabel(), "label");
         checkDuplicateLabel(Network.class, param.getLabel(), "network");

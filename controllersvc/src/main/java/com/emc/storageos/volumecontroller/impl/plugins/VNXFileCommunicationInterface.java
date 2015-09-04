@@ -435,8 +435,11 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVpool(poolsToMatchWithVpool, _dbClient, _coordinator,
                     storageSystemId);
             
+            // Update the virtual nas with network changes!!!
+            StoragePortAssociationHelper.runUpdateVirtualNasAssociationsProcess(allExistingPorts, null, _dbClient);
+            
             //Update the virtual NAS - varrays!!!
-            updateVirtualNasVirtualArrays(storageSystem);
+            //updateVirtualNasVirtualArrays(storageSystem);
 
             // discovery succeeds
             detailedStatusMessage = String.format("Discovery completed successfully for Storage System: %s",

@@ -201,7 +201,7 @@ public class ConnectionManager {
     public synchronized void removeConnection(String hostAndPort) throws ConnectionManagerException {
         // Verify the passed host is not null or blank.
         if ((hostAndPort == null) || (hostAndPort.length() == 0)) {
-            throw new ConnectionManagerException("Passed host is null or blank.");
+            throw new ConnectionManagerException("Passed host/port is null or blank.");
         }
 
         try {
@@ -246,7 +246,7 @@ public class ConnectionManager {
     public synchronized boolean isConnected(String hostAndPort) throws ConnectionManagerException {
         // Verify the passed host/port is not null or blank.
         if ((hostAndPort == null) || (hostAndPort.length() == 0)) {
-            throw new ConnectionManagerException("Passed host is null or blank.");
+            throw new ConnectionManagerException("Passed host/port is null or blank.");
         }
 
         boolean isConnected = false;
@@ -263,10 +263,10 @@ public class ConnectionManager {
      * 
      * @param host hostname
      * @param port port number
-     * @return a hash of the two
+     * @return a hash of the two or null if host is null/empty
      */
     public static String generateConnectionCacheKey(String host, int port) {
-        return host + HOST_PORT_SEPARATOR + port;
+        return (host == null || host.isEmpty()) ? null : host + HOST_PORT_SEPARATOR + port;
     }
 
     /**

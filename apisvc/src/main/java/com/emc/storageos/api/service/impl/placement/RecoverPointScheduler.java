@@ -1995,12 +1995,12 @@ public class RecoverPointScheduler implements Scheduler {
         }      
  
     	   //Build the source
-    	   	RPRecommendation rpRecommendation = new RPRecommendation();    	  
-    	    rpRecommendation.setSourceStoragePool(sourceVolume.getPool());
-    	    rpRecommendation.setSourceStorageSystem(sourceVolume.getStorageController());
-    	    rpRecommendation.setInternalSiteName(sourceVolume.getInternalSiteName());
-    	    rpRecommendation.setVirtualArray(sourceVolume.getVirtualArray());
-    	    rpRecommendation.setVirtualPool(dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool()));
+    	   	RPRecommendation sourceRecommendation = new RPRecommendation();    	  
+    	    sourceRecommendation.setSourceStoragePool(sourceVolume.getPool());
+    	    sourceRecommendation.setSourceStorageSystem(sourceVolume.getStorageController());
+    	    sourceRecommendation.setInternalSiteName(sourceVolume.getInternalSiteName());
+    	    sourceRecommendation.setVirtualArray(sourceVolume.getVirtualArray());
+    	    sourceRecommendation.setVirtualPool(dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool()));
     	    
     	    //Build vplex recommendation of the source if specified
     	    VirtualPool sourceVirtualPool = dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool());
@@ -2012,11 +2012,11 @@ public class RecoverPointScheduler implements Scheduler {
     	    	for (String associatedVolume : sourceVolume.getAssociatedVolumes()) {    	    		
     	    		Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolume));
     	    		if (backingVolume.getVirtualArray().equals(sourceVolume.getVirtualArray())) {
-	    	    		rpRecommendation.setSourceStoragePool(backingVolume.getPool());
-	    	    		rpRecommendation.setSourceStorageSystem(dbClient.queryObject(StoragePool.class, backingVolume.getPool()).getStorageDevice());
+	    	    		sourceRecommendation.setSourceStoragePool(backingVolume.getPool());
+	    	    		sourceRecommendation.setSourceStorageSystem(dbClient.queryObject(StoragePool.class, backingVolume.getPool()).getStorageDevice());
     	    		}    	    		
     	    	}
-    	    	rpRecommendation.setVirtualVolumeRecommendation(virtualVolumeRecommendation);
+    	    	sourceRecommendation.setVirtualVolumeRecommendation(virtualVolumeRecommendation);
     	    }
 	    	    
 	    	//build HA recommendation if specified.
@@ -2034,7 +2034,7 @@ public class RecoverPointScheduler implements Scheduler {
 	    				haRec.setVirtualVolumeRecommendation(haVirtualRecommendation);
 	    			}
 	    		}
-	    		rpRecommendation.setHaRecommendation(haRec);
+	    		sourceRecommendation.setHaRecommendation(haRec);
 	    	}
     	    		    	
 	        //Build targets
@@ -2057,10 +2057,10 @@ public class RecoverPointScheduler implements Scheduler {
 	            	 targetRecommendation.setVirtualVolumeRecommendation(targetVplexRec);
 	             }
 	             
-	             if(rpRecommendation.getTargetRecommendations() == null) {
-	            	 rpRecommendation.setTargetRecommendations(new ArrayList<RPRecommendation>());
+	             if(sourceRecommendation.getTargetRecommendations() == null) {
+	            	 sourceRecommendation.setTargetRecommendations(new ArrayList<RPRecommendation>());
 	             }
-	             rpRecommendation.getTargetRecommendations().add(targetRecommendation);
+	             sourceRecommendation.getTargetRecommendations().add(targetRecommendation);
 	             
 	             
 	             //Build target Journals
@@ -2086,9 +2086,11 @@ public class RecoverPointScheduler implements Scheduler {
 	             recommendation.getTargetJournalRecommendations().add(journalRecommendation);
 	        }
  
+	        
+	     recommendation.getSourceRecommendations().add(sourceRecommendation);
         _log.info(String.format("Produced recommendation based on existing source volume %s from " +
                 "RecoverPoint consistency group %s: %n %s", sourceVolume.getLabel(), cg.getLabel(), 
-                recommendation.toString(dbClient)));
+        recommendation.toString(dbClient)));
         
         recommendations.add(recommendation);        
         return recommendations;

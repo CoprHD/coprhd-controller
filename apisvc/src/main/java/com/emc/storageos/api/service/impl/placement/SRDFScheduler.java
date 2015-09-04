@@ -758,11 +758,12 @@ public class SRDFScheduler implements Scheduler {
                 long capacityKb = (capacity % BYTESCONVERTER == 0) ? capacity / BYTESCONVERTER : capacity / BYTESCONVERTER + 1;
                 if (capacityKb > targetMaxVolumeSizeLimitKb) {
                     // this target pool does not match --- does not support meta members of the required size
-                    _log.debug(String.format(
-                            "Target storage pool %s does not match. Limit for volume size is less than required by source volume configuration \n"
-                                    +
-                                    "Required capacity: %s Kb, actual limit: %s Kb", targetPool.getNativeId(), capacityKb,
-                            targetMaxVolumeSizeLimitKb));
+                    _log.debug(String
+                            .format(
+                                    "Target storage pool %s does not match. Limit for volume size is less than required by source volume configuration \n"
+                                            +
+                                            "Required capacity: %s Kb, actual limit: %s Kb", targetPool.getNativeId(), capacityKb,
+                                    targetMaxVolumeSizeLimitKb));
                     return false;
                 }
             } else {
@@ -771,11 +772,12 @@ public class SRDFScheduler implements Scheduler {
                 long capacityKb = (capacity % BYTESCONVERTER == 0) ? capacity / BYTESCONVERTER : capacity / BYTESCONVERTER + 1;
                 if (capacityKb > targetMaxVolumeSizeLimitKb) {
                     // this target pool does not match --- does not support regular volumes of the required size
-                    _log.debug(String.format(
-                            "Target storage pool %s does not match. Limit for volume size is less than required by source volume configuration \n"
-                                    +
-                                    "Required capacity: %s Kb, actual limit: %s Kb", targetPool.getNativeId(), capacityKb,
-                            targetMaxVolumeSizeLimitKb));
+                    _log.debug(String
+                            .format(
+                                    "Target storage pool %s does not match. Limit for volume size is less than required by source volume configuration \n"
+                                            +
+                                            "Required capacity: %s Kb, actual limit: %s Kb", targetPool.getNativeId(), capacityKb,
+                                    targetMaxVolumeSizeLimitKb));
                     return false;
                 }
             }

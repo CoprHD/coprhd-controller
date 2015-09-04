@@ -25,7 +25,7 @@ public class InternalAlertInfo extends DataObject {
     public static enum Type {
         VPOOL_FREE_SPACE_CRITICAL,
         // combined free space in all the devices associated with a Virtual Pool is less than 5% of the total
-                                   // capacity
+        // capacity
         FILE_NOT_FOUND,        // file containing object data or index data not found
         FILE_DATA_CORRUPTED,
         CHUNK_NOT_FOUND// chunk info not found in CT

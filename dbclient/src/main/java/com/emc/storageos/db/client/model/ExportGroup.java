@@ -34,24 +34,24 @@ public class ExportGroup extends DataObject implements ProjectResource {
     private NamedURI _project;
     private URI _virtualArray;
     private StringMap _volumes;             // volume/snapshot uri -> lun mapping
-                                // This mapping is what the user requested.
-                                // The exportMasks will contain the mappings
-                                // of volume to LUNs that gets pushed to
-                                // the device.
+    // This mapping is what the user requested.
+    // The exportMasks will contain the mappings
+    // of volume to LUNs that gets pushed to
+    // the device.
     private StringSet _snapshots;           // Keep track of snapshots used in the exports
-                                  // The main reason for having this seemingly
-                                  // redundant container is that we need some way
-                                  // for the DependencyTracker to know that
-                                  // BlockSnapshots can belong to ExportGroups
+    // The main reason for having this seemingly
+    // redundant container is that we need some way
+    // for the DependencyTracker to know that
+    // BlockSnapshots can belong to ExportGroups
     private StringSet _initiators;
     private StringSet _hosts;
     private StringSet _clusters;
     private NamedURI _tenant;
     private StringSet _exportMasks;         // export-mask uris for all exports that
-                                    // are associated with an ExportGroup. The
-                                    // ExportGroup is a Bourne-level
-                                    // abstraction, the ExportMask represents a
-                                    // lower-level array masking component.
+    // are associated with an ExportGroup. The
+    // ExportGroup is a Bourne-level
+    // abstraction, the ExportMask represents a
+    // lower-level array masking component.
     private String _generatedName;
     private Integer _numPaths;			    // number of paths for each initiator
     private String _exportGroupType;        // instance of #ExportGroupType

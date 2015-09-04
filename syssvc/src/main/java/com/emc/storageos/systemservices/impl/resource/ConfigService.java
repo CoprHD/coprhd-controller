@@ -672,7 +672,7 @@ public class ConfigService {
                 updateProps.addProperty(key, value);
             } // else if (!targetProps.containsKey(key)) {
               // updateProps.addProperty(key, value);
-            // }
+              // }
         }
 
         return updateProps;

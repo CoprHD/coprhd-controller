@@ -699,13 +699,16 @@ public class UcsDiscoveryWorker {
         Map<String, Object> serviceProfileTemplateDetails = getServiceProfileTemplateDetails(lsServer);
         serviceProfileTemplate
                 .setAssociatedServerPool(serviceProfileTemplateDetails.get(ASSOCIATED_SERVER_POOL) instanceof String ? (String) serviceProfileTemplateDetails
-                        .get(ASSOCIATED_SERVER_POOL) : null);
+                        .get(ASSOCIATED_SERVER_POOL)
+                        : null);
         serviceProfileTemplate
                 .setNumberOfVHBAS(serviceProfileTemplateDetails.get(VHBA_COUNT) instanceof Integer ? (Integer) serviceProfileTemplateDetails
-                        .get(VHBA_COUNT) : null);
+                        .get(VHBA_COUNT)
+                        : null);
         serviceProfileTemplate
                 .setNumberOfVNICS(serviceProfileTemplateDetails.get(VNIC_COUNT) instanceof Integer ? (Integer) serviceProfileTemplateDetails
-                        .get(VNIC_COUNT) : null);
+                        .get(VNIC_COUNT)
+                        : null);
         serviceProfileTemplate.setLastDiscoveryRunTime(Calendar.getInstance().getTimeInMillis());
         serviceProfileTemplate.setSuccessDiscoveryTime(Calendar.getInstance().getTimeInMillis());
         serviceProfileTemplate.setDiscoveryStatus(DiscoveredDataObject.DataCollectionJobStatus.COMPLETE.name());

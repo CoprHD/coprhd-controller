@@ -306,7 +306,8 @@ public class VmaxExportOperations implements ExportMaskOperations {
             CIMObjectPath volumeParentGroupPath = storage.checkIfVmax3() ?
                     // TODO: Customized name for SLO based group
                     createOrSelectSLOBasedStorageGroup(storage, exportMaskURI, initiatorList, volumeURIHLUs, csgName,
-                            newlyCreatedChildVolumeGroups, taskCompleter) :
+                            newlyCreatedChildVolumeGroups, taskCompleter)
+                    :
                     createOrSelectStorageGroup(storage, exportMaskURI, initiatorList, volumeURIHLUs, csgName,
                             newlyCreatedChildVolumeGroups, taskCompleter);
             createMaskingView(storage, exportMaskURI, volumeParentGroupPath,

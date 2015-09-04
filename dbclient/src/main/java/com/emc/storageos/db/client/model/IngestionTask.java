@@ -61,7 +61,7 @@ public class IngestionTask extends DataObject {
         ReleaseFailed("Object service could not take control of the file share"),
         ImproperRelease("Object service could not take control of the file share"),
         // the following error marks that validation of file
-                                                                                    // share after the release failed
+        // share after the release failed
         BucketNotFound("Bucket used as target for ingestion was not found");
 
         private String _message;

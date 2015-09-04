@@ -250,12 +250,13 @@ public class MetaVolumeUtils {
             long newCapacity, long metaMemberSize, boolean isThinlyProvisioned,
             boolean fastExpansion) {
 
-        _log.info(String.format(
-                "Create recommendation for volume expansion: Storage type: %s,  \n   capacity: %s, new capacity: %s, \n  isThinlyProvisioned: %s, "
-                        +
-                        "metaMemeberSize: %s, fastExpansion: %s ", storageSystem.getSystemType(), capacity, newCapacity,
-                isThinlyProvisioned,
-                metaMemberSize, fastExpansion));
+        _log.info(String
+                .format(
+                        "Create recommendation for volume expansion: Storage type: %s,  \n   capacity: %s, new capacity: %s, \n  isThinlyProvisioned: %s, "
+                                +
+                                "metaMemeberSize: %s, fastExpansion: %s ", storageSystem.getSystemType(), capacity, newCapacity,
+                        isThinlyProvisioned,
+                        metaMemberSize, fastExpansion));
 
         MetaVolumeRecommendation recommendation = new MetaVolumeRecommendation();
 

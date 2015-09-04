@@ -233,7 +233,7 @@ public class CapacityUtils {
                 netFreeCapacity = netFreeCapacity.add(BigInteger.valueOf(netFreeUtilization));
             }
             else { // THIN virtual polls
-                // 3) Check against Maximum Subscription. Ignore if it pool is oversubscribed.
+                   // 3) Check against Maximum Subscription. Ignore if it pool is oversubscribed.
                 if (netFreeSubscription > 0) {
                     netFreeCapacity = netFreeCapacity.add(BigInteger.valueOf(netFreeSubscription));
                 }

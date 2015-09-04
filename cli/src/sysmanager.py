@@ -398,25 +398,25 @@ class Logging(object):
         if(not resp):
             return None
 
-    def get_log_level(self, loglst, nodelst):
+    def get_log_level(self, loglst, nodelst ,nodename):
         request = ""
 
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "GET", Logging.URI_LOG_LEVELS +
                                              self.prepare_get_log_lvl_params(
                                                  loglst,
-                                                 nodelst),
+                                                 nodelst ,nodename ),
                                              None)
         if(not s):
             return None
         o = common.json_decode(s)
         return o
 
-    def set_log_level(self, severity, logs, nodes, expiretime):
+    def set_log_level(self, severity, logs, nodes, expiretime , nodename):
         request = ""
 
         params = self.prepare_set_log_level_body(severity, logs, nodes,
-                                                  expiretime)
+                                                  expiretime , nodename)
 
         if (params):
             body = json.dumps(params)
@@ -507,7 +507,7 @@ class Logging(object):
             params += "maxcount=" + args.maxcount
         return params
 
-    def prepare_get_log_lvl_params(self, loglst, nodelst):
+    def prepare_get_log_lvl_params(self, loglst, nodelst ,nodename):
         params = ''
         if(loglst):
             for log in loglst:
@@ -517,6 +517,10 @@ class Logging(object):
             for node in nodelst:
                 params += '&' if ('?' in params) else '?'
                 params += "node_id=" + node
+        if(nodename):
+            for ndname in nodename:
+                params += '&' if ('?' in params) else '?'
+                params += "node_name=" + ndname
         return params
 
     def prepare_alert_params(self, params, args):
@@ -534,7 +538,7 @@ class Logging(object):
                   }
         return params
 
-    def prepare_set_log_level_body(self, severity, logs, nodes, expiretime):
+    def prepare_set_log_level_body(self, severity, logs, nodes, expiretime ,nodename):
         params = {'severity': int(severity)}
         if (logs):
             params['log_name'] = logs
@@ -542,6 +546,8 @@ class Logging(object):
             params['node_id'] = nodes
         if (expiretime):
             params['expir_in_min'] = expiretime
+        if (nodename):
+            params['node_name'] = nodename
 
         return params
 
@@ -1148,8 +1154,7 @@ def get_logs(args):
             args.format,
             args.maxcount,
             args.filepath ,
-            args.nodename
-            )
+            args.nodename)
     except SOSError as e:
         common.format_err_msg_and_raise("get", "logs", e.err_text, e.err_code)
 
@@ -1175,6 +1180,11 @@ def get_log_level_parser(subcommand_parsers, common_parser):
                                       dest='nodes',
                                       help='Nodes',
                                       nargs="+")
+    get_log_level_parser.add_argument('-nodename', '-ndname',
+                                      metavar='<nodesname>',
+                                      dest='nodename',
+                                      help='Nodename ',
+                                      nargs="+")
 
     get_log_level_parser.set_defaults(func=get_log_level)
 
@@ -1183,7 +1193,7 @@ def get_log_level(args):
     obj = Logging(args.ip, Logging.DEFAULT_SYSMGR_PORT)
     from common import TableGenerator
     try:
-        res = obj.get_log_level(args.logs, args.nodes)
+        res = obj.get_log_level(args.logs, args.nodes ,args.nodename)
         return common.format_json_object(res)
     except SOSError as e:
         common.format_err_msg_and_raise(
@@ -1224,6 +1234,11 @@ def set_log_level_parser(subcommand_parsers, common_parser):
                                       dest='nodes',
                                       help='Nodes',
                                       nargs="+")
+    set_log_level_parser.add_argument('-nodename', '-ndname',
+                                      metavar='<nodename>',
+                                      dest='nodename',
+                                      help='Nodenames',
+                                      nargs="+")
     set_log_level_parser.add_argument('-expiretime', '-ext',
                                   metavar='<expiretime>',
                                   dest='expiretime',
@@ -1242,7 +1257,7 @@ def set_log_level(args):
     obj = Logging(args.ip, Logging.DEFAULT_SYSMGR_PORT)
     from common import TableGenerator
     try:
-        res = obj.set_log_level(args.severity, args.logs, args.nodes, args.expiretime)
+        res = obj.set_log_level(args.severity, args.logs, args.nodes, args.expiretime ,args.nodename)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "set",

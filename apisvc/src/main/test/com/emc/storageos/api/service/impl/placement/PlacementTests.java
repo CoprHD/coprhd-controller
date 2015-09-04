@@ -504,6 +504,7 @@ public class PlacementTests extends DbsvcTestBase {
             assertNotNull(recommendations.get(0));
             assertNotNull(recommendations.get(1));
             VPlexRecommendation srcRec = (VPlexRecommendation)recommendations.get(0);
+            _log.info("##################################" + srcRec.toString());
             VPlexRecommendation HARec = (VPlexRecommendation)recommendations.get(1);
             assertNotNull(srcRec.getSourceStoragePool());
             assertNotNull(srcRec.getSourceStorageSystem());
@@ -603,7 +604,7 @@ public class PlacementTests extends DbsvcTestBase {
 
         // Create a storage pool on xio3
         StoragePool pool3 = PlacementTestUtils.createStoragePool(_dbClient, varray, storageSystem3, "pool3", "Pool3",
-                Long.valueOf(1024 * 1024 * 10), Long.valueOf(1024 * 1024 * 10), 300, 300,
+                Long.valueOf(1024 * 10), Long.valueOf(1024 * 1024 * 10), 300, 300,
                 StoragePool.SupportedResourceTypes.THIN_ONLY.toString());
 
         // Create a virtual pool
@@ -659,7 +660,11 @@ public class PlacementTests extends DbsvcTestBase {
             assertTrue("vplex1".equals(rec.getVPlexStorageSystem().toString()));
             assertTrue(("pool3".equals(rec.getSourceStoragePool().toString())) || ("pool1".equals(rec.getSourceStoragePool().toString())));
             _log.info("Recommendation " + i + ": " + recommendations.size() + ", Pool Chosen: " + rec.getSourceStoragePool().toString());
+            
+            _log.info(rec.toString());
         }
+        
+      
     }
 
 	/**

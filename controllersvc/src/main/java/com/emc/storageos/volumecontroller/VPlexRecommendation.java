@@ -18,16 +18,6 @@ public class VPlexRecommendation extends Recommendation {
     // The VPlex storage system.
     private URI vplexStorageSystem;
     
-    @Override
-	public String toString() {
-    	StringBuffer ret = new StringBuffer();
- 
-    	ret.append(String.format("%s %n", super.toString()));
-    	ret.append(String.format("Vplex Storage System : %s %n", this.getVPlexStorageSystem().toString()));
-    
-		return ret.toString();
-	}
-    
     /**
      * Getter for the VPlex storage system for the recommendation.
      * 
@@ -47,4 +37,14 @@ public class VPlexRecommendation extends Recommendation {
      public void setVPlexStorageSystem(URI vplexStorageSystem) {     
         this.vplexStorageSystem = vplexStorageSystem;
     }
+          
+     @Override
+ 	public String toString() {
+     	StringBuffer ret = new StringBuffer(); 
+     	ret.append(String.format("%s %n", super.toString()));
+     	ret.append(String.format("Vplex Recommendation : %n"));
+     	ret.append(String.format("Vplex Storage System : %s %n", this.getVPlexStorageSystem().toString()));
+     
+ 		return ret.toString();
+ 	}
 }

@@ -137,9 +137,9 @@ public class VPlexDeviceInfo extends VPlexResourceInfo {
         StringBuilder str = new StringBuilder();
         str.append("DeviceInfo ( ");
         str.append(super.toString());
-        str.append(", cluster: " + getCluster());
-        str.append(", geometry: " + geometry);
-        str.append(", slotNumber: " + slotNumber);
+        str.append(", cluster: ").append(getCluster());
+        str.append(", geometry: ").append(geometry);
+        str.append(", slotNumber: ").append(slotNumber);
         for (VPlexExtentInfo extentInfo : extentInfoList) {
             str.append(", ");
             str.append(extentInfo.toString());

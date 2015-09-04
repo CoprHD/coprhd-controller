@@ -398,17 +398,17 @@ public class VPlexVirtualVolumeInfo extends VPlexResourceInfo {
         StringBuilder str = new StringBuilder();
         str.append("VirtualVolumeInfo ( ");
         str.append(super.toString());
-        str.append(", blockCount: " + blockCount);
-        str.append(", blockSize: " + blockSize);
-        str.append(", expansionStatus: " + expansionStatus);
-        str.append(", supportingDevice: " + supportingDevice);
+        str.append(", blockCount: ").append(blockCount);
+        str.append(", blockSize: ").append(blockSize);
+        str.append(", expansionStatus: ").append(expansionStatus);
+        str.append(", supportingDevice: ").append(supportingDevice);
         if (supportingDeviceInfo != null) {
-            str.append(", supportingDeviceInfo: " + supportingDeviceInfo.toString());
+            str.append(", supportingDeviceInfo: ").append(supportingDeviceInfo.toString());
         }
-        str.append(", serviceStatus: " + serviceStatus);
-        str.append(", locality: " + locality);
-        str.append(", clusters: " + clusters);
-        str.append(", vpdId: " + vpdId);
+        str.append(", serviceStatus: ").append(serviceStatus);
+        str.append(", locality: ").append(locality);
+        str.append(", clusters: ").append(clusters);
+        str.append(", vpdId: ").append(vpdId);
         str.append(" )");
         return str.toString();
     }

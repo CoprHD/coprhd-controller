@@ -85,8 +85,8 @@ public class VPlexStorageSystemInfo extends VPlexResourceInfo {
         StringBuilder str = new StringBuilder();
         str.append("StorageSystemInfo ( ");
         str.append(super.toString());
-        str.append(", nativeGuid: " + uniqueId);
-        str.append(", clusterId: " + clusterId);
+        str.append(", nativeGuid: ").append(uniqueId);
+        str.append(", clusterId: ").append(clusterId);
         str.append(" )");
         return str.toString();
     }

@@ -101,9 +101,9 @@ public class VPlexStorageVolumeInfo extends VPlexResourceInfo {
         StringBuilder str = new StringBuilder();
         str.append("StorageVolumeInfo ( ");
         str.append(super.toString());
-        str.append(", clusterId: " + clusterId);
-        str.append(", systemId: " + systemId);
-        str.append(", componentType: " + componentType);
+        str.append(", clusterId: ").append(clusterId);
+        str.append(", systemId: ").append(systemId);
+        str.append(", componentType: ").append(componentType);
         str.append(" )");
         return str.toString();
     }

@@ -3392,21 +3392,22 @@ public class VPlexApiDiscoveryManager {
             throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(e.getLocalizedMessage());
         }
 
-        String badComponentTypeMessage = "";
+        StringBuilder badComponentTypeMessage = new StringBuilder();
         if (!storageVolumeInfoList.isEmpty()) {
             s_logger.info("found these storage volumes for VPLEX device {}:", deviceName);
             for (VPlexStorageVolumeInfo info : storageVolumeInfoList) {
                 s_logger.info(info.toString());
                 if (!VPlexApiConstants.STORAGE_VOLUME_TYPE.equals(info.getComponentType())) {
-                    badComponentTypeMessage += "Unexpected component type "
-                            + info.getComponentType() + " found for volume " + info.getName() + ". ";
+                    badComponentTypeMessage.append("Unexpected component type ")
+                        .append(info.getComponentType()).append(" found for volume ")
+                        .append(info.getName()).append(". ");
                 }
             }
         }
 
-        if (!badComponentTypeMessage.isEmpty()) {
-            s_logger.error(badComponentTypeMessage);
-            throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(badComponentTypeMessage);
+        if (badComponentTypeMessage.length() > 0) {
+            s_logger.error(badComponentTypeMessage.toString());
+            throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(badComponentTypeMessage.toString());
         }
 
         s_logger.info("TIMER: getStorageVolumesForDevice took {}ms",
@@ -3542,18 +3543,21 @@ public class VPlexApiDiscoveryManager {
                 pattern = VPlexApiConstants.WILDCARD
                         + wwn
                         + VPlexApiConstants.WILDCARD;
+                break;
             case 2:
                 // *[wwn].toLowerCase (the used-by command seems to be case-sensitive, 
                 // and many vol names are lower case)
                 pattern = VPlexApiConstants.WILDCARD
                         + wwn.toLowerCase()
                         + VPlexApiConstants.WILDCARD;
+                break;
             case 3:
                 // *[wwn].substring(5) (for cases where the wwn was too long for 
                 // the 63-char limit, like ViPR claimed Xtremio vols)
                 pattern = VPlexApiConstants.WILDCARD
                         + wwn.substring(5).toLowerCase()
                         + VPlexApiConstants.WILDCARD;
+                break;
         }
 
         return pattern;

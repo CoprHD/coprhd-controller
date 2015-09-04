@@ -16,7 +16,7 @@ public class VPlexDistributedDeviceInfo extends VPlexResourceInfo {
     private String geometry = null;
 
     // The local devices which comprise the distributed device.
-    List<VPlexDeviceInfo> localDeviceInfoList = new ArrayList<VPlexDeviceInfo>();
+    private List<VPlexDeviceInfo> localDeviceInfoList = new ArrayList<VPlexDeviceInfo>();
 
     /**
      * Getter for the device geometry (RAID level).
@@ -77,7 +77,7 @@ public class VPlexDistributedDeviceInfo extends VPlexResourceInfo {
         StringBuilder str = new StringBuilder();
         str.append("DistributedDeviceInfo ( ");
         str.append(super.toString());
-        str.append(", geometry: " + geometry);
+        str.append(", geometry: ").append(geometry);
         for (VPlexDeviceInfo localDeviceInfo : localDeviceInfoList) {
             str.append(", ");
             str.append(localDeviceInfo.toString());

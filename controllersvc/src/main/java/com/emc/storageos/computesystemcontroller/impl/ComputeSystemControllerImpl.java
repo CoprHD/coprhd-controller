@@ -536,6 +536,17 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
         return waitFor;
     }
 
+    /**
+     * Synchronize a cluster's export groups by following steps:
+     * - Add all hosts in the cluster that are not in the cluster's export groups
+     * - Remove all hosts in cluster's export groups that don't belong to the cluster
+     * 
+     * @param workflow the workflow
+     * @param waitFor waitfor step
+     * @param clusterHostIds hosts that belong to the cluster
+     * @param clusterId cluster id
+     * @return
+     */
     public String addStepsForSynchronizeClusterExport(Workflow workflow, String waitFor, List<URI> clusterHostIds,
             URI clusterId) {
 

@@ -23,12 +23,10 @@ class VnasServer(object):
     The class definition for operations on 'VNAS server'.
     '''
 
-    # Commonly used URIs for the 'Storage Pool' module
+
 
     URI_SERVICES_BASE = ''
     URI_STORAGEDEVICES = '/vdc/storage-systems'
-    
-    
     URI_VNSSERVER = '/vdc/vnas-servers'
     URI_VNASSERVER_SHOW = '/vdc/vnas-servers/{0}'
     URI_VNASSERVER_ASSIGN = '/projects/{0}/assign-vnas-servers'
@@ -46,7 +44,7 @@ class VnasServer(object):
         
 
  
-
+    #Vnasserver Query
     def vnasserver_query(self, name):
         
         if(name.startswith('urn:storageos:VirtualNAS')):
@@ -68,7 +66,6 @@ class VnasServer(object):
         Returns:
             List of vnasservers UUIDs in JSON response payload
         '''
-
         uri = VnasServer.URI_VNSSERVER
 
         (s, h) = common.service_json_request(
@@ -108,7 +105,7 @@ class VnasServer(object):
             name: name of the vnasserver.
             project : project to be assigned .
         Returns:
-            Network details in JSON response payload
+            
         
         '''
         
@@ -116,19 +113,8 @@ class VnasServer(object):
         vnasserver_id = self.vnasserver_query(name)
         
         
-        #if(vnasserver_id is None):
-         #   raise SOSError(
-           #     SOSError.ENTRY_ALREADY_EXISTS_ERR,
-          #      "vnasserver with name " + name + " does not exist")
-        
-        
-        #query for Project ID 
+         
         request = dict()
-        
-        #request['name'] = name
-        #vnas_server = {'vnas_server': vnasserver_id}
-#         vnasIdList = list()
-#         vnasIdList.append({ "vnas_server": vnasserver_id})
         request['vnas_server'] = [vnasserver_id]
         
 
@@ -137,9 +123,6 @@ class VnasServer(object):
             
             pr_uri = proj_object.project_query(project)
                 
-            
-        
-
         body = json.dumps(request)
         
         
@@ -155,17 +138,14 @@ class VnasServer(object):
         
        
         
-         
-    
-    
     def unassign(self, name, project=None):
         '''
-        Retrieves network details based on network name
+        Vnasserver unassign
         Parameters:
             name: name of the vnasserver.
             project : varray to be assigned .
         Returns:
-            Network details in JSON response payload
+            
         
         '''
         
@@ -177,9 +157,9 @@ class VnasServer(object):
                 SOSError.ENTRY_ALREADY_EXISTS_ERR,
                 "vnasserver with name " + name + " does not exist")
         
-        #query for Project ID 
+         
         request = dict()
-        #request['name'] = name
+       
       
         request['vnas_server'] = [vnasserver_id]
         
@@ -190,12 +170,6 @@ class VnasServer(object):
             pro_uri = proj_object.project_query(project)
                 
                       
-            
-            
-            
-
-        
-
         body = json.dumps(request)
         
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
@@ -212,7 +186,6 @@ class VnasServer(object):
     
 #
 # Vns server Main parser routine
-#
 
 
 # VNAS Server List routines
@@ -237,8 +210,6 @@ def list_parser(subcommand_parsers, common_parser):
     
     
     
-
-
 def vnasserver_list(args):
     obj = VnasServer(args.ip, args.port)
     from common import TableGenerator
@@ -326,7 +297,7 @@ def assign_parser(subcommand_parsers, common_parser):
     mandatory_args = assign_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 help='Name of vnasserver',
-                                metavar='<network>',
+                                metavar='<vnas_server>',
                                 dest='name',
                                 required=True)
 
@@ -358,7 +329,7 @@ def unassign_parser(subcommand_parsers, common_parser):
     mandatory_args = unassign_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 help='Name of vnasserver',
-                                metavar='<network>',
+                                metavar='<vnas_server>',
                                 dest='name',
                                 required=True)
 
@@ -381,7 +352,7 @@ def vnasserver_unassign(args):
         
         
 def vnasserver_parser(parent_subparser, common_parser):
-    # main storagepool parser
+  
     parser = parent_subparser.add_parser('vnasserver',
                 description='ViPR vNAS Server CLI usage',
                 parents=[common_parser],

@@ -6,11 +6,13 @@ package com.emc.storageos.api.service.authorization;
 
 import java.net.URI;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.UriInfo;
 
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.sun.jersey.spi.container.ContainerRequest;
 
 import org.slf4j.Logger;
@@ -67,11 +69,15 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                     return URI.create(uriStr);
                 }
             } else if (_resourceClazz.isAssignableFrom(HostService.class) ||
-                    _resourceClazz.isAssignableFrom(VcenterService.class) ||
                     _resourceClazz.isAssignableFrom(ClusterService.class) ||
                     _resourceClazz.isAssignableFrom(VcenterDataCenterService.class)) {
                 String tenantResourceUriStr = uriInfo.getPathParameters().getFirst("id");
                 if (tenantResourceUriStr != null && !tenantResourceUriStr.isEmpty()) {
+                    URI tenantURI = _permissionsHelper.getTenantResourceTenantId(tenantResourceUriStr);
+                    if (NullColumnValueGetter.isNullURI(tenantURI)) {
+                        APIException.forbidden.resourceDoesNotBelongToAnyTenant(VcenterDataCenterService.class.getSimpleName(),
+                                tenantResourceUriStr);
+                    }
                     return _permissionsHelper.getTenantResourceTenantId(tenantResourceUriStr);
                 }
             } else if (_resourceClazz.isAssignableFrom(InitiatorService.class) ||
@@ -271,8 +277,16 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                             acls = obj.getAclSet(new PermissionsKey(PermissionsKey.Type.TENANT,
                                     tenantId).toString());
                         }
+                    } else if (_resourceClazz.isAssignableFrom(VcenterService.class)) {
+                        Vcenter obj = _permissionsHelper.getObjectById(uri, Vcenter.class);
+                        if (obj.getAcls() == null || obj.getAcls().size() == 0) {
+                            acls = new HashSet<String>();
+                            acls.add(ACL.USE.toString());
+                        } else {
+                            acls = obj.getAclSet(new PermissionsKey(PermissionsKey.Type.TENANT,
+                                    tenantId).toString());
+                        }
                     } else if (_resourceClazz.isAssignableFrom(HostService.class) ||
-                            _resourceClazz.isAssignableFrom(VcenterService.class) ||
                             _resourceClazz.isAssignableFrom(VcenterDataCenterService.class) ||
                             _resourceClazz.isAssignableFrom(InitiatorService.class) ||
                             _resourceClazz.isAssignableFrom(IpInterfaceService.class) ||
@@ -285,6 +299,22 @@ public class PermissionsFilterFactory extends AbstractPermissionsFilterFactory {
                 }
             }
             return acls;
+        }
+
+        /**
+         * Get tenant ids from the uri
+         *
+         * @return
+         */
+        @Override
+        protected Set<URI> getTenantIdsFromURI(UriInfo uriInfo) {
+            if (_resourceClazz.isAssignableFrom(VcenterService.class)) {
+                String uriStr = uriInfo.getPathParameters().getFirst("id");
+                if (uriStr != null && !uriStr.isEmpty()) {
+                    return _permissionsHelper.getTenantResourceTenantIds(uriStr);
+                }
+            }
+            return null;
         }
     }
 

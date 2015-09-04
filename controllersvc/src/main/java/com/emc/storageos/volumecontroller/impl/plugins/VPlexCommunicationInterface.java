@@ -98,10 +98,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     // string constants
     public static final String VPLEX_INITIATOR_HOSTNAME_PREFIX = "vplex_";
     private static final String ISCSI_PATTERN = "^(iqn|IQN|eui).*$";
-    protected static int BATCH_SIZE = Constants.DEFAULT_PARTITION_SIZE;
     private static final String TRUE = "true";
     private static final String FALSE = "false";
     private static final String LOCAL = "local";
+    private static int BATCH_SIZE = Constants.DEFAULT_PARTITION_SIZE;
 
     // WWN for offline ports
     public static final String OFFLINE_PORT_WWN = "00:00:00:00:00:00:00:00";
@@ -528,12 +528,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         List<UnManagedExportMask> unmanagedExportMasksToUpdate = new ArrayList<UnManagedExportMask>();
 
         try {
-
             // set batch size for persisting unmanaged volumes
-            int batchSize = Constants.DEFAULT_PARTITION_SIZE;
             Map<String, String> props = (Map<String, String>) accessProfile.getProps();
             if (null != props && null != props.get(Constants.METERING_RECORDS_PARTITION_SIZE)) {
-                batchSize = Integer.parseInt(props.get(Constants.METERING_RECORDS_PARTITION_SIZE));
+                BATCH_SIZE = Integer.parseInt(props.get(Constants.METERING_RECORDS_PARTITION_SIZE));
             }
 
             long timer = System.currentTimeMillis();
@@ -809,9 +807,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         }
 
         // set an is-ingestable flag, used later by the ingest process
-        String isVolumeIngestable = isVolumeIngestable(info) ? TRUE : FALSE;
         unManagedVolumeCharacteristics.put(
-                SupportedVolumeCharacterstics.IS_INGESTABLE.toString(), isVolumeIngestable);
+                SupportedVolumeCharacterstics.IS_INGESTABLE.toString(), TRUE);
 
         // set system type
         StringSet systemTypes = new StringSet();
@@ -959,19 +956,6 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         updateUnmanagedVolume(info, vplex, volume, volumesToCgs, clusterIdToNameMap, varrayToClusterIdMap);
 
         return volume;
-    }
-
-    /**
-     * Used to determine the value of the IS_INGESTABLE flag.
-     * 
-     * @param info a VPlexVirtualVolumeInfo descriptor
-     * @return true if the virtual volume is ingestable by ViPR
-     */
-    private boolean isVolumeIngestable(VPlexVirtualVolumeInfo info) {
-
-        // currently no checks are needed during the ingest phase
-
-        return true;
     }
 
     /**
@@ -1201,17 +1185,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 s_logger.info("now discovering storage volumes in storage view " + storageView.getName());
                 for (String volumeName : storageView.getVirtualVolumes()) {
 
-                    s_logger.info("found volume " + volumeName.toString());
-
-                    StringTokenizer tokenizer = new StringTokenizer(volumeName, ",");
-                    String hluStr = tokenizer.nextToken();
-                    hluStr = hluStr.substring(1); // skips an opening "("
-                    Integer volumeHLU = Integer.valueOf(hluStr);
-                    volumeName = tokenizer.nextToken();
-                    String vpdId = tokenizer.nextToken();
-                    int indexColon = vpdId.indexOf(":");
-                    String volumeWWN = vpdId.substring(indexColon + 1);
-
+                    s_logger.info("found volume " + volumeName);
                     VPlexVirtualVolumeInfo vvol = vvolMap.get(volumeName);
                     Volume volume = findVirtualVolumeManagedByVipr(vvol);
 

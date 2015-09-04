@@ -16,6 +16,8 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -50,6 +52,7 @@ public class FileStorageScheduler {
 
 	private DbClient _dbClient;
 	private StorageScheduler _scheduler;
+	private CustomConfigHandler customConfigHandler;
 
 	public void setDbClient(DbClient dbClient) {
 		_dbClient = dbClient;
@@ -57,6 +60,11 @@ public class FileStorageScheduler {
 
 	public void setScheduleUtils(StorageScheduler scheduleUtils) {
 		_scheduler = scheduleUtils;
+	}
+	
+
+	public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
+		this.customConfigHandler = customConfigHandler;
 	}
 
 	/**
@@ -194,9 +202,10 @@ public class FileStorageScheduler {
 		VirtualNAS vNAS = null;
 		if (vNASList != null && !vNASList.isEmpty()) {
 			
-			boolean meteringConfigured = true;
+			String dynamicPerformanceEnabled = customConfigHandler.getComputedCustomConfigValue(
+					CustomConfigConstants.NAS_DYNAMIC_PERFORMANCE_PLACEMENT_ENABLED, "systemType", null);
 			
-			if(meteringConfigured) {
+			if(Boolean.valueOf(dynamicPerformanceEnabled)) {
 				sortVNASListOnDyanamicLoad(vNASList);
 			} else {
 				sortVNASListOnStaticLoad(vNASList);

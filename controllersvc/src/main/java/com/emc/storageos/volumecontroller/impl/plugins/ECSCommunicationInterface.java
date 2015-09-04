@@ -74,7 +74,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
         long startTime = System.currentTimeMillis();
         StoragePool storagePool;
 
-        _logger.info("ECSCommunicationInterface:discover discover Access Profile Details :" + accessProfile.toString());
+        _logger.info("ECSCommunicationInterface:discover Access Profile Details :" + accessProfile.toString());
 		try {
             storageSystemId = accessProfile.getSystemId();
             storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemId);
@@ -82,6 +82,8 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             // try to connect to the ECS
             ECSApi ecsApi = getECSDevice(storageSystem);
             String authToken = ecsApi.getAuthToken();
+            
+            //Make sure user is system admin before proceeding to discovery
             
             String nativeGuid = NativeGUIDGenerator.generateNativeGuid(DiscoveredDataObject.Type.ecs.toString(),
             		authToken);

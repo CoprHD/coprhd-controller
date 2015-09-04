@@ -147,7 +147,7 @@ public class ECSApiFactory {
         return ecsApi;
     }
     
-    /*
+    
     public static void main(String[] args) {
     	System.out.println("starting ecs main");
     	URI uri = URI.create(String.format("https://10.247.78.171:4443/login"));
@@ -158,7 +158,12 @@ public class ECSApiFactory {
     	String authToken = ecsApi.getAuthToken();
     	System.out.println(authToken);
     	
+    	if (ecsApi.isSystemAdmin())
+    		System.out.println("Sys admin");
+    	else 
+    		System.out.println("NOT Sys admin");
+    		
     	ecsApi.getStoragePools();
     }
-    */
+    
 }

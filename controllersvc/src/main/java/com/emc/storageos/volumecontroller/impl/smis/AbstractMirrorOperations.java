@@ -10,8 +10,11 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis;
 
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.JOB_COMPLETED_NO_ERROR;
+
 import java.net.URI;
 import java.util.List;
+import java.util.Set;
 
 import javax.cim.CIMArgument;
 import javax.cim.CIMInstance;
@@ -25,11 +28,13 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NameGenerator;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
@@ -38,10 +43,9 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateMirrorJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockDeleteCGMirrorJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockDeleteMirrorJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResumeMirrorJob;
-
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.JOB_COMPLETED_NO_ERROR;
 
 /**
  * A class to provide common, array-independent mirror implementations
@@ -304,7 +308,61 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
 
     @Override
     public void deleteGroupMirrors(StorageSystem storage, List<URI> mirrorList, TaskCompleter taskCompleter) {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+        _log.info("deleteGroupMirrors operation START");
+        if (!((storage.getUsingSmis80() && storage.deviceIsType(Type.vmax)) || storage.deviceIsType(Type.vnxblock))) {
+            throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+        }
+
+        try {
+            String[] deviceIds = null;
+            BlockMirror firstMirror = _dbClient.queryObject(BlockMirror.class, mirrorList.get(0));
+            String repGroupName = firstMirror.getReplicationGroupInstance();
+            if (NullColumnValueGetter.isNotNullValue(repGroupName)) {
+                CIMObjectPath repGroupPath = _cimPath.getReplicationGroupPath(storage, repGroupName);
+                Set<String> deviceIdsSet = _helper.getVolumeDeviceIdsFromStorageGroup(storage, repGroupPath);
+                deviceIds = deviceIdsSet.toArray(new String[deviceIdsSet.size()]);
+
+                // Delete replication group
+                ReplicationUtils.deleteReplicationGroup(storage, repGroupName, _dbClient, _helper, _cimPath);
+                // Set mirrors replication group to null
+                List<BlockMirror> mirrors = _dbClient.queryObject(BlockMirror.class, mirrorList);
+                for (BlockMirror mirror : mirrors) {
+                    mirror.setConsistencyGroup(NullColumnValueGetter.getNullURI());
+                    mirror.setReplicationGroupInstance(NullColumnValueGetter.getNullStr());
+                }
+
+                _dbClient.persistObject(mirrors);
+            } else {
+                deviceIds = _helper.getBlockObjectNativeIds(mirrorList);
+            }
+
+            if (storage.checkIfVmax3()) {
+                for (String deviceId : deviceIds) {
+                    _helper.removeVolumeFromParkingSLOStorageGroup(storage, deviceId, false);
+                    _log.info("Done invoking remove volume {} from parking SLO storage group", deviceId);
+                }
+            }
+
+            CIMObjectPath[] mirrorPaths = _cimPath.getVolumePaths(storage, deviceIds);
+            CIMObjectPath configSvcPath = _cimPath.getConfigSvcPath(storage);
+            CIMArgument[] inArgs = null;
+            if (storage.deviceIsType(Type.vnxblock)) {
+                inArgs = _helper.getReturnElementsToStoragePoolArguments(mirrorPaths);
+            } else {
+                inArgs = _helper.getReturnElementsToStoragePoolArguments(mirrorPaths, SmisConstants.CONTINUE_ON_NONEXISTENT_ELEMENT);
+            }
+            CIMArgument[] outArgs = new CIMArgument[5];
+            _helper.invokeMethod(storage, configSvcPath, SmisConstants.RETURN_ELEMENTS_TO_STORAGE_POOL, inArgs, outArgs);
+            CIMObjectPath job = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
+            ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockDeleteCGMirrorJob(job,
+                    storage.getId(), taskCompleter)));
+        } catch (Exception e) {
+            _log.error("Problem making SMI-S call", e);
+            ServiceError error = DeviceControllerException.errors.jobFailed(e);
+            taskCompleter.error(_dbClient, error);
+        }
+
+        _log.info("deleteGroupMirrors operation END");
     }
     @Override
     public void removeMirrorFromDeviceMaskingGroup(StorageSystem system, List<URI> mirrorList,

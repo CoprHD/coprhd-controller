@@ -59,7 +59,7 @@ public abstract class SmisBlockMirrorJob extends SmisReplicaCreationJobs {
 
     protected CIMInstance getStorageSyncInstanceFromVolume(WBEMClient client, CIMObjectPath volumePath) throws WBEMException {
         CloseableIterator<CIMInstance> references = client.referenceInstances(volumePath,
-                SmisConstants.CIM_STORAGE_SYNCHRONIZED, null, false, null);
+                SmisConstants.CIM_STORAGE_SYNCHRONIZED, null, false, new String[] { SmisConstants.CP_SYNC_TYPE });
         if (!references.hasNext()) {
             _log.error(String.format("No storage synchronized instance was found for %s", volumePath.toString()));
             return null;

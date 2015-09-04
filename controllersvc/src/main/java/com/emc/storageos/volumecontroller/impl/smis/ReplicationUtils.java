@@ -89,7 +89,7 @@ public class ReplicationUtils {
 
         public ReplicationSettingBuilder addVPSnap() {
             return addProperty(new CIMProperty<Object>(DESIRED_COPY_METHODOLOGY, UINT16_T,
-                    new UnsignedInteger16(2/*VP_SNAP_VALUE*/)));
+                    new UnsignedInteger16(VP_SNAP_VALUE)));
         }
 
         public ReplicationSettingBuilder addCreateNewTarget() {
@@ -472,7 +472,7 @@ public class ReplicationUtils {
              if (storageSystem.deviceIsType(Type.vmax)) {
              
                  final CIMObjectPath[] theElements = cimPath.getVolumePaths(storageSystem, deviceIds);
-                 inArgs = helper.getReturnElementsToStoragePoolArguments(storageSystem, theElements, SmisConstants.CONTINUE_ON_NONEXISTENT_ELEMENT);
+                 inArgs = helper.getReturnElementsToStoragePoolArguments(theElements, SmisConstants.CONTINUE_ON_NONEXISTENT_ELEMENT);
                  method = RETURN_ELEMENTS_TO_STORAGE_POOL;
              } else {
                  inArgs = helper.getDeleteVolumesInputArguments(storageSystem, deviceIds);

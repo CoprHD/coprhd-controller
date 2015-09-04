@@ -72,6 +72,7 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.BlockMirror.SynchronizationState;
 import com.emc.storageos.db.client.model.Volume.LinkStatus;
 import com.emc.storageos.db.client.util.ExportMaskNameGenerator;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -792,9 +793,6 @@ public class SmisCommandHelper implements SmisConstants {
 
     /**
      * Create input arguments for ReturnElementsToStoragePool operation
-     *
-     * @param storage
-     *            The storage system where this operation will be performed
      * @param theElements
      *            Array of path to be returned to the storage pool
      * @param options
@@ -802,10 +800,16 @@ public class SmisCommandHelper implements SmisConstants {
      *            nonexistent element)
      * @return An array of CIMArgument based on the given parameters
      */
-    public CIMArgument[] getReturnElementsToStoragePoolArguments(StorageSystem storage, CIMObjectPath[] theElements, int options) {
+    public CIMArgument[] getReturnElementsToStoragePoolArguments(CIMObjectPath[] theElements, int options) {
         return new CIMArgument[] {
                 _cimArgument.referenceArray(CP_THE_ELEMENTS, theElements),
                 _cimArgument.uint16(CP_OPTIONS, options)
+        };
+    }
+
+    public CIMArgument[] getReturnElementsToStoragePoolArguments(CIMObjectPath[] theElements) {
+        return new CIMArgument[] {
+                _cimArgument.referenceArray(CP_THE_ELEMENTS, theElements)
         };
     }
 
@@ -2489,6 +2493,15 @@ public class SmisCommandHelper implements SmisConstants {
         CIMArgument[] outArgs = new CIMArgument[5];
         invokeMethod(storage, replicationSvcPath, MODIFY_REPLICA_SYNCHRONIZATION, inArgs, outArgs);
         return _cimPath.getCimObjectPathFromOutputArgs(outArgs, JOB);
+    }
+
+    public void callModifyReplicaSynchronously(StorageSystem storage,
+            CIMArgument[] inArgs, SmisJob job) throws WBEMException {
+        CIMObjectPath replicationSvcPath = _cimPath
+                .getControllerReplicationSvcPath(storage);
+        CIMArgument[] outArgs = new CIMArgument[5];
+        invokeMethodSynchronously(storage, replicationSvcPath,
+                MODIFY_REPLICA_SYNCHRONIZATION, inArgs, outArgs, job);
     }
 
     public CIMObjectPath callModifyListReplica(StorageSystem storage, CIMArgument[] inArgs)
@@ -5888,13 +5901,23 @@ public class SmisCommandHelper implements SmisConstants {
         
         return args.toArray(new CIMArgument[args.size()]);
     }
-    
+
     public CIMArgument[] getModifyListReplicaInputArguments(CIMObjectPath[] syncObjectPaths, int operationValue) {
         return new CIMArgument[] {
                 _cimArgument.bool(CP_EMC_SYNCHRONOUS_ACTION, true),
                 _cimArgument.uint16(CP_OPERATION, operationValue),
                 _cimArgument.referenceArray(CP_SYNCHRONIZATION, syncObjectPaths)
         };
+    }
+
+    public CIMArgument[] getModifyListReplicaInputArguments(CIMObjectPath[] syncObjectPaths, int operation, int copyState) {
+        CIMArgument[] baseArgs = getModifyListReplicaInputArguments(syncObjectPaths, operation);
+        List<CIMArgument> args = new ArrayList<>(Arrays.asList(baseArgs));
+        if (copyState != NON_COPY_STATE) {
+            args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, copyState));
+        }
+
+        return args.toArray(new CIMArgument[]{});
     }
     
     public CIMObjectPath getPoolPath(StorageSystem storageSystem, StoragePool storagePool) {
@@ -6128,5 +6151,39 @@ public class SmisCommandHelper implements SmisConstants {
             volumeIter.close();
         }
         return result;
+    }
+
+    /**
+     * Hence to make the group consistent, we should check for the syncState of all replicas in the group.
+     * if there is any replica in split state, then resume the complete group.
+     *
+     * @param storage
+     * @param replicaList
+     * @param clazz
+     * @return
+     */
+    public <T extends BlockObject> boolean groupHasReplicasInSplitState(StorageSystem storage, List<URI> replicaList, Class<T> clazz) {
+        Iterator<T> replicaObjsItr = _dbClient.queryIterativeObjects(clazz, replicaList, true);
+        while (replicaObjsItr.hasNext()) {
+            T replicaObj = replicaObjsItr.next();
+            CIMObjectPath syncObjCoP = _cimPath.getSyncObject(storage, replicaObj);
+            _log.debug("Verifying replica {} sync state.", replicaObj.getId());
+            try {
+                CIMInstance instance = getInstance(storage, syncObjCoP, false, false,
+                        new String[] { SmisConstants.CP_SYNC_STATE });
+                if (null == instance) continue;
+                String syncState = CIMPropertyFactory.getPropertyValue(instance, SmisConstants.CP_SYNC_STATE);
+                if (SynchronizationState.FRACTURED.toString().equals(syncState)) {
+                    _log.info("Found a replica {} in Split state", replicaObj.getId());
+                    return true;
+                }
+            } catch (Exception e) {
+                String msg = String.format("Failed to acquire sync instance %s. continuing with next.. ",
+                        syncObjCoP);
+                _log.warn(msg, e);
+            }
+        }
+        _log.info("All replicas in the group are in SYNC state. No resume required");
+        return false;
     }
 }

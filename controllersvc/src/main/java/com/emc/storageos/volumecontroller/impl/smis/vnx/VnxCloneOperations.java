@@ -193,7 +193,7 @@ public class VnxCloneOperations extends AbstractCloneOperations {
     public void activateGroupClones(StorageSystem storage, List<URI> clones, TaskCompleter completer) {
         log.info("activateGroupClones operation START");
         try {
-            modifyGroupClones(storage, clones, completer, SmisConstants.FRACTURE_VALUE);
+            modifyGroupClones(storage, clones, SmisConstants.FRACTURE_VALUE);
             List<Volume> cloneVols = _dbClient.queryObject(Volume.class, clones);
             for (Volume clone : cloneVols) {
                 clone.setSyncActive(true);
@@ -208,7 +208,7 @@ public class VnxCloneOperations extends AbstractCloneOperations {
             completer.error(_dbClient, DeviceControllerException.exceptions.activateVolumeFullCopyFailed(e));
         } 
         log.info("activateGroupClones operation END");
-        
+
     }
     
     @Override
@@ -216,7 +216,12 @@ public class VnxCloneOperations extends AbstractCloneOperations {
             TaskCompleter taskCompleter) {
         log.info("START fractureGroupClone operation");
         try {
-            modifyGroupClones(storageSystem, clones, taskCompleter, SmisConstants.FRACTURE_VALUE);
+            if (_helper.groupHasReplicasInSplitState(storageSystem, clones, Volume.class)) {
+                log.info("Resync group clones with mixed states");
+                modifyGroupClones(storageSystem, clones, SmisConstants.RESYNC_VALUE);
+            }
+
+            modifyGroupClones(storageSystem, clones, SmisConstants.FRACTURE_VALUE);
             List<Volume> cloneVols = _dbClient.queryObject(Volume.class, clones);
             for (Volume clone : cloneVols) {
                 clone.setReplicaState(ReplicationState.SYNCHRONIZED.name());
@@ -237,7 +242,7 @@ public class VnxCloneOperations extends AbstractCloneOperations {
     public void detachGroupClones(StorageSystem storage, List<URI> clones,TaskCompleter completer) {
         log.info("START detachGroupClone operation");
         try {
-            modifyGroupClones(storage, clones, completer, SmisConstants.DETACH_VALUE);
+            modifyGroupClones(storage, clones, SmisConstants.DETACH_VALUE);
             List<Volume> cloneVols = _dbClient.queryObject(Volume.class, clones);
             for (Volume clone : cloneVols) {
                 clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
@@ -259,7 +264,7 @@ public class VnxCloneOperations extends AbstractCloneOperations {
     public void restoreGroupClones(StorageSystem storage, List<URI> clones,TaskCompleter completer) {
         log.info("START restoreGroupClone operation");
         try {
-            modifyGroupClones(storage, clones, completer, SmisConstants.RESTORE_FROM_REPLICA);
+            modifyGroupClones(storage, clones, SmisConstants.RESTORE_FROM_REPLICA);
             completer.ready(_dbClient);
         } catch (Exception e) {
             log.error(MODIFY_GROUP_ERROR, e);
@@ -273,7 +278,7 @@ public class VnxCloneOperations extends AbstractCloneOperations {
     public void resyncGroupClones(StorageSystem storage, List<URI> clones,TaskCompleter completer) {
         log.info("START resyncGroupClone operation");
         try {
-            modifyGroupClones(storage, clones, completer, SmisConstants.RESYNC_VALUE);
+            modifyGroupClones(storage, clones, SmisConstants.RESYNC_VALUE);
             completer.ready(_dbClient);
         } catch (Exception e) {
             log.error(MODIFY_GROUP_ERROR, e);
@@ -287,18 +292,16 @@ public class VnxCloneOperations extends AbstractCloneOperations {
      * It would call modifyListSynchronization for synchronized operations, e.g. fracture, detach, etc
      * @param storageSystem
      * @param clones
-     * @param taskCompleter
      * @param operationValue
      * @throws Exception 
      */
     @SuppressWarnings("rawtypes")
-    private void modifyGroupClones(StorageSystem storageSystem, List<URI> clones,TaskCompleter taskCompleter, int operationValue) 
+    private void modifyGroupClones(StorageSystem storageSystem, List<URI> clones, int operationValue)
             throws Exception {
 
         callEMCRefreshIfRequired(_dbClient, _helper, storageSystem, clones);
         List<Volume> cloneVols = _dbClient.queryObject(Volume.class, clones);
         List<CIMObjectPath> syncPaths = new ArrayList<CIMObjectPath>();
-        boolean failed = false;
         for (Volume clone : cloneVols) {
             URI sourceUri = clone.getAssociatedSourceVolume();
             Volume sourceObj = _dbClient.queryObject(Volume.class, sourceUri);
@@ -307,20 +310,15 @@ public class VnxCloneOperations extends AbstractCloneOperations {
             if (instance != null) {
                 syncPaths.add(syncObject);
             } else {
-                String errorMsg = "The clone is already detached. modification will not be performed.";
-                log.info(errorMsg);
-                ServiceError error = DeviceControllerErrors.smis.methodFailed("modifyGroupClone", errorMsg);
-                taskCompleter.error(_dbClient, error);
-                failed = true;
-                break;
+                log.error("Storage synchronized instance is not available for clone {}", clone.getLabel());
+                throw DeviceControllerException.exceptions.synchronizationInstanceNull(clone.getLabel());
             }     
         }
-        if (!failed) {
-            CIMArgument[] modifyCGCloneInput = _helper.getModifyListReplicaInputArguments(
-                                                                syncPaths.toArray(new CIMObjectPath[] {}),
-                                                                operationValue);
-            _helper.callModifyListReplica(storageSystem, modifyCGCloneInput);            
-        }
+
+        CIMArgument[] modifyCGCloneInput = _helper.getModifyListReplicaInputArguments(
+                                                            syncPaths.toArray(new CIMObjectPath[] {}),
+                                                            operationValue);
+        _helper.callModifyListReplica(storageSystem, modifyCGCloneInput);
     }
     
    

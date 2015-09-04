@@ -220,8 +220,8 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
             CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, replicationGroupName);
             if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
                 CIMObjectPath cimJob = null;
-                CIMArgument[] restoreCGSnapInput = _helper.getRestoreFromReplicaInputArgumentsWithForce(groupSynchronized);
-                cimJob = _helper.callModifyReplica(storage, restoreCGSnapInput);
+                CIMArgument[] restoreCGCloneInput = _helper.getRestoreFromReplicaInputArgumentsWithForce(groupSynchronized);
+                cimJob = _helper.callModifyReplica(storage, restoreCGCloneInput);
                 
                 ControllerServiceImpl.enqueueJob(new QueueJob(new SmisCloneRestoreJob(cimJob, storage.getId(), taskCompleter)));
             } else {
@@ -248,7 +248,7 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
     @Override
     @SuppressWarnings("rawtypes")
     public void resyncGroupClones(StorageSystem storage, List<URI> clones, TaskCompleter taskCompleter) throws DeviceControllerException {
-        _log.info("START restore group clone operation");
+        _log.info("START resync group clone operation");
         try {
             callEMCRefreshIfRequired(_dbClient, _helper, storage, clones);
             Volume clone = _dbClient.queryObject(Volume.class, clones.get(0));
@@ -274,7 +274,7 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions.resynchronizeFullCopyFailed(e));
         }
     }
-    
+
     @Override
     @SuppressWarnings("rawtypes")
     public void fractureGroupClones(StorageSystem storage, List<URI> clones, TaskCompleter completer) {
@@ -284,7 +284,13 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
             CIMObjectPath groupSynchronized = ReplicationUtils.getCloneGroupSynchronizedPath(storage, clones.get(0),
                                                 _dbClient, _helper, _cimPath);
             if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
-                CIMObjectPath cimJob = null;
+                if (_helper.groupHasReplicasInSplitState(storage, clones, Volume.class)) {
+                    SmisCloneResyncJob job = new SmisCloneResyncJob(null, storage.getId(), completer);
+                    CIMArgument[] resyncCGCloneInput = _helper.getResyncReplicaInputArguments(groupSynchronized);
+                    _log.info("Resync group clones with mixed states");
+                    _helper.callModifyReplicaSynchronously(storage, resyncCGCloneInput, job);
+                }
+
                 CIMArgument[] fractureCGCloneInput = _helper.getFractureMirrorInputArguments(groupSynchronized, null);
                 _helper.callModifyReplica(storage, fractureCGCloneInput);
                 List<Volume> cloneVolumes = _dbClient.queryObject(Volume.class, clones);

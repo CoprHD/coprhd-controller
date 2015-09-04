@@ -2619,7 +2619,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 detachStep = addStepsForDetachMirror(workflow, waitFor, "deactivate", mirrorList, isCG);
             }
             else {
-                Workflow.Method detach = new Workflow.Method("detachMirror", storage, mirrorList);
+                Workflow.Method detach = detachMirrorMethod(storage, mirrorList);
                 workflow.createStep("deactivate", "detaching mirror volume: " + mirrorStr, null, storage,
                         storageSystem.getSystemType(),getClass(), detach, null, detachStep);
             }

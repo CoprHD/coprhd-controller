@@ -31,8 +31,8 @@ class VnasServer(object):
     
     URI_VNSSERVER = '/vdc/vnas-servers'
     URI_VNASSERVER_SHOW = '/vdc/vnas-servers/{0}'
-    URI_VNASSERVER_ASSIGN = '/project/{0}/assign-vnasservers'
-    URI_VNASSERVER_UNASSIGN = '/project/{0}/unassign-vnasservers' 
+    URI_VNASSERVER_ASSIGN = '/projects/{0}/assign-vnas-servers'
+    URI_VNASSERVER_UNASSIGN = '/projects/{0}/unassign-vnas-servers' 
     
    
 
@@ -74,9 +74,11 @@ class VnasServer(object):
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "GET", uri, None)
         o = common.json_decode(s)
+        
+        
 
         if("vnas_server" in o):
-            return common.get_list(o, 'vnas_server')
+            return common.get_list(o, 'vnas_server' )
         return []     
     
     def vnasserver_show(self, label, xml=False):
@@ -99,12 +101,12 @@ class VnasServer(object):
     
     
     #assign project routine 
-    def assign(self, name, project=None):
+    def assign(self, name, project):
         '''
-        Retrieves network details based on network name
+        Assigns the vnasserver to a Project
         Parameters:
             name: name of the vnasserver.
-            project : varray to be assigned .
+            project : project to be assigned .
         Returns:
             Network details in JSON response payload
         
@@ -113,15 +115,21 @@ class VnasServer(object):
         #Check if vnasserver is available 
         vnasserver_id = self.vnasserver_query(name)
         
-        if(vnasserver_id is None):
-            raise SOSError(
-                SOSError.ENTRY_ALREADY_EXISTS_ERR,
-                "vnasserver with name " + name + " does not exist")
+        
+        #if(vnasserver_id is None):
+         #   raise SOSError(
+           #     SOSError.ENTRY_ALREADY_EXISTS_ERR,
+          #      "vnasserver with name " + name + " does not exist")
+        
         
         #query for Project ID 
         request = dict()
+        
         #request['name'] = name
-        request['vnas_server'] = vnasserver_id
+        #vnas_server = {'vnas_server': vnasserver_id}
+#         vnasIdList = list()
+#         vnasIdList.append({ "vnas_server": vnasserver_id})
+        request['vnas_server'] = [vnasserver_id]
         
 
         if(project):
@@ -134,14 +142,18 @@ class VnasServer(object):
 
         body = json.dumps(request)
         
+        
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "PUT",
                                              VnasServer.URI_VNASSERVER_ASSIGN.format(pr_uri),
                                              body)
+        
+        if(s is not None and len(s) > 0):
+            print s
+            o = common.json_decode(s)
+            return o
+        
        
-        o = common.json_decode(s)
-        return o
-    
         
          
     
@@ -168,7 +180,8 @@ class VnasServer(object):
         #query for Project ID 
         request = dict()
         #request['name'] = name
-        request['vnas_server'] = vnasserver_id
+      
+        request['vnas_server'] = [vnasserver_id]
         
 
         if(project):
@@ -189,9 +202,12 @@ class VnasServer(object):
                                              "PUT",
                                              VnasServer.URI_VNASSERVER_UNASSIGN.format(pro_uri),
                                              body)
-       
-        o = common.json_decode(s)
-        return o
+        
+     
+        if(s is not None and len(s) > 0):
+            print s
+            o = common.json_decode(s)
+            return o
 
     
 #
@@ -228,16 +244,27 @@ def vnasserver_list(args):
     from common import TableGenerator
     try:
         vnasServerList = obj.list_vnasservers()
-        if(len(vnasServerList) > 0):
+        resultList = []
+	
+        for iter in vnasServerList:
+            rslt = obj.vnasserver_show(iter['name'])
+            if(rslt is not None):
+                resultList.append(rslt)
+         
+        
+        if(len(resultList) > 0):
             # show a short table
             if(args.verbose is False and args.long is False):
                 TableGenerator(vnasServerList,
                                ["name"]).printTable()
+            
+                
             # show a long table
             if(args.verbose is False and args.long is True):
                 TableGenerator(
-                    vnasServerList,
-                    ["name"]).printTable()
+                    resultList,
+                    ["name","assigned_varrays","nas_state"]).printTable()
+                    
             # show all items in json format
             if(args.verbose):
                 return common.format_json_object(vnasServerList)
@@ -313,6 +340,7 @@ def assign_parser(subcommand_parsers, common_parser):
 
 def vnasserver_assign(args):
     obj = VnasServer(args.ip, args.port)
+    
     try:
         obj.assign(args.name, args.project)
     except SOSError as e:

@@ -4,22 +4,22 @@
  */
 package com.emc.sa.asset.providers;
 
-import com.emc.sa.asset.AssetOptionsContext;
-import com.emc.sa.asset.BaseAssetOptionsProvider;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
-import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
-import com.emc.sa.asset.annotation.Asset;
-import com.emc.sa.asset.annotation.AssetDependencies;
-import com.emc.sa.asset.annotation.AssetNamespace;
-import com.emc.vipr.client.core.filters.ConsistencyGroupFilter;
-import com.emc.vipr.model.catalog.AssetOption;
-
-import org.springframework.stereotype.Component;
-
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
+
+import org.springframework.stereotype.Component;
+
+import com.emc.sa.asset.AssetOptionsContext;
+import com.emc.sa.asset.BaseAssetOptionsProvider;
+import com.emc.sa.asset.annotation.Asset;
+import com.emc.sa.asset.annotation.AssetDependencies;
+import com.emc.sa.asset.annotation.AssetNamespace;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
+import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
+import com.emc.vipr.client.core.filters.ConsistencyGroupFilter;
+import com.emc.vipr.model.catalog.AssetOption;
 
 @Component
 @AssetNamespace("vipr")
@@ -36,6 +36,19 @@ public class ConsistencyGroupProvider extends BaseAssetOptionsProvider {
         } else {
             return Collections.emptyList();
         }
+    }
+
+    @Asset("consistencyGroupByProject")
+    @AssetDependencies({ "project" })
+    public List<AssetOption> getConsistencyGroupsByProject(AssetOptionsContext ctx, URI projectId) {
+        return createBaseResourceOptions(api(ctx).blockConsistencyGroups().search().byProject(projectId).run());
+    }
+
+    @Asset("rpConsistencyGroupByProject")
+    @AssetDependencies({ "project" })
+    public List<AssetOption> getRPConsistencyGroupsByProject(AssetOptionsContext ctx, URI projectId) {
+        return createBaseResourceOptions(api(ctx).blockConsistencyGroups().search().byProject(projectId)
+                .filter(new ConsistencyGroupFilter(BlockConsistencyGroup.Types.RP.toString(), false)).run());
     }
 
     @Asset("consistencyGroupWithVirtualPoolChangeOperation")

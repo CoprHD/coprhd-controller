@@ -575,6 +575,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         vplexMirror.setCapacity(mirrorVolume.getCapacity());
                         vplexMirror.setLabel(mirrorVolume.getLabel());
                         vplexMirror.setNativeId(entry.getValue());
+                        vplexMirror.setAllocatedCapacity(mirrorVolume.getAllocatedCapacity());
                         vplexMirror.setProvisionedCapacity(mirrorVolume.getProvisionedCapacity());
                         vplexMirror.setSource(new NamedURI(virtualVolume.getId(), virtualVolume.getLabel()));
                         vplexMirror.setStorageController(mirrorVolume.getStorageController());

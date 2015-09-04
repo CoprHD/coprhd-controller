@@ -590,11 +590,13 @@ public class ImageServerControllerImpl implements ImageServerController {
         ci.setImageType(osMetadata.getImageType());
 
         dbClient.persistObject(ci);
+
         //update the imageServer with the successfully updated image.
         if(imageServer.getComputeImage() == null){
 			imageServer.setComputeImage(new StringSet());
         }
         imageServer.getComputeImage().add(ci.getId().toString());
+        
         dbClient.persistObject(imageServer);
         // clean up
         cleanupTemp(imageserverDialog, tempDir, imagePath);

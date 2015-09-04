@@ -85,10 +85,8 @@ public class ComputeImageServers extends ViprResourceController {
     public static void create() {
         addReferenceData();
         ComputeImageServerForm ComputeImageServer = new ComputeImageServerForm();
-        // ComputeImageServer.tftpBootDir = MessagesUtils.get("ComputeImageServer.default.tftpBootDir");
-        // ComputeImageServer.osInstallTimeOut = Integer.parseInt(MessagesUtils.get("ComputeImageServer.default.installTimeout"));
-        System.out
-                .println("ComputeImageServer tftpboot " + ComputeImageServer.tftpBootDir + " osTO " + ComputeImageServer.osInstallTimeOut);
+        ComputeImageServer.tftpBootDir = MessagesUtils.get("ComputeImageServer.default.tftpBootDir");
+        ComputeImageServer.osInstallTimeOut = Integer.parseInt(MessagesUtils.get("ComputeImageServer.default.installTimeout"));
         render("@edit", ComputeImageServer);
     }
 
@@ -112,11 +110,9 @@ public class ComputeImageServers extends ViprResourceController {
     public static void edit(String id) {
         addReferenceData();
 
-        ComputeImageServerRestRep computeImageServer = ComputeImageServerUtils
-                .getComputeImageServer(id);
+        ComputeImageServerRestRep computeImageServer = ComputeImageServerUtils.getComputeImageServer(id);
         if (computeImageServer != null) {
-            ComputeImageServerForm computeImageServers = new ComputeImageServerForm(
-                    computeImageServer);
+            ComputeImageServerForm computeImageServers = new ComputeImageServerForm(computeImageServer);
             render("@edit", computeImageServers);
         }
         else {
@@ -128,7 +124,6 @@ public class ComputeImageServers extends ViprResourceController {
     @FlashException(keep = true, referrer = { "create", "edit" })
     public static void save(ComputeImageServerForm computeImageServers) {
         if (computeImageServers != null) {
-            System.out.println("computeImageSErvers not null");
         }
         computeImageServers.validate("computeImageServers");
 
@@ -213,16 +208,15 @@ public class ComputeImageServers extends ViprResourceController {
         public String cloneUrl;
 
         public ComputeImageServerForm() {
-            System.out.println("ComputeImageserverForm without");
         }
 
         public ComputeImageServerForm(ComputeImageServerRestRep computeImageServer) {
             this.id = computeImageServer.getId().toString();
             this.name = computeImageServer.getName();
             this.imageServerIp = computeImageServer.getImageServerIp();
+            this.osInstallNetworkAddress = computeImageServer.getImageServerSecondIp();
             this.status = computeImageServer.getComputeImageServerStatus();
             this.tftpBootDir = computeImageServer.getTftpbootDir();
-            System.out.println("ComputeImageserverForm " + this.tftpBootDir + " this.name " + this.name);
         }
 
         public ComputeImageServerForm(ComputeImageServerRestRep computeImageServer, boolean clone) {
@@ -277,7 +271,6 @@ public class ComputeImageServers extends ViprResourceController {
         private ComputeImageServerRestRep update() {
             ComputeImageServerUpdate updateParam = new ComputeImageServerUpdate();
             ComputeImageServerRestRep originalCIS = ComputeImageServerUtils.getComputeImageServer(this.id);
-            // ComputeImageServerRestRep originalCIS = new ComputeImageServerRestRep();
 
             updateParam.setImageServerIp(this.imageServerIp);
             updateParam.setTftpbootDir(this.tftpBootDir);
@@ -287,7 +280,6 @@ public class ComputeImageServers extends ViprResourceController {
             if (this.password != null && this.password.length() > 0) {
                 updateParam.setImageServerPassword(this.password);
             }
-
             return ComputeImageServerUtils.update(id, updateParam);
         }
     }

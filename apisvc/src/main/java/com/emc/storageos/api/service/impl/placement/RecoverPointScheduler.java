@@ -477,12 +477,7 @@ public class RecoverPointScheduler implements Scheduler {
     				continue;
     			}
 
-    			for (String associatedStorageSystem : associatedStorageSystems) {    
-    				if (candidateSourceInternalSiteName.isEmpty()) {
-    					candidateSourceInternalSiteName = ProtectionSystem.getAssociatedStorageSystemSiteName(associatedStorageSystem);
-    				}
-    			    
-    			    _log.info(String.format("RP Placement : Choosing RP site %s for source", candidateSourceInternalSiteName));    		
+    			for (String associatedStorageSystem : associatedStorageSystems) {        				    			        			    	
     			    rpProtectionRecommendation.setProtectionDevice(candidateProtectionSystem.getId());    
     				RPRecommendation rpRecommendation = buildSourceRecommendation(associatedStorageSystem, varray, vpool, 
 																candidateProtectionSystem, sourcePool, 
@@ -490,7 +485,11 @@ public class RecoverPointScheduler implements Scheduler {
     				if (rpRecommendation == null) {
     					// No placement found for the associatedStorageSystem, so continue.
     					continue;
-    				}    			
+    				}      				
+    					
+    				candidateSourceInternalSiteName = rpRecommendation.getInternalSiteName();
+    				 _log.info(String.format("RP Placement : Choosing RP site %s for source", candidateSourceInternalSiteName));   
+    				
     				    		
     				//Build the HA recommendation if HA is specified
     				VirtualPoolCapabilityValuesWrapper haCapabilities = new VirtualPoolCapabilityValuesWrapper(capabilities);

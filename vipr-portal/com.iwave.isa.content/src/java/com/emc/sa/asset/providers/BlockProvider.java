@@ -468,12 +468,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             List<BlockConsistencyGroupRestRep> consistencyGroups = api(ctx).blockConsistencyGroups()
                     .search()
                     .byProject(project)
-                    .filter(new DefaultResourceFilter<BlockConsistencyGroupRestRep>() {
-                        @Override
-                        public boolean accept(BlockConsistencyGroupRestRep item) {
-                            return BlockProviderUtils.isSupportedConsistencyGroup(client, item);
-                        }
-                    })
                     .run();
             return createBaseResourceOptions(consistencyGroups);
         }
@@ -586,12 +580,6 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             List<BlockConsistencyGroupRestRep> consistencyGroups = api(ctx).blockConsistencyGroups()
                     .search()
                     .byProject(projectId)
-                    .filter(new DefaultResourceFilter<BlockConsistencyGroupRestRep>() {
-                        @Override
-                        public boolean accept(BlockConsistencyGroupRestRep item) {
-                            return BlockProviderUtils.isSupportedConsistencyGroup(api(ctx), item);
-                        }
-                    })
                     .run();
             return createBaseResourceOptions(consistencyGroups);
         } else {
@@ -930,7 +918,8 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             }
             return options;
         } else {
-            return createBaseResourceOptions(BlockProviderUtils.getSupportedConsistencyGroups(client, project));
+            List<BlockConsistencyGroupRestRep> consistencyGroups = client.blockConsistencyGroups().search().byProject(project).run();
+            return createBaseResourceOptions(consistencyGroups);
         }
     }
 
@@ -1045,7 +1034,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             });
             return createVolumeOptions(client, volumes);
         } else {
-            return createBaseResourceOptions(BlockProviderUtils.getSupportedConsistencyGroups(client, project));
+            List<BlockConsistencyGroupRestRep> consistencyGroups = api(ctx).blockConsistencyGroups()
+                    .search()
+                    .byProject(project)
+                    .run();
+            return createBaseResourceOptions(consistencyGroups);
         }
     }
 

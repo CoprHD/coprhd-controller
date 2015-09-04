@@ -22,6 +22,7 @@ public class StorageProviderTypes {
     public static final String SCALEIOAPI = "scaleioapi";
     public static final String DATA_DOMAIN = "ddmc";
     public static final String IBMXIV = "ibmxiv";
+    public static final String XTREMIO = "xtremio";
 
     public static final StringOption[] OPTIONS = {
             option(SMIS),
@@ -30,7 +31,8 @@ public class StorageProviderTypes {
             option(CINDER),
             option(SCALEIOAPI),
             option(DATA_DOMAIN),
-            option(IBMXIV)
+            option(IBMXIV),
+            option(XTREMIO)
     };
     
     public static final StringOption[] optionSIO = {
@@ -53,6 +55,7 @@ public class StorageProviderTypes {
             put(StorageSystemTypes.SCALEIOAPI, SCALEIOAPI);
             put(StorageSystemTypes.DATA_DOMAIN, DATA_DOMAIN);
             put(StorageSystemTypes.IBMXIV, IBMXIV);
+            put(StorageSystemTypes.XTREMIO, XTREMIO);
         }
     };
 

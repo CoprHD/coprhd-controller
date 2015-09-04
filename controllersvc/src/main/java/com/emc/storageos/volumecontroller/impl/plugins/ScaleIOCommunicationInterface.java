@@ -195,7 +195,7 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
                     List<ScaleIOStoragePool> storagePools = scaleIOHandle.getProtectionDomainStoragePools(protectionDomainId);
                     for (ScaleIOStoragePool storagePool : storagePools) {
                         String poolName = storagePool.getName();
-                        String nativeGuid = String.format("%s-%s-%s", installationId, protectionDomain, poolName);
+                        String nativeGuid = String.format("%s-%s-%s", installationId, domainName, poolName);
                         log.info("Attempting to discover pool {} for ProtectionDomain {}", poolName, domainName);
                         List<StoragePool> pools =
                                 queryActiveResourcesByAltId(_dbClient, StoragePool.class, "nativeGuid", nativeGuid);
@@ -561,7 +561,6 @@ public class ScaleIOCommunicationInterface extends ExtendedCommunicationInterfac
             List<ScaleIOSDS> allSDSs, String protectionDomainName) throws IOException {
         List<StoragePort> ports = new ArrayList<>();
         List<String> endpoints = new ArrayList<>();
-        //String id = protectionDomain.getId();
         for (ScaleIOSDS sds : allSDSs) {
             String sdsId = sds.getId();
             List<IP> ips = sds.getIpList();

@@ -24,6 +24,7 @@ import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
 
 /**
@@ -92,13 +93,6 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
                     e.getMessage());
             throw ClientControllerException.fatals.unableToScheduleDiscoverJobs(tasks, e);
         }
-    }
-
-    @Override
-    public void restoreVolume(URI protectionDevice, URI storageDevice,
-            URI snapshotId, String opId) throws InternalException {
-        execFS("restoreVolume", protectionDevice, storageDevice, snapshotId, opId);
-
     }
 
     @Override

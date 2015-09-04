@@ -2272,7 +2272,7 @@ def rp_journal_create(args):
     size = common.to_bytes(args.size)
     if(not size):
         raise SOSError(SOSError.CMD_LINE_ERR, 'error: Invalid input for -size')
-    if(args.count < 0):
+    if(args.count <= 0):
         raise SOSError(
             SOSError.CMD_LINE_ERR,
             'error: Invalid input for -count')

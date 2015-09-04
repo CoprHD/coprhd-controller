@@ -1138,7 +1138,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 s_logger.info("Vpool change is a data migration");
 
                 // Verify only the CG volumes are passed.
-                verifyVolumesInCG(volumes, cg);
+                boolean isSupported = VPlexUtil.verifyVolumesInCG(volumes, cg, _dbClient);
+                if (!isSupported) {
+                    throw APIException.badRequests.cantChangeVpoolNotAllCGVolumes();
+                }
 
                 // All volumes will be migrated in the same workflow.
                 // If there are many volumes in the CG, the workflow
@@ -1221,29 +1224,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         return cg;
     }
 
-    /**
-     * Verifies if the passed volumes are all the volumes in the passed
-     * consistency group.
-     * 
-     * @param volumes The list of volumes to verify
-     * @param cg The consistency group
-     */
-    private void verifyVolumesInCG(List<Volume> volumes, BlockConsistencyGroup cg) {
-        List<Volume> cgVolumes = getActiveCGVolumes(cg);
-        // Make sure only the CG volumes are selected.
-        for (Volume volume : volumes) {
-            boolean found = false;
-            for (Volume cgVolume : cgVolumes) {
-                if (volume.getId().equals(cgVolume.getId())) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                throw APIException.badRequests.cantChangeVpoolVolumeIsNotInCG();
-            }
-        }
-    }
 
     /**
      * Verifies if the valid storage pools for the target vpool specify a single

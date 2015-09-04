@@ -1757,10 +1757,11 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             CIMInstance cgPathInstance = null;
             boolean isVPlex = consistencyGroup.checkForType(Types.VPLEX);
             String groupName = _helper.getConsistencyGroupName(consistencyGroup, storage);
+            //If this is for VPlex, we would create backend consistency group if it does not exist yet.
             if (groupName == null || groupName.isEmpty()) {
                 if (isVPlex) {
                     createCG = true;
-                    _log.info("No consistency group exists for the storage: " + storage.getId());
+                    _log.info(String.format("No consistency group exists for the storage: %s", storage.getId()));
                 } else {
                     ServiceError error = DeviceControllerErrors.smis.noConsistencyGroupWithGivenName();
                     taskCompleter.error(_dbClient, error);
@@ -1770,7 +1771,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 StorageSystem storageSystem = findProviderFactory.withGroup(storage, groupName).find();
                 if (storageSystem == null) {
                     if (isVPlex) {
-                        _log.info("Could not find consistency group with the name: %s", groupName);
+                        _log.info(String.format("Could not find consistency group with the name: %s", groupName));
                         createCG = true;
                     } else {
                         ServiceError error = DeviceControllerErrors.smis.noConsistencyGroupWithGivenName();

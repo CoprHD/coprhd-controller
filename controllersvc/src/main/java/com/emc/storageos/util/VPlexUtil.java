@@ -23,12 +23,14 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.HostInterface;
@@ -950,7 +952,7 @@ public class VPlexUtil {
     /**
      * Check if the backend volumes for the vplex volumes in a consistency group are in the same storage system.
      * 
-     * @param vplexVolume A reference to the VPLEX volume.
+     * @param vplexVolumes List of VPLEX volumes in a consistency group
      * @param dbClient an instance of {@link DbClient}
      * 
      * @return true or false
@@ -961,28 +963,83 @@ public class VPlexUtil {
         Set<String> haBackendSystems = new HashSet<String>();
         boolean result = true;
         for (Volume vplexVolume : vplexVolumes) {
-            String vplexVolumeId = vplexVolume.getId().toString();
-            StringSet associatedVolumeIds = vplexVolume.getAssociatedVolumes();
-            if (associatedVolumeIds == null) {
-                throw InternalServerErrorException.internalServerErrors
-                            .noAssociatedVolumesForVPLEXVolume(vplexVolumeId);
+            Volume srcVolume = getVPLEXBackendVolume(vplexVolume, true, dbClient);
+            backendSystems.add(srcVolume.getStorageController().toString());
+            
+            Volume haVolume = getVPLEXBackendVolume(vplexVolume, false, dbClient);
+            if (haVolume != null) {
+                haBackendSystems.add(haVolume.getStorageController().toString());
             }
             
-            for (String associatedVolumeId : associatedVolumeIds) {
-                Volume associatedVolume = dbClient.queryObject(Volume.class,
-                        URI.create(associatedVolumeId));
-                if (associatedVolume != null) {
-                    if (associatedVolume.getVirtualArray().equals(vplexVolume.getVirtualArray())) {
-                        backendSystems.add(associatedVolume.getStorageController().toString());
-                    }
-                    if (!(associatedVolume.getVirtualArray().equals(vplexVolume.getVirtualArray()))) {
-                        haBackendSystems.add(associatedVolume.getStorageController().toString());
-                    }
+        }
+        if (backendSystems.size() > 1 || haBackendSystems.size() > 1) {
+            result = false;
+        }
+        return result;
+    }
+    
+    /**
+     * Verifies if the passed volumes are all the volumes in the same backend arrays in the passed
+     * consistency group.
+     * 
+     * @param volumes The list of volumes to verify
+     * @param cg The consistency group
+     */
+    public static boolean verifyVolumesInCG(List<Volume> volumes, BlockConsistencyGroup cg, DbClient dbClient) {
+        List<Volume> cgVolumes = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, dbClient, null);
+        return verifyVolumesInCG(volumes, cgVolumes, dbClient);
+    }
+    
+    /**
+     * Verifies if the passed volumes are all the volumes in the same backend arrays in the passed
+     * consistency group volumes.
+     * 
+     * @param volumes The list of volumes to verify
+     * @param cg The consistency group
+     */
+    public static boolean verifyVolumesInCG(List<Volume> volumes, List<Volume> cgVolumes, DbClient dbClient) {
+        boolean result = true;
+        //Make sure all volumes from the same backend storage systems are selected
+        Map<String, List<String>> cgBackendSystemToVolumesMap = new HashMap<String, List<String>>();
+        for (Volume cgVolume : cgVolumes) {
+            Volume srcVolume = VPlexUtil.getVPLEXBackendVolume(cgVolume, true, dbClient);
+            List<String> vols = cgBackendSystemToVolumesMap.get(srcVolume.getStorageController().toString());
+            if (vols == null) {
+                vols = new ArrayList<String>();
+                cgBackendSystemToVolumesMap.put(srcVolume.getStorageController().toString(), vols);
+            }
+            vols.add(cgVolume.getId().toString());
+        }
+        // sort the passed volumes.
+        Map<String, List<String>> backendSystemToVolumesMap = new HashMap<String, List<String>>();
+        for (Volume volume : volumes) {
+            Volume srcVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+            List<String> vols = backendSystemToVolumesMap.get(srcVolume.getStorageController().toString());
+            if (vols == null) {
+                vols = new ArrayList<String>();
+                backendSystemToVolumesMap.put(srcVolume.getStorageController().toString(), vols);
+            }
+            vols.add(volume.getId().toString());
+            boolean found = false;
+            for (Volume cgVolume : cgVolumes) {
+                if (volume.getId().equals(cgVolume.getId())) {
+                    found = true;
+                    break;
                 }
             }
+            if (!found) {
+                return false;
+            }
         }
-        if (backendSystems.size()>1 || haBackendSystems.size() >1) {
-            result = false;
+        for (Entry<String, List<String>> entry : backendSystemToVolumesMap.entrySet()) {
+            String systemId = entry.getKey();
+            List<String> selectedVols = entry.getValue();
+            List<String> cgVols = cgBackendSystemToVolumesMap.get(systemId);
+            if (selectedVols.size() < cgVols.size()) {
+                //not all volumes from the same backend system are selected.
+                result = false;
+                break;
+            }
         }
         return result;
     }

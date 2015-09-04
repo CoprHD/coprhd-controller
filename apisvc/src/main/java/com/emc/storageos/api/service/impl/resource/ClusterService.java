@@ -128,6 +128,10 @@ public class ClusterService extends TaskResourceService {
             String taskId = UUID.randomUUID().toString();
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
             controller.synchronizeSharedExports(cluster.getId(), taskId);
+            Operation op = _dbClient.createTaskOpStatus(Cluster.class, cluster.getId(), taskId,
+                    ResourceOperationTypeEnum.UPDATE_CLUSTER);
+            auditOp(OperationTypeEnum.UPDATE_CLUSTER, true, op.getStatus(),
+                    cluster.auditParameters());
         }
 
         return map(queryObject(Cluster.class, id, false));

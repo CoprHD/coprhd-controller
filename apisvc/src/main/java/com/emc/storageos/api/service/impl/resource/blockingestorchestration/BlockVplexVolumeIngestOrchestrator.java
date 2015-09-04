@@ -464,12 +464,15 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     List<Initiator> initiators = _dbClient.queryObject(Initiator.class, initUris);
 
                     // find or create the backend export group
-                    boolean exportGroupCreated = false;
                     ExportGroup exportGroup = this.findOrCreateExportGroup(
                             system, associatedSystem, initiators,
                             virtualArray.getId(), context.getBackendProject().getId(),
-                            tenant.getId(), DEFAULT_BACKEND_NUMPATHS, 
-                            uem, exportGroupCreated);
+                            tenant.getId(), DEFAULT_BACKEND_NUMPATHS, uem);
+                    boolean newExportGroupWasCreated = false;
+                    if (null == exportGroup.getId()) {
+                        newExportGroupWasCreated = true;
+                        exportGroup.setId(URIUtil.createId(ExportGroup.class));
+                    }
 
                     // create an ingest param so that we can reuse the ingestExportMask method
                     VolumeExportIngestParam exportIngestParam = new VolumeExportIngestParam();
@@ -488,7 +491,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     BlockObject blockObject = ingestStrategy.ingestExportMasks(
                             processedUnManagedVolume, exportIngestParam, exportGroup,
                             processedBlockObject, unManagedVolumesToBeDeleted, 
-                            associatedSystem, exportGroupCreated, initiators);
+                            associatedSystem, newExportGroupWasCreated, initiators);
 
                     if (null == blockObject) {
                         // an exception should have been thrown by a lower layer in
@@ -723,14 +726,13 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
      * @param tenantURI
      * @param numPaths Value of maxPaths to be put in ExportGroup
      * @param unmanagedExportMask the unmanaged export mask
-     * @param exportGroupCreated whether or not a new group was crated
      * @return existing or newly created ExportGroup (not yet persisted)
      */
     ExportGroup findOrCreateExportGroup(StorageSystem vplex,
             StorageSystem array, Collection<Initiator> initiators,
             URI virtualArrayURI,
             URI projectURI, URI tenantURI, int numPaths,
-            UnManagedExportMask unmanagedExportMask, boolean exportGroupCreated) {
+            UnManagedExportMask unmanagedExportMask) {
 
         String arrayName = array.getSystemType().replace("block", "")
                 + array.getSerialNumber().substring(array.getSerialNumber().length() - 4);
@@ -745,7 +747,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
         if (null != exportGroups && !exportGroups.isEmpty()) {
             for (ExportGroup group : exportGroups) {
                 if (null != group) {
-                    exportGroupCreated = false;
                     _logger.info(String.format("Returning existing ExportGroup %s", group.getLabel()));
                     exportGroup = group;
                 }
@@ -754,7 +755,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
             // No existing group has the mask, let's create one.
             exportGroup = new ExportGroup();
-            exportGroup.setId(URIUtil.createId(ExportGroup.class));
             exportGroup.setLabel(groupName);
             exportGroup.setProject(new NamedURI(projectURI, exportGroup.getLabel()));
             exportGroup.setVirtualArray(vplex.getVirtualArray());
@@ -770,7 +770,6 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 exportGroup.addInitiator(initiator);
             }
 
-            exportGroupCreated = true;
             _logger.info(String.format("Returning new ExportGroup %s", exportGroup.getLabel()));
         }
 

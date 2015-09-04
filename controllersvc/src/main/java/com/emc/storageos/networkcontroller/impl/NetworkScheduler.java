@@ -221,9 +221,9 @@ public class NetworkScheduler {
             return null;
         }
 
-        //Check whether to check zoning on the Network System
-        //If True, we will check zoning on the Network System
-        //False we will use the existing FCZoneReference info
+        // Check whether to check zoning on the Network System
+        // If True, we will check zoning on the Network System
+        // False we will use the existing FCZoneReference info
         if (!checkZones) {
             _log.debug("Check Zones flag is false. Finding FCZoneReference for initiator {} and port {}",
                     initiatorPort, storagePortWwn);
@@ -244,18 +244,18 @@ public class NetworkScheduler {
         } else {
             _log.debug("Check Zones flag is false. Placing a zone for initiator {} and port {}", initiatorPort, storagePortWwn);
             // If the zone already exists, just return its reference
-            NetworkFCZoneInfo zoneInfo = getZoneInfoForExistingZone(initiatorPort, storagePort.getPortNetworkId(), existingZones);
+            NetworkFCZoneInfo zoneInfo = getZoneInfoForExistingZone(iniNet, initiatorPort, storagePort.getPortNetworkId(), existingZones);
             if (zoneInfo != null) {
                 _log.info("Already existing zone {} for initiator {} and port {} will be used.",
-                        new Object[]{zoneInfo.getZoneName(), initiatorPort, storagePortWwn});
+                        new Object[] { zoneInfo.getZoneName(), initiatorPort, storagePortWwn });
                 return zoneInfo;
             }
 
             _log.debug("Could not find an existing zone for initiator {} and port {} to use." +
-                            "A new zone will be created.",
-                    new Object[]{initiatorPort, storagePortWwn});
+                    "A new zone will be created.",
+                    new Object[] { initiatorPort, storagePortWwn });
             // Create a the list of end points -
-            List<String> endPoints = Arrays.asList(new String[]{initiatorPort, storagePortWwn});
+            List<String> endPoints = Arrays.asList(new String[] { initiatorPort, storagePortWwn });
             List<NetworkSystem> networkSystems = getZoningNetworkSystems(iniNet, portNet);
 
             if (networkSystems.isEmpty()) {
@@ -644,7 +644,7 @@ public class NetworkScheduler {
                 _log.info(String.format("Generating zoning targets for ExportMask %s (%s)",
                         exportMask.getMaskName(), exportMask.getId()));
                 zoneInfos.addAll(
-                        generateRequestedZonesForExportMask(exportGroup.getVirtualArray(),
+                        generateRequestedZonesForExportMask(exportGroup.getVirtualArray(), exportGroup,
                                 exportMask, filteredVolumesURIs, existingZonesMap, checkZones));
             }
             // If we're doing a VPlex export, it might use an alternate Varray (for HA export),
@@ -654,7 +654,7 @@ public class NetworkScheduler {
                         .get(exportMask.getStorageDevice().toString()));
                 if (isZoningRequired(dbClient, altVirtualArray)) {
                     zoneInfos.addAll(generateRequestedZonesForExportMask(altVirtualArray,
-                            exportMask, filteredVolumesURIs, existingZonesMap));
+                            exportGroup, exportMask, filteredVolumesURIs, existingZonesMap, checkZones));
                 }
             }
         }
@@ -752,6 +752,7 @@ public class NetworkScheduler {
             StoragePort sp, Collection<URI> volumeURIs, List<Zone> existingZones, boolean checkZones) {
         boolean foundMatch = false;
         NetworkFCZoneInfo zoneInfo = placeZones(
+                exportGroup.getId(),
                 varrayURI,
                 initiator.getProtocol(),
                 formatWWN(initiator.getInitiatorPort()),
@@ -942,6 +943,7 @@ public class NetworkScheduler {
                 }
                 try {
                     NetworkFCZoneInfo fabricInfo = placeZones(
+                            exportGroup.getId(),
                             varrayUri,
                             initiator.getProtocol(),
                             formatWWN(initiator.getInitiatorPort()),

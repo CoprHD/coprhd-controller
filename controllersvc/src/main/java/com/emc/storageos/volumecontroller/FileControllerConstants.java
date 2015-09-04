@@ -15,4 +15,9 @@ public interface FileControllerConstants {
 
     String NFS_EXPORT_USER_NOBODY = "nobody";
 
+    public enum DeleteTypeEnum {
+        FULL,
+        VIPR_ONLY,
+    }
+
 }

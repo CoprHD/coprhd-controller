@@ -170,6 +170,22 @@ public class VPlexApiClient {
      * 
      * @param shallow true to get just the name and path for each cluster, false
      *            to get additional info about the systems and volumes.
+     * @param isStorageVolumeItlsFetch true to get the storage volume ITLs, false otherwise.
+     * 
+     * @return A list of VPlexClusterInfo instances.
+     * 
+     * @throws VPlexApiException When an error occurs querying the VPlex.
+     */
+    public List<VPlexClusterInfo> getClusterInfo(boolean shallow, boolean isStorageVolumeItlsFetch) throws VPlexApiException {
+        s_logger.info("Request for cluster info for VPlex at {}", _baseURI);
+        return _discoveryMgr.getClusterInfo(shallow, isStorageVolumeItlsFetch);
+    }
+    
+    /**
+     * Gets information about the VPLEX clusters.
+     * 
+     * @param shallow true to get just the name and path for each cluster, false
+     *            to get additional info about the systems and volumes.
      * 
      * @return A list of VPlexClusterInfo instances.
      * 
@@ -177,7 +193,7 @@ public class VPlexApiClient {
      */
     public List<VPlexClusterInfo> getClusterInfo(boolean shallow) throws VPlexApiException {
         s_logger.info("Request for cluster info for VPlex at {}", _baseURI);
-        return _discoveryMgr.getClusterInfo(shallow);
+        return _discoveryMgr.getClusterInfo(shallow, false);
     }
 
     /**
@@ -1223,9 +1239,8 @@ public class VPlexApiClient {
      * @return the name for the cluster or null in none found
      */
     public String getClusterName(String clusterId) {
-        String clusterName = null;
-
-        List<VPlexClusterInfo> clusterInfos = _discoveryMgr.getClusterInfo(true);
+        String clusterName = null;        
+        List<VPlexClusterInfo> clusterInfos = _discoveryMgr.getClusterInfo(true, false);
         for (VPlexClusterInfo clusterInfo : clusterInfos) {
             if (clusterId.equals(clusterInfo.getClusterId())) {
                 clusterName = clusterInfo.getName();
@@ -1243,8 +1258,7 @@ public class VPlexApiClient {
      */
     public Map<String, String> getClusterIdToNameMap() {
         Map<String, String> clusterIdToNameMap = new HashMap<String, String>();
-
-        List<VPlexClusterInfo> clusterInfos = _discoveryMgr.getClusterInfo(true);
+        List<VPlexClusterInfo> clusterInfos = _discoveryMgr.getClusterInfo(true, false);
         for (VPlexClusterInfo clusterInfo : clusterInfos) {
             clusterIdToNameMap.put(clusterInfo.getClusterId(), clusterInfo.getName());
         }
@@ -1557,7 +1571,7 @@ public class VPlexApiClient {
             if (null == info.getWwn()) {
                 String reason = "could not parse WWN for storage volume " + info.getName();
                 s_logger.error(reason);
-                throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(reason);
+                throw VPlexApiException.exceptions.failedGettingStorageVolumeInfoForIngestion(reason);
             }
             storageVolumeWwns.put(info.getWwn(), info);
         }

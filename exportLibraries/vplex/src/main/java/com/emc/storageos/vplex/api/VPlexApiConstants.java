@@ -57,6 +57,7 @@ public class VPlexApiConstants {
     public static final URI URI_CLUSTERS_RELATIVE = URI.create("/clusters/");
     public static final URI URI_STORAGE_SYSTEMS = URI.create("/storage-elements/storage-arrays/");
     public static final URI URI_STORAGE_VOLUMES = URI.create("/storage-elements/storage-volumes/");
+    public static final URI URI_STORAGE_VOLUMES_DETAILS = URI.create("/storage-elements/storage-volumes/*");
     public static final URI URI_SYSTEM_VOLUMES = URI.create("/system-volumes/");
     public static final URI URI_EXTENTS = URI.create("/storage-elements/extents/");
     public static final URI URI_DEVICES = URI.create("/devices/");

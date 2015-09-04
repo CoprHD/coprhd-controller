@@ -11,8 +11,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,9 +32,10 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.file.ExportRule;
-import com.emc.storageos.netappc.NetAppClusterApi;
-import com.emc.storageos.netappc.NetAppCException;
 import com.emc.storageos.model.file.ShareACL;
+import com.emc.storageos.netapp.NetAppException;
+import com.emc.storageos.netappc.NetAppCException;
+import com.emc.storageos.netappc.NetAppClusterApi;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.FileSystemConstants;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -202,8 +203,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
             if (null != args.getFsShares() && !args.getFsShares().isEmpty()) {
                 if (!netAppDeleteCIFSExports(storage, args.getFsShares(), portGroup)) {
                     _log.info("NetAppClusterModeDevice doDeletFS:netAppDeleteCIFSExports {} - failed", args.getFsName());
-                }
-                else {
+                } else {
                     _log.info("NetAppClusterModeDevice doDeletFS:netAppDeleteCIFSExports {} - succeeded", args.getFsName());
                 }
             }
@@ -238,10 +238,41 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
         return result;
     }
 
+    /**
+     * Checking a file system: - Check if the FS exists on Array or not
+     * 
+     * @param StorageSystem storage
+     * @param args FileDeviceInputOutput
+     * @return boolean true if exists else false
+     * @throws ControllerException
+     */
+
+    @Override
+    public boolean doCheckFSExists(StorageSystem storage,
+            FileDeviceInputOutput args) throws ControllerException {
+        _log.info("checking file system existence on array: ", args.getFsName());
+        boolean isFSExists = true;
+        try {
+            String portGroup = findSVMName(args.getFs());
+            NetAppClusterApi ncApi = new NetAppClusterApi.Builder(storage.getIpAddress(),
+                    storage.getPortNumber(), storage.getUsername(),
+                    storage.getPassword()).https(true).svm(portGroup).build();
+            List<String> fs = ncApi.listFileSystems();
+            if (!fs.isEmpty() && fs.contains(args.getFsName())) {
+                isFSExists = true;
+            } else {
+                isFSExists = false;
+            }
+        } catch (NetAppException e) {
+            _log.error("NetAppClusterModeDevice::doCheckFSExists failed with an Exception", e);
+        }
+        return isFSExists;
+    }
+
     @Override
     public BiosCommandResult doExport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-            throws ControllerException {
+                    throws ControllerException {
         _log.info("NetAppClusterModeDevice doExport - start");
         // Verify inputs.
         validateExportArgs(exportList);
@@ -497,7 +528,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare)
-            throws ControllerException {
+                    throws ControllerException {
         // To be in-sync with isilon implementation, currently forceGroup is
         // set to null which will set the group name as "everyone" by default.
         String forceGroup = null;
@@ -510,8 +541,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
             Boolean modOrCreateShareSuccess = false;
             if (existingShare != null) {
                 modOrCreateShareSuccess = modifyNtpShare(storage, args, smbFileShare, forceGroup, existingShare);
-            }
-            else if (existingShare == null) {
+            } else if (existingShare == null) {
                 modOrCreateShareSuccess = createNtpShare(storage, args, smbFileShare, forceGroup);
             }
             if (modOrCreateShareSuccess.booleanValue() == true) {
@@ -549,7 +579,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doDeleteShare(StorageSystem storage,
             FileDeviceInputOutput args, SMBFileShare smbFileShare)
-            throws ControllerException {
+                    throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
         try {
             _log.info("NetAppClusterModeDevice doDeleteShare - start");
@@ -616,7 +646,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doUnexport(StorageSystem storage,
             FileDeviceInputOutput args, List<FileExport> exportList)
-            throws ControllerException {
+                    throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
         try {
             _log.info("NetAppClusterModeDevice doUnexport: {} - start", args.getFileObjId());
@@ -829,7 +859,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput args, List<String> dbSnapshots)
-            throws ControllerException {
+                    throws ControllerException {
         if (null == args.getFsName()) {
             throw new DeviceControllerException(
                     "Filesystem name is either missing or empty",
@@ -1010,7 +1040,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doCreateQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args, QuotaDirectory qtree)
-            throws ControllerException {
+                    throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
         try {
             _log.info("NetAppClusterModeDevice doCreateQuotaDirectory - start");
@@ -1089,7 +1119,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
     @Override
     public BiosCommandResult doUpdateQuotaDirectory(StorageSystem storage,
             FileDeviceInputOutput args, QuotaDirectory qtree)
-            throws ControllerException {
+                    throws ControllerException {
         BiosCommandResult result = new BiosCommandResult();
 
         try {
@@ -1143,8 +1173,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
         // ALL EXPORTS
         List<ExportRule> exportsToprocess = args.getExistingDBExportRules();
         String fsName = "";
-        if (exportsToprocess == null)
-        {
+        if (exportsToprocess == null) {
             exportsToprocess = new ArrayList<>();
         }
         _log.info("Number of existng Rules found {}", exportsToprocess.size());
@@ -1523,8 +1552,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
                     storage.getPassword()).https(true).svm(portGroup).build();
             if (!ncApi.deleteShare(smbFileShare.getName())) {
                 failedCount++;
-            }
-            else {
+            } else {
                 removedShareKeys.add(key);
             }
         }
@@ -1634,8 +1662,7 @@ public class NetAppClusterModeDevice implements FileStorageDevice {
             CifsAcl cif_new = new CifsAcl();
             String domain = newAcl.getDomain();
 
-            String userOrGroup = newAcl.getGroup() == null ?
-                    newAcl.getUser() : newAcl.getGroup();
+            String userOrGroup = newAcl.getGroup() == null ? newAcl.getUser() : newAcl.getGroup();
 
             if (domain != null && !domain.isEmpty()) {
                 userOrGroup = domain + "\\" + userOrGroup;

@@ -31,11 +31,7 @@ public class ComputeImageServerUtils {
 
     public static ComputeImageServerRestRep getComputeImageServer(URI id) {
         try {
-            /*
-             * ComputeImageServerRestRep cisrr = new ComputeImageServerRestRep();
-             * cisrr.setName("Dummy");
-             * return cisrr;
-             */return getViprClient().computeImageServers().get(id);
+            return getViprClient().computeImageServers().get(id);
         } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
@@ -45,37 +41,11 @@ public class ComputeImageServerUtils {
     }
 
     public static List<ComputeImageServerRestRep> getComputeImageServers() {
-        /*
-         * ComputeImageServerRestRep cisrr = new ComputeImageServerRestRep();
-         * cisrr.setName("Dummy");
-         * cisrr.setImageServerIp("10.247.87.195");
-         * cisrr.setId(uri("28798275"));
-         * ComputeImageServerRestRep cisrr2 = new ComputeImageServerRestRep();
-         * cisrr2.setName("Dummy2");
-         * cisrr2.setImageServerIp("10.247.87.196");
-         * cisrr2.setId(uri("287982752"));
-         * List<ComputeImageServerRestRep> cisrrl = new ArrayList();
-         * cisrrl.add(cisrr);
-         * cisrrl.add(cisrr2);
-         * return cisrrl;
-         */return getViprClient().computeImageServers().getAll();
+        return getViprClient().computeImageServers().getAll();
     }
 
     public static List<ComputeImageServerRestRep> getComputeImageServers(Collection<URI> ids) {
-        /*
-         * ComputeImageServerRestRep cisrr = new ComputeImageServerRestRep();
-         * cisrr.setName("Dummy");
-         * cisrr.setImageServerIp("10.247.87.195");
-         * cisrr.setId(uri("28798275"));
-         * ComputeImageServerRestRep cisrr2 = new ComputeImageServerRestRep();
-         * cisrr2.setName("Dummy2");
-         * cisrr2.setImageServerIp("10.247.87.196");
-         * cisrr2.setId(uri("287982752"));
-         * List<ComputeImageServerRestRep> cisrrl = new ArrayList();
-         * cisrrl.add(cisrr);
-         * cisrrl.add(cisrr2);
-         * return cisrrl;
-         */return getViprClient().computeImageServers().getByIds(ids);
+        return getViprClient().computeImageServers().getByIds(ids);
     }
 
     /*
@@ -89,15 +59,13 @@ public class ComputeImageServerUtils {
      * }
      */
     public static Task<ComputeImageServerRestRep> create(ComputeImageServerCreate param) {
-        System.out.println("param " + param.getTftpbootDir());
+        System.out.println("ComputeImageServerCreate param " + param.getTftpbootDir());
 
         return getViprClient().computeImageServers().create(param);
     }
 
     public static ComputeImageServerRestRep update(String id, ComputeImageServerUpdate param) {
-        ComputeImageServerRestRep cisrr = new ComputeImageServerRestRep();
-        return cisrr;
-        // return getViprClient().computeImageServers().update(uri(id), param);
+        return getViprClient().computeImageServers().update(uri(id), param);
     }
 
     public static void deactivate(URI id) {

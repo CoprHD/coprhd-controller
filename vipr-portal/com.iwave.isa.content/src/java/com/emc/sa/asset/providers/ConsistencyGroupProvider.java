@@ -6,9 +6,7 @@ package com.emc.sa.asset.providers;
 
 import java.net.URI;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.springframework.stereotype.Component;
 
@@ -18,12 +16,8 @@ import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.model.RelatedResourceRep;
-import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
-import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
-import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ConsistencyGroupFilter;
 import com.emc.vipr.model.catalog.AssetOption;
 
@@ -58,23 +52,6 @@ public class ConsistencyGroupProvider extends BaseAssetOptionsProvider {
             }
         }
         return Collections.emptyList();
-    }
-
-    private boolean isSupportedConsistencyGroup(ViPRCoreClient client, BlockConsistencyGroupRestRep consistencyGroup) {
-        if (consistencyGroup.getVolumes() != null && consistencyGroup.getVolumes().isEmpty()) {
-            return false;
-        }
-        Set<RelatedResourceRep> vpools = new HashSet<>();
-        client.blockVolumes().getByRefs(consistencyGroup.getVolumes());
-        for (VolumeRestRep volume : client.blockVolumes().getByRefs(consistencyGroup.getVolumes())) {
-            vpools.add(volume.getVirtualPool());
-        }
-        for (BlockVirtualPoolRestRep vpool : client.blockVpools().getByRefs(vpools)) {
-            if (!isSupportedVPool(vpool)) {
-                return false;
-            }
-        }
-        return true;
     }
 
     private boolean isSupportedVPool(BlockVirtualPoolRestRep vpool) {

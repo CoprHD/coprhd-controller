@@ -58,6 +58,7 @@ public class ComputeImageServer extends DataObject {
         setChanged("imageServerUser");
     }
 
+    @Encrypt
     @Name("imageServerPassword")
     public String getImageServerPassword() {
         return imageServerPassword;

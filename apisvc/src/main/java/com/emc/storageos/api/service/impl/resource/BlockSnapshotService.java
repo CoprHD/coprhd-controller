@@ -453,6 +453,62 @@ public class BlockSnapshotService extends TaskResourceService {
         return toTask(snapshot, task, op);
     }
 
+
+    /**
+     * Generates a group synchronized between volume Replication group
+     * and snapshot Replication group.
+     * 
+     * @prereq There should be existing Storage synchronized relations
+     * between volumes and snapshots.
+     * 
+     * @param id   [required] - the URN of a ViPR block snapshot
+     * 
+     * @return TaskList
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.ANY})
+    @Path("/{id}/start")
+    public TaskResourceRep startSnapshot(@PathParam("id") URI id)
+        throws InternalException {
+
+        // Validate and get the snapshot.
+        ArgValidator.checkFieldUriType(id, BlockSnapshot.class, "id");
+        BlockSnapshot snapshot = (BlockSnapshot)queryResource(id);
+        
+        // Get the block service API implementation for the snapshot parent volume.
+        Volume volume = _permissionsHelper.getObjectById(snapshot.getParent(), Volume.class);
+        // Get the storage system for the volume
+        StorageSystem storage = _permissionsHelper.getObjectById(volume.getStorageController(), StorageSystem.class);
+
+        if (!snapshot.getIsSyncActive()) {
+            throw APIException.badRequests.cannotEstablishGroupRelationForInactiveSnapshot(snapshot.getLabel());
+        }
+
+        if (!volume.hasConsistencyGroup() ||
+                !snapshot.hasConsistencyGroup()) {
+            throw APIException.badRequests.blockObjectHasNoConsistencyGroup();
+        }
+
+        // Create the task identifier.
+        String taskId = UUID.randomUUID().toString();
+
+        // Create the operation status entry in the status map for the snapshot.
+        Operation op = new Operation();
+        op.setResourceType(ResourceOperationTypeEnum.ESTABLISH_VOLUME_SNAPSHOT);
+        _dbClient.createTaskOpStatus(BlockSnapshot.class, snapshot.getId(), taskId, op);
+        snapshot.getOpStatus().put(taskId, op);
+
+        BlockServiceApi blockServiceApiImpl = getBlockServiceImpl("default");
+
+        // Create the audit log entry.
+        auditOp(OperationTypeEnum.ESTABLISH_VOLUME_SNAPSHOT, true, AuditLogManager.AUDITOP_BEGIN,
+                id.toString(), volume.getId().toString(), snapshot.getStorageController().toString());
+
+        return blockServiceApiImpl.establishVolumeAndSnapshotGroupRelation(storage, volume, snapshot, taskId);
+    }
+
     /**
      * Create a full copy as a volume of the specified snapshot.
      * 

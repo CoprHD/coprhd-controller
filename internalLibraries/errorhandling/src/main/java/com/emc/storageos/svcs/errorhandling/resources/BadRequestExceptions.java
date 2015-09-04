@@ -1198,6 +1198,9 @@ public interface BadRequestExceptions {
     public BadRequestException snapshotNotActivated(String snapshot);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotEstablishGroupRelationForInactiveSnapshot(final String snapshot);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException snapshotNullSettingsInstance(String snapshot);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)

@@ -2223,6 +2223,12 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     }
 
     @Override
+    public void doEstablishVolumeSnapshotGroupRelation(final StorageSystem storage, final URI sourceVolume,
+            final URI snapshot, final TaskCompleter taskCompleter) throws DeviceControllerException {
+        _snapshotOperations.establishVolumeSnapshotGroupRelation(storage, sourceVolume, snapshot, taskCompleter);
+    }
+
+    @Override
     public void doSyncLink(StorageSystem targetSystem, Volume targetVolume, TaskCompleter completer)
             throws Exception {
         _srdfOperations.performRestore(targetSystem, targetVolume, completer);

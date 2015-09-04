@@ -46,12 +46,11 @@ import com.emc.storageos.model.compute.ComputeSystemUpdate;
 import com.emc.vipr.client.Task;
 import com.google.common.collect.Lists;
 
+import controllers.Common;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
 import controllers.util.FlashException;
 import controllers.util.ViprResourceController;
-
-import controllers.Common;
 
 @With(Common.class)
 @Restrictions({ @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })

@@ -88,7 +88,13 @@ public class BaseHostProvider extends BaseAssetOptionsProvider {
     }
 
     protected AssetOption createClusterOption(AssetOptionsContext ctx, ClusterRestRep cluster) {
-        return new AssetOption(cluster.getId(), cluster.getName());
+        String label = null;
+        if (cluster.getAutoExportEnabled()) {
+            label = cluster.getName();
+        } else {
+            label = getMessage("cluster.autoExportDisabled", cluster.getName());
+        }
+        return new AssetOption(cluster.getId(), label);
     }
 
     protected List<AssetOption> getHostOrClusterOptions(AssetOptionsContext context, List<HostRestRep> hosts,

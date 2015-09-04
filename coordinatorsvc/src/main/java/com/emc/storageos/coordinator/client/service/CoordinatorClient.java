@@ -9,6 +9,7 @@ import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
+import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueTaskConsumer;
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.coordinator.common.Service;
@@ -135,6 +136,18 @@ public interface CoordinatorClient {
      */
     public <T> DistributedQueue<T> getQueue(String name, DistributedQueueConsumer<T> consumer,
             QueueSerializer<T> serializer, int maxThreads)
+            throws CoordinatorException;
+
+    /**
+     * Gets an instance of a DistributedLockQueueManager, creating one if necessary.
+     *
+     * TODO more javadoc
+     *
+     * @param consumer
+     * @param <T>
+     * @return
+     */
+    <T> DistributedLockQueueManager getLockQueue(DistributedLockQueueTaskConsumer<T> consumer)
             throws CoordinatorException;
 
     /**
@@ -483,4 +496,29 @@ public interface CoordinatorClient {
      * @param listener
      */
     public void removeNodeListener(NodeListener listener);
+
+    /**
+     * Checks for the existence of a lock (znode) at the given path.  The lock is available
+     * if no znode exists at the given path.
+     *
+     * @param lockPath
+     * @return true if the lock is available
+     * @throws Exception
+     */
+    boolean isDistributedOwnerLockAvailable(String lockPath) throws Exception;
+
+    /**
+     * Set an instance of {@link DistributedAroundHook} that exposes the ability to wrap arbitrary code
+     * with before and after hooks that lock and unlock the owner locks "globalLock", respectively.
+     *
+     * @param ownerLockAroundHook An instance to help with owner lock management.
+     */
+    void setDistributedOwnerLockAroundHook(DistributedAroundHook ownerLockAroundHook);
+
+    /**
+     * Gets the instance of {@link DistributedAroundHook} for owner lock management.
+     *
+     * @return An instance to help with owner lock management.
+     */
+    DistributedAroundHook getDistributedOwnerLockAroundHook();
 }

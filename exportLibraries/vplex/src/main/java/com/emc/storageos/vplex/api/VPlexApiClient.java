@@ -8,12 +8,9 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.TreeMap;
 
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.NewCookie;
@@ -1533,36 +1530,6 @@ public class VPlexApiClient {
     }
 
     /**
-     * Returns a VPlexResourceInfo object for the given device name based
-     * on its virtual volume type (local or distributed).
-     * 
-     * @param deviceName the name of the device
-     * @param virtualVolumeType the type of virtual volume (local or distributed)
-     * 
-     * @return a VPlexResourceInfo object for the device name
-     * @throws VPlexApiException
-     */
-    public VPlexResourceInfo getDeviceStructure(String deviceName, String virtualVolumeType) 
-            throws VPlexApiException {
-        s_logger.info("Request to find device structure for {} on VPLEX at {}", deviceName, _baseURI);
-
-        VPlexResourceInfo device = null;
-
-        switch (virtualVolumeType) {
-            case VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME:
-                device = getDiscoveryManager()
-                            .getDeviceStructureForDistributedIngestion(deviceName, virtualVolumeType);
-                break;
-            case VPlexApiConstants.LOCAL_VIRTUAL_VOLUME:
-                device = getDiscoveryManager()
-                            .getDeviceStructureForLocalIngestion(deviceName, virtualVolumeType);
-                break;
-        }
-
-        return device;
-    }
-
-    /**
      * Returns a Map of lowest-level storage-volume resource's WWN to its VPlexStorageVolumeInfo
      * object for a given device name, virtual volume type, and cluster name.  If 
      * hasMirror is true, this indicates the top-level device is composed of a
@@ -1619,5 +1586,35 @@ public class VPlexApiClient {
                 .getDeviceForStorageVolume(volumeNativeId, wwn, backendArraySerialNum);
 
         return deviceName;
+    }
+
+    /**
+     * Returns a VPlexResourceInfo object for the given device name based
+     * on its virtual volume type (local or distributed).
+     * 
+     * @param deviceName the name of the device
+     * @param virtualVolumeType the type of virtual volume (local or distributed)
+     * 
+     * @return a VPlexResourceInfo object for the device name
+     * @throws VPlexApiException
+     */
+    public VPlexResourceInfo getDeviceStructure(String deviceName, String virtualVolumeType) 
+            throws VPlexApiException {
+        s_logger.info("Request to find device structure for {} on VPLEX at {}", deviceName, _baseURI);
+
+        VPlexResourceInfo device = null;
+
+        switch (virtualVolumeType) {
+            case VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME:
+                device = getDiscoveryManager()
+                            .getDeviceStructureForDistributedIngestion(deviceName, virtualVolumeType);
+                break;
+            case VPlexApiConstants.LOCAL_VIRTUAL_VOLUME:
+                device = getDiscoveryManager()
+                            .getDeviceStructureForLocalIngestion(deviceName, virtualVolumeType);
+                break;
+        }
+
+        return device;
     }
 }

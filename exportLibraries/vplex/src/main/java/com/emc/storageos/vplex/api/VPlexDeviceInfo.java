@@ -7,10 +7,6 @@ package com.emc.storageos.vplex.api;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.cassandra.cli.CliParser.getCondition_return;
-
-import com.emc.storageos.vplex.api.VPlexDirectorInfo.DirectorAttribute;
-
 /**
  * Info for a VPlex device.
  */

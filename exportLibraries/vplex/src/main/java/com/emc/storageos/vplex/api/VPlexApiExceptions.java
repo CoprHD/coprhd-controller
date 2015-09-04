@@ -717,4 +717,10 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException failedGettingDeviceNameForStorageVolume(String reason);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException deviceStructureIsIncompatibleForIngestion(String reason);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedGettingDeviceStructure(String reason);
 }

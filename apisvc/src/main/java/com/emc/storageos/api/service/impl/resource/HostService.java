@@ -1979,7 +1979,7 @@ public class HostService extends TaskResourceService {
                     ComputeImageServer.class, imageServerURI, true);
             StringSet computeImagesSet = imageServer.getComputeImage();
             if (computeImagesSet == null
-                    || !computeImagesSet.contains(img.getId())) {
+                    || !computeImagesSet.contains(img.getId().toString())) {
                 throw APIException.badRequests
                         .imageNotPresentOnComputeImageServer(img.getLabel(),
                                 imageServer.getLabel());

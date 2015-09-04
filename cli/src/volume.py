@@ -962,7 +962,7 @@ class Volume(object):
             'vpool': vpool_uri
         }
         
-        if(number_of_volumes and number_of_volumes > 1):
+        if(number_of_volumes and number_of_volumes > 0):
             request["count"] = number_of_volumes
         
         from consistencygroup import ConsistencyGroup
@@ -1691,7 +1691,7 @@ def create_parser(subcommand_parsers, common_parser):
 def rp_journal_parser(subcommand_parsers, common_parser):
     rp_journal_parser = subcommand_parsers.add_parser(
         'add-journal-space',
-        description='CReating Volumes to increase journal capacity CLI usage.',
+        description='Creating Volumes to increase journal capacity CLI usage.',
         parents=[common_parser],
         conflict_handler='resolve',
         help='increase journal capacity')
@@ -1706,7 +1706,7 @@ def rp_journal_parser(subcommand_parsers, common_parser):
                                 'A size suffix of K for kilobytes, ' +
                                 ' M for megabytes, G for gigabytes, T for ' +
                                 'terabytes is optional.' +
-                                'Default unit is bytes.',
+                                'Default unit is bytes.Minimum 10GB ',
                                 metavar='<volumesize[kKmMgGtT]>',
                                 dest='size',
                                 required=True)
@@ -1733,7 +1733,7 @@ def rp_journal_parser(subcommand_parsers, common_parser):
                                dest='count',
                                metavar='<count>',
                                type=int,
-                               default=0,
+                               required=True,
                                help='Number of volumes to be created')
     mandatory_args.add_argument('-cg', '-consistencygroup',
                                help='The name of the consistency group',
@@ -2287,8 +2287,7 @@ def rp_journal_create(args):
         res = obj.rp_journal_create(
             args.consistencygroup , args.count , args.copyname, args.tenant + "/" + args.project, args.size,
             args.varray, args.vpool , args.sync)
-#        if(args.sync == False):
-#            return common.format_json_object(res)
+
     except SOSError as e:
         if (e.err_code in [SOSError.NOT_FOUND_ERR,
                            SOSError.ENTRY_ALREADY_EXISTS_ERR]):

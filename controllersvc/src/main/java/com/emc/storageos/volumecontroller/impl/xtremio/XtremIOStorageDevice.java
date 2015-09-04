@@ -210,7 +210,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
             Long sizeInGB = new Long(sizeInBytes / (1024 * 1024 * 1024));
             // XtremIO Rest API supports only expansion in GBs.
             String capacityInGBStr = String.valueOf(sizeInGB).concat("g");
-            client.expandVolume(volume.getLabel(), capacityInGBStr, null);
+            client.expandVolume(volume.getLabel(), capacityInGBStr, clusterName);
             XtremIOVolume createdVolume = client.getVolumeDetails(volume.getLabel(), clusterName);
             volume.setProvisionedCapacity(Long.parseLong(createdVolume
                     .getAllocatedCapacity()) * 1024);

@@ -118,10 +118,6 @@ import com.emc.storageos.recoverpoint.utils.WwnUtils;
  *
  */
 
-/**
- * @author jcondlin
- *
- */
 public class RecoverPointClient {
 
     // 10s, for RP between RP operations that adds/sets things on the RP. in RP 4.1 SP1 we started encountering an issue which resulted in
@@ -593,6 +589,7 @@ public class RecoverPointClient {
     	// Make sure the CG name is unique.
     	ConsistencyGroupUID cgUID = null;
     	List<ConsistencyGroupUID> allCgs;
+    	String copyName = "not determined";
     	try {
     		allCgs = functionalAPI.getAllConsistencyGroups();
     		for (ConsistencyGroupUID cg : allCgs) {
@@ -610,10 +607,11 @@ public class RecoverPointClient {
     		List<CreateCopyParams> copyParams = request.getCopies();
     		
     		// determine if the volumes are visible to the recoverpoint appliance
-    		Set<RPSite> allSites = scan(copyParams, null);
-
-    		for (CreateCopyParams copyParam : copyParams) {
+    		Set<RPSite> allSites = scan(copyParams, null);    		
+    		
+    		for (CreateCopyParams copyParam : copyParams) {    		
     			for (CreateVolumeParams journalVolume: copyParam.getJournals()) {
+    				copyName = journalVolume.getRpCopyName();
     				ClusterUID clusterId = RecoverPointUtils.getRPSiteID(functionalAPI, journalVolume.getInternalSiteName()); 
     				ConsistencyGroupCopyUID copyUID = getCGCopyUid(clusterId, getCopyType(copyType), cgUID);    				
     				functionalAPI.addJournalVolume(copyUID, RecoverPointUtils.getDeviceID(allSites, journalVolume.getWwn()));        		
@@ -621,11 +619,13 @@ public class RecoverPointClient {
     		}
     	}
     	catch (FunctionalAPIActionFailedException_Exception e) {
-    		logger.warn("Exception in call to addJournalVolume");
-    		return false;
+    		logger.error("Error in attempting to add a journal volume to the recoverpoint consistency group");
+            logger.error(e.getMessage(), e);
+            throw RecoverPointException.exceptions.failedToAddJournalVolumeToConsistencyGroup(copyName, getCause(e));
     	} catch (FunctionalAPIInternalError_Exception e) {
-    		logger.warn("Exception in call to addJournalVolume");
-    		return false;
+    		logger.error("Error in attempting to add a journal volume to the recoverpoint consistency group");
+            logger.error(e.getMessage(), e);
+            throw RecoverPointException.exceptions.failedToCreateConsistencyGroup(copyName, getCause(e));
     	}
     	return true;        
     }

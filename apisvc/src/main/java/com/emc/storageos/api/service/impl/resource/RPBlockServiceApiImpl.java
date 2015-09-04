@@ -742,7 +742,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     targetCopyVarray = targetJournalVarray;
                 }                               
                 
-                // only need to enter his block if we already have existing journals in the CG
+                // only need to enter this block if we already have existing journals in the CG
                 // and we want to see if more space is required or if we are performing an add
                 // journal volume operation
                 if (!cgTargetVolumes.isEmpty() && !capabilities.getAddJournalCapacity()) {

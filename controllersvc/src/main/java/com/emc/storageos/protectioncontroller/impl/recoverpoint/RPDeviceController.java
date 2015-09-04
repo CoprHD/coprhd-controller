@@ -1250,11 +1250,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     	RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);    	    	    	    	
     	CGRequestParams cgParams = this.getCGRequestParams(volumeDescriptors, rpSystem);
         updateCGParams(cgParams);    	
-    	if (rp.addJournalVolumesToCG(cgParams, volumeDescriptors.get(0).getCapabilitiesValues().getRPCopyType())) {    
-            WorkflowStepCompleter.stepSucceded(taskId); 
-    	} else {
-    		stepFailed(taskId, "addJournalStep");
-    	}    	   	    	
+    	
+        try {
+        	rp.addJournalVolumesToCG(cgParams, volumeDescriptors.get(0).getCapabilitiesValues().getRPCopyType());    
+        	WorkflowStepCompleter.stepSucceded(taskId);
+        } catch (Exception e) {
+        	stepFailed(taskId, "addJournalStep");
+        }
     	return true;
     }        
     

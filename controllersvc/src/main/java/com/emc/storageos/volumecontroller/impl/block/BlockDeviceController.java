@@ -112,7 +112,6 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshot
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotEstablishGroupTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockWaitForSynchronizedCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CleanupMetaVolumeMembersCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneActivateCompleter;
@@ -1803,7 +1802,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             TaskCompleter completer = new BlockSnapshotEstablishGroupTaskCompleter(snapshot, opId);
             getDevice(storageObj.getSystemType())
-                    .doEstablishVolumeNativeContinuousCopyGroupRelation(
+                    .doEstablishVolumeSnapshotGroupRelation(
                             storageObj, sourceVolume, snapshot, completer);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);

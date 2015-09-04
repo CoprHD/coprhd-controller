@@ -417,7 +417,7 @@ public class BlockSnapshotService extends TaskResourceService {
         StorageSystem storage = _permissionsHelper.getObjectById(volume.getStorageController(), StorageSystem.class);
 
         if (!snapshot.getIsSyncActive()) {
-            throw APIException.badRequests.snapshotNotActivated(snapshot.getLabel());
+            throw APIException.badRequests.cannotEstablishGroupRelationForInactiveSnapshot(snapshot.getLabel());
         }
 
         if (!volume.hasConsistencyGroup() ||

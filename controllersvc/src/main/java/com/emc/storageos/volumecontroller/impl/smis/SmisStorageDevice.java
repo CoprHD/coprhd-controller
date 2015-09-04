@@ -2248,7 +2248,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doEstablishVolumeSnapshotGroupRelation(final StorageSystem storage, final URI sourceVolume,
             final URI snapshot, final TaskCompleter taskCompleter) throws DeviceControllerException {
-        _snapshotOperations.establishVolumeNativeContinuousCopyGroupRelation(storage, sourceVolume, snapshot, taskCompleter);
+        _snapshotOperations.establishVolumeSnapshotGroupRelation(storage, sourceVolume, snapshot, taskCompleter);
     }
 
     public void doSyncLink(StorageSystem targetSystem, Volume targetVolume, TaskCompleter completer)

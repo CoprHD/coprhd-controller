@@ -318,7 +318,7 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
         try {
             BlockController controller = getController(BlockController.class,
                     storageSystem.getSystemType());
-            controller.establishVolumeAndNativeContinuousCopyGroupRelation(storageSystem.getId(),
+            controller.establishVolumeAndSnapshotGroupRelation(storageSystem.getId(),
                     sourceVolume.getId(), snapshot.getId(), taskId);
         } catch (ControllerException e) {
             String errorMsg = String.format(

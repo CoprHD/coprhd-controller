@@ -14,6 +14,7 @@ import java.util.List;
 import org.apache.commons.lang.ArrayUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -906,6 +907,7 @@ public class PlacementTests extends DbsvcTestBase {
 	 * This is a negative test. Placement should fail. 
 	 */
 	@Test
+	@Ignore
 	public void testNegativeBasicRPPlacement() {		
         String[] vmax1FE = {"50:FE:FE:FE:FE:FE:FE:00", "50:FE:FE:FE:FE:FE:FE:01"};
         String[] vmax2FE = {"51:FE:FE:FE:FE:FE:FE:00", "51:FE:FE:FE:FE:FE:FE:01"};

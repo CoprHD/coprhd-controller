@@ -26,7 +26,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import com.emc.fapiclient.ws.TargetVmCandidates;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
@@ -47,7 +46,6 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
-import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
@@ -1963,13 +1961,15 @@ public class RecoverPointScheduler implements Scheduler {
         sourceJournalRecommendation.setVirtualArray(sourceJournal.getVirtualArray());       
         sourceJournalRecommendation.setVirtualPool(sourceJournalVpool); 
         sourceJournalRecommendation.setInternalSiteName(sourceJournal.getInternalSiteName());
+        sourceJournalRecommendation.setSize(sourceJournal.getCapacity());
+        sourceJournalRecommendation.setResourceCount(1);
         
         if (VirtualPool.vPoolSpecifiesHighAvailability(sourceJournalVpool)) {
         	VPlexRecommendation vplexRec = new VPlexRecommendation();
         	vplexRec.setVPlexStorageSystem(sourceJournal.getStorageController());
         	vplexRec.setVirtualArray(sourceJournal.getVirtualArray());
         	vplexRec.setVirtualPool(sourceJournalVpool);
-        	sourceJournalRecommendation.setVirtualVolumeRecommendation(vplexRec);
+        	sourceJournalRecommendation.setVirtualVolumeRecommendation(vplexRec);        	
         }        
         recommendation.setSourceJournalRecommendation(sourceJournalRecommendation);
         
@@ -1983,6 +1983,8 @@ public class RecoverPointScheduler implements Scheduler {
             standbyJournalRecommendation.setVirtualArray(standbyJournal.getVirtualArray());       
             standbyJournalRecommendation.setVirtualPool(standbyJournalVpool); 
             standbyJournalRecommendation.setInternalSiteName(standbyJournal.getInternalSiteName());
+            standbyJournalRecommendation.setSize(standbyJournal.getCapacity());
+            standbyJournalRecommendation.setResourceCount(1);
             
             if (VirtualPool.vPoolSpecifiesHighAvailability(standbyJournalVpool)) {
             	VPlexRecommendation vplexRec = new VPlexRecommendation();
@@ -1995,12 +1997,14 @@ public class RecoverPointScheduler implements Scheduler {
         }      
  
     	   //Build the source
-    	   	RPRecommendation rpRecommendation = new RPRecommendation();    	  
-    	    rpRecommendation.setSourceStoragePool(sourceVolume.getPool());
-    	    rpRecommendation.setSourceStorageSystem(sourceVolume.getStorageController());
-    	    rpRecommendation.setInternalSiteName(sourceVolume.getInternalSiteName());
-    	    rpRecommendation.setVirtualArray(sourceVolume.getVirtualArray());
-    	    rpRecommendation.setVirtualPool(dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool()));
+    	   	RPRecommendation sourceRecommendation = new RPRecommendation();    	  
+    	    sourceRecommendation.setSourceStoragePool(sourceVolume.getPool());
+    	    sourceRecommendation.setSourceStorageSystem(sourceVolume.getStorageController());
+    	    sourceRecommendation.setInternalSiteName(sourceVolume.getInternalSiteName());
+    	    sourceRecommendation.setVirtualArray(sourceVolume.getVirtualArray());
+    	    sourceRecommendation.setVirtualPool(dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool()));
+    	    sourceRecommendation.setSize(sourceVolume.getCapacity());
+    	    sourceRecommendation.setResourceCount(capabilities.getResourceCount());
     	    
     	    //Build vplex recommendation of the source if specified
     	    VirtualPool sourceVirtualPool = dbClient.queryObject(VirtualPool.class, sourceVolume.getVirtualPool());
@@ -2012,11 +2016,11 @@ public class RecoverPointScheduler implements Scheduler {
     	    	for (String associatedVolume : sourceVolume.getAssociatedVolumes()) {    	    		
     	    		Volume backingVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolume));
     	    		if (backingVolume.getVirtualArray().equals(sourceVolume.getVirtualArray())) {
-	    	    		rpRecommendation.setSourceStoragePool(backingVolume.getPool());
-	    	    		rpRecommendation.setSourceStorageSystem(dbClient.queryObject(StoragePool.class, backingVolume.getPool()).getStorageDevice());
+	    	    		sourceRecommendation.setSourceStoragePool(backingVolume.getPool());
+	    	    		sourceRecommendation.setSourceStorageSystem(dbClient.queryObject(StoragePool.class, backingVolume.getPool()).getStorageDevice());
     	    		}    	    		
     	    	}
-    	    	rpRecommendation.setVirtualVolumeRecommendation(virtualVolumeRecommendation);
+    	    	sourceRecommendation.setVirtualVolumeRecommendation(virtualVolumeRecommendation);
     	    }
 	    	    
 	    	//build HA recommendation if specified.
@@ -2024,17 +2028,19 @@ public class RecoverPointScheduler implements Scheduler {
 	    		RPRecommendation haRec = new RPRecommendation();
 	    		for (String associatedVolume : sourceVolume.getAssociatedVolumes()) {
 	    			Volume haVolume = dbClient.queryObject(Volume.class, URI.create(associatedVolume));
+	    			haRec.setSize(haVolume.getCapacity());
+	    			haRec.setResourceCount(capabilities.getResourceCount());
 	    			if (!haVolume.getVirtualArray().equals(sourceVolume.getVirtualArray())){
 	    				VPlexRecommendation haVirtualRecommendation = new VPlexRecommendation();
 	    				haVirtualRecommendation.setVPlexStorageSystem(sourceVolume.getStorageController());
 	    				haVirtualRecommendation.setVirtualArray(sourceVolume.getVirtualArray());
 	    				haVirtualRecommendation.setVirtualPool(sourceVirtualPool);
 	    				haVirtualRecommendation.setSourceStoragePool(haVolume.getPool());
-	    				haVirtualRecommendation.setSourceStorageSystem(haVolume.getStorageController());
+	    				haVirtualRecommendation.setSourceStorageSystem(haVolume.getStorageController());	    		
 	    				haRec.setVirtualVolumeRecommendation(haVirtualRecommendation);
 	    			}
 	    		}
-	    		rpRecommendation.setHaRecommendation(haRec);
+	    		sourceRecommendation.setHaRecommendation(haRec);
 	    	}
     	    		    	
 	        //Build targets
@@ -2048,6 +2054,8 @@ public class RecoverPointScheduler implements Scheduler {
 	             StoragePool targetPool = dbClient.queryObject(StoragePool.class, targetVolume.getPool());
 	             targetRecommendation.setSourceStoragePool(targetPool.getId());
 	             targetRecommendation.setSourceStorageSystem(targetPool.getStorageDevice());
+	             targetRecommendation.setSize(targetVolume.getCapacity());
+	             targetRecommendation.setResourceCount(capabilities.getResourceCount());
 	             
 	             if (VirtualPool.vPoolSpecifiesHighAvailability(targetVpool)) {
 	            	 VPlexRecommendation targetVplexRec = new VPlexRecommendation();
@@ -2057,38 +2065,43 @@ public class RecoverPointScheduler implements Scheduler {
 	            	 targetRecommendation.setVirtualVolumeRecommendation(targetVplexRec);
 	             }
 	             
-	             if(rpRecommendation.getTargetRecommendations() == null) {
-	            	 rpRecommendation.setTargetRecommendations(new ArrayList<RPRecommendation>());
+	             if(sourceRecommendation.getTargetRecommendations() == null) {
+	            	 sourceRecommendation.setTargetRecommendations(new ArrayList<RPRecommendation>());
 	             }
-	             rpRecommendation.getTargetRecommendations().add(targetRecommendation);
+	             sourceRecommendation.getTargetRecommendations().add(targetRecommendation);
 	             
 	             
 	             //Build target Journals
-	             RPRecommendation journalRecommendation = new RPRecommendation();
+	             RPRecommendation targetJournalRecommendation = new RPRecommendation();
 	             Volume targetJournal = dbClient.queryObject(Volume.class, targetVolume.getRpJournalVolume());
 	             VirtualPool targetJournalVpool = dbClient.queryObject(VirtualPool.class, targetJournal.getVirtualPool());
-	             journalRecommendation.setSourceStoragePool(targetJournal.getPool());
-	             journalRecommendation.setSourceStorageSystem(targetJournal.getStorageController());
-	             journalRecommendation.setVirtualPool(targetJournalVpool);
-	             journalRecommendation.setVirtualArray(targetJournal.getVirtualArray());
+	             targetJournalRecommendation.setSourceStoragePool(targetJournal.getPool());
+	             targetJournalRecommendation.setSourceStorageSystem(targetJournal.getStorageController());
+	             targetJournalRecommendation.setVirtualPool(targetJournalVpool);
+	             targetJournalRecommendation.setVirtualArray(targetJournal.getVirtualArray());
+	             targetJournalRecommendation.setSize(targetJournal.getCapacity());
+	             targetJournalRecommendation.setResourceCount(1);
+	             targetJournalRecommendation.setInternalSiteName(targetJournal.getInternalSiteName());
 	             	             
 	             if (VirtualPool.vPoolSpecifiesHighAvailability(targetJournalVpool)) {
 	            	 VPlexRecommendation targetJournalVplexRec = new VPlexRecommendation();
 	            	 targetJournalVplexRec.setVPlexStorageSystem(targetJournal.getStorageController());
 	            	 targetJournalVplexRec.setVirtualArray(targetJournal.getVirtualArray());
 	            	 targetJournalVplexRec.setVirtualPool(targetJournalVpool);
-	            	 journalRecommendation.setVirtualVolumeRecommendation(targetJournalVplexRec);
+	            	 targetJournalRecommendation.setVirtualVolumeRecommendation(targetJournalVplexRec);
 	             }
 	             
 	             if (recommendation.getTargetJournalRecommendations() == null) {
 	            	 recommendation.setTargetJournalRecommendations(new ArrayList<RPRecommendation>());
 	             }
-	             recommendation.getTargetJournalRecommendations().add(journalRecommendation);
+	             recommendation.getTargetJournalRecommendations().add(targetJournalRecommendation);
 	        }
  
+	        
+	     recommendation.getSourceRecommendations().add(sourceRecommendation);
         _log.info(String.format("Produced recommendation based on existing source volume %s from " +
                 "RecoverPoint consistency group %s: %n %s", sourceVolume.getLabel(), cg.getLabel(), 
-                recommendation.toString(dbClient)));
+        recommendation.toString(dbClient)));
         
         recommendations.add(recommendation);        
         return recommendations;
@@ -2301,9 +2314,16 @@ public class RecoverPointScheduler implements Scheduler {
 		if (vpoolChangeVolume != null 
 			        && !NullColumnValueGetter.isNullURI(vpoolChangeVolume.getRpJournalVolume()) 
 			        && !isMPStandby) {
-			Volume existingJournalVolume = dbClient.queryObject(Volume.class, vpoolChangeVolume.getRpJournalVolume());			
-			storageSystemURI = existingJournalVolume.getPool();
-			journalStoragePool = dbClient.queryObject(StoragePool.class, existingJournalVolume.getPool());
+			Volume existingJournalVolume = dbClient.queryObject(Volume.class, vpoolChangeVolume.getRpJournalVolume());	
+			if (RPHelper.isVPlexVolume(existingJournalVolume)) {
+			    URI backingVolumeURI = URI.create(existingJournalVolume.getAssociatedVolumes().iterator().next());
+			    Volume backingVolume = dbClient.queryObject(Volume.class, backingVolumeURI);
+			    journalStoragePool = dbClient.queryObject(StoragePool.class, backingVolume.getPool());
+			} else {
+			    journalStoragePool = dbClient.queryObject(StoragePool.class, existingJournalVolume.getPool());
+			}
+			
+			storageSystemURI = existingJournalVolume.getStorageController();						
 			foundJournal = true;
 		} else {
 			for (Recommendation journalStoragePoolRec : journalRec) {    		

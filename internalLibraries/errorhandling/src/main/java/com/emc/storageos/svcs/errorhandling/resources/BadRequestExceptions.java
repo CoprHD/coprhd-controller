@@ -5,14 +5,14 @@
 
 package com.emc.storageos.svcs.errorhandling.resources;
 
-import com.emc.storageos.model.block.export.VolumeParam;
-import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
-import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
-
 import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+
+import com.emc.storageos.model.block.export.VolumeParam;
+import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
+import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 
 /**
  * This interface holds all the methods used to create an error condition that will be associated
@@ -667,13 +667,13 @@ public interface BadRequestExceptions {
     public BadRequestException invalidHostNamesAreNotUnique();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidNodeNamesAreNotUnique(String nodeName,String prop1, String prop2);
+    public BadRequestException invalidNodeNamesAreNotUnique(String nodeName, String prop1, String prop2);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidNodeShortNamesAreNotUnique(String shortName,String prop1, String prop2);
+    public BadRequestException invalidNodeShortNamesAreNotUnique(String shortName, String prop1, String prop2);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidNodeNameIsIdOfAnotherNode(String name,String value);
+    public BadRequestException invalidNodeNameIsIdOfAnotherNode(String name, String value);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterHostAlreadyHasOs(String os);
@@ -2162,7 +2162,7 @@ public interface BadRequestExceptions {
     public BadRequestException volumeForVarrayChangeHasMirrors(final String volumeId, final String volumeLabel);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cannotDeleteObjectWhilePendingTask(final String pendingVolumes);
+    public BadRequestException cannotExecuteOperationWhilePendingTask(final String pendingVolumes);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException rpClusterVarrayNoClusterId(String label);
@@ -2361,7 +2361,19 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException rpBlockApiImplPrepareVolumeException(final String volume);
-    
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidEntryForProjectVNAS();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException failedToAssignVNasToProject(final String assignVnasError);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException noVNasServersAssociatedToProject(final String project);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vNasServersNotAssociatedToProject();
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException noExistingVolumesInCG(final String cgName);
     

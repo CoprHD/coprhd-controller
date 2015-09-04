@@ -590,6 +590,7 @@ public class RecoverPointClient {
     	ConsistencyGroupUID cgUID = null;
     	List<ConsistencyGroupUID> allCgs;
     	String copyName = "not determined";
+    	Map<ConsistencyGroupCopyUID, DeviceUID> addedJournalVolumes = new HashMap<ConsistencyGroupCopyUID, DeviceUID>();
     	try {
     		allCgs = functionalAPI.getAllConsistencyGroups();
     		for (ConsistencyGroupUID cg : allCgs) {
@@ -607,22 +608,44 @@ public class RecoverPointClient {
     		List<CreateCopyParams> copyParams = request.getCopies();
     		
     		// determine if the volumes are visible to the recoverpoint appliance
-    		Set<RPSite> allSites = scan(copyParams, null);    		
+    		Set<RPSite> allSites = scan(copyParams, null);    		    		
     		
     		for (CreateCopyParams copyParam : copyParams) {    		
     			for (CreateVolumeParams journalVolume: copyParam.getJournals()) {
     				copyName = journalVolume.getRpCopyName();
     				ClusterUID clusterId = RecoverPointUtils.getRPSiteID(functionalAPI, journalVolume.getInternalSiteName()); 
     				ConsistencyGroupCopyUID copyUID = getCGCopyUid(clusterId, getCopyType(copyType), cgUID);    				
-    				functionalAPI.addJournalVolume(copyUID, RecoverPointUtils.getDeviceID(allSites, journalVolume.getWwn()));        		
+    				DeviceUID journalDevice = RecoverPointUtils.getDeviceID(allSites, journalVolume.getWwn());
+    				addedJournalVolumes.put(copyUID, journalDevice);
+    				functionalAPI.addJournalVolume(copyUID, journalDevice);        		
     			}    			
     		}
     	}
     	catch (FunctionalAPIActionFailedException_Exception e) {
+    		if (!addedJournalVolumes.isEmpty()) {
+    			try {
+    				for (Map.Entry<ConsistencyGroupCopyUID, DeviceUID> journalVolume : addedJournalVolumes.entrySet()) {
+    					functionalAPI.removeJournalVolume(journalVolume.getKey(), journalVolume.getValue()); 			   
+    				}
+    			} catch (Exception e1) {
+                  logger.error("Error removing journal volume from consistency group");
+                  logger.error(e1.getMessage(), e1);
+    			}
+    		}    		
     		logger.error("Error in attempting to add a journal volume to the recoverpoint consistency group");
             logger.error(e.getMessage(), e);
             throw RecoverPointException.exceptions.failedToAddJournalVolumeToConsistencyGroup(copyName, getCause(e));
     	} catch (FunctionalAPIInternalError_Exception e) {
+    		if (!addedJournalVolumes.isEmpty()) {
+    			try {
+    				for (Map.Entry<ConsistencyGroupCopyUID, DeviceUID> journalVolume : addedJournalVolumes.entrySet()) {
+    					functionalAPI.removeJournalVolume(journalVolume.getKey(), journalVolume.getValue()); 			   
+    				}
+    			} catch (Exception e1) {
+                  logger.error("Error removing journal volume from consistency group");
+                  logger.error(e1.getMessage(), e1);
+    			}
+    		}  
     		logger.error("Error in attempting to add a journal volume to the recoverpoint consistency group");
             logger.error(e.getMessage(), e);
             throw RecoverPointException.exceptions.failedToCreateConsistencyGroup(copyName, getCause(e));

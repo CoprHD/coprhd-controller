@@ -62,7 +62,6 @@ import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.file.FileSystemParam;
 import com.emc.storageos.model.pools.VirtualArrayAssignmentChanges;
 import com.emc.storageos.model.pools.VirtualArrayAssignments;
 import com.emc.storageos.model.ports.StoragePortBulkRep;
@@ -84,7 +83,6 @@ import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
-
 
 /**
  * StoragePort resource implementation
@@ -108,6 +106,7 @@ public class StoragePortService extends TaggedResource {
 
     private static final String EVENT_SERVICE_TYPE = "storageport";
 
+    @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
     }
@@ -302,7 +301,7 @@ public class StoragePortService extends TaggedResource {
         _log.info("Checking for updates to storage port virtual array assignments.");
         boolean virtualArraysUpdated = updateStoragePortVirtualArrays(storagePort,
                 storagePortUpdates.getVarrayChanges());
-        
+
 
         /**
          * This is applicable only for Cinder Storage System's port
@@ -669,8 +668,7 @@ public class StoragePortService extends TaggedResource {
      * @param varrayChanges The virtual array changes.
      * 
      * @return true if there was a virtual array assignment change, false otherwise.
-     */
-    
+     */    
     private boolean updatevNasVirtualArrays(StoragePort storagePort, Network newNetwork,
     		VirtualArrayAssignmentChanges varrayAssignmentChanges, boolean removePort) {
 
@@ -770,7 +768,6 @@ public class StoragePortService extends TaggedResource {
     	return varraysForvNasUpdated;
     }
     	
-    
     /**
      * Checks that the storage port does not have any active exports (file or block) in any
      * of the varrays from which it is being removed.

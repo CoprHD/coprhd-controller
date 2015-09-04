@@ -645,13 +645,13 @@ public interface ContainmentConstraint extends Constraint {
             ColumnField field = doType.getColumnField("associatedSourceVolume");
             return new ContainmentConstraintImpl(sourceURI, Volume.class, field);
         }
-        
+
         public static ContainmentConstraint getVirtualNASInVirtualArrayConstraint(URI varray) {
             DataObjectType doType = TypeMap.getDoType(VirtualNAS.class);
             ColumnField field = doType.getColumnField("assignedVirtualArrays");
             return new ContainmentConstraintImpl(varray, VirtualNAS.class, field);
         }
-        
+
         public static ContainmentConstraint getVirtualNASContainStoragePortConstraint(URI port) {
             DataObjectType doType = TypeMap.getDoType(VirtualNAS.class);
             ColumnField field = doType.getColumnField("storagePorts");

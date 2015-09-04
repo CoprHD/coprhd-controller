@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins;
 
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -57,7 +56,6 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMB
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.model.vnas.VirtualNASList;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
@@ -464,50 +462,54 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             }
         }
     }
-    
-    private void updateVirtualNasVirtualArrays(StorageSystem storageSystem){
-    	//Get all the virtual NAS servers on this storage system!!
-    	 List<VirtualNAS> modifiedvNas = new ArrayList<VirtualNAS>();
-         URIQueryResultList vNasURIs = new URIQueryResultList();
-         _dbClient.queryByConstraint(
-                 ContainmentConstraint.Factory.getStorageDeviceVirtualNasConstraint(storageSystem.getId()),
-                 vNasURIs);
-         Iterator<URI> vNasIter = vNasURIs.iterator();
-         while (vNasIter.hasNext()) {
-             URI vNasURI = vNasIter.next();
-             VirtualNAS vNas = _dbClient.queryObject(VirtualNAS.class,
-             		vNasURI);
-             if (vNas != null && !vNas.getInactive()) {
-             	// clear the existing varrays as part of vnas!!!
-            	 if(vNas.getAssignedVirtualArrays() != null &&
-            			 !vNas.getAssignedVirtualArrays().isEmpty()){
-            		 vNas.getAssignedVirtualArrays().clear();
-            	 }
-            	 
-            	 //Assign the varrays of its storage ports.
-            	 for( String port: vNas.getStoragePorts()){
-            		 StoragePort storagePort = _dbClient.queryObject(StoragePort.class,
-            				 URI.create(port));
-            		 if(storagePort.getConnectedVirtualArrays() != null &&
-            				 !storagePort.getConnectedVirtualArrays().isEmpty()) {
-            			 if(vNas.getAssignedVirtualArrays() == null){
-            				 vNas.setAssignedVirtualArrays(new StringSet());
-            			 }
-            			 vNas.getAssignedVirtualArrays().addAll(storagePort.getConnectedVirtualArrays());
-            			 _logger.info("Added {} varrays to virtual nas {} ",
-            					 storagePort.getConnectedVirtualArrays(), vNas.getNasName());
-            		 }
-            	 }
-            	 modifiedvNas.add(vNas);
-             }
-         }
-         
-         // Persists the modified vnas servers!!!
-         if(!modifiedvNas.isEmpty()){
-        	 _dbClient.persistObject(modifiedvNas);
-         }
-         
-    	
+
+    /**
+     * Update Virtual NAS associated to virtual array for specified VNX File storage array
+     * 
+     * @param systemStorage system information including credentials.
+     */
+    private void updateVirtualNasVirtualArrays(StorageSystem storageSystem) {
+        // Get all the virtual NAS servers on this storage system!!
+        List<VirtualNAS> modifiedvNas = new ArrayList<VirtualNAS>();
+        URIQueryResultList vNasURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDeviceVirtualNasConstraint(storageSystem.getId()),
+                vNasURIs);
+        Iterator<URI> vNasIter = vNasURIs.iterator();
+        while (vNasIter.hasNext()) {
+            URI vNasURI = vNasIter.next();
+            VirtualNAS vNas = _dbClient.queryObject(VirtualNAS.class,
+                    vNasURI);
+            if (vNas != null && !vNas.getInactive()) {
+                // clear the existing varrays as part of vnas!!!
+                if (vNas.getAssignedVirtualArrays() != null &&
+                        !vNas.getAssignedVirtualArrays().isEmpty()) {
+                    vNas.getAssignedVirtualArrays().clear();
+                }
+
+                // Assign the varrays of its storage ports.
+                for (String port : vNas.getStoragePorts()) {
+                    StoragePort storagePort = _dbClient.queryObject(StoragePort.class,
+                            URI.create(port));
+                    if (storagePort.getConnectedVirtualArrays() != null &&
+                            !storagePort.getConnectedVirtualArrays().isEmpty()) {
+                        if (vNas.getAssignedVirtualArrays() == null) {
+                            vNas.setAssignedVirtualArrays(new StringSet());
+                        }
+                        vNas.getAssignedVirtualArrays().addAll(storagePort.getConnectedVirtualArrays());
+                        _logger.info("Added {} varrays to virtual nas {} ",
+                                storagePort.getConnectedVirtualArrays(), vNas.getNasName());
+                    }
+                }
+                modifiedvNas.add(vNas);
+            }
+        }
+
+        // Persists the modified vnas servers!!!
+        if (!modifiedvNas.isEmpty()) {
+            _dbClient.persistObject(modifiedvNas);
+        }
+
     }
 
     /**

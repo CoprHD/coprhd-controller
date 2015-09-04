@@ -30,6 +30,12 @@ import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileProcessor;
 
+/**
+ * VNXStoragePortStatsProcessor is responsible to process the result received from
+ * XML API Server during VNX Storage Port Stats stream processing. This extracts the
+ * session information from response packet and uses the session id in the
+ * subsequent requests.
+ */
 public class VNXStoragePortStatsProcessor extends VNXFileProcessor {
 
     private final Logger _logger = LoggerFactory.getLogger(VNXFileProcessor.class);
@@ -91,6 +97,16 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor {
 
     }
 
+    /**
+     * Process the Port metrics which are received from XMLAPI server.
+     * 
+     * @param interPortMap
+     * @param stringMapPortIOs
+     * @param storageSystem
+     * @param dbClient
+     * @param sampleTime
+     * @return list of Port stats
+     */
     private List<Stat> processPortStatsInfo(Map<String, List<String>> interPortMap,
             Map<String, BigInteger> stringMapPortIOs,
             StorageSystem storageSystem, DbClient dbClient,
@@ -111,12 +127,12 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor {
             _logger.info(
                     "interface {} and port details {}", interfaceIP, storagePort.getPortName());
 
-            // calcuate traffic per interface- total traffic all ports/no of ports
+            // calculate traffic per interface- total traffic all ports/no of ports
             BigInteger iovalue = new BigInteger("0");
             for (String physicalName : portList) {
                 iovalue = iovalue.add(stringMapPortIOs.get(physicalName));
             }
-            // get Average port io by adding and dividing the number.
+            // get Average port IO by adding and dividing the number.
             Long iopes = iovalue.longValue() / portList.size();
 
             Long kbytes = iopes / 1024;
@@ -135,12 +151,12 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor {
         return stat;
     }
 
-    /* get IO traffic(in + out) from sample list */
     /**
+     * Get IO traffic(in + out) from sample list
      * 
      * @param sampleList
      * @param stringMapPortIOs
-     * @return
+     * @return map of Port IO traffic
      */
     private Map<String, BigInteger> getPortIOTraffic(List<MoverNetStats.Sample> sampleList,
             Map<String, BigInteger> stringMapPortIOs)
@@ -162,12 +178,12 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor {
         return stringMapPortIOs;
     }
 
-    /* find the port for given portGuid */
     /**
+     * Find the port for given portGuid
      * 
      * @param portGuid
      * @param dbClient
-     * @return
+     * @return storage port
      */
     private StoragePort findExistingPort(String portGuid, DbClient dbClient) {
         URIQueryResultList results = new URIQueryResultList();
@@ -189,14 +205,14 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor {
         return port;
     }
 
-    /* prepare the port stat info */
     /**
+     * Prepare the Port stat information
      * 
      * @param nativeId
      * @param resourceId
      * @param iops
      * @param timeSample
-     * @return
+     * @return ipPortStat
      */
     private Stat preparePortStatInfo(String nativeId, URI resourceId, long iops, long timeSample) {
         Stat ipPortStat = new Stat();
@@ -210,6 +226,11 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor {
 
     }
 
+    /**
+     * Set Port Metrics processor
+     * 
+     * @param portMetricsProcessor
+     */
     public void setPortMetricsProcessor(PortMetricsProcessor portMetricsProcessor) {
         this.portMetricsProcessor = portMetricsProcessor;
     }

@@ -89,17 +89,10 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
         ArgValidator.checkFieldNotEmpty(param.getDescription(), VPOOL_DESCRIPTION);
         VirtualPoolUtil.validateObjectVirtualPoolCreateParams(param, _dbClient);
         VirtualPool cos = prepareVirtualPool(param);
-        if (null != param.getLongTermRetention()) {
-            cos.setLongTermRetention(param.getLongTermRetention());
-        }
+        cos.setMaxRetention(param.getMaxRetention());
 
         // update the implicit pools matching with this VirtualPool.
         ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(cos, _dbClient, _coordinator);
-
-//        if (null != cos.getMatchedStoragePools() || null != cos.getInvalidMatchedPools()) {
-//            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedObjectSystems(cos,
-//                    _dbClient);
-//        }
         _dbClient.createObject(cos);
 
         recordOperation(OperationTypeEnum.CREATE_VPOOL, VPOOL_CREATED_DESCRIPTION, cos);
@@ -300,12 +293,6 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
 
         // invokes implicit pool matching algorithm.
         ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(cos, _dbClient, _coordinator);
-        // adding supported coses to unmanaged volumes
-
-//        if (null != cos.getMatchedStoragePools() || null != cos.getInvalidMatchedPools()) {
-//            ImplicitUnManagedObjectsMatcher.matchVirtualPoolsWithUnManagedObjectSystems(cos,
-//                    _dbClient);
-//        }
 
         _dbClient.updateAndReindexObject(cos);
 

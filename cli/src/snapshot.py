@@ -76,6 +76,7 @@ class Snapshot(object):
     OBJECT = 'object'
     
     TYPE_REPLIC_LIST = ["NATIVE", "RP", "SRDF"]
+    BOOLEAN_TYPE = ["true" ,"false"]
 
     isTimeout = False
     timeout = 300
@@ -127,7 +128,7 @@ class Snapshot(object):
         )
 
     def snapshot_create(self, otype, typename, ouri,
-                        snaplabel, inactive, rptype, sync):
+                        snaplabel, inactive, rptype, sync ,readonly=False):
         '''new snapshot is created, for a given shares or volumes
             parameters:
                 otype      : either file or block or object
@@ -159,6 +160,7 @@ class Snapshot(object):
                 typename)
 
         body = None
+        
         if(otype == Snapshot.BLOCK):
             parms = {
                 'name': snaplabel,
@@ -175,7 +177,9 @@ class Snapshot(object):
                 'name': snaplabel
             }
             body = json.dumps(parms)
-
+        
+        if(readonly is not None):
+            parms['read_only'] = readonly
         # REST api call
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
@@ -987,6 +991,10 @@ def create_parser(subcommand_parsers, common_parser):
                                dest='type',
                                choices=Snapshot.TYPE_REPLIC_LIST,
                                metavar='<type>')
+    create_parser.add_argument('-readonly', '-ro',
+                               help='This option creates a snapshot in Read Only mode ' ,
+                               dest='readonly',
+                               choices=Snapshot.BOOLEAN_TYPE)
 
     create_parser.add_argument('-synchronous', '-sync',
                                dest='synchronous',
@@ -1039,7 +1047,8 @@ def snapshot_create(args):
             args.name,
             args.inactive,
             args.type,
-            args.synchronous)
+            args.synchronous,
+            args.readonly)
         return
 
     except SOSError as e:

@@ -58,6 +58,7 @@ public class ComputeImageServer extends DataObject {
         setChanged("imageServerUser");
     }
 
+    @Encrypt
     @Name("imageServerPassword")
     public String getImageServerPassword() {
         return imageServerPassword;
@@ -173,6 +174,7 @@ public class ComputeImageServer extends DataObject {
      * @return the computeImage
      */
     @RelationIndex(cf = "RelationIndex", type = ComputeImage.class)
+    @IndexByKey
     @Name("computeImage")
     public StringSet getComputeImage() {
         return computeImage;
@@ -184,6 +186,7 @@ public class ComputeImageServer extends DataObject {
      */
     public void setComputeImage(StringSet computeImageUri) {
         this.computeImage = computeImageUri;
+        setChanged("computeImage");
     }
 
     @EnumType(ComputeImageServerStatus.class)

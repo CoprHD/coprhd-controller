@@ -27,7 +27,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.CollectionUtils;
 
+import com.emc.storageos.api.mapper.ComputeMapper;
 import com.emc.storageos.api.mapper.DbObjectMapper;
+import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
@@ -36,9 +38,11 @@ import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.imageservercontroller.ImageServerController;
+import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
+import com.emc.storageos.model.compute.ComputeImageServerBulkRep;
 import com.emc.storageos.model.compute.ComputeImageServerCreate;
 import com.emc.storageos.model.compute.ComputeImageServerList;
 import com.emc.storageos.model.compute.ComputeImageServerRestRep;
@@ -49,6 +53,7 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AsyncTask;
+import com.google.common.base.Function;
 
 @Path("/compute/compute-imageservers")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, writeRoles = {
@@ -317,6 +322,52 @@ public class ComputeImageServerService extends TaskResourceService {
             controller.verifyImageServerAndImportExistingImages(task);
         }
         return map(imageServer);
+    }
+
+    /**
+     * List data of compute image servers based on input ids.
+     *
+     * @param param
+     *            POST data containing the id list.
+     * @prereq none
+     * @brief List data of compute image servers
+     * @return List of representations.
+     */
+    @POST
+    @Path("/bulk")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Override
+    public ComputeImageServerBulkRep getBulkResources(BulkIdParam param) {
+        return (ComputeImageServerBulkRep) super.getBulkResources(param);
+    }
+
+    @Override
+    public ComputeImageServerBulkRep queryBulkResourceReps(List<URI> ids) {
+
+        Iterator<ComputeImageServer> _dbIterator =
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        return new ComputeImageServerBulkRep(BulkList.wrapping(_dbIterator, COMPUTE_IMAGESERVER_MAPPER));
+    }
+
+    private final ComputeImageServerMapper COMPUTE_IMAGESERVER_MAPPER = new ComputeImageServerMapper();
+
+    private class ComputeImageServerMapper implements Function<ComputeImageServer, ComputeImageServerRestRep> {
+        @Override
+        public ComputeImageServerRestRep apply(final ComputeImageServer imageserver) {
+            return ComputeMapper.map(imageserver);
+        }
+    }
+
+    @Override
+    protected ComputeImageServerBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
+        return queryBulkResourceReps(ids);
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public Class<ComputeImageServer> getResourceClass() {
+        return ComputeImageServer.class;
     }
 
 }

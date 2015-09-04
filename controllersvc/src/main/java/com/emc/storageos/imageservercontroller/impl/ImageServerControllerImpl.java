@@ -299,8 +299,10 @@ public class ImageServerControllerImpl implements ImageServerController {
         try{
 	        List<URI> ids = dbClient.queryByType(ComputeImageServer.class, true);
 	        for (URI imageServerId : ids){
+	        	log.info("import to server:"+imageServerId.toString());
 	        	ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class,imageServerId);
-	        	if (!imageServer.getComputeImage().contains(ciId.toString())){
+	        	if (imageServer.getComputeImage()== null || !imageServer.getComputeImage().contains(ciId.toString())){
+	        		log.info("verify Image Server");
 	        		 boolean imageServerVerified = verifyImageServer(imageServer);
 	                 if (!imageServerVerified) {	
 	                     throw ImageServerControllerException.exceptions.imageServerNotSetup("Can't perform image import: "
@@ -506,6 +508,7 @@ public class ImageServerControllerImpl implements ImageServerController {
      */
     private void importImage(ComputeImageServer imageServer, ComputeImage ci, ImageServerDialog imageserverDialog) throws Exception
     {
+    	log.info("Importing image {} on to {} imageServer", ci.getLabel(), imageServer.getImageServerIp());
         sanitizeUrl(ci.getImageUrl());
 
         String ts = String.valueOf(System.currentTimeMillis());
@@ -519,7 +522,7 @@ public class ImageServerControllerImpl implements ImageServerController {
                 imageServer.getImageServerUser(), imageServer.getImageServerPassword());
         imageserverDialog = new ImageServerDialog(session, imageServer.getSshTimeoutMs());
         imageserverDialog.init();
-        log.info("connected to image server");
+        log.info("connected to image server {}", imageServer.getImageServerIp());
 
         log.info("cd to {}", TMP);
         imageserverDialog.cd(TMP);
@@ -529,7 +532,7 @@ public class ImageServerControllerImpl implements ImageServerController {
         boolean res = imageserverDialog.wget("'" + ci.getImageUrl() + "'", imageName, imageServer.getImageImportTimeoutMs());
 
         if (res) {
-            log.info("downloaded image successfully");
+            log.info("downloaded image successfully on to {}  imageServer", imageServer.getImageServerIp());
         } else {
             throw ImageServerControllerException.exceptions.fileDownloadFailed(ci.getImageUrl());
         }
@@ -537,7 +540,7 @@ public class ImageServerControllerImpl implements ImageServerController {
         log.info("create temp dir {}", tempDir);
         imageserverDialog.mkdir(tempDir);
 
-        log.info("mount image onto temp dir");
+        log.info("mount image onto temp dir of {}", imageServer.getImageServerIp());
         imageserverDialog.mount(imageName, tempDir);
 
         log.info("Analyze metadata");
@@ -548,14 +551,19 @@ public class ImageServerControllerImpl implements ImageServerController {
         // make sure it is not already loaded
         List<URI> ids = dbClient.queryByType(ComputeImage.class, true);
         Iterator<ComputeImage> iter = dbClient.queryIterativeObjects(ComputeImage.class, ids);
-        while (iter.hasNext()) {
-            ComputeImage existingImage = iter.next();
-            if (osMetadata.fullName().equals(existingImage.getImageName())) {
-                log.error("This image is already imported, id: {}", existingImage.getId());
-                cleanupTemp(imageserverDialog, tempDir, imagePath);
-                throw ImageServerControllerException.exceptions.duplicateImage(osMetadata.fullName());
-            }
-        }
+		while (iter.hasNext()) {
+			ComputeImage existingImage = iter.next();
+			if (osMetadata.fullName().equals(existingImage.getImageName())
+					&& imageServer.getComputeImage() != null
+					&& imageServer.getComputeImage().contains(
+							existingImage.getId().toString())) {
+				log.error("This image is already imported, id: {}",
+						existingImage.getId());
+				cleanupTemp(imageserverDialog, tempDir, imagePath);
+				throw ImageServerControllerException.exceptions
+						.duplicateImage(osMetadata.fullName());
+			}
+		}
         log.info("Compute image '" + osMetadata.fullName() + "' will be loaded.");
 
         // copy OS into TFTP boot directory
@@ -582,41 +590,49 @@ public class ImageServerControllerImpl implements ImageServerController {
         ci.setImageType(osMetadata.getImageType());
 
         dbClient.persistObject(ci);
+
         //update the imageServer with the successfully updated image.
-        StringSet imagesSet = imageServer.getComputeImage();
-        if(imagesSet == null){
-            imageServer.setComputeImage(new StringSet());
+        if(imageServer.getComputeImage() == null){
+			imageServer.setComputeImage(new StringSet());
         }
-        imagesSet.add(ci.getId().toString());
-        imageServer.setComputeImage(imagesSet);
+        imageServer.getComputeImage().add(ci.getId().toString());
+        
         dbClient.persistObject(imageServer);
         // clean up
         cleanupTemp(imageserverDialog, tempDir, imagePath);
     }
 
     @Override
-    public void deleteImage(AsyncTask task,URI imageServerId) throws InternalException {
+    public void deleteImage(AsyncTask task) throws InternalException {
         log.info("deleteImage " + task._id);
 
         URI ciId = task._id;
-        ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class, imageServerId);
+        
         TaskCompleter completer = null;
         try {
             completer = new ComputeImageCompleter(ciId, task._opId, OperationTypeEnum.DELETE_COMPUTE_IMAGE, EVENT_SERVICE_TYPE);
-            boolean imageServerVerified = verifyImageServer(imageServer);
-
-            if (!imageServerVerified) {
-            	throw ImageServerControllerException.exceptions.imageServerNotSetup("Can't delete image: " + imageServerErrorMsg);
-            }
-
             Workflow workflow = workflowService.getNewWorkflow(this, DELETE_IMAGE_WF, true, task._opId);
-            workflow.createStep(DELETE_IMAGE_STEP,
-                    String.format("removing image %s", ciId), null,
-                    ciId, ciId.toString(),
-                    this.getClass(),
-                    new Workflow.Method("deleteImageMethod", ciId,imageServer.getId()),
-                    null,
-                    null);
+            List<URI> ids = dbClient.queryByType(ComputeImageServer.class, true);
+            for (URI imageServerId : ids){
+            	ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class,imageServerId);
+            	if (imageServer.getComputeImage()!=null && imageServer.getComputeImage().contains(ciId.toString())){
+            		boolean imageServerVerified = verifyImageServer(imageServer);
+
+                    if (!imageServerVerified) {
+                    	throw ImageServerControllerException.exceptions.imageServerNotSetup("Can't delete image: " + imageServerErrorMsg);
+                    }
+
+                   
+                    workflow.createStep(DELETE_IMAGE_STEP,
+                            String.format("removing image %s", ciId), null,
+                            ciId, ciId.toString(),
+                            this.getClass(),
+                            new Workflow.Method("deleteImageMethod", ciId,imageServer.getId()),
+                            null,
+                            null);
+            	}
+            }
+            
             workflow.executePlan(completer, "Success");
         } catch (Exception e) {
             log.error("deleteImage caught an exception.", e);
@@ -941,6 +957,7 @@ public class ImageServerControllerImpl implements ImageServerController {
     @Override
     public void verifyImageServerAndImportExistingImages(AsyncTask task) {
         TaskCompleter completer = null;
+        log.info("Verifying imageServer and importing any existing images on to the server");
         try {
             URI computeImageServerID = task._id;
             completer = new ComputeImageServerCompleter(computeImageServerID,

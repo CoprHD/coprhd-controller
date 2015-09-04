@@ -14,19 +14,21 @@ public class ComputeImageServersDataTable extends DataTable {
         addColumn("name").setRenderFunction("renderLink");
         addColumn("imageServerIp");
         addColumn("osInstallNetworkAddress");
+        addColumn("computeImageServerStatus");
         sortAll();
         setDefaultSort("name", "asc");
     }
 
     public static class ComputeImageServerInfo {
         public String id;
-        public String name;
-        public String userName;
-        public String password;
-        public String tftpbootDir;
-        public String osInstallNetworkAddress;
         public String imageServerIp;
+        public String name;
+        public String osInstallNetworkAddress;
         public Integer osInstallTimeOut;
+        public String password;
+        public String computeImageServerStatus;
+        public String tftpbootDir;
+        public String userName;
 
         public ComputeImageServerInfo() {
         }
@@ -35,6 +37,7 @@ public class ComputeImageServersDataTable extends DataTable {
             this.id = computeImageServer.getId().toString();
             this.name = computeImageServer.getName();
             this.imageServerIp = computeImageServer.getImageServerIp();
+            this.computeImageServerStatus = computeImageServer.getComputeImageServerStatus();
             this.tftpbootDir = computeImageServer.getTftpbootDir();
             this.osInstallNetworkAddress = computeImageServer.getImageServerSecondIp();
         }

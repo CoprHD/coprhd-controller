@@ -277,10 +277,10 @@ public class VplexBackendIngestionContext {
         _logger.info("getting backend volume wwn to api info map");
         boolean success = false;
         try {
-            // first trying with a null mirror map to save some time
+            // first trying without checking for a top-level device mirror to save some time
             backendVolumeWwnToInfoMap =
                     VPlexControllerUtils.getStorageVolumeInfoForDevice(
-                            getSupportingDeviceName(), getLocality(), getClusterName(), null,
+                            getSupportingDeviceName(), getLocality(), getClusterName(), false,
                             _unmanagedVirtualVolume.getStorageSystemUri(), _dbClient);
             success = true;
         } catch (VPlexApiException ex) {
@@ -290,15 +290,25 @@ public class VplexBackendIngestionContext {
         }
 
         if (!success) {
-            try {
-                // first trying with a null mirror map to save some time
-                backendVolumeWwnToInfoMap =
-                        VPlexControllerUtils.getStorageVolumeInfoForDevice(
-                                getSupportingDeviceName(), getLocality(), getClusterName(), getMirrorMap(),
-                                _unmanagedVirtualVolume.getStorageSystemUri(), _dbClient);
-            } catch (VPlexApiException ex) {
+            boolean hasMirror = !getMirrorMap().isEmpty();
+            
+            if (hasMirror) {
+                try {
+                    backendVolumeWwnToInfoMap =
+                            VPlexControllerUtils.getStorageVolumeInfoForDevice(
+                                    getSupportingDeviceName(), getLocality(), getClusterName(), hasMirror,
+                                    _unmanagedVirtualVolume.getStorageSystemUri(), _dbClient);
+                    success = true;
+                } catch (VPlexApiException ex) {
+                    String reason = "could not determine backend storage volumes for " 
+                            + getSupportingDeviceName() + ": " + ex.getLocalizedMessage();
+                    _logger.error(reason);
+                    throw IngestionException.exceptions.generalException(reason);
+                }
+            } else {
                 String reason = "could not determine backend storage volumes for " 
-                        + getSupportingDeviceName() + ": " + ex.getLocalizedMessage();
+                        + getSupportingDeviceName() 
+                        + ": failed for both simple and RAID-1 top-level device configurations";
                 _logger.error(reason);
                 throw IngestionException.exceptions.generalException(reason);
             }
@@ -501,7 +511,7 @@ public class VplexBackendIngestionContext {
                 StorageSystem backendSystem =
                         _dbClient.queryObject(StorageSystem.class, backendClone.getStorageSystemUri());
 
-                String deviceName = VPlexControllerUtils.getDeviceForStorageVolume(
+                String deviceName = VPlexControllerUtils.getDeviceNameForStorageVolume(
                         volumeNativeId, backendClone.getWwn(), backendSystem.getSerialNumber(),
                         _unmanagedVirtualVolume.getStorageSystemUri(), _dbClient);
 
@@ -787,7 +797,7 @@ public class VplexBackendIngestionContext {
 
         long start = System.currentTimeMillis();
         _logger.info("getting top level device");
-        topLevelDevice = VPlexControllerUtils.getSupportingDeviceInfo(
+        topLevelDevice = VPlexControllerUtils.getDeviceInfo(
                 getSupportingDeviceName(), getLocality(),
                 getUnmanagedVirtualVolume().getStorageSystemUri(),
                 _dbClient);

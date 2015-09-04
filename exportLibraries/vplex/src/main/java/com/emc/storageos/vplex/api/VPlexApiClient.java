@@ -1532,43 +1532,59 @@ public class VPlexApiClient {
         }
     }
 
-    public VPlexResourceInfo getDeviceStructure(String deviceName, String locality) throws VPlexApiException {
-        if (null == deviceName || null == locality) {
-            String reason = "deviceName was " + deviceName + " and locality was " + locality;
-            throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(reason);
-        }
-        
-        s_logger.info("Request to find device structure for {} on VPLEX at {}",
-                deviceName, _baseURI);
-        
+    /**
+     * Returns a VPlexResourceInfo object for the given device name based
+     * on its virtual volume type (local or distributed).
+     * 
+     * @param deviceName the name of the device
+     * @param virtualVolumeType the type of virtual volume (local or distributed)
+     * 
+     * @return a VPlexResourceInfo object for the device name
+     * @throws VPlexApiException
+     */
+    public VPlexResourceInfo getDeviceStructure(String deviceName, String virtualVolumeType) 
+            throws VPlexApiException {
+        s_logger.info("Request to find device structure for {} on VPLEX at {}", deviceName, _baseURI);
+
         VPlexResourceInfo device = null;
 
-        switch (locality) {
+        switch (virtualVolumeType) {
             case VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME:
-                device = getDiscoveryManager().getDeviceStructureForDistributedIngestion(deviceName, locality);
+                device = getDiscoveryManager()
+                            .getDeviceStructureForDistributedIngestion(deviceName, virtualVolumeType);
                 break;
             case VPlexApiConstants.LOCAL_VIRTUAL_VOLUME:
-                device = getDiscoveryManager().getDeviceStructureForLocalIngestion(deviceName, locality);
+                device = getDiscoveryManager()
+                            .getDeviceStructureForLocalIngestion(deviceName, virtualVolumeType);
                 break;
         }
-        
+
         return device;
     }
 
-    public Map<String, VPlexStorageVolumeInfo> getStorageVolumeInfoForDevice(String deviceName, String locality, 
-            String clusterName, Map<String, Map<String, VPlexDeviceInfo>> mirrorMap) throws VPlexApiException {
-        if (null == deviceName || null == locality) {
-            String reason = "deviceName was " + deviceName + " and locality was " + locality;
-            throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(reason);
-        }
-        
+    /**
+     * Returns a Map of lowest-level storage-volume resource's WWN to its VPlexStorageVolumeInfo
+     * object for a given device name, virtual volume type, and cluster name.  If 
+     * hasMirror is true, this indicates the top-level device is composed of a
+     * RAID-1 mirror, so there's an extra layers of components to traverse in finding
+     * the lowest-level storage-volume resources.
+     * 
+     * @param deviceName the name of the top-level device to look at
+     * @param virtualVolumeType the type of virtual volume (local or distributed)
+     * @param clusterName the cluster name
+     * @param hasMirror indicates if the top-level device is a RAID-1 mirror
+     * 
+     * @return a map of WWNs to VPlexStorageVolumeInfo objects
+     * @throws VPlexApiException
+     */
+    public Map<String, VPlexStorageVolumeInfo> getStorageVolumeInfoForDevice(String deviceName, String virtualVolumeType,
+            String clusterName, boolean hasMirror) throws VPlexApiException {
         s_logger.info("Request to find storage volume wwns for {} on VPLEX at {}",
                 deviceName, _baseURI);
-        
-        boolean hasMirror = ((null != mirrorMap) && !mirrorMap.isEmpty());
+
         List<VPlexStorageVolumeInfo> storageVolumes = getDiscoveryManager()
-                    .getStorageVolumesForDevice(deviceName, locality, clusterName, hasMirror);
-        
+                .getStorageVolumesForDevice(deviceName, virtualVolumeType, clusterName, hasMirror);
+
         Map<String, VPlexStorageVolumeInfo> storageVolumeWwns = new HashMap<String, VPlexStorageVolumeInfo>();
         for (VPlexStorageVolumeInfo info : storageVolumes) {
             if (null == info.getWwn()) {
@@ -1578,45 +1594,30 @@ public class VPlexApiClient {
             }
             storageVolumeWwns.put(info.getWwn(), info);
         }
-        
+
         return storageVolumeWwns;
     }
-    
-    public String getDeviceForStorageVolume(String volumeNativeId, 
+
+    /**
+     * Returns the top-level supporting device name for a given storage volume native id,
+     * wwn, and backend array serial number.
+     * 
+     * @param volumeNativeId the storage volume's native id
+     * @param wwn the storage volume's wwn
+     * @param backendArraySerialNum the serial number of the backend array
+     * 
+     * @return the name of the top level device for the given storage volume
+     * @throws VPlexApiException
+     */
+    public String getDeviceForStorageVolume(String volumeNativeId,
             String wwn, String backendArraySerialNum) throws VPlexApiException {
-        
+
         s_logger.info("Request to find device name for storage volume {} on VPLEX at {}",
                 volumeNativeId, _baseURI);
-        
+
         String deviceName = getDiscoveryManager()
                 .getDeviceForStorageVolume(volumeNativeId, wwn, backendArraySerialNum);
 
         return deviceName;
-    }
-    
-    // wanting a map of slot number to device wwn
-    public Map<String, String> getTopLevelDeviceMap(String deviceName, String locality) {
-        Map<String, String> topLevelDeviceMap = new TreeMap<String, String>();
-        
-        s_logger.info("Request to find top level device components for {} on VPLEX at {}",
-                deviceName, _baseURI);
-        
-        VPlexDeviceInfo deviceInfo = null;
-        if (VPlexApiConstants.LOCAL_VIRTUAL_VOLUME.equals(locality)) {
-            deviceInfo = getDiscoveryManager().findLocalDevice(deviceName);
-            getDiscoveryManager().setSupportingComponentsForLocalDevice(deviceInfo);
-        }
-        
-        if (null != deviceInfo) {
-            s_logger.info(deviceInfo.toString());
-            if (!deviceInfo.getChildDeviceInfo().isEmpty()) {
-                for (VPlexDeviceInfo childDevice : deviceInfo.getChildDeviceInfo()) {
-                    s_logger.info(childDevice.toString());
-                    topLevelDeviceMap.put(childDevice.getSlotNumber(), childDevice.getName());
-                }
-            }
-        }
-        
-        return topLevelDeviceMap;
     }
 }

@@ -203,7 +203,7 @@ DefaultStorageArrayPortMap.scaleio=22
 DefaultStorageArrayPortMap.scaleio_useSSL=22
 DefaultStorageArrayPortMap.datadomain=3009
 DefaultStorageArrayPortMap.datadomain_useSSL=3009
-DefaultStorageArrayPortMap.ecs=8080
+DefaultStorageArrayPortMap.ecs=4443
 DefaultStorageArrayPortMap.ecs_useSSL=8080
 
 DefaultStorageProviderPortMap.hicommand_useSSL=2001

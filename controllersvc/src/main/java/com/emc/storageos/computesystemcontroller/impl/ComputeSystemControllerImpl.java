@@ -353,12 +353,10 @@ public class ComputeSystemControllerImpl implements ComputeSystemController {
             for (URI hostId : clusterHostIds) {
                 List<Initiator> hostInitiators = ComputeSystemHelper.queryInitiators(_dbClient, hostId);
                 for (ExportGroup exportGroup : getExportGroups(hostId, hostInitiators)) {
-                    if (exportGroup.forCluster()) {
-                        if (exportGroup.getClusters() != null && !exportGroup.getClusters().contains(clusterId.toString())) {
-                            _log.info("Export " + exportGroup.getId() + " contains reference to host " + hostId
-                                    + ". Will remove this host from the export");
-                            exportGroups.add(exportGroup.getId());
-                        }
+                    if (exportGroup.forCluster() && exportGroup.hasCluster(clusterId)) {
+                        _log.info("Export " + exportGroup.getId() + " contains reference to host " + hostId
+                                + ". Will remove this host from the export");
+                        exportGroups.add(exportGroup.getId());
                     }
                 }
             }

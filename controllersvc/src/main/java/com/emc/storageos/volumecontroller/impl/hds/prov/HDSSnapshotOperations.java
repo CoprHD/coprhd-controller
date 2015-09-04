@@ -415,5 +415,9 @@ public class HDSSnapshotOperations implements SnapshotOperations {
 		throw new DeviceControllerException("UnSupported Operation");
 	}
 
-	
+    @Override
+    public void establishVolumeSnapshotGroupRelation(StorageSystem storage, URI sourceVolume,
+            URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

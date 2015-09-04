@@ -22,6 +22,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -258,5 +259,11 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
     private String getScaleIOCustomerId(ScaleIOCLI scaleIOCLI) {
         ScaleIOQueryAllResult scaleIOQueryAllResult = scaleIOCLI.queryAll();
         return scaleIOQueryAllResult.getProperty(ScaleIOQueryAllCommand.SCALEIO_CUSTOMER_ID);
+    }
+
+    @Override
+    public void establishVolumeSnapshotGroupRelation(StorageSystem storage, URI sourceVolume,
+            URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

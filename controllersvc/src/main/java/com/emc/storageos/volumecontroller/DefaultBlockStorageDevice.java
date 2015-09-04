@@ -217,6 +217,14 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
         throw DeviceControllerException.exceptions
                 .blockDeviceOperationNotSupported();
     }
+
+    @Override
+    public void doEstablishVolumeSnapshotGroupRelation(
+            StorageSystem storage, URI sourceVolume, URI snapshot,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
+    }
     
     @Override
 	public void doChangeCopyMode(StorageSystem system, Volume target,

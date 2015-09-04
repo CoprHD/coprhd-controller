@@ -27,6 +27,7 @@ import javax.wbem.WBEMException;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.volumecontroller.SnapshotOperations;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -231,4 +232,9 @@ public abstract class AbstractSnapshotOperations implements SnapshotOperations {
         // functionality
     }
 
+    @Override
+    public void establishVolumeSnapshotGroupRelation(StorageSystem storage, URI sourceVolume,
+            URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

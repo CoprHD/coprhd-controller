@@ -180,6 +180,20 @@ public interface BlockServiceApi {
             BlockMirror blockMirror, String taskId) throws ControllerException;
 
     /**
+     * Establish group relation between volume group and snapshot group.
+     *
+     * @param storageSystem the storage system
+     * @param sourceVolume the source volume
+     * @param snapshot the block snapshot
+     * @param taskId the task id
+     * @return the task resource rep
+     * @throws ControllerException the controller exception
+     */
+    public TaskResourceRep establishVolumeAndSnapshotGroupRelation(
+            StorageSystem storageSystem, Volume sourceVolume,
+            BlockSnapshot snapshot, String taskId) throws ControllerException;
+
+    /**
      * Deactivate a volume mirror This operation will attempt to both detach and
      * delete the desired volume mirror, which should already be in a fractured
      * state.

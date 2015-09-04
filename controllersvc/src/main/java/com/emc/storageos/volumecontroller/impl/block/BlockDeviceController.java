@@ -110,7 +110,9 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockMirrorTa
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotActivateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotDeleteCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotEstablishGroupTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockWaitForSynchronizedCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CleanupMetaVolumeMembersCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneActivateCompleter;
@@ -170,6 +172,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String DETACH_MIRRORS_WF_NAME = "DETACH_MIRRORS_WORKFLOW";
     private static final String RESUME_MIRRORS_WF_NAME = "RESUME_MIRRORS_WORKFLOW";
     private static final String ESTABLISH_VOLUME_MIRROR_GROUP_WF_NAME = "ESTABLISH_VOLUME_MIRROR_GROUP_WORKFLOW";
+    private static final String ESTABLISH_VOLUME_SNAPSHOT_GROUP_WF_NAME = "ESTABLISH_VOLUME_SNAPSHOT_GROUP_WORKFLOW";
     private static final String ESTABLISH_VOLUME_FULL_COPY_GROUP_WF_NAME = "ESTABLISH_VOLUME_FULL_COPY_GROUP_WORKFLOW";
     private static final String PAUSE_MIRRORS_WF_NAME  = "PAUSE_MIRRORS_WORKFLOW";
     private static final String RESTORE_VOLUME_WF_NAME = "RESTORE_VOLUME_WORKFLOW";
@@ -1758,6 +1761,53 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             } else {
                 throw DeviceControllerException.exceptions.deleteVolumeSnapshotFailed(e);
             }
+        }
+    }
+
+
+    @Override
+    public void establishVolumeAndSnapshotGroupRelation(URI storage, URI sourceVolume, URI snapshot, String opId) throws ControllerException {
+        _log.info("START establishVolumeAndSnapshotGroupRelation workflow");
+
+        Workflow workflow = _workflowService.getNewWorkflow(this, ESTABLISH_VOLUME_SNAPSHOT_GROUP_WF_NAME, false, opId);
+        TaskCompleter taskCompleter = null;
+        StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+
+        try {
+            workflow.createStep("establishStep", "create group relation between Volume group and Snapshot group", null, storage, storageObj.getSystemType(),
+                    this.getClass(), establishVolumeAndSnapshotGroupRelationMethod(storage, sourceVolume, snapshot), null, null);
+
+            taskCompleter = new BlockSnapshotEstablishGroupTaskCompleter(snapshot, opId);
+            workflow.executePlan(taskCompleter, "Successfully created group relation between Volume group and Snapshot group");
+        } catch (Exception e) {
+            String msg = String.format("Failed to create group relation between Volume group and Snapshot group."
+                    + "Source volume: %s, Snapshot: %s",
+                    sourceVolume, snapshot);
+            _log.error(msg, e);
+            if (taskCompleter != null) {
+                ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+                taskCompleter.error(_dbClient, serviceError);
+            }
+        }
+    }
+
+    private Workflow.Method establishVolumeAndSnapshotGroupRelationMethod(URI storage, URI sourceVolume, URI snapshot) {
+        return new Workflow.Method("establishVolumeSnapshotGroupRelation", storage, sourceVolume, snapshot);
+    }
+
+    public void establishVolumeSnapshotGroupRelation(
+            URI storage, URI sourceVolume, URI snapshot, String opId)
+            throws ControllerException {
+        try {
+            WorkflowStepCompleter.stepExecuting(opId);
+            StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+            TaskCompleter completer = new BlockSnapshotEstablishGroupTaskCompleter(snapshot, opId);
+            getDevice(storageObj.getSystemType())
+                    .doEstablishVolumeNativeContinuousCopyGroupRelation(
+                            storageObj, sourceVolume, snapshot, completer);
+        } catch (Exception e) {
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
         }
     }
 

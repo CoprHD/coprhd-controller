@@ -73,6 +73,7 @@ public enum ResourceOperationTypeEnum {
     RESTORE_VOLUME_SNAPSHOT ("RESTORE VOLUME SNAPSHOT", "restore volume snapshot"),
     ACTIVATE_VOLUME_SNAPSHOT("ACTIVATE VOLUME SNAPSHOT","activate volume snapshot"),
     DEACTIVATE_VOLUME_SNAPSHOT("DEACTIVATE VOLUME SNAPSHOT","deactivate volume snapshot"),
+    ESTABLISH_VOLUME_SNAPSHOT ("ESTABLISH VOLUME SNAPSHOT GROUP", "establish group relation between volume group and snapshot group"),
     ASSIGN_VOLUME_SNAPSHOT_TAG ("TAG VOLUME SNAPSHOT",  "tag a volume snapshot"),
     CREATE_EXPORT_GROUP        ("CREATE EXPORT GROUP",  "create export group operation"),
     DELETE_EXPORT_GROUP        ("DELETE EXPORT GROUP",  "delete export group operation"),

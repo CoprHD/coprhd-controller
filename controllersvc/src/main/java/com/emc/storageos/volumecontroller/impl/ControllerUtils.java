@@ -873,6 +873,27 @@ public class ControllerUtils {
     }
 
     /**
+     * Gets the snapshots part of a given replication group.
+     */
+    public static List<BlockSnapshot> getSnapshotsPartOfReplicationGroup(
+            String replicationGroupInstance, DbClient dbClient) {
+        List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
+        URIQueryResultList uriQueryResultList = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+            .getSnapshotReplicationGroupInstanceConstraint(replicationGroupInstance),
+            uriQueryResultList);
+        Iterator<BlockSnapshot> snapIterator = dbClient.queryIterativeObjects(BlockSnapshot.class,
+                uriQueryResultList);
+        while (snapIterator.hasNext()) {
+        	BlockSnapshot snapshot = snapIterator.next();
+            if (snapshot != null && !snapshot.getInactive()) {
+            	snapshots.add(snapshot);
+            }
+        }
+        return snapshots;
+    }
+
+    /**
      * Gets the replication group name from replicas of all volumes in CG.
      */
     public static String getGroupNameFromReplicas(List<URI> replicas,

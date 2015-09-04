@@ -976,7 +976,7 @@
         <property name="scope">
             <map>
                 <entry key="global" value="default"/>
-                <entry key="systemType" value="vmax,vnxblock,xtremio,hds"/>
+                <entry key="systemType" value="vmax,vnxblock,xtremio,hds,openstack"/>
             </map>
         </property>
         <property name="defaultValues">

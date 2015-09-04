@@ -1174,9 +1174,9 @@ public class ExportUtils {
      * is in the networks collection, the port is mapped to it. If the port network is not in the
      * networks collection but can is routed to it, then the port is mapped to the routed network.
      * 
-     * @param ports
-     * @param networks
-     * @param _dbClient
+     * @param ports the ports to be mapped to their networks
+     * @param networks the networks
+     * @param _dbClient and instance of DbClient
      * @return a map of networks and ports that can be used by initiators in the network.
      */
     public static Map<NetworkLite, List<StoragePort>> mapStoragePortsToNetworks(Collection<StoragePort> ports,

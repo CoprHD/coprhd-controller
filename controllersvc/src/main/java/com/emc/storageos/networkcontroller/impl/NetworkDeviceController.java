@@ -21,6 +21,7 @@ import java.util.UUID;
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.DataSourceFactory;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
+
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,6 +92,7 @@ import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.collect.Collections2;
+import com.rsa.cryptoj.o.in;
 
 public class NetworkDeviceController implements NetworkController {
 
@@ -110,7 +112,6 @@ public class NetworkDeviceController implements NetworkController {
     private DataSourceFactory dataSourceFactory;
     @Autowired
     private CustomConfigHandler customConfigHandler;
-
 
     private RecordableEventManager _eventManager;
 
@@ -1056,7 +1057,7 @@ public class NetworkDeviceController implements NetworkController {
      * @param exportMaskURIs
      * @param volumeURIs
      * @param token
-     * @param checkZones  Flag to enable or disable zoning check on a Network System
+     * @param checkZones Flag to enable or disable zoning check on a Network System
      * @return
      */
     private boolean doZoneExportMasksCreate(ExportGroup exportGroup,
@@ -1077,18 +1078,15 @@ public class NetworkDeviceController implements NetworkController {
                 return true;
             }
 
-            // get existing zones from the switch
-            Map<String, List<Zone>> zonesMap = getExistingZonesMap(exportMaskURIs, token);
-
             // Compute the zones for the ExportGroup
             // [hala] make sure we do not rollback existing zones
             Map<String, List<Zone>> zonesMap = new HashMap<String, List<Zone>>();
             if (checkZones) {
-                 zonesMap = getExistingZonesMap(exportMaskURIs, token);
+                zonesMap = getExistingZonesMap(exportMaskURIs, token);
             }
 
             List<NetworkFCZoneInfo> zones = _networkScheduler.
-                    getZoningTargetsForExportMasks(exportGroup, exportMaskURIs, volumeURIs, zonesMap, checkZones);
+                    getZoningTargetsForExportMasks(exportGroup, exportMaskURIs, volumeURIs, zonesMap, checkZones, _dbClient);
             context.getZoneInfos().addAll(zones);
             logZones(zones);
 
@@ -1201,16 +1199,16 @@ public class NetworkDeviceController implements NetworkController {
         _log.info(String.format
                 ("Entering zoneExportAddVolumes for ExportGroup: %s (%s) Volumes: %s",
                         exportGroup.getLabel(), exportGroup.getId(), volumeURIs.toString()));
-        //Check if Zoning needs to be checked from system config
-        //call the doZoneExportMasksCreate to check/create/remove zones with the flag
-        String addZoneWhileAddingVolume =  customConfigHandler.getComputedCustomConfigValue(
+        // Check if Zoning needs to be checked from system config
+        // call the doZoneExportMasksCreate to check/create/remove zones with the flag
+        String addZoneWhileAddingVolume = customConfigHandler.getComputedCustomConfigValue(
                 CustomConfigConstants.ZONE_ADD_VOLUME,
                 CustomConfigConstants.GLOBAL_KEY, null);
-        //Default behavior is we allow zoning checks against the Network System
+        // Default behavior is we allow zoning checks against the Network System
         Boolean addZoneOnDeviceOperation = true;
         _log.info("zoneExportAddVolumes checking for custom config value {} to skip zoning checks : (Default) : {}",
                 addZoneWhileAddingVolume, addZoneOnDeviceOperation);
-        if(addZoneWhileAddingVolume != null) {
+        if (addZoneWhileAddingVolume != null) {
             addZoneOnDeviceOperation = Boolean.valueOf(addZoneWhileAddingVolume);
             _log.info("Boolean convereted of : {} : returned by Config handler as : {} ",
                     addZoneWhileAddingVolume, addZoneOnDeviceOperation);
@@ -2029,10 +2027,9 @@ public class NetworkDeviceController implements NetworkController {
      * map. An empty map will be returned if no zones could be found for any initiator.
      * 
      * @param network the network of the initiators
-     * @param initiators the initiators the initiators for which the zones will be read
-     * @param initiatorPortsMap the storage ports of interest in the networks. The zones returned
-     *            by this function are filtered to those that contain at least one initiator and of port
-     * @return a ZoneInfoMap
+     * @param initiators the initiators for which the zones will be read
+     * @param initiatorPortsMap the storage ports of interest in the networks.
+     * @return a ZoneInfoMap a map of zones found that have at least one of initiators and one of the ports
      */
     private ZoneInfoMap getInitiatorsInNetworkZoneInfoMap(NetworkLite network, List<Initiator> initiators,
             Map<String, StoragePort> initiatorPortsMap) {
@@ -2062,8 +2059,7 @@ public class NetworkDeviceController implements NetworkController {
      * @param network the network of the initiators
      * @param map an OUT parameter where ZoneInfoMap is stored
      * @param initiators the initiators the initiators for which the zones will be read
-     * @param initiatorPortsMap the storage ports of interest in the networks. The zones returned
-     *            by this function are filtered to those that contain at least one initiator and of port
+     * @param initiatorPortsMap the storage ports of interest in the networks.
      * @return the network system used to read the zones
      */
     private NetworkSystem fetchInitiatorsInNetworkZoneInfoMap(NetworkLite network, ZoneInfoMap map,

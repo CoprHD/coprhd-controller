@@ -22,21 +22,21 @@ public class BucketBulkRep extends BulkRestRep {
      * @valid none
      */
     @XmlElement(name = "buckets")
-    public List<BucketRestRep> getFileShares() {
+    public List<BucketRestRep> getBuckets() {
         if (buckets == null) {
             buckets = new ArrayList<BucketRestRep>();
         }
         return buckets;
     }
 
-    public void setFileShares(List<BucketRestRep> fileShares) {
-        this.buckets = fileShares;
+    public void setBuckets(List<BucketRestRep> objectBuckets) {
+        this.buckets = objectBuckets;
     }
 
     public BucketBulkRep() {
     }
 
-    public BucketBulkRep(List<BucketRestRep> fileShares) {
-        this.buckets = fileShares;
+    public BucketBulkRep(List<BucketRestRep> objectBuckets) {
+        this.buckets = objectBuckets;
     }
 }

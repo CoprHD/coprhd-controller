@@ -161,7 +161,10 @@ public class ObjectVirtualPools extends ViprResourceController{
 	    
 	    public static void listStoragePoolsJson(ObjectVirtualPoolForm vpool) {
 	        List<StoragePoolInfo> items = Lists.newArrayList();
-	        if (vpool != null) {
+	        if(vpool.objectProtocols != null){
+	        	vpool.protocols = Sets.newHashSet(vpool.objectProtocols);
+	        }
+	        if (vpool != null && vpool.protocols != null && !vpool.protocols.isEmpty()) {
 	            Map<URI, String> storageSystemNames = StorageSystemUtils.getStorageSystemNames();
 	            List<StoragePoolRestRep> pools = getMatchingStoragePools(vpool);
 	            for (StoragePoolRestRep pool : pools) {

@@ -227,7 +227,7 @@ public class VirtualPoolUtils {
     }
 
     public static List<NamedRelatedResourceRep> refreshMatchingPools(ObjectVirtualPoolRestRep virtualPool) {
-        return getViprClient().fileVpools().refreshMatchingStoragePools(id(virtualPool));
+        return getViprClient().objectVpools().refreshMatchingStoragePools(id(virtualPool));
     }
     
     public static void deactivateBlock(URI id) {

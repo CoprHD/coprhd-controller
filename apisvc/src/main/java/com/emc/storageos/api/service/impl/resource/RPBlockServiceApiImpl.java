@@ -508,17 +508,12 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, consistencyGroup.getId());
                         capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, Volume.PersonalityTypes.SOURCE.toString());
                     }                               
-                }
-                                
-                // Reset the capabilities object
-                if (consistencyGroup != null) {
-                    capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, consistencyGroup.getId());
-                    capabilities.put(VirtualPoolCapabilityValuesWrapper.PERSONALITY, Volume.PersonalityTypes.SOURCE.toString());
-                }                               
-            }            
+                }                                                                                                  
                 
-            volumeInfoBuffer.append(String.format(NEW_LINE));
-            _log.info(volumeInfoBuffer.toString());
+                volumeInfoBuffer.append(String.format(NEW_LINE));
+                _log.info(volumeInfoBuffer.toString());
+                
+            }
         }
                                
         return volumeURIs;

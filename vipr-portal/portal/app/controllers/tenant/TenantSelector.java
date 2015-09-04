@@ -21,8 +21,8 @@ import controllers.util.Models;
 public class TenantSelector extends Controller {
     public static String CURRENT_TENANT_ID = "currentTenantId";
     public static String CURRENT_TENANT_NAME = "currentTenantName";
-    public static String TENANTS = "tenants";
-    public static String TENANT = "Tenant";
+    private static String TENANTS = "tenants";
+    private static String TENANT = "Tenant";
 
     public static void selectTenant(String tenantId, String url) {
         Models.setAdminTenantId(tenantId);

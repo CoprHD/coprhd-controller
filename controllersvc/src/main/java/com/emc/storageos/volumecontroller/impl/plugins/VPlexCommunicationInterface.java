@@ -96,7 +96,8 @@ import com.google.common.collect.Sets.SetView;
 public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceImpl {
 
     // string constants
-    private final String ISCSI_PATTERN = "^(iqn|IQN|eui).*$";
+    public static final String VPLEX_INITIATOR_HOSTNAME_PREFIX = "vplex_";
+    private static final String ISCSI_PATTERN = "^(iqn|IQN|eui).*$";
     protected static int BATCH_SIZE = Constants.DEFAULT_PARTITION_SIZE;
     private static final String TRUE = "true";
     private static final String FALSE = "false";
@@ -1721,7 +1722,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 || IPAddressUtil.isIPv6LiteralAddress(hostName)) {
             // The VNX cannot deal with literal IP addresses in the hostName
             // field of an initiator. Make it something more reasonable.
-            hostName = "vplex_" + hostName;
+            hostName = VPLEX_INITIATOR_HOSTNAME_PREFIX + hostName;
             s_logger.info("New host name is {}", hostName);
         }
 
@@ -1754,7 +1755,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             hostName = mgmntSvr.getIPAddress();
             if (IPAddressUtil.isIPv4LiteralAddress(hostName)
                     || IPAddressUtil.isIPv6LiteralAddress(hostName)) {
-                hostName = "vplex_" + hostName;
+                hostName = VPLEX_INITIATOR_HOSTNAME_PREFIX + hostName;
                 s_logger.info("New host name is {}", hostName);
             }
 

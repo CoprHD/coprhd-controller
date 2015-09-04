@@ -77,6 +77,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.VPlexUtil;
+import com.emc.storageos.volumecontroller.impl.plugins.VPlexCommunicationInterface;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.detailedDiscovery.RemoteMirrorObject;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
@@ -1465,6 +1466,12 @@ public class VolumeIngestionUtil {
             throw IngestionException.exceptions.hostHasNoZoning(Joiner.on(", ").join(messageArray));
         }
         String hostName = initiators.get(0).getHostName();
+        if (hostName != null && 
+                hostName.startsWith(VPlexCommunicationInterface.VPLEX_INITIATOR_HOSTNAME_PREFIX)) {
+            _logger.info("these are VPLEX backend initiators, "
+                       + "so no need to validate against virtual pool path params");
+            return true;
+        }
         URI hostURI = initiators.get(0).getHost();
         _logger.info("Checking numpath for host {}", hostName);
         for (Initiator initiator : initiators) {

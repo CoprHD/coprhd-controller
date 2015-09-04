@@ -1298,7 +1298,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         StringBuilder volumeLabelBuilder = new StringBuilder(baseVolumeLabel);
         if (volumeCount > 1) {
             volumeLabelBuilder.append("-");
-            volumeLabelBuilder.append(volumeIndex + 1);
+            volumeLabelBuilder.append(volumeIndex);
         }
         return volumeLabelBuilder.toString();
     }

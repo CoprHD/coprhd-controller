@@ -269,15 +269,14 @@ public class VPlexApiDiscoveryManager {
         }
 
         // Successful Response
-        List<VPlexPortInfo> portInfoList = new ArrayList<VPlexPortInfo>();
         try {
-            portInfoList = VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
+            List<VPlexPortInfo> portInfoList = VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
                     responseStr, VPlexPortInfo.class);
+            
+            return portInfoList;
         } catch (Exception e) {
             throw VPlexApiException.exceptions.errorProcessingPortInformation(e.getLocalizedMessage());
         }
-
-        return portInfoList;
     }
 
     /**
@@ -333,9 +332,8 @@ public class VPlexApiDiscoveryManager {
         }
 
         // Successful Response
-        List<VPlexClusterInfo> clusterInfoList = new ArrayList<VPlexClusterInfo>();
         try {
-            clusterInfoList = VPlexApiUtils.getResourcesFromResponseContext(
+            List<VPlexClusterInfo> clusterInfoList = VPlexApiUtils.getResourcesFromResponseContext(
                     VPlexApiConstants.URI_CLUSTERS.toString(), responseStr,
                     VPlexClusterInfo.class);
 
@@ -347,11 +345,11 @@ public class VPlexApiDiscoveryManager {
                     clusterInfo.setSystemVolumeInfo(getSystemVolumeInfoForCluster(clusterName));
                 }
             }
+            
+            return clusterInfoList;
         } catch (Exception e) {
             throw VPlexApiException.exceptions.errorProcessingClusterInfo(e.getLocalizedMessage());
         }
-
-        return clusterInfoList;
     }
 
     /**
@@ -380,16 +378,15 @@ public class VPlexApiDiscoveryManager {
         }
 
         // Successful Response
-        List<VPlexClusterInfo> clusterInfoList = new ArrayList<VPlexClusterInfo>();
         try {
-            clusterInfoList = VPlexApiUtils.getChildrenFromResponse(
+            List<VPlexClusterInfo> clusterInfoList = VPlexApiUtils.getChildrenFromResponse(
                     VPlexApiConstants.URI_CLUSTERS.toString(), responseStr,
                     VPlexClusterInfo.class);
+            
+            return clusterInfoList;
         } catch (Exception e) {
             throw VPlexApiException.exceptions.errorProcessingClusterInfo(e.getLocalizedMessage());
         }
-
-        return clusterInfoList;
     }
 
     /**
@@ -1172,20 +1169,19 @@ public class VPlexApiDiscoveryManager {
         }
 
         // Successful Response
-        List<VPlexStorageSystemInfo> storageSystemInfoList = new ArrayList<VPlexStorageSystemInfo>();
         try {
-            storageSystemInfoList = VPlexApiUtils.getChildrenFromResponse(
+            List<VPlexStorageSystemInfo> storageSystemInfoList = VPlexApiUtils.getChildrenFromResponse(
                     uriBuilder.toString(), responseStr, VPlexStorageSystemInfo.class);
             for (VPlexStorageSystemInfo storageSystemInfo : storageSystemInfoList) {
                 storageSystemInfo.buildUniqueId();
                 storageSystemInfo.setClusterId(clusterName);
             }
+            
+            return storageSystemInfoList;
         } catch (Exception e) {
             throw new VPlexApiException(String.format(
                     "Error processing storage system information: %s", e.getMessage()), e);
         }
-
-        return storageSystemInfoList;
     }
 
     /**
@@ -1221,16 +1217,15 @@ public class VPlexApiDiscoveryManager {
         }
 
         // Successful Response
-        List<VPlexStorageVolumeInfo> storageVolumeInfoList = new ArrayList<VPlexStorageVolumeInfo>();
         try {
-            storageVolumeInfoList = VPlexApiUtils.getChildrenFromResponse(
+            List<VPlexStorageVolumeInfo> storageVolumeInfoList = VPlexApiUtils.getChildrenFromResponse(
                     uriBuilder.toString(), responseStr, VPlexStorageVolumeInfo.class);
+
+            return storageVolumeInfoList;
         } catch (Exception e) {
             throw new VPlexApiException(String.format(
                     "Error processing storage volume information: %s", e.getMessage()), e);
         }
-
-        return storageVolumeInfoList;
     }
 
     /**
@@ -1266,19 +1261,18 @@ public class VPlexApiDiscoveryManager {
         }
 
         // Successful Response
-        List<VPlexSystemVolumeInfo> systemVolumeInfoList = new ArrayList<VPlexSystemVolumeInfo>();
         try {
-            systemVolumeInfoList = VPlexApiUtils.getChildrenFromResponse(
+            List<VPlexSystemVolumeInfo> systemVolumeInfoList = VPlexApiUtils.getChildrenFromResponse(
                     uriBuilder.toString(), responseStr, VPlexSystemVolumeInfo.class);
             for (VPlexSystemVolumeInfo systemVolumeInfo : systemVolumeInfoList) {
                 updateSystemVolumeInfo(clusterName, systemVolumeInfo);
             }
+
+            return systemVolumeInfoList;
         } catch (Exception e) {
             throw new VPlexApiException(String.format(
                     "Error processing logging volume information: %s", e.getMessage()), e);
         }
-
-        return systemVolumeInfoList;
     }
 
     /**
@@ -1350,9 +1344,8 @@ public class VPlexApiDiscoveryManager {
         }
 
         // Successful Response
-        List<VPlexEngineInfo> engineInfoList = new ArrayList<VPlexEngineInfo>();
         try {
-            engineInfoList = VPlexApiUtils.getChildrenFromResponse(
+            List<VPlexEngineInfo> engineInfoList = VPlexApiUtils.getChildrenFromResponse(
                     VPlexApiConstants.URI_ENGINES.toString(), responseStr,
                     VPlexEngineInfo.class);
             for (VPlexEngineInfo engineInfo : engineInfoList) {
@@ -1360,12 +1353,12 @@ public class VPlexApiDiscoveryManager {
                 engineInfo
                         .setDirectorInfo(getDirectorInfoForEngine(engineInfo.getName()));
             }
+            
+            return engineInfoList;
         } catch (Exception e) {
             throw new VPlexApiException(String.format(
                     "Error processing engine information: %s", e.getMessage()), e);
         }
-
-        return engineInfoList;
     }
 
     /**
@@ -1401,9 +1394,8 @@ public class VPlexApiDiscoveryManager {
         }
 
         // Successful Response
-        List<VPlexDirectorInfo> directorInfoList = new ArrayList<VPlexDirectorInfo>();
         try {
-            directorInfoList = VPlexApiUtils.getChildrenFromResponse(
+            List<VPlexDirectorInfo> directorInfoList = VPlexApiUtils.getChildrenFromResponse(
                     uriBuilder.toString(), responseStr, VPlexDirectorInfo.class);
             for (VPlexDirectorInfo directorInfo : directorInfoList) {
                 updateDirectorInfo(engineName, directorInfo);
@@ -1411,12 +1403,12 @@ public class VPlexApiDiscoveryManager {
                 directorInfo.setPortInfo(getPortInfoForDirector(engineName,
                         directorInfo));
             }
+            
+            return directorInfoList;
         } catch (Exception e) {
             throw new VPlexApiException(String.format(
                     "Error processing director information: %s", e.getMessage()), e);
         }
-
-        return directorInfoList;
     }
 
     /**
@@ -1498,21 +1490,20 @@ public class VPlexApiDiscoveryManager {
         }
 
         // Successful Response
-        List<VPlexPortInfo> portInfoList = new ArrayList<VPlexPortInfo>();
         try {
-            portInfoList = VPlexApiUtils.getChildrenFromResponse(uriBuilder.toString(),
+            List<VPlexPortInfo> portInfoList = VPlexApiUtils.getChildrenFromResponse(uriBuilder.toString(),
                     responseStr, VPlexPortInfo.class);
             for (VPlexPortInfo portInfo : portInfoList) {
                 s_logger.info("Port Info: {}", portInfo.toString());
                 portInfo.setDirectorInfo(directorInfo);
                 updatePortInfo(engineName, directorName, portInfo);
             }
+
+            return portInfoList;
         } catch (Exception e) {
             throw new VPlexApiException(String.format(
                     "Error processing director port information: %s", e.getMessage()), e);
         }
-
-        return portInfoList;
     }
 
     /**
@@ -1596,15 +1587,14 @@ public class VPlexApiDiscoveryManager {
         }
 
         // Successful Response
-        List<VPlexInitiatorInfo> initiatorInfoList = new ArrayList<VPlexInitiatorInfo>();
         try {
-            initiatorInfoList = VPlexApiUtils.getResourcesFromResponseContext(
+            List<VPlexInitiatorInfo> initiatorInfoList = VPlexApiUtils.getResourcesFromResponseContext(
                     uriBuilder.toString(), responseStr, VPlexInitiatorInfo.class);
+            
+            return initiatorInfoList;
         } catch (Exception e) {
             throw VPlexApiException.exceptions.errorProcessingInitiatorInformation(e.getLocalizedMessage());
         }
-
-        return initiatorInfoList;
     }
 
     /**
@@ -1732,15 +1722,14 @@ public class VPlexApiDiscoveryManager {
         }
 
         // Successful Response
-        List<VPlexTargetInfo> targetInfoList = new ArrayList<VPlexTargetInfo>();
         try {
-            targetInfoList = VPlexApiUtils.getResourcesFromResponseContext(
+            List<VPlexTargetInfo> targetInfoList = VPlexApiUtils.getResourcesFromResponseContext(
                     uriBuilder.toString(), responseStr, VPlexTargetInfo.class);
+
+            return targetInfoList;
         } catch (Exception e) {
             throw VPlexApiException.exceptions.errorProcessingTargetPortInformation(String.valueOf(status));
         }
-
-        return targetInfoList;
     }
 
     /**
@@ -1974,8 +1963,6 @@ public class VPlexApiDiscoveryManager {
      */
     List<VPlexStorageViewInfo> getStorageViews(String clusterName) throws VPlexApiException {
 
-        List<VPlexStorageViewInfo> storageViews = new ArrayList<VPlexStorageViewInfo>();
-
         StringBuilder uriBuilder = new StringBuilder();
         uriBuilder.append(VPlexApiConstants.URI_CLUSTERS.toString());
         uriBuilder.append(clusterName);
@@ -1993,23 +1980,23 @@ public class VPlexApiDiscoveryManager {
         }
 
         try {
-            storageViews = VPlexApiUtils
+            List<VPlexStorageViewInfo> storageViews = VPlexApiUtils
                     .getChildrenFromResponse(uriBuilder.toString(), responseStr,
                             VPlexStorageViewInfo.class);
+
+            List<VPlexStorageViewInfo> detailedStorageViews = new ArrayList<VPlexStorageViewInfo>();
+            for (VPlexStorageViewInfo sv : storageViews) {
+                VPlexStorageViewInfo svDetailed = findStorageViewOnCluster(sv.getName(), clusterName, true);
+                if (svDetailed != null) {
+                    detailedStorageViews.add(svDetailed);
+                }
+            }
+
+            return detailedStorageViews;
         } catch (Exception e) {
             throw VPlexApiException.exceptions.getStorageViewsFailed(String.format(
                     "Error processing storage views: %s", e.getMessage()));
         }
-
-        List<VPlexStorageViewInfo> detailedStorageViews = new ArrayList<VPlexStorageViewInfo>();
-        for (VPlexStorageViewInfo sv : storageViews) {
-            VPlexStorageViewInfo svDetailed = findStorageViewOnCluster(sv.getName(), clusterName, true);
-            if (svDetailed != null) {
-                detailedStorageViews.add(svDetailed);
-            }
-        }
-
-        return detailedStorageViews;
     }
 
     /**
@@ -2122,8 +2109,6 @@ public class VPlexApiDiscoveryManager {
     List<VPlexStorageViewInfo> getStorageViewsForCluster(String clusterName) throws VPlexApiException {
 
         s_logger.info("Getting all storage view information from VPLEX at " + _vplexApiClient.getBaseURI().toString());
-        List<VPlexStorageViewInfo> storageViews = new ArrayList<VPlexStorageViewInfo>();
-
         StringBuilder uriBuilder = new StringBuilder();
         uriBuilder.append(VPlexApiConstants.URI_CLUSTERS.toString());
         uriBuilder.append(clusterName);
@@ -2140,7 +2125,7 @@ public class VPlexApiDiscoveryManager {
         }
 
         try {
-            storageViews = VPlexApiUtils
+            List<VPlexStorageViewInfo> storageViews = VPlexApiUtils
                     .getResourcesFromResponseContext(uriBuilder.toString(), responseStr,
                             VPlexStorageViewInfo.class);
 
@@ -2153,11 +2138,10 @@ public class VPlexApiDiscoveryManager {
                 }
             }
 
+            return storageViews;
         } catch (Exception e) {
             throw VPlexApiException.exceptions.errorProcessingStorageViewInformation(e.getLocalizedMessage());
         }
-
-        return storageViews;
     }
 
     /**
@@ -3384,36 +3368,36 @@ public class VPlexApiDiscoveryManager {
         }
 
         // Successful Response
-        List<VPlexStorageVolumeInfo> storageVolumeInfoList = new ArrayList<VPlexStorageVolumeInfo>();
         try {
-            storageVolumeInfoList = VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
-                    responseStr, VPlexStorageVolumeInfo.class);
+            List<VPlexStorageVolumeInfo> storageVolumeInfoList = 
+                    VPlexApiUtils.getResourcesFromResponseContext(uriBuilder.toString(),
+                            responseStr, VPlexStorageVolumeInfo.class);
+
+            StringBuilder badComponentTypeMessage = new StringBuilder();
+            if (!storageVolumeInfoList.isEmpty()) {
+                s_logger.info("found these storage volumes for VPLEX device {}:", deviceName);
+                for (VPlexStorageVolumeInfo info : storageVolumeInfoList) {
+                    s_logger.info(info.toString());
+                    if (!VPlexApiConstants.STORAGE_VOLUME_TYPE.equals(info.getComponentType())) {
+                        badComponentTypeMessage.append("Unexpected component type ")
+                            .append(info.getComponentType()).append(" found for volume ")
+                            .append(info.getName()).append(". ");
+                    }
+                }
+            }
+
+            if (badComponentTypeMessage.length() > 0) {
+                s_logger.error(badComponentTypeMessage.toString());
+                throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(badComponentTypeMessage.toString());
+            }
+
+            s_logger.info("TIMER: getStorageVolumesForDevice took {}ms",
+                    System.currentTimeMillis() - start);
+
+            return storageVolumeInfoList;
         } catch (Exception e) {
             throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(e.getLocalizedMessage());
         }
-
-        StringBuilder badComponentTypeMessage = new StringBuilder();
-        if (!storageVolumeInfoList.isEmpty()) {
-            s_logger.info("found these storage volumes for VPLEX device {}:", deviceName);
-            for (VPlexStorageVolumeInfo info : storageVolumeInfoList) {
-                s_logger.info(info.toString());
-                if (!VPlexApiConstants.STORAGE_VOLUME_TYPE.equals(info.getComponentType())) {
-                    badComponentTypeMessage.append("Unexpected component type ")
-                        .append(info.getComponentType()).append(" found for volume ")
-                        .append(info.getName()).append(". ");
-                }
-            }
-        }
-
-        if (badComponentTypeMessage.length() > 0) {
-            s_logger.error(badComponentTypeMessage.toString());
-            throw VPlexApiException.exceptions.failedGettingStorageVolumeInfo(badComponentTypeMessage.toString());
-        }
-
-        s_logger.info("TIMER: getStorageVolumesForDevice took {}ms",
-                System.currentTimeMillis() - start);
-
-        return storageVolumeInfoList;
     }
 
     /**

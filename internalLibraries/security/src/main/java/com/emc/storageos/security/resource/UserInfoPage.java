@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.resource;
 
@@ -151,7 +141,7 @@ public class UserInfoPage {
      * 
      * @brief Show my Tenant and assigned roles
      * @prereq none
-     * @return
+     * @return List of tenants user mappings,VDC role and tenant role of the user.
      */
     @GET
     @Path("/whoami")
@@ -234,7 +224,7 @@ public class UserInfoPage {
      * @brief Get the tenancies to which a user maps given the current mappings
      * @prereq none
      * @param username required The user name for which to retrieve the tenant list.
-     * @return
+     * @return user tenant list
      */
     @GET
     @Path("/tenant")

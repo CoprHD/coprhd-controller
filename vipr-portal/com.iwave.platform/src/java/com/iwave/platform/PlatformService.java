@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.platform;
@@ -51,6 +51,7 @@ public class PlatformService {
             // Add the shutdown hook
             Runtime.getRuntime().addShutdownHook(shutdownHook);
         } catch (IllegalArgumentException e) {
+            log.error(e.getMessage(), e);
         }
 
         return framework.getApplicationContext();

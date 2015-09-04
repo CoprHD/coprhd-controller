@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.block;
@@ -82,6 +82,13 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
     public ExportMask refreshExportMask(StorageSystem storage,
             BlockStorageDevice device, ExportMask mask) {
         return super.refreshExportMask(storage, device, mask);
+    }
+
+    @Override
+    public void suggestExportMasksForPlacement(
+            StorageSystem storage, BlockStorageDevice device, List<Initiator> initiators,
+            ExportMaskPlacementDescriptor placementDescriptor) {
+        super.suggestExportMasksForPlacement(storage, device, initiators, placementDescriptor);
     }
 
     /**

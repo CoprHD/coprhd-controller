@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
@@ -40,10 +40,12 @@ public class Task extends DataObject {
     private URI tenant;
     private boolean completedFlag;
     private URI workflow;
+    private Calendar queuedStartTime;
+    private String queueName;
 
     // enumeration of status value
     public enum Status {
-        pending, ready, error;
+        queued, pending, ready, error;
 
         public static Status toStatus(String status) {
             try {
@@ -161,6 +163,26 @@ public class Task extends DataObject {
         }
     }
 
+    @Name("queuedStartTime")
+    public Calendar getQueuedStartTime() {
+        return queuedStartTime;
+    }
+
+    public void setQueuedStartTime(Calendar queuedStartTime) {
+        this.queuedStartTime = queuedStartTime;
+        setChanged("queuedStartTime");
+    }
+
+    @Name("queueName")
+    public String getQueueName() {
+        return queueName;
+    }
+
+    public void setQueueName(String queueName) {
+        this.queueName = queueName;
+        setChanged("queueName");
+    }
+
     /**
      * Used to indicate that a task has completed
      * 
@@ -259,6 +281,11 @@ public class Task extends DataObject {
     public void ready(String message) {
         setMessage(message);
         setStatus(Status.ready.name());
+    }
+
+    public boolean isQueued() {
+        String status = getStatus();
+        return Status.queued.name().equals(status);
     }
 
     public boolean isPending() {

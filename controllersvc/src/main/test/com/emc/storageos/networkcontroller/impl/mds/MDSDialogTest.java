@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.networkcontroller.impl.mds;
@@ -96,7 +96,7 @@ public class MDSDialogTest {
         }
 
         _log.info("Inactive zonesets for vsan: {}", vsanId);
-        List<Zoneset> zonesets = dialog.showZoneset(vsanId, false, null, false);
+        List<Zoneset> zonesets = dialog.showZoneset(vsanId, false, null, false, false);
         for (Zoneset zs : zonesets) {
             if (!zs.getActive() == true) {
                 zs.print();

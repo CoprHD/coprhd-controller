@@ -1,21 +1,17 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.model.project;
 
-import javax.xml.bind.annotation.*;
+import java.util.Set;
+
+import javax.xml.bind.annotation.XmlAccessType;
+import javax.xml.bind.annotation.XmlAccessorType;
+import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElementWrapper;
+import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -25,6 +21,7 @@ import com.emc.storageos.model.RelatedResourceRep;
 public class ProjectRestRep extends DataObjectRestRep {
     private RelatedResourceRep tenant;
     private String owner;
+    private Set<String> assignedVNasServers;
 
     public ProjectRestRep() {
     }
@@ -65,4 +62,30 @@ public class ProjectRestRep extends DataObjectRestRep {
     public void setTenant(RelatedResourceRep tenant) {
         this.tenant = tenant;
     }
+
+    /**
+     * Keywords and labels that can be added by a user to a resource
+     * to make it easy to find when doing a search.
+     * 
+     * @valid none
+     */
+    @XmlElementWrapper(name = "assigned_vnas_servers")
+    /**
+     * 
+     * List of VNAS Servers associated with this project.
+     * 
+     * @valid none
+     */
+    @XmlElement(name = "assigned_vnas_server")
+    public Set<String> getAssignedVNasServers() {
+        return assignedVNasServers;
+    }
+
+    /**
+     * @param assignedVNasServers the assignedVNasServers to set
+     */
+    public void setAssignedVNasServers(Set<String> assignedVNasServers) {
+        this.assignedVNasServers = assignedVNasServers;
+    }
+
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -20,6 +10,7 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -78,8 +69,8 @@ import com.google.common.base.Function;
  * Service used to manage resource migrations.
  */
 @Path("/block/migrations")
-@DefaultPermissions(read_roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, read_acls = {
-        ACL.OWN, ACL.ALL }, write_roles = { Role.TENANT_ADMIN }, write_acls = { ACL.OWN,
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
+        ACL.OWN, ACL.ALL }, writeRoles = { Role.TENANT_ADMIN }, writeAcls = { ACL.OWN,
         ACL.ALL })
 public class MigrationService extends TaskResourceService {
     // A reference to the BlockServiceApi for VPlex.
@@ -131,6 +122,10 @@ public class MigrationService extends TaskResourceService {
         // Verify the requested volume supports migration.
         Volume vplexVolume = verifyRequestedVolumeSupportsMigration(migrateParam.getVolume());
         s_logger.debug("Verfified requested volume");
+                
+        // Make sure that we don't have some pending
+        // operation against the volume
+        checkForPendingTasks(Arrays.asList(vplexVolume.getTenant().getURI()), Arrays.asList(vplexVolume));
 
         // Determine the backend volume of the requested VPlex volume that
         // is to be migrated. It is the volume on the passed source storage
@@ -187,8 +182,8 @@ public class MigrationService extends TaskResourceService {
 
         // There should be a single recommendation.
         Recommendation recommendation = recommendations.get(0);
-        URI recommendedSystem = recommendation.getSourceDevice();
-        URI recommendedPool = recommendation.getSourcePool();
+        URI recommendedSystem = recommendation.getSourceStorageSystem();
+        URI recommendedPool = recommendation.getSourceStoragePool();
         s_logger.debug("Recommendation storage system is {}", recommendedSystem);
         s_logger.debug("Recommendation storage pool is {}", recommendedPool);
 

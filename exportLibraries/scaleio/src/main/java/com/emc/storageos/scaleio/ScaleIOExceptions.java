@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.scaleio;
 
@@ -39,4 +29,16 @@ public interface ScaleIOExceptions {
 
     @DeclareServiceCode(ServiceCode.SCALEIO_CLI_INIT_WAS_NOT_CALLED)
     public ScaleIOException initWasNotCalled();
+    
+    @DeclareServiceCode(ServiceCode.SCALEIO_API_FAILURE)
+    public ScaleIOException authenticationFailure(String uri) ;
+    
+    @DeclareServiceCode(ServiceCode.SCALEIO_API_FAILURE)
+    public ScaleIOException resourceNotFound(String uri);
+    
+    @DeclareServiceCode(ServiceCode.SCALEIO_API_FAILURE)
+    public ScaleIOException internalError(String uri, String error);
+    
+    @DeclareServiceCode(ServiceCode.SCALEIO_API_FAILURE)
+    public ScaleIOException noActiveStorageProvider(String systemName);
 }

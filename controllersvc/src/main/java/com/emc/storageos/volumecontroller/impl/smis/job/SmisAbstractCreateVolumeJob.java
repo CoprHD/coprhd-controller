@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.smis.job;
@@ -353,15 +343,21 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
                         .queryObject(BlockConsistencyGroup.class, consistencyGroupId);
             }
 
-            // If no consistency group OR cg is of type RP, the volumes are not part of a consistency group: just return.
-            // If we are dealing with an RP+VPLEX consistency group, we want to add the volumes to the backing array
-            // consistency group.
-            if (consistencyGroup == null
-                    || (consistencyGroup.getTypes() != null &&
-                            consistencyGroup.getTypes().contains(BlockConsistencyGroup.Types.RP.name()) &&
-                    !consistencyGroup.getTypes().contains(BlockConsistencyGroup.Types.VPLEX.name()))) {
-                _log.info("Skipping step addVolumesToConsistencyGroup: Volumes are not part of a consistency group");
+            if (consistencyGroup == null) {
+                _log.info(String.format("Skipping step addVolumesToConsistencyGroup: volumes %s do not reference a consistency group.",
+                        volumesIds.toString()));
                 return;
+            } else {
+                for (Volume volume : volumes) {
+                    String cgName =
+                            consistencyGroup.getCgNameOnStorageSystem(volume.getStorageController());
+                    if (cgName == null) {
+                        _log.info(String.format(
+                                "Skipping step addVolumesToConsistencyGroup: Volume %s (%s) does not reference an existing consistency group on array %s.",
+                                volume.getLabel(), volume.getId(), volume.getStorageController()));
+                        return;
+                    }
+                }
             }
 
             final StorageSystem storage = dbClient.queryObject(StorageSystem.class,

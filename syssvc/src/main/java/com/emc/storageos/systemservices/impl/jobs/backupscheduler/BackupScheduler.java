@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.jobs.backupscheduler;
 
@@ -30,6 +20,7 @@ import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.management.backup.BackupConstants;
 import com.emc.storageos.management.backup.BackupFileSet;
@@ -253,8 +244,8 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
 
     public String generateZipFileName(String tag, BackupFileSet files) {
         Set<String> availableNodes = files.uniqueNodes();
-        Set<String> nodeNames = this.coordinatorClient.getInetAddessLookupMap().getControllerNodeIPLookupMap().keySet();
-        String[] allNodes = nodeNames.toArray(new String[nodeNames.size()]);
+        Set<String> nodeIds = this.coordinatorClient.getInetAddessLookupMap().getControllerNodeIPLookupMap().keySet();
+        String[] allNodes = nodeIds.toArray(new String[nodeIds.size()]);
         Arrays.sort(allNodes);
         int backupNodeCount = 0;
         for (int i = 0; i < allNodes.length; i++) {
@@ -263,15 +254,15 @@ public class BackupScheduler extends Notifier implements Runnable, Callable<Obje
             }
         }
 
-        return ScheduledBackupTag.toZipFileName(tag, nodeNames.size(), backupNodeCount);
+        return ScheduledBackupTag.toZipFileName(tag, nodeIds.size(), backupNodeCount);
     }
 
     public List<String> getDescParams(final String tag) {
-        final String nodeName = this.serviceinfo.getNodeName();
+        final String nodeId = this.serviceinfo.getNodeId();
         return new ArrayList<String>() {
             {
                 add(tag);
-                add(nodeName);
+                add(nodeId);
             }
         };
     }

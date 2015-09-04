@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.vnxe.job;
@@ -40,8 +30,8 @@ public class VNXeCreateVolumesJob extends VNXeJob {
 
     private static final long serialVersionUID = 485930354573814000L;
     private static final Logger _logger = LoggerFactory.getLogger(VNXeCreateFileSystemJob.class);
-    private URI storagePool;
-    private boolean isConsistencyGroup;
+    private final URI storagePool;
+    private final boolean isConsistencyGroup;
 
     public VNXeCreateVolumesJob(List<String> jobIds, URI storageSystemUri, TaskCompleter taskCompleter,
             URI storagePoolUri, boolean isConsistencyGroup) {
@@ -52,7 +42,7 @@ public class VNXeCreateVolumesJob extends VNXeJob {
 
     /**
      * Called to update the job status when the volumes create job completes.
-     * 
+     *
      * @param jobContext The job context.
      */
     @Override
@@ -151,7 +141,7 @@ public class VNXeCreateVolumesJob extends VNXeJob {
             if (group == null) {
                 group = dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
             }
-            String deviceName = group.fetchArrayCgName(volume.getStorageController());
+            String deviceName = group.getCgNameOnStorageSystem(volume.getStorageController());
             VNXeLun vnxeLun = apiClient.getLunByLunGroup(deviceName, volume.getNativeGuid());
             if (vnxeLun != null) {
                 updateVolume(volume, vnxeLun, dbClient);

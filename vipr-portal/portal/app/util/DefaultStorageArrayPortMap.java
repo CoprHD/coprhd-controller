@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -22,6 +22,8 @@ public enum DefaultStorageArrayPortMap {
     openstack_useSSL,
     scaleio,
     scaleio_useSSL,
+    scaleioapi,
+    scaleioapi_useSSL,
     datadomain,
     datadomain_useSSL,
     ibmxiv,

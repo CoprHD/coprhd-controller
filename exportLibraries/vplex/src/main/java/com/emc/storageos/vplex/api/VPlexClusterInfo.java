@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.vplex.api;
 
@@ -38,8 +28,8 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
 
     // Information about the system volumes accessible to the cluster.
     List<VPlexSystemVolumeInfo> systemVolumeInfoList = new ArrayList<VPlexSystemVolumeInfo>();
-
-    /**
+    
+	/**
      * Getter for the assembly id.
      * 
      * @return The cluster assembly id.
@@ -141,7 +131,10 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
     public VPlexStorageVolumeInfo getStorageVolume(VolumeInfo volumeInfo) {
         String storageVolumeName = volumeInfo.getVolumeWWN().toLowerCase();
         String storageSystemNativeGuid = volumeInfo.getStorageSystemNativeGuid();
+        
         String storageVolumeWWN = volumeInfo.getVolumeWWN();
+        List<String> backendVolumeItlsList = volumeInfo.getITLs();
+        
         s_logger.info("Find volume {} in cluster", storageVolumeName);
         for (VPlexStorageVolumeInfo storageVolumeInfo : storageVolumeInfoList) {
             String clusterVolumeName = storageVolumeInfo.getName();
@@ -157,14 +150,28 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
                 } else if (storageVolumeName.equals(clusterVolumeName)) {
                     s_logger.info("Found volume {}", storageVolumeName);
                     return storageVolumeInfo;
+                } else {
+                    // This path is Currently for Cinder only
+                    s_logger.info("Doing the ITLs lookup");
+                    // Example list - [50001442b0037911-500000e0da0e0721-8, 50001442b0037913-500000e0da0e0731-8,
+                    // 50001442b0037912-500000e0da0e0720-8, 50001442b0037910-500000e0da0e0730-8]
+                    List<String> vplexVolItls = storageVolumeInfo.getItls();
+                    if (null != vplexVolItls && !vplexVolItls.isEmpty()) {
+                        if (vplexVolItls.contains(backendVolumeItlsList.get(0).trim().toLowerCase())) {
+                            s_logger.info("Found volume '{}' using ITL lookup", storageVolumeName);
+                            return storageVolumeInfo;
+                        }
+                    }
                 }
             } else if (storageVolumeName.equals(clusterVolumeName)) {
+                // This matching means, the volume has been claimed already
                 s_logger.info("Found volume {}", storageVolumeName);
                 return storageVolumeInfo;
             }
         }
         return null;
     }
+    
 
     /**
      * Getter for the system volume info for the cluster.

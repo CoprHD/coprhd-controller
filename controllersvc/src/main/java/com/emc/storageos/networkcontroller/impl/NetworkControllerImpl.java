@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.networkcontroller.impl;
@@ -100,12 +100,12 @@ public class NetworkControllerImpl extends AbstractDiscoveredSystemController im
     }
 
     @Override
-    public List<Zoneset> getZonesets(URI network, String fabricId, String fabricWwn, String zoneName, boolean excludeMembers)
-            throws InternalException {
+    public List<Zoneset> getZonesets(URI network, String fabricId, String fabricWwn, String zoneName, boolean excludeMembers,
+    		 boolean excludeAliases) throws InternalException {
         try {
             NetworkSystem device = _dbClient.queryObject(NetworkSystem.class, network);
             NetworkDeviceController devController = (NetworkDeviceController) lookupDeviceController(device);
-            return devController.getZonesets(network, fabricId, fabricWwn, zoneName, excludeMembers);
+            return devController.getZonesets(network, fabricId, fabricWwn, zoneName, excludeMembers, excludeAliases);
         } catch (InternalException ex) {
             throw ex;
         } catch (Exception ex) {

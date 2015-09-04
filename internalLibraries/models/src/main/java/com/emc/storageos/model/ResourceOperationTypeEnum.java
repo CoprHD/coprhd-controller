@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model;
 
@@ -70,6 +60,7 @@ public enum ResourceOperationTypeEnum {
     ASSIGN_VOLUME_TAG("ASSIGN VOLUME TAG", "tag a volume"),
     DELETE_VOLUME_SNAPSHOT("DELETE VOLUME SNAPSHOT", "delete volume snapshot"),
     RESTORE_VOLUME_SNAPSHOT("RESTORE VOLUME SNAPSHOT", "restore volume snapshot"),
+    RESYNCHRONIZE_VOLUME_SNAPSHOT("RESYNCHRONIZE VOLUME SNAPSHOT", "resynchronize volume snapshot"),
     ACTIVATE_VOLUME_SNAPSHOT("ACTIVATE VOLUME SNAPSHOT", "activate volume snapshot"),
     DEACTIVATE_VOLUME_SNAPSHOT("DEACTIVATE VOLUME SNAPSHOT", "deactivate volume snapshot"),
     ASSIGN_VOLUME_SNAPSHOT_TAG("TAG VOLUME SNAPSHOT", "tag a volume snapshot"),
@@ -217,6 +208,7 @@ public enum ResourceOperationTypeEnum {
     DISCOVER_HOST("DISCOVER HOST", "discover a compute host"),
     CREATE_HOST("CREATE HOST", "create a compute host"),
     DELETE_CLUSTER("DELETE CLUSTER", "delete a compute cluster"),
+    UPDATE_CLUSTER("UPDATE CLUSTER", "delete a compute cluster"),
     DELETE_HOST("DELETE HOST", "delete a compute host"),
     DELETE_HOST_IPINTERFACE("DELETE HOST IP INTERFACE", "delete a compute host's IP interface"),
     DISCOVER_VCENTER("DISCOVER VCENTER", "discover a vcenter"),
@@ -247,6 +239,7 @@ public enum ResourceOperationTypeEnum {
     DEACTIVATE_CONSISTENCY_GROUP_SNAPSHOT("DEACTIVATE CONSISTENCY GROUP SNAPSHOT", "deactivate a consistency group snapshot"),
     ACTIVATE_CONSISTENCY_GROUP_SNAPSHOT("ACTIVATE CONSISTENCY GROUP SNAPSHOT", "activate a consistency group snapshot"),
     RESTORE_CONSISTENCY_GROUP_SNAPSHOT("RESTORE CONSISTENCY GROUP SNAPSHOT", "restore a consistency group snapshot"),
+    RESYNCHRONIZE_CONSISTENCY_GROUP_SNAPSHOT("RESYNCHRONIZE CONSISTENCY GROUP SNAPSHOT", "resynchronize a consistency group snapshot"),
     CREATE_STORAGE_VIEW("CREATE STORAGE VIEW", "create a storage view"),
     DELETE_STORAGE_VIEW("DELETE STORAGE VIEW", "delete a storage view"),
     ADD_EXPORT_INITIATOR("ADD INITIATOR TO EXPORT GROUP", "add initiator to export group"),

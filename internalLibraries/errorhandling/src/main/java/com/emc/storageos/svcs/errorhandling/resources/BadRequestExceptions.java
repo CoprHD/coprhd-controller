@@ -1,26 +1,18 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2013-2014 EMC Corporation All Rights Reserved
- * 
- * This software contains the intellectual property of EMC Corporation or is licensed to EMC
- * Corporation from third parties. Use of this software and the intellectual property contained
- * therein is expressly limited to the terms and conditions of the License Agreement under which it
- * is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.svcs.errorhandling.resources;
-
-import com.emc.storageos.model.block.export.VolumeParam;
-import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
-import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 
 import java.net.URI;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+
+import com.emc.storageos.model.block.export.VolumeParam;
+import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
+import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 
 /**
  * This interface holds all the methods used to create an error condition that will be associated
@@ -266,6 +258,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException initiatorNotCreatedManuallyAndCannotBeDeleted();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException initiatorInClusterWithAutoExportDisabled();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException initiatorPortNotValid();
@@ -622,11 +617,11 @@ public interface BadRequestExceptions {
     public BadRequestException invalidParameterSystemTypeforAutoTiering();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidParameterTenantsQuotaExceedsProject(long quota_gb,
+    public BadRequestException invalidParameterTenantsQuotaExceedsProject(long quotaGb,
             long totalProjects);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException invalidParameterTenantsQuotaExceedsSubtenants(long quota_gb,
+    public BadRequestException invalidParameterTenantsQuotaExceedsSubtenants(long quotaGb,
             long totalSubtenants);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
@@ -673,6 +668,15 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidHostNamesAreNotUnique();
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidNodeNamesAreNotUnique(String nodeName, String prop1, String prop2);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidNodeShortNamesAreNotUnique(String shortName, String prop1, String prop2);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidNodeNameIsIdOfAnotherNode(String name, String value);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterHostAlreadyHasOs(String os);
@@ -794,8 +798,8 @@ public interface BadRequestExceptions {
     public BadRequestException failedToLoadKeyFromString(final Throwable e);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException truststoreUpdatePartialSuccess(
-            final List<String> failedParse, final List<String> notInTruststore);
+    public BadRequestException trustStoreUpdatePartialSuccess(
+            final List<String> failedParse, final List<String> expired, final List<String> notInTrustStore);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID_URI)
     public BadRequestException invalidSeverityInURI(final String severity, final String severities);
@@ -1012,7 +1016,7 @@ public interface BadRequestExceptions {
     public BadRequestException parameterOnlySupportedForVmax(final String propertyName);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException VArrayUnSupportedForGivenVPool(final URI vPool, final URI vArray);
+    public BadRequestException vArrayUnSupportedForGivenVPool(final URI vPool, final URI vArray);
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException parameterTooShortOrEmpty(final String parameterName,
@@ -1152,6 +1156,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_RESOURCE_BEING_REFERENCED)
     public BadRequestException resourceHasActiveReferences(final String clazz, final URI resourceId);
+
+    @DeclareServiceCode(ServiceCode.API_RESOURCE_BEING_REFERENCED)
+    public BadRequestException resourceInClusterWithAutoExportDisabled(final String clazz, final URI resourceId);
 
     @DeclareServiceCode(ServiceCode.API_RESOURCE_BEING_REFERENCED)
     public BadRequestException resourceHasActiveReferencesWithType(final String clazz,
@@ -1772,7 +1779,7 @@ public interface BadRequestExceptions {
     public BadRequestException invalidParameterTenantNamespaceIsEmpty();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException TenantNamespaceMappingConflict(final String tenantId, final String namespace);
+    public BadRequestException tenantNamespaceMappingConflict(final String tenantId, final String namespace);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException volumeNotInVirtualPool(final String volumeName, final String vpoolName);
@@ -2161,7 +2168,7 @@ public interface BadRequestExceptions {
     public BadRequestException volumeForVarrayChangeHasMirrors(final String volumeId, final String volumeLabel);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cannotDeleteObjectWhilePendingTask(final String pendingVolumes);
+    public BadRequestException cannotExecuteOperationWhilePendingTask(final String pendingVolumes);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException rpClusterVarrayNoClusterId(String label);
@@ -2194,7 +2201,7 @@ public interface BadRequestExceptions {
     public BadRequestException userMappingAttributeIsEmpty();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException UserMappingNotAllowed(final String user);
+    public BadRequestException userMappingNotAllowed(final String user);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotDeleteOrEditUserGroup(final int numResources, final Set<URI> resourceIDs);
@@ -2301,10 +2308,10 @@ public interface BadRequestExceptions {
     public BadRequestException volumeForSRDFVpoolChangeHasFullCopies(final String volumeId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException NoFullCopiesForVMAX3VolumeWithActiveSnapshot(final String type);
+    public BadRequestException noFullCopiesForVMAX3VolumeWithActiveSnapshot(final String type);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException NoSnapshotsForVMAX3VolumeWithActiveFullCopy();
+    public BadRequestException noSnapshotsForVMAX3VolumeWithActiveFullCopy();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException expansionNotSupportedForVMAX3Volumes();
@@ -2332,11 +2339,43 @@ public interface BadRequestExceptions {
     public BadRequestException fullCopyNotSupportedByBackendSystem(final URI volume);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException NoAuthnProviderFound(String userId);
+    public BadRequestException noAuthnProviderFound(String userId);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidPrincipals(String details);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException storagePoolsRequireVplexForProtection(final String personality, final String vpoolName);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotRemoveTenant(final String resource, final String name, final Set<String> tenants);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unsupportedNumberOfPrivileges(final URI tenantId, final List<String> privileges);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException unsupportedPrivilege(final URI tenantId, final String privilege);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotDetachResourceFromTenant(final String resource);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException resourceCannotBelongToProject(final String resource);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException tenantDoesNotShareTheVcenter(final String tenantName, final String vCenterName);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException rpBlockApiImplPrepareVolumeException(final String volume);
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidEntryForProjectVNAS();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException failedToAssignVNasToProject(final String assignVnasError);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException noVNasServersAssociatedToProject(final String project);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException vNasServersNotAssociatedToProject();
 }

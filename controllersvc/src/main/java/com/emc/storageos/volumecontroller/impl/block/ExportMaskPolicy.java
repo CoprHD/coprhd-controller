@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.block;
 
@@ -43,7 +33,7 @@ public class ExportMaskPolicy extends HostIOLimitsParam {
     public boolean simpleMask;
     public String sgName;
     public String igType;
-
+    public int maxVolumesAllowed;
     public String exportType;
 
     public static enum EXPORT_TYPE {
@@ -104,4 +94,11 @@ public class ExportMaskPolicy extends HostIOLimitsParam {
         return IG_TYPE.CASCADED.name().equalsIgnoreCase(getIgType());
     }
 
+    public int getMaxVolumesAllowed() {
+        return maxVolumesAllowed;
+    }
+
+    public void setMaxVolumesAllowed(int maxVolumesAllowed) {
+        this.maxVolumesAllowed = maxVolumesAllowed;
+    }
 }

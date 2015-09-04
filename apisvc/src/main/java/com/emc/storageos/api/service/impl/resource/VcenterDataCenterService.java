@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -19,11 +9,12 @@ import static com.emc.storageos.api.mapper.HostMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
 import java.util.UUID;
+import java.util.Collection;
+import java.util.Set;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Iterator;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -36,12 +27,12 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
-import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.compute.VcenterClusterParam;
 import com.emc.storageos.vcentercontroller.VcenterController;
 import com.emc.storageos.volumecontroller.AsyncTask;
@@ -56,11 +47,6 @@ import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
-import com.emc.storageos.db.client.model.Cluster;
-import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.Vcenter;
-import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -78,13 +64,14 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import org.springframework.util.CollectionUtils;
 
 /**
  * Service providing APIs for vcenterdatacenter.
  */
 @Path("/compute/vcenter-data-centers")
-@DefaultPermissions(read_roles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
-        write_roles = { Role.TENANT_ADMIN })
+@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN },
+        writeRoles = { Role.TENANT_ADMIN, Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN })
 public class VcenterDataCenterService extends TaskResourceService {
     private static Logger _log = LoggerFactory.getLogger(VcenterDataCenter.class);
 
@@ -123,7 +110,7 @@ public class VcenterDataCenterService extends TaskResourceService {
     public VcenterDataCenterRestRep getVcenterDataCenter(@PathParam("id") URI id) {
         VcenterDataCenter vcenterdatacenter = queryResource(id);
         // check the user permissions
-        verifyAuthorizedInTenantOrg(vcenterdatacenter.getTenant(), getUserFromContext());
+        verifyAuthorizedSystemOrTenantOrgUser(vcenterdatacenter.getTenant());
         return HostMapper.map(vcenterdatacenter);
     }
 
@@ -141,17 +128,26 @@ public class VcenterDataCenterService extends TaskResourceService {
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN, Role.TENANT_ADMIN })
     @Path("/{id}")
     public VcenterDataCenterRestRep updateVcenterDataCenter(@PathParam("id") URI id,
             VcenterDataCenterUpdate updateParam) throws DatabaseException {
         VcenterDataCenter dataCenter = queryResource(id);
+        ArgValidator.checkEntity(dataCenter, id, isIdEmbeddedInURL(id));
+
         if (updateParam.getName() != null && !dataCenter.getLabel().equals(updateParam.getName())) {
             checkDuplicateChildName(dataCenter.getVcenter(), VcenterDataCenter.class, "label",
                     "vcenter", updateParam.getName(), _dbClient);
             dataCenter.setLabel(updateParam.getName());
-            _dbClient.persistObject(dataCenter);
         }
+
+        checkUserPrivileges(updateParam, dataCenter);
+
+        validateTenant(updateParam, dataCenter);
+
+        ComputeSystemHelper.updateVcenterDataCenterTenant(_dbClient, dataCenter, updateParam.getTenant());
+
+        _dbClient.persistObject(dataCenter);
         auditOp(OperationTypeEnum.UPDATE_VCENTER_DATACENTER, true, null,
                 dataCenter.auditParameters());
         return map(dataCenter);
@@ -169,7 +165,7 @@ public class VcenterDataCenterService extends TaskResourceService {
     @POST
     @Path("/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN })
     public TaskResourceRep deactivateVcenterDataCenter(@PathParam("id") URI id,
             @DefaultValue("false") @QueryParam("detach-storage") boolean detachStorage) throws DatabaseException {
         if (ComputeSystemHelper.isDataCenterInUse(_dbClient, id) && !detachStorage) {
@@ -201,7 +197,7 @@ public class VcenterDataCenterService extends TaskResourceService {
     @POST
     @Path("/{id}/detach-storage")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN })
     public TaskResourceRep detachStorage(@PathParam("id") URI id) throws DatabaseException {
         VcenterDataCenter dataCenter = queryObject(VcenterDataCenter.class, id, true);
         ArgValidator.checkEntity(dataCenter, id, true);
@@ -327,7 +323,8 @@ public class VcenterDataCenterService extends TaskResourceService {
             if (obj == null) {
                 return false;
             }
-            if (obj.getTenant().toString().equals(_user.getTenantId())) {
+            if (obj.getTenant().toString().equals(_user.getTenantId()) ||
+                    isSecurityAdmin() || isSystemAdmin()) {
                 return true;
             }
             ret = isTenantAccessible(obj.getTenant());
@@ -365,11 +362,11 @@ public class VcenterDataCenterService extends TaskResourceService {
 
         ArgValidator.checkFieldUriType(id, VcenterDataCenter.class, "id");
         VcenterDataCenter vcenterDataCenter = queryObject(VcenterDataCenter.class, id, false);
-        ArgValidator.checkEntityNotNull(vcenterDataCenter, id, isIdEmbeddedInURL(id));
+        ArgValidator.checkEntity(vcenterDataCenter, id, isIdEmbeddedInURL(id));
 
         ArgValidator.checkFieldUriType(clusterId, Cluster.class, "clusterId");
         Cluster cluster = queryObject(Cluster.class, clusterId, false);
-        ArgValidator.checkEntityNotNull(cluster, clusterId, isIdEmbeddedInURL(clusterId));
+        ArgValidator.checkEntity(cluster, clusterId, isIdEmbeddedInURL(clusterId));
 
         verifyAuthorizedInTenantOrg(cluster.getTenant(), getUserFromContext());
 
@@ -481,6 +478,7 @@ public class VcenterDataCenterService extends TaskResourceService {
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/create-vcenter-cluster")
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
     public TaskResourceRep createVcenterCluster(@PathParam("id") URI id, VcenterClusterParam vcenterClusterParam) {
         return createOrUpdateVcenterCluster(true, id, vcenterClusterParam.getId(), null, null);
     }
@@ -496,9 +494,77 @@ public class VcenterDataCenterService extends TaskResourceService {
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/update-vcenter-cluster")
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
     public TaskResourceRep updateVcenterCluster(@PathParam("id") URI id, VcenterClusterParam vcenterClusterParam) {
         List<URI> addHosts = vcenterClusterParam.getAddHosts();
         List<URI> removeHosts = vcenterClusterParam.getRemoveHosts();
         return createOrUpdateVcenterCluster(false, id, vcenterClusterParam.getId(), addHosts, removeHosts);
+    }
+
+    /**
+     * Checks if the user is authorized to view resources in a tenant organization.
+     * The user can see resources if:
+     *
+     * The user is in the tenant organization.
+     * The user has SysAdmin, SysMonitor, SecAdmin role.
+     * The user has TenantAdmin role to this tenant organization even
+     * if the user is in another tenant org
+     *
+     * @param tenantId the tenant organization URI
+     * @param user the user to validated for tenant org privileges.
+     */
+    protected void verifyAuthorizedSystemOrTenantOrgUser(URI tenantId) {
+        if (isSystemAdmin() || isSecurityAdmin()) {
+            return;
+        }
+
+        StorageOSUser user = getUserFromContext();
+        verifyAuthorizedInTenantOrg(tenantId, user);
+    }
+
+    /**
+     * Validates if the tenant in the update param is sharing the
+     * vCenter or not.
+     *
+     * @param updateParam input to update the vCenterDataCenter.
+     * @param dataCenter the vCenterDataCenter resource to be updated.
+     */
+    private void validateTenant(VcenterDataCenterUpdate updateParam, VcenterDataCenter dataCenter) {
+        Vcenter vcenter = _dbClient.queryObject(Vcenter.class, dataCenter.getVcenter());
+        ArgValidator.checkEntity(vcenter, dataCenter.getVcenter(), isIdEmbeddedInURL(dataCenter.getVcenter()));
+
+        Set<URI> vcenterTenants = _permissionsHelper.getUsageURIsFromAcls(vcenter.getAcls());
+        if (!NullColumnValueGetter.isNullURI(updateParam.getTenant())) {
+            if (CollectionUtils.isEmpty(vcenterTenants) ||
+                    !vcenterTenants.contains(updateParam.getTenant())) {
+                //Since, the given tenant in the update param is not a null URI
+                //and it is not sharing the vCenter, return the error.
+                TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, updateParam.getTenant());
+                throw APIException.badRequests.tenantDoesNotShareTheVcenter(tenant.getLabel(), vcenter.getLabel());
+            }
+        }
+    }
+
+    /**
+     * Check if the user has a privilege to update the
+     * vCenterDataCenter's tenant or not.
+     *
+     * @param updateParam
+     * @param dataCenter
+     */
+    private void checkUserPrivileges(VcenterDataCenterUpdate updateParam, VcenterDataCenter dataCenter) {
+        if(!(isSecurityAdmin() || isSystemAdmin())) {
+            if(updateParam.getTenant() != null &&
+                    dataCenter.getTenant() != null &&
+                    !URIUtil.identical(updateParam.getTenant(), dataCenter.getTenant())) {
+                throw APIException.forbidden.insufficientPermissionsForUser(getUserFromContext().getName());
+            } else if(updateParam.getTenant() == null &&
+                    dataCenter.getTenant() != null) {
+                throw APIException.forbidden.insufficientPermissionsForUser(getUserFromContext().getName());
+            } else if(updateParam.getTenant() != null &&
+                    dataCenter.getTenant() == null) {
+                throw APIException.forbidden.insufficientPermissionsForUser(getUserFromContext().getName());
+            }
+        }
     }
 }

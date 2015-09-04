@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.protectioncontroller.impl.recoverpoint;
@@ -137,6 +127,23 @@ public class RPHelper {
             }
         }
         throw DeviceControllerException.exceptions.objectNotFound(varray.getId());
+    }
+    
+    /**
+     * Gets the virtual pool of the target copy.
+     * 
+     * @param tgtVarray
+     * @param srcVpool the base virtual pool
+     * @return
+     */
+    public VirtualPool getTargetVirtualPool(VirtualArray tgtVarray, VirtualPool srcVpool) {
+        VpoolProtectionVarraySettings settings = getProtectionSettings(srcVpool, tgtVarray);
+        // If there was no vpool specified use the source vpool for this varray.
+        VirtualPool tgtVpool = srcVpool;
+        if (settings.getVirtualPool() != null) {
+            tgtVpool = _dbClient.queryObject(VirtualPool.class, settings.getVirtualPool());
+        }       
+        return tgtVpool;
     }
 
     /**
@@ -1247,7 +1254,7 @@ public class RPHelper {
      * returns the list of copies residing on the standby varray given the active production volume in a
      * Metropoint environment
      * 
-     * @param volume the active produciton volume
+     * @param volume the active production volume
      * @return
      */
     public List<Volume> getMetropointStandbyCopies(Volume volume) {

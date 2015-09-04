@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vmware;
@@ -43,12 +43,14 @@ import com.emc.sa.service.vmware.file.tasks.TagDatastoreOnFilesystem;
 import com.emc.sa.service.vmware.file.tasks.UntagDatastoreOnFilesystem;
 import com.emc.sa.service.vmware.tasks.ConnectToVCenter;
 import com.emc.sa.service.vmware.tasks.DeleteDatastore;
+import com.emc.sa.service.vmware.tasks.DetachDatastoreDevices;
 import com.emc.sa.service.vmware.tasks.EnterMaintenanceMode;
 import com.emc.sa.service.vmware.tasks.FindCluster;
 import com.emc.sa.service.vmware.tasks.FindDatastore;
 import com.emc.sa.service.vmware.tasks.FindESXHost;
 import com.emc.sa.service.vmware.tasks.GetVcenter;
 import com.emc.sa.service.vmware.tasks.GetVcenterDataCenter;
+import com.emc.sa.service.vmware.tasks.UnmountDatastore;
 import com.emc.sa.service.vmware.tasks.VerifyDatastoreDoesNotExist;
 import com.emc.sa.service.vmware.tasks.VerifyDatastoreForRemoval;
 import com.emc.sa.service.vmware.tasks.VerifySupportedMultipathPolicy;
@@ -322,8 +324,18 @@ public class VMwareSupport {
             throw new IllegalStateException("Datastore is not mounted by any hosts");
         }
         enterMaintenanceMode(datastore);
-        execute(new DeleteDatastore(hosts.get(0), datastore));
-        removeVmfsDatastoreTag(volumes, hostOrClusterId);
+
+        try {
+            // recommended approach is to turn off Storage IO, unmount and detach Datastore devices
+            setStorageIOControl(datastore, false);
+            execute(new UnmountDatastore(hosts, datastore));
+            execute(new DetachDatastoreDevices(hosts, datastore));
+        } catch (VMWareException e) {
+            // if the recommended approach fails, go with the tried and true method
+            execute(new DeleteDatastore(hosts.get(0), datastore));
+        }
+
+        execute(new RefreshStorage(hosts));
     }
 
     /**
@@ -396,6 +408,7 @@ public class VMwareSupport {
             throw new IllegalStateException("Datastore is not mounted by any hosts");
         }
         enterMaintenanceMode(datastore);
+        setStorageIOControl(datastore, false);
         for (HostSystem host : hosts) {
             execute(new DeleteDatastore(host, datastore));
         }
@@ -484,7 +497,7 @@ public class VMwareSupport {
      *            the hosts to refresh;
      */
     public void refreshStorage(List<HostSystem> hosts) {
-        if (hosts.size() > 0) {
+        if (!hosts.isEmpty()) {
             execute(new RefreshStorage(hosts));
         }
     }

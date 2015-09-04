@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.services.util;
 
@@ -28,7 +18,7 @@ import org.slf4j.LoggerFactory;
  */
 final public class ServerProbe {
     private static final Logger log = LoggerFactory.getLogger(ServerProbe.class);
-    private static ServerProbe instance = null;
+    private static volatile ServerProbe instance = null;
     // meet mini req for memory, cpu and at least one disk meet size mini req
     private boolean meetMinimumRequirement = true;
     private boolean allHasViPRPartition = false;
@@ -72,7 +62,11 @@ final public class ServerProbe {
     }
 
     public String[] getNetworkInterfaces() {
-        return networkInterfaces;
+    	String[] result = null;
+    	if(networkInterfaces != null){
+    		result = networkInterfaces.clone();
+    	} 
+    	return result;
     }
 
     public Map<String, String> getDiskCapacity() {

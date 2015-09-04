@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service.impl.placement;
@@ -248,7 +238,7 @@ public class FileStorageScheduler {
         List<FileRecommendation> result = new ArrayList<FileRecommendation>();
         for (Recommendation recommendation : poolRecommends) {
             FileRecommendation rec = new FileRecommendation(recommendation);
-            URI storageUri = recommendation.getSourceDevice();
+            URI storageUri = recommendation.getSourceStorageSystem();
 
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageUri);
             // Same check for VNXe will be done here.
@@ -289,7 +279,7 @@ public class FileStorageScheduler {
                     StringSet vpoolProtocols = vpool.getProtocols();
                     if (protocols != null && protocols.containsAll(vpoolProtocols)) {
                         _log.info("Found the StorageHADomain {} for recommended storagepool: {}",
-                                haDomain.getName(), recommendation.getSourcePool());
+                                haDomain.getName(), recommendation.getSourceStoragePool());
                         storagePorts.add(port.getId());
                     }
                 } else if (storage.getSystemType().equals(Type.datadomain.toString())) {

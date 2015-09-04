@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.xtremio;
@@ -61,8 +51,8 @@ import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOObjectInfo;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
-import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolumeInfo;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 
@@ -78,7 +68,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
 
     private List<UnManagedExportMask> unManagedExportMasksToCreate = null;
     private List<UnManagedExportMask> unManagedExportMasksToUpdate = null;
-    private Set<URI> allCurrentUnManagedExportMaskUris = new HashSet<URI>();
+    private final Set<URI> allCurrentUnManagedExportMaskUris = new HashSet<URI>();
 
     private XtremIOClientFactory xtremioRestClientFactory;
     private NetworkDeviceController networkDeviceController;
@@ -108,9 +98,8 @@ public class XtremIOUnManagedVolumeDiscoverer {
     }
 
     private StringSet discoverVolumeSnaps(StorageSystem system, List<List<Object>> snapDetails, String parentGUID,
-            StringSet parentMatchedVPools,
-            XtremIOClient xtremIOClient, DbClient dbClient, Map<String, List<UnManagedVolume>> igUnmanagedVolumesMap,
-            Map<String, StringSet> igKnownVolumesMap) throws Exception {
+            StringSet parentMatchedVPools, XtremIOClient xtremIOClient, String xioClusterName, DbClient dbClient,
+            Map<String, List<UnManagedVolume>> igUnmanagedVolumesMap, Map<String, StringSet> igKnownVolumesMap) throws Exception {
 
         StringSet snaps = new StringSet();
 
@@ -121,7 +110,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                 continue;
             }
             String snapNameToProcess = (String) snapDetail.get(1);
-            XtremIOVolume snap = xtremIOClient.getSnapShotDetails(snapNameToProcess);
+            XtremIOVolume snap = xtremIOClient.getSnapShotDetails(snapNameToProcess, xioClusterName);
             UnManagedVolume unManagedVolume = null;
             boolean isExported = !snap.getLunMaps().isEmpty();
             String managedSnapNativeGuid = NativeGUIDGenerator.generateNativeGuidForVolumeOrBlockSnapShot(
@@ -146,7 +135,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
 
             unManagedVolume = createUnManagedVolume(unManagedVolume, unManagedVolumeNatvieGuid, snap, igUnmanagedVolumesMap, system, null,
                     dbClient);
-            populateSnapInfo(unManagedVolume, parentGUID, parentMatchedVPools);
+            populateSnapInfo(unManagedVolume, snap, parentGUID, parentMatchedVPools);
             snaps.add(unManagedVolumeNatvieGuid);
             allCurrentUnManagedVolumeUris.add(unManagedVolume.getId());
         }
@@ -179,13 +168,14 @@ public class XtremIOUnManagedVolumeDiscoverer {
         Map<String, StringSet> igKnownVolumesMap = new HashMap<String, StringSet>();
         Map<String, List<String>> volumeSnapsMap = new HashMap<String, List<String>>();
 
+        String xioClusterName = xtremIOClient.getClusterDetails(storageSystem.getSerialNumber()).getName();
         // get the xtremio volume links and process them in batches
-        List<XtremIOVolumeInfo> volLinks = xtremIOClient.getXtremIOVolumeLinks();
+        List<XtremIOObjectInfo> volLinks = xtremIOClient.getXtremIOVolumeLinks(xioClusterName);
 
         // Get the volume details
-        List<List<XtremIOVolumeInfo>> volume_partitions = Lists.partition(volLinks, Constants.DEFAULT_PARTITION_SIZE);
-        for (List<XtremIOVolumeInfo> partition : volume_partitions) {
-            List<XtremIOVolume> volumes = xtremIOClient.getXtremIOVolumesForLinks(partition);
+        List<List<XtremIOObjectInfo>> volume_partitions = Lists.partition(volLinks, Constants.DEFAULT_PARTITION_SIZE);
+        for (List<XtremIOObjectInfo> partition : volume_partitions) {
+            List<XtremIOVolume> volumes = xtremIOClient.getXtremIOVolumesForLinks(partition, xioClusterName);
             for (XtremIOVolume volume : volumes) {
                 // If the volume is a snap don't process it. We will get the snap info from the
                 // volumes later
@@ -212,7 +202,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                         StringSet vpoolUriSet = new StringSet();
                         vpoolUriSet.add(viprVolume.getVirtualPool().toString());
                         discoverVolumeSnaps(storageSystem, volume.getSnaps(), viprVolume.getNativeGuid(), vpoolUriSet,
-                                xtremIOClient, dbClient, igUnmanagedVolumesMap, igKnownVolumesMap);
+                                xtremIOClient, xioClusterName, dbClient, igUnmanagedVolumesMap, igKnownVolumesMap);
                     }
 
                     continue;
@@ -231,7 +221,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                     StringSet parentMatchedVPools = unManagedVolume.getVolumeInformation().get(
                             SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString());
                     StringSet discoveredSnaps = discoverVolumeSnaps(storageSystem, volume.getSnaps(), unManagedVolumeNatvieGuid,
-                            parentMatchedVPools, xtremIOClient, dbClient, igUnmanagedVolumesMap, igKnownVolumesMap);
+                            parentMatchedVPools, xtremIOClient, xioClusterName, dbClient, igUnmanagedVolumesMap, igKnownVolumesMap);
                     // set the HAS_REPLICAS property
                     unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.HAS_REPLICAS.toString(),
                             Boolean.TRUE.toString());
@@ -278,8 +268,8 @@ public class XtremIOUnManagedVolumeDiscoverer {
         DiscoveryUtils.markInActiveUnManagedVolumes(storageSystem, allCurrentUnManagedVolumeUris, dbClient, partitionManager);
 
         // Next discover the unmanaged export masks
-        discoverUnmanagedExportMasks(storageSystem.getId(), igUnmanagedVolumesMap, igKnownVolumesMap, xtremIOClient, dbClient,
-                partitionManager);
+        discoverUnmanagedExportMasks(storageSystem.getId(), igUnmanagedVolumesMap, igKnownVolumesMap, xtremIOClient, xioClusterName,
+                dbClient, partitionManager);
     }
 
     private void populateKnownVolsMap(XtremIOVolume vol, BlockObject viprObj, Map<String, StringSet> igKnownVolumesMap) {
@@ -301,7 +291,8 @@ public class XtremIOUnManagedVolumeDiscoverer {
         }
     }
 
-    private void populateSnapInfo(UnManagedVolume unManagedVolume, String parentVolumeNatvieGuid, StringSet parentMatchedVPools) {
+    private void populateSnapInfo(UnManagedVolume unManagedVolume, XtremIOVolume xioSnap, String parentVolumeNatvieGuid,
+            StringSet parentMatchedVPools) {
         unManagedVolume.getVolumeCharacterstics().put(SupportedVolumeCharacterstics.IS_SNAP_SHOT.toString(), Boolean.TRUE.toString());
 
         StringSet parentVol = new StringSet();
@@ -311,6 +302,11 @@ public class XtremIOUnManagedVolumeDiscoverer {
         StringSet isSyncActive = new StringSet();
         isSyncActive.add(Boolean.TRUE.toString());
         unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.IS_SYNC_ACTIVE.toString(), isSyncActive);
+
+        StringSet isReadOnly = new StringSet();
+        Boolean readOnly = XtremIOConstants.XTREMIO_READ_ONLY_TYPE.equals(xioSnap.getSnapshotType()) ? Boolean.TRUE : Boolean.FALSE;
+        isReadOnly.add(readOnly.toString());
+        unManagedVolume.getVolumeInformation().put(SupportedVolumeInformation.IS_SYNC_ACTIVE.toString(), isReadOnly);
 
         StringSet techType = new StringSet();
         techType.add(BlockSnapshot.TechnologyType.NATIVE.toString());
@@ -353,7 +349,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
      * @throws Exception
      */
     private void discoverUnmanagedExportMasks(URI systemId, Map<String, List<UnManagedVolume>> igUnmanagedVolumesMap,
-            Map<String, StringSet> igKnownVolumesMap, XtremIOClient xtremIOClient,
+            Map<String, StringSet> igKnownVolumesMap, XtremIOClient xtremIOClient, String xioClusterName,
             DbClient dbClient, PartitionManager partitionManager)
             throws Exception {
         unManagedExportMasksToCreate = new ArrayList<UnManagedExportMask>();
@@ -388,7 +384,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
         // To be used for constructing unmanaged export masks
         Map<String, List<Initiator>> hostInitiatorsMap = new HashMap<String, List<Initiator>>();
         Map<String, Set<String>> hostIGNamesMap = new HashMap<String, Set<String>>();
-        List<XtremIOInitiator> initiators = xtremIOClient.getXtremIOInitiatorsInfo();
+        List<XtremIOInitiator> initiators = xtremIOClient.getXtremIOInitiatorsInfo(xioClusterName);
         for (XtremIOInitiator initiator : initiators) {
             String initiatorNetworkId = initiator.getPortAddress();
             // check if a host initiator exists for this id

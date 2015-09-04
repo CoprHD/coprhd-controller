@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client;
@@ -234,6 +234,10 @@ public class ViPRCoreClient {
 
     public StorageSystems storageSystems() {
         return new StorageSystems(this, client);
+    }
+    
+    public VirtualNasServers virtualNasServers() {
+        return new VirtualNasServers(this, client);
     }
 
     public StorageTiers storageTiers() {

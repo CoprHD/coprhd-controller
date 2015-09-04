@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.geo.service.impl.resource;
@@ -48,8 +38,6 @@ import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.TypeMap;
 import com.emc.storageos.db.client.model.CustomConfig;
 import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.ObjectBaseUrl;
-import com.emc.storageos.db.client.model.ObjectStore;
 import com.emc.storageos.db.client.model.PasswordHistory;
 import com.emc.storageos.db.client.model.PropertyListDataObject;
 import com.emc.storageos.db.client.model.StorageOSUserDAO;
@@ -102,7 +90,7 @@ public class VdcConfigService {
 
     static private final List<Class<? extends DataObject>> excludeClasses = Arrays.asList(
             Token.class, StorageOSUserDAO.class, VirtualDataCenter.class,
-            ObjectBaseUrl.class, PropertyListDataObject.class, PasswordHistory.class, CustomConfig.class, VdcVersion.class);
+            PropertyListDataObject.class, PasswordHistory.class, CustomConfig.class, VdcVersion.class);
 
     public void setService(Service service) {
         this.service = service;
@@ -220,7 +208,7 @@ public class VdcConfigService {
         // add VDC should succeed just when remove the data in vdc2.
         List<URI> ids = dbClient.queryByType(clazz, true, null, 2);
 
-        if (clazz.equals(TenantOrg.class) || clazz.equals(ObjectStore.class)) {
+        if (clazz.equals(TenantOrg.class)) {
             if (ids.size() > 1) {
                 // at least one non-root tenant exist
                 return true;

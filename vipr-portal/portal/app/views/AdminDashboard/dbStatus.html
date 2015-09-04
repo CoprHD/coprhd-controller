@@ -13,7 +13,7 @@
           	#{if endTime}          	 
     	 		<script>
         	 		var endtime = '${endTime}';
-        	 		$('#end').append(formatDate(Date.parse(endtime), 'YYYY-MM-DD HH:mm:ss'));        	 		
+        	 		$('#end').append(formatLocalDateTime(new Date(endtime)));
             	</script>           		
           			<span id="end" style="font-size: 1em;">&{'dbstatus.lastCompletionTime'}</span> 
           	#{/if}		         		              	              		
@@ -24,7 +24,7 @@
              		#{if startTime}
           		<script>
         	 		var starttime = '${startTime}';
-               		$('#start').append(formatDate(Date.parse(starttime), 'YYYY-MM-DD HH:mm:ss'));
+        	 		$('#start').append(formatLocalDateTime(new Date(starttime)));
              	</script>
           			<span id="start" style="font-size: 1em;">&{'dbstatus.startTime'}</span>
           			#{/if}	

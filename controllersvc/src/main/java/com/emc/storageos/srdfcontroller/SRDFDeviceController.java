@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.srdfcontroller;
@@ -7,15 +7,14 @@ package com.emc.storageos.srdfcontroller;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.RemoteDirectorGroup;
+import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.locking.LockRetryException;
+import com.emc.storageos.locking.LockTimeoutValue;
+import com.emc.storageos.locking.LockType;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
@@ -196,13 +195,18 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         Map<URI, Volume> uriVolumeMap = queryVolumes(volumeDescriptors);
 
         /**
+         * Locks that must be acquired before continuing.
+         */
+        acquireWorkflowLockOrThrow(workflow, generateLocks(volumeDescriptors, uriVolumeMap));
+
+        /**
          * If copy Mode synchronous, then always run createElementReplica, irrespective of
          * whether existing volumes are present in RA Group or not. Consistency parameter
          * doesn't have any effect , hence creating replication groups for each volume
          * doesn't make sense. Moreover, SMI-S has done rigorous testing of
          * Pause,resume,fail over,fail back on StorageSynchronized rather than on Groups.
          */
-        boolean volumePartOfCG = isVolumePartOfCG(targetDescriptors, uriVolumeMap);
+        boolean volumePartOfCG = isVolumePartOfCG(sourceDescriptors, uriVolumeMap);
 
         if (!volumePartOfCG) {
             createNonCGSRDFVolumes(workflow, waitFor, sourceDescriptors, uriVolumeMap);
@@ -523,17 +527,29 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     }
 
     private boolean isVolumePartOfCG(List<VolumeDescriptor> sourceDescriptors, Map<URI, Volume> uriVolumeMap) {
-        Volume firstTarget = getFirstTarget(sourceDescriptors, uriVolumeMap);
-        return (firstTarget.getConsistencyGroup() != null);
+        Volume source = uriVolumeMap.get(sourceDescriptors.get(0).getVolumeURI());
+        return (source != null && source.getConsistencyGroup() != null);
     }
 
     private Volume getFirstTarget(List<VolumeDescriptor> descriptors, Map<URI, Volume> uriVolumeMap) {
-        for (VolumeDescriptor volumeDescriptor : descriptors) {
-            if (VolumeDescriptor.Type.SRDF_TARGET.equals(volumeDescriptor.getType())) {
-                return uriVolumeMap.get(volumeDescriptor.getVolumeURI());
+        List<VolumeDescriptor> targetDescriptors = VolumeDescriptor.filterByType(descriptors, VolumeDescriptor.Type.SRDF_TARGET);
+
+        if (targetDescriptors.isEmpty()) {
+            for (VolumeDescriptor volumeDescriptor : descriptors) {
+                if (VolumeDescriptor.Type.SRDF_SOURCE.equals(volumeDescriptor.getType())) {
+                    Volume source = uriVolumeMap.get(volumeDescriptor.getVolumeURI());
+                    return getFirstTarget(source);
+                }
+            }
+        } else {
+            for (VolumeDescriptor volumeDescriptor : descriptors) {
+                if (VolumeDescriptor.Type.SRDF_TARGET.equals(volumeDescriptor.getType())) {
+                    return uriVolumeMap.get(volumeDescriptor.getVolumeURI());
+                }
             }
         }
-        throw new IllegalStateException("Excepted a target descriptor to exist");
+
+        throw new IllegalStateException("Expected a target volume to exist");
     }
 
     private Volume getFirstTarget(Volume sourceVolume) {
@@ -661,6 +677,12 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         Map<URI, Volume> sourcesVolumeMap = queryVolumes(sourceDescriptors);
         StorageSystem system = null;
         StorageSystem targetSystem = null;
+
+        /**
+         * Locks that must be acquired before continuing.
+         */
+        acquireWorkflowLockOrThrow(workflow, generateLocks(sourceDescriptors, sourcesVolumeMap));
+
         if (canRemoveSrdfCg(sourcesVolumeMap)) {
             // invoke workflow to delete CG
             log.info("Invoking SRDF Consistency Group Deletion with all its volumes");
@@ -1122,7 +1144,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         List<Volume> volumes = dbClient.queryObject(Volume.class, volumeURIs);
         Map<URI, Volume> volumeMap = new HashMap<URI, Volume>();
         for (Volume volume : volumes) {
-            volumeMap.put(volume.getId(), volume);
+            if (volume != null) {
+                volumeMap.put(volume.getId(), volume);
+            }
         }
         return volumeMap;
     }
@@ -1489,11 +1513,20 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return waitFor;
     }
 
-    public void setUtils(SRDFUtils utils) {
-        this.utils = utils;
+    @Override
+    public String addStepsForRestoreVolume(Workflow workflow, String waitFor, 
+                                                URI storage, URI pool, URI volume, URI snapshot,
+                                                Boolean updateOpStatus, String taskId,
+                                                BlockSnapshotRestoreCompleter completer) throws InternalException {
+        // Nothing to do, no steps to add
+        return waitFor;
     }
-
-    /**
+    
+	public void setUtils(SRDFUtils utils) {
+		this.utils = utils;
+	}
+	
+	/**
      * Creates a rollback workflow method that does nothing, but allows rollback
      * to continue to prior steps back up the workflow chain.
      * 
@@ -1501,5 +1534,44 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
      */
     private Workflow.Method rollbackMethodNullMethod() {
         return new Workflow.Method(ROLLBACK_METHOD_NULL);
+    }
+
+    /**
+     * Attempts to acquire a workflow lock based on the RDF group name.
+     *
+     * @param workflow
+     * @param locks
+     * @throws LockRetryException
+     */
+    private void acquireWorkflowLockOrThrow(Workflow workflow, List<String> locks) throws LockRetryException {
+        log.info("Attempting to acquire workflow lock {}", Joiner.on(',').join(locks));
+        workflowService.acquireWorkflowLocks(workflow, locks,
+                LockTimeoutValue.get(LockType.SRDF_PROVISIONING));
+    }
+
+    private List<String> generateLocks(List<VolumeDescriptor> volumeDescriptors, Map<URI, Volume> uriVolumeMap) {
+        // List of resulting locks
+        List<String> locks = new ArrayList<>();
+
+        // Resources for building the locks
+        Volume firstTarget = getFirstTarget(volumeDescriptors, uriVolumeMap);
+        Volume source = uriVolumeMap.get(firstTarget.getSrdfParent().getURI());
+
+        if (source == null) {
+            log.error("Source volume was not found: {}", firstTarget.getSrdfParent().getURI());
+            throw DeviceControllerException.exceptions.invalidObjectNull();
+        }
+
+        StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, source.getStorageController());
+        RemoteDirectorGroup rdfGroup = dbClient.queryObject(RemoteDirectorGroup.class, firstTarget.getSrdfGroup());
+
+        // Generate the locks
+        locks.add(generateRDFGroupLock(sourceSystem, rdfGroup));
+
+        return locks;
+    }
+
+    private String generateRDFGroupLock(StorageSystem sourceSystem, RemoteDirectorGroup rdfGroup) {
+        return sourceSystem.getSerialNumber() + "-rdfg-" + rdfGroup.getSourceGroupId();
     }
 }

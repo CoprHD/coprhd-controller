@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.services.util;
@@ -8,6 +8,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -15,7 +16,12 @@ import java.io.FileReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
+import java.util.regex.Pattern;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,11 +66,11 @@ public class FileUtils {
             fop.flush();
             fop.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(e.getMessage(), e);
         }
     }
 
-    private static byte[] readDataFromFile(String name) throws IOException {
+    public static byte[] readDataFromFile(String name) throws IOException {
         Path path = Paths.get(name);
         return Files.readAllBytes(path);
     }
@@ -178,5 +184,26 @@ public class FileUtils {
         if (result.execFailed() || result.getExitValue() != 0) {
             throw new IllegalStateException(String.format("Execute command failed: %s", result));
         }
+    }
+
+    /**
+     * Get file by regEx under dir.
+     * 
+     * @param dir the directory which file resides in
+     * @param regEx the regular expression of file name
+     * @throws IOException
+     */
+    public static List<File> getFileByRegEx(File dir, String regEx) {
+        final Pattern pattern = Pattern.compile(regEx);
+        File[] files = dir.listFiles(new FilenameFilter() {
+
+            @Override
+            public boolean accept(File dir, String filename) {
+                return pattern.matcher(filename).matches();
+            }
+
+        });
+
+        return Collections.unmodifiableList(Arrays.asList(files));
     }
 }

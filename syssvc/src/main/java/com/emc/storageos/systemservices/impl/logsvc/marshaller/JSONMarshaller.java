@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.logsvc.marshaller;
 
@@ -37,7 +27,8 @@ public class JSONMarshaller extends Marshaller {
     private static final byte[] CLASS = "class".getBytes();
     private static final byte[] LINE = "line".getBytes();
     private static final byte[] MESSAGE = "message".getBytes();
-    private static final byte[] NODE = "node".getBytes();
+    private static final byte[] NODE_ID = "node".getBytes();
+    private static final byte[] NODE_NAME = "node_name".getBytes();
     private static final byte[] SERVICE = "service".getBytes();
     private static final byte[] SEVERITY = "severity".getBytes();
     private static final byte[] THREAD = "thread".getBytes();
@@ -94,7 +85,9 @@ public class JSONMarshaller extends Marshaller {
         outputStream.write(QUOTE);
 
         outputStream.write(COMMA);
-        writeEntry(NODE, log.getNodeId(), true);
+        writeEntry(NODE_ID, log.getNodeId(), true);
+        outputStream.write(COMMA);
+        writeEntry(NODE_NAME, log.getNodeName(), true);
         outputStream.write(COMMA);
         writeEntry(SERVICE, log.getService(), true);
         outputStream.write(COMMA);

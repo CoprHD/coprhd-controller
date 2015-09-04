@@ -253,9 +253,8 @@ configure(viprJavaProjects) {
 def dependsOnSubprojectTasks(task, name) {
     subprojects.each { project->
         project.afterEvaluate {
-            def skipForOss = buildType == "oss" && ( project.name == "vasa" || project.name == "installer" )
             def projectTask = project.tasks.findByName(name)
-            if (projectTask && !skipForOss) {
+            if (projectTask) {
                 task.dependsOn projectTask
             }
         }

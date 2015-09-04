@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -45,9 +35,9 @@ import com.emc.storageos.security.authorization.Role;
  * @author Watson
  */
 @Path("/vdc/workflows")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN,
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN,
         Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.TENANT_ADMIN })
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.TENANT_ADMIN })
 public class WorkflowService extends ResourceService {
     protected Workflow queryResource(URI id) {
         ArgValidator.checkUri(id);
@@ -158,7 +148,7 @@ public class WorkflowService extends ResourceService {
      * 
      * @param id the URN of a ViPR workflow
      * @brief Show workflow
-     * @return
+     * @return Information of specific workflow
      */
     @GET
     @Path("/{id}")
@@ -176,7 +166,7 @@ public class WorkflowService extends ResourceService {
      * 
      * @param id the URN of a ViPR workflow
      * @brief List workflow steps
-     * @return
+     * @return List of steps of a workflow
      */
     @GET
     @Path("/{id}/steps")
@@ -204,7 +194,7 @@ public class WorkflowService extends ResourceService {
      * 
      * @param stepId
      * @brief Show workflow step
-     * @return
+     * @return Single WorkflowStep
      */
     @GET
     @Path("/steps/{stepid}")

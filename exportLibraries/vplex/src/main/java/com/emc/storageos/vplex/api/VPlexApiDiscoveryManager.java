@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.vplex.api;
 
@@ -314,7 +304,8 @@ public class VPlexApiDiscoveryManager {
      * 
      * @param shallow true to get just the name and path for each cluster, false
      *            to get additional info about the systems and volumes.
-     * @param fectAtts true to get the cluster attributes, false otherwise.
+     *            
+     * @param isItlsRequired true to get the storage volume ITLs, false otherwise.
      * 
      * @return A list of VPlexClusterInfo specifying the info for the VPlex
      *         clusters.
@@ -322,8 +313,9 @@ public class VPlexApiDiscoveryManager {
      * @throws VPlexApiException If a VPlex request returns a failed status or
      *             an error occurs processing the response.
      */
-    List<VPlexClusterInfo> getClusterInfo(boolean shallow)
-            throws VPlexApiException {
+
+    List<VPlexClusterInfo> getClusterInfo(boolean shallow, boolean isItlsRequired)
+        throws VPlexApiException {
 
         // Get the URI for the cluster info request and make the request.
         StringBuilder uriBuilder = new StringBuilder();
@@ -352,11 +344,12 @@ public class VPlexApiDiscoveryManager {
                 for (VPlexClusterInfo clusterInfo : clusterInfoList) {
                     String clusterName = clusterInfo.getName();
                     clusterInfo.setStorageSystemInfo(getStorageSystemInfoForCluster(clusterName));
-                    clusterInfo.setStorageVolumeInfo(getStorageVolumeInfoForCluster(clusterName));
                     clusterInfo.setSystemVolumeInfo(getSystemVolumeInfoForCluster(clusterName));
+                    clusterInfo.setStorageVolumeInfo(getStorageVolumeInfoForCluster(clusterName, isItlsRequired));                    
                 }
             }
         } catch (Exception e) {
+            s_logger.error(e.getLocalizedMessage(), e);
             throw VPlexApiException.exceptions.errorProcessingClusterInfo(e.getLocalizedMessage());
         }
 
@@ -413,8 +406,9 @@ public class VPlexApiDiscoveryManager {
      * 
      * @throws VPlexApiException When an error occurs find the volumes.
      */
-    Map<VolumeInfo, VPlexStorageVolumeInfo> findStorageVolumes(
-            List<VolumeInfo> volumeInfoList, List<VPlexClusterInfo> clusterInfoList)
+
+    Map<VolumeInfo, VPlexStorageVolumeInfo> findStorageVolumes(List<VolumeInfo> volumeInfoList,
+            List<VPlexClusterInfo> clusterInfoList)
             throws VPlexApiException {
 
         Map<VolumeInfo, VPlexStorageVolumeInfo> storageVolumeInfoMap = new HashMap<VolumeInfo, VPlexStorageVolumeInfo>();
@@ -425,10 +419,10 @@ public class VPlexApiDiscoveryManager {
             String storageSystemNativeGuid = volumeInfo.getStorageSystemNativeGuid();
             String volumeWWN = volumeInfo.getVolumeWWN().toLowerCase();
             s_logger.info("Volume WWN is {}", volumeWWN);
+
             for (VPlexClusterInfo clusterInfo : clusterInfoList) {
                 if (clusterInfo.containsStorageSystem(storageSystemNativeGuid)) {
-                    s_logger.info("Found storage system {} in cluster {}",
-                            storageSystemNativeGuid, clusterInfo.getName());
+                    s_logger.info("Found storage system {} in cluster {}", storageSystemNativeGuid, clusterInfo.getName());
                     VPlexStorageVolumeInfo storageVolumeInfo = clusterInfo.getStorageVolume(volumeInfo);
                     if (storageVolumeInfo == null) {
                         s_logger.info("Storage volume with WWN {} was not found in cluster {}", volumeWWN, clusterInfo.getName());
@@ -452,15 +446,13 @@ public class VPlexApiDiscoveryManager {
             }
 
             if (!volumeFound) {
-                throw new VPlexApiException(String.format(
-                        "Could not find storage volume %s on array %s", volumeWWN,
-                        storageSystemNativeGuid));
+                                
+                throw VPlexApiException.exceptions.couldNotFindStorageVolumeMatchingWWNOrITL(volumeWWN, storageSystemNativeGuid);
             }
         }
 
         return storageVolumeInfoMap;
     }
-
     /**
      * Attempts to find the storage volume with the passed name.
      * 
@@ -479,7 +471,7 @@ public class VPlexApiDiscoveryManager {
         for (VPlexClusterInfo clusterInfo : clusterInfoList) {
             String clusterName = clusterInfo.getName();
             s_logger.info("Find storage volume {} on cluster {}", storageVolumeName, clusterName);
-            List<VPlexStorageVolumeInfo> storageVolumeInfoList = getStorageVolumeInfoForCluster(clusterName);
+            List<VPlexStorageVolumeInfo> storageVolumeInfoList = getStorageVolumeInfoForCluster(clusterName, false);
             for (VPlexStorageVolumeInfo clusterVolumeInfo : storageVolumeInfoList) {
                 if (clusterVolumeInfo.getName().equals(storageVolumeName)) {
                     storageVolumeInfo = clusterVolumeInfo;
@@ -506,8 +498,7 @@ public class VPlexApiDiscoveryManager {
      * 
      * @throws VPlexApiException When an error occurs finding the extents.
      */
-    List<VPlexExtentInfo> findExtents(
-            List<VPlexStorageVolumeInfo> storageVolumeInfoList) throws VPlexApiException {
+    List<VPlexExtentInfo> findExtents(List<VPlexStorageVolumeInfo> storageVolumeInfoList) throws VPlexApiException {
 
         List<VPlexExtentInfo> extentInfoList = new ArrayList<VPlexExtentInfo>();
         Iterator<VPlexStorageVolumeInfo> storageVolumeIter = storageVolumeInfoList.iterator();
@@ -1024,6 +1015,131 @@ public class VPlexApiDiscoveryManager {
     }
 
     /**
+     * Find the virtual volume(s) containing the passed name in the
+     * virtualVolumeInfos list.
+     * 
+     * @param clusterInfoList A list of VPlexClusterInfo specifying the info for the VPlex
+     *            clusters.
+     * @param virtualVolumeInfos List of virtual volumes to find.
+     * @param fetchAtts true to fetch the virtual volume attributes.
+     * @param retry Indicates retry should occur if the first attempt to find
+     *            the virtual volume fails.
+     * 
+     * @return A map of virtual volume name to the virtual volume info.
+     * 
+     * @throws VPlexApiException When an error occurs finding the virtual
+     *             volume.
+     */
+    Map<String, VPlexVirtualVolumeInfo> findVirtualVolumes(List<VPlexClusterInfo> clusterInfoList,
+            List<VPlexVirtualVolumeInfo> virtualVolumeInfos,
+            boolean fetchAtts, boolean retry) throws VPlexApiException {
+
+        if (virtualVolumeInfos == null) {
+            throw VPlexApiException.exceptions.cantFindRequestedVolumeNull();
+        }
+
+        StringBuffer volumeNameStrBuf = new StringBuffer();
+
+        // Make a map of virtual volume name to VPlexVirtualVolumeInfo
+        Map<String, VPlexVirtualVolumeInfo> virtualVolumesToFind = new HashMap<String, VPlexVirtualVolumeInfo>();
+        for (VPlexVirtualVolumeInfo virtualVolumeInfo : virtualVolumeInfos) {
+            volumeNameStrBuf.append(virtualVolumeInfo.getName()).append(" ");
+            virtualVolumesToFind.put(virtualVolumeInfo.getName(), virtualVolumeInfo);
+        }
+        s_logger.info("Find virtual volume(s) containing {}", volumeNameStrBuf.toString());
+
+        // Make a map of virtual volume name to VPlexVirtualVolumeInfo for the virtual volume found on VPLEX.
+        Map<String, VPlexVirtualVolumeInfo> foundVirtualVolumes = new HashMap<String, VPlexVirtualVolumeInfo>();
+
+        int retryCount = 0;
+        while (++retryCount <= VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES) {
+            try {
+                // Make a map of VPLEX cluster to virtual volumes found on that cluster.
+                Map<String, List<VPlexVirtualVolumeInfo>> clusterToVirtualVolumeMap = new HashMap<String, List<VPlexVirtualVolumeInfo>>();
+                for (VPlexClusterInfo clusterInfo : clusterInfoList) {
+                    List<VPlexVirtualVolumeInfo> clusterVolumeInfoList = getVirtualVolumesForCluster(clusterInfo.getName());
+                    clusterToVirtualVolumeMap.put(clusterInfo.getName(), clusterVolumeInfoList);
+                }
+
+                List<VPlexVirtualVolumeInfo> virtualVolumeToFindList = new ArrayList<VPlexVirtualVolumeInfo>();
+                for (Map.Entry<String, VPlexVirtualVolumeInfo> entry : virtualVolumesToFind.entrySet()) {
+                    virtualVolumeToFindList.add(entry.getValue());
+                }
+
+                for (VPlexVirtualVolumeInfo virtualVolumeInfo : virtualVolumeToFindList) {
+                    List<VPlexVirtualVolumeInfo> clusterVolumeInfoList =
+                            clusterToVirtualVolumeMap.get(virtualVolumeInfo.getClusters().get(0));
+                    for (VPlexVirtualVolumeInfo volumeInfo : clusterVolumeInfoList) {
+                        s_logger.info("Virtual volume Info: {}", volumeInfo.toString());
+                        if (volumeInfo.getName().equals(virtualVolumeInfo.getName())) {
+                            s_logger.info("Found virtual volume {}", volumeInfo.getName());
+                            foundVirtualVolumes.put(virtualVolumeInfo.getName(), volumeInfo);
+                            // Remove the found virtual volume from the virtualVolumesToFind Map
+                            virtualVolumesToFind.remove(virtualVolumeInfo.getName());
+                        }
+                    }
+                }
+
+                if (!foundVirtualVolumes.isEmpty() && foundVirtualVolumes.size() == virtualVolumeInfos.size()) {
+                    return foundVirtualVolumes;
+                }
+
+                if ((retry) && (retryCount < VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES)) {
+                    s_logger.warn(String.format("Virtual volumes %s not found on try %d of %d",
+                            geAllVolumeNamesFromMap(virtualVolumesToFind),
+                            retryCount, VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES));
+                    VPlexApiUtils.pauseThread(VPlexApiConstants.FIND_NEW_ARTIFACT_SLEEP_TIME_MS);
+                } else {
+                    break;
+                }
+            } catch (VPlexApiException vae) {
+                if ((retry) && (retryCount < VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES)) {
+                    s_logger.error(String.format("Exception finding virtual volumes on try %d of %d",
+                            retryCount, VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES), vae);
+                    VPlexApiUtils.pauseThread(VPlexApiConstants.FIND_NEW_ARTIFACT_SLEEP_TIME_MS);
+                } else {
+                    if (!foundVirtualVolumes.isEmpty()) {
+                        return foundVirtualVolumes;
+                    } else {
+                        throw vae;
+                    }
+                }
+            } catch (Exception e) {
+                if ((retry) && (retryCount < VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES)) {
+                    s_logger.error(String.format("Exception finding virtual volumes on try %d of %d",
+                            retryCount, VPlexApiConstants.FIND_NEW_ARTIFACT_MAX_TRIES), e);
+                    VPlexApiUtils.pauseThread(VPlexApiConstants.FIND_NEW_ARTIFACT_SLEEP_TIME_MS);
+                } else {
+                    if (!foundVirtualVolumes.isEmpty()) {
+                        return foundVirtualVolumes;
+                    } else {
+                        throw e;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * This method returns all volume names from the map.
+     * 
+     * @param virtualVolumesToFind Map of Volume name to volume info
+     * @return returns all volume names from the Map
+     */
+    private String geAllVolumeNamesFromMap(Map<String, VPlexVirtualVolumeInfo> virtualVolumesToFind) {
+        StringBuffer volumesBuffer = new StringBuffer();
+        if (!virtualVolumesToFind.isEmpty()) {
+            Set<String> volumeNames = virtualVolumesToFind.keySet();
+            for (String volumeName : volumeNames) {
+                volumesBuffer.append(volumeName).append(" ");
+            }
+        }
+        return volumesBuffer.toString();
+    }
+
+    /**
      * Get the storage system info for the cluster with the passed name.
      * 
      * @param clusterName The name of the cluster.
@@ -1083,40 +1199,56 @@ public class VPlexApiDiscoveryManager {
      * @throws VPlexApiException If a VPlex request returns a failed status or
      *             an error occurs processing the response.
      */
-    private List<VPlexStorageVolumeInfo> getStorageVolumeInfoForCluster(String clusterName)
+    private List<VPlexStorageVolumeInfo> getStorageVolumeInfoForCluster(String clusterName, boolean isITLFetch)
             throws VPlexApiException {
 
         // Get the URI for the storage volume info request and make the request.
         StringBuilder uriBuilder = new StringBuilder();
         uriBuilder.append(VPlexApiConstants.URI_CLUSTERS.toString());
         uriBuilder.append(clusterName);
-        uriBuilder.append(VPlexApiConstants.URI_STORAGE_VOLUMES.toString());
+        
+        String responseJsonFormat = null;
+        if(isITLFetch) {
+            uriBuilder.append(VPlexApiConstants.URI_STORAGE_VOLUMES_DETAILS.toString());
+            responseJsonFormat = VPlexApiConstants.ACCEPT_JSON_FORMAT_1;
+        } else {
+            uriBuilder.append(VPlexApiConstants.URI_STORAGE_VOLUMES.toString());
+            responseJsonFormat = VPlexApiConstants.ACCEPT_JSON_FORMAT_0;
+        }
+        
         URI requestURI = _vplexApiClient.getBaseURI().resolve(URI.create(uriBuilder.toString()));
         s_logger.info("Storage Volumes Request URI is {}", requestURI.toString());
-        ClientResponse response = _vplexApiClient.get(requestURI);
+        ClientResponse response = _vplexApiClient.get(requestURI, responseJsonFormat);
         String responseStr = response.getEntity(String.class);
         s_logger.info("Response is {}", responseStr);
         int status = response.getStatus();
         response.close();
+        
         if (status != VPlexApiConstants.SUCCESS_STATUS) {
-            throw new VPlexApiException(String.format(
-                    "Failed getting storage volume info for cluster %s with status: %s",
-                    clusterName, status));
+            throw VPlexApiException.exceptions.
+            failedGettingStorageVolumeInfo(clusterName, String.valueOf(status));
         }
 
         // Successful Response
         List<VPlexStorageVolumeInfo> storageVolumeInfoList = new ArrayList<VPlexStorageVolumeInfo>();
         try {
-            storageVolumeInfoList = VPlexApiUtils.getChildrenFromResponse(
-                    uriBuilder.toString(), responseStr, VPlexStorageVolumeInfo.class);
+            
+            if(isITLFetch) {
+                storageVolumeInfoList = VPlexApiUtils.getResourcesFromResponseContext(
+                        uriBuilder.toString(), responseStr, VPlexStorageVolumeInfo.class);
+            } else {
+                storageVolumeInfoList = VPlexApiUtils.getChildrenFromResponse(
+                        uriBuilder.toString(), responseStr, VPlexStorageVolumeInfo.class);
+            }
+            
         } catch (Exception e) {
-            throw new VPlexApiException(String.format(
-                    "Error processing storage volume information: %s", e.getMessage()), e);
+            throw VPlexApiException.exceptions.
+            failedProcessingStorageVolumeResponse(e.getMessage(), e);
         }
 
         return storageVolumeInfoList;
     }
-
+    
     /**
      * Get the system volume info for the cluster with the passed name.
      * 

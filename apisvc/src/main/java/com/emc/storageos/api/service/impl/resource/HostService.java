@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -155,9 +145,9 @@ import com.sun.jersey.api.NotFoundException;
  * interfaces by authorized users.
  * 
  */
-@DefaultPermissions(read_roles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
-        write_roles = { Role.TENANT_ADMIN },
-        read_acls = { ACL.ANY })
+@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
+        writeRoles = { Role.TENANT_ADMIN },
+        readAcls = { ACL.ANY })
 @Path("/compute/hosts")
 public class HostService extends TaskResourceService {
 
@@ -285,23 +275,31 @@ public class HostService extends TaskResourceService {
         String taskId = UUID.randomUUID().toString();
         ComputeSystemController controller = getController(ComputeSystemController.class, null);
 
+        Cluster oldCluster = NullColumnValueGetter.isNullURI(oldClusterURI) ? null : _dbClient.queryObject(Cluster.class, oldClusterURI);
+        Cluster newCluster = NullColumnValueGetter.isNullURI(host.getCluster()) ? null : _dbClient.queryObject(Cluster.class,
+                host.getCluster());
+
         // We only want to update the export group if we're changing the cluster during a host update
         if (updateParam.getCluster() != null) {
             if (!NullColumnValueGetter.isNullURI(oldClusterURI)
                     && NullColumnValueGetter.isNullURI(host.getCluster())
-                    && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)) {
+                    && ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
+                    && (oldCluster != null && oldCluster.getAutoExportEnabled())) {
                 // Remove host from shared export
                 controller.removeHostsFromExport(Arrays.asList(host.getId()), oldClusterURI, taskId);
             } else if (NullColumnValueGetter.isNullURI(oldClusterURI)
                     && !NullColumnValueGetter.isNullURI(host.getCluster())
-                    && ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
+                    && ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())
+                    && (newCluster != null && newCluster.getAutoExportEnabled())) {
                 // Non-clustered host being added to a cluster
                 controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI);
             } else if (!NullColumnValueGetter.isNullURI(oldClusterURI)
                     && !NullColumnValueGetter.isNullURI(host.getCluster())
                     && !oldClusterURI.equals(host.getCluster())
                     && (ComputeSystemHelper.isClusterInExport(_dbClient, oldClusterURI)
-                    || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))) {
+                    || ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()))
+                    && ((oldCluster != null && oldCluster.getAutoExportEnabled())
+                    || (newCluster != null && newCluster.getAutoExportEnabled()))) {
                 // Clustered host being moved to another cluster
                 controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, oldClusterURI);
             } else {
@@ -523,7 +521,15 @@ public class HostService extends TaskResourceService {
         if (hasPendingTasks) {
             throw APIException.badRequests.resourceCannotBeDeleted("Host with another operation in progress");
         }
-        if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId()) && !(detachStorage || detachStorageDeprecated)) {
+        Cluster cluster = null;
+        if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
+            cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
+        }
+        boolean isHostInUse = ComputeSystemHelper.isHostInUse(_dbClient, host.getId());
+
+        if (isHostInUse && cluster != null && !cluster.getAutoExportEnabled()) {
+            throw APIException.badRequests.resourceInClusterWithAutoExportDisabled(Host.class.getSimpleName(), id);
+        } else if (isHostInUse && !(detachStorage || detachStorageDeprecated)) {
             throw APIException.badRequests.resourceHasActiveReferences(Host.class.getSimpleName(), id);
         } else {
             String taskId = UUID.randomUUID().toString();
@@ -684,13 +690,14 @@ public class HostService extends TaskResourceService {
     public TaskResourceRep createInitiator(@PathParam("id") URI id,
             InitiatorCreateParam createParam) throws DatabaseException {
         Host host = queryObject(Host.class, id, true);
+        Cluster cluster = null;
         validateInitiatorData(createParam, null);
         // create and populate the initiator
         Initiator initiator = new Initiator();
         initiator.setHost(id);
         initiator.setHostName(host.getHostName());
         if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
-            Cluster cluster = queryObject(Cluster.class, host.getCluster(), false);
+            cluster = queryObject(Cluster.class, host.getCluster(), false);
             initiator.setClusterName(cluster.getLabel());
         }
         initiator.setId(URIUtil.createId(Initiator.class));
@@ -702,7 +709,8 @@ public class HostService extends TaskResourceService {
                 ResourceOperationTypeEnum.ADD_HOST_INITIATOR);
 
         // if host in use. update export with new initiator
-        if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId())) {
+        if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId())
+                && (cluster == null || cluster.getAutoExportEnabled())) {
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
             controller.addInitiatorsToExport(initiator.getHost(), Arrays.asList(initiator.getId()), taskId);
         } else {
@@ -846,7 +854,8 @@ public class HostService extends TaskResourceService {
         host.setTenant(tenant.getId());
         populateHostData(host, param);
         if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
-            if (ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster())) {
+            Cluster cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
+            if (ComputeSystemHelper.isClusterInExport(_dbClient, host.getCluster()) && cluster.getAutoExportEnabled()) {
                 String taskId = UUID.randomUUID().toString();
                 ComputeSystemController controller = getController(ComputeSystemController.class, null);
                 controller.addHostsToExport(Arrays.asList(host.getId()), host.getCluster(), taskId, null);

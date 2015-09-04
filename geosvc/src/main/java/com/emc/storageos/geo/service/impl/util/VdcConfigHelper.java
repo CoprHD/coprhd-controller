@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.geo.service.impl.util;
@@ -252,13 +242,13 @@ public class VdcConfigHelper {
                         ((CoordinatorClientImpl) coordinator).getSysSvcName(),
                         ((CoordinatorClientImpl) coordinator).getSysSvcVersion(), null, null)) {
                     try {
-                        log.info("waking up node: {}", syssvc.getNodeName());
+                        log.info("waking up node: {}", syssvc.getNodeId());
                         SysClientFactory.SysClient sysClient = SysClientFactory.getSysClient(
                                 syssvc.getEndpoint());
                         sysClient.setCoordinatorClient(coordinator);
                         sysClient.post(SysClientFactory.URI_WAKEUP_PROPERTY_MANAGER, null, null);
                     } catch (Exception e) {
-                        log.error("Error waking up node: {} Cause:", syssvc.getNodeName(), e);
+                        log.error("Error waking up node: {} Cause:", syssvc.getNodeId(), e);
                     }
                 }
             }

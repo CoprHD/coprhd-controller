@@ -1,10 +1,11 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block;
 
 import static com.emc.sa.service.ServiceParams.NAME;
+import static com.emc.sa.service.ServiceParams.READ_ONLY;
 import static com.emc.sa.service.ServiceParams.STORAGE_TYPE;
 import static com.emc.sa.service.ServiceParams.TYPE;
 import static com.emc.sa.service.ServiceParams.VOLUMES;
@@ -35,6 +36,9 @@ public class CreateBlockSnapshotService extends ViPRService {
     @Param(value = TYPE, required = false)
     protected String type;
 
+    @Param(value = READ_ONLY, required = false)
+    protected Boolean readOnly;
+
     private List<BlockObjectRestRep> volumes;
 
     @Override
@@ -52,7 +56,7 @@ public class CreateBlockSnapshotService extends ViPRService {
         Tasks<? extends DataObjectRestRep> tasks;
         if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             for (BlockObjectRestRep volume : volumes) {
-                tasks = execute(new CreateBlockSnapshot(volume.getId(), type, nameParam));
+                tasks = execute(new CreateBlockSnapshot(volume.getId(), type, nameParam, readOnly));
                 addAffectedResources(tasks);
             }
         } else {

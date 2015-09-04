@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.mapper;
@@ -132,6 +132,9 @@ public class TaskMapper {
         taskResourceRep.setStartTime(task.getStartTime());
         taskResourceRep.setEndTime(task.getEndTime());
         taskResourceRep.setProgress(task.getProgress() != null ? task.getProgress() : 0);
+        taskResourceRep.setQueuedStartTime(task.getQueuedStartTime());
+        taskResourceRep.setQueueName(task.getQueueName());
+
         return taskResourceRep;
     }
 

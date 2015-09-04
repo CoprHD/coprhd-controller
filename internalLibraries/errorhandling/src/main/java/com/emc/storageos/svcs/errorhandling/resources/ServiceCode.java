@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.svcs.errorhandling.resources;
@@ -236,6 +226,7 @@ public enum ServiceCode {
     CONTROLLER_VMAX_MASK_SUPPORTS_SINGLE_HOST_ERROR(12027),
     VCENTER_CONTROLLER_ERROR(12028),
     CONTROLLER_JOB_ABORTED(12029),
+    CONTROLLER_LOCK_RETRY_EXCEPTION(12030),
 
     // Isilon errors (13000 - 13999):
     ISILON_ERROR(13000),
@@ -509,6 +500,7 @@ public enum ServiceCode {
     SCALEIO_SCAN_FAILED(60010),
     SCALEIO_CLI_NEEDS_TO_SPECIFY_MDM_CREDS(60011),
     SCALEIO_CLI_INIT_WAS_NOT_CALLED(60012),
+    SCALEIO_API_FAILURE(60013),
 
     // customConfig controller errors (62000 - 62099)
     CONTROLLER_CUSTOMCONFIG_ERROR(62000),

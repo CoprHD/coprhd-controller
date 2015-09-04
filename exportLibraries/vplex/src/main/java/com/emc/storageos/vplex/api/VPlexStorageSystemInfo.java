@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.vplex.api;
 
@@ -39,9 +29,17 @@ public class VPlexStorageSystemInfo extends VPlexResourceInfo {
         return uniqueId;
     }
 
+    /**
+     * Check if the storageSystemNativeGuid matches with Vplex 
+     * storage systems unique Id.
+     * 
+     * @param storageSystemNativeGuid
+     * @return
+     */
     public boolean matches(String storageSystemNativeGuid) {
-
-        if (storageSystemNativeGuid.endsWith(getUniqueId())) {
+        s_logger.info(String.format("Matching the storageSystemNativeGuid %s with %s",
+                storageSystemNativeGuid, getUniqueId()));
+        if (storageSystemNativeGuid.contains(getUniqueId().trim())) {
             return true;
         }
 

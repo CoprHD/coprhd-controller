@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl;
 
@@ -74,6 +64,7 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
      * @return
      * @throws ControllerException
      */
+    @Override
     protected Controller lookupDeviceController(DiscoveredSystemObject device)
             throws ControllerException {
         if (device == null) {
@@ -111,15 +102,18 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
         queueTask(_dbClient, StorageSystem.class, _dispatcher, methodName, args);
     }
 
+    @Override
     public void createVolumes(URI storage, URI pool, List<URI> volumes, VirtualPoolCapabilityValuesWrapper capabilities, String opId)
             throws InternalException {
         blockRMI("createVolumes", storage, pool, volumes, capabilities, opId);
     }
 
+    @Override
     public void modifyVolumes(URI storage, URI pool, List<URI> volumes, String opId) throws InternalException {
         blockRMI("modifyVolumes", storage, pool, volumes, opId);
     }
 
+    @Override
     public void createMetaVolume(URI storage, URI pool, URI volume, VirtualPoolCapabilityValuesWrapper capabilities, String opId)
             throws InternalException {
         blockRMI("createMetaVolume", storage, pool, volume, capabilities, opId);
@@ -168,9 +162,9 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
-    public void createSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, String opId)
+    public void createSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId)
             throws InternalException {
-        blockRMI("createSnapshot", storage, snapshotList, createInactive, opId);
+        blockRMI("createSnapshot", storage, snapshotList, createInactive, readOnly, opId);
     }
 
     @Override
@@ -207,6 +201,11 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     public void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String opId)
             throws InternalException {
         blockRMI("restoreVolume", storage, pool, volume, snapshot, updateOpStatus, opId);
+    }
+
+    @Override
+    public void resyncSnapshot(URI storage, URI volume, URI snapshot, Boolean updateOpStatus, String opId) throws InternalException {
+        blockRMI("resyncSnapshot", storage, volume, snapshot, updateOpStatus, opId);
     }
 
     @Override

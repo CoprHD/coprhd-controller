@@ -22,6 +22,7 @@
     	<property name="customConfigTypes">
             <list>
                 <ref bean="sanZoneName"/>
+                <ref bean="sanZoneAddVolumeCheckZoning"/>
                 <ref bean="vnxHostStorageGroupName"/>
                 <ref bean="vmaxHostMaskingViewName"/>
                 <ref bean="vmaxClusterMaskingViewName"/>
@@ -50,6 +51,8 @@
                 <ref bean="hdsHostStorageDomainNickName"/>
                 <ref bean="hdsHostModeOption" />
                 <ref bean="vplexStorageViewName"/>
+                <ref bean="vplexMigrationSpeed"/>
+                <ref bean="vplexVmaxMaskingViewMaximumVolumes"/>
             </list>
         </property>
     </bean>
@@ -92,6 +95,22 @@
                 <ref bean="nsMaxLengthConstraint"/>
                 <ref bean="illegalFirstCharConstraint"/>
             </list>
+        </property>
+    </bean>
+
+    <bean id="sanZoneAddVolumeCheckZoning" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="SanZoneAddVolumeCheckZoning"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Boolean"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="true"/>
+            </map>
         </property>
     </bean>
     
@@ -790,7 +809,49 @@
         </property>
     </bean>
     
-    
+    <bean id="vplexMigrationSpeed" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="VPlexMigrationSpeed"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="String"/>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vplex"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="Lowest"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="predefinedValuesConstraint"/>
+            </list>
+        </property>
+    </bean>
+
+    <bean id="vplexVmaxMaskingViewMaximumVolumes" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="VPlexVMAXMaskingViewMaximumVolumes"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Integer"/>
+        <property name="scope">
+            <map>
+                <entry key="systemType" value="vmax"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="4096"/>
+            </map>
+        </property>
+        <property name="constraints">
+            <list>
+                <ref bean="minVolumeCountForMaskingView"/>
+                <ref bean="maxVolumeCountForMaskingView"/>
+            </list>
+        </property>
+    </bean>
+
     <bean id="xtremIOVolumeFolderName" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
     	<property name="name" value="XtremIOVolumeFolderName"/>
         <property name="configType" value="CustomName"/>
@@ -1181,6 +1242,40 @@
         <property name="description" value="The minimum value is 0"/>
     </bean>
     
+    <bean id="predefinedValuesConstraint" class="com.emc.storageos.customconfigcontroller.PredefinedValuesConstraint">
+        <property name="predefinedValues">
+            <set>
+                <value>Lowest</value>
+                <value>Low</value>
+                <value>Medium</value>
+                <value>High</value>
+                <value>Highest</value>
+            </set>
+        </property>
+        <property name="defaultValue" value="Lowest"/>
+        <property name="description" value="The predefined value set"/>
+    </bean>
+
+    <bean id="minVolumeCountForMaskingView" class="com.emc.storageos.customconfigcontroller.MinConstraint">
+        <property name="minVals">
+            <map>
+                <entry key="default" value="1000"/>
+            </map>
+        </property>
+        <property name="description" value="The maximum number of volumes that a MaskingView should be 1000 or more"/>
+        <property name="name" value="minVolumeCountForMaskingView"/>
+    </bean>
+
+    <bean id="maxVolumeCountForMaskingView" class="com.emc.storageos.customconfigcontroller.MaxConstraint">
+        <property name="maxVals">
+            <map>
+                <entry key="default" value="4096"/>
+            </map>
+        </property>
+        <property name="description" value="The maximum number of volumes that a MaskingView can have is 4096"/>
+        <property name="name" value="maxVolumeCountForMaskingView"/>
+    </bean>
+
     <bean id="nameResolver" class="com.emc.storageos.customconfigcontroller.CustomNameResolver">
     	<property name="stringManipulationMethods">
             <list>

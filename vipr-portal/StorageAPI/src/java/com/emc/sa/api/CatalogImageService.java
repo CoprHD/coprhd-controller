@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.api;
@@ -55,9 +55,9 @@ import com.emc.vipr.model.catalog.CatalogImageRestRep;
 import com.emc.vipr.model.catalog.CatalogImageUpdateParam;
 
 @DefaultPermissions(
-        read_roles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
-        write_roles = { Role.TENANT_ADMIN },
-        read_acls = { ACL.ANY })
+        readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
+        writeRoles = { Role.TENANT_ADMIN },
+        readAcls = { ACL.ANY })
 @Path("/catalog/images")
 public class CatalogImageService extends CatalogTaggedResourceService {
 

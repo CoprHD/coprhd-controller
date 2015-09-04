@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.util;
@@ -25,6 +15,7 @@ public class SizeUtil {
     public static final String SIZE_MB = "MB";
     public static final String SIZE_GB = "GB";
     public static final String SIZE_TB = "TB";
+    public static final String SIZE_KB = "KB";
 
     public static Long translateSize(String size) {
         long sizeVal = 0;
@@ -64,6 +55,8 @@ public class SizeUtil {
             multiplier = 1024 * 1024 * 1024L;
         } else if (to.endsWith(SIZE_MB)) {
             multiplier = 1024 * 1024L;
+        } else if (to.endsWith(SIZE_KB)) {
+        	multiplier = 1024L;
         }
         Double d = Double.valueOf(size / (double) multiplier);
         long sizeVal = d.longValue();

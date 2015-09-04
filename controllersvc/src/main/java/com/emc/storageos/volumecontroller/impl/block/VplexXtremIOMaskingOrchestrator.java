@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.block;
@@ -77,6 +77,13 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         // Use this ,if you really don't care about the details of existing
         // masks on Array.
         return mask;
+    }
+
+    @Override
+    public void suggestExportMasksForPlacement(
+            StorageSystem storage, BlockStorageDevice device, List<Initiator> initiators,
+            ExportMaskPlacementDescriptor placementDescriptor) {
+        super.suggestExportMasksForPlacement(storage, device, initiators, placementDescriptor);
     }
 
     @Override

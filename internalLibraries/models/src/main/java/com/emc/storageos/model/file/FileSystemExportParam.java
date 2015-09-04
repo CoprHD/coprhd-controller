@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.file;
@@ -74,7 +74,7 @@ public class FileSystemExportParam {
     /**
      * Description of the operation
      * 
-     * @return
+     * @return The comments regarding the operation
      */
 
     @XmlElement(name = "comments", required = false)

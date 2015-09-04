@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.logsvc;
 
@@ -27,6 +17,7 @@ public class NodeInfoTest {
 
     // Test data constants.
     private static final String TEST_ID = "testId";
+    private static final String TEST_NAME = "testName";
     private static final String TEST_HOST = "10.247.66.22";
     private static final String TEST_PORT = "9998";
     private static final URI TEST_ENDPOIT = URI.create("http://" + TEST_HOST + ":"
@@ -39,8 +30,24 @@ public class NodeInfoTest {
     public void testGetId() {
         boolean wasException = false;
         try {
-            NodeInfo nodeInfo = new NodeInfo(TEST_ID, TEST_ENDPOIT);
+            NodeInfo nodeInfo = new NodeInfo(TEST_ID, TEST_NAME, TEST_ENDPOIT);
             Assert.assertEquals(nodeInfo.getId(), TEST_ID);
+
+        } catch (Exception e) {
+            wasException = true;
+        }
+        Assert.assertFalse(wasException);
+    }
+
+    /**
+     * Tests the getName method.
+     */
+    @Test
+    public void testGetName() {
+        boolean wasException = false;
+        try {
+            NodeInfo nodeInfo = new NodeInfo(TEST_ID, TEST_NAME, TEST_ENDPOIT);
+            Assert.assertEquals(nodeInfo.getName(), TEST_NAME);
 
         } catch (Exception e) {
             wasException = true;
@@ -55,7 +62,7 @@ public class NodeInfoTest {
     public void testGetIpAddress() {
         boolean wasException = false;
         try {
-            NodeInfo nodeInfo = new NodeInfo(TEST_ID, TEST_ENDPOIT);
+            NodeInfo nodeInfo = new NodeInfo(TEST_ID, TEST_NAME, TEST_ENDPOIT);
             Assert.assertEquals(nodeInfo.getIpAddress(), TEST_HOST);
 
         } catch (Exception e) {
@@ -71,7 +78,7 @@ public class NodeInfoTest {
     public void getPort() {
         boolean wasException = false;
         try {
-            NodeInfo nodeInfo = new NodeInfo(TEST_ID, TEST_ENDPOIT);
+            NodeInfo nodeInfo = new NodeInfo(TEST_ID, TEST_NAME, TEST_ENDPOIT);
             Assert.assertEquals(nodeInfo.getPort(), Integer.parseInt(TEST_PORT));
 
         } catch (Exception e) {

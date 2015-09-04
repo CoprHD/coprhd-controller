@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.properties;
@@ -183,6 +183,11 @@ public class Property {
         }
         else if (HOSTNAME.equals(type)) {
             if (!VALIDATOR.validateHostName(value)) {
+                Validation.addError(fieldName, "configProperties.error.hostname");
+            }
+        }
+        else if (STRICTHOSTNAME.equals(type)) {
+            if (!VALIDATOR.validateStrictHostName(value)) {
                 Validation.addError(fieldName, "configProperties.error.hostname");
             }
         }

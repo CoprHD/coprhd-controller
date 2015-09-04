@@ -1,19 +1,9 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.model.mock;
 
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
- */
 
 import com.emc.storageos.coordinator.client.service.*;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
@@ -61,7 +51,7 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
      */
     public static CoordinatorClientInetAddressMap createLocalAddressLookupMap() {
         CoordinatorClientInetAddressMap addressMap = new CoordinatorClientInetAddressMap();
-        addressMap.setNodeName("localhost");
+        addressMap.setNodeId("localhost");
         try {
             addressMap.setDualInetAddress(DualInetAddress.fromAddress("127.0.0.1"));
         } catch (UnknownHostException e) {
@@ -69,7 +59,7 @@ public class StubCoordinatorClientImpl extends CoordinatorClientImpl {
         }
 
         Map<String, DualInetAddress> ips = new HashMap<>();
-        ips.put(addressMap.getNodeName(), addressMap.getDualInetAddress());
+        ips.put(addressMap.getNodeId(), addressMap.getDualInetAddress());
         addressMap.setControllerNodeIPLookupMap(ips);
         return addressMap;
     }

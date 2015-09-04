@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.placement;
 
@@ -599,7 +589,7 @@ public class VPlexScheduler implements Scheduler {
             // on the same physical array.
             Set<URI> recommendedSrcSystems = new HashSet<URI>();
             for (Recommendation recommendation : recommendationsForSrcVarray) {
-                recommendedSrcSystems.add(recommendation.getSourceDevice());
+                recommendedSrcSystems.add(recommendation.getSourceStorageSystem());
             }
 
             // Remove any storage pools on these systems from the list of
@@ -1050,9 +1040,10 @@ public class VPlexScheduler implements Scheduler {
         List<VPlexRecommendation> vplexRecommendations = new ArrayList<VPlexRecommendation>();
         for (Recommendation recommendation : recommendations) {
             VPlexRecommendation vplexRecommendation = new VPlexRecommendation();
-            vplexRecommendation.setSourceDevice(recommendation.getSourceDevice());
-            vplexRecommendation.setSourcePool(recommendation.getSourcePool());
+            vplexRecommendation.setSourceStorageSystem(recommendation.getSourceStorageSystem());
+            vplexRecommendation.setSourceStoragePool(recommendation.getSourceStoragePool());
             vplexRecommendation.setResourceCount(recommendation.getResourceCount());
+            //vplexRecommendation.setSourceDevice(URI.create(vplexStorageSystemId));
             vplexRecommendation.setVPlexStorageSystem(URI.create(vplexStorageSystemId));
             vplexRecommendation.setVirtualArray(varray.getId());
             vplexRecommendation.setVirtualPool(vpool);

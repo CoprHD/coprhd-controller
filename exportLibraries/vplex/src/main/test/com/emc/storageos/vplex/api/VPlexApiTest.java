@@ -1,21 +1,12 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.vplex.api;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -302,7 +293,7 @@ public class VPlexApiTest {
                 String systemGuid = volumeInfoTokenizer.nextToken();
                 String volumeId = volumeInfoTokenizer.nextToken();
                 String volumeNativeId = volumeInfoTokenizer.nextToken();
-                nativeVolumeInfoList.add(new VolumeInfo(systemGuid, "vmax", volumeId, volumeNativeId, false));
+                nativeVolumeInfoList.add(new VolumeInfo(systemGuid, "vmax", volumeId, volumeNativeId, false, Collections.<String> emptyList()));
                 vvNameBuilder.append(VPlexApiConstants.DIST_DEVICE_NAME_DELIM);
                 vvNameBuilder.append(VPlexApiConstants.VOLUME_NAME_PREFIX);
                 vvNameBuilder.append(systemGuid.substring(systemGuid.indexOf("+") + 1));
@@ -310,8 +301,9 @@ public class VPlexApiTest {
                 vvNameBuilder.append(volumeNativeId);
             }
             vvNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
+            List<VPlexClusterInfo> clusterInfoList = _client.getClusterInfo(false);
             VPlexVirtualVolumeInfo vvInfo = _client.createVirtualVolume(
-                    nativeVolumeInfoList, true, false, false, "1");
+                    nativeVolumeInfoList, true, false, false, "1", clusterInfoList);
             Assert.assertNotNull(vvInfo);
             Assert.assertEquals(vvNameBuilder.toString(), vvInfo.getName());
 
@@ -762,7 +754,7 @@ public class VPlexApiTest {
             String volumeId = volumeInfoTokenizer.nextToken();
             volumeNativeId = volumeInfoTokenizer.nextToken();
             nativeVolumeInfoList.add(new VolumeInfo(systemGuid, "vmax", volumeId,
-                    volumeNativeId, false));
+            volumeNativeId, false, Collections.<String> emptyList()));
             vvNameBuilder = new StringBuilder();
             vvNameBuilder.append(VPlexApiConstants.DEVICE_PREFIX);
             vvNameBuilder.append(VPlexApiConstants.VOLUME_NAME_PREFIX);
@@ -773,7 +765,8 @@ public class VPlexApiTest {
 
             String migrationName = _properties.getProperty(MIGRATION_NAME_PROP_KEY);
             List<VPlexMigrationInfo> migrationInfoList = _client.migrateVirtualVolume(
-                    migrationName, vvName, nativeVolumeInfoList, false, false, false, true);
+                    migrationName, vvName, nativeVolumeInfoList, false, false, false, true, null);
+
             Assert.assertEquals(migrationInfoList.size(), 1);
 
             // Wait until migrations complete and commit the migrations with
@@ -817,7 +810,7 @@ public class VPlexApiTest {
                 String volumeId = volumeInfoTokenizer.nextToken();
                 String volumeNativeId = volumeInfoTokenizer.nextToken();
                 nativeVolumeInfoList.add(new VolumeInfo(systemGuid, "vmax", volumeId,
-                        volumeNativeId, false));
+                volumeNativeId, false, Collections.<String> emptyList()));
                 vvNameBuilder.append(VPlexApiConstants.DIST_DEVICE_NAME_DELIM);
                 vvNameBuilder.append(VPlexApiConstants.VOLUME_NAME_PREFIX);
                 vvNameBuilder.append(systemGuid.substring(systemGuid.indexOf("+") + 1));
@@ -826,8 +819,9 @@ public class VPlexApiTest {
             }
             vvNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
             String vvName = vvNameBuilder.toString();
+            List<VPlexClusterInfo> clusterInfoList = _client.getClusterInfo(false);
             VPlexVirtualVolumeInfo vvInfo = _client.createVirtualVolume(
-                    nativeVolumeInfoList, true, false, false, "1");
+                    nativeVolumeInfoList, true, false, false, "1", clusterInfoList);
             Assert.assertNotNull(vvInfo);
             Assert.assertEquals(vvName, vvInfo.getName());
 
@@ -845,7 +839,7 @@ public class VPlexApiTest {
                 String volumeId = volumeInfoTokenizer.nextToken();
                 String volumeNativeId = volumeInfoTokenizer.nextToken();
                 nativeVolumeInfoList.add(new VolumeInfo(systemGuid, "vmax", volumeId,
-                        volumeNativeId, false));
+                volumeNativeId, false, Collections.<String> emptyList()));
                 vvNameBuilder.append(VPlexApiConstants.DIST_DEVICE_NAME_DELIM);
                 vvNameBuilder.append(VPlexApiConstants.VOLUME_NAME_PREFIX);
                 vvNameBuilder.append(systemGuid.substring(systemGuid.indexOf("+") + 1));
@@ -856,7 +850,7 @@ public class VPlexApiTest {
             String migrationName = _properties.getProperty(MIGRATION_NAME_PROP_KEY);
             List<VPlexMigrationInfo> migrationInfoList = _client.migrateVirtualVolume(
                     migrationName, vvName, nativeVolumeInfoList, false, false, false,
-                    true);
+                    true, null);
             Assert.assertEquals(migrationInfoList.size(), 2);
 
             // Wait until migrations complete and commit the migrations with
@@ -896,7 +890,7 @@ public class VPlexApiTest {
             String storageSystemGuid = tokenizer.nextToken();
             String volumeId = tokenizer.nextToken();
             String volumeNativeId = tokenizer.nextToken();
-            newVolumeInfo = new VolumeInfo(storageSystemGuid, "vmax", volumeId, volumeNativeId, false);
+            newVolumeInfo = new VolumeInfo(storageSystemGuid, "vmax", volumeId, volumeNativeId, false, Collections.<String> emptyList());
             distVolInfo = _client.upgradeVirtualVolumeToDistributed(vvInfo, newVolumeInfo, true, true, "1");
             Assert.assertNotNull(distVolInfo);
             WaitOnRebuildResult goodRebuild = _client.waitOnRebuildCompletion(distVolInfo.getName());
@@ -933,10 +927,11 @@ public class VPlexApiTest {
         String volumeNativeId = tokenizer.nextToken();
         List<VolumeInfo> nativeVolumeInfoList = new ArrayList<VolumeInfo>();
         VolumeInfo nativeVolumeInfo = new VolumeInfo(storageSystemGuid, "vmax", volumeId,
-                volumeNativeId, false);
+        volumeNativeId, false, Collections.<String> emptyList());
         nativeVolumeInfoList.add(nativeVolumeInfo);
+        List<VPlexClusterInfo> clusterInfoList = _client.getClusterInfo(false);
         VPlexVirtualVolumeInfo vvInfo = _client.createVirtualVolume(
-                nativeVolumeInfoList, false, false, false, null);
+                nativeVolumeInfoList, false, false, false, null, clusterInfoList);
         return vvInfo;
     }
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.host;
 
@@ -201,7 +191,7 @@ public class HostRestRep extends ComputeSystemRestRep {
     /**
      * The id of boot volume.
      * 
-     * @return
+     * @return The id of boot volume
      */
     @XmlElement(name = "boot_volume")
     public RelatedResourceRep getBootVolume() {
@@ -217,7 +207,7 @@ public class HostRestRep extends ComputeSystemRestRep {
      * : IN_PROGRESS / COMPLETE / ERROR. These statuses correspond to the task
      * status, which can be pending,ready or error.
      * 
-     * @return
+     * @return Provisioning Job Status
      */
     @XmlElement(name = "provisioning_job_status")
     public String getProvisioningJobStatus() {

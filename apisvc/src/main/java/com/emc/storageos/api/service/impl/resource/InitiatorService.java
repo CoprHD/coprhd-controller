@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -47,12 +37,14 @@ import com.emc.storageos.api.service.impl.response.SearchedResRepList;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.util.EndpointUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -78,9 +70,9 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
  * Service providing APIs for host initiators.
  */
 @Path("/compute/initiators")
-@DefaultPermissions(read_roles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
-        write_roles = { Role.TENANT_ADMIN },
-        read_acls = { ACL.OWN, ACL.ALL })
+@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN },
+        writeRoles = { Role.TENANT_ADMIN },
+        readAcls = { ACL.OWN, ACL.ALL })
 public class InitiatorService extends TaskResourceService {
 
     // Logger
@@ -189,9 +181,15 @@ public class InitiatorService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Initiator.class, initiator.getId(), taskId,
                 ResourceOperationTypeEnum.DELETE_INITIATOR);
 
+        Cluster cluster = getInitiatorCluster(initiator);
+
         if (ComputeSystemHelper.isInitiatorInUse(_dbClient, id.toString())) {
-            ComputeSystemController controller = getController(ComputeSystemController.class, null);
-            controller.removeInitiatorFromExport(initiator.getHost(), initiator.getId(), taskId);
+            if (cluster == null || cluster.getAutoExportEnabled()) {
+                ComputeSystemController controller = getController(ComputeSystemController.class, null);
+                controller.removeInitiatorFromExport(initiator.getHost(), initiator.getId(), taskId);
+            } else {
+                throw APIException.badRequests.initiatorInClusterWithAutoExportDisabled();
+            }
         } else {
             _dbClient.ready(Initiator.class, initiator.getId(), taskId);
             _dbClient.markForDeletion(initiator);
@@ -383,6 +381,20 @@ public class InitiatorService extends TaskResourceService {
             Host host = queryObject(Host.class, initiator.getHost(), false);
             verifyAuthorizedInTenantOrg(host.getTenant(), getUserFromContext());
         }
+    }
+
+    private Cluster getInitiatorCluster(Initiator initiator) {
+        URI hostId = initiator.getHost();
+        Cluster cluster = null;
+        URI clusterId = null;
+        if (!NullColumnValueGetter.isNullURI(hostId)) {
+            Host host = _dbClient.queryObject(Host.class, hostId);
+            clusterId = host.getCluster();
+        }
+        if (!NullColumnValueGetter.isNullURI(clusterId)) {
+            cluster = _dbClient.queryObject(Cluster.class, clusterId);
+        }
+        return cluster;
     }
 
     /**

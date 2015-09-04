@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis.ibm.xiv;
 
@@ -53,8 +43,8 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
-import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
 import com.emc.storageos.volumecontroller.CloneOperations;
+import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
 import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
@@ -74,41 +64,41 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
 
 /**
  * IBM XIV SMI-S block controller implementation.
- * 
+ *
  * Key characteristics of IBM XIV array:
- * 
+ *
  * 1. CIM method may return without exception, but with error code
  * a. return code is checked
  * b. depending on different situations, may throw exception, or ignore the error code
- * 
+ *
  * 2. all CIM methods are synchronous (there is no job returned from CIM call)
  * a. XIVSmisStorageDevicePostProcessor is called to handle CIM call result,
  * which is handled via SmisXXXJob in case of asynchronous call.
  * b. for some methods (remove members from CG, or create group snapshots),
  * result may not be available immediately after a successful return,
  * in such cases, workaround are made (see IBMSmisSynchSubTaskJob).
- * 
+ *
  * 3. all XIV volumes are thin provisioned regardless the pool type
- * 
+ *
  * 4. all volumes in a CG has to be on the same storage pool
  * a. user cannot specify storage pool in CG creation, CG's storage pool association
  * is set implicitly by member volumes
  * b. creating an empty CG on array will result a CG associated to a storage pool
  * that system selected. User cannot change the association afterwards.
- * 
+ *
  * 5. in mapping, target ports cannot be specified
  * a. target ports can be configured by zoning, so zoning must be done before masking
- * 
+ *
  * 6. one host could have only one mapping representation on array side
  * a. a mapping on array side may not have any initiator/target port/LUN (empty mapping)
  * b. there could be multiple volumes in the mapping
  * c. one volume can be mapped to multiple hosts
  * d. host name is used on array side if no conflict,
  * otherwise, array side name will be set as tag of the host in ViPR
- * 
+ *
  * 7. XIV Open API doesn't support creating/exporting to a cluster (an array side cluster)
  * a. a set of volumes can be mapping to multiple hosts via ViPR cluster
- * 
+ *
  */
 public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
     private static final Logger _log = LoggerFactory
@@ -581,7 +571,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
     /**
      * Return a mapping of the port name to the URI of the ExportMask in which
      * it is contained.
-     * 
+     *
      * @param storage
      *            [in] - StorageSystem object representing the array
      * @param initiatorNames
@@ -627,17 +617,17 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
     @Override
     public void doCreateSnapshot(final StorageSystem storage,
             final List<URI> snapshotList, final Boolean createInactive,
-            final TaskCompleter taskCompleter) throws DeviceControllerException {
+            Boolean readOnly, final TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
             List<BlockSnapshot> snapshots = _dbClient.queryObject(
                     BlockSnapshot.class, snapshotList);
             if (inReplicationGroup(snapshots)) {
                 _snapshotOperations.createGroupSnapshots(storage, snapshotList,
-                        createInactive, taskCompleter);
+                        createInactive, readOnly, taskCompleter);
             } else {
                 URI snapshot = snapshots.get(0).getId();
                 _snapshotOperations.createSingleVolumeSnapshot(storage,
-                        snapshot, createInactive, taskCompleter);
+                        snapshot, createInactive, readOnly, taskCompleter);
             }
         } catch (DatabaseException e) {
             String message = String
@@ -871,7 +861,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                     .failedToAddMembersToConsistencyGroup(
                             consistencyGroup.getLabel(),
-                            consistencyGroup.fetchArrayCgName(storage.getId()), e.getMessage()));
+                            consistencyGroup.getCgNameOnStorageSystem(storage.getId()), e.getMessage()));
         }
     }
 
@@ -917,7 +907,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                     .failedToRemoveMembersToConsistencyGroup(
                             consistencyGroup.getLabel(),
-                            consistencyGroup.fetchArrayCgName(storage.getId()), e.getMessage()));
+                            consistencyGroup.getCgNameOnStorageSystem(storage.getId()), e.getMessage()));
         }
     }
 
@@ -982,7 +972,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
     /**
      * Given a list of BlockSnapshot objects, determine if they were created as
      * part of a consistency group.
-     * 
+     *
      * @param snapshotList
      *            [required] - List of BlockSnapshot objects
      * @return true if the BlockSnapshots were created as part of volume
@@ -1007,7 +997,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
     /**
      * Method will remove the volume from the consistency group to which it
      * currently belongs.
-     * 
+     *
      * @param storage
      *            [required] - StorageSystem object
      * @param volume
@@ -1074,7 +1064,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
             if (!isVolumeCreation) {
                 throw DeviceControllerException.exceptions
                         .consistencyGroupNotFound(consistencyGroup.getLabel(),
-                                consistencyGroup.fetchArrayCgName(storageSystem
+                                consistencyGroup.getCgNameOnStorageSystem(storageSystem
                                         .getId()));
             }
             else {
@@ -1121,7 +1111,7 @@ public class XIVSmisStorageDevice extends DefaultBlockStorageDevice {
             if (cgPathInstance == null) {
                 throw DeviceControllerException.exceptions
                         .consistencyGroupNotFound(consistencyGroup.getLabel(),
-                                consistencyGroup.fetchArrayCgName(storageSystem
+                                consistencyGroup.getCgNameOnStorageSystem(storageSystem
                                         .getId()));
             }
 

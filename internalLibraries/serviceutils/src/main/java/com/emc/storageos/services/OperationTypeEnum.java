@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2012-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.services;
@@ -56,6 +46,7 @@ public enum OperationTypeEnum {
     ASSIGN_VOLUME_TAG("ASSIGN VOLUME TAG", "", "operation to tag a volume"),
     DELETE_VOLUME_SNAPSHOT("VolumeSnapshotDeleted", "VolumeSnapshotDeleteFailed", "VolumeSnapshot Delete"),
     RESTORE_VOLUME_SNAPSHOT("VolumeSnapshotRestored", "VolumeSnapshotRestoreFailed", "VolumeSnapshot Restore"),
+    RESYNCHRONIZE_VOLUME_SNAPSHOT("VolumeSnapshotResynchronized", "VolumeSnapshotResynchronizeFailed", "VolumeSnapshot Resynchronize"),
     ACTIVATE_VOLUME_SNAPSHOT("VolumeSnapshotActivated", "VolumeSnapshotActivateFailed", "VolumeSnapshot Activate"),
     DEACTIVATE_VOLUME_SNAPSHOT("VolumeSnapshotDeactivated", "VolumeSnapshotDeactivateFailed", "VolumeSnapshot Deactivate"),
     CHANGE_VOLUME_VPOOL("VolumeVPoolChanged", "VolumeVPoolChangeFailed", "Volume VirtualPool Change"),

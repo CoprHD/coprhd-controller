@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -60,13 +50,12 @@ import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
-import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Migration;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -75,6 +64,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -101,6 +91,7 @@ import com.emc.storageos.model.project.ProjectParam;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.systems.StorageSystemConnectivityRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
+import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -207,7 +198,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             Iterator<VPlexRecommendation> recommendationsIter = nhRecomendationsMap.get(nhId).iterator();
             while (recommendationsIter.hasNext()) {
                 VPlexRecommendation recommendation = recommendationsIter.next();
-                URI storagePoolURI = recommendation.getSourcePool();
+                URI storagePoolURI = recommendation.getSourceStoragePool();
                 VirtualPool volumeCos = recommendation.getVirtualPool();
                 s_logger.info("Volume Cos is {}", volumeCos.getId().toString());
                 vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME, volumeCos.getAutoTierPolicyName());
@@ -354,8 +345,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                     .iterator();
             while (recommendationsIter.hasNext()) {
                 VPlexRecommendation recommendation = recommendationsIter.next();
-                URI storageDeviceURI = recommendation.getSourceDevice();
-                URI storagePoolURI = recommendation.getSourcePool();
+                URI storageDeviceURI = recommendation.getSourceStorageSystem();
+                URI storagePoolURI = recommendation.getSourceStoragePool();
                 VirtualPool vpool = recommendation.getVirtualPool();
                 s_logger.info("Virtual Pool is {}", vpool.getId().toString());
                 vPoolCapabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME,
@@ -854,9 +845,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VirtualArray haVirtualArray = _dbClient.queryObject(VirtualArray.class,
                     vplexRecommendation.getVirtualArray());
             createVolume = prepareVolumeForRequest(getVolumeCapacity(importVolume),
-                    vplexProject, haVirtualArray, vpool, vplexRecommendation.getSourceDevice(),
-                    vplexRecommendation.getSourcePool(), importVolume.getLabel() + "-1",
-                    ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME, taskId, _dbClient);
+                vplexProject, haVirtualArray, vpool, vplexRecommendation.getSourceStorageSystem(),
+                vplexRecommendation.getSourceStoragePool(), importVolume.getLabel() + "-1", 
+                ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME, taskId, _dbClient);
             createVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
             _dbClient.persistObject(createVolume);
             VolumeDescriptor desc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
@@ -980,9 +971,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             // Prepare the created volume.
             VirtualArray haVirtualArray = _dbClient.queryObject(VirtualArray.class,
                     vplexRecommendation.getVirtualArray());
-            createVolume = prepareVolumeForRequest(getVolumeCapacity(existingVolume), vplexProject,
-                    haVirtualArray, vpool, vplexRecommendation.getSourceDevice(),
-                    vplexRecommendation.getSourcePool(), vplexVolume.getLabel() + "-1",
+            createVolume = prepareVolumeForRequest(getVolumeCapacity(existingVolume), vplexProject, 
+                    haVirtualArray, vpool, vplexRecommendation.getSourceStorageSystem(),
+                    vplexRecommendation.getSourceStoragePool(), vplexVolume.getLabel() + "-1", 
                     ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME, taskId, _dbClient);
             createVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
             _dbClient.persistObject(createVolume);
@@ -1541,8 +1532,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         // Create a volume for the new backend volume to which
         // data will be migrated.
-        URI targetStorageSystem = recommendations.get(0).getSourceDevice();
-        URI targetStoragePool = recommendations.get(0).getSourcePool();
+        URI targetStorageSystem = recommendations.get(0).getSourceStorageSystem();
+        URI targetStoragePool = recommendations.get(0).getSourceStoragePool();        
         Volume targetVolume = prepareVolumeForRequest(capacity,
                 targetProject, varray, vpool, targetStorageSystem, targetStoragePool,
                 targetLabel, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME,
@@ -1685,9 +1676,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         int recIndex = (premadeRecs && isHA) ? 1 : 0;
 
         // Create a volume for the new backend volume to which
-        // data will be migrated.
-        URI targetStorageSystem = recommendations.get(recIndex).getSourceDevice();
-        URI targetStoragePool = recommendations.get(recIndex).getSourcePool();
+        // data will be migrated.               
+        URI targetStorageSystem = recommendations.get(recIndex).getSourceStorageSystem();
+        URI targetStoragePool = recommendations.get(recIndex).getSourceStoragePool();        
         Volume targetVolume = prepareVolumeForRequest(capacity,
                 targetProject, varray, vpool, targetStorageSystem, targetStoragePool,
                 targetLabel, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME,
@@ -2457,22 +2448,21 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         vplexStorageSystemURI, createdMirror.getId(), null, capabilities);
                 descriptors.add(descriptor);
 
-                // Create backend volume object and add it to the VplexMirror created above.
-                Volume volume = prepareVolume(createdMirror, backendVolume, mirrorVpool, varray, vplexRecommendation.getSourceDevice(),
-                        vplexRecommendation.getSourcePool(), mirrorLabelBuilder.toString(), thinVolumePreAllocationSize, capabilities,
-                        _dbClient);
-                op = new Operation();
-                op.setResourceType(ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
-                _dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId, op);
-                URI volumeId = volume.getId();
-                allVolumes.add(volumeId);
-                s_logger.info("Prepared volume {}", volumeId);
+        		// Create backend volume object and add it to the VplexMirror created above.
+        		Volume volume = prepareVolume(createdMirror, backendVolume, mirrorVpool, varray, vplexRecommendation.getSourceStorageSystem(), 
+        				vplexRecommendation.getSourceStoragePool(), mirrorLabelBuilder.toString(), thinVolumePreAllocationSize, capabilities, _dbClient);
+        		op = new Operation();
+        		op.setResourceType(ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
+        		_dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId, op);
+        		URI volumeId = volume.getId();
+        		allVolumes.add(volumeId);
+        		s_logger.info("Prepared volume {}", volumeId);
 
-                // Add descriptor for the backend volume
-                descriptor = new VolumeDescriptor(
-                        VolumeDescriptor.Type.BLOCK_DATA,
-                        vplexRecommendation.getSourceDevice(), volumeId, vplexRecommendation.getSourcePool(), capabilities);
-                descriptors.add(descriptor);
+        		// Add descriptor for the backend volume
+        		descriptor = new VolumeDescriptor(
+        				VolumeDescriptor.Type.BLOCK_DATA, 
+        				vplexRecommendation.getSourceStorageSystem(), volumeId, vplexRecommendation.getSourceStoragePool(), capabilities);
+        		descriptors.add(descriptor);
 
             }
         }
@@ -2889,14 +2879,16 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param snapshotType The snapshot technology type.
      * @param createInactive true if the snapshots should be created but not
      *            activated, false otherwise.
+     * @param readOnly true if the snapshot should be read only, false otherwise
      * @param taskId The unique task identifier.
      */
+    @Override
     public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
-            String snapshotType, Boolean createInactive, String taskId) {
+            String snapshotType, Boolean createInactive, Boolean readOnly, String taskId) {
 
         Volume snapshotSourceVolume = getVPLEXSnapshotSourceVolume(reqVolume);
         super.createSnapshot(snapshotSourceVolume, snapshotURIs, snapshotType,
-                createInactive, taskId);
+                createInactive, readOnly, taskId);
     }
 
     /**
@@ -2966,6 +2958,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param snapshot The snapshot to restore.
      * @param parent The parent of the snapshot
      */
+    @Override
     public void validateRestoreSnapshot(BlockSnapshot snapshot, Volume parentVolume) {
         if (!snapshot.getIsSyncActive()) {
             throw APIException.badRequests.snapshotNotActivated(snapshot.getLabel());
@@ -3010,6 +3003,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * @param volume Volume to check for mirrors against
      * @return List of active VplexMirror URI's
      */
+    @Override
     protected List<URI> getActiveMirrorsForVolume(Volume volume) {
         List<URI> activeMirrorURIs = new ArrayList<>();
         if (hasMirrors(volume)) {
@@ -3041,21 +3035,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId) {
-
-        // Get the VLPEX volume for this backend volume.
-        URI parentVolumeURI = parentVolume.getId();
-        URIQueryResultList queryResults = new URIQueryResultList();
-        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getVolumeByAssociatedVolumesConstraint(parentVolumeURI.toString()),
-                queryResults);
-        URI vplexVolumeURI = queryResults.iterator().next();
-        Volume vplexVolume = _dbClient.queryObject(Volume.class, vplexVolumeURI);
-
-        // Get the VPLEX controller and restore the backend snapshot.
-        URI vplexSystemURI = vplexVolume.getStorageController();
-        StorageSystem vplexSystem = _dbClient.queryObject(StorageSystem.class, vplexSystemURI);
-        VPlexController controller = getController(VPlexController.class, vplexSystem.getSystemType());
-        controller.restoreVolume(vplexSystemURI, snapshot.getId(), taskId);
+        s_logger.info(String.format("Request to restore VPlex volume %s from snapshot %s.", 
+                parentVolume.getId().toString(), snapshot.getId().toString()));
+        super.restoreSnapshot(snapshot, parentVolume, taskId);
     }
 
     /**
@@ -3112,6 +3094,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * {@inheritDoc}
      */
+    @Override
     public int getMaxVolumesForConsistencyGroup(BlockConsistencyGroup consistencyGroup) {
         return MAX_VOLUMES_IN_CG;
     }
@@ -3119,6 +3102,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     /**
      * {@inheritDoc}
      */
+    @Override
     public void validateConsistencyGroupName(BlockConsistencyGroup consistencyGroup) {
         // VPLEX CG names cannot start with a number only "_" or a letter.
         // Note that when a CG is created in ViPR there are already restrictions

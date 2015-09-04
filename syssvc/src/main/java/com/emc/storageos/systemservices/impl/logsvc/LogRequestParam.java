@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.logsvc;
 
@@ -24,6 +14,7 @@ public class LogRequestParam {
 
     public static final String ID = "id";
     public static final String NODE_ID = "node_id";
+    public static final String NODE_NAME = "node_name";
     public static final String LOG_NAME = "log_name";
     public static final String SEVERITY = "severity";
     public static final String START_TIME = "start";

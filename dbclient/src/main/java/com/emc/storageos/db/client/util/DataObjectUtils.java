@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.util;
@@ -141,7 +141,7 @@ public class DataObjectUtils {
     }
 
     /**
-     * Finds an DataObject in a collection by matching its property to a value. This method
+     * Finds a DataObject in a collection by matching its property to a value. This method
      * assumes only one object in the collection can be matched.
      * 
      * @param col the collection

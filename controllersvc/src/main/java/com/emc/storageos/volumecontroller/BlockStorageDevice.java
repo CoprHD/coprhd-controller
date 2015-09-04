@@ -1,12 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2008-2012 EMC Corporation All Rights Reserved This software contains the
- * intellectual property of EMC Corporation or is licensed to EMC Corporation from third parties.
- * Use of this software and the intellectual property contained therein is expressly limited to the
- * terms and conditions of the License Agreement under which it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller;
 
@@ -307,12 +301,13 @@ public interface BlockStorageDevice {
     /**
      * @param storage
      * @param snapshotList
+     * @param createInactive
+     * @param readOnly
      * @param taskCompleter
      * @throws DeviceControllerException
      */
     public void doCreateSnapshot(StorageSystem storage, List<URI> snapshotList,
-            Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException;
-
+            Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException;
     /**
      * Activate a snapshot. Activation means that the source and target synchronization will be
      * established.
@@ -337,6 +332,17 @@ public interface BlockStorageDevice {
     public void doRestoreFromSnapshot(StorageSystem storage, URI volume, URI snapshot,
             TaskCompleter taskCompleter) throws DeviceControllerException;
 
+    /**
+     * Resynchronize snapsht
+     * @param storage Storage system the snapshot created on
+     * @param volume The URI of the snapshot's parent volume
+     * @param snapshot The URI of the snapshot to be resynchronized
+     * @param taskCompleter The task completer
+     * @throws DeviceControllerException
+     */
+    public void doResyncSnapshot(StorageSystem storage, URI volume, URI snapshot,
+            TaskCompleter taskCompleter) throws DeviceControllerException;
+    
     /**
      * Create a mirror for a volume
      * 

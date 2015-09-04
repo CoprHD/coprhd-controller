@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.block;
@@ -45,6 +35,7 @@ import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockMirror.SynchronizationState;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DecommissionedResource;
@@ -81,6 +72,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
@@ -104,6 +96,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshot
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotDeleteCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotResyncCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockWaitForSynchronizedCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CleanupMetaVolumeMembersCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneActivateCompleter;
@@ -170,6 +163,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     public static final String BLOCK_VOLUME_EXPAND_GROUP = "BlockDeviceExpandVolume";
 
+    public static final String RESTORE_VOLUME_STEP = "restoreVolume";
+    private static final String RESTORE_VOLUME_METHOD_NAME = "restoreVolume";
+    
     public void setDbClient(DbClient dbc) {
         _dbClient = dbc;
     }
@@ -1677,12 +1673,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     @Override
-    public void createSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, String opId) throws ControllerException {
+    public void createSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId)
+            throws ControllerException {
         TaskCompleter completer = null;
         try {
             StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
             completer = new BlockSnapshotCreateCompleter(snapshotList, opId);
-            getDevice(storageObj.getSystemType()).doCreateSnapshot(storageObj, snapshotList, createInactive, completer);
+            getDevice(storageObj.getSystemType()).doCreateSnapshot(storageObj, snapshotList, createInactive, readOnly, completer);
         } catch (Exception e) {
             if (completer != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
@@ -1729,8 +1726,44 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
-    private static final String BLOCK_VOLUME_RESTORE_GROUP = "BlockDeviceRestoreVolume";
-    private static final String POST_BLOCK_VOLUME_RESTORE_GROUP = "PostBlockDeviceRestoreVolume";
+    @Override
+    public String addStepsForRestoreVolume(Workflow workflow, String waitFor,
+            URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String taskId,
+            BlockSnapshotRestoreCompleter completer) throws ControllerException {
+        
+        BlockSnapshot snap = _dbClient.queryObject(BlockSnapshot.class, snapshot);
+        
+        URI parentVolumeURI = snap.getParent().getURI();
+        Volume parentVolume = _dbClient.queryObject(Volume.class, parentVolumeURI);
+        Volume associatedVPlexVolume = 
+                Volume.fetchVplexVolume(_dbClient, parentVolume);
+        
+        // Do nothing if this is not a native snapshot
+        // Do not add block restore steps if this is a snapshot of a VPlex volume.  The
+        // VPlex controller will add the required block restore steps.
+        if (NullColumnValueGetter.isNotNullValue(snap.getTechnologyType()) &&
+                !snap.getTechnologyType().equals(TechnologyType.NATIVE.toString()) ||
+                associatedVPlexVolume != null) {
+            return waitFor;
+        } 
+        
+        Workflow.Method restoreVolumeMethod = new Workflow.Method(
+                RESTORE_VOLUME_METHOD_NAME, storage, pool,
+                volume, snapshot, Boolean.TRUE);
+        workflow.createStep(RESTORE_VOLUME_STEP, String.format(
+                "Restore volume %s from snapshot %s",
+                volume, snapshot), waitFor,
+                storage, getDeviceType(storage),
+                BlockDeviceController.class, restoreVolumeMethod, null, null);
+        _log.info(
+                "Created workflow step to restore block volume {} from snapshot {}",
+                volume, snapshot);
+            
+        return RESTORE_VOLUME_STEP;
+    }
+    
+    private static final String BLOCK_VOLUME_RESTORE_GROUP = "BlockDeviceRestoreVolumeGroup";
+    private static final String POST_BLOCK_VOLUME_RESTORE_GROUP = "PostBlockDeviceRestoreVolumeGroup";
 
     @Override
     public void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String opId)
@@ -1794,12 +1827,13 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     }
 
     private boolean isNonSplitSRDFTargetVolume(Volume volume) {
-        _log.info("volume.getPersonality() : {} volume.getLinkStatus() : {} ", volume.getPersonality(), volume.getLinkStatus());
-        return (volume != null && Volume.PersonalityTypes.TARGET.toString().equalsIgnoreCase(volume.getPersonality())
-        && !(Volume.LinkStatus.FAILED_OVER.name().equalsIgnoreCase(volume.getLinkStatus())
-                || Volume.LinkStatus.SUSPENDED.name().equalsIgnoreCase(volume.getLinkStatus())
-                || Volume.LinkStatus.SPLIT.name().equalsIgnoreCase(volume.getLinkStatus())));
-    }
+    	_log.info("volume.getPersonality() : {} volume.getLinkStatus() : {} ",volume.getPersonality(),volume.getLinkStatus());
+		return (volume != null && !NullColumnValueGetter.isNullNamedURI(volume.getSrdfParent()) && 
+		        Volume.PersonalityTypes.TARGET.toString().equalsIgnoreCase(volume.getPersonality())
+				&& !(Volume.LinkStatus.FAILED_OVER.name().equalsIgnoreCase(volume.getLinkStatus())
+				|| Volume.LinkStatus.SUSPENDED.name().equalsIgnoreCase(volume.getLinkStatus())
+				|| Volume.LinkStatus.SPLIT.name().equalsIgnoreCase(volume.getLinkStatus())));
+	}
 
     /**
      * Return a Workflow.Method for restoreVolume
@@ -1816,8 +1850,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         return new Workflow.Method("restoreVolumeStep", storage, pool, volume, snapshot, updateOpStatus);
     }
 
-    public boolean restoreVolumeStep(URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String opId)
-            throws ControllerException {
+    public boolean restoreVolumeStep(URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus,
+            String opId) throws ControllerException {
         TaskCompleter completer = null;
         try {
             StorageSystem storageDevice = _dbClient.queryObject(StorageSystem.class, storage);
@@ -3201,7 +3235,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         if (clone != null) {
             URI systemURI = clone.getStorageController();
             StorageSystem storage = dbClient.queryObject(StorageSystem.class, systemURI);
-            if (storage.deviceIsType(Type.ibmxiv) || storage.deviceIsType(Type.scaleio)) {
+            if (storage.deviceIsType(Type.ibmxiv)) {
                 return isCG;
             }
             URI source = clone.getAssociatedSourceVolume();
@@ -3514,6 +3548,25 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
     public void setSrdfDeviceController(SRDFDeviceController srdfDeviceController) {
         this.srdfDeviceController = srdfDeviceController;
+    }
+
+    @Override
+    public void resyncSnapshot(URI storage, URI volume, URI snapshot, Boolean updateOpStatus, String opId)
+            throws ControllerException {
+        TaskCompleter completer = null;
+        try {
+            StorageSystem storageDevice = _dbClient.queryObject(StorageSystem.class, storage);
+            BlockSnapshot snapObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
+            completer = new BlockSnapshotResyncCompleter(snapObj, opId, updateOpStatus);
+            getDevice(storageDevice.getSystemType()).doResyncSnapshot(storageDevice, volume, snapshot, completer);
+        } catch (Exception e) {
+            _log.error(String.format("resync snapshot failed - storage: %s, volume: %s, snapshot: %s",
+                    storage.toString(), volume.toString(), snapshot.toString()));
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            completer.error(_dbClient, serviceError);
+            doFailTask(BlockSnapshot.class, snapshot, opId, serviceError);
+            WorkflowStepCompleter.stepFailed(opId, serviceError);
+        }
     }
 
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.cinder;
 
@@ -41,8 +31,10 @@ public interface CinderConstants {
 
     public final static String CINDER_PORT_GROUP = "Cinder-PortGroup";
 
-    public final static long BYTES_TO_GB = 1024 * 1024 * 1024;
-
+    public final static String PREFIX_ITL = "ITL-";
+    
+    public final static long BYTES_TO_GB = 1024*1024*1024;
+    
     /**
      * URIs for volume types
      */

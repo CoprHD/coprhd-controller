@@ -15,7 +15,7 @@ _get_dbvar_props() {
         echo "network_${i}_ipaddr_service=${!var}"
     done
 
-    _get_props vdc_myid node_name node_index network_vip_service
+    _get_props vdc_myid node_id node_index network_vip_service
 }
 
 _get_db_jmx_props() {

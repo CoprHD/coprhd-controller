@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis;
 
@@ -21,12 +11,12 @@ import javax.cim.CIMArgument;
 import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.cim.CIMProperty;
-import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.volumecontroller.SnapshotOperations;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -36,6 +26,7 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
+import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
@@ -75,10 +66,14 @@ public abstract class AbstractSnapshotOperations implements SnapshotOperations {
      * @param storage [required] - StorageSystem object representing the array
      * @param snapshot [required] - BlockSnapshot URI representing the previously created
      *            snap for the volume
+     * @param createInactive - Indicates if the snapshots should be created but not
+     *            activated
+     * @param readOnly - Indicates if the snapshot should be read only.
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      */
     @Override
-    public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot, Boolean createInactive, TaskCompleter taskCompleter)
+    public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot, Boolean createInactive, Boolean readOnly,
+            TaskCompleter taskCompleter)
             throws DeviceControllerException {
         try {
             BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
@@ -234,4 +229,13 @@ public abstract class AbstractSnapshotOperations implements SnapshotOperations {
         // functionality
     }
 
+    @Override
+    public void resyncSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void resyncGroupSnapshots(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.coordinator.client.service.impl;
 
@@ -48,9 +38,9 @@ public class CoordinatorClientInetAddressMap {
 
     private static final String POOL_NAME = "CoordinatorClientInetAddressMap";
 
-    // This is the node name where the coordinator client is running
+    // This is the node id where the coordinator client is running
     // Coordinator client has reference to this map
-    private String nodeName;
+    private String nodeId;
 
     /**
      * This holds the ipv4 and ipv6 addresses of this node. Connectable version is chosen while
@@ -95,19 +85,19 @@ public class CoordinatorClientInetAddressMap {
      * 
      * @return
      */
-    public String getNodeName() {
-        return nodeName;
+    public String getNodeId() {
+        return nodeId;
     }
 
     /**
-     * Setter - set the node name of the client.
+     * Setter - set the node id of the client.
      * 
      * @param node
      *            the name to be set to
      */
-    public void setNodeName(String node) {
-        _logger.debug("Setting local node name: " + node);
-        this.nodeName = node;
+    public void setNodeId(String node) {
+        _logger.debug("Setting local node id: " + node);
+        this.nodeId = node;
     }
 
     public DualInetAddress getDualInetAddress() {
@@ -214,7 +204,7 @@ public class CoordinatorClientInetAddressMap {
         DualInetAddress client = getDualInetAddress();
         _logger.debug("local address: " + client);
         DualInetAddress address = null;
-        if (nodeId.compareToIgnoreCase(getNodeName()) == 0) {
+        if (nodeId.compareToIgnoreCase(getNodeId()) == 0) {
             address = getDualInetAddress();
         } else {
             address = getControllerNodeIPLookupMap().get(nodeId);
@@ -249,7 +239,7 @@ public class CoordinatorClientInetAddressMap {
      * @return true if controller node map has it
      */
     public boolean isControllerNode() {
-        return (controllerNodeIPLookupMap.get(getNodeName()) != null);
+        return (controllerNodeIPLookupMap.get(getNodeId()) != null);
     }
 
     /**

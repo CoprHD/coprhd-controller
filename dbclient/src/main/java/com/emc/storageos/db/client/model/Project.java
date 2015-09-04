@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.model;
@@ -27,6 +17,7 @@ public class Project extends DataObjectWithACLs {
     private String _owner;
     private Long _quotaGB;
     private Boolean _quotaEnabled;
+    private StringSet assignedVNasServers;
 
     @NamedRelationIndex(cf = "NamedRelation", type = TenantOrg.class)
     @Name("tenantOrg")
@@ -67,6 +58,25 @@ public class Project extends DataObjectWithACLs {
     public void setQuotaEnabled(Boolean enable) {
         _quotaEnabled = enable;
         setChanged("quotaEnabled");
+    }
+
+    /**
+     * @return the assignedVNasServers
+     */
+    @Name("assigned_vnas_servers")
+    public StringSet getAssignedVNasServers() {
+        if (assignedVNasServers == null) {
+            assignedVNasServers = new StringSet();
+        }
+        return assignedVNasServers;
+    }
+
+    /**
+     * @param assignedVNasServers the assignedVNasServers to set
+     */
+    public void setAssignedVNasServers(StringSet assignedVNasServers) {
+        this.assignedVNasServers = assignedVNasServers;
+        setChanged("assigned_vnas_servers");
     }
 
 }

@@ -1,18 +1,10 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.xtremio.restapi.model.response;
+
+import java.util.List;
 
 import org.codehaus.jackson.annotate.JsonProperty;
 
@@ -38,6 +30,10 @@ public class XtremIOPort {
     @SerializedName("port-state")
     @JsonProperty(value = "port-state")
     private String operationalStatus;
+
+    @SerializedName("node-id")
+    @JsonProperty(value = "node-id")
+    private List<String> nodeInfo;
 
     public String getName() {
         return name;
@@ -79,4 +75,11 @@ public class XtremIOPort {
         this.operationalStatus = operationalStatus;
     }
 
+    public List<String> getNodeInfo() {
+        return nodeInfo;
+    }
+
+    public void setNodeInfo(List<String> nodeInfo) {
+        this.nodeInfo = nodeInfo;
+    }
 }

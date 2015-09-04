@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.cinder.api;
@@ -428,8 +418,7 @@ public class CinderApi {
      * @throws Exception the exception
      */
     public VolumeAttachResponse attachVolume(String volumeId, String initiator,
-            String[] wwpns, String host) throws Exception
-    {
+            String[] wwpns, String[] wwnns, String host) throws Exception {
         _log.info("CinderApi - start attachVolume");
 
         Gson gson = new Gson();
@@ -437,9 +426,18 @@ public class CinderApi {
         VolumeAttachRequest volumeAttach = new VolumeAttachRequest();
         if (initiator != null) {
             volumeAttach.initializeConnection.connector.initiator = initiator;
-        } else if (wwpns != null) {
-            volumeAttach.initializeConnection.connector.wwpns = Arrays.copyOf(wwpns, wwpns.length);
         }
+        else {
+            if (wwpns != null) {
+                volumeAttach.initializeConnection.connector.wwpns = Arrays.copyOf(wwpns, wwpns.length);
+            }
+
+            if (null != wwnns) {
+                volumeAttach.initializeConnection.connector.wwnns = Arrays.copyOf(wwnns, wwnns.length);
+            }
+
+        }
+
         volumeAttach.initializeConnection.connector.host = host;
 
         String volumeAttachmentUri = endPoint.getBaseUri()
@@ -518,18 +516,30 @@ public class CinderApi {
      * @throws Exception
      */
     public void detachVolume(String volumeId, String initiator, String[] wwpns,
+    		String[] wwnns,
             String host) throws Exception
     {
         _log.info("CinderApi - start detachVolume");
         Gson gson = new Gson();
 
         VolumeDetachRequest volumeDetach = new VolumeDetachRequest();
-        if (initiator != null) {
+        if (initiator != null)
+        {
             volumeDetach.terminateConnection.connector.initiator = initiator;
-        } else if (wwpns != null) {
-            volumeDetach.terminateConnection.connector.wwpns =
-                    Arrays.copyOf(wwpns, wwpns.length);
         }
+        else 
+        {
+        	if (wwpns != null)
+        	{
+        		volumeDetach.terminateConnection.connector.wwpns = Arrays.copyOf(wwpns, wwpns.length);
+        	}
+        	
+        	if(null != wwnns)
+        	{
+        		volumeDetach.terminateConnection.connector.wwnns = Arrays.copyOf(wwnns, wwnns.length);
+        	}
+            
+        } 
         volumeDetach.terminateConnection.connector.host = host;
 
         String volumeDetachmentUri = endPoint.getBaseUri()

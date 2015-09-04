@@ -77,26 +77,13 @@ play {
     logFile = "logs/portalsvc.log"
     compileArgs = "-DINSTALL_HOME=${project.buildDir.absolutePath}"
     testArgs = "-DINSTALL_HOME=${project.buildDir.absolutePath}"
-    
    
-    // pattern for play framework zip
-
-    // see if OSS mode build requested otherwise default to EMC mode
-    //
-    if (project.hasProperty("buildType") && project.getProperty("buildType") == "oss") {
 	// version of play framework
-        version = "1.3.0"
+    version = "1.3.1"
 
-        // play deadbolt 1.5.3 is available from GoogleCode
-        // vipr-portal/portal/conf/dependencies.yml specifies dependency on  version 1.5.3
-        mavenRepo = "https://maven-play-plugin.googlecode.com/svn/mavenrepo/releases/com/google/code/maven-play-plugin/org/playframework/modules"
-
-    } else { 
-	// version of play framework
-        version = "1.2.7.9-vipr"
-
-        mavenRepo = artifactoryUrl
-    }
+    // play deadbolt 1.5.3 is available from GoogleCode
+    // vipr-portal/portal/conf/dependencies.yml specifies dependency on  version 1.5.3
+    mavenRepo = "https://maven-play-plugin.googlecode.com/svn/mavenrepo/releases/com/google/code/maven-play-plugin/org/playframework/modules"
 
     contributedModulesDescriptor = "${mavenRepo}/deadbolt/[module]/[revision]/dependencies.yml"
     contributedModulesArtifact = "${mavenRepo}/deadbolt/[module]/[revision]/[module]-[revision]-module.zip" 

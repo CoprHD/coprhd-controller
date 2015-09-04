@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.vnxe;
@@ -37,11 +27,11 @@ import com.emc.storageos.vnxe.VNXeException;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeLunGroupSnap;
 import com.emc.storageos.vnxe.models.VNXeLunSnap;
+import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
-import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeBlockCreateCGSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeBlockDeleteSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.vnxe.job.VNXeBlockRestoreSnapshotJob;
@@ -59,7 +49,7 @@ public class VNXeSnapshotOperation extends VNXeOperations implements SnapshotOpe
 
     @Override
     public void createGroupSnapshots(StorageSystem storage,
-            List<URI> snapshotList, Boolean createInactive,
+            List<URI> snapshotList, Boolean createInactive, Boolean readOnly,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
             URI snapshot = snapshotList.get(0);
@@ -249,7 +239,7 @@ public class VNXeSnapshotOperation extends VNXeOperations implements SnapshotOpe
 
     @Override
     public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot,
-            Boolean createInactive, TaskCompleter taskCompleter)
+            Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
             throws DeviceControllerException {
 
         try {
@@ -285,20 +275,21 @@ public class VNXeSnapshotOperation extends VNXeOperations implements SnapshotOpe
     @Override
     public void copySnapshotToTarget(StorageSystem storage, URI snapshot,
             TaskCompleter taskCompleter) throws DeviceControllerException {
-
+        throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
     @Override
     public void copyGroupSnapshotsToTarget(StorageSystem storage,
             List<URI> snapshotList, TaskCompleter taskCompleter)
             throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.operationNotSupported();
 
     }
 
     @Override
     public void terminateAnyRestoreSessions(StorageSystem storage, BlockObject from, URI volume,
             TaskCompleter taskCompleter) throws Exception {
-        throw new UnsupportedOperationException("Not supported");
+        throw DeviceControllerException.exceptions.operationNotSupported();
     }
 
     public String getConsistencyGroupName(BlockObject bo) {
@@ -314,10 +305,24 @@ public class VNXeSnapshotOperation extends VNXeOperations implements SnapshotOpe
         String groupName = null;
 
         if (group != null && bo != null) {
-            groupName = group.fetchArrayCgName(bo.getStorageController());
+            groupName = group.getCgNameOnStorageSystem(bo.getStorageController());
         }
 
         return groupName;
+    }
+
+    @Override
+    public void resyncSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+        
+    }
+
+    @Override
+    public void resyncGroupSnapshots(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.operationNotSupported();
+        
     }
 
 }

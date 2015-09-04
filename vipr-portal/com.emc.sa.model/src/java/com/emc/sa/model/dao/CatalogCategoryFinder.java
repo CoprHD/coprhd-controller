@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.model.dao;
@@ -47,7 +47,7 @@ public class CatalogCategoryFinder extends TenantModelFinder<CatalogCategory> {
         List<NamedElement> catalogCategoryIds = client.findBy(CatalogCategory.class, CatalogCategory.CATALOG_CATEGORY_ID,
                 URI.create(CatalogCategory.NO_PARENT));
         List<CatalogCategory> tenantRootCategories = TenantUtils.filter(findByIds(toURIs(catalogCategoryIds)), tenant);
-        if (tenantRootCategories != null && tenantRootCategories.size() > 0) {
+        if (tenantRootCategories != null && !tenantRootCategories.isEmpty()) {
             root = tenantRootCategories.get(0);
         }
         return root;

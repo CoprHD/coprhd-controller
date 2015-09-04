@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl;
 
@@ -799,5 +789,32 @@ public class ControllerUtils {
             }
         }
         return snapshots;
+    }
+    
+    /**
+     * Given a list of BlockSnapshot objects, determine if they were created as part of a
+     * consistency group.
+     *
+     * @param snapshotList
+     *            [required] - List of BlockSnapshot objects
+     * @return true if the BlockSnapshots were created as part of volume consistency group.
+     * */
+    public static boolean inReplicationGroup(final List<BlockSnapshot> snapshotList, DbClient dbClient) {
+        boolean isCgCreate = false;
+        if (snapshotList.size() == 1) {
+            // snapshots will only have a single block consistency group
+            BlockSnapshot snapshot = snapshotList.get(0);
+            if (!NullColumnValueGetter.isNullURI(snapshot.getConsistencyGroup())) {
+                final URI cgId = snapshot.getConsistencyGroup();
+                if (cgId != null) {
+                    final BlockConsistencyGroup group = dbClient.queryObject(
+                            BlockConsistencyGroup.class, cgId);
+                    isCgCreate = group != null;
+                }
+            }
+        } else if (snapshotList.size() > 1) {
+            isCgCreate = true;
+        }
+        return isCgCreate;
     }
 }

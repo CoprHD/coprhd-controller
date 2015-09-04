@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.smis;
@@ -7,19 +7,14 @@ package com.emc.storageos.volumecontroller.impl.smis;
 import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefresh;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
-import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.NamedURI;
-import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Volume.LinkStatus;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.plugins.common.Constants;
@@ -497,15 +492,20 @@ public class SRDFOperations implements SmisConstants {
         RemoteDirectorGroup group = dbClient.queryObject(RemoteDirectorGroup.class, remoteDirectorGroupURI);
         List<CIMObjectPath> syncPairs = newArrayList();
         List<Volume> sources = dbClient.queryObject(Volume.class, sourceURIs);
+        List<Volume> targets = new ArrayList<>();
 
         for (Volume source : sources) {
             for (String targetStr : source.getSrdfTargets()) {
                 URI targetURI = URI.create(targetStr);
                 Volume target = dbClient.queryObject(Volume.class, targetURI);
+                targets.add(target);
                 CIMObjectPath syncPair = utils.getStorageSynchronizedObject(system, source, target, null);
                 syncPairs.add(syncPair);
             }
         }
+
+        // Update targets with the existing target SRDF CG
+        findOrCreateTargetBlockConsistencyGroup(targets);
 
         CIMObjectPath groupSynchronized = getGroupSyncObject(system, sources.get(0),
                 group.getSourceReplicationGroupName(), group.getTargetReplicationGroupName());
@@ -841,6 +841,10 @@ public class SRDFOperations implements SmisConstants {
             final DbClient dbClient)
             throws Exception {
         URI cgUri = volumes.get(0).getConsistencyGroup();
+        if (cgUri == null) {
+            findOrCreateTargetBlockConsistencyGroup(volumes);
+            cgUri = volumes.get(0).getConsistencyGroup();
+        }
         BlockConsistencyGroup cgObj = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
 
         String cgName = cgObj.getAlternateLabel();
@@ -1668,11 +1672,11 @@ public class SRDFOperations implements SmisConstants {
             StorageSystem targetSystem, Volume target) throws WBEMException {
         List<URI> srcVolumeUris = dbClient.queryByConstraint(getVolumesByConsistencyGroup(source.getConsistencyGroup()));
         List<Volume> cgSrcVolumes = dbClient.queryObject(Volume.class, srcVolumeUris);
-        Collection<String> srcDevIds = transform(cgSrcVolumes, fctnBlockObjectToNativeID());
+        Collection<String> srcDevIds = transform(filter(cgSrcVolumes, hasNativeID()), fctnBlockObjectToNativeID());
 
         List<URI> tgtVolumeUris = dbClient.queryByConstraint(getVolumesByConsistencyGroup(target.getConsistencyGroup()));
         List<Volume> cgTgtVolumes = dbClient.queryObject(Volume.class, tgtVolumeUris);
-        Collection<String> tgtDevIds = transform(cgTgtVolumes, fctnBlockObjectToNativeID());
+        Collection<String> tgtDevIds = transform(filter(cgTgtVolumes, hasNativeID()), fctnBlockObjectToNativeID());
 
         // Get the storagesync instances for remote sync/async mirrors
         List<CIMObjectPath> repPaths = helper.getReplicationRelationships(sourceSystem,
@@ -1701,6 +1705,15 @@ public class SRDFOperations implements SmisConstants {
                         replaceAll(Constants.SMIS80_DELIMITER_REGEX, Constants.PLUS);
 
                 return elSysName.equalsIgnoreCase(systemNativeGuid) && nativeIds.contains(elDevId);
+            }
+        };
+    }
+
+    private Predicate<Volume> hasNativeID() {
+        return new Predicate<Volume>() {
+            @Override
+            public boolean apply(Volume input) {
+                return input.getNativeId() != null;
             }
         };
     }
@@ -1783,5 +1796,77 @@ public class SRDFOperations implements SmisConstants {
             }
         }
         return activeProviderSystem;
+    }
+
+    /**
+     * Given a list of target volumes, find a source volume and its associated BlockConsistencyGroup.
+     *
+     * Using this BlockConsistencyGroup, find or create a group for the targets and apply to it all
+     * targets.
+     *
+     * @param targetVolumes List of target volumes
+     */
+    private void findOrCreateTargetBlockConsistencyGroup(List<? extends BlockObject> targetVolumes) {
+        log.info("Find or create target BlockConsistencyGroup...");
+        final String LABEL_SUFFIX_FOR_46X = "T";
+        // Get a target
+        Volume target = (Volume) targetVolumes.get(0);
+        // Get its SRDF parent
+        Volume source = dbClient.queryObject(Volume.class, target.getSrdfParent().getURI());
+        // Get source system
+        StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, source.getStorageController());
+        // Get the SRDF parents' BlockConsistencyGroup
+        BlockConsistencyGroup sourceGroup = dbClient.queryObject(BlockConsistencyGroup.class,
+                source.getConsistencyGroup());
+        // Get the VirtualArray associated with the target volume
+        VirtualArray virtualArray = dbClient.queryObject(VirtualArray.class, target.getVirtualArray());
+
+        // Get the Project
+        Project project = dbClient.queryObject(Project.class, target.getProject().getURI());
+
+        // Generate the target BlockConsistencyGroup name
+        String CG_NAME_FORMAT = "%s-Target-%s";
+        String cgName = String.format(CG_NAME_FORMAT, sourceGroup.getLabel(), virtualArray.getLabel());
+
+        // Check for existing target group
+        List<BlockConsistencyGroup> groups = CustomQueryUtility
+                .queryActiveResourcesByConstraint(dbClient,
+                        BlockConsistencyGroup.class, PrefixConstraint.Factory
+                                .getFullMatchConstraint(
+                                        BlockConsistencyGroup.class, "label",
+                                        cgName));
+
+        BlockConsistencyGroup newConsistencyGroup = null;
+
+        if (groups.isEmpty()) {
+            log.info("Creating target group: {}", cgName);
+            // create CG
+            newConsistencyGroup = new BlockConsistencyGroup();
+            newConsistencyGroup
+                    .setId(URIUtil.createId(BlockConsistencyGroup.class));
+            newConsistencyGroup.setLabel(cgName);
+            newConsistencyGroup.setProject(new NamedURI(project.getId(), project.getLabel()));
+            newConsistencyGroup.setTenant(new NamedURI(project.getTenantOrg().getURI(),
+                    project.getTenantOrg().getName()));
+            // ModifyReplica on GroupSync for swap operation will try to create CG with same name on target provider.
+            // For 4.6.x, better to use a different name for target CG.
+            StringBuffer label = new StringBuffer(sourceGroup.getLabel());
+            if (!sourceSystem.getUsingSmis80()) {
+                label.append(LABEL_SUFFIX_FOR_46X);
+            }
+            newConsistencyGroup.setAlternateLabel(label.toString());
+
+            // Persist the new BCG
+            dbClient.createObject(newConsistencyGroup);
+        } else {
+            newConsistencyGroup = groups.get(0);
+            log.info("Using existing target group: {}", newConsistencyGroup.getLabel());
+        }
+
+        // Update and persist target volumes with BCG
+        for (BlockObject targetObj : targetVolumes) {
+            targetObj.setConsistencyGroup(newConsistencyGroup.getId());
+        }
+        dbClient.persistObject(targetVolumes);
     }
 }

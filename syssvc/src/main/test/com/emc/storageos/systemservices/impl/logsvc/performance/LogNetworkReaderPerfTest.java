@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.logsvc.performance;
 
@@ -64,9 +54,9 @@ public class LogNetworkReaderPerfTest {
         LogRequest req = new LogRequest.Builder().baseNames(svcs).build();
         final LogNetworkWriter writer = new LogNetworkWriter(req, propertiesLoader);
         try (final PipedOutputStream out = new PipedOutputStream();
-                final BufferedOutputStream outputStream = new BufferedOutputStream(out, bufSize);
-                final PipedInputStream inputStream = new PipedInputStream(out)) {
-            LogNetworkReader reader = new LogNetworkReader("vipr1", inputStream,
+             final BufferedOutputStream outputStream = new BufferedOutputStream(out, bufSize);
+             final PipedInputStream inputStream = new PipedInputStream(out)) {
+            LogNetworkReader reader = new LogNetworkReader("vipr1","vipr1", inputStream,
                     new LogStatusInfo());
 
             long totalSize = 0;

@@ -1,12 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2008-2011 EMC Corporation All Rights Reserved This software contains the
- * intellectual property of EMC Corporation or is licensed to EMC Corporation from third parties.
- * Use of this software and the intellectual property contained therein is expressly limited to the
- * terms and conditions of the License Agreement under which it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.client.model;
 
@@ -856,7 +850,20 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     }
 
     /**
-     * Returns whether or not the passed VirtualPool specifies MetroPoint. This requires
+     * Returns whether or not the passed VirtualPool specifies VPlex high availability.
+     * 
+     * @param virtualPool
+     *            A reference to the VirtualPool.
+     * @return true if the VirtualPool specifies VPlex high availability, false otherwise.
+     */
+    public static boolean vPoolSpecifiesHighAvailabilityDistributed(final VirtualPool virtualPool) {
+        String highAvailability = virtualPool.getHighAvailability();
+        return highAvailability != null
+                && (VirtualPool.HighAvailabilityType.vplex_distributed.name().equals(highAvailability));
+    }
+    
+    /**
+     * Returns whether or not the passed VirtualPool specifies MetroPoint.  This requires
      * the MetroPoint flag to be enabled along with RP protection and VPLex distributed.
      * 
      * @param virtualPool A reference to the VirtualPool

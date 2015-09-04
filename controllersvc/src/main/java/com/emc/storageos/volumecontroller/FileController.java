@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller;
@@ -57,10 +47,11 @@ public interface FileController extends StorageController {
      * @param pool URI of storage pool of FS share.
      * @param uri URI of filesystem share or snapshot to be deleted.
      * @param forceDelete optional boolean that represents to force delete of a file system.
+     * @param deleteType optional String that represents to type of delete(FULL/VIPR_ONLY) of a file system.
      * @param opId Operation status ID to track this operation (in FileShare)
      * @throws InternalException Storage controller exceptions.
      */
-    public void delete(URI storage, URI pool, URI uri, boolean forceDelete, String opId) throws InternalException;
+    public void delete(URI storage, URI pool, URI uri, boolean forceDelete, String deleteType, String opId) throws InternalException;
 
     /**
      * Export a filesystem to one or more remote mount points.

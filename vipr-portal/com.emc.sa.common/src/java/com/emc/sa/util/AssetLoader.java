@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.util;
@@ -13,6 +13,8 @@ import java.net.URI;
 import java.net.URL;
 import java.util.List;
 
+import com.emc.storageos.security.authorization.ACL;
+import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 
@@ -120,7 +122,10 @@ public class AssetLoader {
 
     public Vcenter saveVCenter(String tenant, VCenterDef def) {
         Vcenter vcenter = new Vcenter();
-        vcenter.setTenant(URI.create(tenant));
+        if (StringUtils.isNotBlank(tenant)) {
+            vcenter.addAcl(BasePermissionsHelper.getTenantUsePermissionKey(tenant), ACL.USE.name());
+        }
+
         vcenter.setLabel(def.name);
         vcenter.setIpAddress(def.hostname);
         vcenter.setPortNumber(def.port);

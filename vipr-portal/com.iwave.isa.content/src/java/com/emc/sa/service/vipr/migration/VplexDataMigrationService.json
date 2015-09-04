@@ -1,0 +1,31 @@
+{
+  baseKey:"VplexDataMigration.Migration",
+  serviceId:"VplexDataMigration",
+  roles: [
+    "HOME_TENANT_ADMIN"
+  ],
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },  
+
+    virtualPool:{
+      type:"assetType.vipr.blockVirtualPool"
+    },
+    
+    virtualPoolChangeOperation:{
+      type:"assetType.vipr.vplexMigrationChangeOperation",
+      lockable: true
+    },
+        
+    targetVirtualPool:{
+      type:"assetType.vipr.migrationTargetVirtualPool"
+    },
+    
+    volume:{
+      type:"assetType.vipr.virtualPoolChangeVolumeWithSource",
+      select: "many"
+    }
+  }
+}

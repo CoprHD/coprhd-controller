@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.windows;
@@ -100,7 +100,7 @@ public class WindowsSupport {
     }
 
     public String getAssignedMountPoint(DiskDrive disk, Disk detail) {
-        if ((detail != null) && (detail.getVolumes() != null) && (detail.getVolumes().size() > 0)) {
+        if ((detail != null) && (detail.getVolumes() != null) && (!detail.getVolumes().isEmpty())) {
             return detail.getVolumes().get(0).getMountPoint();
         }
         ExecutionUtils.fail("failTask.WindowsSupport.noMountPoint", String.valueOf(disk.getNumber()), disk.getName(),

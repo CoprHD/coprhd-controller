@@ -1,14 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2013 EMC Corporation All Rights Reserved
- * 
- * This software contains the intellectual property of EMC Corporation or is licensed to EMC
- * Corporation from third parties. Use of this software and the intellectual property contained
- * therein is expressly limited to the terms and conditions of the License Agreement under which it
- * is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -185,15 +177,12 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             final BlockConsistencyGroup consistencyGroup, final int volumeCounter,
             final String volumeLabel) {
         List<URI> volumeURIs = new ArrayList<URI>();
-        BlockConsistencyGroup newConsistencyGroup = null;
-        boolean newCGCreated = false;
-        boolean error = false;
         try {
             // Create an entire Protection object for each recommendation result.
             Iterator<Recommendation> recommendationsIter = recommendations.iterator();
             while (recommendationsIter.hasNext()) {
                 SRDFRecommendation recommendation = (SRDFRecommendation) recommendationsIter.next();
-                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceDevice());
+                StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceStorageSystem());
                 // Prepare the Bourne Volumes to be created and associated
                 // with the actual storage system volumes created. Also create
                 // a BlockTaskList containing the list of task resources to be
@@ -231,68 +220,22 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                                     _permissionsHelper)) {
                         VpoolRemoteCopyProtectionSettings settings = settingMap
                                 .get(protectionVirtualArray.getId());
-                        // TODO come up with proper name format
 
-                        // create CGs if SRDF Async
-                        if (null != consistencyGroup) {
-                            String cgName = consistencyGroup.getLabel() + "-Target-"
-                                    + protectionVirtualArray.getLabel();
-                            List<BlockConsistencyGroup> groups = CustomQueryUtility
-                                    .queryActiveResourcesByConstraint(_dbClient,
-                                            BlockConsistencyGroup.class, PrefixConstraint.Factory
-                                                    .getFullMatchConstraint(
-                                                            BlockConsistencyGroup.class, "label",
-                                                            cgName));
-                            if (groups.isEmpty()) {
-                                newCGCreated = true;
-                                // create CG
-                                newConsistencyGroup = new BlockConsistencyGroup();
-                                newConsistencyGroup
-                                        .setId(URIUtil.createId(BlockConsistencyGroup.class));
-                                newConsistencyGroup.setLabel(cgName);
-                                newConsistencyGroup.setProject(new NamedURI(project.getId(), param
-                                        .getName()));
-                                newConsistencyGroup.setTenant(new NamedURI(project.getTenantOrg()
-                                        .getURI(), param.getName()));
-                                // ModifyReplica on GroupSync for swap operation will try to create CG with same name on target provider.
-                                // For 4.6.x, better to use a different name for target CG.
-                                StringBuffer label = new StringBuffer(consistencyGroup.getLabel());
-                                if (!storageSystem.getUsingSmis80()) {
-                                    label.append(LABEL_SUFFIX_FOR_46X);
-                                }
-                                newConsistencyGroup.setAlternateLabel(label.toString());
-                                _dbClient.createObject(newConsistencyGroup);
-
-                            } else {
-                                newConsistencyGroup = groups.get(0);
-                            }
-                        }
-
-                        // TODO consistencyGroup Name format : max length only 8 letters.
+                        // COP-16363 Create target BCG in controllersvc
 
                         // Prepare and populate CG request for the SRDF targets
                         volumeURIs.addAll(prepareTargetVolumes(param, project, vpool, recommendation,
-                                new StringBuilder(newVolumeLabel), protectionVirtualArray, newConsistencyGroup,
+                                new StringBuilder(newVolumeLabel), protectionVirtualArray,
                                 settings, srcVolume, task, taskList));
                     }
                 }
             }
         } catch (InternalException e) {
-            error = true;
             _log.error("Rolling back the created CGs if any.");
             throw e;
         } catch (Exception e) {
-            error = true;
             _log.error("Rolling back the created CGs if any.");
             throw APIException.badRequests.srdfInternalError(e);
-        } finally {
-            if (error) {
-                // Clearing newly created CGs
-                if (newCGCreated && null != newConsistencyGroup) {
-                    newConsistencyGroup.setInactive(true);
-                    _dbClient.persistObject(newConsistencyGroup);
-                }
-            }
         }
         return volumeURIs;
     }
@@ -419,8 +362,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         volume.setVirtualArray(varray.getId());
         volume.setSrdfGroup(raGroupURI);
         volume.setSrdfCopyMode(copyMode);
-        if (null != placement.getSourcePool()) {
-            StoragePool pool = _dbClient.queryObject(StoragePool.class, placement.getSourcePool());
+        if (null != placement.getSourceStoragePool()) {
+            StoragePool pool = _dbClient.queryObject(StoragePool.class, placement.getSourceStoragePool());
             if (null != pool) {
                 volume.setProtocol(new StringSet());
                 volume.getProtocol().addAll(
@@ -437,8 +380,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         }
 
         if (!remote) {
-            volume.setStorageController(placement.getSourceDevice());
-            volume.setPool(placement.getSourcePool());
+            volume.setStorageController(placement.getSourceStorageSystem());
+            volume.setPool(placement.getSourceStoragePool());
         } else {
             volume.setStorageController(((SRDFRecommendation) placement).getVirtualArrayTargetMap()
                     .get(varray.getId()).getTargetStorageDevice());
@@ -499,8 +442,6 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      *            label building to create volume labels
      * @param targetVirtualArray
      *            protection varray we're playing with
-     * @param consistencyGroup
-     *            cg id
      * @param settings
      *            settings
      * @param task
@@ -510,7 +451,6 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
     private List<URI> prepareTargetVolumes(final VolumeCreate param, final Project project,
             final VirtualPool vpool, final SRDFRecommendation recommendation,
             final StringBuilder volumeLabelBuilder, final VirtualArray targetVirtualArray,
-            final BlockConsistencyGroup consistencyGroup,
             final VpoolRemoteCopyProtectionSettings settings, final Volume srcVolume,
             final String task, final TaskList taskList) {
         Volume volume;
@@ -532,7 +472,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                 param.getSize(),
                 recommendation,
                 new StringBuilder(volumeLabelBuilder.toString()).append(
-                        "-target-" + targetVirtualArray.getLabel()).toString(), consistencyGroup,
+                        "-target-" + targetVirtualArray.getLabel()).toString(), null,
                 task, true, Volume.PersonalityTypes.TARGET, srcVolume.getId(), recommendation
                         .getVirtualArrayTargetMap().get(targetVirtualArray.getId())
                         .getSourceRAGroup(), settings.getCopyMode());

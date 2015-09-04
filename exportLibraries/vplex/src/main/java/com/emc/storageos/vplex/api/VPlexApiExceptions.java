@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.vplex.api;
@@ -140,6 +140,9 @@ public interface VPlexApiExceptions {
     @DeclareServiceCode(ServiceCode.VPLEX_CANT_FIND_REQUESTED_VOLUME)
     public VPlexApiException cantFindRequestedVolume(final String volumeName);
 
+    @DeclareServiceCode(ServiceCode.VPLEX_CANT_FIND_REQUESTED_VOLUME)
+    public VPlexApiException cantFindAllRequestedVolume();
+    
     @DeclareServiceCode(ServiceCode.VPLEX_CANT_FIND_REQUESTED_VOLUME)
     public VPlexApiException cantFindRequestedVolumeNull();
 
@@ -708,4 +711,17 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException systemTypeNotSupported(String systemType);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedGettingStorageVolumeInfo(String clusterName, String status);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedProcessingStorageVolumeResponse(String msg, final Throwable cause);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException couldNotFindStorageVolumeMatchingWWNOrITL(String volumeName, String storageSystemNativeId);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedToValidateExportMask(String exporURI, final Throwable cause);
+    
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.validate;
 
@@ -225,6 +215,8 @@ public class PropertiesConfigurationValidator {
             return validatePercent(propertyValue);
         } else if (metaData.getType().equalsIgnoreCase(HOSTNAME)) {
             return validateHostName(propertyValue);
+        } else if (metaData.getType().equalsIgnoreCase(STRICTHOSTNAME)) {
+            return validateStrictHostName(propertyValue);
         } else if (metaData.getType().equalsIgnoreCase(IPLIST)) {
             return validateIpList(propertyValue);
         } else if (metaData.getType().equalsIgnoreCase(ENCRYPTEDSTRING)) {
@@ -551,8 +543,47 @@ public class PropertiesConfigurationValidator {
         }
 
         // hostname doesn't appear to be an ip adress, let's check for hostname.
-        String[] hostLabels = hostName.split("\\.");
+        String[] hostLabels = hostName.split("\\.",-1);
         if (hostLabels.length == 0) {
+            return false;
+        }
+        Pattern labelPattern = Pattern.compile(VALID_HOST_NAME_LABEL_PATTERN);
+        Matcher matcher = null;
+        for (String label : hostLabels) {
+            // check for length. must be between 1 to 63 chars.
+            if (label.length() == 0 || label.length() > 63) {
+                return false;
+            }
+
+            // check for pattern. a-z0-9-
+            matcher = labelPattern.matcher(label);
+            if (!matcher.matches()) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Validate Strict Hostname
+     *
+     * @param hostName
+     * @return
+     */
+    public static boolean validateStrictHostName(String hostName) {
+
+        // nothing in hostname, return false.
+        if (hostName == null || hostName.isEmpty()) {
+            return false;
+        }
+
+        // if length is greater than 255, return false.
+        if (hostName.length() > 253) {
+            return false;
+        }
+
+        String[] hostLabels = hostName.split("\\.",-1);
+        if (hostLabels.length == 0 || hostLabels.length > 4) {
             return false;
         }
         Pattern labelPattern = Pattern.compile(VALID_HOST_NAME_LABEL_PATTERN);

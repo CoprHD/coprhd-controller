@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -67,13 +57,14 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePort.OperationalStatus;
+import com.emc.storageos.db.client.model.StoragePort.PortType;
 import com.emc.storageos.db.client.model.StoragePort.TransportType;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StoragePort.OperationalStatus;
-import com.emc.storageos.db.client.model.StoragePort.PortType;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
@@ -96,6 +87,7 @@ import com.emc.storageos.model.systems.StorageSystemList;
 import com.emc.storageos.model.systems.StorageSystemRequestParam;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.systems.StorageSystemUpdateRequestParam;
+import com.emc.storageos.model.vnas.VirtualNASList;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.security.authorization.CheckPermission;
@@ -120,8 +112,8 @@ import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.google.common.base.Function;
 
 @Path("/vdc/storage-systems")
-@DefaultPermissions(read_roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
-        write_roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class StorageSystemService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(StorageSystemService.class);
@@ -250,7 +242,7 @@ public class StorageSystemService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(param.getSystemType(), "system_type");
         ArgValidator.checkFieldValueFromEnum(param.getSystemType(), "system_type", EnumSet.of(
                 StorageSystem.Type.vnxfile, StorageSystem.Type.isilon, StorageSystem.Type.rp,
-                StorageSystem.Type.netapp, StorageSystem.Type.netappc, StorageSystem.Type.vnxe, StorageSystem.Type.xtremio));
+                StorageSystem.Type.netapp, StorageSystem.Type.netappc, StorageSystem.Type.vnxe));
         StorageSystem.Type systemType = StorageSystem.Type.valueOf(param.getSystemType());
         if (systemType.equals(StorageSystem.Type.vnxfile)) {
             validateVNXFileSMISProviderMandatoryDetails(param);
@@ -477,11 +469,11 @@ public class StorageSystemService extends TaskResourceService {
             system.setIsResourceLimitSet(true);
         }
 
-        // if system type is vmax, vnxblock, hds, openstack or scaleio, update the name or max_resources field alone.
+        // if system type is vmax, vnxblock, hds, openstack, scaleio or xtremio, update the name or max_resources field alone.
         // create Task with ready state and return it. Discovery not needed.
         if (systemType.equals(StorageSystem.Type.vmax) || systemType.equals(StorageSystem.Type.vnxblock)
                 || systemType.equals(StorageSystem.Type.hds) || systemType.equals(StorageSystem.Type.openstack)
-                || systemType.equals(StorageSystem.Type.scaleio)) {
+                || systemType.equals(StorageSystem.Type.scaleio) || systemType.equals(StorageSystem.Type.xtremio)) {
             // this check is to inform the user that he/she can not update fields other than name and max_resources.
             if (param.getIpAddress() != null || param.getPortNumber() != null || param.getUserName() != null ||
                     param.getPassword() != null || param.getSmisProviderIP() != null || param.getSmisPortNumber() != null ||
@@ -1020,6 +1012,44 @@ public class StorageSystemService extends TaskResourceService {
 
         auditOp(OperationTypeEnum.REGISTER_STORAGE_POOL, true,
                 null, pool.getId().toString(), pool.getStorageDevice().toString());
+    }
+
+    /**
+     * Gets all virtual NAS for the registered storage system with the passed
+     * id.
+     * 
+     * @param id the URN of a ViPR storage system.
+     * 
+     * @brief List storage system virtual nas servers
+     * @return A reference to a StoragePooList specifying the id and self link
+     *         for each storage pool.
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/vnasservers")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public VirtualNASList getVnasServers(@PathParam("id") URI id) {
+        // Make sure storage system is registered.
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        StorageSystem system = queryResource(id);
+        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
+
+        VirtualNASList vNasList = new VirtualNASList();
+        URIQueryResultList vNasURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getStorageDeviceVirtualNasConstraint(id),
+                vNasURIs);
+        Iterator<URI> vNasIter = vNasURIs.iterator();
+        while (vNasIter.hasNext()) {
+            URI vNasURI = vNasIter.next();
+            VirtualNAS vNas = _dbClient.queryObject(VirtualNAS.class,
+                    vNasURI);
+            if (vNas != null && !vNas.getInactive()) {
+                vNasList.getVNASServers().add(toNamedRelatedResource(vNas, vNas.getNativeGuid()));
+
+            }
+        }
+        return vNasList;
     }
 
     /**

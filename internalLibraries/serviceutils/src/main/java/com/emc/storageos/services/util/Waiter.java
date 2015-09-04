@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2012-2015 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.services.util;
@@ -19,6 +9,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A reference class for implementing sleep/wakeup semantics based on Java condition variables.
@@ -30,6 +23,7 @@ public class Waiter {
     private long t = -1;
     private Lock lock = new ReentrantLock();
     Condition wakeup = lock.newCondition();
+    private static final Logger logger = LoggerFactory.getLogger(Waiter.class);
 
     /**
      * Sleep for a specific amount of time, or until the wakeup method is called, whichever comes first
@@ -55,6 +49,7 @@ public class Waiter {
             // reset t since it may have been set to 0 while sleeping
             t = System.currentTimeMillis();
         } catch (InterruptedException e) {
+        	logger.error(e.getMessage(),e);
         } finally {
             lock.unlock();
         }

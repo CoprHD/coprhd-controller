@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.systemservices;
@@ -198,32 +188,32 @@ public class UpgradeCoordinatorClientTest {
             clients.submit(new Runnable() {
                 @Override
                 public void run() {
-                    String nodeName = Thread.currentThread().getName() + ":9998";
-                    _logger.info("Node {} Initialised lock", nodeName);
+                    String nodeId = Thread.currentThread().getName() + ":9998";
+                    _logger.info("Node {} Initialised lock", nodeId);
                     for (int i = 0; i < NUMRUNS; i++) {
                         try {
-                            _logger.info(": {} ------ Node: starts loop ------", nodeName);
-                            _logger.info(": {} client trying to acquire lock", nodeName);
+                            _logger.info(": {} ------ Node: starts loop ------", nodeId);
+                            _logger.info(": {} client trying to acquire lock", nodeId);
                             Thread.sleep(50);
-                            _coordinator.getPersistentLock(nodeName, DISTRIBUTED_CONTROL_NODE_UPGRADE_LOCK);
+                            _coordinator.getPersistentLock(nodeId, DISTRIBUTED_CONTROL_NODE_UPGRADE_LOCK);
                             String currOwnerName = _coordinator.getUpgradeLockOwner(DISTRIBUTED_CONTROL_NODE_UPGRADE_LOCK);
                             _logger.info(": {} is current owner",
                                     currOwnerName);
                             Thread.sleep(50);
-                            if (_coordinator.hasPersistentLock(nodeName, DISTRIBUTED_CONTROL_NODE_UPGRADE_LOCK)) {
+                            if (_coordinator.hasPersistentLock(nodeId, DISTRIBUTED_CONTROL_NODE_UPGRADE_LOCK)) {
                                 Thread.sleep(50);
                                 _logger.info(": {} work done. releasing lock", currOwnerName);
-                                _coordinator.releasePersistentLock(nodeName, DISTRIBUTED_CONTROL_NODE_UPGRADE_LOCK);
-                                _logger.info(": lock release by {}", nodeName);
+                                _coordinator.releasePersistentLock(nodeId, DISTRIBUTED_CONTROL_NODE_UPGRADE_LOCK);
+                                _logger.info(": lock release by {}", nodeId);
                                 Thread.sleep(100);
                             } else {
-                                _logger.info(": {} request failed. retrying.", nodeName);
+                                _logger.info(": {} request failed. retrying.", nodeId);
                                 Thread.sleep(50);
                             }
                         } catch (InterruptedException e) {
                             // Ignore this.
                         } catch (Exception e) {
-                            _logger.info(": {} transient error ...", nodeName, e);
+                            _logger.info(": {} transient error ...", nodeId, e);
                         }
                     }
                 }
@@ -242,31 +232,31 @@ public class UpgradeCoordinatorClientTest {
             clients.submit(new Runnable() {
                 @Override
                 public void run() {
-                    String nodeName = Thread.currentThread().getName() + ":9998";
-                    _logger.info("Node {} Initialised lock", nodeName);
+                    String nodeId = Thread.currentThread().getName() + ":9998";
+                    _logger.info("Node {} Initialised lock", nodeId);
                     for (int i = 0; i < NUMRUNS; i++) {
                         try {
-                            _logger.info(": {} ------ Node: starts loop ------", nodeName);
-                            _logger.info(": {} client trying to acquire lock", nodeName);
+                            _logger.info(": {} ------ Node: starts loop ------", nodeId);
+                            _logger.info(": {} client trying to acquire lock", nodeId);
                             Thread.sleep(50);
-                            _coordinator.getRemoteDownloadLock(nodeName);
+                            _coordinator.getRemoteDownloadLock(nodeId);
                             String currOwnerName = _coordinator.getRemoteDownloadLeader();
                             _logger.info(": {} is current owner", currOwnerName);
                             Thread.sleep(50);
-                            if (_coordinator.hasRemoteDownloadLock(nodeName)) {
+                            if (_coordinator.hasRemoteDownloadLock(nodeId)) {
                                 Thread.sleep(50);
                                 _logger.info(": {} work done. releasing lock", currOwnerName);
-                                _coordinator.releaseRemoteDownloadLock(nodeName);
-                                _logger.info(": lock release by {}", nodeName);
+                                _coordinator.releaseRemoteDownloadLock(nodeId);
+                                _logger.info(": lock release by {}", nodeId);
                                 Thread.sleep(100);
                             } else {
-                                _logger.info(": {} request failed. retrying.", nodeName);
+                                _logger.info(": {} request failed. retrying.", nodeId);
                                 Thread.sleep(50);
                             }
                         } catch (InterruptedException e) {
                             // Ignore this.
                         } catch (Exception e) {
-                            _logger.info(": {} transient error ...", nodeName, e);
+                            _logger.info(": {} transient error ...", nodeId, e);
                         }
                     }
                 }

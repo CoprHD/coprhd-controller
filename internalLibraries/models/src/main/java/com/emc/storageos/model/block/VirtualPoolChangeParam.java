@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.block;
 
@@ -77,7 +67,7 @@ public class VirtualPoolChangeParam {
      * The ViPR consistency group to associate the volume with for
      * the creation of the RecoverPoint consistency group.
      * 
-     * @return
+     * @return The Consistency Group to associate the volume during creation of RP consistency group
      */
     @XmlElement(name = "consistency_group")
     public URI getConsistencyGroup() {

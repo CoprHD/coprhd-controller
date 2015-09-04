@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.logsvc.stream;
 
@@ -34,10 +24,12 @@ public class LogNetworkReader implements LogStream {
     private LogStatusInfo status;
     private boolean isFinished;  // record is the logs and status chucks are all finished
     private String nodeId;
+    private String nodeName;
     private int logMessageCount = 0;
-
-    public LogNetworkReader(String nodeId, InputStream inputStream, LogStatusInfo status) {
+    
+    public LogNetworkReader(String nodeId, String nodeName, InputStream inputStream, LogStatusInfo status) {
         this.nodeId = nodeId;
+        this.nodeName = nodeName;
         this.dis = new DataInputStream(inputStream);
         this.status = status;
         this.isFinished = false;
@@ -59,6 +51,7 @@ public class LogNetworkReader implements LogStream {
                     LogMessage log = LogMessage.read(dis);
                     logMessageCount++;
                     log.setNodeId(LogUtil.nodeIdToBytes(nodeId));
+                    log.setNodeName(LogUtil.nodeNameToBytes(nodeName));
                     if (logMessageCount % 100000 == 0) {
                         logger.debug("processing the {}th log messages", logMessageCount);
                     }
@@ -78,6 +71,10 @@ public class LogNetworkReader implements LogStream {
         return this.nodeId;
     }
 
+    public String getNodeName() {
+        return this.nodeName;
+    }
+    
     public LogStatusInfo getStatus() {
         return this.status;
     }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.management.jmx.logging;
@@ -22,7 +12,12 @@ import java.math.BigInteger;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 public class IdentifierManager {
+    private static final Logger log = LoggerFactory.getLogger(IdentifierManager.class);
+
     private static final String PRODUCT_IDENT_PATH = "/opt/storageos/etc/product";
     private static final String PRODUCT_BASE_PATH = "/opt/storageos/etc/productbase";
     private static final String GIT_REVISION_PATH = "/opt/storageos/etc/gitrevision";
@@ -43,9 +38,13 @@ public class IdentifierManager {
 
     public static IdentifierManager getInstance() {
         if (instance == null) {
-            instance = new IdentifierManager();
+            initInstance();
         }
         return instance;
+    }
+
+    private synchronized static void initInstance() {
+    	instance = (instance == null) ? new IdentifierManager() : instance;
     }
 
     private IdentifierManager() {
@@ -90,12 +89,14 @@ public class IdentifierManager {
             br = new BufferedReader(new FileReader(path));
             content = br.readLine();
         } catch (Exception e) {
+            log.warn("Ignoring failure during reading the file({})", path, e);
         } finally {
             try {
                 if (br != null) {
                     br.close();
                 }
             } catch (IOException ex) {
+                log.debug("Ignoring failure during closing the buffer reader", ex);
             }
         }
 

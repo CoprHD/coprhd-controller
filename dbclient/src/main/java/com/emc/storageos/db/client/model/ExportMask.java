@@ -1,19 +1,11 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.model;
+
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.collectionString;
 
 import java.net.URI;
 import java.util.Collection;
@@ -25,8 +17,6 @@ import java.util.Set;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.google.common.collect.Collections2;
-
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.collectionString;
 
 /**
  * Export mask on a storage-system - represents a lun masking setup on a storage system.
@@ -424,6 +414,7 @@ public class ExportMask extends DataObject {
     }
 
     @Name("existingInitiators")
+    @AlternateId("ExportMaskExistingInitiators")
     public StringSet getExistingInitiators() {
         return _existingInitiators;
     }
@@ -743,7 +734,7 @@ public class ExportMask extends DataObject {
         return maskInitiators.containsAll(normalizedPorts);
     }
 
-    public boolean hasExactlyTheseInitiators(List<String> ports) {
+    public boolean hasExactlyTheseInitiators(Collection<String> ports) {
         Collection<String> normalizedPorts = new HashSet<String>();
         for (String port : ports) {
             normalizedPorts.add(Initiator.normalizePort(port));

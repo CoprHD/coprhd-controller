@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.customconfigcontroller;
 
@@ -26,6 +16,8 @@ public interface CustomConfigConstants {
     public String HOST_TYPE_SCOPE = "hostType";
     /** The config_name for zone name */
     public String ZONE_MASK_NAME = "SanZoneName";
+    /** The config_name for skipping zoning */
+    public String ZONE_ADD_VOLUME= "SanZoneAddVolumeCheckZoning";
 
     public String HDS_STORAGE_PORT_NUMBER = "hdsPortNumber";
     public String AUTO_TIERING_POLICY_NAME = "auto_tiering_policy_name";
@@ -56,6 +48,8 @@ public interface CustomConfigConstants {
     public String VMAX_HOST_PORT_GROUP_MASK_NAME = "VMAXHostPortGroupName";
     public String VMAX_CLUSTER_PORT_GROUP_MASK_NAME = "VMAXClusterPortGroupName";
 
+    public String VPLEX_VMAX_MASKING_VIEW_MAXIMUM_VOLUMES = "VPlexVMAXMaskingViewMaximumVolumes";
+
     public String XTREMIO_VOLUME_FOLDER_NAME = "XtremIOVolumeFolderName";
     public String XTREMIO_INITIATOR_GROUP_NAME = "XtremIOInitiatorGroupName";
     public String XTREMIO_HOST_INITIATOR_GROUP_FOLDER_NAME = "XtremIOHostInitiatorGroupFolderName";
@@ -74,4 +68,5 @@ public interface CustomConfigConstants {
     public String PORT_ALLOCATION_DAYS_TO_AVERAGE_UTILIZATION = "PortAllocationDaysToAverageUtilization";
     public String PORT_ALLOCATION_EMA_FACTOR = "PortAllocationEmaFactor";
     public String PORT_ALLOCATION_METRICS_ENABLED = "PortAllocationMetricsEnabled";
+    public String MIGRATION_SPEED = "VPlexMigrationSpeed";
 }

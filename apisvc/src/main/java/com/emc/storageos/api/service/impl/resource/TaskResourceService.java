@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service.impl.resource;
@@ -136,7 +126,7 @@ public abstract class TaskResourceService extends TaggedResource {
      * @param tenants - in] List or Tenant URIs
      * @param dataObjects - [in] List of DataObjects to check
      */
-    protected void deleteCheckForPendingTasks(Collection<URI> tenants, Collection<? extends DataObject> dataObjects) {
+    protected void checkForPendingTasks(Collection<URI> tenants, Collection<? extends DataObject> dataObjects) {
         Set<URI> objectURIsThatHavePendingTasks = getObjectURIsThatHavePendingTasks(tenants);
 
         // Search through the list of Volumes to see if any are in the pending list
@@ -160,11 +150,10 @@ public abstract class TaskResourceService extends TaggedResource {
         // a pending task against them. Need to signal an error
         if (!pendingObjectLabels.isEmpty()) {
             String pendingListStr = Joiner.on(',').join(pendingObjectLabels);
-            _log.warn(String.format(
-                    "Attempted to run delete operation against these DataObjects while there are tasks pending against them: %s",
+            _log.warn(String.format("Attempted to execute operation against these resources while there are tasks pending against them: %s", 
                     pendingListStr));
             throw APIException.badRequests.
-                    cannotDeleteObjectWhilePendingTask(pendingListStr);
+                    cannotExecuteOperationWhilePendingTask(pendingListStr);
         }
     }
 }

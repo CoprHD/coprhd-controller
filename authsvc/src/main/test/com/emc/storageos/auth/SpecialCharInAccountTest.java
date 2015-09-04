@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.auth;
@@ -11,7 +11,7 @@ import org.junit.Test;
 public class SpecialCharInAccountTest {
 
     @Test
-    public void stringReplacementWith$In() {
+    public void stringReplacementWithIn() {
 
         String username = "f$red@secqe.com";
         String filter1 = "userPrincipalName=%u";

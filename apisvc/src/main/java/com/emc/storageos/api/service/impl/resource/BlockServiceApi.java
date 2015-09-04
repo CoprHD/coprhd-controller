@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -366,10 +356,11 @@ public interface BlockServiceApi {
      * @param snapshotType The snapshot technology type.
      * @param createInactive true if the snapshots should be created but not
      *            activated, false otherwise.
+     * @param readOnly true if the snapshot should be read only, false otherwise
      * @param taskId The unique task identifier.
      */
     public void createSnapshot(Volume reqVolume, List<URI> snapshotURIs,
-            String snapshotType, Boolean createInactive, String taskId);
+            String snapshotType, Boolean createInactive, Boolean readOnly, String taskId);
 
     /**
      * Uses the appropriate controller to delete the snapshot.
@@ -397,6 +388,14 @@ public interface BlockServiceApi {
     public void validateRestoreSnapshot(BlockSnapshot snapshot, Volume volume);
 
     /**
+     * Validates a resynchronize snapshot request.
+     * 
+     * @param snapshot The snapshot to resynchronize.
+     * @param volume
+     */
+    public void validateResynchronizeSnapshot(BlockSnapshot snapshot, Volume volume);
+
+    /**
      * Restore the passed parent volume from the passed snapshot of that parent volume.
      * 
      * @param snapshot The snapshot to restore
@@ -404,6 +403,15 @@ public interface BlockServiceApi {
      * @param taskId The unique task identifier.
      */
     public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId);
+
+    /**
+     * Resynchronize the passed snapshot.
+     * 
+     * @param snapshot The snapshot to be resynchronized
+     * @param parentVolume The volume to resynchronize from.
+     * @param taskId The unique task identifier.
+     */
+    public void resynchronizeSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId);
 
     /**
      * Returns the maximum number of volumes that are allowed in the passed consistency group.

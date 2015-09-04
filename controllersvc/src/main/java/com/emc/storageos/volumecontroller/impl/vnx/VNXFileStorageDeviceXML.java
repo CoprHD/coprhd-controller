@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.vnx;
@@ -156,7 +146,7 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
             }
             result = vnxComm.createFileSystem(storage,
                     args.getFsName(),
-                    args.getPoolName(),  // This will be used for CLI create FS
+                    args.getPoolName(),           // This will be used for CLI create FS
                     "1",
                     fsSize,
                     args.getThinProvision(),
@@ -249,7 +239,8 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
         autoAtts.put(VNXFileCommApi.FILE_SYSTEM_TYPE_ATTRIBUTE, args.getFsExtensions().get(VNXFileCommApi.FILE_SYSTEM_TYPE_ATTRIBUTE));
         autoAtts.put(VNXFileCommApi.THIN_PROVISIONED_ATTRIBUTE, args.getFsExtensions().get(VNXFileCommApi.THIN_PROVISIONED_ATTRIBUTE));
         autoAtts.put(VNXFileCommApi.WORM_ATTRIBUTE, args.getFsExtensions().get(VNXFileCommApi.WORM_ATTRIBUTE));
-        autoAtts.put(VNXFileCommApi.AUTO_EXTEND_ENABLED_ATTRIBUTE, args.getFsExtensions().get(VNXFileCommApi.AUTO_EXTEND_ENABLED_ATTRIBUTE));
+        autoAtts.put(VNXFileCommApi.AUTO_EXTEND_ENABLED_ATTRIBUTE,
+                args.getFsExtensions().get(VNXFileCommApi.AUTO_EXTEND_ENABLED_ATTRIBUTE));
         autoAtts.put(VNXFileCommApi.AUTO_EXTEND_HWM_ATTRIBUTE, args.getFsExtensions().get(VNXFileCommApi.AUTO_EXTEND_HWM_ATTRIBUTE));
         autoAtts.put(VNXFileCommApi.AUTO_EXTEND_MAX_SIZE_ATTRIBUTE,
                 args.getFsExtensions().get(VNXFileCommApi.AUTO_EXTEND_MAX_SIZE_ATTRIBUTE));
@@ -287,9 +278,28 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
     }
 
     @Override
+    public boolean doCheckFSExists(StorageSystem storage,
+            FileDeviceInputOutput args) throws ControllerException {
+        _log.info("checking file system existence on array: ", args.getFsName());
+        boolean isFSExists = true;
+        try {
+            ApplicationContext context = null;
+            context = loadContext();
+            VNXFileCommApi vnxComm = loadVNXFileCommunicationAPIs(context);
+            if (null == vnxComm) {
+                throw VNXException.exceptions.communicationFailed(VNXCOMM_ERR_MSG);
+            }
+            isFSExists = vnxComm.checkFileSystemExists(storage, args.getFsNativeId(), args.getFsName());
+        } catch (VNXException e) {
+            _log.error("Querying FS existence failed");
+        }
+        return isFSExists;
+    }
+
+    @Override
     public BiosCommandResult updateExportRules(StorageSystem storage,
             FileDeviceInputOutput args)
-            throws ControllerException {
+                    throws ControllerException {
         XMLApiResult result = null;
         ApplicationContext context = null;
 
@@ -715,12 +725,12 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
             VNXFileExport fileExport = new VNXFileExport(clients,
                     portName,
                     path,
-                    "",       // no security type
+                    "",                // no security type
                     smbFileShare.getPermission(),
-                    "",       // root user mapping n/a for CIFS
+                    "",                // root user mapping n/a for CIFS
                     VNXFileSshApi.VNX_CIFS,
-                    "", // Port information is never used for for CIFS or NFS exports.
-                    "",  // SUB DIR
+                    "",          // Port information is never used for for CIFS or NFS exports.
+                    "",           // SUB DIR
                     ""); // Comments -- TODO
 
             fileExport.setExportName(smbFileShare.getName());
@@ -939,13 +949,13 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
     @Override
     public BiosCommandResult getFSSnapshotList(StorageSystem storage,
             FileDeviceInputOutput args, List<String> snapshots)
-            throws ControllerException {
+                    throws ControllerException {
 
         // TODO: Implement method
         String op = "getFSSnapshotList";
         String devType = storage.getSystemType();
-        BiosCommandResult result = BiosCommandResult.createErrorResult(DeviceControllerException.errors.
-                unsupportedOperationOnDevType(op, devType));
+        BiosCommandResult result = BiosCommandResult
+                .createErrorResult(DeviceControllerException.errors.unsupportedOperationOnDevType(op, devType));
 
         return result;
     }
@@ -1122,15 +1132,14 @@ public class VNXFileStorageDeviceXML implements FileStorageDevice {
                     } else {
                         _log.error("Error deleting Export : {}", exportPathToDelete);
                         operationResult.put(exportPathToDelete, false);
-                        biosResult =
-                                BiosCommandResult.createErrorResult(DeviceControllerErrors.vnx.unableToUnexportFileSystem(result
-                                        .getMessage()));
+                        biosResult = BiosCommandResult.createErrorResult(DeviceControllerErrors.vnx.unableToUnexportFileSystem(result
+                                .getMessage()));
                     }
                 } catch (Exception e) {
                     _log.error("Error deleting Export : {}", exportPathToDelete);
                     operationResult.put(exportPathToDelete, false);
-                    biosResult =
-                            BiosCommandResult.createErrorResult(DeviceControllerErrors.vnx.unableToUnexportFileSystem(result.getMessage()));
+                    biosResult = BiosCommandResult
+                            .createErrorResult(DeviceControllerErrors.vnx.unableToUnexportFileSystem(result.getMessage()));
                 }
             }
 

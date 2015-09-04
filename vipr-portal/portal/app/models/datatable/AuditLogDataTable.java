@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.datatable;
@@ -13,7 +13,7 @@ public class AuditLogDataTable extends DataTable {
     public AuditLogDataTable() {
 
         addColumn("_timeInMillis").hidden().setSearchable(false);
-        addColumn("_timeInMillis").setCssClass("time").setRenderFunction("renderTime");
+        addColumn("_timeInMillis").setCssClass("time").setRenderFunction("render.localDate");
         addColumn("_serviceType");
         addColumn("_userId");
         addColumn("_operationalStatus").setCssClass("result").setRenderFunction("renderResult");

@@ -1,20 +1,11 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.management.jmx.recovery;
 
 import com.emc.vipr.model.sys.recovery.DbRepairStatus;
+import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.services.util.Strings;
 import com.sun.tools.attach.AgentInitializationException;
 import com.sun.tools.attach.AgentLoadException;
@@ -33,14 +24,12 @@ import javax.management.remote.JMXServiceURL;
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
-import java.util.Scanner;
 import java.util.List;
 
 public class DbManagerOps implements AutoCloseable {
     private static final Logger log = LoggerFactory.getLogger(DbManagerOps.class);
     private static final Integer DB_REPAIR_MAX_RETRY_COUNT = 3;
     private static final String JMX_URL_PATTERN = "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi";
-    private static final String PID_PATTERN = "/var/run/storageos/%s.pid";
     private static final String CONNECTOR_ADDRESS = "com.sun.management.jmxremote.localConnectorAddress";
     public final static String MBEAN_NAME = "com.emc.storageos.db.server.impl:name=DbManager";
 
@@ -81,29 +70,25 @@ public class DbManagerOps implements AutoCloseable {
 
     private JMXConnector initJMXConnector(String svcName) throws IOException, AttachNotSupportedException, AgentLoadException,
             AgentInitializationException {
-        String logPidFileName = String.format(PID_PATTERN, svcName);
+        int pid = PlatformUtils.getServicePid(svcName);
+        log.info("{} service pid {}", svcName, pid);
 
-        try (Scanner scanner = new Scanner(new File(logPidFileName))) {
-            int pid = scanner.nextInt();
-            log.debug("Got pid {} from pid file {}", pid, logPidFileName);
+        VirtualMachine vm = VirtualMachine.attach(String.valueOf(pid));
+        try {
+            String connectorAddress = vm.getAgentProperties().getProperty(CONNECTOR_ADDRESS);
+            if (connectorAddress == null) {
+                String agent = Strings.join(File.separator,
+                        vm.getSystemProperties().getProperty("java.home"),
+                        "lib", "management-agent.jar");
+                vm.loadAgent(agent);
 
-            VirtualMachine vm = VirtualMachine.attach(String.valueOf(pid));
-            try {
-                String connectorAddress = vm.getAgentProperties().getProperty(CONNECTOR_ADDRESS);
-                if (connectorAddress == null) {
-                    String agent = Strings.join(File.separator,
-                            vm.getSystemProperties().getProperty("java.home"),
-                            "lib", "management-agent.jar");
-                    vm.loadAgent(agent);
-
-                    connectorAddress = vm.getAgentProperties().getProperty(CONNECTOR_ADDRESS);
-                }
-
-                JMXServiceURL serviceURL = new JMXServiceURL(connectorAddress);
-                return JMXConnectorFactory.connect(serviceURL);
-            } finally {
-                vm.detach();
+                connectorAddress = vm.getAgentProperties().getProperty(CONNECTOR_ADDRESS);
             }
+
+            JMXServiceURL serviceURL = new JMXServiceURL(connectorAddress);
+            return JMXConnectorFactory.connect(serviceURL);
+        } finally {
+            vm.detach();
         }
     }
 

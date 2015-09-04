@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.fullcopy;
 
@@ -52,21 +42,7 @@ public class ScaleIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     public List<BlockObject> getAllSourceObjectsForFullCopyRequest(BlockObject fcSourceObj) {
-        // No CG operation support for ScaleIO.
-        List<BlockObject> fcSourceObjList = new ArrayList<BlockObject>();
-        fcSourceObjList.add(fcSourceObj);
-        return fcSourceObjList;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Map<URI, Volume> getFullCopySetMap(BlockObject fcSourceObj,
-            Volume fullCopyVolume) {
-        Map<URI, Volume> fullCopyMap = new HashMap<URI, Volume>();
-        fullCopyMap.put(fullCopyVolume.getId(), fullCopyVolume);
-        return fullCopyMap;
+        return super.getAllSourceObjectsForFullCopyRequest(fcSourceObj);
     }
 
     /**

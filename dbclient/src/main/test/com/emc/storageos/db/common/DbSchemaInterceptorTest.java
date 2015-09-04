@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.common;
 
@@ -27,6 +17,8 @@ public class DbSchemaInterceptorTest {
     private static final String NORMAL_FIELD = "normal";
     private static final String IGNORE_CLASS_ANNOTATION = "ExcludeFromGarbageCollection";
     private static final String NORMAL_CLASS_ANNOTATION = "Cf";
+    private static final String NORMAL_CF = "Volume";
+    private static final String IGNORE_CF = "ObjectBaseUrl";
 
     private static DbSchemaScannerInterceptor interceptor = null;
 
@@ -56,5 +48,15 @@ public class DbSchemaInterceptorTest {
     @Test
     public void shouldNotIgnoreSpecificClsAnnt() {
         Assert.assertFalse(this.interceptor.isClassAnnotationIgnored(COLUMN_FAMILY, NORMAL_CLASS_ANNOTATION));
+    }
+    
+    @Test
+    public void shouldReturnTrueForIgnoredCf() {
+    	Assert.assertTrue(this.interceptor.isClassIgnored(IGNORE_CF));
+    }
+    
+    @Test
+    public void shouldReturnFalseForNormalCf() {
+    	Assert.assertFalse(this.interceptor.isClassIgnored(NORMAL_CF));
     }
 }

@@ -1,20 +1,11 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.auth.service.impl.resource;
 
+import com.emc.storageos.auth.SystemPropertyUtil;
 import com.emc.storageos.auth.impl.ImmutableAuthenticationProviders;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
@@ -37,17 +28,11 @@ import javax.ws.rs.core.Response.Status;
 @Path("/internal/authnProviderValidate")
 public class AuthnProviderValidatorResource {
 
-    private final int DEFAULT_LDAP_CONNECTION_TIME_OUT_IN_SECS = 5;
-    private int _ldapConnectionTimeoutInSecs = DEFAULT_LDAP_CONNECTION_TIME_OUT_IN_SECS;
     private CoordinatorClient coordinator;
     private DbClient dbClient;
 
     private static final Logger _log = LoggerFactory.
             getLogger(AuthnProviderValidatorResource.class);
-
-    public void setLdapConnectionTimeoutInSecs(int secs) {
-        _ldapConnectionTimeoutInSecs = secs;
-    }
 
     public void setCoordinator(CoordinatorClient coordinator) {
         this.coordinator = coordinator;
@@ -70,7 +55,7 @@ public class AuthnProviderValidatorResource {
     public Response validateAuthenticationProvider(AuthnProviderParamsToValidate param) {
         StringBuilder errorString = new StringBuilder();
         if (!ImmutableAuthenticationProviders.checkProviderStatus(coordinator, param,
-                errorString, _ldapConnectionTimeoutInSecs, dbClient)) {
+                errorString, dbClient)) {
             return Response.status(Status.BAD_REQUEST).entity(errorString.toString()).build();
         }
         return Response.status(Status.OK).build();

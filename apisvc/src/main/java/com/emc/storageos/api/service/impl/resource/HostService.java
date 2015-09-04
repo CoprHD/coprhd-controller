@@ -521,7 +521,15 @@ public class HostService extends TaskResourceService {
         if (hasPendingTasks) {
             throw APIException.badRequests.resourceCannotBeDeleted("Host with another operation in progress");
         }
-        if (ComputeSystemHelper.isHostInUse(_dbClient, host.getId()) && !(detachStorage || detachStorageDeprecated)) {
+        Cluster cluster = null;
+        if (!NullColumnValueGetter.isNullURI(host.getCluster())) {
+            cluster = _dbClient.queryObject(Cluster.class, host.getCluster());
+        }
+        boolean isHostInUse = ComputeSystemHelper.isHostInUse(_dbClient, host.getId());
+
+        if (isHostInUse && cluster != null && !cluster.getAutoExportEnabled()) {
+            throw APIException.badRequests.resourceInClusterWithAutoExportDisabled(Host.class.getSimpleName(), id);
+        } else if (isHostInUse && !(detachStorage || detachStorageDeprecated)) {
             throw APIException.badRequests.resourceHasActiveReferences(Host.class.getSimpleName(), id);
         } else {
             String taskId = UUID.randomUUID().toString();

@@ -1158,6 +1158,9 @@ public interface BadRequestExceptions {
     public BadRequestException resourceHasActiveReferences(final String clazz, final URI resourceId);
 
     @DeclareServiceCode(ServiceCode.API_RESOURCE_BEING_REFERENCED)
+    public BadRequestException resourceInClusterWithAutoExportDisabled(final String clazz, final URI resourceId);
+
+    @DeclareServiceCode(ServiceCode.API_RESOURCE_BEING_REFERENCED)
     public BadRequestException resourceHasActiveReferencesWithType(final String clazz,
             final URI resourceId, final String depType);
 

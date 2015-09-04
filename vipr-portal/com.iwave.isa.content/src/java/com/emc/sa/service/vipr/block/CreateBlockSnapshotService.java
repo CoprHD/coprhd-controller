@@ -39,7 +39,7 @@ public class CreateBlockSnapshotService extends ViPRService {
 
     @Override
     public void precheck() {
-        if ("volume".equals(storageType)) {
+        if (ConsistencyUtils.isVolumeStorageType(storageType)) {
             volumes = Lists.newArrayList();
             for (String volumeId : volumeIds) {
                 volumes.add(BlockStorageUtils.getBlockResource(uri(volumeId)));

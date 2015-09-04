@@ -26,6 +26,9 @@ final class ConsistencyUtils {
     private static final String VOLUME_STORAGE_TYPE = "volume";
 
     public static boolean isVolumeStorageType(String storageType) {
+        if (storageType == null) {
+            return true;
+        }
         return VOLUME_STORAGE_TYPE.equals(storageType);
     }
 

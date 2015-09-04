@@ -842,7 +842,7 @@ public class HostStorageAPI {
             if (mount.getVolume() instanceof HostVmfsVolume
                     && datastore.getName().equals(mount.getVolume().getName())) {
                 HostVmfsVolume volume = (HostVmfsVolume) mount.getVolume();
-                uuid = volume.getUuid();
+                return volume.getUuid();
             }
 
         }

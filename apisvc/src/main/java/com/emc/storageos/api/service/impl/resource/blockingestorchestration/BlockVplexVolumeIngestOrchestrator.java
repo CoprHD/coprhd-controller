@@ -60,6 +60,8 @@ import com.google.common.base.Joiner;
 public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchestrator {
     private static final Logger _logger = LoggerFactory.getLogger(BlockVplexVolumeIngestOrchestrator.class);
 
+    private static final int DEFAULT_BACKEND_NUMPATHS = 4;
+    
     // maps storage system URIs to StorageSystem objects
     private Map<String, StorageSystem> _systemMap = new HashMap<String, StorageSystem>();
 
@@ -251,7 +253,9 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                 }
             }
             if (!mirrors.isEmpty()) {
-                String reason = "backend volume has non-native vplex mirror(s): " + Joiner.on(", ").join(mirrors);
+                String reason =  "cannot ingest a mirror on the backend array, "
+                        + "only VPLEX device mirrors are supported. Mirrors found: " 
+                        + Joiner.on(", ").join(mirrors);
                 _logger.error(reason);
                 throw IngestionException.exceptions.validationException(reason);
             }
@@ -415,9 +419,11 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             }
 
             if (processedUnManagedVolume.getUnmanagedExportMasks().isEmpty()) {
-                _logger.info("ingested block object {} has no unmanaged export masks", 
-                        processedUnManagedVolume.getLabel());
-                continue;
+                String reason = "the backend volume has no unmanaged export masks" 
+                        + processedUnManagedVolume.getLabel();
+                _logger.error(reason);
+                throw IngestionException.exceptions.generalVolumeException(
+                        processedUnManagedVolume.getLabel(), reason);
             }
 
             _logger.info("ingesting export mask(s) for unmanaged volume " + processedUnManagedVolume);
@@ -462,7 +468,8 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                     ExportGroup exportGroup = this.findOrCreateExportGroup(
                             system, associatedSystem, initiators,
                             virtualArray.getId(), context.getBackendProject().getId(),
-                            tenant.getId(), 4, uem, exportGroupCreated);
+                            tenant.getId(), DEFAULT_BACKEND_NUMPATHS, 
+                            uem, exportGroupCreated);
 
                     // create an ingest param so that we can reuse the ingestExportMask method
                     VolumeExportIngestParam exportIngestParam = new VolumeExportIngestParam();

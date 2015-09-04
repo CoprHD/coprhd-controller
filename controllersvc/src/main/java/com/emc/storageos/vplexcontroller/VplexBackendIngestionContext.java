@@ -461,9 +461,15 @@ public class VplexBackendIngestionContext {
             if (null != fullCloneMap && !fullCloneMap.isEmpty()) {
                 _logger.info("checking the database for full clone map");
                 for (String fullCloneEntry : fullCloneMap) {
+                    
+                    // extract 'n' parse the full clone info from the database
+                    // pair[0] contains the id of the backend clone (backendClone)
+                    // pair[1] contains the id of the front end virtual volume clone (vvolClone)
                     String[] pair = fullCloneEntry.split("=");
                     UnManagedVolume backendClone = null;
                     UnManagedVolume vvolClone = null;
+                    
+                    // fetch of the UnManagedVolume objects
                     URIQueryResultList unManagedVolumeList = new URIQueryResultList();
                     _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                             .getVolumeInfoNativeIdConstraint(pair[0]), unManagedVolumeList);
@@ -481,6 +487,8 @@ public class VplexBackendIngestionContext {
                     if (null == unmanagedFullClones) {
                         unmanagedFullClones = new HashMap<UnManagedVolume, UnManagedVolume>();
                     }
+                    
+                    // put in the clone map that will return from this method
                     unmanagedFullClones.put(backendClone, vvolClone);
                 }
                 if (null != unmanagedFullClones && !unmanagedFullClones.isEmpty()) {
@@ -607,15 +615,21 @@ public class VplexBackendIngestionContext {
 
         if (!isDiscoveryInProgress()) {
             // first check the database for this unmanaged volume's backend mirrors
-            StringSet mirrorMap = extractValuesFromStringSet(
+            StringSet mirrorMapFromTheDatabase = extractValuesFromStringSet(
                     SupportedVolumeInformation.VPLEX_MIRROR_MAP.toString(),
                     _unmanagedVirtualVolume.getVolumeInformation());
-            if (null != mirrorMap && !mirrorMap.isEmpty()) {
+            if (null != mirrorMapFromTheDatabase && !mirrorMapFromTheDatabase.isEmpty()) {
                 _logger.info("fetching mirror map from database");
-                for (String mirrorEntry : mirrorMap) {
+                for (String mirrorEntry : mirrorMapFromTheDatabase) {
+                    
+                    // extract 'n' parse the mirror info from the database
+                    // pair[0] is the native id of the mirror
+                    // pair[1] is the device context path from the VPLEX API
                     String[] pair = mirrorEntry.split("=");
                     UnManagedVolume mirrorVolume = null;
                     String contextPath = pair[1];
+                    
+                    // find the mirror UnManagedVolume object
                     URIQueryResultList unManagedVolumeList = new URIQueryResultList();
                     _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                             .getVolumeInfoNativeIdConstraint(pair[0]), unManagedVolumeList);
@@ -623,11 +637,16 @@ public class VplexBackendIngestionContext {
                         mirrorVolume = _dbClient.queryObject(UnManagedVolume.class,
                                 unManagedVolumeList.iterator().next());
                     }
+                    
+                    // add to the map that will be returned from this method
                     if (null != mirrorVolume && null != contextPath) {
                         if (null == unmanagedMirrors) {
                             unmanagedMirrors = new HashMap<UnManagedVolume, String>();
                         }
                         unmanagedMirrors.put(mirrorVolume, contextPath);
+                        
+                        // now remove the mirror from the list of regular backend volumes
+                        // so that it won't be ingested that way
                         Iterator<UnManagedVolume> itr = getUnmanagedBackendVolumes().iterator();
                         while (itr.hasNext()) {
                             if (mirrorVolume.getId().toString().equals(itr.next().getId().toString())) {
@@ -638,17 +657,6 @@ public class VplexBackendIngestionContext {
                 }
                 if (null != unmanagedMirrors && !unmanagedMirrors.isEmpty()) {
                     _logger.info("found mirror map: " + unmanagedMirrors);
-                    
-                    // TODO: this is temporary until I am certain of support
-                    // for mirrors on both legs of a distributed volumes.
-                    // in theory this should work for distributed because the mirror map
-                    // is divided by cluster, but i have not tested with a live volume.
-                    // still want to collect the data for testing, though
-                    if (!this.isLocal()) {
-                        throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(
-                                "currently can't ingest mirrors on distributed volumes, sorry");
-                    }
-                    
                     return unmanagedMirrors;
                 }
             }
@@ -757,16 +765,6 @@ public class VplexBackendIngestionContext {
             }
             // need to update the backend volumes because a mirror target shouldn't be considered a direct backend volume
             updateUnmanagedBackendVolumesInParent();
-            
-            // TODO: this is temporary until I am certain of support
-            // for mirrors on both legs of a distributed volumes.
-            // in theory this should work for distributed because the mirror map
-            // is divided by cluster, but i have not tested with a live volume.
-            // still want to collect the data for testing, though
-            if (!this.isLocal()) {
-                throw VPlexApiException.exceptions.backendIngestionContextLoadFailure(
-                        "currently can't ingest mirrors on distributed volumes, sorry");
-            }
         }
         return unmanagedMirrors;
     }

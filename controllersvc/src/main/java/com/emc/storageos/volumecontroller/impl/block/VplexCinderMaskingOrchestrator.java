@@ -161,7 +161,6 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
         return portGroups;
     }
 
-    @Override
     public StringSetMap configureZoning(Map<URI, List<StoragePort>> portGroup,
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup,
             Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner) {

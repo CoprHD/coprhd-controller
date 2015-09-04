@@ -219,14 +219,14 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
                     // Get an A Port
                     String aPortName = " ", bPortName = " ";
                     StoragePort portA = VPlexBackEndOrchestratorUtil.assignPortToInitiator(
-                            assigner, portGroup.get(net), net, initiator, portAUsage, "SP_A");
+                            assigner, portGroup.get(networkURI), net, initiator, portAUsage, "SP_A");
                     if (portA != null) {
                         aPortName = portA.getPortName();
                         ports.add(portA.getId().toString());
                     }
                     // Get a B Port
                     StoragePort portB = VPlexBackEndOrchestratorUtil.assignPortToInitiator(
-                            assigner, portGroup.get(net), net, initiator, portBUsage, "SP_B");
+                            assigner, portGroup.get(networkURI), net, initiator, portBUsage, "SP_B");
                     if (portB != null) {
                         bPortName = portB.getPortName();
                         ports.add(portB.getId().toString());

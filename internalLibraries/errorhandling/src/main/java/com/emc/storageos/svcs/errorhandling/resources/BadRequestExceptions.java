@@ -2162,7 +2162,7 @@ public interface BadRequestExceptions {
     public BadRequestException volumeForVarrayChangeHasMirrors(final String volumeId, final String volumeLabel);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException cannotDeleteObjectWhilePendingTask(final String pendingVolumes);
+    public BadRequestException cannotExecuteOperationWhilePendingTask(final String pendingVolumes);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException rpClusterVarrayNoClusterId(String label);

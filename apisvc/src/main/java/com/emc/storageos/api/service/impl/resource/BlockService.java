@@ -1001,10 +1001,7 @@ public class BlockService extends TaskResourceService {
      */
     private static BlockServiceApi getBlockServiceImpl(VirtualPool vpool, DbClient dbClient) {
         // Mutually exclusive logic that selects an implementation of the block service
-        if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
-            if ((VirtualPool.vPoolSpecifiesHighAvailability(vpool))) {
-                return getBlockServiceImpl(DiscoveredDataObject.Type.rpvplex.name());
-            }
+        if (VirtualPool.vPoolSpecifiesProtection(vpool)) {            
             return getBlockServiceImpl(DiscoveredDataObject.Type.rp.name());
         } else if (VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
             return getBlockServiceImpl(DiscoveredDataObject.Type.vplex.name());
@@ -1038,10 +1035,7 @@ public class BlockService extends TaskResourceService {
     public static BlockServiceApi getBlockServiceImpl(Volume volume, DbClient dbClient) {
         // RP volumes may not be in an RP CoS (like after failover), so look to the volume properties
         if (!NullColumnValueGetter.isNullURI(volume.getProtectionController())
-                && volume.checkForRp()) {
-            if (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
-                return getBlockServiceImpl(DiscoveredDataObject.Type.rpvplex.name());
-            }
+                && volume.checkForRp()) {            
             return getBlockServiceImpl(DiscoveredDataObject.Type.rp.name());
         }
 
@@ -3878,14 +3872,9 @@ public class BlockService extends TaskResourceService {
         URI storageSystemURI = volume.getStorageController();
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
         String systemType = storageSystem.getSystemType();
-
-        if (protectionSystemURI != null || (protectionSystemURI == null
-                && VirtualPool.vPoolSpecifiesProtection(vpool))) {
-            if ((DiscoveredDataObject.Type.vplex.name().equals(systemType)) ||
-                    VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
-                _log.info("Returning RP+VPlex block service implementation.");
-                return _blockServiceApis.get(DiscoveredDataObject.Type.rpvplex.name());
-            }
+        
+        if (protectionSystemURI != null || (protectionSystemURI == null 
+                                             && VirtualPool.vPoolSpecifiesProtection(vpool))) {           
             // Assume RP for now if the volume is associated with an
             // RP controller regardless of the VirtualPool change.
             // Also if the volume is unprotected currently and the vpool specifies protection.

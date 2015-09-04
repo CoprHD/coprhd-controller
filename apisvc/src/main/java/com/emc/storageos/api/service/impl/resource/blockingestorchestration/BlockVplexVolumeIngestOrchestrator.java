@@ -576,9 +576,13 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
                         associatedVolumes.add(mirrorVolume.getId().toString());
                         vplexMirror.setAssociatedVolumes(associatedVolumes);
 
-                        // project will be the same as the virtual volume (i.e., the front-end project)
+                        // VplexMirror will have the same project 
+                        // as the virtual volume (i.e., the front-end project)
+                        // but the mirror backend will have the backend project
                         vplexMirror.setProject(new NamedURI(
                                 context.getFrontendProject().getId(), mirrorVolume.getLabel()));
+                        mirrorVolume.setProject(new NamedURI(
+                                context.getBackendProject().getId(), mirrorVolume.getLabel()));
                         
                         // deviceLabel will be the very last part of the native guid
                         String[] devicePathParts = entry.getValue().split("/");

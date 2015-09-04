@@ -47,6 +47,7 @@ import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUti
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
 import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
+import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOConsistencyGroup;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 import com.google.common.base.Joiner;
@@ -112,9 +113,9 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
 
             // For version 2 APIs, find tags corresponding to this project
             // if not found ,create new tag, else reuse this tag and tag the volume.
-
+            boolean isVersion2 = client.isVersion2();
             String volumesFolderName = "";
-            if (client.isVersion2()) {
+            if (isVersion2) {
                 volumesFolderName = XtremIOProvUtils.createTagsForVolumeAndSnaps(client, getVolumeFolderName(projectUri, storage),
                         clusterName).
                         get(XtremIOConstants.VOLUME_KEY);
@@ -151,7 +152,10 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                             volumesFolderName, clusterName);
                     createdVolume = client.getVolumeDetails(volume.getLabel(), clusterName);
                     _log.info("Created volume details {}", createdVolume.toString());
-
+                    // For version 2, tag the created volume
+                    if (isVersion2) {
+                        client.tagObject(volumesFolderName, XTREMIO_ENTITY_TYPE.Volume.name(), volume.getLabel(), clusterName);
+                    }
                     if (isCG) {
                         client.addVolumeToConsistencyGroup(volume.getLabel(), cgObj.getLabel(), clusterName);
                     }

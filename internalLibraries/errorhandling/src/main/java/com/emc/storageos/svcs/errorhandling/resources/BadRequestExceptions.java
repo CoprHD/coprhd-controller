@@ -259,6 +259,9 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException initiatorNotCreatedManuallyAndCannotBeDeleted();
 
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException initiatorInClusterWithAutoExportDisabled();
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException initiatorPortNotValid();
 
@@ -1153,6 +1156,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_RESOURCE_BEING_REFERENCED)
     public BadRequestException resourceHasActiveReferences(final String clazz, final URI resourceId);
+
+    @DeclareServiceCode(ServiceCode.API_RESOURCE_BEING_REFERENCED)
+    public BadRequestException resourceInClusterWithAutoExportDisabled(final String clazz, final URI resourceId);
 
     @DeclareServiceCode(ServiceCode.API_RESOURCE_BEING_REFERENCED)
     public BadRequestException resourceHasActiveReferencesWithType(final String clazz,
@@ -2340,7 +2346,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException storagePoolsRequireVplexForProtection(final String personality, final String vpoolName);
-
+    
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotRemoveTenant(final String resource, final String name, final Set<String> tenants);
 
@@ -2358,7 +2364,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException tenantDoesNotShareTheVcenter(final String tenantName, final String vCenterName);
-
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException rpBlockApiImplPrepareVolumeException(final String volume);
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidEntryForProjectVNAS();
 

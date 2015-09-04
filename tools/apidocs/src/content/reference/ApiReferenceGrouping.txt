@@ -47,6 +47,8 @@ VirtualArrayService
 VirtualDataCenterCapacityService
 VirtualDataCenterService
 UserGroupService
+VirtualNasService
+
 
 =Tenant Services
 ProjectService

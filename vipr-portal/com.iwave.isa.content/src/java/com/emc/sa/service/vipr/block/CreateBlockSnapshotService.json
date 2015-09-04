@@ -18,6 +18,13 @@
       lockable: true
     },
     
+    readOnly: {
+      type: "boolean",
+      initialValue: "false",
+      required: "false",
+      lockable: true
+    },
+    
     name:{
       type:"text",
       validation:{

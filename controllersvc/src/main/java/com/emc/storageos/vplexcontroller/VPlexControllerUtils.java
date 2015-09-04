@@ -6,16 +6,21 @@ package com.emc.storageos.vplexcontroller;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.cinder.CinderConstants;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -179,10 +184,11 @@ public class VPlexControllerUtils {
                     URI.create(assocVolumesIterator.next()), dbClient);
             if (assocVolume.getVirtualArray().toString().equals(vaURI.toString())) {
                 StorageSystem assocVolumeSystem = getDataObject(StorageSystem.class,
-                        assocVolume.getStorageController(), dbClient);
+                    assocVolume.getStorageController(), dbClient);
+                List<String> itls = getVolumeITLs(assocVolume);
                 VolumeInfo info = new VolumeInfo(assocVolumeSystem.getNativeGuid(), assocVolumeSystem.getSystemType(),
-                        assocVolume.getWWN().toUpperCase().replaceAll(":", ""),
-                        assocVolume.getNativeId(), assocVolume.getThinlyProvisioned().booleanValue());
+                    assocVolume.getWWN().toUpperCase().replaceAll(":", ""),
+                    assocVolume.getNativeId(), assocVolume.getThinlyProvisioned().booleanValue(), itls);
                 clusterName = client.getClaimedStorageVolumeClusterName(info);
                 log.info("Found cluster {} for volume", clusterName);
             }
@@ -220,5 +226,28 @@ public class VPlexControllerUtils {
 
         log.info("VPLEX cluster name for cluster id {} is {}", clusterId, clusterName);
         return clusterName;
+    }
+    
+    /**
+     * Gets the list of ITLs from the volume extensions
+     * 
+     * @param volume
+     * @return
+     */
+    public static List<String> getVolumeITLs(Volume volume) {
+        List<String> itlList = new ArrayList<>();
+
+        StringMap extensions = volume.getExtensions();
+        if (null != extensions) {
+            Set<String> keys = extensions.keySet();
+            for (String key : keys)
+            {
+                if (key.startsWith(CinderConstants.PREFIX_ITL)) {
+                    itlList.add(extensions.get(key));
+                }
+            }
+        }
+
+        return itlList;
     }
 }

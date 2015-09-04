@@ -113,10 +113,11 @@ public interface BlockController extends BlockStorageManagementController {
      * @param storage URI of the storage controller.
      * @param snapshotList URIs of the snapshots.
      * @param createInactive Create the snapshot, but do not activate it (if supported by array)
+     * @param readOnly Create the snapshot as read only
      * @param opId Operation ID.
      * @throws InternalException When an exception occurs creating the snapshot
      */
-    public void createSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, String opId) throws InternalException;
+    public void createSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId) throws InternalException;
 
     /**
      * This interface is for the snapshot active. The createSnapshot may have done
@@ -136,8 +137,8 @@ public interface BlockController extends BlockStorageManagementController {
      * Open issue: need to allow snapshots with different CoS & pool
      * 
      * @param storage URI of the storage controller.
-     * @param snapshotList URIs of the snapshots.
      * @param opId Operation ID.
+     * @param snapshotList URIs of the snapshots.
      * @throws InternalException When an exception occurs deleting the snapshot
      */
     public void deleteSnapshot(URI storage, URI snapshot, String opId) throws InternalException;
@@ -155,6 +156,18 @@ public interface BlockController extends BlockStorageManagementController {
     public void restoreVolume(URI storage, URI pool, URI volume, URI snapshot, Boolean updateOpStatus, String opId)
             throws InternalException;
 
+    /**
+     * Resync a given snapshot from its parent volume.
+     * 
+     * @param storage URI of storage controller.
+     * @param volume URI of snapshot's parent volume.
+     * @param snapshot URI of snapshot used for resynchronization.
+     * @param opId Operation ID
+     * @throws InternalException When an exception occurs during snapshot resynchronization
+     */
+    public void resyncSnapshot(URI storage, URI volume, URI snapshot, Boolean updateOpStatus, String opId)
+            throws InternalException;
+    
     /**
      * Resynchronize clone from its source volume
      * 

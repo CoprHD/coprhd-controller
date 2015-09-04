@@ -15,6 +15,10 @@ public class XtremIOVolumeExpand {
     @SerializedName("vol-size")
     @JsonProperty(value = "vol-size")
     private String size;
+    
+    @SerializedName("cluster-id")
+    @JsonProperty(value = "cluster-id")
+    private String clusterName;
 
     public String getSize() {
         return size;
@@ -24,7 +28,16 @@ public class XtremIOVolumeExpand {
         this.size = size;
     }
 
+    public String getClusterName() {
+        return clusterName;
+    }
+
+    public void setClusterName(String clusterName) {
+        this.clusterName = clusterName;
+    }
+
+    @Override
     public String toString() {
-        return ". Size: " + size;
+        return "XtremIOVolumeExpand [size=" + size + ", clusterName=" + clusterName + "]";
     }
 }

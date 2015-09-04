@@ -6136,4 +6136,13 @@ public class SmisCommandHelper implements SmisConstants {
         }
         return result;
     }
+    
+    public CIMArgument[] getResyncSnapshotWithWaitInputArguments(CIMObjectPath syncObjectPath) {
+        return new CIMArgument[] {
+                _cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, ACTIVATE_VALUE),
+                _cimArgument.uint16(CP_OPERATION, RESYNC_VALUE),
+                _cimArgument.reference(CP_SYNCHRONIZATION, syncObjectPath),
+                _cimArgument.bool(CP_FORCE, true)
+        };
+    }
 }

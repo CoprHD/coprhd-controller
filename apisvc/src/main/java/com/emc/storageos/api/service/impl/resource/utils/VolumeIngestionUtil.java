@@ -2229,6 +2229,16 @@ public class VolumeIngestionUtil {
         }
     }
     
+    /**
+     * Returns a List of UnManagedVolumes that are snapshots of the given
+     * source UnManagedVolume.
+     * 
+     * @param unManagedVolume the volume to check for snapshots
+     * @param dbClient a reference to the database client
+     * 
+     * @return  a List of UnManagedVolumes that are snapshots of the given
+     * source UnManagedVolume
+     */
     public static List<UnManagedVolume> getUnManagedSnaphots(UnManagedVolume unManagedVolume, DbClient dbClient) {
         List<UnManagedVolume> snapshots = new ArrayList<UnManagedVolume>();
         _logger.info("checking for snapshots related to unmanaged volume " + unManagedVolume.getLabel());
@@ -2258,6 +2268,16 @@ public class VolumeIngestionUtil {
         return snapshots;
     }
 
+    /**
+     * Returns a List of UnManagedVolumes that are clones of the given
+     * source UnManagedVolume.
+     * 
+     * @param unManagedVolume the volume to check for clones
+     * @param dbClient a reference to the database client
+     * 
+     * @return  a List of UnManagedVolumes that are clones of the given
+     * source UnManagedVolume
+     */
     public static List<UnManagedVolume> getUnManagedClones(UnManagedVolume unManagedVolume, DbClient dbClient) {
         List<UnManagedVolume> clones = new ArrayList<UnManagedVolume>();
         _logger.info("checking for clones (full copies) related to unmanaged volume " + unManagedVolume.getLabel());

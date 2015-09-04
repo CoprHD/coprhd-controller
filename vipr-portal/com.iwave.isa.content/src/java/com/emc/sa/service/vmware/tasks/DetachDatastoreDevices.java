@@ -16,6 +16,13 @@ import com.vmware.vim25.ResourceInUse;
 import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.HostSystem;
 
+/**
+ * This task is responsible for etaching all of the Vmfs Datastore devices
+ * on all of its necessary hosts
+ * 
+ * @author Jay Logelin
+ *
+ */
 public class DetachDatastoreDevices extends RetryableTask<Void> {
     private final Datastore datastore;
     private final Collection<HostSystem> hosts;

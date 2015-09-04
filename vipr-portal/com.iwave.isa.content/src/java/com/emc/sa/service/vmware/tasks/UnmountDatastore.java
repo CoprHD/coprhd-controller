@@ -16,6 +16,13 @@ import com.vmware.vim25.ResourceInUse;
 import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.HostSystem;
 
+/**
+ * This task is responsible for umounting all of the Vmfs Volumes on a
+ * Datastore on all of its necessary hosts
+ * 
+ * @author Jay Logelin
+ *
+ */
 public class UnmountDatastore extends RetryableTask<Void> {
 
     private final Datastore datastore;

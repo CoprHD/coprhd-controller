@@ -17,7 +17,7 @@ import com.vmware.vim25.mo.Datastore;
 import com.vmware.vim25.mo.HostSystem;
 
 /**
- * This task is responsible for etaching all of the Vmfs Datastore devices
+ * This task is responsible for detaching all of the Vmfs Datastore devices
  * on all of its necessary hosts
  * 
  * @author Jay Logelin

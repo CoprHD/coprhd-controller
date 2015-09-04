@@ -103,7 +103,7 @@ public class ComputeImageServers extends AbstractCoreBulkResources<ComputeImageS
      * @return a task for monitoring the progress of the operation.
      */
     public Task<ComputeImageServerRestRep> create(ComputeImageServerCreate input) {
-        System.out.println("input " + input.getTftpbootDir());
+        System.out.println("ComputeImageServerCreate input " + input.getTftpbootDir());
 
         return postTask(input, baseUrl);
     }
@@ -111,16 +111,16 @@ public class ComputeImageServers extends AbstractCoreBulkResources<ComputeImageS
     /**
      * Begins updating the given compute image servers by ID.
      * <p>
-     * API Call: <tt>PUT /compute/computeimageservers/{id}</tt>
+     * API Call: <tt>PUT /compute/compute-imageservers/{id}</tt>
      * 
      * @param id
      *            the ID of the compute image server.
      * @param input
      *            the update configuration.
-     * @return a task for monitoring the progress of the operation.
+     * @return ComputeImageServerRestRep.
      */
-    public Task<ComputeImageServerRestRep> update(URI id, ComputeImageServerUpdate input) {
-        return putTask(input, getIdUrl(), id);
+    public ComputeImageServerRestRep update(URI id, ComputeImageServerUpdate input) {
+        return client.put(ComputeImageServerRestRep.class, input, getIdUrl(), id);
     }
 
     /**

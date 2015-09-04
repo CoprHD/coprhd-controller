@@ -23,8 +23,6 @@ class VnasServer(object):
     The class definition for operations on 'VNAS server'.
     '''
 
-
-
     URI_SERVICES_BASE = ''
     URI_STORAGEDEVICES = '/vdc/storage-systems'
     URI_VNSSERVER = '/vdc/vnas-servers'
@@ -32,7 +30,6 @@ class VnasServer(object):
     URI_VNASSERVER_ASSIGN = '/projects/{0}/assign-vnas-servers'
     URI_VNASSERVER_UNASSIGN = '/projects/{0}/unassign-vnas-servers' 
     
-   
 
     def __init__(self, ipAddr, port):
         '''
@@ -42,7 +39,6 @@ class VnasServer(object):
         self.__ipAddr = ipAddr
         self.__port = port
         
-
  
     #Vnasserver Query
     def vnasserver_query(self, name):
@@ -71,8 +67,6 @@ class VnasServer(object):
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "GET", uri, None)
         o = common.json_decode(s)
-        
-        
 
         if("vnas_server" in o):
             return common.get_list(o, 'vnas_server' )
@@ -96,13 +90,12 @@ class VnasServer(object):
         return o   
     
     
-    
     #assign project routine 
     def assign(self, name, project):
         '''
         Assigns the vnasserver to a Project
         Parameters:
-            name: name of the vnasserver.
+            name    : name of the vnasserver.
             project : project to be assigned .
         Returns:
             
@@ -111,21 +104,15 @@ class VnasServer(object):
         
         #Check if vnasserver is available 
         vnasserver_id = self.vnasserver_query(name)
-        
-        
          
         request = dict()
         request['vnas_server'] = [vnasserver_id]
-        
 
         if(project):
             proj_object = Project(self.__ipAddr, self.__port)
-            
             pr_uri = proj_object.project_query(project)
                 
         body = json.dumps(request)
-        
-        
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "PUT",
                                              VnasServer.URI_VNASSERVER_ASSIGN.format(pr_uri),
@@ -136,7 +123,6 @@ class VnasServer(object):
             o = common.json_decode(s)
             return o
         
-       
         
     def unassign(self, name, project=None):
         '''
@@ -156,22 +142,15 @@ class VnasServer(object):
             raise SOSError(
                 SOSError.ENTRY_ALREADY_EXISTS_ERR,
                 "vnasserver with name " + name + " does not exist")
-        
          
         request = dict()
-       
-      
         request['vnas_server'] = [vnasserver_id]
-        
-
         if(project):
             proj_object = Project(self.__ipAddr, self.__port)
-            
             pro_uri = proj_object.project_query(project)
                 
                       
         body = json.dumps(request)
-        
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "PUT",
                                              VnasServer.URI_VNASSERVER_UNASSIGN.format(pro_uri),
@@ -209,7 +188,6 @@ def list_parser(subcommand_parsers, common_parser):
     list_parser.set_defaults(func=vnasserver_list)
     
     
-    
 def vnasserver_list(args):
     obj = VnasServer(args.ip, args.port)
     from common import TableGenerator
@@ -228,7 +206,6 @@ def vnasserver_list(args):
             if(args.verbose is False and args.long is False):
                 TableGenerator(vnasServerList,
                                ["name"]).printTable()
-            
                 
             # show a long table
             if(args.verbose is False and args.long is True):
@@ -246,7 +223,6 @@ def vnasserver_list(args):
         raise e
     
     
-    
 def show_parser(subcommand_parsers, common_parser):
 
     show_parser = subcommand_parsers.add_parser(
@@ -256,7 +232,6 @@ def show_parser(subcommand_parsers, common_parser):
         conflict_handler='resolve',
         help='Show a Vnasserver')
     mandatory_args = show_parser.add_argument_group('mandatory arguments')
-
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<name>',
                                 dest='name',
@@ -283,8 +258,6 @@ def vnasserver_show(args):
     except SOSError as e:
         common.format_err_msg_and_raise("show", "vnasserver",
                                         e.err_text, e.err_code)
-
-
 
 
 def assign_parser(subcommand_parsers, common_parser):
@@ -350,7 +323,6 @@ def vnasserver_unassign(args):
                                         e.err_text, e.err_code)
 
         
-        
 def vnasserver_parser(parent_subparser, common_parser):
   
     parser = parent_subparser.add_parser('vnasserver',
@@ -360,8 +332,6 @@ def vnasserver_parser(parent_subparser, common_parser):
                 help='Operations on vNAS Server')
     subcommand_parsers = parser.add_subparsers(help='Use One Of Command')
 
-    # create command parser
-    #create_parser(subcommand_parsers, common_parser)
 
     # list command parser
     list_parser(subcommand_parsers, common_parser)

@@ -419,11 +419,10 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
             }
 
             if (processedUnManagedVolume.getUnmanagedExportMasks().isEmpty()) {
-                String reason = "the backend volume has no unmanaged export masks" 
+                String reason = "the backend volume has no unmanaged export masks " 
                         + processedUnManagedVolume.getLabel();
-                _logger.error(reason);
-                throw IngestionException.exceptions.generalVolumeException(
-                        processedUnManagedVolume.getLabel(), reason);
+                _logger.warn(reason);
+                continue;
             }
 
             _logger.info("ingesting export mask(s) for unmanaged volume " + processedUnManagedVolume);

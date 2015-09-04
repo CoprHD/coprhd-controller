@@ -312,7 +312,7 @@ public class ViPRCoreClient {
         return new UserGroup(this, client);
     }
     
-    public Site standby(){
+    public Site site(){
         return new Site(this, client);
     }
 }

@@ -4,9 +4,8 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
-import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
-
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Iterator;
 import java.util.List;
 
@@ -50,76 +49,101 @@ public class DisasterRecoveryService extends TaggedResource {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public SiteRestRep addStandby(SiteAddParam param) {
-        log.info("begin to add standby");
+        log.info("Begin to add standby site");
 
-        Site standby = new Site();
-        standby.setId(URIUtil.createId(Site.class));
-        standby.setUuid(param.getUuid());
-        standby.setName(param.getName());
-        standby.setVip(param.getVip());
-        standby.getHostIPv4AddressMap().putAll(new StringMap(param.getHostIPv4AddressMap()));
-        standby.getHostIPv6AddressMap().putAll(new StringMap(param.getHostIPv6AddressMap()));
+        Site standbySite = new Site();
+        standbySite.setId(URIUtil.createId(Site.class));
+        standbySite.setUuid(param.getUuid());
+        standbySite.setName(param.getName());
+        standbySite.setVip(param.getVip());
+        standbySite.getHostIPv4AddressMap().putAll(new StringMap(param.getHostIPv4AddressMap()));
+        standbySite.getHostIPv6AddressMap().putAll(new StringMap(param.getHostIPv6AddressMap()));
 
-        _dbClient.createObject(standby);
+        if (log.isDebugEnabled()) {
+            log.debug(standbySite.toString());
+        }
         
         VirtualDataCenter vdc = queryLocalVDC();
-        StringSet standbyIDs = vdc.getStandbyIDs();
 
-        if (standbyIDs == null) {
-            standbyIDs = new StringSet();
+        if (vdc.getStandbyIDs() == null) {
+            vdc.setStandbyIDs(new StringSet());
         }
 
-        standbyIDs.add(standby.getId().toString());
+        vdc.getStandbyIDs().add(standbySite.getId().toString());
 
-        log.info("update vdc");
+        log.info("Persist standby site to DB");
+        _dbClient.createObject(standbySite);
+        
+        log.info("Update VCD to persist new standby site ID");
         _dbClient.persistObject(vdc);
 
-        return SiteMapper.map(standby);
+        return SiteMapper.map(standbySite);
     }
 
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public SiteList getAllStandby() {
+        log.info("Begin to list all standby sites of local VDC");
         SiteList standbyList = new SiteList();
 
         VirtualDataCenter vdc = queryLocalVDC();
 
-        List<URI> ids = _dbClient.queryByType(Site.class, true);
-        Iterator<Site> iter = _dbClient.queryIterativeObjects(Site.class, ids);
-        while (iter.hasNext()) {
-            Site standby = iter.next();
-            if (vdc.getStandbyIDs().contains(standby.getId().toString())) {
-                standbyList.getSites().add(toNamedRelatedResource(standby));
+        try {
+            for (String id : vdc.getStandbyIDs()) {
+                standbyList.getSites().add(SiteMapper.map(queryResource(new URI(id))));
             }
+        } catch (URISyntaxException e) {
+            log.error("Failed to construct site object ID {}", e);
         }
+        
         return standbyList;
     }
 
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    public SiteRestRep getStandby(@PathParam("id") URI id) {
-        ArgValidator.checkFieldUriType(id, Site.class, "id");
+    public SiteRestRep getStandby(@PathParam("id") String id) {
+        log.info("Begin to get standby site by uuid");
+        
+        VirtualDataCenter vdc = queryLocalVDC();
+        
+        List<URI> ids = _dbClient.queryByType(Site.class, true);
+        Iterator<Site> iter = _dbClient.queryIterativeObjects(Site.class, ids);
+        while (iter.hasNext()) {
+            Site standby = iter.next();
+            if (vdc.getStandbyIDs().contains(standby.getId().toString())) {
+                if (standby.getUuid().equals(id)) {
+                    return SiteMapper.map(standby);
+                }
+            }
+        }
 
-        Site standby = queryResource(id);
-        return SiteMapper.map(standby);
+        return null;
     }
 
     @DELETE
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    public SiteRestRep removeStandby(@PathParam("id") URI id) {
-        ArgValidator.checkFieldUriType(id, Site.class, "id");
-        Site standby = queryResource(id);
-
+    public SiteRestRep removeStandby(@PathParam("id") String id) {
+        log.info("Begin to remove standby site from local vdc");
+        
         VirtualDataCenter vdc = queryLocalVDC();
-        StringSet standbyIDs = vdc.getStandbyIDs();
-        standbyIDs.remove(standby.getId().toString());
-
-        _dbClient.persistObject(vdc);
-        _dbClient.markForDeletion(standby);
-
-        return SiteMapper.map(standby);
+        
+        List<URI> ids = _dbClient.queryByType(Site.class, true);
+        Iterator<Site> iter = _dbClient.queryIterativeObjects(Site.class, ids);
+        while (iter.hasNext()) {
+            Site standby = iter.next();
+            if (vdc.getStandbyIDs().contains(standby.getId().toString())) {
+                if (standby.getUuid().equals(id)) {
+                    log.info("Find standby site in local VDC and remove it");
+                    _dbClient.persistObject(vdc);
+                    _dbClient.markForDeletion(standby);
+                    return SiteMapper.map(standby);
+                }
+            }
+        }
+        
+        return null;
     }
 
     @Override

@@ -15,24 +15,24 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 @XmlRootElement(name = "sites")
 public class SiteList {
 
-    private List<NamedRelatedResourceRep> sites;
+    private List<SiteRestRep> sites;
 
     public SiteList() {
     }
 
-    public SiteList(List<NamedRelatedResourceRep> standbys) {
+    public SiteList(List<SiteRestRep> standbys) {
         this.sites = standbys;
     }
 
-    @XmlElement(name = "sites")
-    public List<NamedRelatedResourceRep> getSites() {
+    @XmlElement(name = "site")
+    public List<SiteRestRep> getSites() {
         if (sites == null) {
-            sites = new ArrayList<NamedRelatedResourceRep>();
+            sites = new ArrayList<SiteRestRep>();
         }
         return sites;
     }
 
-    public void setSites(List<NamedRelatedResourceRep> sites) {
+    public void setSites(List<SiteRestRep> sites) {
         this.sites = sites;
     }
 }

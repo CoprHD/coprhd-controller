@@ -35,6 +35,7 @@ import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockMirror.SynchronizationState;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DecommissionedResource;
@@ -177,6 +178,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     private static final String DELETE_SNAPSHOT_SESSION_WF_NAME = "deleteSnapshotSessionWF";
     private static final String CREATE_SNAPSHOT_SESSION_STEP_GROUP = "createSnapshotSession";
     private static final String CREATE_SNAPSHOT_SESSION_METHOD = "createBlockSnapshotSession";
+    private static final String RB_CREATE_SNAPSHOT_SESSION_METHOD = "rollbackCreateBlockSnapshotSession";
     private static final String LINK_SNAPSHOT_SESSION_TARGET_STEP_GROUP = "LinkSnapshotSessionTarget";
     private static final String LINK_SNAPSHOT_SESSION_TARGET_METHOD = "linkBlockSnapshotSessionTarget";
     private static final String RB_LINK_SNAPSHOT_SESSION_TARGET_METHOD = "rollbackLinkBlockSnapshotSessionTarget";
@@ -3554,8 +3556,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
 
             // Create a step to create the session.
             String waitFor = workflow.createStep(CREATE_SNAPSHOT_SESSION_STEP_GROUP, String.format("Creating block snapshot session"),
-                    null, systemURI, getDeviceType(systemURI), getClass(), createBlockSnapshotSessionMethod(systemURI, snapSessionURIs),
-                    null, null);
+                    null, systemURI, getDeviceType(systemURI), getClass(),
+                    createBlockSnapshotSessionMethod(systemURI, snapSessionURIs),
+                    rollbackMethodNullMethod(), null);
 
             // If necessary add a step for each session to create the new targets and link them to the session.
             if ((sessionSnapshotURIMap != null) && (!sessionSnapshotURIMap.isEmpty())) {
@@ -3689,6 +3692,18 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @param stepId The unique id of the workflow step in which the rollback is executed.
      */
     public void rollbackLinkBlockSnapshotSessionTarget(URI systemURI, URI snapSessionURI, URI snapshotURI, String stepId) {
+        // We do not rollback successfully linked targets. If the target
+        // was not successfully created and linked, it could in one of two
+        // states. Either the target is not provisioned, or the target is
+        // provisioned but not linked to the array snapshot. We call the
+        // method to unlink the target and make sure the unlink target
+        // algorithm accounts for these possibilities. Successfully linked
+        // targets will be in the list of linked targets for the session.
+        BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
+        StringSet linkedTargets = snapSession.getLinkedTargets();
+        if ((linkedTargets == null) || (!linkedTargets.contains(snapshotURI.toString()))) {
+            unlinkBlockSnapshotSessionTarget(systemURI, snapSessionURI, snapshotURI, Boolean.TRUE, stepId);
+        }
     }
 
     /**
@@ -3799,7 +3814,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     @Override
     public void unlinkTargetsFromSnapshotSession(URI systemURI, URI snapSessionURI,
             Map<URI, Boolean> snapshotDeletionMap, String opId) {
-        TaskCompleter completer = new BlockSnapshotSessionUnlinkTargetsWorkflowCompleter(snapSessionURI, snapshotDeletionMap, opId);
+        TaskCompleter completer = new BlockSnapshotSessionUnlinkTargetsWorkflowCompleter(snapSessionURI, opId);
         try {
             // Get a new workflow to unlinking of the targets from session.
             Workflow workflow = _workflowService.getNewWorkflow(this, UNLINK_SNAPSHOT_SESSION_TARGETS_WF_NAME, false, opId);
@@ -3856,7 +3871,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         TaskCompleter completer = null;
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, systemURI);
-            completer = new BlockSnapshotSessionUnlinkTargetCompleter(snapSessionURI, snapshotURI, stepId);
+            completer = new BlockSnapshotSessionUnlinkTargetCompleter(snapSessionURI, snapshotURI, deleteTarget, stepId);
             getDevice(system.getSystemType()).doUnlinkBlockSnapshotSessionTarget(system, snapSessionURI,
                     snapshotURI, deleteTarget, completer);
         } catch (Exception e) {

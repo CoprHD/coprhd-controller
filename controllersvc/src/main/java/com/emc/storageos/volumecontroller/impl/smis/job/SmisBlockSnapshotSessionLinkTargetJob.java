@@ -93,7 +93,6 @@ public class SmisBlockSnapshotSessionLinkTargetJob extends SmisSnapShotJob {
                     String targetVolumeAltName = CIMPropertyFactory.getPropertyValue(targetVolume, SmisConstants.CP_NAME);
                     BlockObject sourceObj = BlockObject.fetch(dbClient, snapshot.getParent().getURI());
                     StorageSystem system = dbClient.queryObject(StorageSystem.class, getStorageSystemURI());
-                    snapshot.setNativeId(targetVolumeDeviceId);
                     snapshot.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(system, snapshot));
                     snapshot.setDeviceLabel(targetVolumeElementName);
                     snapshot.setInactive(false);

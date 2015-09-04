@@ -23,9 +23,7 @@ import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 
 /**
- * Base task completer for operations on BlockSnapshotSession instances.
- * 
- * BlockSnapshotSession completes.
+ * Abstract base task completer for operations on BlockSnapshotSession instances.
  */
 @SuppressWarnings("serial")
 public abstract class BlockSnapshotSessionCompleter extends TaskCompleter {

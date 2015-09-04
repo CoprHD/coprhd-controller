@@ -58,7 +58,6 @@ public class BlockSnapshotSessionLinkTargetsWorkflowCompleter extends BlockSnaps
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         URI snapSessionURI = getId();
         try {
-            // Update the status map of the snapshot session.
             BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
             BlockObject sourceObj = BlockObject.fetch(dbClient, snapSession.getParent().getURI());
 
@@ -66,35 +65,39 @@ public class BlockSnapshotSessionLinkTargetsWorkflowCompleter extends BlockSnaps
             recordBlockSnapshotSessionOperation(dbClient, OperationTypeEnum.LINK_SNAPSHOT_SESSION_TARGET,
                     status, snapSession, sourceObj);
 
+            // Update the status map of the snapshot session.
             switch (status) {
                 case error:
-                    setErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI, coded);
-
-                    // Mark ViPR BlockSnapshot instances inactive on error.
+                    // For those BlockSnapshot instances representing linked targets that
+                    // were not successfully created and linked to the array snapshot
+                    // represented by the BlockSnapshotSession instance, mark them inactive.
                     for (URI snapshotURI : _snapshotURIs) {
-                        BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotURI);
-                        snapshot.setInactive(true);
-                        dbClient.persistObject(snapshot);
+                        // Successfully linked targets will be in the list of linked
+                        // targets for the session.
+                        StringSet linkedTargets = snapSession.getLinkedTargets();
+                        if ((linkedTargets == null) || (!linkedTargets.contains(snapshotURI.toString()))) {
+                            BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+                            // If rollback was successful the snapshot would already have been
+                            // marked inactive, so be sure to check for null.
+                            if ((snapshot != null) && (!snapshot.getInactive())) {
+                                snapshot.setInactive(true);
+                                dbClient.persistObject(snapshot);
+                            }
+                        }
                     }
+
+                    setErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI, coded);
                     break;
                 case ready:
-                default:
                     setReadyOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI);
-
-                    // Adds these linked targets to the linked targets for the session.
-                    StringSet linkedTargets = snapSession.getLinkedTargets();
-                    if (linkedTargets == null) {
-                        linkedTargets = new StringSet();
-                        snapSession.setLinkedTargets(linkedTargets);
-                    }
-                    for (URI snapshotURI : _snapshotURIs) {
-                        linkedTargets.add(snapshotURI.toString());
-                    }
-                    dbClient.persistObject(snapSession);
+                default:
+                    String errMsg = String.format("Unexpected status %s for completer for task %s", status.name(), getOpId());
+                    s_logger.info(errMsg);
+                    throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
             }
 
             if (isNotifyWorkflow()) {
-                // If there is a workflow, update the step to complete.
+                // If there is a workflow, update the task to complete.
                 updateWorkflowStatus(status, coded);
             }
             s_logger.info("Done create and link new target volumes task {} with status: {}", getOpId(), status.name());

@@ -260,11 +260,6 @@ public class DefaultBlockSnapshotSessionApiImpl implements BlockSnapshotSessionA
             // the BlockSnapshot instances to represent those targets.
             if (newTargetCount > 0) {
                 List<URI> snapshotURIs = prepareSnapshotsForSession(sourceObj, sourceCount, newTargetCount, newTargetsName);
-                StringSet linkedTargetIds = new StringSet();
-                for (URI snapshotURI : snapshotURIs) {
-                    linkedTargetIds.add(snapshotURI.toString());
-                }
-                snapSession.setLinkedTargets(linkedTargetIds);
                 snapSessionSnapshotMap.put(snapSession.getId(), snapshotURIs);
             } else {
                 snapSessionSnapshotMap.put(snapSession.getId(), new ArrayList<URI>());

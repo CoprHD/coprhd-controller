@@ -16,6 +16,7 @@ import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -55,10 +56,9 @@ public class BlockSnapshotSessionCreateWorkflowCompleter extends BlockSnapshotSe
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
         try {
-            List<URI> sessionURIs = getIds();
-            for (URI sessionURI : sessionURIs) {
-                BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, sessionURI);
-                List<URI> sessionSnapshotURIs = _sessionSnapshotMap.get(sessionURI);
+            List<URI> snapSessionURIs = getIds();
+            for (URI snapSessionURI : snapSessionURIs) {
+                BlockSnapshotSession snapSession = dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
                 BlockObject sourceObj = BlockObject.fetch(dbClient, snapSession.getParent().getURI());
 
                 // Record the results.
@@ -68,25 +68,39 @@ public class BlockSnapshotSessionCreateWorkflowCompleter extends BlockSnapshotSe
                 // Update the status map of the snapshot session.
                 switch (status) {
                     case error:
-                        setErrorOnDataObject(dbClient, BlockSnapshotSession.class, sessionURI, coded);
-
-                        // Mark ViPR object inactive on error.
-                        snapSession.setInactive(true);
-                        dbClient.persistObject(snapSession);
-                        for (URI sessionSnapshotURI : sessionSnapshotURIs) {
-                            BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, sessionSnapshotURI);
-                            snapshot.setInactive(true);
-                            dbClient.persistObject(snapshot);
+                        // For those BlockSnapshot instances representing linked targets that
+                        // were not successfully created and linked to the array snapshot
+                        // represented by the BlockSnapshotSession instance, mark them inactive.
+                        for (URI snapshotURI : _sessionSnapshotMap.get(snapSessionURI)) {
+                            // Successfully linked targets will be in the list of linked
+                            // targets for the session.
+                            StringSet linkedTargets = snapSession.getLinkedTargets();
+                            if ((linkedTargets == null) || (!linkedTargets.contains(snapshotURI.toString()))) {
+                                BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+                                // If rollback was successful the snapshot would already have been
+                                // marked inactive, so be sure to check for null.
+                                if ((snapshot != null) && (!snapshot.getInactive())) {
+                                    snapshot.setInactive(true);
+                                    dbClient.persistObject(snapshot);
+                                }
+                            }
                         }
+
+                        setErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI, coded);
+                        break;
+                    case ready:
+                        setReadyOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI);
                         break;
                     default:
-                        setReadyOnDataObject(dbClient, BlockSnapshotSession.class, sessionURI);
+                        String errMsg = String.format("Unexpected status %s for completer for task %s", status.name(), getOpId());
+                        s_logger.info(errMsg);
+                        throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
                 }
 
             }
 
             if (isNotifyWorkflow()) {
-                // If there is a workflow, update the step to complete.
+                // If there is a workflow, update the task to complete.
                 updateWorkflowStatus(status, coded);
             }
             s_logger.info("Done snapshot session create task {} with status: {}", getOpId(), status.name());

@@ -55,6 +55,7 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.exceptions.DeviceControllerExceptions;
@@ -1262,6 +1263,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
                 URI sourceObjURI = snapshot.getParent().getURI();
                 if (URIUtil.isType(sourceObjURI, Volume.class)) {
+                    // first we need to provision the new target volume.
                     Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceObjURI);
                     CIMObjectPath volumeGroupPath = _helper.getVolumeGroupPath(system, sourceVolume, null);
                     CIMObjectPath poolPath = findSnapStoragePoolOrNull(system);
@@ -1271,7 +1273,18 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                             SmisConstants.MAX_SMI80_SNAPSHOT_NAME_LENGTH);
                     List<String> targetDeviceIds = createTargetDevices(system, poolPath, volumeGroupPath, null, "SingleSnapshot",
                             label, Boolean.FALSE, 1, sourceVolume.getCapacity(), completer);
+                    if (targetDeviceIds.isEmpty()) {
+                        throw DeviceControllerException.exceptions.createTargetForSnapshotSessionFailed(snapSessionURI.toString());
+                    }
 
+                    // Set the native id into the snapshot. This will allow a rollback
+                    // to delete the target if we subsequently fail to link the target
+                    // to the array snapshot.
+                    String targetDeviceId = targetDeviceIds.get(0);
+                    snapshot.setNativeId(targetDeviceId);
+                    _dbClient.persistObject(snapshot);
+
+                    // Now link the target to the array snapshot represented by the session.
                     CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
                     BlockSnapshotSession snapSession = _dbClient.queryObject(BlockSnapshotSession.class, snapSessionURI);
                     String settingsStateInstanceId = snapSession.getSessionInstance();
@@ -1343,19 +1356,65 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             // Only supported for VMAX3 storage systems.
             try {
                 _log.info("Unlink target {} from snapshot session {} START", snapshotURI, snapSessionURI);
-                CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
                 BlockSnapshot snapshot = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
-                CIMArgument[] inArgs = _helper.getUnlinkBlockSnapshotSessionTargetInputArguments(system, snapshot);
-                CIMArgument[] outArgs = new CIMArgument[5];
-                _helper.invokeMethodSynchronously(system, replicationSvcPath, SmisConstants.MODIFY_REPLICA_SYNCHRONIZATION, inArgs,
-                        outArgs, null);
+                String targetDeviceId = snapshot.getNativeId();
+                if ((targetDeviceId == null) || (targetDeviceId.isEmpty())) {
+                    // The snapshot has no target device id. This means we must
+                    // have failed creating the target device for a link target
+                    // request and unlink target is being called in rollback.
+                    // Since the target was never created, we just return
+                    // success.
+                    _log.info("Snapshot target {} was never created.", snapshotURI);
+                    completer.ready(_dbClient);
+                    return;
+                }
+
+                // If the snapshot has a native id, then we at least
+                // know the target device was created. Now we try and get
+                // the sync object path representing the linked target so
+                // that it can be detached.
+                CIMObjectPath syncObjectPath = _cimPath.getSyncObject(system, snapshot);
+                if (!SmisConstants.NULL_CIM_OBJECT_PATH.equals(syncObjectPath)) {
+                    CIMArgument[] inArgs = _helper.getUnlinkBlockSnapshotSessionTargetInputArguments(syncObjectPath);
+                    CIMArgument[] outArgs = new CIMArgument[5];
+                    CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
+                    _helper.invokeMethodSynchronously(system, replicationSvcPath, SmisConstants.MODIFY_REPLICA_SYNCHRONIZATION, inArgs,
+                            outArgs, null);
+
+                    // Succeeded in unlinking the target from the snapshot.
+                    snapshot.setSettingsInstance(NullColumnValueGetter.getNullStr());
+                    _dbClient.persistObject(snapshot);
+                } else {
+                    // For some reason we could not find the path for the
+                    // CIM_StorageSychronized instance for the linked target.
+                    // If the settingsInstance for the snapshot is not set,
+                    // this may mean we just failed a link target request
+                    // and unlink target is being called in rollback. In this
+                    // case we successfully created the target volume, but
+                    // failed to link the target to the snapshot, in which
+                    // case the settingsInstance would be null. Otherwise,
+                    // we could be retrying a failed unlink request. In this
+                    // case, we must have succeeded in unlinking the target
+                    // from the array snapshot, but failed attempting to
+                    // delete the target volume. If the unlink is successful,
+                    // the settingsInstance is reset to null. So, if the
+                    // settingsInstance is null, we move on without failing.
+                    // Otherwise, we should
+                    String settingsInstance = snapshot.getSettingsInstance();
+                    if (NullColumnValueGetter.isNotNullValue(settingsInstance)) {
+                        throw DeviceControllerException.exceptions.couldNotFindSyncObjectToUnlinkTarget(targetDeviceId);
+                    }
+                }
+
                 if (deleteTarget) {
-                    String nativeId = snapshot.getNativeId();
-                    _log.info("Delete target device {}:{}", snapshot.getNativeId(), snapshotURI);
+                    _log.info("Delete target device {}:{}", targetDeviceId, snapshotURI);
                     List<String> targetDeviceIds = new ArrayList<String>();
-                    targetDeviceIds.add(nativeId);
+                    targetDeviceIds.add(targetDeviceId);
                     deleteTargetDevices(system, targetDeviceIds.toArray(new String[1]), completer);
                     _log.info("Delete target device complete");
+                } else {
+                    // We are done.
+                    completer.ready(_dbClient);
                 }
             } catch (Exception e) {
                 _log.info("Exception unlinking snapshot session target", e);

@@ -6166,25 +6166,13 @@ public class SmisCommandHelper implements SmisConstants {
     /**
      * Get the SMI-S input arguments when unlinking a target from an array snapshot.
      * 
-     * @param storageSystem A reference to the storage system.
-     * @param snapshot A reference to the BlockSnapshot instance representing the target to be unlinked.
+     * @param syncObject The path for the CIM_StorageSynchronized instance for the linked target.
      * 
      * @return An array of CIMArgument
      */
-    public CIMArgument[] getUnlinkBlockSnapshotSessionTargetInputArguments(StorageSystem storageSystem, BlockSnapshot snapshot) {
-        // Get the CIM object path of the CIM_StorageSynchronized representing the
-        // association of a target to a source for a given array snapshot.
-        CIMObjectPath syncObject;
-        try {
-            syncObject = _cimPath.getSyncObject(storageSystem, snapshot);
-        } catch (Exception e) {
-            throw new IllegalStateException(String.format("Problem constructing StorageSynchronized path for BlockSnapshot %s",
-                    snapshot.getId()));
-        }
-
-        int operation = DETACH_VALUE;
+    public CIMArgument[] getUnlinkBlockSnapshotSessionTargetInputArguments(CIMObjectPath syncObject) {
         return new CIMArgument[] {
-                _cimArgument.uint16(CP_OPERATION, operation),
+                _cimArgument.uint16(CP_OPERATION, DETACH_VALUE),
                 _cimArgument.reference(CP_SYNCHRONIZATION, syncObject)
         };
     }

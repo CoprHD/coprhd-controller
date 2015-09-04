@@ -438,4 +438,10 @@ public interface DeviceControllerExceptions {
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException deleteBlockSnapshotSessionFailed(final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException createTargetForSnapshotSessionFailed(final String snapSessionId);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException couldNotFindSyncObjectToUnlinkTarget(final String deviceId);
 }

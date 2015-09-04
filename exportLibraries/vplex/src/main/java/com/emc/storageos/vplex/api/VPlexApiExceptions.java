@@ -711,4 +711,17 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException systemTypeNotSupported(String systemType);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedGettingStorageVolumeInfo(String clusterName, String status);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedProcessingStorageVolumeResponse(String msg, final Throwable cause);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException couldNotFindStorageVolumeMatchingWWNOrITL(String volumeName, String storageSystemNativeId);
+    
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedToValidateExportMask(String exporURI, final Throwable cause);
+    
 }

@@ -270,6 +270,7 @@ public enum ResourceOperationTypeEnum {
     UPLOAD_BACKUP("UPLOAD BACKUP", "upload ViPR backup to external location"),
     CREATE_VCENTER_CLUSTER("CREATE VCENTER CLUSTER", "create a cluster in vCenter server"),
     UPDATE_VCENTER_CLUSTER("UPDATE VCENTER CLUSTER", "update a cluster in vCenter server"),
+    ADD_JOURNAL_VOLUME("ADD JOURNAL VOLUME", "add journal volume to consistency group"),
     SYS_EVENT("SYSTEM EVENT", "System Event");
 
     private final String name;

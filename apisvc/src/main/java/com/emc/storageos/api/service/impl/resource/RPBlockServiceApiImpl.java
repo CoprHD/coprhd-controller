@@ -528,15 +528,20 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * Used to create a task and add it to the TaskList
      * 
      * @param volume Volume that the task is for
+     * @param capabilities 
      * @param taskList The TaskList to store tasks
      * @param task Task Id
      * @param isChangeVpool Boolean to determine if this is a change vpool op
      */
-    private void createTaskForVolume(Volume volume, TaskList taskList, String task, boolean isChangeVpool) {                
+    private void createTaskForVolume(Volume volume, VirtualPoolCapabilityValuesWrapper capabilities, TaskList taskList, String task, boolean isChangeVpool) {                
         ResourceOperationTypeEnum type = ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME;
         
         if (isChangeVpool) {
             type = ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL;
+        }
+        
+        if (capabilities.getAddJournalCapacity()) {
+        	type = ResourceOperationTypeEnum.ADD_JOURNAL_VOLUME;
         }
         
         // Create the OP
@@ -910,7 +915,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             boolean createTask = isTaskRequired(rpVolume, capabilities, vplex, isChangeVpool);
             if (createTask) {
                 // Create a task for this volume
-                createTaskForVolume(rpVolume, taskList, task, isChangeVpool);
+                createTaskForVolume(rpVolume, capabilities, taskList, task, isChangeVpool);
             }
 
             return rpVolume;
@@ -3105,7 +3110,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         for (Volume cgVolume : cgVolumes) {        	
         	if (!cgVolume.getPersonality().equals(Volume.PersonalityTypes.METADATA.name()) && cgVolume.getRpCopyName().equals(copyName)) {        		
         		foundCopy = true;
-        		internalSiteName = cgVolume.getInternalSiteName();;
+        		internalSiteName = cgVolume.getInternalSiteName();
         		if (cgVolume.getPersonality().equals((Volume.PersonalityTypes.SOURCE.name()))) {
         			if (cgVolume.getRpCopyName().contains("Standby")) {
 	        			isMPStandby = true;

@@ -546,7 +546,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                 _log.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
                 taskCompleter.error(dbClient, DeviceControllerException.exceptions
                         .consistencyGroupNotFound(consistencyGroup.getLabel(),
-                                consistencyGroup.fetchArrayCgName(storage.getId())));
+                                consistencyGroup.getCgNameOnStorageSystem(storage.getId())));
                 return;
             }
 
@@ -595,7 +595,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                 _log.error("The consistency group does not exist in the array: {}", storage.getSerialNumber());
                 taskCompleter.error(dbClient, DeviceControllerException.exceptions
                         .consistencyGroupNotFound(consistencyGroup.getLabel(),
-                                consistencyGroup.fetchArrayCgName(storage.getId())));
+                                consistencyGroup.getCgNameOnStorageSystem(storage.getId())));
                 return;
             }
 

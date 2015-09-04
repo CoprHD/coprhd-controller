@@ -160,6 +160,7 @@
         #{nav.separator/}
         #{nav.item 'file.filesystems', href: @resources.FileSystems.fileSystems()/}
         #{nav.item 'file.snapshots', href: @resources.FileSnapshots.snapshots()/}
+        #{nav.item 'object.buckets', href: @resources.ObjectBuckets.buckets()/}
         #{nav.separator /}
         #{nav.item 'tasks', href: @Tasks.listAll()/}
       #{/nav.menuSection}
@@ -226,6 +227,7 @@
       #{nav.menuSection 'nav.settings'} 
         #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['RESTRICTED_SECURITY_ADMIN']]}
             #{nav.item 'properties', href: @infra.ConfigProperties.properties()/}
+            #{nav.item 'disasterRecovery', href: @infra.ConfigProperties.properties()/}
             #{if controllers.infra.ClusterInfo.isVMwareVapp()}
             	#{nav.item 'clusterInfo', href: @infra.ClusterInfo.clusterIpInfo()/}
             #{/if}

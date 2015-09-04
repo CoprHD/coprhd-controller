@@ -11,8 +11,8 @@ import com.google.common.collect.Lists;
 import util.StringOption;
 
 public class ObjectProtocols {
-    public static final String SWIFT = "SWIFT";
-    public static final String ATMOS = "ATMOS";
+    public static final String SWIFT = "Swift";
+    public static final String ATMOS = "Atmos";
     public static final String S3 = "S3";
 
     public static boolean isSWIFT(String type) {

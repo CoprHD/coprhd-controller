@@ -98,7 +98,7 @@ public class BucketScheduler {
             }
 
             // Select only those Storage pool whose retention days is more than that of Virtual Pool
-            if (pool.getMaxRetentionDays() > vpool.getMaxRetentionDays()) {
+            if (pool.getMaxRetention() > vpool.getMaxRetention()) {
                 result.add(rec);
             }
         }

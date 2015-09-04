@@ -133,6 +133,7 @@ nav.computeSystems=Vblock Compute Systems
 nav.computeImages=Compute Images
 nav.sites=Sites
 nav.userGroups=User Groups
+nav.object.buckets=Buckets
 # Override messages in the Secure plugin
 secure.title=
 secure.username=Username:
@@ -202,7 +203,7 @@ DefaultStorageArrayPortMap.scaleio=22
 DefaultStorageArrayPortMap.scaleio_useSSL=22
 DefaultStorageArrayPortMap.datadomain=3009
 DefaultStorageArrayPortMap.datadomain_useSSL=3009
-DefaultStorageArrayPortMap.ecs=8080
+DefaultStorageArrayPortMap.ecs=4443
 DefaultStorageArrayPortMap.ecs_useSSL=8080
 
 DefaultStorageProviderPortMap.hicommand_useSSL=2001
@@ -3047,6 +3048,17 @@ resources.migration.name=Name
 resources.varray=Virtual Array
 resources.vpool=Virtual Pool
 
+resources.bucket.deleteLink=Delete Bucket
+resources.bucket.deleteLink.FULL=Full
+resources.bucket.deleteLink.VIPR_ONLY=Inventory Only
+resources.bucket.notfound=Bucket Not Found
+resources.buckets.deactivate=Created %s tasks to delete buckets.
+resources.bucket.deactivate=Created task to delete bucket.
+resources.buckets.unknown=Unknown Bucket with ID '%s'
+resources.buckets.deleteConfirm=Are you sure you want to delete the selected buckets?
+resources.buckets.deleteConfirm.FULL=Are you sure you want to delete the selected buckets fully?
+resources.buckets.deleteConfirm.VIPR_ONLY=Are you sure you want to delete the selected buckets from the inventory?
+
 resources.exports.none=No Exports
 resources.exportgroups.deleteConfirm=Are you sure you want to delete the selected export groups?
 resources.snapshots.deleteConfirm=Are you sure you want to delete the selected snapshots?
@@ -3201,6 +3213,11 @@ secretKeys.noNamespaceConfigured.short=Tenant Namespace is not configured.
 volumes.lun=LUN
 volumes.actions=Actions
 
+buckets.name=Bucket Name
+buckets.capacity=Size
+buckets.vpool=Object Virtual Pool
+buckets.varray=Virtual Array
+buckets.protocols=Protocols
 
 ###########################################################
 # Common Module Messages

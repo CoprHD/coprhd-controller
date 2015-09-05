@@ -36,6 +36,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
@@ -364,7 +365,7 @@ public class FileStorageScheduler {
                     .hasNext();) {
                 VirtualNAS vNAS = iterator.next();
                 // Remove vNAS assigned to projects
-                if (vNAS.getProject() != null) {
+                if (!NullColumnValueGetter.isNullURI(vNAS.getProject())) {
                     _log.debug("Removing vNAS {} as it is assigned to project",
                             vNAS.getId());
                     iterator.remove();

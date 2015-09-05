@@ -109,7 +109,7 @@ public class ECSApi {
 		List<ECSStoragePool> ecsPools = new ArrayList<ECSStoragePool>();
 		JSONObject objRG = null;
 		JSONArray aryVarray = null;
-		int storagepoolTotalCapacity = 0, storagepoolFreeCapacity = 0;
+		Long storagepoolTotalCapacity = 0L, storagepoolFreeCapacity = 0L;
 		ClientResponse clientRespVarray = null;
 		
     	try {
@@ -155,6 +155,7 @@ public class ECSApi {
     			}//for each ECS varray
 
     			pool.setName(objRG.getString("name"));
+    			pool.setId(objRG.getString("id"));
     			pool.setTotalCapacity(storagepoolTotalCapacity);
     			pool.setFreeCapacity(storagepoolFreeCapacity);
     			ecsPools.add(pool);

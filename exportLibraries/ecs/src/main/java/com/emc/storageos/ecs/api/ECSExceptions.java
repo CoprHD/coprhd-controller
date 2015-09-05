@@ -21,5 +21,8 @@ public interface ECSExceptions {
     
     @DeclareServiceCode(ServiceCode.ECS_STATS_ERROR)
     public ECSException getStoragePoolsFailed(final String response, final Throwable cause);
+    
+    @DeclareServiceCode(ServiceCode.ECS_NON_SYSTEM_ADMIN_ERROR)
+    public ECSException discoverFailed(final String response);
 
 }

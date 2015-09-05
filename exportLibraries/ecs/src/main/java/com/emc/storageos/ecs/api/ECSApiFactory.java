@@ -147,8 +147,8 @@ public class ECSApiFactory {
         return ecsApi;
     }
     
-   /* 
-    public static void main(String[] args) {
+   
+    /*public static void main(String[] args) {
     	System.out.println("starting ecs main");
     	URI uri = URI.create(String.format("https://10.247.78.171:4443/login"));
     	ECSApiFactory factory = new ECSApiFactory();

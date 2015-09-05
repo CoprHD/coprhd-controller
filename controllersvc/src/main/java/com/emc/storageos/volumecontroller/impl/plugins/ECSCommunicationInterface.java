@@ -18,9 +18,11 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePool.PoolServiceType;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.ecs.api.ECSApi;
@@ -84,19 +86,42 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             String authToken = ecsApi.getAuthToken();
             
             //Make sure user is system admin before proceeding to discovery
+            if (!ecsApi.isSystemAdmin()) {
+            	_logger.error("User:" + accessProfile.getUserName() + "dont have privileges to access Elastic Clound Storage: "
+            			+ accessProfile.getIpAddress());
+            	_logger.error("Discovery failed");
+            	throw ECSException.exceptions.discoverFailed("User is not ECS System Admin");
+            }
             
+            //Get details of storage system
             String nativeGuid = NativeGUIDGenerator.generateNativeGuid(DiscoveredDataObject.Type.ecs.toString(),
             		authToken);
             storageSystem.setNativeGuid(nativeGuid);
+            storageSystem.setSerialNumber(nativeGuid); //No serial num API exposed
+            //storageSystem.setUsername(accessProfile.getUserName());
+            //storageSystem.setPassword(accessProfile.getPassword());
+            storageSystem.setPortNumber(accessProfile.getPortNumber());
+            storageSystem.setIpAddress(accessProfile.getIpAddress());
+            storageSystem.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
             storageSystem.setReachableStatus(true);
             _dbClient.persistObject(storageSystem);
             
-            //Get storage pools
+            //Discover storage pools
+            Map<String, List<StoragePool>> storagePools = new HashMap<String, List<StoragePool>>();
+            List<StoragePool> newPools = new ArrayList<StoragePool>();
+            List<StoragePool> existingPools = new ArrayList<StoragePool>();
             List<StoragePool> pools = new ArrayList<StoragePool>();
+            
             List<ECSStoragePool> ecsStoragePools = ecsApi.getStoragePools();
+
             for (ECSStoragePool ecsPool : ecsStoragePools)  {
             	storagePool = new StoragePool();
-            	storagePool.setNativeGuid(nativeGuid);
+            	storagePool.setNativeId(ecsPool.getId());
+            	String storagePoolNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                        storageSystem, ecsPool.getId(), NativeGUIDGenerator.POOL);
+            	storagePool.setNativeGuid(storagePoolNativeGuid);
+                storagePool.setLabel(storagePoolNativeGuid);
+            	storagePool.setPoolName(ecsPool.getName()); 
             	storagePool.setStorageDevice(storageSystem.getId());
             	storagePool.setId(URIUtil.createId(StoragePool.class));
             	storagePool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.toString());
@@ -108,18 +133,15 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             	protocols.add("Atmos");
             	storagePool.setProtocols(protocols);
             	storagePool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THIN_AND_THICK.toString());
-            	storagePool.setFreeCapacity((1024L*1024L*1024L)); // 1TB
-            	storagePool.setTotalCapacity((1024L*1024L*1024L));  // 1TB
-            	storagePool.setLabel(ecsPool.getName());
-            	
-            	storagePool.setPoolName(ecsPool.getName());
+            	storagePool.setFreeCapacity(ecsPool.getFreeCapacity());
+            	storagePool.setTotalCapacity(ecsPool.getTotalCapacity());
             	storagePool.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
             	storagePool.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
-            	storagePool.setNativeId(nativeGuid);
             	pools.add(storagePool);
             }
-            
             _dbClient.createObject(pools);
+            
+            //Get storage ports
             
 		}  catch (Exception e) {
             detailedStatusMessage = String.format("Discovery failed for Storage System ECS Test: because %s",

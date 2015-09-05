@@ -62,12 +62,12 @@ public class FileStorageScheduler {
     public void setScheduleUtils(StorageScheduler scheduleUtils) {
         _scheduler = scheduleUtils;
     }
-    
-    public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
-		this.customConfigHandler = customConfigHandler;
-	}
 
-	/**
+    public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
+        this.customConfigHandler = customConfigHandler;
+    }
+
+    /**
      * Schedule storage for fileshare in the varray with the given CoS
      * capabilities.
      * 
@@ -185,25 +185,25 @@ public class FileStorageScheduler {
      * Retrieve list of recommended storage ports for file placement
      * Follows the step to get recommendations for file placement.
      * 1. Get the valid vNas servers assigned to given project.
-     *    a. Get the active vNas assigned to project.
-     *    b. filter out vNas, if any of them are overloaded.
-     *    c. filter out vNas which based on vPool protocols.
+     * a. Get the active vNas assigned to project.
+     * b. filter out vNas, if any of them are overloaded.
+     * c. filter out vNas which based on vPool protocols.
      * 2. if any valid assigned vNas found for project, goto step #3
-     *    a. get all vNas servers in given virtual array
-     *    b. filter out vNas server which are assigned to some project
-     *    c. filter out vNas, if any of them are overloaded.
-     *    d. filter out vNas which based on vPool protocols  
-     * 3. If No - vNas servers found, goto step #   
+     * a. get all vNas servers in given virtual array
+     * b. filter out vNas server which are assigned to some project
+     * c. filter out vNas, if any of them are overloaded.
+     * d. filter out vNas which based on vPool protocols
+     * 3. If No - vNas servers found, goto step #
      * 3. if the dynamic metric collection enabled
-     *     a. sort the list of qualified vNas servers based on 
-     *       i. vNas - avgPercentageBusy
-     *       ii. vNas - StorageObjects 
-     *       iii. vNas - Storage capacity
+     * a. sort the list of qualified vNas servers based on
+     * i. vNas - avgPercentageBusy
+     * ii. vNas - StorageObjects
+     * iii. vNas - Storage capacity
      * 4. sort the list of qualified vNas servers based on static load
-     *       i. vNas - StorageObjects 
-     *       ii. vNas - Storage capacity
+     * i. vNas - StorageObjects
+     * ii. vNas - Storage capacity
      * 5. Pick the overlapping vNas server in the order and recommended by vPool.
-     * 6. Pick the overlapping StorageHADomian recommended by vPool.          
+     * 6. Pick the overlapping StorageHADomian recommended by vPool.
      * 
      * @param vPool
      * @param vArrayURI virtual array URI
@@ -235,22 +235,21 @@ public class FileStorageScheduler {
         VirtualNAS vNAS = null;
         if (vNASList != null && !vNASList.isEmpty()) {
 
-        	String dynamicPerformanceEnabled = customConfigHandler.getComputedCustomConfigValue(
-					CustomConfigConstants.NAS_DYNAMIC_PERFORMANCE_PLACEMENT_ENABLED, "vnxfile", null);
-        	
-        	_log.info("NAS dynamic performance placement enabled? : {}", dynamicPerformanceEnabled);
+            String dynamicPerformanceEnabled = customConfigHandler.getComputedCustomConfigValue(
+                    CustomConfigConstants.NAS_DYNAMIC_PERFORMANCE_PLACEMENT_ENABLED, "vnxfile", null);
+
+            _log.info("NAS dynamic performance placement enabled? : {}", dynamicPerformanceEnabled);
 
             if (Boolean.valueOf(dynamicPerformanceEnabled)) {
-            	_log.debug("Considering dynamic load to sort virtual NASs");
+                _log.debug("Considering dynamic load to sort virtual NASs");
                 sortVNASListOnDyanamicLoad(vNASList);
             } else {
-            	_log.debug("Considering static load to sort virtual NASs");
+                _log.debug("Considering static load to sort virtual NASs");
                 sortVNASListOnStaticLoad(vNASList);
             }
-            
 
             vNAS = getTheLeastUsedVNASServerBasedOnPoolRecommendation(vNASList, poolRecommendations);
-            
+
             _log.info("Best vNAS selected for placemene: {}", vNAS);
         }
 
@@ -258,7 +257,7 @@ public class FileStorageScheduler {
             FileRecommendation rec = new FileRecommendation(recommendation);
 
             if (vNAS != null
-                    && rec.getSourceDevice().equals(vNAS.getStorageDeviceURI())) {
+                    && rec.getSourceStorageSystem().equals(vNAS.getStorageDeviceURI())) {
 
                 _log.debug("Getting the storage ports of VNAS server: {}",
                         vNAS.getId());
@@ -279,9 +278,9 @@ public class FileStorageScheduler {
         }
 
         if (result.isEmpty()) {
-        	// No valid vNas server found for any reason!!!
-        	// pick the File recommendation by vPool.
-        	// This case will cover all other file storage for file placement based on vPool.
+            // No valid vNas server found for any reason!!!
+            // pick the File recommendation by vPool.
+            // This case will cover all other file storage for file placement based on vPool.
             _log.debug("No recommendations found for selecting vNAS. Calling selectStorageHADomainMatchingVpool");
             result = selectStorageHADomainMatchingVpool(vPool, vArrayURI,
                     poolRecommendations);
@@ -301,10 +300,10 @@ public class FileStorageScheduler {
 
             @Override
             public int compare(VirtualNAS v1, VirtualNAS v2) {
-                
-            	// 1. Sort virtual nas servers based on dynamic load factor 'avgPercentBusy'.
-            	// 2. If multiple virtual nas servers found to be similar performance,
-            	//    sort the virtual nas based on capacity and then number of storage objects!!!
+
+                // 1. Sort virtual nas servers based on dynamic load factor 'avgPercentBusy'.
+                // 2. If multiple virtual nas servers found to be similar performance,
+                // sort the virtual nas based on capacity and then number of storage objects!!!
                 int value = 0;
                 Double avgUsedPercentV1 = MetricsKeys.getDoubleOrNull(MetricsKeys.avgPortPercentBusy, v1.getMetrics());
                 Double avgUsedPercentV2 = MetricsKeys.getDoubleOrNull(MetricsKeys.avgPortPercentBusy, v2.getMetrics());
@@ -313,11 +312,11 @@ public class FileStorageScheduler {
                 } else {
                     value = 0;
                 }
-                
+
                 if (value == 0) {
-                	Long storageCapacityOfV1 = MetricsKeys.getLong(MetricsKeys.storageCapacity, v1.getMetrics());
-                	Long storageCapacityOfV2 = MetricsKeys.getLong(MetricsKeys.storageCapacity, v2.getMetrics());
-                	value = storageCapacityOfV1.compareTo(storageCapacityOfV2);
+                    Long storageCapacityOfV1 = MetricsKeys.getLong(MetricsKeys.storageCapacity, v1.getMetrics());
+                    Long storageCapacityOfV2 = MetricsKeys.getLong(MetricsKeys.storageCapacity, v2.getMetrics());
+                    value = storageCapacityOfV1.compareTo(storageCapacityOfV2);
                 }
 
                 if (value == 0) {
@@ -344,10 +343,10 @@ public class FileStorageScheduler {
 
             @Override
             public int compare(VirtualNAS v1, VirtualNAS v2) {
-            	// 1. Sort virtual nas servers based on static load factor 'storageCapacity'.
-            	// 2. If multiple virtual nas servers found to be similar performance,
-            	//    sort the virtual nas based on number of storage objects!!!
-            	Long storageCapacityOfV1 = MetricsKeys.getLong(MetricsKeys.storageCapacity, v1.getMetrics());
+                // 1. Sort virtual nas servers based on static load factor 'storageCapacity'.
+                // 2. If multiple virtual nas servers found to be similar performance,
+                // sort the virtual nas based on number of storage objects!!!
+                Long storageCapacityOfV1 = MetricsKeys.getLong(MetricsKeys.storageCapacity, v1.getMetrics());
                 Long storageCapacityOfV2 = MetricsKeys.getLong(MetricsKeys.storageCapacity, v2.getMetrics());
 
                 int value = storageCapacityOfV1.compareTo(storageCapacityOfV2);
@@ -411,9 +410,9 @@ public class FileStorageScheduler {
                 }
             }
         }
-        if(vNASList != null) {
-        	_log.info("Got  {} un-assigned vNas servers in the vArray {}",
-        			vNASList.size(), vArrayURI);
+        if (vNASList != null) {
+            _log.info("Got  {} un-assigned vNas servers in the vArray {}",
+                    vNASList.size(), vArrayURI);
         }
         return vNASList;
     }
@@ -497,14 +496,14 @@ public class FileStorageScheduler {
      */
     private VirtualNAS getTheLeastUsedVNASServerBasedOnPoolRecommendation(List<VirtualNAS> vNASList,
             List<Recommendation> poolRecommendations) {
-    	
-    	_log.debug("Selecting the least used vNAS from the vNAS list: {}", vNASList);
+
+        _log.debug("Selecting the least used vNAS from the vNAS list: {}", vNASList);
 
         List<URI> storageSystemURIList = new ArrayList<URI>();
         for (Iterator<Recommendation> iterator = poolRecommendations.iterator(); iterator
                 .hasNext();) {
             Recommendation recommendation = iterator.next();
-            storageSystemURIList.add(recommendation.getSourceDevice());
+            storageSystemURIList.add(recommendation.getSourceStorageSystem());
         }
 
         for (Iterator<VirtualNAS> iterator = vNASList.iterator(); iterator
@@ -577,10 +576,10 @@ public class FileStorageScheduler {
             }
 
         }
-        if(vNASList != null){
-        	 _log.info(
-                     "Got {} assigned VNAS servers for project {}",
-                     vNASList.size(), project);
+        if (vNASList != null) {
+            _log.info(
+                    "Got {} assigned VNAS servers for project {}",
+                    vNASList.size(), project);
         }
         return vNASList;
 
@@ -769,7 +768,7 @@ public class FileStorageScheduler {
                         _log.info(
                                 "Found the StorageHADomain {} for recommended storagepool: {}",
                                 haDomain.getName(),
-                                recommendation.getSourcePool());
+                                recommendation.getSourceStoragePool());
                         storagePorts.add(port.getId());
                     }
                 } else if (storage.getSystemType().equals(

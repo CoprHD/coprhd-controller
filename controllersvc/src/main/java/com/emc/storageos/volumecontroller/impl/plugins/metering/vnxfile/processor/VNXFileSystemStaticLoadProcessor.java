@@ -45,7 +45,10 @@ import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileP
  */
 public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
     private final Logger _logger = LoggerFactory.getLogger(VNXFileSystemStaticLoadProcessor.class);
-
+    
+    /**
+     * Process the result got from data sources.
+     */
     @Override
     public void processResult(Operation operation, Object resultObj, Map<String, Object> keyMap) throws BaseCollectionException {
         // TODO Auto-generated method stub

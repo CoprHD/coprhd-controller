@@ -64,6 +64,7 @@ class StorageSystem(object):
         'ibmxiv',
         'netappc',	
         'vnxe',
+        'ecs' ,
         'datadomain']
 
     BLOCK_SYSTEM_LIST = [
@@ -83,6 +84,8 @@ class StorageSystem(object):
         'netappc',	
         'vnxe',
         'datadomain']
+    
+    OBJECT_SYSTEM_LIST =['ecs']
 
     CREATE_SYSTEM_TYPE_LIST = [
         'isilon',
@@ -94,7 +97,8 @@ class StorageSystem(object):
         'openstack',
         'xtremio',
         'ibmxiv',
-        'netappc',	
+        'netappc',
+        'ecs' ,	
         'vnxe']
 
     def __init__(self, ipAddr, port):

@@ -24,7 +24,6 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
-import com.emc.storageos.plugins.common.SMIPluginException;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
 import com.emc.storageos.plugins.metering.vnxfile.VNXFileConstants;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
@@ -43,11 +42,6 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor {
 
     private PortMetricsProcessor portMetricsProcessor;
 
-    /**
-     * Process the result got from data sources.
-     * 
-     *
-     */
     @Override
     public void processResult(Operation operation, Object resultObj,
             Map<String, Object> keyMap) throws BaseCollectionException {

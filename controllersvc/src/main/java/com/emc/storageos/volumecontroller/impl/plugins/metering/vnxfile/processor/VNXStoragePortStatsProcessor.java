@@ -46,15 +46,7 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor {
     /**
      * Process the result got from data sources.
      * 
-     * @param operation
-     *            : Domain Logic operation.
-     * @param resultObj
-     *            : Result got from 3rd party Instances.
-     * @param keyMap
-     *            : common datastructure to hold values.
-     * @return
-     * @throws SMIPluginException
-     *             ex.
+     *
      */
     @Override
     public void processResult(Operation operation, Object resultObj,

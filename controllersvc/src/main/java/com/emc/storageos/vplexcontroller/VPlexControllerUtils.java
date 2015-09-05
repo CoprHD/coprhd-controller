@@ -8,6 +8,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.List;
 import java.util.Set;
 
@@ -30,6 +31,9 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
+import com.emc.storageos.vplex.api.VPlexDeviceInfo;
+import com.emc.storageos.vplex.api.VPlexResourceInfo;
+import com.emc.storageos.vplex.api.VPlexStorageVolumeInfo;
 import com.emc.storageos.vplex.api.clientdata.VolumeInfo;
 
 public class VPlexControllerUtils {
@@ -226,6 +230,112 @@ public class VPlexControllerUtils {
 
         log.info("VPLEX cluster name for cluster id {} is {}", clusterId, clusterName);
         return clusterName;
+    }
+
+    /**
+     * Returns a VPlexResourceInfo object for the given device name based
+     * on its virtual volume type (local or distributed).
+     * 
+     * @param deviceName the name of the device
+     * @param virtualVolumeType the type of virtual volume (local or distributed)
+     * @param vplexUri the URI of the VPLEX system
+     * @param dbClient a reference to the database client
+     * 
+     * @return a VPlexResourceInfo object for the device name
+     * @throws VPlexApiException
+     */
+    public static VPlexResourceInfo getDeviceInfo(String deviceName, String virtualVolumeType,
+            URI vplexUri, DbClient dbClient) throws VPlexApiException {
+        VPlexResourceInfo device = null;
+        VPlexApiClient client = null;
+
+        try {
+            VPlexApiFactory vplexApiFactory = VPlexApiFactory.getInstance();
+            client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexUri, dbClient);
+        } catch (URISyntaxException e) {
+            log.error("cannot load vplex api client", e);
+        }
+
+        if (null != client) {
+            device = client.getDeviceStructure(deviceName, virtualVolumeType);
+        }
+
+        return device;
+    }
+
+    /**
+     * Returns a Map of lowest-level storage-volume resource's WWN to its VPlexStorageVolumeInfo
+     * object for a given device name, virtual volume type, and cluster name.  If 
+     * hasMirror is true, this indicates the top-level device is composed of a
+     * RAID-1 mirror, so there's an extra layers of components to traverse in finding
+     * the lowest-level storage-volume resources.
+     * 
+     * @param deviceName the name of the top-level device to look at
+     * @param virtualVolumeType the type of virtual volume (local or distributed)
+     * @param clusterName the cluster name
+     * @param hasMirror indicates if the top-level device is a RAID-1 mirror
+     * @param vplexUri the URI of the VPLEX system
+     * @param dbClient a reference to the database client
+     * 
+     * @return a map of WWNs to VPlexStorageVolumeInfo objects
+     * @throws VPlexApiException
+     */
+    public static Map<String, VPlexStorageVolumeInfo> getStorageVolumeInfoForDevice(
+            String deviceName, String virtualVolumeType, String clusterName,
+            boolean hasMirror, URI vplexUri, DbClient dbClient) throws VPlexApiException {
+
+        Map<String, VPlexStorageVolumeInfo> storageVolumeInfo = null;
+        VPlexApiClient client = null;
+
+        try {
+            VPlexApiFactory vplexApiFactory = VPlexApiFactory.getInstance();
+            client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexUri, dbClient);
+        } catch (URISyntaxException e) {
+            log.error("cannot load vplex api client", e);
+        }
+
+        if (null != client) {
+            storageVolumeInfo = client.getStorageVolumeInfoForDevice(
+                    deviceName, virtualVolumeType, clusterName, hasMirror);
+        }
+
+        log.info("Backend storage volume wwns for {} are {}", deviceName, storageVolumeInfo);
+        return storageVolumeInfo;
+    }
+
+    /**
+     * Returns the top-level supporting device name for a given storage volume native id,
+     * wwn, and backend array serial number.
+     * 
+     * @param volumeNativeId the storage volume's native id
+     * @param wwn the storage volume's wwn
+     * @param backendArraySerialNum the serial number of the backend array
+     * @param vplexUri the URI of the VPLEX device
+     * @param dbClient a reference to the database client
+     * 
+     * @return the name of the top level device for the given storage volume
+     * @throws VPlexApiException
+     */
+    public static String getDeviceNameForStorageVolume(String volumeNativeId,
+            String wwn, String backendArraySerialNum, URI vplexUri, DbClient dbClient) 
+                    throws VPlexApiException {
+
+        String deviceName = null;
+        VPlexApiClient client = null;
+
+        try {
+            VPlexApiFactory vplexApiFactory = VPlexApiFactory.getInstance();
+            client = VPlexControllerUtils.getVPlexAPIClient(vplexApiFactory, vplexUri, dbClient);
+        } catch (URISyntaxException e) {
+            log.error("cannot load vplex api client", e);
+        }
+
+        if (null != client) {
+            deviceName = client.getDeviceForStorageVolume(volumeNativeId, wwn, backendArraySerialNum);
+        }
+
+        log.info("Device name for storage volume {} is {}", volumeNativeId, deviceName);
+        return deviceName;
     }
     
     /**

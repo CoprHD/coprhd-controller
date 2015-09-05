@@ -31,7 +31,7 @@ public class ConsistencyGroupProvider extends BaseAssetOptionsProvider {
         BlockVirtualPoolRestRep vpool = api(ctx).blockVpools().get(virtualPoolId);
 
         // Only provide consistency groups if the selected VPool supports it
-        if (vpool != null && vpool.getMultiVolumeConsistent() != null && vpool.getMultiVolumeConsistent()) {
+        if (isSupportedVPool(vpool)) {
             return createBaseResourceOptions(api(ctx).blockConsistencyGroups().search().byProject(projectId).run());
         } else {
             return Collections.emptyList();
@@ -52,11 +52,16 @@ public class ConsistencyGroupProvider extends BaseAssetOptionsProvider {
         if (virtualPoolChangeOperation.equals(VirtualPoolChangeOperationEnum.RP_PROTECTED.name())) {
             BlockVirtualPoolRestRep vpool = api(ctx).blockVpools().get(virtualPoolId);
             // Only provide consistency groups if the selected VPool supports it
-            if (vpool != null && vpool.getMultiVolumeConsistent() != null && vpool.getMultiVolumeConsistent()) {
+            if (isSupportedVPool(vpool)) {
                 return createBaseResourceOptions(api(ctx).blockConsistencyGroups().search().byProject(projectId)
                         .filter(new ConsistencyGroupFilter(BlockConsistencyGroup.Types.RP.toString(), true)).run());
             }
         }
         return Collections.emptyList();
     }
+
+    private boolean isSupportedVPool(BlockVirtualPoolRestRep vpool) {
+        return vpool != null && vpool.getMultiVolumeConsistent() != null && vpool.getMultiVolumeConsistent();
+    }
+
 }

@@ -8209,7 +8209,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             .getSupportingDeviceInfo();
                     List<VPlexDeviceInfo> localDeviceInfoList = ddInfo.getLocalDeviceInfo();
                     for (VPlexDeviceInfo localDeviceInfo : localDeviceInfoList) {
-                        _log.info("localDeviceInfo: {}, {}", localDeviceInfo.getName(), localDeviceInfo.getClusterId());
+                        _log.info("localDeviceInfo: {}, {}", localDeviceInfo.getName(), localDeviceInfo.getCluster());
 
                         // If no varray is passed, then we need to check both
                         // sides of the volume, else only the side specified by
@@ -8219,7 +8219,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             String varrayCluster = ConnectivityUtil.getVplexClusterForVarray(
                                     varrayURI, vplexSystem.getId(), dbClient);
                             _log.info("varrayCluster:{}", varrayCluster);
-                            if (!localDeviceInfo.getClusterId().contains(varrayCluster)) {
+                            if (!localDeviceInfo.getCluster().contains(varrayCluster)) {
                                 continue;
                             }
                         }

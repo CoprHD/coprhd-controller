@@ -35,6 +35,13 @@
       default: 0
     },
     
+    
+    ingestionMethod:{
+      type:"assetType.vipr.exportedIngestionMethod",
+      lockable: true,
+      required: false
+    },
+
     volumes: {
       type: "assetType.vipr.unmanagedVolume",
       select: "many"

@@ -40,6 +40,7 @@ public interface ServiceParams {
     public String COMPUTE_VIRTUAL_POOL = "computeVirtualPool";
     public String NAME = "name";
     public String TYPE = "type";
+    public String STORAGE_TYPE = "storageType";
     public String VOLUMES = "volumes";
     public String DELETION_TYPE = "deletionType";
     public String STORAGE_SYSTEMS = "storageSystems";
@@ -58,6 +59,7 @@ public interface ServiceParams {
     public String CONSISTENCY_GROUP = "consistencyGroup";
     public String HLU = "hlu";
     public String COPIES = "copies";
+    public String INGESTION_METHOD = "ingestionMethod";
     public String READ_ONLY = "readOnly";
 
     public String TARGET_VIRTUAL_POOL = "targetVirtualPool";
@@ -84,8 +86,8 @@ public interface ServiceParams {
     public String PLATFORM = "platform";
     public String NTP_SERVER = "ntpServer";
     public String MANAGEMENT_NETWORK = "managementNetwork";
-    public String HOST_PASSWORD = "hostPassword"; // NOSONAR ("False positive, field does not store a password”)
-    public String CONFIRM_PASSWORD = "confirmPassword"; // NOSONAR ("False positive, field does not store a password”)
+    public String HOST_PASSWORD = "hostPassword"; // NOSONAR ("False positive, field does not store a password")
+    public String CONFIRM_PASSWORD = "confirmPassword"; // NOSONAR ("False positive, field does not store a password")
 
     public String MAXUSERS = "maxUsers";
     public String PERMISSIONTYPE = "permissionType";

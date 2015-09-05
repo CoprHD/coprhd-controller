@@ -128,6 +128,11 @@ public interface AlternateIdConstraint extends Constraint {
                     replicaGroupInstance);
         }
 
+        public static AlternateIdConstraint getUnmanagedVolumeWwnConstraint(String altId) {
+            DataObjectType doType = TypeMap.getDoType(UnManagedVolume.class);
+            return new AlternateIdConstraintImpl(doType.getColumnField("wwn"), altId);
+        }
+
         public static AlternateIdConstraint getVolumeInfoNativeIdConstraint(String altId) {
             DataObjectType doType = TypeMap.getDoType(UnManagedVolume.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), altId);

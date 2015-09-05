@@ -3097,9 +3097,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         }
         
         for (Volume cgVolume : cgVolumes) {
-        	if (cgVolume.getPersonality().equals((Volume.PersonalityTypes.SOURCE.name()))) {
-        		sourceInternalSiteName = cgVolume.getInternalSiteName();
-        		break;
+        	if (cgVolume.getPersonality() != null) {
+        		if (cgVolume.getPersonality().equals((Volume.PersonalityTypes.SOURCE.name()))) {
+        			sourceInternalSiteName = cgVolume.getInternalSiteName();
+        			break;
+        		}
         	}
         }
         
@@ -3110,25 +3112,27 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         boolean foundCopy = false;
         int copyType = RecoverPointCGCopyType.PRODUCTION.getCopyNumber();
         for (Volume cgVolume : cgVolumes) {        	
-        	if (!cgVolume.getPersonality().equals(Volume.PersonalityTypes.METADATA.name()) && cgVolume.getRpCopyName().equals(copyName)) {        		
-        		foundCopy = true;
-        		internalSiteName = cgVolume.getInternalSiteName();
-        		if (cgVolume.getPersonality().equals((Volume.PersonalityTypes.SOURCE.name()))) {
-        			if (cgVolume.getRpCopyName().contains("Standby")) {
-	        			isMPStandby = true;
-	        		} else {
-	        			isSource = true;
-	        		}
-        			copyType = RecoverPointCGCopyType.PRODUCTION.getCopyNumber();
-        		} else {
-        			isTarget = true;
-        			if (internalSiteName.equalsIgnoreCase(sourceInternalSiteName)) {
-        				copyType = RecoverPointCGCopyType.LOCAL.getCopyNumber();
+        	if (cgVolume.getPersonality() != null) {
+        		if (!cgVolume.getPersonality().equals(Volume.PersonalityTypes.METADATA.name()) && cgVolume.getRpCopyName().equals(copyName)) {        		
+        			foundCopy = true;
+        			internalSiteName = cgVolume.getInternalSiteName();
+        			if (cgVolume.getPersonality().equals((Volume.PersonalityTypes.SOURCE.name()))) {
+        				if (cgVolume.getRpCopyName().contains("Standby")) {
+        					isMPStandby = true;
+        				} else {
+        					isSource = true;
+        				}
+        				copyType = RecoverPointCGCopyType.PRODUCTION.getCopyNumber();
         			} else {
-        				copyType = RecoverPointCGCopyType.REMOTE.getCopyNumber();
+        				isTarget = true;
+        				if (internalSiteName.equalsIgnoreCase(sourceInternalSiteName)) {
+        					copyType = RecoverPointCGCopyType.LOCAL.getCopyNumber();
+        				} else {
+        					copyType = RecoverPointCGCopyType.REMOTE.getCopyNumber();
+        				}
         			}
+        			break;
         		}
-        		break;
         	}
         }
         

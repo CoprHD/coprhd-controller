@@ -23,6 +23,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,6 +41,7 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
@@ -64,6 +66,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFChangeCopyModeTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkFailOverCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkStartCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkStopCompleter;
@@ -1902,6 +1905,51 @@ public class SRDFOperations implements SmisConstants {
             }
         }
         return activeProviderSystem;
+    }
+
+    public void performChangeCopyMode(StorageSystem system, Volume target,
+            TaskCompleter completer) {
+
+        log.info("START performChangeCopyMode");
+        checkTargetHasParentOrFail(target);
+
+        AbstractSRDFOperationContextFactory ctxFactory = getContextFactory(system);
+        ServiceError error = null;
+        try {
+            if (target.hasConsistencyGroup()) {
+                URIQueryResultList tgtVolumeUris = new URIQueryResultList();
+                dbClient.queryByConstraint(
+                        getVolumesByConsistencyGroup(target.getConsistencyGroup()), tgtVolumeUris);
+                Iterator<URI> tgtVolIterator = tgtVolumeUris.iterator();
+                List<Volume> tgtVolumes = new ArrayList<>();
+                while (tgtVolIterator.hasNext()) {
+                    tgtVolumes.add(dbClient.queryObject(Volume.class, tgtVolIterator.next()));
+                }
+
+                log.info("Targets: {}", Joiner.on(", ").join(transform(tgtVolumes, fctnBlockObjectToNativeGuid())));
+                ((SRDFChangeCopyModeTaskCompleter) completer).setTgtVolumes(tgtVolumes);
+            }
+
+            String copyMode = ((SRDFChangeCopyModeTaskCompleter) completer).getNewCopyMode();
+            if (RemoteDirectorGroup.SupportedCopyModes.ADAPTIVECOPY.name().equalsIgnoreCase(copyMode)) {
+                ctxFactory.build(SRDFOperation.RESET_TO_ADAPTIVE, target).perform();
+            } else if (RemoteDirectorGroup.SupportedCopyModes.SYNCHRONOUS.name().equalsIgnoreCase(copyMode)) {
+                ctxFactory.build(SRDFOperation.RESET_TO_SYNC, target).perform();
+            } else if (RemoteDirectorGroup.SupportedCopyModes.ASYNCHRONOUS.name().equalsIgnoreCase(copyMode)) {
+                ctxFactory.build(SRDFOperation.RESET_TO_ASYNC, target).perform();
+            }
+
+        } catch (Exception e) {
+            log.error("Failed to change copy mode for srdf link {}", target.getSrdfParent().getURI(), e);
+            error = SmisException.errors.jobFailed(e.getMessage());
+        } finally {
+            if (error == null) {
+                completer.ready(dbClient);
+            } else {
+                completer.error(dbClient, error);
+            }
+        }
+
     }
 
     /**

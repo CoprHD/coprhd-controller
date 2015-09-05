@@ -12,8 +12,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 import javax.cim.CIMArgument;
 import javax.cim.CIMObjectPath;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,6 +33,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.smis.AbstractCloneOperations;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYNC_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCloneRestoreJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCloneResyncJob;
@@ -350,7 +353,7 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
                 if (!NullColumnValueGetter.isNullURI(sourceVolumeURI)) {
                     Volume volume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
                     elementSynchronizations.add(_cimPath.getStorageSynchronized(storage, volume,
-                        storage, fullCopy));
+                            storage, fullCopy));
                 }
             }
 

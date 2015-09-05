@@ -31,6 +31,7 @@ import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.adapters.StringMapAdapter;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
+import com.emc.storageos.model.rdfgroup.RDFGroupRestRep;
 import com.emc.storageos.model.smis.SMISProviderRestRep;
 import com.emc.storageos.model.smis.StorageProviderRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;

@@ -731,9 +731,9 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterVolumeMirrorMismatch(URI mid, URI id);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException blockObjectHasNoConsistencyGroup(); 
+    public BadRequestException blockObjectHasNoConsistencyGroup();
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidParameterVolumeNotOnSystem(URI id, URI srcStorageSystemURI);
@@ -1591,13 +1591,13 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidCopyType(String type);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidSRDFCopyMode(String copyMode);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException cannotChangeSRDFCopyMode(String volumeNativeId);
-    
+
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException invalidCopyModeOp(String newCopyMode, String vpoolCopyMode);
 
@@ -2049,10 +2049,10 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidParameterVolumeAlreadyInAConsistencyGroup(
             final URI cgUri, final URI currentCgUri);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidParameterSourceVolumeNotInGivenConsistencyGroup(
-        final URI sourceVolumeUri, final URI cgUri)
+            final URI sourceVolumeUri, final URI cgUri);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cantChangeVarrayForVplexVolumeInAppConsistenctCG();
@@ -2262,7 +2262,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidFullCopyCountForVolumesInConsistencyGroup();
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException invalidMirrorCountForVolumesInConsistencyGroup();
 
@@ -2313,7 +2313,7 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException fullCopyCannotBeResynchronized(final String fullCopyId, final String state);
-    
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException cannotEstablishGroupRelationForDetachedFullCopy(final String fullCopyId);
 

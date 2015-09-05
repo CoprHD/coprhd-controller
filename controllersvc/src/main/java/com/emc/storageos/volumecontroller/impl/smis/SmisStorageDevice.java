@@ -1876,7 +1876,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 _log.warn(errMsg);
                 taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                         .failedToAddMembersToConsistencyGroup(consistencyGroup.getLabel(),
-                                consistencyGroup.getCgNameOnStorageSystem(storage.getId())));
+                                consistencyGroup.getCgNameOnStorageSystem(storage.getId()), errMsg));
                 return;
             }
             if (!replicas.isEmpty()) {

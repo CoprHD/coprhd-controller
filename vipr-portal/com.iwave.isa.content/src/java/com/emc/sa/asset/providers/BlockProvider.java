@@ -60,6 +60,7 @@ import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.model.vpool.VirtualPoolChangeRep;
 import com.emc.storageos.model.vpool.VirtualPoolCommonRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
+import com.emc.vipr.client.core.filters.BlockVolumeConsistencyGroupFilter;
 import com.emc.vipr.client.core.filters.DefaultResourceFilter;
 import com.emc.vipr.client.core.filters.ExportHostOrClusterFilter;
 import com.emc.vipr.client.core.filters.ExportVirtualArrayFilter;

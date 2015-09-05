@@ -24,6 +24,7 @@ import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
+import com.emc.sa.service.vipr.block.tasks.AddVolumesToConsistencyGroup;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToExport;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockVolume;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockVolumeByName;
@@ -48,6 +49,7 @@ import com.emc.sa.service.vipr.block.tasks.FindVirtualArrayInitiators;
 import com.emc.sa.service.vipr.block.tasks.GetActiveContinuousCopiesForVolume;
 import com.emc.sa.service.vipr.block.tasks.GetActiveFullCopiesForVolume;
 import com.emc.sa.service.vipr.block.tasks.GetActiveSnapshotsForVolume;
+import com.emc.sa.service.vipr.block.tasks.GetBlockConsistencyGroup;
 import com.emc.sa.service.vipr.block.tasks.GetBlockExport;
 import com.emc.sa.service.vipr.block.tasks.GetBlockExports;
 import com.emc.sa.service.vipr.block.tasks.GetBlockResource;

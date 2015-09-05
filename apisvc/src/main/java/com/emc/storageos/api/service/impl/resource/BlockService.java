@@ -10,6 +10,7 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource
 import static com.emc.storageos.api.mapper.ProtectionMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getBlockSnapshotByConsistencyGroup;
+import static com.emc.storageos.model.block.Copy.SyncDirection.SOURCE_TO_TARGET;
 import static java.lang.Boolean.FALSE;
 import static java.lang.Boolean.parseBoolean;
 

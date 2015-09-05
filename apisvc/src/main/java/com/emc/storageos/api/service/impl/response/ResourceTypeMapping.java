@@ -4,6 +4,58 @@
  */
 package com.emc.storageos.api.service.impl.response;
 
+import static com.emc.storageos.model.ResourceTypeEnum.AUTHN_PROVIDER;
+import static com.emc.storageos.model.ResourceTypeEnum.AUTO_TIERING_POLICY;
+import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_CONSISTENCY_GROUP;
+import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_MIRROR;
+import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_SNAPSHOT;
+import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_VPOOL;
+import static com.emc.storageos.model.ResourceTypeEnum.CLUSTER;
+import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_ELEMENT;
+import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_IMAGE;
+import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_SYSTEM;
+import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_VPOOL;
+import static com.emc.storageos.model.ResourceTypeEnum.CUSTOM_CONFIG;
+import static com.emc.storageos.model.ResourceTypeEnum.DATA_STORE;
+import static com.emc.storageos.model.ResourceTypeEnum.EXPORT_GROUP;
+import static com.emc.storageos.model.ResourceTypeEnum.FC_PORT_CONNECTION;
+import static com.emc.storageos.model.ResourceTypeEnum.FILE;
+import static com.emc.storageos.model.ResourceTypeEnum.FILE_SNAPSHOT;
+import static com.emc.storageos.model.ResourceTypeEnum.FILE_VPOOL;
+import static com.emc.storageos.model.ResourceTypeEnum.HOST;
+import static com.emc.storageos.model.ResourceTypeEnum.INITIATOR;
+import static com.emc.storageos.model.ResourceTypeEnum.IPINTERFACE;
+import static com.emc.storageos.model.ResourceTypeEnum.MIGRATION;
+import static com.emc.storageos.model.ResourceTypeEnum.NETWORK;
+import static com.emc.storageos.model.ResourceTypeEnum.NETWORK_SYSTEM;
+import static com.emc.storageos.model.ResourceTypeEnum.PROJECT;
+import static com.emc.storageos.model.ResourceTypeEnum.PROTECTION_SET;
+import static com.emc.storageos.model.ResourceTypeEnum.PROTECTION_SYSTEM;
+import static com.emc.storageos.model.ResourceTypeEnum.QUOTA_DIR;
+import static com.emc.storageos.model.ResourceTypeEnum.RDF_GROUP;
+import static com.emc.storageos.model.ResourceTypeEnum.SMIS_PROVIDER;
+import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_POOL;
+import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_PORT;
+import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_PROVIDER;
+import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_SYSTEM;
+import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_TIER;
+import static com.emc.storageos.model.ResourceTypeEnum.SYS_EVENT;
+import static com.emc.storageos.model.ResourceTypeEnum.TASK;
+import static com.emc.storageos.model.ResourceTypeEnum.TENANT;
+import static com.emc.storageos.model.ResourceTypeEnum.UNMANAGED_FILESYSTEMS;
+import static com.emc.storageos.model.ResourceTypeEnum.UNMANAGED_VOLUMES;
+import static com.emc.storageos.model.ResourceTypeEnum.USER_GROUP;
+import static com.emc.storageos.model.ResourceTypeEnum.VARRAY;
+import static com.emc.storageos.model.ResourceTypeEnum.VCENTER;
+import static com.emc.storageos.model.ResourceTypeEnum.VCENTERDATACENTER;
+import static com.emc.storageos.model.ResourceTypeEnum.VDC;
+import static com.emc.storageos.model.ResourceTypeEnum.VIRTUAL_NAS;
+import static com.emc.storageos.model.ResourceTypeEnum.VOLUME;
+import static com.emc.storageos.model.ResourceTypeEnum.VPLEX_MIRROR;
+import static com.emc.storageos.model.ResourceTypeEnum.VPOOL;
+import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW;
+import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW_STEP;
+
 import java.util.HashMap;
 import java.util.Map;
 

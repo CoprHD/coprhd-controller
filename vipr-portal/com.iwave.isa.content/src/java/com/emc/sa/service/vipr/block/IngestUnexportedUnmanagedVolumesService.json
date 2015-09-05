@@ -24,6 +24,12 @@
       type:"assetType.vipr.project",
       lockable: true
     },
+    
+    ingestionMethod:{
+      type:"assetType.vipr.unexportedIngestionMethod",
+      lockable: true,
+      required: false
+    },
 
     volumes: {
       type: "assetType.vipr.unmanagedVolumeByStorageSystem",

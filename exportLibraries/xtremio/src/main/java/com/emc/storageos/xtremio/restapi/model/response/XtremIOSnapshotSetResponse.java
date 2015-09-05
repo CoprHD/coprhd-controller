@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.xtremio.restapi.model.response;
@@ -9,17 +9,18 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value = "xtremio_folders")
-public class XtremIOFolders {
+@JsonRootName(value = "xtremio_snapshot_set_response")
+public class XtremIOSnapshotSetResponse {
+
     @SerializedName("content")
     @JsonProperty(value = "content")
-    private XtremIOFolder content;
+    private XtremIOSnapshotSet content;
 
-    public XtremIOFolder getContent() {
+    public XtremIOSnapshotSet getContent() {
         return content;
     }
 
-    public void setContent(XtremIOFolder content) {
+    public void setContent(XtremIOSnapshotSet content) {
         this.content = content;
     }
 }

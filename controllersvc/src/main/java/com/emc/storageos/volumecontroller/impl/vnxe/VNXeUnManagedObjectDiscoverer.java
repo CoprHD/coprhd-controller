@@ -689,10 +689,8 @@ public class VNXeUnManagedObjectDiscoverer {
         unManagedVolumeInformation.put(SupportedVolumeInformation.DEVICE_LABEL.toString(),
                 deviceLabel);
 
-        StringSet wwn = new StringSet();
         String volumeWWN = lun.getWwn().replaceAll(":", "");
-        wwn.add(volumeWWN);
-        unManagedVolumeInformation.put(SupportedVolumeInformation.WWN.toString(), wwn);
+        unManagedVolume.setWwn(volumeWWN);
 
         StringSet systemTypes = new StringSet();
         systemTypes.add(system.getSystemType());

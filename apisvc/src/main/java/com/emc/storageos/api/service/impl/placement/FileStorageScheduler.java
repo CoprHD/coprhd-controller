@@ -716,7 +716,7 @@ public class FileStorageScheduler {
         List<FileRecommendation> result = new ArrayList<FileRecommendation>();
         for (Recommendation recommendation : poolRecommends) {
             FileRecommendation rec = new FileRecommendation(recommendation);
-            URI storageUri = recommendation.getSourceDevice();
+            URI storageUri = recommendation.getSourceStorageSystem();
 
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class,
                     storageUri);

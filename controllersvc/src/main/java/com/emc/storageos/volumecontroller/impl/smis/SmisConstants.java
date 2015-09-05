@@ -301,6 +301,7 @@ public interface SmisConstants {
     static final String CP_MANAGED_ELEMENT = "ManagedElement";
     static final String CP_SETTING_DATA = "SettingData";
     static final String CP_WWN_NAME = "EMCWWN";
+    static final String CP_WWN_NAME_ALT = "EMCSVWWN";
     static final String CP_SYNCED_ELEMENT = "SyncedElement";
     static final String CP_SYSTEM_ELEMENT = "SystemElement";
     static final String CP_REMOVE_ELEMENTS = "RemoveElements";

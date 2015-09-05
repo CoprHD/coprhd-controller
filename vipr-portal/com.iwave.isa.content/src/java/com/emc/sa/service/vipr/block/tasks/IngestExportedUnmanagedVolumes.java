@@ -28,14 +28,17 @@ public class IngestExportedUnmanagedVolumes extends WaitForTasks<UnManagedVolume
     private URI hostId;
     private URI clusterId;
     private List<URI> unmanagedVolumeIds;
+    private String ingestionMethod;
 
-    public IngestExportedUnmanagedVolumes(URI vpoolId, URI varrayId, URI projectId, URI hostId, URI clusterId, List<URI> unmanagedVolumeIds) {
+    public IngestExportedUnmanagedVolumes(URI vpoolId, URI varrayId, URI projectId, URI hostId, 
+            URI clusterId, List<URI> unmanagedVolumeIds, String ingestionMethod) {
         this.vpoolId = vpoolId;
         this.varrayId = varrayId;
         this.projectId = projectId;
         this.hostId = hostId;
         this.clusterId = clusterId;
         this.unmanagedVolumeIds = unmanagedVolumeIds;
+        this.ingestionMethod = ingestionMethod;
         setWaitFor(true);
         setMaxErrorDisplay(MAX_ERROR_DISPLAY);
         provideDetailArgs(vpoolId, projectId, varrayId, hostId != null ? hostId : clusterId, unmanagedVolumeIds.size());
@@ -53,6 +56,7 @@ public class IngestExportedUnmanagedVolumes extends WaitForTasks<UnManagedVolume
         ingest.setVarray(varrayId);
         ingest.setCluster(clusterId);
         ingest.setHost(hostId);
+        ingest.setVplexIngestionMethod(ingestionMethod);
 
         return executeChunks(ingest);
     }

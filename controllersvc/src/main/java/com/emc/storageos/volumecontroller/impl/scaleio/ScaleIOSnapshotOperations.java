@@ -15,6 +15,7 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSnapshotVolumeResponse;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
+import com.emc.storageos.volumecontroller.DefaultSnapshotOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
@@ -26,7 +27,7 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.util.*;
 
-public class ScaleIOSnapshotOperations implements SnapshotOperations {
+public class ScaleIOSnapshotOperations extends DefaultSnapshotOperations {
 
     private static Logger log = LoggerFactory.getLogger(ScaleIOSnapshotOperations.class);
     private DbClient dbClient;
@@ -43,7 +44,7 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
 
     @Override
     public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot, Boolean createInactive,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+            Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
             ScaleIORestClient scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storage);
             BlockSnapshot blockSnapshot = dbClient.queryObject(BlockSnapshot.class, snapshot);
@@ -68,7 +69,7 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
 
     @Override
     public void createGroupSnapshots(StorageSystem storage, List<URI> snapshotList, Boolean createInactive,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+            Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
             ScaleIORestClient scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storage);
             List<BlockSnapshot> blockSnapshots = dbClient.queryObject(BlockSnapshot.class, snapshotList);
@@ -176,35 +177,5 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
                     e.getMessage());
             taskCompleter.error(dbClient, code);
         }
-    }
-
-    @Override
-    public void restoreSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
-        throw new UnsupportedOperationException("Not yet implemented");
-    }
-
-    @Override
-    public void restoreGroupSnapshots(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
-        throw new UnsupportedOperationException("Not yet implemented");
-    }
-
-    @Override
-    public void copySnapshotToTarget(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
-        throw new UnsupportedOperationException("Not yet implemented");
-    }
-
-    @Override
-    public void copyGroupSnapshotsToTarget(StorageSystem storage, List<URI> snapshotList, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
-        throw new UnsupportedOperationException("Not yet implemented");
-    }
-
-    @Override
-    public void terminateAnyRestoreSessions(StorageSystem storage, BlockObject from, URI volume,
-            TaskCompleter taskCompleter) throws Exception {
-        throw new UnsupportedOperationException("Not supported");
     }
 }

@@ -189,6 +189,7 @@ DefaultStorageArrayPortMap.netapp=443
 DefaultStorageArrayPortMap.netappc=443
 DefaultStorageArrayPortMap.vplex=443
 DefaultStorageArrayPortMap.xtremio=443
+DefaultStorageArrayPortMap.xtremio_useSSL=443
 DefaultStorageArrayPortMap.vplex_useSSL=443
 DefaultStorageArrayPortMap.vnxfile=443
 DefaultStorageArrayPortMap.vnxe=443
@@ -221,6 +222,7 @@ DefaultStorageProviderPortMap.ddmc=3009
 DefaultStorageProviderPortMap.ddmc_useSSL=3009
 DefaultStorageProviderPortMap.ibmxiv_useSSL=5989
 DefaultStorageProviderPortMap.ibmxiv=5989
+DefaultStorageProviderPortMap.xtremio=443
 
 DefaultSanSwitchPortMap.brocade_useSSL=5989
 DefaultSanSwitchPortMap.brocade=5988
@@ -280,6 +282,7 @@ StorageSystemType.STORAGE_PROVIDER.cinder=Storage Provider for Third-party block
 StorageSystemType.STORAGE_PROVIDER.scaleio=Block Storage Powered by ScaleIO
 StorageSystemType.STORAGE_PROVIDER.ddmc=Storage Provider for Data Domain Management Center
 StorageSystemType.STORAGE_PROVIDER.ibmxiv=Storage Provider for IBM XIV
+StorageSystemType.STORAGE_PROVIDER.xtremio=Storage Provider for EMC XtremIO
 
 HostType.Linux=Linux
 HostType.Windows=Windows
@@ -512,6 +515,7 @@ cluster.discovered=Discovered
 cluster.hosts=Hosts
 hostCluster.id=ID
 hostCluster.name=Name
+hostCluster.autoExportEnabled=Auto-Exports
 
 HostClusters.list.title=Clusters
 HostClusters.edit.title=Edit Cluster
@@ -1651,6 +1655,7 @@ storageProvider.interfaceType.cinder=Third-party block
 storageProvider.interfaceType.scaleio=ScaleIO CLI
 storageProvider.interfaceType.ddmc=Data Domain Management Center
 storageProvider.interfaceType.ibmxiv=SMI-S for IBM XIV
+storageProvider.interfaceType.xtremio=EMC XtremIO
 
 StorageSystems.list.title=Storage Systems
 StorageSystems.edit.title=Edit Storage System
@@ -3186,6 +3191,8 @@ volumes.capacity=Size
 volumes.vpool=Virtual Pool
 volumes.varray=Virtual Array
 volumes.protocols=Protocols
+volumes.consistencygroup=Consistency Group
+volumes.wwn=WWN
 
 fileSystems.name=File System Name
 fileSystems.capacity=Size

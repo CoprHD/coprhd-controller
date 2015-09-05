@@ -139,6 +139,15 @@ public class CimConnection {
     }
 
     /**
+     * Getter for the connection port.
+     * 
+     * @return The connection port
+     */
+    public int getPort() {
+        return _port;
+    }
+
+    /**
      * Getter for the interop namespace for the CIMOM.
      * 
      * @return The interop namespace for the CIMOM.

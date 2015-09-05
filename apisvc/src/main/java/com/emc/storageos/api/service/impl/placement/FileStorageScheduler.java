@@ -16,6 +16,8 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
@@ -50,6 +52,7 @@ public class FileStorageScheduler {
 
     private DbClient _dbClient;
     private StorageScheduler _scheduler;
+    private CustomConfigHandler customConfigHandler;
 
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
@@ -58,8 +61,12 @@ public class FileStorageScheduler {
     public void setScheduleUtils(StorageScheduler scheduleUtils) {
         _scheduler = scheduleUtils;
     }
+    
+    public void setCustomConfigHandler(CustomConfigHandler customConfigHandler) {
+		this.customConfigHandler = customConfigHandler;
+	}
 
-    /**
+	/**
      * Schedule storage for fileshare in the varray with the given CoS
      * capabilities.
      * 
@@ -205,15 +212,23 @@ public class FileStorageScheduler {
         VirtualNAS vNAS = null;
         if (vNASList != null && !vNASList.isEmpty()) {
 
-            boolean meteringConfigured = true;
+        	String dynamicPerformanceEnabled = customConfigHandler.getComputedCustomConfigValue(
+					CustomConfigConstants.NAS_DYNAMIC_PERFORMANCE_PLACEMENT_ENABLED, "vnxfile", null);
+        	
+        	_log.info("NAS dynamic performance placement enabled? : {}", dynamicPerformanceEnabled);
 
-            if (meteringConfigured) {
+            if (Boolean.valueOf(dynamicPerformanceEnabled)) {
+            	_log.debug("Considering dynamic load to sort virtual NASs");
                 sortVNASListOnDyanamicLoad(vNASList);
             } else {
+            	_log.debug("Considering static load to sort virtual NASs");
                 sortVNASListOnStaticLoad(vNASList);
             }
+            
 
             vNAS = getTheLeastUsedVNASServerBasedOnPoolRecommendation(vNASList, poolRecommendations);
+            
+            _log.info("Best vNAS selected for placemene: {}", vNAS);
         }
 
         for (Recommendation recommendation : poolRecommendations) {
@@ -456,6 +471,8 @@ public class FileStorageScheduler {
      */
     private VirtualNAS getTheLeastUsedVNASServerBasedOnPoolRecommendation(List<VirtualNAS> vNASList,
             List<Recommendation> poolRecommendations) {
+    	
+    	_log.debug("Selecting the least used vNAS from the vNAS list: {}", vNASList);
 
         List<URI> storageSystemURIList = new ArrayList<URI>();
         for (Iterator<Recommendation> iterator = poolRecommendations.iterator(); iterator

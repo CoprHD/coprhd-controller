@@ -3,22 +3,15 @@ package com.emc.storageos.api.system;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 import java.util.Set;
 
-import org.eclipse.jetty.util.log.Log;
-import org.junit.Assert;
 import org.slf4j.Logger;
 
-import com.emc.storageos.api.service.impl.resource.BlockService;
-import com.emc.storageos.api.service.impl.resource.TaskService;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.joiner.Joiner;
-import com.emc.storageos.model.TaskList;
-import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.block.BlockConsistencyGroupCreate;
 import com.emc.storageos.model.block.BlockConsistencyGroupRestRep;
 import com.emc.storageos.model.block.CopiesParam;
@@ -29,13 +22,10 @@ import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeIngest;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
-import com.emc.vipr.client.AuthClient;
-import com.emc.vipr.client.ClientConfig;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.exceptions.ServiceErrorException;
-import com.rsa.crypto.ncm.key.t;
 
 public class ApiSystemTestUtil {
 	DbClient dbClient = null; 

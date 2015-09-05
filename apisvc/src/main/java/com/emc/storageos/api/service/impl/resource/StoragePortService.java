@@ -686,9 +686,24 @@ public class StoragePortService extends TaggedResource {
     	if(newNetwork != null) {
     		StringSet vArrays = newNetwork.getAssignedVirtualArrays();
     		if(vArrays != null && !vArrays.isEmpty()) {
-    			if(!removePort){
+    			if(!removePort) {
     				vNas.addAssignedVirtualArrays(vArrays);
     				varraysForvNasUpdated = true;
+    			} else { // Removing storage port from netwok!!!
+    			    StringSet remSpVarrays = storagePort.getConnectedVirtualArrays();
+    			    StringSet vNasVarrys = new StringSet();
+    			    for (String sp : vNas.getStoragePorts()){
+    			    	if( !sp.equalsIgnoreCase(storagePort.getId().toString()) ) {
+    			    		StoragePort vNasSp = _dbClient.queryObject(StoragePort.class, URI.create(sp));
+    			    		vNasVarrys.addAll(vNasSp.getConnectedVirtualArrays());
+    			    	}
+    			    }
+    			    // Remove storage varray from vnas virtual arrays, 
+    			    // if other ports on vnas not belongs to same varray.
+    			    if( !vNasVarrys.contains(remSpVarrays)) {
+    			    	vNas.getAssignedVirtualArrays().removeAll(remSpVarrays);
+    			    	varraysForvNasUpdated = true;
+    			    }
     			}
     		}
     	}

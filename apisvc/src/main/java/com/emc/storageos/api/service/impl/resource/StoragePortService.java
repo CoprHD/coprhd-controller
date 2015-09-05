@@ -364,7 +364,7 @@ public class StoragePortService extends TaggedResource {
         	} else if(!NullColumnValueGetter.isNullURI(oldNetworkId)){
         		 _log.info("Removing network {} from vNAS storage port ", oldNetworkId);
                  // Validate the new network exists and is active.
-                 newNetwork = _dbClient.queryObject(Network.class, newNetworkId);
+                 newNetwork = _dbClient.queryObject(Network.class, oldNetworkId);
                  removePort = true;
         	}
         	
@@ -686,9 +686,23 @@ public class StoragePortService extends TaggedResource {
     	if(newNetwork != null) {
     		StringSet vArrays = newNetwork.getAssignedVirtualArrays();
     		if(vArrays != null && !vArrays.isEmpty()) {
-    			if(!removePort){
+    			if(!removePort) {
     				vNas.addAssignedVirtualArrays(vArrays);
     				varraysForvNasUpdated = true;
+    			} else { // Removing storage port from netwok!!!
+    			    StringSet vNasVarrys = new StringSet();
+    			    for (String sp : vNas.getStoragePorts()){
+    			    	if( !sp.equalsIgnoreCase(storagePort.getId().toString()) ) {
+    			    		StoragePort vNasSp = _dbClient.queryObject(StoragePort.class, URI.create(sp));
+    			    		vNasVarrys.addAll(vNasSp.getConnectedVirtualArrays());
+    			    	}
+    			    }
+    			    // Remove storage varray from vnas virtual arrays, 
+    			    // if other ports on vnas not belongs to same varray.
+    			    if( !vNasVarrys.contains(vArrays)) {
+    			    	vNas.getAssignedVirtualArrays().removeAll(vArrays);
+    			    	varraysForvNasUpdated = true;
+    			    }
     			}
     		}
     	}

@@ -36,6 +36,7 @@ import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
 import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
@@ -94,7 +95,7 @@ public class FileStorageScheduler {
                         candidatePools, capabilities);
 
         // Get the File recommendation based on virtual nas servers!!!
-        List<FileRecommendation> recommendations = getRecommendedStoragePortsForVNAS(
+        List<FileRecommendation> recommendations = getRecommendedStoragePortsForFilePlacemet(
                 vPool, vArray.getId(), poolRecommendations, project);
         // We need to place all the resources. If we can't then
         // log an error and clear the list of recommendations.
@@ -181,22 +182,44 @@ public class FileStorageScheduler {
     }
 
     /**
-     * Retrieve list of recommended storage ports for VNAS
+     * Retrieve list of recommended storage ports for file placement
+     * Follows the step to get recommendations for file placement.
+     * 1. Get the valid vNas servers assigned to given project.
+     *    a. Get the active vNas assigned to project.
+     *    b. filter out vNas, if any of them are overloaded.
+     *    c. filter out vNas which based on vPool protocols.
+     * 2. if any valid assigned vNas found for project, goto step #3
+     *    a. get all vNas servers in given virtual array
+     *    b. filter out vNas server which are assigned to some project
+     *    c. filter out vNas, if any of them are overloaded.
+     *    d. filter out vNas which based on vPool protocols  
+     * 3. If No - vNas servers found, goto step #   
+     * 3. if the dynamic metric collection enabled
+     *     a. sort the list of qualified vNas servers based on 
+     *       i. vNas - avgPercentageBusy
+     *       ii. vNas - StorageObjects 
+     *       iii. vNas - Storage capacity
+     * 4. sort the list of qualified vNas servers based on static load
+     *       i. vNas - StorageObjects 
+     *       ii. vNas - Storage capacity
+     * 5. Pick the overlapping vNas server in the order and recommended by vPool.
+     * 6. Pick the overlapping StorageHADomian recommended by vPool.          
      * 
      * @param vPool
      * @param vArrayURI virtual array URI
      * @param poolRecommendations
      * @param project
      * @return list of recommended storage ports for VNAS
+     *
      */
-    private List<FileRecommendation> getRecommendedStoragePortsForVNAS(
+    private List<FileRecommendation> getRecommendedStoragePortsForFilePlacemet(
             VirtualPool vPool, URI vArrayURI,
             List<Recommendation> poolRecommendations, Project project) {
 
         List<FileRecommendation> result = new ArrayList<FileRecommendation>();
 
         _log.info(
-                "Get matching recommendations based on assigned VNAS in project {}",
+                "Get matching recommendations based on assigned VNAS to project {}",
                 project);
 
         List<VirtualNAS> vNASList = getVNASServersInProject(project, vArrayURI,
@@ -204,7 +227,7 @@ public class FileStorageScheduler {
 
         if (vNASList == null || vNASList.isEmpty()) {
             _log.info(
-                    "Get matching recommendations based on free VNAS in varray {}",
+                    "Get matching recommendations based on un-assigned VNAS in varray {}",
                     vArrayURI);
             vNASList = getUnassignedVNASServers(vArrayURI, vPool);
         }
@@ -256,6 +279,9 @@ public class FileStorageScheduler {
         }
 
         if (result.isEmpty()) {
+        	// No valid vNas server found for any reason!!!
+        	// pick the File recommendation by vPool.
+        	// This case will cover all other file storage for file placement based on vPool.
             _log.debug("No recommendations found for selecting vNAS. Calling selectStorageHADomainMatchingVpool");
             result = selectStorageHADomainMatchingVpool(vPool, vArrayURI,
                     poolRecommendations);
@@ -364,7 +390,7 @@ public class FileStorageScheduler {
                     .hasNext();) {
                 VirtualNAS vNAS = iterator.next();
                 // Remove vNAS assigned to projects
-                if (vNAS.getProject() != null) {
+                if (!NullColumnValueGetter.isNullURI(vNAS.getProject())) {
                     _log.debug("Removing vNAS {} as it is assigned to project",
                             vNAS.getId());
                     iterator.remove();

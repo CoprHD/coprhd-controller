@@ -3750,6 +3750,10 @@ file_tests()
     fsname=$(echo $fsname | sed s/:/_/g)
     echo $fsname
     
+	if [ $cos = $COS_VNXFILE ] ; then
+	    run vnas list
+	fi
+    
     run fileshare create $fsname $PROJECT $NH $cos $FS_SIZEMB
     if [ "$EXTRA_PARAM" = "search" ] ; then
         run fileshare search --name $(echo $fsname | head -c 2)

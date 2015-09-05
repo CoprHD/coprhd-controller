@@ -23,9 +23,7 @@ import com.emc.nas.vnxfile.xmlapi.Severity;
 import com.emc.nas.vnxfile.xmlapi.Status;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.NASServer;
 import com.emc.storageos.db.client.model.PhysicalNAS;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
@@ -77,6 +75,7 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
                 // process the mount list
                 processMountList(mountList, keyMap);
                 keyMap.put(VNXFileConstants.CMD_RESULT, VNXFileConstants.CMD_SUCCESS);
+
             }
         } catch (final Exception ex) {
             _logger.error(
@@ -101,22 +100,19 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
         _logger.info("call processMountList");
 
         final DbClient dbClient = (DbClient) keyMap.get(VNXFileConstants.DBCLIENT);
-        //step -1 get the filesystem capacity map < filesystemid, size>
+        // step -1 get the filesystem capacity map < filesystemid, size>
         Map<String, Long> fsCapList = (HashMap<String, Long>) keyMap.get(VNXFileConstants.FILE_CAPACITY_MAP);
         Map<String, Map<String, Long>> snapCapFsMap =
                 (HashMap<String, Map<String, Long>>) keyMap.get(VNXFileConstants.SNAP_CAPACITY_MAP);
-        //step-2 get the snapshot checkpoint size for give filesystem and it is map of  filesystem and map <snapshot, checkpointsize>>
+        // step-2 get the snapshot checkpoint size for give filesystem and it is map of filesystem and map <snapshot, checkpointsize>>
         AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
         // get the storagesystem from db
         StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, profile.getSystemId());
 
-        // this map store DM to VDM list
-        Map<String, List<String>> dmToVDM = new HashMap<String, List<String>>();
-
         List<String> fsList = null;
         Map<String, List<String>> fsMountvNASMap = new HashMap<String, List<String>>();
         Map<String, List<String>> fsMountPhyNASMap = new HashMap<String, List<String>>();
-        //step -3 we will get filesystem on VDM or DM 
+        // step -3 we will get filesystem on VDM or DM
         Iterator<Object> iterator = mountList.iterator();
         if (iterator.hasNext()) {
             Status status = (Status) iterator.next();
@@ -131,9 +127,9 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
                             fsList = new ArrayList<String>();
                         }
                         fsList.add(mount.getFileSystem());
-                        fsMountvNASMap.put(mount.getMover(), fsList);//get filesystem list for VDM or vNAS
-                        _logger.info("call processMountList mount {} and is virtual {}", 
-                                                            mount.getMover(), "true");
+                        fsMountvNASMap.put(mount.getMover(), fsList);// get filesystem list for VDM or vNAS
+                        _logger.info("call processMountList mount {} and is virtual {}",
+                                mount.getMover(), "true");
 
                     } else {
                         fsList = fsMountPhyNASMap.get(mount.getMover());
@@ -141,85 +137,17 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
                             fsList = new ArrayList<String>();
                         }
                         fsList.add(mount.getFileSystem());
-                        fsMountPhyNASMap.put(mount.getMover(), fsList); //get filesystem list for DM or mover
+                        fsMountPhyNASMap.put(mount.getMover(), fsList); // get filesystem list for DM or mover
                         _logger.info("call processMountList mount {} and is virtual {}", mount.getMover(), "false");
                     }
 
-                    _logger.info("mount fs object fsId: {} and Mover: {}", 
+                    _logger.info("mount fs object fsId: {} and Mover: {}",
                             mount.getFileSystem(), mount.getMover());
-                    _logger.info("mount fs object fssize: {} and Mover: {}", 
+                    _logger.info("mount fs object fssize: {} and Mover: {}",
                             String.valueOf(fsList.size()), mount.getMover());
                 }
-
-                Map<PhysicalNAS, Integer> dmFsCountMap = new HashMap<PhysicalNAS, Integer>();
-                // physical nas
-                if (!fsMountPhyNASMap.isEmpty()) {
-                    PhysicalNAS pNAS = null;
-                    _logger.info("physical mover size: {} ", String.valueOf(fsMountPhyNASMap.size()));
-                    for (String moverId : fsMountPhyNASMap.keySet()) {
-                        // get NAS object from db
-
-                        pNAS = findPhysicalNasByNativeId(storageSystem, dbClient, moverId);
-                        URIQueryResultList virtualNASURI = new URIQueryResultList();
-                        if (null != pNAS) {
-
-                            dbClient.queryByConstraint(
-                                    ContainmentConstraint.Factory.getVirtualNASByParentConstraint(pNAS.getId()), virtualNASURI);
-
-                            Iterator<URI> virtualNASIter = virtualNASURI.iterator();
-                            int fsCont = 0;
-                            while (virtualNASIter.hasNext()) {
-                                URI vNASURI = virtualNASIter.next();
-                                VirtualNAS virtualNAS = dbClient.queryObject(VirtualNAS.class, vNASURI);
-                                if (virtualNAS != null && !virtualNAS.getInactive()) {
-                                    List<String> fileSystemList = fsMountvNASMap.get(virtualNAS.getNativeId());
-                                    if (fileSystemList != null && !fileSystemList.isEmpty()) {
-                                        fsCont = fsCont + fileSystemList.size();
-
-                                        int snapCount = 0;
-                                        for (String fsId : fileSystemList) {
-
-                                            Map<String, Long> snapCapMap = snapCapFsMap.get(fsId);
-                                            if (snapCapMap != null && !snapCapMap.isEmpty()) {
-
-                                                snapCount = snapCount + snapCapMap.size();
-
-                                            }
-
-                                            fsCont = fsCont + snapCount;
-
-                                        }
-                                    }
-
-                                }
-
-                            }
-
-                            // add total count of phyical Nas too
-                            int dmSnapCount = 0;
-                            List<String> fileSystemList = fsMountvNASMap.get(pNAS.getNativeId());
-                            if (fileSystemList != null && !fileSystemList.isEmpty()) {
-
-                                for (String fsId : fileSystemList) {
-
-                                    Map<String, Long> snapCapMap = snapCapFsMap.get(fsId);
-                                    if (snapCapMap != null && !snapCapMap.isEmpty()) {
-
-                                        dmSnapCount = dmSnapCount + snapCapMap.size();
-
-                                    }
-                                    fsCont = fsCont + dmSnapCount;
-
-                                }
-                                fsCont = fsCont + fileSystemList.size();
-
-                            }
-
-                            dmFsCountMap.put(pNAS, new Integer(fsCont));
-                        }
-                    }
-                }
-                // process the filesystems of VDM or DM
+                // step -5
+                // process the filesystems of VDM or DM and calculate the Storage Capacity and StorageObjects
                 StringMap dbMetricsMap = null;
 
                 if (!fsMountvNASMap.isEmpty()) {
@@ -238,8 +166,10 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
                             }
                             // store the metrics in db
                             fsList = entryMount.getValue();
-                            prepareDBMetrics(fsList, fsCapList, snapCapFsMap, virtualNAS, dmFsCountMap, dbClient);
-                            //finally store the object into db
+                            // step -6 ge the demetrics for each VDM or vNAS
+                            prepareDBMetrics(fsList, fsCapList, snapCapFsMap, dbMetricsMap);
+                            virtualNAS.setMetrics(dbMetricsMap);
+                            // finally store the object into db
                             dbClient.persistObject(virtualNAS);
                         } else {
                             _logger.info("virtual mover not present in ViPR db: {} ", moverId);
@@ -264,20 +194,19 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
                             }
                             fsList = entryMount.getValue();
                             // get the db metrics for each mover or NAS store the metrics in db
-                            prepareDBMetrics(fsList, fsCapList, snapCapFsMap, physicalNAS, dmFsCountMap, dbClient);
+                            prepareDBMetrics(fsList, fsCapList, snapCapFsMap, dbMetricsMap);
+                            physicalNAS.setMetrics(dbMetricsMap);
                             dbClient.persistObject(physicalNAS);
-
                         } else {
                             _logger.info("mover not present in ViPR db: {} ", moverId);
                         }
-
                     }
-
-                } else {
-                    throw new VNXFilePluginException(
-                            "Fault response received from XMLAPI Server.",
-                            VNXFilePluginException.ERRORCODE_INVALID_RESPONSE);
                 }
+
+            } else {
+                throw new VNXFilePluginException(
+                        "Fault response received from XMLAPI Server.",
+                        VNXFilePluginException.ERRORCODE_INVALID_RESPONSE);
             }
         }
         return;
@@ -290,19 +219,16 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
      * @param fsList
      * @param fsCapList
      * @param snapCapFsMap
-     * @param nasServer
-     * @param dmFsCountMAP
-     * @param dbClient
+     * @param dbMetrics
      */
-    private void prepareDBMetrics(final List<String> fsList, final Map<String, Long> fsCapList,
-            final Map<String, Map<String, Long>> snapCapFsMap, NASServer nasServer, Map<PhysicalNAS, Integer> dmFsCountMAP,
-            DbClient dbClient) {
+    private void prepareDBMetrics(final List<String> fsList,
+            final Map<String, Long> fsCapList,
+            final Map<String, Map<String, Long>> snapCapFsMap, StringMap dbMetrics) {
         // get the DB metrics
         long totalFSCap = 0; // in KB
         long totalSnapCap = 0;
         long fsCount = 0;
         long snapCount = 0;
-        StringMap dbMetrics = nasServer.getMetrics();
 
         Map<String, Long> snapCapMap = null;
         // list of fs system on data mover or vdm
@@ -326,38 +252,10 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
 
         // set the values in dbMetrics
         long totalObjects = fsCount + snapCount;
-        long loadFactor = 1;
-
-        if (nasServer instanceof VirtualNAS) {
-            long totalObjectOnDataMover = 0l;
-
-            totalObjectOnDataMover = dmFsCountMAP.get(nasServer.getId());
-
-            if (totalObjectOnDataMover > 0)
-            {
-                loadFactor = 1 - (totalObjects / totalObjectOnDataMover);
-            }
-
-        } else if (nasServer instanceof PhysicalNAS) {
-
-            int totalObjectOnAllDataMover = 0;
-            for (Entry<PhysicalNAS, Integer> mount : dmFsCountMAP.entrySet()) {
-
-                totalObjectOnAllDataMover = totalObjectOnAllDataMover + mount.getValue();
-
-            }
-            if (totalObjectOnAllDataMover > 0)
-            {
-                loadFactor = 1 - (totalObjects / totalObjectOnAllDataMover);
-            }
-
-        }
-
         long totalCap = totalFSCap + totalSnapCap;
 
         dbMetrics.put(MetricsKeys.storageObjects.name(), String.valueOf(totalObjects));
         dbMetrics.put(MetricsKeys.storageCapacity.name(), String.valueOf(totalCap));
-        dbMetrics.put(MetricsKeys.loadFactor.name(), String.valueOf(loadFactor));
 
         // set the over load metrics
         Long maxCapacity = MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, dbMetrics);

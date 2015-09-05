@@ -55,39 +55,43 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor {
             AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
             List<Stat> statsList = (List<Stat>) keyMap.get(VNXFileConstants.STATS);
             final DbClient dbClient = (DbClient) keyMap.get(VNXFileConstants.DBCLIENT);
-            /* step --> 1 get the interface map for mover and interface map contain values as storage ports 
-            <MoverId, Map<interfaceIP, list<physicalPortName>> */
-            Map<String, Map<String, List<String>>> moverInterMap = 
-                            (Map<String, Map<String, List<String>>>) keyMap
-                                        .get(VNXFileConstants.INTREFACE_PORT_MAP);
+            /*
+             * step --> 1 get the interface map for mover and interface map contain values as storage ports
+             * <MoverId, Map<interfaceIP, list<physicalPortName>>
+             */
+            Map<String, Map<String, List<String>>> moverInterMap =
+                    (Map<String, Map<String, List<String>>>) keyMap
+                            .get(VNXFileConstants.INTREFACE_PORT_MAP);
 
             ResponsePacket responsePacket = (ResponsePacket) _unmarshaller
                     .unmarshal(result.getResponseBodyAsStream());
             List<Object> moversStats = getQueryStatsResponse(responsePacket);
             Iterator<Object> iterator = moversStats.iterator();
             // get the storagesystem from db
-            StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, 
-                                                            profile.getSystemId());
-               //process Mover stats contains samples for each data mover and calculate port metrics
+            StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class,
+                    profile.getSystemId());
+            // process Mover stats contains samples for each data mover and calculate port metrics
             while (iterator.hasNext()) {
                 MoverNetStats moverNetStats = (MoverNetStats) iterator.next();
 
                 // process mover stats per data mover
                 String moverId = moverNetStats.getMover();
-                //get interfaces and their list ports for mover id
+                // get interfaces and their list ports for mover id
                 interPortMap = moverInterMap.get(moverId);
-                
+
                 // get the sample data of mover or VDM
                 List<MoverNetStats.Sample> sampleList = moverNetStats.getSample();
                 Map<String, BigInteger> stringMapPortIOs = new HashMap<String, BigInteger>();
-                /* step -->2 get the io-ops of physical ports from samples 
-                            <physicalPortName, Big(input + output band)> */
+                /*
+                 * step -->2 get the io-ops of physical ports from samples
+                 * <physicalPortName, Big(input + output band)>
+                 */
                 getPortIOTraffic(sampleList, stringMapPortIOs);
                 // stats sample time
                 long sampleTime = sampleList.get(0).getTime();
                 /* step -->3 process the port metrics and update storageport object and store in db */
-                newstatsList = processPortStatsInfo(interPortMap, stringMapPortIOs, 
-                                                    storageSystem, dbClient, sampleTime);
+                newstatsList = processPortStatsInfo(interPortMap, stringMapPortIOs,
+                        storageSystem, dbClient, sampleTime);
                 // finally add to stat object
                 statsList.addAll(newstatsList);
 
@@ -133,8 +137,8 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor {
             StoragePort storagePort = findExistingPort(portNativeGuid, dbClient);
 
             _logger.info(
-                    "interface {} and port details {}", interfaceIP, 
-                                                        storagePort.getPortName());
+                    "interface {} and port details {}", interfaceIP,
+                    storagePort.getPortName());
 
             // calculate traffic per interface- total traffic all ports/no of ports
             BigInteger iovalue = new BigInteger("0");
@@ -146,7 +150,7 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor {
 
             Long kbytes = iopes / 1024;
 
-            _logger.info("processIPPortMetrics input data iops{} and time details {} iopes", 
+            _logger.info("processIPPortMetrics input data iops{} and time details {} iopes",
                     iopes.toString(), sampleTime.toString());
             // set Ethernet port speed to 1Gbps
             storagePort.setPortSpeed(1L);
@@ -154,8 +158,8 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor {
             portMetricsProcessor.processIPPortMetrics(kbytes, iopes, storagePort, sampleTime);
 
             // finally add above value to stat object
-            fePortStat = preparePortStatInfo(portNativeGuid, 
-                                        storagePort.getId(), iopes, sampleTime);
+            fePortStat = preparePortStatInfo(portNativeGuid,
+                    storagePort.getId(), iopes, sampleTime);
             stat.add(fePortStat);
         }
 
@@ -209,7 +213,7 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor {
 
             if (tmpPort != null && !tmpPort.getInactive()) {
                 port = tmpPort;
-                _logger.info("found port {}", 
+                _logger.info("found port {}",
                         tmpPort.getNativeGuid() + ":" + tmpPort.getPortName());
                 break;
             }
@@ -226,8 +230,8 @@ public class VNXStoragePortStatsProcessor extends VNXFileProcessor {
      * @param timeSample
      * @return ipPortStat
      */
-    private Stat preparePortStatInfo(String nativeId, URI resourceId, 
-                                            long iops, long timeSample) {
+    private Stat preparePortStatInfo(String nativeId, URI resourceId,
+            long iops, long timeSample) {
         Stat ipPortStat = new Stat();
         ipPortStat.setServiceType(Constants._File);
         ipPortStat.setTimeCollected(timeSample);

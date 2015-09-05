@@ -1864,9 +1864,9 @@ public class BlockStorageScheduler {
             ExportPathParams pathParams, Collection<URI> volumeURIs,
             NetworkDeviceController networkDeviceController, URI virtualArrayUri, String token) {
         StringSetMap preZonedZoningMap = assignPrezonedStoragePorts(storage, exportGroup, initiators,
-                existingZoningMap, pathParams, volumeURIs, networkDeviceController, exportGroup.getVirtualArray(), token);
+                existingZoningMap, pathParams, volumeURIs, networkDeviceController, virtualArrayUri, token);
         Map<URI, List<URI>> assignments =
-                assignStoragePorts(storage, exportGroup.getVirtualArray(), initiators,
+                assignStoragePorts(storage, virtualArrayUri, initiators,
                         pathParams, preZonedZoningMap, volumeURIs);
 
         ExportUtils.addPrezonedAssignments(existingZoningMap, assignments, preZonedZoningMap);

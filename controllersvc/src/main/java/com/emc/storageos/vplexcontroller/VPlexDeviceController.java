@@ -1734,7 +1734,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         // If sharedExportMask is found then then new host will be added to that exportMask
                         setupExistingExportMaskWithNewHost(blockObjectMap, vplexSystem, exportGroup, varrayUri,
                                 exportMasksToUpdateOnDevice, exportMasksToUpdateOnDeviceWithInitiators,
-                                exportMasksToUpdateOnDeviceWithStoragePorts, inits, sharedVplexExportMask, null);
+                                exportMasksToUpdateOnDeviceWithStoragePorts, inits, sharedVplexExportMask, opId);
                     } else {
                         _log.info("did not find a matching existing storage view anywhere, so ViPR "
                                 + "will initialize a new one and push it to the VPLEX device");

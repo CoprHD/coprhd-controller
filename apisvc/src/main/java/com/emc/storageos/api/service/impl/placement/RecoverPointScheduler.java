@@ -2367,7 +2367,7 @@ public class RecoverPointScheduler implements Scheduler {
 		if (foundJournal) {
 			 StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemURI);
 			//If we got here, it means that we found a valid storage pool for journal, return back the recommendation 
-			return buildRpRecommendation(storageSystem.getLabel(), journalVarray, journalVpool, journalStoragePool, newCapabilities, 1, internalSiteName, 
+			return buildRpRecommendation(storageSystem.getLabel(), journalVarray, journalVpool, journalStoragePool, newCapabilities, newCapabilities.getResourceCount(), internalSiteName, 
 						storageSystemURI, storageSystem.getSystemType(), ps);
 		} else {
 			//Couldnt find a journal recommendation, handle appropriately.

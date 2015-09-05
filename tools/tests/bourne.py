@@ -8079,7 +8079,6 @@ class Bourne:
             return vnaslist['vnas_server']
     
     def vnas_query(self, name):
-        print 'name' , name
         if name.startswith('urn:storageos:VirtualNAS'):
             return name
 	vnasservers = self.vnas_list()

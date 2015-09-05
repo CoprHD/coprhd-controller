@@ -153,7 +153,7 @@ public class VPlexApiVirtualVolumeManager {
             } else {
                 // Should only be a single local device.
                 VPlexDeviceInfo deviceInfo = localDevices.get(0);
-                clusterId = deviceInfo.getClusterId();
+                clusterId = deviceInfo.getCluster();
                 deviceName = deviceInfo.getName();
                 devicePath = deviceInfo.getPath();
             }
@@ -272,7 +272,7 @@ public class VPlexApiVirtualVolumeManager {
                         .getDistributedDeviceComponents(distributedDeviceInfo);
                 for (VPlexDistributedDeviceComponentInfo ddComponent : ddComponents) {
                     discoveryMgr.updateDistributedDeviceComponent(ddComponent);
-                    if (ddComponent.getCluster().equals(localDevices.get(0).getClusterId())) {
+                    if (ddComponent.getCluster().equals(localDevices.get(0).getCluster())) {
                         sourceDevicePath = ddComponent.getPath();
                         break;
                     }
@@ -280,7 +280,7 @@ public class VPlexApiVirtualVolumeManager {
                 if (sourceDevicePath == null) {
                     throw VPlexApiException.exceptions.couldNotFindComponentForDistDevice(
                             distributedDeviceInfo.getName(), localDevices.get(0)
-                                    .getClusterId());
+                                    .getCluster());
                 }
 
                 // Attach mirror device to one of the device in the distributed device where
@@ -342,14 +342,14 @@ public class VPlexApiVirtualVolumeManager {
                     .getDistributedDeviceComponents(distributedDeviceInfo);
             for (VPlexDistributedDeviceComponentInfo ddComponent : ddComponents) {
                 discoveryMgr.updateDistributedDeviceComponent(ddComponent);
-                if (ddComponent.getCluster().equals(mirrorLocalDevice.getClusterId())) {
+                if (ddComponent.getCluster().equals(mirrorLocalDevice.getCluster())) {
                     sourceDevicePath = ddComponent.getPath();
                     break;
                 }
             }
             if (sourceDevicePath == null) {
                 throw VPlexApiException.exceptions.couldNotFindComponentForDistDevice(
-                        distributedDeviceInfo.getName(), mirrorLocalDevice.getClusterId());
+                        distributedDeviceInfo.getName(), mirrorLocalDevice.getCluster());
             }
         }
 
@@ -1446,7 +1446,7 @@ public class VPlexApiVirtualVolumeManager {
             volumeNameBuilder.append(localDeviceName);
             volumeNameBuilder.append(VPlexApiConstants.VIRTUAL_VOLUME_SUFFIX);
             VPlexVirtualVolumeInfo vvInfo = discoveryMgr.findVirtualVolume(
-                    localDevice.getClusterId(), volumeNameBuilder.toString(), false);
+                    localDevice.getCluster(), volumeNameBuilder.toString(), false);
 
             // Compute updated name and rename the distributed virtual volume.
             if (rename) {

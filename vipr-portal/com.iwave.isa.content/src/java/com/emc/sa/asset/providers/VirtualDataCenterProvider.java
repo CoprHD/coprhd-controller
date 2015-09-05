@@ -17,6 +17,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
+import com.emc.sa.util.IngestionMethodEnum;
 import com.emc.sa.util.SizeUtils;
 
 import org.springframework.stereotype.Component;
@@ -29,9 +30,11 @@ import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
 import com.emc.storageos.model.file.UnManagedFileSystemRestRep;
+import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolCommonRestRep;
+import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
@@ -111,6 +114,34 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
             }
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
+        return options;
+    }
+    
+    @Asset("unexportedIngestionMethod")
+    @AssetDependencies({ "unmanagedBlockStorageSystem" })
+    public List<AssetOption> getUnexportedIngestionMethod(AssetOptionsContext ctx, URI storageSystemId) {
+        ViPRCoreClient client = api(ctx);
+        StorageSystemRestRep storageSystemRestRep = client.storageSystems().get(storageSystemId);
+        
+        List<AssetOption> options = Lists.newArrayList();
+        if (BlockProviderUtils.isVplex(storageSystemRestRep)) {
+            options.add(newAssetOption(IngestionMethodEnum.FULL.toString(), "unmanagedVolume.ingestMethod.full"));
+            options.add(newAssetOption(IngestionMethodEnum.VIRTUAL_VOLUMES_ONLY.toString(), "unmanagedVolume.ingestMethod.virtualVolumesOnly"));
+        }
+        return options;
+    }
+    
+    @Asset("exportedIngestionMethod")
+    @AssetDependencies({ "unmanagedBlockVirtualPool" })
+    public List<AssetOption> getExportedIngestionMethod(AssetOptionsContext ctx, URI virtualPoolId) {
+        ViPRCoreClient client = api(ctx);
+        BlockVirtualPoolRestRep virtualPoolRestRep = client.blockVpools().get(virtualPoolId);
+
+        List<AssetOption> options = Lists.newArrayList();
+        if (virtualPoolRestRep.getHighAvailability() != null) {
+            options.add(newAssetOption(IngestionMethodEnum.FULL.toString(), "unmanagedVolume.ingestMethod.full"));
+            options.add(newAssetOption(IngestionMethodEnum.VIRTUAL_VOLUMES_ONLY.toString(), "unmanagedVolume.ingestMethod.virtualVolumesOnly"));
+        }
         return options;
     }
 

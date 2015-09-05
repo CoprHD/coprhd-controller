@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
@@ -21,7 +21,7 @@ import com.emc.storageos.model.valid.EnumType;
 @Cf("VirtualNAS")
 public class VirtualNAS extends NASServer {
 
-    // Project name which this VNAS belongs to
+    // Project name associated with VNAS
     private URI project;
 
     // Base directory Path for the VNAS applicable in AccessZones & vFiler device types
@@ -61,6 +61,7 @@ public class VirtualNAS extends NASServer {
         setChanged("vNasState");
     }
 
+    @RelationIndex(cf = "RelationIndex", type = PhysicalNAS.class)
     @Name("parentNasUri")
     public URI getParentNasUri() {
         return parentNasUri;
@@ -71,7 +72,7 @@ public class VirtualNAS extends NASServer {
         setChanged("parentNasUri");
     }
 
-    // Defines different States of the NAS server.
+    // Defines different States of the Virtual NAS server.
     public static enum VirtualNasState {
         LOADED("loaded"),
         MOUNTED("mounted"),
@@ -101,6 +102,11 @@ public class VirtualNAS extends NASServer {
         }
     };
 
+    /**
+     * Check whether VNAS is assigned to a project or not
+     * 
+     * @return true if VNAS is not assigned to project else false
+     */
     public boolean isNotAssignedToProject() {
         return NullColumnValueGetter.isNullURI(project);
     }

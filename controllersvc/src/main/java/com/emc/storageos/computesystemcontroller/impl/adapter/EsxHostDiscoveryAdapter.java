@@ -181,7 +181,7 @@ public class EsxHostDiscoveryAdapter extends AbstractHostDiscoveryAdapter {
                 HostHardwareInfo hw = hostSystem.getHardware();
                 String uuid = null;
                 if (hw != null && hw.systemInfo != null
-                        && hw.systemInfo.uuid != null) {
+                        && StringUtils.isNotBlank(hw.systemInfo.uuid)) {
                     // try finding host by UUID
                     uuid = hw.systemInfo.uuid;
                     // search host by uuid in VIPR if host already discovered

@@ -5,6 +5,7 @@
 package com.emc.sa.asset.providers;
 
 import java.net.URI;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -27,6 +28,7 @@ import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.storageos.model.file.SmbShareResponse;
 import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
+import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileSMBShare;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -441,6 +443,16 @@ public class FileProvider extends BaseAssetOptionsProvider {
         List<AssetOption> options = Lists.newArrayList();
         options.add(newAssetOption("true", "boolean.true"));
         options.add(newAssetOption("false", "boolean.false"));
+        return options;
+    }
+    
+    @Asset("fileDeletionType")
+    public List<AssetOption> getFileDeletionType(AssetOptionsContext ctx) {
+        List<AssetOption> options = new ArrayList<>();
+
+        options.add(newAssetOption(FileControllerConstants.DeleteTypeEnum.FULL.toString(), "file.deletion.type.full"));
+        options.add(newAssetOption(FileControllerConstants.DeleteTypeEnum.VIPR_ONLY.toString(), "file.deletion.type.vipr_only"));
+
         return options;
     }
 }

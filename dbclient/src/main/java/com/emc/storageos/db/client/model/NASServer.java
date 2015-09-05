@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
@@ -20,16 +20,19 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable<
     // NAS Server name
     private String nasName;
 
+    // NAS Server nativeId
     private String nativeId;
 
     // storageSystem, which it belongs
     private URI storageDeviceURI;
+
+    // List of Protocols (CIFS/NFS) associated with NAS Server
     private StringSet protocols;
 
     // Set of Authentication providers for the VNasServer - set values will of type AunthnProvider
     private CifsServerMap cifsServersMap;
 
-    // List of Storage Ports associated with this Nas Server
+    // List of Storage Ports associated with this NAS Server
     private StringSet storagePorts;
 
     // State of the NAS server
@@ -38,13 +41,19 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable<
     // Place holder for hosting storageDomain's information
     private StringSet storageDomain;
 
+    // Registration status of NAS server
     private String registrationStatus = RegistrationStatus.REGISTERED.toString();
+
+    // Compatibility status of NAS server
     private String compatibilityStatus = CompatibilityStatus.COMPATIBLE.name();
+
+    // Discovery status of NAS server
     private String discoveryStatus = DiscoveryStatus.VISIBLE.name();
 
     // Place holder for Tag
     private StringSet nasTag;
 
+    // Metrics details for NAS server
     private StringMap metrics;
 
     @Override
@@ -103,6 +112,7 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable<
     }
 
     @Name("storagePorts")
+    @AlternateId("AssignedPortsAltIdIndex")
     public StringSet getStoragePorts() {
         if (storagePorts == null) {
             storagePorts = new StringSet();

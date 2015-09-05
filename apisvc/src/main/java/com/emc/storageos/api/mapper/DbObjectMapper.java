@@ -189,10 +189,10 @@ public class DbObjectMapper {
             to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenantOrg().getURI()));
         }
         to.setOwner(from.getOwner());
-        if(from.getAssignedVNasServers() != null && !from.getAssignedVNasServers().isEmpty()){
-        	to.setAssignedVNasServers(from.getAssignedVNasServers());
+        if (from.getAssignedVNasServers() != null && !from.getAssignedVNasServers().isEmpty()) {
+            to.setAssignedVNasServers(from.getAssignedVNasServers());
         }
-        
+
         return to;
     }
 

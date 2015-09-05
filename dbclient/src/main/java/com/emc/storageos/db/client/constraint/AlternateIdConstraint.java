@@ -5,18 +5,61 @@
 
 package com.emc.storageos.db.client.constraint;
 
+import java.net.URI;
+
 import com.emc.storageos.db.client.constraint.impl.AlternateIdConstraintImpl;
 import com.emc.storageos.db.client.impl.DataObjectType;
 import com.emc.storageos.db.client.impl.TypeMap;
-import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.AuthnProvider;
+import com.emc.storageos.db.client.model.AutoTieringPolicy;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.CifsShareACL;
+import com.emc.storageos.db.client.model.CustomConfig;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.DecommissionedResource;
+import com.emc.storageos.db.client.model.ExportGroup;
+import com.emc.storageos.db.client.model.ExportMask;
+import com.emc.storageos.db.client.model.FCEndpoint;
+import com.emc.storageos.db.client.model.FCZoneReference;
+import com.emc.storageos.db.client.model.FileExportRule;
+import com.emc.storageos.db.client.model.FileShare;
+import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.IpInterface;
+import com.emc.storageos.db.client.model.Network;
+import com.emc.storageos.db.client.model.NetworkSystem;
+import com.emc.storageos.db.client.model.PhysicalNAS;
+import com.emc.storageos.db.client.model.ProtectionSystem;
+import com.emc.storageos.db.client.model.ProxyToken;
+import com.emc.storageos.db.client.model.QuotaDirectory;
+import com.emc.storageos.db.client.model.RPSiteArray;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
+import com.emc.storageos.db.client.model.RequestedTokenMap;
+import com.emc.storageos.db.client.model.SMISProvider;
+import com.emc.storageos.db.client.model.Snapshot;
+import com.emc.storageos.db.client.model.StorageHADomain;
+import com.emc.storageos.db.client.model.StorageOSUserDAO;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePoolSetting;
+import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StorageProvider;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StorageTier;
+import com.emc.storageos.db.client.model.Task;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.VpoolProtectionVarraySettings;
+import com.emc.storageos.db.client.model.Workflow;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.util.EndpointUtility;
-
-import java.net.URI;
 
 /**
  * Constraint for querying a record by alias
@@ -157,12 +200,12 @@ public interface AlternateIdConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(StoragePort.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
         }
-        
+
         public static AlternateIdConstraint getVirtualNASByNativeGuidConstraint(String nativeGuid) {
             DataObjectType doType = TypeMap.getDoType(VirtualNAS.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);
         }
-        
+
         public static AlternateIdConstraint getPhysicalNasByNativeGuidConstraint(String nativeGuid) {
             DataObjectType doType = TypeMap.getDoType(PhysicalNAS.class);
             return new AlternateIdConstraintImpl(doType.getColumnField(NATIVE_GUID), nativeGuid);

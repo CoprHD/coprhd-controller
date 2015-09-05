@@ -801,6 +801,7 @@ public class ProjectService extends TaggedResource {
      * @prereq none
      * @brief Assign VNAS Servers to a project
      * @return No data returned in response body
+     * @throws BadRequestException
      */
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -833,8 +834,10 @@ public class ProjectService extends TaggedResource {
      * 
      * @param project to which VANS servers will be assigned
      * @param param Assign virtual NAS server parameters
+     * @param error message
      * @brief Validate VNAS Servers
      * @return List of valid NAS servers
+     * @throws BadRequestException
      */
     public StringSet validateVNasServers(Project project, VirtualNasParam param, StringBuilder errorMsg) {
         Set<String> vNasIds = param.getVnasServers();
@@ -860,16 +863,16 @@ public class ProjectService extends TaggedResource {
                 VirtualNAS vnas = _permissionsHelper.getObjectById(vnasURI, VirtualNAS.class);
                 ArgValidator.checkEntity(vnas, vnasURI, isIdEmbeddedInURL(vnasURI));
 
-                // Validate the vnas is assigned to project!!!
+                // Validate the VNAS is assigned to project!!!
                 if (!vnas.isNotAssignedToProject()) {
-                    errorMsg.append(" vNas " + vnas.getNasName() + " associated to project " + project.getLabel());
+                    errorMsg.append(" vNas " + vnas.getNasName() + " is associated to project " + project.getLabel());
                     _log.info(errorMsg.toString());
                     return null;
                 }
 
-                // Validate the vnas state !!!
+                // Validate the VNAS state should be in loaded state !!!
                 if (!vnas.getVNasState().equalsIgnoreCase(VirtualNasState.LOADED.getNasState())) {
-                    errorMsg.append(" vNas " + vnas.getNasName() + " not in Loaded state");
+                    errorMsg.append(" vNas " + vnas.getNasName() + " is not in Loaded state");
                     _log.info(errorMsg.toString());
                     return null;
                 }
@@ -888,7 +891,6 @@ public class ProjectService extends TaggedResource {
                 } else {
                     domainMatched = true;
                 }
-
                 if (!domainMatched) {
                     errorMsg.append(" vNas " + vnas.getNasName() + " domain is not matched with project domain");
                     _log.info(errorMsg.toString());
@@ -937,6 +939,7 @@ public class ProjectService extends TaggedResource {
      * @prereq none
      * @brief Unassigns VNAS servers from project
      * @return No data returned in response body
+     * @throws BadRequestException
      */
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -961,10 +964,12 @@ public class ProjectService extends TaggedResource {
                     if (vnasServers.contains(vId)) {
                         vnas.setProject(NullColumnValueGetter.getNullURI());
                         _dbClient.persistObject(vnas);
+                        if(project.getAssignedVNasServers().contains(vId)){
+                        	project.getAssignedVNasServers().remove(vId);
+                        }
                     }
                 }
-
-                project.setAssignedVNasServers(vnasServers);
+                
                 _dbClient.persistObject(project);
                 _log.info("Successfully unassigned the VNAS servers from project : {} ", project.getLabel());
             } else {

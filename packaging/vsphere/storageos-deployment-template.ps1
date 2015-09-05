@@ -699,11 +699,11 @@ function DisplaySummaryTitle () {
 
 function DisplayNetworkProperties() {
 	Write-Host "Network properties"
-    if ($Script:isVMX -eq $false) {
-        Write-Host "	Node count [ 1 (evaluation only) | 3 | 5 ]: $Script:nodeCount"
-    else {
-        Write-Host "	Node count [ 1 (Node count can only be 1 in install-vmx mode) ]: $Script:nodeCount"
+    $nodeCountLabel = "	Node count [ 1 (evaluation only) | 3 | 5 ]"
+    if ($Script:isVMX -eq $true) {
+        $nodeCountLabel = "	Node count [ 1 (Node count can only be 1 in install-vmx mode) ]"
     }
+    Write-Host "	${nodeCountLabel}: $Script:nodeCount"
 	Write-Host "	IPv4 Settings"
 	Write-Host "		Public virtual IPv4 address: $Script:vip"
 	Write-Host "		IPv4 default gateway: $Script:gateway"

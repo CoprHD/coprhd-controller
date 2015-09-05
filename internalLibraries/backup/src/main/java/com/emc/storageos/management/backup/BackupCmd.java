@@ -136,8 +136,8 @@ public class BackupCmd {
     private static void init(String[] args) {
         initCommandLine(args);
         initRestoreManager();
-        
-        if (!cli.hasOption(CommandType.restore.name())) {
+
+        if (!cli.hasOption(CommandType.restore.name()) && !cli.hasOption(CommandType.purge.name())) {        
             initBackupOps();
         }
     }

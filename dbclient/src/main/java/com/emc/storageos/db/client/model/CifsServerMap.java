@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 
@@ -11,7 +11,7 @@ package com.emc.storageos.db.client.model;
 public class CifsServerMap extends AbstractChangeTrackingMap<NasCifsServer> {
     @Override
     public NasCifsServer valFromByte(byte[] value) {
-    	NasCifsServer cifs = new NasCifsServer();
+        NasCifsServer cifs = new NasCifsServer();
         cifs.loadBytes(value);
         return cifs;
     }

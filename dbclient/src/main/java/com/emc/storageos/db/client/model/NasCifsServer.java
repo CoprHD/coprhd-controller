@@ -18,12 +18,12 @@ public class NasCifsServer extends AbstractSerializableNestedObject {
     private String _domain;
 
     public String getDomain() {
-		return _domain;
-	}
+        return _domain;
+    }
 
-	public void setDomain(String domain) {
-		this._domain = domain;
-	}
+    public void setDomain(String domain) {
+        this._domain = domain;
+    }
 
     public NasCifsServer() {
     }
@@ -39,7 +39,7 @@ public class NasCifsServer extends AbstractSerializableNestedObject {
         _id = Integer.valueOf(id);
         _moverIdIsVdm = isMoverIsVdm;
     }
-    
+
     public void setName(String name) {
         _name = name;
     }
@@ -80,8 +80,6 @@ public class NasCifsServer extends AbstractSerializableNestedObject {
         _interfaces = interfaces;
     }
 
-   
-
     @Override
     public String toString() {
 
@@ -89,6 +87,4 @@ public class NasCifsServer extends AbstractSerializableNestedObject {
 
     }
 
-    // <CifsServer interfaces="10.247.27.32" type="W2K" localUsers="false" name="LOSAT032" mover="1" moverIdIsVdm="false">
-    // <CifsServer interfaces="10.247.27.31" type="W2K" localUsers="false" name="LOSAT031" mover="5" moverIdIsVdm="true">
 }

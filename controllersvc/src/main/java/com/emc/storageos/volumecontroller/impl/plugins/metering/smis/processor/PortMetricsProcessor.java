@@ -261,7 +261,7 @@ public class PortMetricsProcessor {
      */
     public void processIPPortMetrics(Long kbytes, Long iops, StoragePort port, Long sampleTime) {
         StringMap dbMetrics = port.getMetrics();
-        _log.info(String.format("FEPortMetrics %s %s kbytes %d iops %d sampleTime %d",
+        _log.info(String.format("IP PortMetrics %s %s kbytes %d iops %d sampleTime %d",
                 port.getNativeGuid(), portName(port), kbytes, iops, sampleTime));
 
         // Read the current value of the database variables
@@ -312,12 +312,7 @@ public class PortMetricsProcessor {
         MetricsKeys.putLong(MetricsKeys.kbytesValue, kbytes, dbMetrics);
         MetricsKeys.putLong(MetricsKeys.iopsValue, iops, dbMetrics);
         MetricsKeys.putLong(MetricsKeys.lastSampleTime, sampleTime, dbMetrics);
-        // Update the Unmanaged Initiator and Volume Count.
-        // We count meta-members for the volumes only if it's a VMAX2
-        boolean countMetaMembers = (
-                system.getSystemType().equals(DiscoveredDataObject.Type.vmax.name())
-                && !system.checkIfVmax3());
-        updateUnmanagedVolumeAndInitiatorCounts(port, countMetaMembers, dbMetrics);
+
         port.setMetrics(dbMetrics);
         _dbClient.persistObject(port);
     }
@@ -494,6 +489,9 @@ public class PortMetricsProcessor {
         StringSet storagePorts = null;
         Double portPercentBusy = 0.0;
         Double avgPortPercentBusy = 0.0;
+        Double percentBusy = 0.0;
+        Double avgPercentBusy = 0.0;
+
         int noOfInterface = 0;
         if (storageSystem != null) {
             URIQueryResultList vNASURIs = new URIQueryResultList();
@@ -511,14 +509,19 @@ public class PortMetricsProcessor {
                             StoragePort storagePort = _dbClient.queryObject(StoragePort.class, URI.create(sp));
                             portPercentBusy = portPercentBusy
                                     + MetricsKeys.getDouble(MetricsKeys.avgPortPercentBusy, storagePort.getMetrics());
+
+                            percentBusy = percentBusy
+                                    + MetricsKeys.getDouble(MetricsKeys.avgPercentBusy, storagePort.getMetrics());
                         }
                         noOfInterface = storagePorts.size();
                         if (noOfInterface != 0) {
 
                             avgPortPercentBusy = portPercentBusy / noOfInterface;
+                            avgPercentBusy = percentBusy / noOfInterface;
                         }
                         StringMap dbMetrics = vNAS.getMetrics();
                         MetricsKeys.putDouble(MetricsKeys.avgPortPercentBusy, avgPortPercentBusy, dbMetrics);
+                        MetricsKeys.putDouble(MetricsKeys.avgPercentBusy, avgPercentBusy, dbMetrics);
                         _dbClient.persistObject(vNAS);
 
                     }

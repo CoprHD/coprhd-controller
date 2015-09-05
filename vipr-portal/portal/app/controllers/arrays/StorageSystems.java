@@ -102,18 +102,20 @@ public class StorageSystems extends ViprResourceController {
     protected static final String REGISTER_ERROR = "PhysicalAssets.registration.error";
     protected static final String UNKNOWN_PORT = "storageArrayPort.unknown";
     protected static final String NOT_REGISTERED = "StorageSystems.not.registered";
+    protected static final String SCALEIO = "scaleio";
 
     private static void addReferenceData() {
         renderArgs.put("storageArrayTypeList", Arrays.asList(StorageSystemTypes.OPTIONS));
         renderArgs.put("smisStorageSystemTypeList", Arrays.asList(StorageSystemTypes.SMIS_OPTIONS));
         renderArgs.put("nonSmisStorageSystemTypeList", Arrays.asList(StorageSystemTypes.NON_SMIS_OPTIONS));
         renderArgs.put("sslDefaultStorageSystemList", Arrays.asList(StorageSystemTypes.SSL_DEFAULT_OPTIONS));
-        renderArgs.put("nonSSLStorageSystemList", Arrays.asList(StorageSystemTypes.NON_SSL_OPTIONS));
+        renderArgs.put("nonSSLStorageSystemList", Arrays.asList(StorageSystemTypes.NON_SSL_OPTIONS));        
         List<EnumOption> defaultStorageArrayPortMap = Arrays.asList(EnumOption.options(DefaultStorageArrayPortMap.values()));
         renderArgs.put("defaultStorageArrayPortMap", defaultStorageArrayPortMap);
 
         renderArgs.put("vnxfileStorageSystemType", StorageSystemTypes.VNX_FILE);
         renderArgs.put("scaleIOStorageSystemType", StorageSystemTypes.SCALEIO);
+        renderArgs.put("scaleIOApiStorageSystemType", StorageSystemTypes.SCALEIOAPI);
     }
 
     public static void list() {
@@ -162,7 +164,9 @@ public class StorageSystems extends ViprResourceController {
         StorageSystemRestRep storageSystem = StorageSystemUtils.getStorageSystem(id);
         if (storageSystem != null) {
             StorageSystemForm storageArray = new StorageSystemForm(storageSystem);
-
+            if (storageArray.type.equals(SCALEIO)) {
+            	renderArgs.put("storageArrayTypeList", Arrays.asList(StorageSystemTypes.SMIS_OPTIONS));
+            }
             if (storageArray.unregistered) {
                 flash.put("warning", MessagesUtils.get(NOT_REGISTERED, storageArray.name));
             }
@@ -392,12 +396,16 @@ public class StorageSystems extends ViprResourceController {
     	}
     }
     
+    @FlashException(keep = true, referrer = { "virtualNasServers"})
     public static void associateProject(String nasIds, String projectId, String storageId ) {
-       String proj = projectId;
+       
        Set<String> vnasServers = new TreeSet<String>();
        if (nasIds!=null && !nasIds.isEmpty()) {
           String[] nasArray = nasIds.split(",");
           Collections.addAll(vnasServers,nasArray);
+       }
+       if (projectId != null && !projectId.isEmpty()){
+    	   projectId = projectId.trim();
        }
        VirtualNasParam vNasParam = new VirtualNasParam();
        vNasParam.setVnasServers(vnasServers);
@@ -409,6 +417,7 @@ public class StorageSystems extends ViprResourceController {
 	   virtualNasServers(storageId);
     }
     
+    @FlashException(keep = true, referrer = { "virtualNasServers"})
     public static void dissociateProject(@As(",") String[] ids,String storageId) {
     	
     	List<URI> uris = Lists.newArrayList();
@@ -748,6 +757,7 @@ public class StorageSystems extends ViprResourceController {
                 this.smisProviderUseSSL = storageArray.getSmisUseSSL();
                 this.smisProviderUserName = storageArray.getSmisUserName();
             }
+            
         }
 
         public boolean isNew() {
@@ -783,6 +793,10 @@ public class StorageSystems extends ViprResourceController {
                 storageArray.setPassword(StringUtils.trimToNull(userPassword));
                 storageArray.setUserName(StringUtils.trimToNull(userName));
             }
+            
+            if (isScaleIOApi()) {
+            	storageArray.setPassword(secondaryPassword);
+            }
 
             return StorageSystemUtils.update(id, storageArray);
         }
@@ -804,6 +818,10 @@ public class StorageSystems extends ViprResourceController {
                 storageArray.setSmisPortNumber(smisProviderPortNumber);
                 storageArray.setSmisProviderIP(smisProviderIpAddress);
                 storageArray.setSmisUseSSL(smisProviderUseSSL);
+            }
+            
+            if (isScaleIOApi()) {
+            	storageArray.setPassword(secondaryPassword);
             }
             return StorageSystemUtils.create(storageArray);
         }
@@ -846,21 +864,28 @@ public class StorageSystems extends ViprResourceController {
                 Validation.required(fieldName + ".smisProviderPortNumber", this.smisProviderPortNumber);
             }
 
-            if (isNew()) {
-                Validation.required(fieldName + ".userName", this.userName);
-                Validation.required(fieldName + ".userPassword", this.userPassword);
-                Validation.required(fieldName + ".confirmPassword", this.confirmPassword);
+            if (isNew()) { 
+            	if (isScaleIOApi()) {
+            		Validation.required(fieldName + ".secondaryUsername", this.secondaryUsername);
+            		Validation.required(fieldName + ".secondaryPassword", this.secondaryPassword);
+            		Validation.required(fieldName + ".secondaryPasswordConfirm", this.secondaryPasswordConfirm);
+            	}
+            	else {
+            		Validation.required(fieldName + ".userName", this.userName);
+            		Validation.required(fieldName + ".userPassword", this.userPassword);
+            		Validation.required(fieldName + ".confirmPassword", this.confirmPassword);
 
-                if (isVnxFile()) {
-                    Validation.required(fieldName + ".smisProviderUserName", this.smisProviderUserName);
-                    Validation.required(fieldName + ".smisProviderUserPassword", this.smisProviderUserPassword);
-                    Validation.required(fieldName + ".smisProviderConfirmPassword", this.smisProviderConfirmPassword);
-                }
+            		if (isVnxFile()) {
+            			Validation.required(fieldName + ".smisProviderUserName", this.smisProviderUserName);
+            			Validation.required(fieldName + ".smisProviderUserPassword", this.smisProviderUserPassword);
+            			Validation.required(fieldName + ".smisProviderConfirmPassword", this.smisProviderConfirmPassword);
+            		}
 
-                if (isScaleIO() && !isMatchingPasswords(secondaryPassword, secondaryPasswordConfirm)) {
-                    Validation.addError(fieldName + ".secondaryPasswordConfirm",
-                            MessagesUtils.get("storageArray.secondaryPassword.confirmPassword.not.match"));
-                }
+            		if (isScaleIO() && !isMatchingPasswords(secondaryPassword, secondaryPasswordConfirm)) {
+            			Validation.addError(fieldName + ".secondaryPasswordConfirm",
+            					MessagesUtils.get("storageArray.secondaryPassword.confirmPassword.not.match"));
+            		}
+            	}
             }
             else {
                 if (!unlimitResource) {
@@ -869,7 +894,7 @@ public class StorageSystems extends ViprResourceController {
                 }
             }
 
-            if (!isMatchingPasswords(userPassword, confirmPassword)) {
+            if (!isScaleIOApi() && !isMatchingPasswords(userPassword, confirmPassword)) {
                 Validation.addError(fieldName + ".confirmPassword",
                         MessagesUtils.get("storageArray.confirmPassword.not.match"));
             }
@@ -899,6 +924,10 @@ public class StorageSystems extends ViprResourceController {
 
         private boolean isScaleIO() {
             return StorageSystemTypes.isScaleIO(type);
+        }
+        
+        private boolean isScaleIOApi() {
+        	return StorageSystemTypes.isScaleIOApi(type);
         }
     }
 

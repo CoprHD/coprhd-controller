@@ -4,7 +4,6 @@
  */
 package com.emc.storageos.volumecontroller.impl.plugins;
 
-
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -57,7 +56,6 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMB
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.exceptions.DatabaseException;
-import com.emc.storageos.model.vnas.VirtualNASList;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
@@ -435,9 +433,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVpool(poolsToMatchWithVpool, _dbClient, _coordinator,
                     storageSystemId);
             
-            //Update the virtual NAS - varrays!!!
-            updateVirtualNasVirtualArrays(storageSystem);
-
+            // Update the virtual nas association with virtual arrays!!!
+            // For existing virtual nas ports!!
+            StoragePortAssociationHelper.runUpdateVirtualNasAssociationsProcess(allExistingPorts, null, _dbClient);
+ 
             // discovery succeeds
             detailedStatusMessage = String.format("Discovery completed successfully for Storage System: %s",
                     storageSystemId.toString());
@@ -461,52 +460,15 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             }
         }
     }
-    
-    private void updateVirtualNasVirtualArrays(StorageSystem storageSystem){
-    	//Get all the virtual NAS servers on this storage system!!
-    	 List<VirtualNAS> modifiedvNas = new ArrayList<VirtualNAS>();
-         URIQueryResultList vNasURIs = new URIQueryResultList();
-         _dbClient.queryByConstraint(
-                 ContainmentConstraint.Factory.getStorageDeviceVirtualNasConstraint(storageSystem.getId()),
-                 vNasURIs);
-         Iterator<URI> vNasIter = vNasURIs.iterator();
-         while (vNasIter.hasNext()) {
-             URI vNasURI = vNasIter.next();
-             VirtualNAS vNas = _dbClient.queryObject(VirtualNAS.class,
-             		vNasURI);
-             if (vNas != null && !vNas.getInactive()) {
-             	// clear the existing varrays as part of vnas!!!
-            	 if(vNas.getAssignedVirtualArrays() != null &&
-            			 !vNas.getAssignedVirtualArrays().isEmpty()){
-            		 vNas.getAssignedVirtualArrays().clear();
-            	 }
-            	 
-            	 //Assign the varrays of its storage ports.
-            	 for( String port: vNas.getStoragePorts()){
-            		 StoragePort storagePort = _dbClient.queryObject(StoragePort.class,
-            				 URI.create(port));
-            		 if(storagePort.getConnectedVirtualArrays() != null &&
-            				 !storagePort.getConnectedVirtualArrays().isEmpty()) {
-            			 if(vNas.getAssignedVirtualArrays() == null){
-            				 vNas.setAssignedVirtualArrays(new StringSet());
-            			 }
-            			 vNas.getAssignedVirtualArrays().addAll(storagePort.getConnectedVirtualArrays());
-            			 _logger.info("Added {} varrays to virtual nas {} ",
-            					 storagePort.getConnectedVirtualArrays(), vNas.getNasName());
-            		 }
-            	 }
-            	 modifiedvNas.add(vNas);
-             }
-         }
-         
-         // Persists the modified vnas servers!!!
-         if(!modifiedvNas.isEmpty()){
-        	 _dbClient.persistObject(modifiedvNas);
-         }
-         
-    	
-    }
 
+    /**
+     * Create Virtual NAS for the specified VNX File storage array
+     * 
+     * @param system storage system information including credentials.
+     * @param discovered VDM of the specified VNX File storage array
+     * @return Virtual NAS Server
+     * @throws VNXFileCollectionException
+     */
     private VirtualNAS createVirtualNas(StorageSystem system, VNXVdm vdm) throws VNXFileCollectionException {
 
         VirtualNAS vNas = new VirtualNAS();
@@ -534,6 +496,14 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
     }
 
+    /**
+     * Create Physical NAS for the specified VNX File storage array
+     * 
+     * @param system storage system information including credentials.
+     * @param discovered DM of the specified VNX File storage array
+     * @return Physical NAS Server
+     * @throws VNXFileCollectionException
+     */
     private PhysicalNAS createPhysicalNas(StorageSystem system, VNXDataMover dm) throws VNXFileCollectionException {
 
         PhysicalNAS phyNas = new PhysicalNAS();
@@ -1012,6 +982,13 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         return storagePorts;
     }
 
+    /**
+     * Find the Virtual NAS by Native ID for the specified VNX File storage array
+     * 
+     * @param system storage system information including credentials.
+     * @param Native id of the specified Virtual NAS
+     * @return Virtual NAS Server
+     */
     private VirtualNAS findvNasByNativeId(StorageSystem system, String nativeId) {
         URIQueryResultList results = new URIQueryResultList();
         VirtualNAS vNas = null;
@@ -1037,6 +1014,13 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
     }
 
+    /**
+     * Find the Physical NAS by Native ID for the specified VNX File storage array
+     * 
+     * @param system storage system information including credentials.
+     * @param Native id of the specified Physical NAS
+     * @return Physical NAS Server
+     */
     private PhysicalNAS findPhysicalNasByNativeId(StorageSystem system, String nativeId) {
         URIQueryResultList results = new URIQueryResultList();
         PhysicalNAS physicalNas = null;
@@ -1340,8 +1324,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             _logger.info("Modified VirtualNAS servers size {}", modifiedServers.size());
             _dbClient.persistObject(modifiedServers);
         }
-
-        // Remove the vNas which does not have any logical interfaces attached to it.
 
         _logger.info("Storage port discovery for storage system {} complete", system.getId());
         for (StoragePort newPort : newStoragePorts) {

@@ -84,22 +84,23 @@ public class BucketScheduler {
      */
     private List<BucketRecommendation> selectMatchingStoragePool(VirtualPool vpool, List<Recommendation> poolRecommends) {
 
-        _log.debug("select matching Object Store Domain");
         List<BucketRecommendation> result = new ArrayList<BucketRecommendation>();
         for (Recommendation recommendation : poolRecommends) {
             BucketRecommendation rec = new BucketRecommendation(recommendation);
             URI storageUri = recommendation.getSourceDevice();
             URI storagePoolUri = recommendation.getSourcePool();
 
+            // Verify if the Storage System is an Object Store
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageUri);
-            StoragePool pool = _dbClient.queryObject(StoragePool.class, storagePoolUri);
             if (!storage.getSystemType().equals(Type.ecs.toString())) {
                 continue;
             }
 
             // Select only those Storage pool whose retention days is more than that of Virtual Pool
-            if (pool.getMaxRetention() > vpool.getMaxRetention()) {
+            StoragePool pool = _dbClient.queryObject(StoragePool.class, storagePoolUri);
+            if (pool.getMaxRetention() == 0 || pool.getMaxRetention() >= vpool.getMaxRetention()) {
                 result.add(rec);
+                _log.debug("Select matching Object Store Domain : {} # {}", storageUri, storagePoolUri);
             }
         }
         return result;

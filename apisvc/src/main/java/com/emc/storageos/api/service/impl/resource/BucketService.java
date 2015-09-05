@@ -162,21 +162,13 @@ public class BucketService extends TaskResourceService {
 
         // Hard Quota should be more than SoftQuota
         if (softQuota >= hardQuota) {
-            throw APIException.badRequests.virtualPoolInvalidQuotaForObjectStorage(VirtualPool.Type.object.name());
+            throw APIException.badRequests.invalidQuotaRequestForObjectStorage(param.getLabel());
         }
-
-        Long softQuotaMB = softQuota / (1024 * 1024);
-        ArgValidator.checkFieldMinimum(softQuotaMB, 1024, "MB", "size");
-
-        Long hardQuotaMB = hardQuota / (1024 * 1024);
-        ArgValidator.checkFieldMinimum(hardQuotaMB, 1024, "MB", "size");
 
         // check varray
         VirtualArray neighborhood = _dbClient.queryObject(VirtualArray.class, param.getVarray());
         ArgValidator.checkEntity(neighborhood, param.getVarray(), false);
         _permissionsHelper.checkTenantHasAccessToVirtualArray(tenant.getId(), neighborhood);
-
-        String task = UUID.randomUUID().toString();
 
         // check vpool reference
         VirtualPool cos = _dbClient.queryObject(VirtualPool.class, param.getVpool());
@@ -185,12 +177,7 @@ public class BucketService extends TaskResourceService {
         if (!VirtualPool.Type.object.name().equals(cos.getType())) {
             throw APIException.badRequests.virtualPoolNotForObjectStorage(VirtualPool.Type.object.name());
         }
-
-        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, hardQuota);
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.FALSE);
-
+        
         // verify quota
         CapacityUtils.validateQuotasForProvisioning(_dbClient, cos, project, tenant, hardQuota, "bucket");
 
@@ -198,6 +185,11 @@ public class BucketService extends TaskResourceService {
         if (retention > cos.getMaxRetention()) {
             throw APIException.badRequests.insufficientRetentionForVirtualPool(cos.getLabel(), "bucket");
         }
+
+        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, hardQuota);
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.FALSE);
 
         List<BucketRecommendation> placement = _bucketScheduler.placeBucket(neighborhood, cos, capabilities);
         if (placement.isEmpty()) {
@@ -211,6 +203,7 @@ public class BucketService extends TaskResourceService {
         // Check if there already exist a bucket with same name.
         checkForDuplicateName(param.getLabel(), Bucket.class, null, null, _dbClient);
 
+        String task = UUID.randomUUID().toString();
         Bucket bucket = prepareBucket(param, project, tenant, neighborhood, cos, flags, recommendation, task);
 
         _log.info(String.format(
@@ -218,7 +211,6 @@ public class BucketService extends TaskResourceService {
                 bucket.getId(), recommendation.getSourcePool(), recommendation.getSourceDevice()));
 
         // TODO : Controller call
-
         try {
             // StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceDevice());
             // ObjectController controller = getController(ObjectController.class, system.getSystemType());

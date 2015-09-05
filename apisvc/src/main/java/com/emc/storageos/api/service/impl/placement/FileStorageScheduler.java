@@ -265,8 +265,8 @@ public class FileStorageScheduler {
             	// 2. If multiple virtual nas servers found to be similar performance,
             	//    sort the virtual nas based on capacity and then number of storage objects!!!
                 int value = 0;
-                Double avgUsedPercentV1 = MetricsKeys.getDoubleOrNull(MetricsKeys.avgPercentBusy, v1.getMetrics());
-                Double avgUsedPercentV2 = MetricsKeys.getDoubleOrNull(MetricsKeys.avgPercentBusy, v2.getMetrics());
+                Double avgUsedPercentV1 = MetricsKeys.getDoubleOrNull(MetricsKeys.avgPortPercentBusy, v1.getMetrics());
+                Double avgUsedPercentV2 = MetricsKeys.getDoubleOrNull(MetricsKeys.avgPortPercentBusy, v2.getMetrics());
                 if (avgUsedPercentV1 != null && avgUsedPercentV2 != null) {
                     value = avgUsedPercentV1.compareTo(avgUsedPercentV2);
                 } else {

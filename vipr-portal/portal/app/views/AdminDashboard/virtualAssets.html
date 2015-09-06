@@ -8,6 +8,7 @@
           #{license.ifController}
             <a class="list-group-item" href="@{arrays.BlockVirtualPools.list()}">&{'adminDashboard.blockVirtualPools'} #{badgeNumber blockVirtualPoolCount/}</a>
             <a class="list-group-item" href="@{arrays.FileVirtualPools.list()}">&{'adminDashboard.fileVirtualPools'} #{badgeNumber fileVirtualPoolCount/}</a>
+            <a class="list-group-item" href="@{arrays.ObjectVirtualPools.list()}">&{'adminDashboard.objectVirtualPools'} #{badgeNumber objectVirtualPoolCount/}</a>
             <a class="list-group-item" href="@{compute.ComputeVirtualPools.list()}">&{'adminDashboard.computeVirtualPools'} #{badgeNumber computeVirtualPoolCount/}</a>
            #{/license.ifController}
         #{/if}
@@ -16,6 +17,7 @@
           #{license.ifController}
             <li class="list-group-item">&{'adminDashboard.blockVirtualPools'} #{badgeNumber blockVirtualPoolCount/}</li>
             <li class="list-group-item">&{'adminDashboard.fileVirtualPools'} #{badgeNumber fileVirtualPoolCount/}</li>
+            <li class="list-group-item">&{'adminDashboard.objectVirtualPools'} #{badgeNumber objectVirtualPoolCount/}</li>
             <li class="list-group-item">&{'adminDashboard.computeVirtualPools'} #{badgeNumber computeVirtualPoolCount/}</li>
            #{/license.ifController}
         #{/else}

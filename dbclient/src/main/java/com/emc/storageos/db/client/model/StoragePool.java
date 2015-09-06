@@ -352,10 +352,10 @@ public class StoragePool extends VirtualArrayTaggedResource {
         this.maxResources = (maxResources > 0) ? maxResources : 0;
         setChanged("maxResources");
     }
-    
+
     @Name("maxRetention")
     public Integer getMaxRetention() {
-        return maxRetention;
+        return (null != maxRetention) ? maxRetention : 0;
     }
 
     public void setMaxRetention(Integer maxRetention) {

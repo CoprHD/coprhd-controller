@@ -109,7 +109,7 @@ public class ECSApi {
 		List<ECSStoragePool> ecsPools = new ArrayList<ECSStoragePool>();
 		JSONObject objRG = null;
 		JSONArray aryVarray = null;
-		int storagepoolTotalCapacity = 0, storagepoolFreeCapacity = 0;
+		Long storagepoolTotalCapacity = 0L, storagepoolFreeCapacity = 0L;
 		ClientResponse clientRespVarray = null;
 		
     	try {
@@ -155,6 +155,7 @@ public class ECSApi {
     			}//for each ECS varray
 
     			pool.setName(objRG.getString("name"));
+    			pool.setId(objRG.getString("id"));
     			pool.setTotalCapacity(storagepoolTotalCapacity);
     			pool.setFreeCapacity(storagepoolFreeCapacity);
     			ecsPools.add(pool);
@@ -178,5 +179,17 @@ public class ECSApi {
         }
 
         return ecsPools;
+    }
+
+
+    public List<ECSStoragePort> getStoragePort(String name) throws ECSException {
+    	List<ECSStoragePort> ecsPort = new ArrayList<ECSStoragePort>();
+    	ECSStoragePort port = new ECSStoragePort();
+    	port.setName(name);
+    	port.setId(name);
+    	port.setIpAddress(name);
+    	ecsPort.add(port);
+    	
+    	return ecsPort;
     }
 }

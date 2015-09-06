@@ -2333,7 +2333,7 @@ public interface BadRequestExceptions {
     public BadRequestException storagePoolsRequireVplexForProtection(final String personality, final String vpoolName);
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
-    public BadRequestException virtualPoolInvalidQuotaForObjectStorage(String type);
+    public BadRequestException invalidQuotaRequestForObjectStorage(String type);
     
     @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
     public BadRequestException virtualPoolNotForObjectStorage(String type);

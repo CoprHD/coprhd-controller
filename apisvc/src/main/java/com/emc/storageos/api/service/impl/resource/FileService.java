@@ -161,8 +161,7 @@ public class FileService extends TaskResourceService {
     @Override
     public FileShareBulkRep queryBulkResourceReps(List<URI> ids) {
 
-        Iterator<FileShare> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        Iterator<FileShare> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new FileShareBulkRep(BulkList.wrapping(_dbIterator, MapFileShare.getInstance()));
     }
 
@@ -170,8 +169,7 @@ public class FileService extends TaskResourceService {
     protected BulkRestRep queryFilteredBulkResourceReps(
             List<URI> ids) {
 
-        Iterator<FileShare> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        Iterator<FileShare> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         BulkList.ResourceFilter<FileShare> filter = new BulkList.ProjectResourceFilter<FileShare>(
                 getUserFromContext(), _permissionsHelper);
         return new FileShareBulkRep(BulkList.wrapping(_dbIterator, MapFileShare.getInstance(), filter));
@@ -277,10 +275,11 @@ public class FileService extends TaskResourceService {
         // Randomly select a recommended pool
         Collections.shuffle(placement);
         FileRecommendation recommendation = placement.get(0);
-        StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceDevice());
-
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceStorageSystem());
+        
+        
         // List the FileSystesm with the label received.
-        List<FileShare> objectList = (List<FileShare>) listFileSystemsWithLabelName(param.getLabel(), FileShare.class, null, null);
+        List<FileShare> objectList = listFileSystemsWithLabelName(param.getLabel(), FileShare.class, null, null);
         _log.debug("No of FileSystems found {} with the label {}", objectList.size(), param.getLabel());
         // Now check whether the label used in the storage system or not.
         for (FileShare fs : objectList) {
@@ -294,14 +293,13 @@ public class FileService extends TaskResourceService {
         FileController controller = getController(FileController.class, system.getSystemType());
         FileShare fs = prepareFileSystem(param, project, tenant, neighborhood, cos, flags, recommendation, task);
 
-        String suggestedNativeFsId =
-                param.getFsId() == null ? "" : param.getFsId();
+        String suggestedNativeFsId = param.getFsId() == null ? "" : param.getFsId();
 
         _log.info(String.format(
                 "createFileSystem --- FileShare: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
-                fs.getId(), recommendation.getSourcePool(), recommendation.getSourceDevice()));
+                fs.getId(), recommendation.getSourceStoragePool(),  recommendation.getSourceStorageSystem()));
         try {
-            controller.createFS(recommendation.getSourceDevice(), recommendation.getSourcePool(), fs.getId(),
+            controller.createFS(recommendation.getSourceStorageSystem(), recommendation.getSourceStoragePool(), fs.getId(),
                     suggestedNativeFsId, task);
         } catch (InternalException e) {
             fs.setInactive(true);
@@ -359,7 +357,8 @@ public class FileService extends TaskResourceService {
         URIQueryResultList fsUriList = new URIQueryResultList();
         _dbClient.queryByConstraint(
                 AlternateIdConstraint.Factory.getFileSystemMountPathConstraint(
-                        mountPath), fsUriList);
+                        mountPath),
+                fsUriList);
 
         _log.info("After query of the database for {} and result {}", mountPath, fsUriList);
 
@@ -375,8 +374,7 @@ public class FileService extends TaskResourceService {
                     SearchResultResourceRep r = new SearchResultResourceRep(uri, selfLink, fs.getMountPath());
                     resRepList.add(r);
                     _log.info("Mount path match " + fs.getMountPath());
-                }
-                else {
+                } else {
                     _log.info("Mount path match but not authorized " + fs.getMountPath());
                 }
             }
@@ -454,8 +452,7 @@ public class FileService extends TaskResourceService {
      */
 
     private void verifyExports(FileShare fs, FileExportUpdateParam param, String permissions, String securityType, String rootUserMapping,
-            String path)
-    {
+            String path) {
 
         // Check to see if th permission passed in is valid
         Boolean allowedPermission = false;
@@ -511,8 +508,7 @@ public class FileService extends TaskResourceService {
                             break;
                         }
                     }
-                    if (isAlreadyExportedToSameEndpoint)
-                    {
+                    if (isAlreadyExportedToSameEndpoint) {
                         _log.info(String.format(
                                 "Existing Export params for FileShare id: %1$s,  SecurityType: %2$s, " +
                                         "Permissions: %3$s, Root user mapping: %4$s, ",
@@ -1163,8 +1159,7 @@ public class FileService extends TaskResourceService {
     @Path("/{id}/protection/snapshots")
     @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public SnapshotList getSnapshots(@PathParam("id") URI id) {
-        List<URI> snapIDList = _dbClient.queryByConstraint(ContainmentConstraint.
-                Factory.getFileshareSnapshotConstraint(id));
+        List<URI> snapIDList = _dbClient.queryByConstraint(ContainmentConstraint.Factory.getFileshareSnapshotConstraint(id));
         _log.debug("getSnapshots: FS {}: {} ", id.toString(), snapIDList.toString());
         List<Snapshot> snapList = _dbClient.queryObject(Snapshot.class, snapIDList);
         SnapshotList list = new SnapshotList();
@@ -1270,12 +1265,11 @@ public class FileService extends TaskResourceService {
     }
 
     // Counts and returns the number of snapshots on a filesystem
-    Integer getNumSnapshots(FileShare fs) {
+            Integer getNumSnapshots(FileShare fs) {
         Integer numSnapshots = 0;
         URI fsId = fs.getId();
         URIQueryResultList snapIDList = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory.
-                getFileshareSnapshotConstraint(fsId), snapIDList);
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getFileshareSnapshotConstraint(fsId), snapIDList);
         while (snapIDList.iterator().hasNext()) {
             URI uri = snapIDList.iterator().next();
             Snapshot snap = _dbClient.queryObject(Snapshot.class, uri);
@@ -1309,7 +1303,8 @@ public class FileService extends TaskResourceService {
 
         String task = UUID.randomUUID().toString();
         _log.info(String.format(
-                "FileSystemDelete --- FileSystem id: %1$s, Task: %2$s, ForceDelete: %3$s", id, task, param.getForceDelete()));
+                "FileSystemDelete --- FileSystem id: %1$s, Task: %2$s, ForceDelete: %3$s ,DeleteType: %4$s", id, task,
+                param.getForceDelete(), param.getDeleteType()));
         ArgValidator.checkFieldUriType(id, FileShare.class, "id");
         FileShare fs = queryResource(id);
         if (!param.getForceDelete()) {
@@ -1322,7 +1317,7 @@ public class FileService extends TaskResourceService {
                 task, ResourceOperationTypeEnum.DELETE_FILE_SYSTEM);
         op.setDescription("Filesystem deactivate");
         // where does pool come from?
-        controller.delete(device.getId(), null, fs.getId(), param.getForceDelete(), task);
+        controller.delete(device.getId(), null, fs.getId(), param.getForceDelete(), param.getDeleteType(), task);
         auditOp(OperationTypeEnum.DELETE_FILE_SYSTEM, true, AuditLogManager.AUDITOP_BEGIN,
                 fs.getId().toString(), device.getId().toString());
 
@@ -1400,17 +1395,18 @@ public class FileService extends TaskResourceService {
         }
         fs.setTenant(new NamedURI(tenantOrg.getId(), param.getLabel()));
         fs.setVirtualArray(neighborhood.getId());
-
-        if (null != placement.getSourcePool()) {
-            pool = _dbClient.queryObject(StoragePool.class, placement.getSourcePool());
+        
+        
+        if (null != placement.getSourceStoragePool()) {
+            pool = _dbClient.queryObject(StoragePool.class, placement.getSourceStoragePool());
             if (null != pool) {
                 fs.setProtocol(new StringSet());
                 fs.getProtocol().addAll(VirtualPoolUtil.getMatchingProtocols(vpool.getProtocols(), pool.getProtocols()));
             }
         }
-
-        fs.setStorageDevice(placement.getSourceDevice());
-        fs.setPool(placement.getSourcePool());
+        
+        fs.setStorageDevice(placement.getSourceStorageSystem());
+        fs.setPool(placement.getSourceStoragePool());
         if (placement.getStoragePorts() != null && !placement.getStoragePorts().isEmpty()) {
             fs.setStoragePort(placement.getStoragePorts().get(0));
         }
@@ -1458,7 +1454,8 @@ public class FileService extends TaskResourceService {
         } else {
             _dbClient.queryByConstraint(
                     ContainmentPrefixConstraint.Factory.getFileshareUnderProjectConstraint(
-                            projectId, name), resRepList);
+                            projectId, name),
+                    resRepList);
         }
         return resRepList;
     }
@@ -1483,8 +1480,7 @@ public class FileService extends TaskResourceService {
      */
     @Override
     public ResRepFilter<? extends RelatedResourceRep> getPermissionFilter(StorageOSUser user,
-            PermissionsHelper permissionsHelper)
-    {
+            PermissionsHelper permissionsHelper) {
         return new ProjOwnedResRepFilter(user, permissionsHelper, FileShare.class);
     }
 
@@ -1628,8 +1624,7 @@ public class FileService extends TaskResourceService {
         return quotaDirList;
     }
 
-    private List<QuotaDirectory> queryDBQuotaDirectories(FileShare fs)
-    {
+    private List<QuotaDirectory> queryDBQuotaDirectories(FileShare fs) {
         _log.info("Querying all quota directories Using FsId {}", fs.getId());
         try {
             ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getQuotaDirectoryConstraint(fs.getId());
@@ -2008,8 +2003,7 @@ public class FileService extends TaskResourceService {
         _log.info("Expor Rule : {} - {}", orig, dest);
     }
 
-    private List<FileExportRule> queryDBFSExports(FileShare fs)
-    {
+    private List<FileExportRule> queryDBFSExports(FileShare fs) {
         _log.info("Querying all ExportRules Using FsId {}", fs.getId());
         try {
             ContainmentConstraint containmentConstraint = ContainmentConstraint.Factory.getFileExportRulesConstraint(fs.getId());
@@ -2023,8 +2017,7 @@ public class FileService extends TaskResourceService {
         return null;
     }
 
-    private List<ExportRule> queryFSExports(FileShare fs)
-    {
+    private List<ExportRule> queryFSExports(FileShare fs) {
         List<ExportRule> rules = null;
         _log.info("Querying all ExportRules Using FsId {}", fs.getId());
         try {

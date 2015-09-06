@@ -208,6 +208,7 @@ public enum ResourceOperationTypeEnum {
     DISCOVER_HOST("DISCOVER HOST", "discover a compute host"),
     CREATE_HOST("CREATE HOST", "create a compute host"),
     DELETE_CLUSTER("DELETE CLUSTER", "delete a compute cluster"),
+    UPDATE_CLUSTER("UPDATE CLUSTER", "delete a compute cluster"),
     DELETE_HOST("DELETE HOST", "delete a compute host"),
     DELETE_HOST_IPINTERFACE("DELETE HOST IP INTERFACE", "delete a compute host's IP interface"),
     DISCOVER_VCENTER("DISCOVER VCENTER", "discover a vcenter"),

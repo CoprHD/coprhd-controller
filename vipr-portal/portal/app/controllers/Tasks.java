@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.workflow.WorkflowStepRestRep;
@@ -122,7 +123,8 @@ public class Tasks extends Controller {
         if (taskResourceReps != null) {
             for (TaskResourceRep taskResourceRep : taskResourceReps) {
                 TasksDataTable.Task task = new TasksDataTable.Task(taskResourceRep);
-                if (Objects.equals(task.state, "pending")) {
+                if (Objects.equals(task.state, "pending") ||
+                        Objects.equals(task.state, "queued")) {
                     task.progress = Math.max(task.progress, MINIMUM_TASK_PROGRESS);
                 }
 
@@ -369,6 +371,9 @@ public class Tasks extends Controller {
         public long startDate;
         public long endDate;
         public long elapsedTime;
+        public String queueName;
+        public long queuedStartTime;
+        public long queuedElapsedTime;
         public boolean systemTask;
         public String resourceType;
         public String resourceId;
@@ -401,13 +406,23 @@ public class Tasks extends Controller {
             resourceType = task.getResource() == null ? "" : URIUtil.getTypeName(task.getResource().getId());
             resourceName = task.getResource().getName();
             resourceId = task.getResource().getId().toString();
-            isComplete = !task.getState().equals("pending");
+            isComplete = !task.getState().equals("pending") || !task.getState().equals("queued");
+
+            queuedStartTime = task.getQueuedStartTime() == null ? 0 : task.getQueuedStartTime().getTimeInMillis();
+
+            if (NullColumnValueGetter.isNotNullValue(task.getQueueName())) {
+                queueName = task.getQueueName();
+            }
 
             if (endDate == 0) {
                 elapsedTime = new Date().getTime() - startDate;
             }
             else {
                 elapsedTime = endDate - startDate;
+            }
+
+            if (queuedStartTime != 0) {
+                queuedElapsedTime = new Date().getTime() - queuedStartTime;
             }
 
             if (Security.isSecurityAdmin() || Security.isSystemMonitor()) {

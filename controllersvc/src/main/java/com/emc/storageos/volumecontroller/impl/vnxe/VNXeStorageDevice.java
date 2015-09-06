@@ -57,6 +57,7 @@ import com.emc.storageos.vnxe.models.AccessEnum;
 import com.emc.storageos.vnxe.models.VNXeCommandJob;
 import com.emc.storageos.vnxe.models.VNXeCommandResult;
 import com.emc.storageos.vnxe.models.VNXeFSSupportedProtocolEnum;
+import com.emc.storageos.vnxe.models.VNXeFileSystem;
 import com.emc.storageos.vnxe.models.VNXeFileSystemSnap;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.ControllerException;
@@ -213,6 +214,26 @@ public class VNXeStorageDevice extends VNXeOperations
                 fileInOut.getPoolNativeId(), fileInOut.getFsName()));
         _logger.info(logMsgBuilder.toString());
         return BiosCommandResult.createPendingResult();
+    }
+
+    @Override
+    public boolean doCheckFSExists(StorageSystem storage,
+            FileDeviceInputOutput fileInOut) throws ControllerException {
+        _logger.info("checking file system existence on array: ", fileInOut.getFsName());
+        boolean isFSExists = true;
+        try {
+            String name = fileInOut.getFsName();
+            VNXeApiClient apiClient = getVnxeClient(storage);
+            VNXeFileSystem fs = apiClient.getFileSystemByFSName(name);
+            if (fs != null && (fs.getName().equals(name))) {
+                isFSExists = true;
+            } else {
+                isFSExists = false;
+            }
+        } catch (Exception e) {
+            _logger.error("Querying File System failed with exception:", e);
+        }
+        return isFSExists;
     }
 
     /*

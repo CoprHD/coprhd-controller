@@ -98,7 +98,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             
             //Get details of storage system
             String nativeGuid = NativeGUIDGenerator.generateNativeGuid(DiscoveredDataObject.Type.ecs.toString(),
-            		authToken); //TBD UUID to be used intead of authToken
+            		authToken.substring(0, 20)); //Take first 20 chars in authToken as there is not other id from ECS is available
             storageSystem.setNativeGuid(nativeGuid);
             storageSystem.setSerialNumber(nativeGuid); //No serial num API exposed
             //storageSystem.setUsername(accessProfile.getUserName());
@@ -152,9 +152,9 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                 	storagePool.setPoolServiceType(PoolServiceType.object.toString());
                 	storagePool.setRegistrationStatus(DiscoveredDataObject.RegistrationStatus.REGISTERED.toString());
                 	storagePool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THICK_ONLY.toString());
-                    storagePool.setFreeCapacity(ecsPool.getFreeCapacity());
-                    storagePool.setTotalCapacity(ecsPool.getTotalCapacity());
-                    storagePool.setSubscribedCapacity(ecsPool.getTotalCapacity()-ecsPool.getFreeCapacity());
+                    storagePool.setFreeCapacity(ecsPool.getFreeCapacity()*BYTESCONVERTER*BYTESCONVERTER);
+                    storagePool.setTotalCapacity(ecsPool.getTotalCapacity()*BYTESCONVERTER*BYTESCONVERTER);
+                    //storagePool.setSubscribedCapacity((ecsPool.getTotalCapacity()-ecsPool.getFreeCapacity()));
                 	_logger.info("Creating new ECS storage pool using NativeId : {}", storagePoolNativeGuid);
                     storagePool.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
                     storagePool.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());

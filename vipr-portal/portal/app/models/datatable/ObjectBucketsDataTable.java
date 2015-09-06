@@ -43,7 +43,7 @@ public class ObjectBucketsDataTable extends DataTable {
         ViPRCoreClient client = getViprClient();
         List<BucketRestRep> buckets = client.objectBuckets().findByProject(projectId);
         Map<URI, String> virtualArrays = ResourceUtils.mapNames(client.varrays().list());
-        Map<URI, String> virtualPools = ResourceUtils.mapNames(client.blockVpools().list());
+        Map<URI, String> virtualPools = ResourceUtils.mapNames(client.objectVpools().list());
 
         List<Bucket> results = Lists.newArrayList();
         for (BucketRestRep bucket : buckets) {

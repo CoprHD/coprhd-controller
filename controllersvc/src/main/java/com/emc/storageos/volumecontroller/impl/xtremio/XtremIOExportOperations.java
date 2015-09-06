@@ -281,7 +281,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                             blockObj.getLabel(), xioClusterName);
                 } else {
                     xtremIOVolume = XtremIOProvUtils.isSnapAvailableInArray(client,
-                            blockObj.getLabel(), xioClusterName);
+                            blockObj.getDeviceLabel(), xioClusterName);
                 }
 
                 if (null != xtremIOVolume) {
@@ -549,7 +549,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
                     // Create lun map
                     _log.info("Creating Lun Map for  Volume {} using IG {}", blockObj.getLabel(),
                             igName);
-                    client.createLunMap(blockObj.getLabel(), igName, hluValue, xioClusterName);
+                    client.createLunMap(blockObj.getDeviceLabel(), igName, hluValue, xioClusterName);
                 }
             }
 

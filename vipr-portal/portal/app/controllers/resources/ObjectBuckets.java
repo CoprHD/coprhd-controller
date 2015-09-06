@@ -79,7 +79,7 @@ public class ObjectBuckets extends ResourceController {
             renderArgs.put("virtualArray", VirtualArrayUtils.getVirtualArrayRef(bucket.getVirtualArray()));
         }
         if (bucket.getVirtualPool() != null) {
-            renderArgs.put("virtualPool", VirtualPoolUtils.getBlockVirtualPoolRef(bucket.getVirtualPool()));
+            renderArgs.put("virtualPool", VirtualPoolUtils.getObjectVirtualPoolRef(bucket.getVirtualPool()));
         }
 
         Tasks<BucketRestRep> tasksResponse = client.objectBuckets().getTasks(bucket.getId());

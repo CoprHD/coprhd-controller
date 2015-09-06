@@ -2287,6 +2287,7 @@ adminDashboard.virtualStorageArrays=Virtual Arrays
 adminDashboard.blockVirtualPools=Block Virtual Pools
 adminDashboard.fileVirtualPools=File Virtual Pools
 adminDashboard.computeVirtualPools=Compute Virtual Pools
+adminDashboard.objectVirtualPools=Object Virtual Pools
 adminDashboard.storageArrays=Storage Systems
 adminDashboard.smisProviders=Storage Providers
 adminDashboard.fabricManagers=Fabric Managers
@@ -2312,7 +2313,7 @@ adminDashboard.capacity=Arrays Capacity
 adminDashboard.fileCapacity=File
 adminDashboard.blockCapacity=Block
 adminDashboard.object=Object
-adminDashboard.blockFileFreeCapacity=Free Block/File
+adminDashboard.blockFileFreeCapacity=Free Block/File/Object
 
 license.model.ViPR_Controller=ViPR Controller
 license.model.ViPR_Object=ViPR Object
@@ -2664,6 +2665,14 @@ affectedResources.volume.mountPoint=Mount Point
 affectedResources.volume.datastore=Datastore
 affectedResources.volume.wwn=WWN
 affectedResources.volume.lun=LUN
+
+ resources.buckets=Buckets
+ resources.bucket=Bucket
+ resources.bucket.protocols=Protocols
+ resources.bucket.varray=Virtual Array
+ resources.bucket.vpool=Virtual Pool
+ resources.bucket.project=Project
+ 
 
 affectedResources.host=Host
 affectedResources.host.image=assets/Host.png

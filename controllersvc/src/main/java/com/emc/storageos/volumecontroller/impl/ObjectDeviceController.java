@@ -8,9 +8,11 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
+import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.ObjectController;
 import com.emc.storageos.volumecontroller.ObjectStorageDevice;
@@ -71,8 +73,16 @@ public class ObjectDeviceController implements ObjectController {
 		_log.info("ObjectDeviceController:startMonitoring");
 
 	}
-	
-	//Implementation
-	//Create bucket and delete bucket
 
+	@Override
+	public void createBucket(URI storage, String name) throws ControllerException {
+		// TODO Auto-generated method stub
+		_log.info("ObjectDeviceController:createBucket");
+		StorageSystem storageObj = null;
+		
+		storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+		BiosCommandResult result = getDevice(storageObj.getSystemType()).doCreateBucket(storageObj, name);
+		
+	}
+	
 }

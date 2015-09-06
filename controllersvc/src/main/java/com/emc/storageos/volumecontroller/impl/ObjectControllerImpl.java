@@ -44,13 +44,13 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
 	@Override
 	public void connectStorage(URI storage) throws InternalException {
 		_log.info("ObjectControllerImpl:connectStorage");
-		 execFS("connectStorage", storage);
+		 execOb("connectStorage", storage);
 
 	}
 
 	@Override
 	public void disconnectStorage(URI storage) throws InternalException {
-		execFS("disconnectStorage", storage);
+		execOb("disconnectStorage", storage);
 
 	}
 
@@ -98,10 +98,19 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
         return _deviceImpl.iterator().next();	
         }
 	
-    private void execFS(String methodName, Object... args) throws InternalException {
+    private void execOb(String methodName, Object... args) throws InternalException {
     	StringBuilder logMsgBuilder = new StringBuilder(String.format(
                 "ObjectControllerImpl Method=%s StorageSystem.class:%s", methodName, StorageSystem.class));
         queueTask(_dbClient, StorageSystem.class, _dispatcher, methodName, args);
     }
+
+	@Override
+	public void createBucket(URI storage, String name) throws InternalException {
+		// TODO Auto-generated method stub
+		_log.info("ObjectControllerImpl:createBukcet");
+		execOb("createBucket", name);
+	}
+
+
 
 }

@@ -1,6 +1,10 @@
 package com.emc.storageos.volumecontroller;
 
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
+
 public interface ObjectStorageDevice {
 
-	//doCreateOject
+	BiosCommandResult doCreateBucket(StorageSystem storageObj, String name) throws ControllerException;
+		
 }

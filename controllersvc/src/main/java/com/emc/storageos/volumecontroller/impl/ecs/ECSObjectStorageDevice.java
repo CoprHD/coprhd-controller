@@ -14,8 +14,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.ecs.api.ECSApiFactory;
+import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ObjectStorageDevice;
+import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.sun.jersey.client.apache.ApacheHttpClientHandler;
 
 public class ECSObjectStorageDevice implements ObjectStorageDevice {
@@ -44,4 +47,13 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
 	    	_log.info("From ECSObjectStorageDevice:init");
 
 	    }
+
+		@Override
+		public BiosCommandResult doCreateBucket(StorageSystem storageObj,
+				String name) throws ControllerException {
+			// TODO Auto-generated method stub
+			_log.info("ECSObjectStorageDevice:doCreateBucket");
+			
+			return null;
+		}
 }

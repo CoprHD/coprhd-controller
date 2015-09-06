@@ -310,6 +310,10 @@ public class BucketService extends TaskResourceService {
          * BucketController controller = getController(Bucket.class, device.getSystemType());
          * controller.delete(device.getId(), null, bucket.getId(), param.getForceDelete(), task);
          */
+        //TODO : Bucket delete needs to happen in Controller. Remove this code.
+        bucket.setInactive(Boolean.TRUE);
+        _dbClient.persistObject(bucket);
+        
         auditOp(OperationTypeEnum.DELETE_BUCKET, true, AuditLogManager.AUDITOP_BEGIN,
                 bucket.getId().toString(), device.getId().toString());
 

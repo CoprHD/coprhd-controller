@@ -10,13 +10,11 @@ import java.util.Set;
 
 import util.datatable.DataTable;
 
-import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.object.BucketRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
 
-import controllers.resources.BlockVolumes;
 import controllers.resources.ObjectBuckets;
 
 

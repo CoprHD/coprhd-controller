@@ -3063,6 +3063,7 @@ resources.bucket.notfound=Bucket Not Found
 resources.buckets.deactivate=Created %s tasks to delete buckets.
 resources.bucket.deactivate=Created task to delete bucket.
 resources.buckets.unknown=Unknown Bucket with ID '%s'
+resources.bucket.deleteConfirm=Are you sure you want to delete this bucket?
 resources.buckets.deleteConfirm=Are you sure you want to delete the selected buckets?
 resources.buckets.deleteConfirm.FULL=Are you sure you want to delete the selected buckets fully?
 resources.buckets.deleteConfirm.VIPR_ONLY=Are you sure you want to delete the selected buckets from the inventory?

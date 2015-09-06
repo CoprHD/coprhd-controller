@@ -71,6 +71,7 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.ObjectController;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 @Path("/object/buckets")
@@ -219,9 +220,9 @@ public class BucketService extends TaskResourceService {
 
         // TODO : Controller call
         try {
-            // StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceDevice());
-            // ObjectController controller = getController(ObjectController.class, system.getSystemType());
-            // controller.createBucket(task);
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceDevice());
+            ObjectController controller = getController(ObjectController.class, system.getSystemType());
+            controller.createBucket(task);
             _dbClient.persistObject(bucket);
             Operation tempOperation = new Operation();
             tempOperation.ready();
@@ -310,6 +311,10 @@ public class BucketService extends TaskResourceService {
          * BucketController controller = getController(Bucket.class, device.getSystemType());
          * controller.delete(device.getId(), null, bucket.getId(), param.getForceDelete(), task);
          */
+        //TODO : Bucket delete needs to happen in Controller. Remove this code.
+        bucket.setInactive(Boolean.TRUE);
+        _dbClient.persistObject(bucket);
+        
         auditOp(OperationTypeEnum.DELETE_BUCKET, true, AuditLogManager.AUDITOP_BEGIN,
                 bucket.getId().toString(), device.getId().toString());
 

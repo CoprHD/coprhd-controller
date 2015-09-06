@@ -180,4 +180,16 @@ public class ECSApi {
 
         return ecsPools;
     }
+
+
+    public List<ECSStoragePort> getStoragePort(String name) throws ECSException {
+    	List<ECSStoragePort> ecsPort = new ArrayList<ECSStoragePort>();
+    	ECSStoragePort port = new ECSStoragePort();
+    	port.setName(name);
+    	port.setId(name);
+    	port.setIpAddress(name);
+    	ecsPort.add(port);
+    	
+    	return ecsPort;
+    }
 }

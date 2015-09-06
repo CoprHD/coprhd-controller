@@ -230,9 +230,7 @@ public class HDSVolumeDiscoverer {
         pools.add(pool.getId().toString());
         unManagedVolumeInformation.put(
                 SupportedVolumeInformation.STORAGE_POOL.toString(), pools);
-        StringSet wwn = new StringSet();
-        wwn.add(HDSUtils.generateHitachiWWN(logicalUnit.getObjectID(), String.valueOf(logicalUnit.getDevNum())));
-        unManagedVolumeInformation.put(SupportedVolumeInformation.WWN.toString(), wwn);
+        unManagedVolume.setWwn(HDSUtils.generateHitachiWWN(logicalUnit.getObjectID(), String.valueOf(logicalUnit.getDevNum())));
 
         StringSet nativeId = new StringSet();
         nativeId.add(String.valueOf(logicalUnit.getDevNum()));

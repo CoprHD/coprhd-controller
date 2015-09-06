@@ -549,7 +549,9 @@ public class VnxExportOperations implements ExportMaskOperations {
                                 Iterator<URI> resultsIter = results.iterator();
                                 if (resultsIter.hasNext()) {
                                     Volume volume = _dbClient.queryObject(Volume.class, resultsIter.next());
-                                    mask.addVolume(volume.getId(), volumesToAdd.get(wwn));
+                                    if (null != volume) {
+                                        mask.addVolume(volume.getId(), volumesToAdd.get(wwn));
+                                    }
                                 }
                             }
                         }

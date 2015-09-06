@@ -229,6 +229,9 @@
     
     <bean id ="blockVplexVolumeIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockVplexVolumeIngestOrchestrator">
         <property name="dbClient" ref="dbclient"/>
+        <property name="ingestStrategyFactory" ref="ingestStrategyFactory"/>
+        <property name="tenantsService" ref="tenantsService"/>
+        <property name="coordinator" ref="coordinator"/>
     </bean>
     
     <bean id ="maskPerHostIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.MaskPerHostIngestOrchestrator">
@@ -498,7 +501,7 @@
                     <property name="coordinator" ref="coordinator"/>
                     <property name="ingestStrategyFactory" ref="ingestStrategyFactory"/>
                 </bean>
-                
+
                 <bean class="com.emc.storageos.api.service.impl.resource.UnManagedFilesystemService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>

@@ -92,7 +92,7 @@ public abstract class BlockIngestOrchestrator {
             List<UnManagedVolume> unManagedVolumesSuccessfullyProcessed,
             Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported,
             Class<T> clazz,
-            Map<String, StringBuffer> taskStatusMap)
+            Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod)
             throws IngestionException;
 
     /**
@@ -344,9 +344,7 @@ public abstract class BlockIngestOrchestrator {
         volume.setProvisionedCapacity(Long.parseLong(provisionedCapacity));
         volume.setCapacity(Long.parseLong(provisionedCapacity));
 
-        String wwn = PropertySetterUtil.extractValueFromStringSet(SupportedVolumeInformation.WWN.toString(),
-                unManagedVolume.getVolumeInformation());
-        volume.setWWN(wwn);
+        volume.setWWN(unManagedVolume.getWwn());
         updateBlockObjectNativeIds(volume, unManagedVolume);
         setProtocol(pool, volume, vPool);
 
@@ -882,6 +880,8 @@ public abstract class BlockIngestOrchestrator {
             unmanagedReplicaGUIDs.addAll(snaps);
             StringSet snapGUIDs = VolumeIngestionUtil.getListofVolumeIds(snaps);
             expectedIngestedReplicas.addAll(snapGUIDs);
+            _logger.error("snapGUIDs " + snapGUIDs);
+            _logger.error("createdObjectMap " + createdObjectMap);
             foundIngestedReplicas.addAll(VolumeIngestionUtil.getSnapObjects(snapGUIDs, createdObjectMap, _dbClient));
         }
 
@@ -959,8 +959,13 @@ public abstract class BlockIngestOrchestrator {
      * @param foundIngestedReplicaNativeGuids
      */
     private void getFoundIngestedReplicaURIs(List<BlockObject> foundIngestedReplicas, List<String> foundIngestedReplicaNativeGuids) {
+        
+        _logger.error("foundIngestedReplicas: " + foundIngestedReplicas);
+        _logger.error("foundIngestedReplicaNativeGuids: " + foundIngestedReplicaNativeGuids);
+        
         if (null != foundIngestedReplicas && !foundIngestedReplicas.isEmpty()) {
             for (BlockObject blockObj : foundIngestedReplicas) {
+                _logger.error("blockObj: " + blockObj);
                 foundIngestedReplicaNativeGuids.add(blockObj.getNativeGuid());
             }
         }

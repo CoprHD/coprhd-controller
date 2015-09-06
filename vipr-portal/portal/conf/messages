@@ -3188,6 +3188,8 @@ volumes.capacity=Size
 volumes.vpool=Virtual Pool
 volumes.varray=Virtual Array
 volumes.protocols=Protocols
+volumes.consistencygroup=Consistency Group
+volumes.wwn=WWN
 
 fileSystems.name=File System Name
 fileSystems.capacity=Size

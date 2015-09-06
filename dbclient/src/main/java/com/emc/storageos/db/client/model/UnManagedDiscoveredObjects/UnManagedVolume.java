@@ -8,6 +8,7 @@ import java.net.URI;
 import java.util.Map;
 
 import com.emc.storageos.db.client.model.AlternateId;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.IndexByKey;
 import com.emc.storageos.db.client.model.Name;
@@ -38,6 +39,8 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
 
     private StringSet storagePortUris;
 
+    private String _wwn;
+
     public enum SupportedVolumeCharacterstics {
 
         IS_MAPPED("EMCSVIsMapped", "EMCIsMapped"),
@@ -46,6 +49,7 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         IS_AUTO_TIERING_ENABLED("PolicyRuleName", "PolicyRuleName"),
         IS_FULL_COPY("FullCopy", "FullCopy"),
         IS_LOCAL_MIRROR("LocalMirror", "LocalMirror"),
+        IS_VPLEX_NATIVE_MIRROR("VplexNativeMirror", "VplexNativeMirror"),
         IS_SNAP_SHOT("Snapshot", "Snapshot"),
         IS_THINLY_PROVISIONED("EMCSVThinlyProvisioned", "ThinlyProvisioned"),
         IS_BOUND("EMCSVIsBound", "EMCIsBound"),
@@ -93,7 +97,6 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         SYSTEM_TYPE("SystemType", "SystemType"),
         RAID_LEVEL("SSElementName", "EMCRaidLevel"),
         STORAGE_POOL("PoolUri", "PoolUri"),
-        WWN("EMCSVWWN", "EMCWWN"),
         NATIVE_GUID("NativeGuid", "NativeGuid"),
         AUTO_TIERING_POLICIES("PolicyRuleName", "PolicyRuleName"),
         IS_THINLY_PROVISIONED("EMCSVThinlyProvisioned", "ThinlyProvisioned"),
@@ -110,6 +113,16 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         VPLEX_SUPPORTING_DEVICE_NAME("vplexSupportingDeviceName", "vplexSupportingDeviceName"),
         VPLEX_CONSISTENCY_GROUP_NAME("vplexConsistencyGroup", "vplexConsistencyGroup"),
         VPLEX_CLUSTER_IDS("vplexClusters", "vplexClusters"),
+        // unmanaged volume native GUIDs for the vplex backend volumes
+        VPLEX_BACKEND_VOLUMES("vplexBackendVolumes", "vplexBackendVolumes"),
+        // native GUID of the VPLEX virtual volume containing this volume
+        VPLEX_PARENT_VOLUME("vplexParentVolume", "vplexParentVolume"),
+        // map of backend clone volume GUID to virtual volume GUID 
+        VPLEX_FULL_CLONE_MAP("vplexFullCloneMap", "vplexFullCloneMap"),
+        // map of unmanaged volume GUID mirror to vplex device info context path
+        VPLEX_MIRROR_MAP("vplexMirrorMap", "vplexMirrorMap"),
+        VPLEX_NATIVE_MIRROR_TARGET_VOLUME("vplexNativeMirrorTargetVolume", "vplexNativeMirrorTargetVolume"),
+        VPLEX_NATIVE_MIRROR_SOURCE_VOLUME("vplexNativeMirrorSourceVolume", "vplexNativeMirrorSourceVolume"),
         META_MEMBER_SIZE("metaMemberSize", "metaMemberSize"),
         META_MEMBER_COUNT("metaMemberCount", "metaMemberCount"),
         META_VOLUME_TYPE("compositeType", "compositeType"),
@@ -285,8 +298,23 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
         this.storagePortUris = storagePortUris;
     }
 
+    @AlternateId("UnManagedVolumeWwnIndex")
+    @Name("wwn")
+    public String getWwn() {
+        return _wwn;
+    }
+
+    public void setWwn(String wwn) {
+        _wwn = BlockObject.normalizeWWN(wwn);
+        setChanged("wwn");
+    }
+
     public enum Types {
         SOURCE,
         TARGET
+    }
+    
+    public String toString() {
+        return this.getLabel() + " (" + this.getId() + ")";
     }
 }

@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
@@ -33,18 +34,19 @@ import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.metering.smis.SMIPluginException;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
+import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 
 /**
  * Class for ECS discovery object storage device
  */
 public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImpl {
-	URI storageSystemURI = null;
-	private static final Logger _logger = LoggerFactory
-            .getLogger(ECSCommunicationInterface.class);
+	private static final int BYTESCONVERTER = 1024;
+	private static final String NEW = "new";
+	private static final String EXISTING = "existing";
 	
+	private static final Logger _logger = LoggerFactory.getLogger(ECSCommunicationInterface.class);
 	private ECSApiFactory ecsApiFactory;
-	
-	
+		
     /**
      * @param ecsApiFactory the ecsApiFactory to set
      */
@@ -74,7 +76,6 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
         StorageSystem storageSystem = null;
         String detailedStatusMessage = "Unknown Status";
         long startTime = System.currentTimeMillis();
-        StoragePool storagePool;
 
         _logger.info("ECSCommunicationInterface:discover Access Profile Details :" + accessProfile.toString());
 		try {
@@ -107,39 +108,77 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             _dbClient.persistObject(storageSystem);
             
             //Discover storage pools
-            Map<String, List<StoragePool>> storagePools = new HashMap<String, List<StoragePool>>();
+            Map<String, List<StoragePool>> allPools = new HashMap<String, List<StoragePool>>();
             List<StoragePool> newPools = new ArrayList<StoragePool>();
             List<StoragePool> existingPools = new ArrayList<StoragePool>();
-            List<StoragePool> pools = new ArrayList<StoragePool>();
+            StoragePool storagePool;
             
             List<ECSStoragePool> ecsStoragePools = ecsApi.getStoragePools();
 
             for (ECSStoragePool ecsPool : ecsStoragePools)  {
-            	storagePool = new StoragePool();
-            	storagePool.setNativeId(ecsPool.getId());
-            	String storagePoolNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+            	// Check if this storage pool was already discovered
+                storagePool = null;
+                String storagePoolNativeGuid = NativeGUIDGenerator.generateNativeGuid(
                         storageSystem, ecsPool.getId(), NativeGUIDGenerator.POOL);
-            	storagePool.setNativeGuid(storagePoolNativeGuid);
-                storagePool.setLabel(storagePoolNativeGuid);
-            	storagePool.setPoolName(ecsPool.getName()); 
-            	storagePool.setStorageDevice(storageSystem.getId());
-            	storagePool.setId(URIUtil.createId(StoragePool.class));
-            	storagePool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.toString());
-            	storagePool.setPoolServiceType(PoolServiceType.object.toString());
-            	storagePool.setRegistrationStatus(DiscoveredDataObject.RegistrationStatus.REGISTERED.toString());
-            	StringSet protocols = new StringSet();
-            	protocols.add("S3");
-            	protocols.add("Swift");
-            	protocols.add("Atmos");
-            	storagePool.setProtocols(protocols);
-            	storagePool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THIN_AND_THICK.toString());
-            	storagePool.setFreeCapacity(ecsPool.getFreeCapacity());
-            	storagePool.setTotalCapacity(ecsPool.getTotalCapacity());
-            	storagePool.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
-            	storagePool.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
-            	pools.add(storagePool);
+                @SuppressWarnings("deprecation")
+                List<URI> poolURIs = _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
+                        getStoragePoolByNativeGuidConstraint(storagePoolNativeGuid));
+
+                for (URI poolUri : poolURIs ) {
+                    StoragePool pool = _dbClient.queryObject(StoragePool.class, poolUri);
+                    if (!pool.getInactive()&&pool.getStorageDevice().equals(storageSystemId)) {
+                        storagePool = pool;
+                        break;
+                    }
+                }
+                
+                if (storagePool == null) {
+                	storagePool = new StoragePool();
+                	storagePool.setId(URIUtil.createId(StoragePool.class));
+                	storagePool.setNativeId(ecsPool.getId());
+                	storagePool.setNativeGuid(storagePoolNativeGuid);
+                	storagePool.setLabel(storagePoolNativeGuid);
+                	storagePool.setPoolClassName("ECS Pool");
+                	storagePool.setStorageDevice(storageSystem.getId());
+                	StringSet protocols = new StringSet();
+                	protocols.add("S3");
+                	protocols.add("Swift");
+                	protocols.add("Atmos");
+                	storagePool.setProtocols(protocols);
+                	storagePool.setPoolName(ecsPool.getName()); 
+                	storagePool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.toString());
+                	storagePool.setPoolServiceType(PoolServiceType.object.toString());
+                	storagePool.setRegistrationStatus(DiscoveredDataObject.RegistrationStatus.REGISTERED.toString());
+                	storagePool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THICK_ONLY.toString());
+                    storagePool.setFreeCapacity(ecsPool.getFreeCapacity()/BYTESCONVERTER);
+                    storagePool.setTotalCapacity(ecsPool.getTotalCapacity()/BYTESCONVERTER);
+                    storagePool.setSubscribedCapacity((ecsPool.getTotalCapacity()-ecsPool.getFreeCapacity())/BYTESCONVERTER);
+                	_logger.info("Creating new ECS storage pool using NativeId : {}", storagePoolNativeGuid);
+                    storagePool.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
+                    storagePool.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
+                	newPools.add(storagePool);
+                }
+                else {
+                	existingPools.add(storagePool);
+                }
+                
+                /*if(ImplicitPoolMatcher.checkPoolPropertiesChanged(storagePool.getCompatibilityStatus(), DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name())
+                        || ImplicitPoolMatcher.checkPoolPropertiesChanged(storagePool.getDiscoveryStatus(), DiscoveryStatus.VISIBLE.name())){
+                    poolsToMatchWithVpool.add(storagePool);
+                }*/
             }
-            _dbClient.createObject(pools);
+            allPools.put(NEW, newPools);
+            allPools.put(EXISTING, existingPools);
+            _logger.info("No of newly discovered pools {}", allPools.get(NEW).size());
+            _logger.info("No of existing discovered pools {}", allPools.get(EXISTING).size());
+
+            if(allPools.get(NEW).size() > 0){
+                _dbClient.createObject(allPools.get(NEW));
+            }
+
+            if(allPools.get(EXISTING).size() > 0){
+                _dbClient.persistObject(allPools.get(EXISTING));
+            }
             
             //Get storage ports
             

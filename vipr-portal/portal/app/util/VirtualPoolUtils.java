@@ -114,6 +114,20 @@ public class VirtualPoolUtils {
         }
     }
 
+    public static NamedRelatedResourceRep getObjectVirtualPoolRef(RelatedResourceRep ref) {
+        return getObjectVirtualPoolRef(id(ref));
+    }
+
+    public static NamedRelatedResourceRep getObjectVirtualPoolRef(URI id) {
+        if (Security.hasAnyRole(Security.SYSTEM_ADMIN, Security.SYSTEM_MONITOR)) {
+            return createNamedRef(getViprClient().objectVpools().get(id));
+        }
+        else {
+            return findRef(getViprClient().objectVpools().list(), id);
+        }
+    }
+
+    
     public static NamedRelatedResourceRep getFileVirtualPoolRef(RelatedResourceRep ref) {
         return getFileVirtualPoolRef(id(ref));
     }

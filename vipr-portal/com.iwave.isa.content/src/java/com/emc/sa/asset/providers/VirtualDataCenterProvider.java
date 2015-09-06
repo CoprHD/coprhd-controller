@@ -25,10 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.sa.service.vipr.block.BlockStorageUtils;
-import com.emc.sa.util.IngestionMethodEnum;
-import com.emc.sa.util.SizeUtils;
-
 import org.springframework.stereotype.Component;
 
 import com.emc.sa.asset.AssetOptionsContext;
@@ -38,6 +34,7 @@ import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.sa.service.vipr.block.BlockStorageUtils;
+import com.emc.sa.util.IngestionMethodEnum;
 import com.emc.sa.util.SizeUtils;
 import com.emc.sa.util.StringComparator;
 import com.emc.storageos.model.block.UnManagedVolumeRestRep;
@@ -131,21 +128,22 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
     }
-    
+
     @Asset("unexportedIngestionMethod")
     @AssetDependencies({ "unmanagedBlockStorageSystem" })
     public List<AssetOption> getUnexportedIngestionMethod(AssetOptionsContext ctx, URI storageSystemId) {
         ViPRCoreClient client = api(ctx);
         StorageSystemRestRep storageSystemRestRep = client.storageSystems().get(storageSystemId);
-        
+
         List<AssetOption> options = Lists.newArrayList();
         if (BlockProviderUtils.isVplex(storageSystemRestRep)) {
             options.add(newAssetOption(IngestionMethodEnum.FULL.toString(), "unmanagedVolume.ingestMethod.full"));
-            options.add(newAssetOption(IngestionMethodEnum.VIRTUAL_VOLUMES_ONLY.toString(), "unmanagedVolume.ingestMethod.virtualVolumesOnly"));
+            options.add(newAssetOption(IngestionMethodEnum.VIRTUAL_VOLUMES_ONLY.toString(),
+                    "unmanagedVolume.ingestMethod.virtualVolumesOnly"));
         }
         return options;
     }
-    
+
     @Asset("exportedIngestionMethod")
     @AssetDependencies({ "unmanagedBlockVirtualPool" })
     public List<AssetOption> getExportedIngestionMethod(AssetOptionsContext ctx, URI virtualPoolId) {
@@ -155,7 +153,8 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
         List<AssetOption> options = Lists.newArrayList();
         if (virtualPoolRestRep.getHighAvailability() != null) {
             options.add(newAssetOption(IngestionMethodEnum.FULL.toString(), "unmanagedVolume.ingestMethod.full"));
-            options.add(newAssetOption(IngestionMethodEnum.VIRTUAL_VOLUMES_ONLY.toString(), "unmanagedVolume.ingestMethod.virtualVolumesOnly"));
+            options.add(newAssetOption(IngestionMethodEnum.VIRTUAL_VOLUMES_ONLY.toString(),
+                    "unmanagedVolume.ingestMethod.virtualVolumesOnly"));
         }
         return options;
     }
@@ -174,7 +173,7 @@ public class VirtualDataCenterProvider extends BaseAssetOptionsProvider {
     }
 
     @Asset("unmanagedVolume")
-    @AssetDependencies({ "host", "unmanagedBlockVirtualPool" })
+    @AssetDependencies({ "host", "unmanagedBlockVirtualPool", "volumeFilter" })
     public List<AssetOption> getUnmanagedVolume(AssetOptionsContext ctx, URI host, URI vpool, int volumePage) {
 
         List<AssetOption> options = Lists.newArrayList();

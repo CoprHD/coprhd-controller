@@ -84,6 +84,11 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(project, FileShare.class, field);
         }
 
+        public static ContainmentConstraint getProjectBucketConstraint(URI project) {
+            DataObjectType doType = TypeMap.getDoType(Bucket.class);
+            ColumnField field = doType.getColumnField(PROJECT);
+            return new ContainmentConstraintImpl(project, Bucket.class, field);
+        }
         public static ContainmentConstraint getStoragePoolFileshareConstraint(URI pool) {
             DataObjectType doType = TypeMap.getDoType(FileShare.class);
             ColumnField field = doType.getColumnField("pool");

@@ -92,6 +92,8 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
         writeAcls = { ACL.OWN, ACL.ALL })
 public class ProjectService extends TaggedResource {
     private static final Logger _log = LoggerFactory.getLogger(ProjectService.class);
+    private static String EXPECTED_GEO_VERSION = "2.4";
+    private static String FEATURE_NAME = "VNAS support in File Controller";
     // Constants for Events
     private static final String EVENT_SERVICE_TYPE = "project";
     private static final String EVENT_SERVICE_SOURCE = "ProjectService";
@@ -809,6 +811,7 @@ public class ProjectService extends TaggedResource {
     @Path("/{id}/assign-vnas-servers")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ALL, ACL.OWN })
     public Response assignVNasServersToProject(@PathParam("id") URI id, VirtualNasParam vnasParam) {
+        checkCompatibleVersion();
         Project project = getProjectById(id, true);
         StringBuilder errorMsg = new StringBuilder();
         StringSet validVNasServers = validateVNasServers(project, vnasParam, errorMsg);
@@ -947,6 +950,7 @@ public class ProjectService extends TaggedResource {
     @Path("/{id}/unassign-vnas-servers")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ALL, ACL.OWN })
     public Response unassignVNasServersFromProject(@PathParam("id") URI id, VirtualNasParam param) {
+        checkCompatibleVersion();
         Project project = getProjectById(id, true);
         Set<String> vNasIds = param.getVnasServers();
         if (vNasIds != null && !vNasIds.isEmpty()) {
@@ -977,6 +981,17 @@ public class ProjectService extends TaggedResource {
             throw APIException.badRequests.invalidEntryForProjectVNAS();
         }
         return Response.ok().build();
+    }
+
+    /**
+     * Check if all the VDCs in the federation are in the same expected
+     * or minimum supported version for this API.
+     * 
+     */
+    private void checkCompatibleVersion() {
+        if (!_dbClient.checkGeoCompatible(EXPECTED_GEO_VERSION)) {
+            throw APIException.badRequests.incompatibleGeoVersions(EXPECTED_GEO_VERSION, FEATURE_NAME);
+        }
     }
 
 }

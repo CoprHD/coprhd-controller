@@ -155,15 +155,23 @@ public class BucketService extends TaskResourceService {
         ArgValidator.checkFieldNotNull(param.getLabel(), "name");
         ArgValidator.checkFieldNotNull(param.getNamespace(), "namespace");
         ArgValidator.checkFieldNotNull(param.getOwner(), "owner");
-        
-        // Check if there already exist a bucket with same name.
-        checkForDuplicateName(param.getLabel(), Bucket.class, null, null, _dbClient);
-
 
         Project project = _permissionsHelper.getObjectById(id, Project.class);
         ArgValidator.checkEntity(project, id, isIdEmbeddedInURL(id));
         ArgValidator.checkFieldNotNull(project.getTenantOrg(), "project");
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
+
+        // No need to generate any name -- Since the requirement is to use the customizing label we should use the same.
+        // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _
+        final String bucketName = param.getNamespace() + "_" + project.getLabel() + "_" + param.getLabel();
+        final String convertedName = bucketName.replaceAll("[^\\dA-Za-z\\_]", "");
+        _log.info("Original name {} and converted name {}", bucketName, convertedName);
+        // There could be bucket with same name created with different projects/namespaces. Updating name to match this scenario.
+        param.setLabel(convertedName);
+
+        // Check if there already exist a bucket with same name.
+        checkForDuplicateName(param.getLabel(), Bucket.class, null, null, _dbClient);
+
         return initiateBucketCreation(param, project, tenant, null);
     }
 
@@ -171,10 +179,10 @@ public class BucketService extends TaskResourceService {
             TenantOrg tenant, DataObject.Flag[] flags) throws InternalException {
         ArgValidator.checkFieldUriType(param.getVpool(), VirtualPool.class, "vpool");
         ArgValidator.checkFieldUriType(param.getVarray(), VirtualArray.class, "varray");
-        
+
         Long softQuota = SizeUtil.translateSize(param.getSoftQuota());
         Long hardQuota = SizeUtil.translateSize(param.getHardQuota());
-        Integer retention = Integer.getInteger(param.getRetention(), 0);
+        Integer retention = null!=param.getRetention() ? Integer.valueOf(param.getRetention()) : 0;
 
         // Hard Quota should be more than SoftQuota
         if (softQuota >= hardQuota) {
@@ -215,7 +223,6 @@ public class BucketService extends TaskResourceService {
         // Randomly select a recommended pool
         Collections.shuffle(placement);
         BucketRecommendation recommendation = placement.get(0);
-
 
         String task = UUID.randomUUID().toString();
         Bucket bucket = prepareBucket(param, project, tenant, neighborhood, cos, flags, recommendation, task);
@@ -361,20 +368,13 @@ public class BucketService extends TaskResourceService {
         StoragePool pool = null;
         Bucket bucket = new Bucket();
         bucket.setId(URIUtil.createId(Bucket.class));
-
-        // No need to generate any name -- Since the requirement is to use the customizing label we should use the same.
-        // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _
-        final String bucketName = param.getNamespace() + "_" + project.getLabel() + "_" + param.getLabel();
-        final String convertedName = bucketName.replaceAll("[^\\dA-Za-z\\_]", "");
-        _log.info("Original name {} and converted name {}", bucketName, convertedName);
-        bucket.setLabel(convertedName);
-        checkForDuplicateName(convertedName, Bucket.class, null, null, _dbClient);
-        
+        bucket.setLabel(bucket.getLabel());
         bucket.setPath(param.getNamespace() + "/" + project.getLabel() + "/" + param.getLabel());
         bucket.setHardQuota(SizeUtil.translateSize(param.getHardQuota()));
         bucket.setSoftQuota(SizeUtil.translateSize(param.getSoftQuota()));
-        bucket.setRetention(Integer.getInteger(param.getRetention(), 0));
+        bucket.setRetention(null != param.getRetention() ? Integer.valueOf(param.getRetention()) : 0);
         bucket.setOwner(param.getOwner());
+        bucket.setNamespace(param.getNamespace());
         bucket.setVirtualPool(param.getVpool());
         if (project != null) {
             bucket.setProject(new NamedURI(project.getId(), bucket.getLabel()));
@@ -393,7 +393,7 @@ public class BucketService extends TaskResourceService {
         bucket.setStorageDevice(placement.getSourceDevice());
         bucket.setPool(placement.getSourcePool());
         bucket.setOpStatus(new OpStatusMap());
-        
+
         if (flags != null) {
             bucket.addInternalFlags(flags);
         }
@@ -414,7 +414,7 @@ public class BucketService extends TaskResourceService {
 
         Long softQuota = SizeUtil.translateSize(param.getSoftQuota());
         Long hardQuota = SizeUtil.translateSize(param.getHardQuota());
-        Integer retention = Integer.getInteger(param.getRetention(), 0);
+        Integer retention = null!=param.getRetention() ? Integer.valueOf(param.getRetention()) : 0;
 
         // Hard Quota should be more than SoftQuota
         if (softQuota >= hardQuota) {
@@ -440,17 +440,17 @@ public class BucketService extends TaskResourceService {
         if (retention > cos.getMaxRetention()) {
             throw APIException.badRequests.insufficientRetentionForVirtualPool(cos.getLabel(), "bucket");
         }
-        
+
         String task = UUID.randomUUID().toString();
         _log.info(String.format(
                 "BucketUpdate --- Bucket id: %1$s, Task: %2$s", id, task));
 
-        if(bucketUpdateRequired(bucket, param)) {
-            //TODO : controller code to update bucket
-            //bucketController.Update()
+        if (bucketUpdateRequired(bucket, param)) {
+            // TODO : controller code to update bucket
+            // bucketController.Update()
             _dbClient.persistObject(bucket);
         }
-        
+
         Operation op = _dbClient.createTaskOpStatus(Bucket.class, bucket.getId(),
                 task, ResourceOperationTypeEnum.UPDATE_BUCKET);
         op.setDescription("Bucket updated");
@@ -465,13 +465,13 @@ public class BucketService extends TaskResourceService {
         Boolean update = false;
         Long softQuota = SizeUtil.translateSize(param.getSoftQuota());
         Long hardQuota = SizeUtil.translateSize(param.getHardQuota());
-        Integer retention = Integer.getInteger(param.getRetention(), 0);
+        Integer retention = null!=param.getRetention() ? Integer.valueOf(param.getRetention()) : 0;
 
         if (!softQuota.equals(bucket.getSoftQuota()) || !hardQuota.equals(bucket.getHardQuota())
                 || !retention.equals(bucket.getRetention())) {
             bucket.setSoftQuota(softQuota);
             bucket.setHardQuota(hardQuota);
-            bucket.setRetention(Integer.getInteger(param.getRetention(), 0));
+            bucket.setRetention(retention);
             update = true;
         }
         return update;

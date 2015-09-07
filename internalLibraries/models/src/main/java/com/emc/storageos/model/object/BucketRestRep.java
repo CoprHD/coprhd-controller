@@ -32,6 +32,9 @@ public class BucketRestRep extends DataObjectRestRep {
     private RelatedResourceRep storageSystem;
     private RelatedResourceRep pool;
     private RelatedResourceRep storagePort;
+    private String namespace;
+    private String owner;
+    private String retention;
     private String nativeId;
 
     @XmlElement(name = "native_id")
@@ -185,5 +188,32 @@ public class BucketRestRep extends DataObjectRestRep {
 
     public void setTenant(RelatedResourceRep tenant) {
         this.tenant = tenant;
+    }
+
+    @XmlElement
+    public String getNamespace() {
+        return namespace;
+    }
+
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
+    }
+
+    @XmlElement
+    public String getOwner() {
+        return owner;
+    }
+
+    public void setOwner(String owner) {
+        this.owner = owner;
+    }
+
+    @XmlElement
+    public String getRetention() {
+        return retention;
+    }
+
+    public void setRetention(String retention) {
+        this.retention = retention;
     }
 }

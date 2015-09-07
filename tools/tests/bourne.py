@@ -33,6 +33,8 @@ import zlib
 import struct
 from time import sleep
 
+requests.packages.urllib3.disable_warnings()
+
 URI_SERVICES_BASE               = ''
 URI_CATALOG                     = URI_SERVICES_BASE + '/catalog'
 URI_CATALOG_VPOOL                 = URI_CATALOG       + '/vpools'

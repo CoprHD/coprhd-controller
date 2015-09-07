@@ -182,7 +182,7 @@ public class BucketService extends TaskResourceService {
 
         Long softQuota = SizeUtil.translateSize(param.getSoftQuota());
         Long hardQuota = SizeUtil.translateSize(param.getHardQuota());
-        Integer retention = null!=param.getRetention() ? Integer.valueOf(param.getRetention()) : 0;
+        Integer retention = Integer.valueOf(param.getRetention());
 
         // Hard Quota should be more than SoftQuota
         if (softQuota >= hardQuota) {
@@ -372,7 +372,7 @@ public class BucketService extends TaskResourceService {
         bucket.setPath(param.getNamespace() + "/" + project.getLabel() + "/" + param.getLabel());
         bucket.setHardQuota(SizeUtil.translateSize(param.getHardQuota()));
         bucket.setSoftQuota(SizeUtil.translateSize(param.getSoftQuota()));
-        bucket.setRetention(null != param.getRetention() ? Integer.valueOf(param.getRetention()) : 0);
+        bucket.setRetention(Integer.valueOf(param.getRetention()));
         bucket.setOwner(param.getOwner());
         bucket.setNamespace(param.getNamespace());
         bucket.setVirtualPool(param.getVpool());
@@ -414,7 +414,7 @@ public class BucketService extends TaskResourceService {
 
         Long softQuota = SizeUtil.translateSize(param.getSoftQuota());
         Long hardQuota = SizeUtil.translateSize(param.getHardQuota());
-        Integer retention = null!=param.getRetention() ? Integer.valueOf(param.getRetention()) : 0;
+        Integer retention = null != param.getRetention() ? Integer.valueOf(param.getRetention()) : 0;
 
         // Hard Quota should be more than SoftQuota
         if (softQuota >= hardQuota) {
@@ -465,7 +465,7 @@ public class BucketService extends TaskResourceService {
         Boolean update = false;
         Long softQuota = SizeUtil.translateSize(param.getSoftQuota());
         Long hardQuota = SizeUtil.translateSize(param.getHardQuota());
-        Integer retention = null!=param.getRetention() ? Integer.valueOf(param.getRetention()) : 0;
+        Integer retention = null != param.getRetention() ? Integer.valueOf(param.getRetention()) : 0;
 
         if (!softQuota.equals(bucket.getSoftQuota()) || !hardQuota.equals(bucket.getHardQuota())
                 || !retention.equals(bucket.getRetention())) {

@@ -115,7 +115,7 @@ public class BucketParam {
      */
     @XmlElement(name = "retention", required = false)
     public String getRetention() {
-        return retention;
+        return null != retention ? retention : "0";
     }
 
     public void setRetention(String retention) {

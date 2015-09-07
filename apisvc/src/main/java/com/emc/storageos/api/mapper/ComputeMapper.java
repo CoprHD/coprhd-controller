@@ -122,6 +122,8 @@ public class ComputeMapper {
         to.setImageServerSecondIp(from.getImageServerSecondIp());
         to.setTftpbootDir(from.getTftpbootDir());
         to.setComputeImageServerStatus(from.getComputeImageServerStatus());
+        to.setImageServerUser(from.getImageServerUser());
+        to.setOsInstallTimeoutMs(from.getOsInstallTimeoutMs());
         if (from.getComputeImage() != null) {
             for (String computeimage : from.getComputeImage()) {
                 to.getComputeImage().add(toRelatedResource(ResourceTypeEnum.COMPUTE_IMAGE, URI.create(computeimage)));

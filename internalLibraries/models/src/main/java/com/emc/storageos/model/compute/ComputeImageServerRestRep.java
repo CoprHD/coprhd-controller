@@ -32,6 +32,10 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
 
     private String computeImageServerStatus;
 
+    private Integer osInstallTimeoutMs;
+
+    private String imageServerUser;
+
     public ComputeImageServerRestRep() {
 
     }
@@ -117,5 +121,39 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
 
     public void setComputeImageServerStatus(String computeImageServerStatus) {
         this.computeImageServerStatus = computeImageServerStatus;
+    }
+
+    /**
+     * @return the imageServerUser
+     */
+    @XmlElement(name = "imageServerUser")
+    @JsonProperty("imageServerUser")
+    public String getImageServerUser() {
+        return imageServerUser;
+    }
+
+    /**
+     * @param imageServerUser
+     *            the imageServerUser to set
+     */
+    public void setImageServerUser(String imageServerUser) {
+        this.imageServerUser = imageServerUser;
+    }
+
+    /**
+     * @return the osInstallTimeoutMs
+     */
+    @XmlElement(name = "osInstallTimeoutMs")
+    @JsonProperty("osInstallTimeoutMs")
+    public Integer getOsInstallTimeoutMs() {
+        return osInstallTimeoutMs;
+    }
+
+    /**
+     * @param osInstallTimeoutMs
+     *            the osInstallTimeoutMs to set
+     */
+    public void setOsInstallTimeoutMs(Integer osInstallTimeoutMs) {
+        this.osInstallTimeoutMs = osInstallTimeoutMs;
     }
 }

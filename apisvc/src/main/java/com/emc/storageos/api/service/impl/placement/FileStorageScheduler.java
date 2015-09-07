@@ -309,8 +309,6 @@ public class FileStorageScheduler {
                 Double avgUsedPercentV2 = MetricsKeys.getDoubleOrNull(MetricsKeys.avgPortPercentBusy, v2.getMetrics());
                 if (avgUsedPercentV1 != null && avgUsedPercentV2 != null) {
                     value = avgUsedPercentV1.compareTo(avgUsedPercentV2);
-                } else {
-                    value = 0;
                 }
 
                 if (value == 0) {

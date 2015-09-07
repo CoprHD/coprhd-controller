@@ -90,6 +90,7 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable<
 
     public void setNativeId(String nativeId) {
         this.nativeId = nativeId;
+        setChanged("nativeId");
     }
 
     @Name("protocols")

@@ -964,12 +964,10 @@ public class ProjectService extends TaggedResource {
                     if (vnasServers.contains(vId)) {
                         vnas.setProject(NullColumnValueGetter.getNullURI());
                         _dbClient.persistObject(vnas);
-                        if(project.getAssignedVNasServers().contains(vId)){
-                        	project.getAssignedVNasServers().remove(vId);
-                        }
+                        project.getAssignedVNasServers().remove(vId);
                     }
                 }
-                
+
                 _dbClient.persistObject(project);
                 _log.info("Successfully unassigned the VNAS servers from project : {} ", project.getLabel());
             } else {

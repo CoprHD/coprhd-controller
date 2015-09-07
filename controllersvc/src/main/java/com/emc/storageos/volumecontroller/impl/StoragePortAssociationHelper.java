@@ -26,10 +26,10 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePort.TransportType;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualNAS;
-import com.emc.storageos.db.client.model.StoragePort.TransportType;
 import com.emc.storageos.networkcontroller.impl.NetworkAssociationHelper;
 import com.emc.storageos.util.ConnectivityUtil;
 import com.emc.storageos.util.NetworkLite;
@@ -187,7 +187,15 @@ public class StoragePortAssociationHelper {
             _log.error("Update Port Association process failed", e);
         }
     }
-    
+
+    /**
+     * 
+     * 
+     * @param nativeId
+     * @param dbClient
+     * @return VirtualNAS based on nativeId
+     */
+
     private static VirtualNAS findvNasByNativeId(String nativeId, DbClient dbClient) {
         URIQueryResultList results = new URIQueryResultList();
         VirtualNAS vNas = null;
@@ -208,7 +216,7 @@ public class StoragePortAssociationHelper {
         return vNas;
 
     }
-    
+
     /**
      * This method is responsible for
      * Assign the virtual arrays of storage port to virtual nas
@@ -219,36 +227,37 @@ public class StoragePortAssociationHelper {
      * @param coordinator
      * @throws IOException
      */
-    public static void runUpdateVirtualNasAssociationsProcess(Collection<StoragePort> ports, Collection<StoragePort> remPorts, DbClient dbClient) {
+    public static void runUpdateVirtualNasAssociationsProcess(Collection<StoragePort> ports, Collection<StoragePort> remPorts,
+            DbClient dbClient) {
         try {
-           
-            List<VirtualNAS> modifiedServers = new ArrayList<VirtualNAS>();
-            
-            if(ports != null && !ports.isEmpty()) {
-            	// for better reading, added a method to group Ports by Network
-            	Map<String, List<NetworkLite>> vNasNetworkMap = getVNasNetworksMap(ports, dbClient);
-            	if(!vNasNetworkMap.isEmpty()){
-            		for(Map.Entry<String, List<NetworkLite>> vNasEntry : vNasNetworkMap.entrySet()){
-            			String nativeId = vNasEntry.getKey();
-            			VirtualNAS vNas = findvNasByNativeId(nativeId, dbClient);
-            			if( vNas != null ){
-            				for(NetworkLite network : vNasEntry.getValue()){
-            					Set<String> varraySet = new HashSet<String>(network.getAssignedVirtualArrays());
-            					if(vNas.getAssignedVirtualArrays() == null){
-            						vNas.setAssignedVirtualArrays(new StringSet());
-            					}
-            					vNas.getAssignedVirtualArrays().addAll(varraySet);
-            				}
-            				modifiedServers.add(vNas);
-            			}
 
-            		}
-            	}
+            List<VirtualNAS> modifiedServers = new ArrayList<VirtualNAS>();
+
+            if (ports != null && !ports.isEmpty()) {
+                // for better reading, added a method to group Ports by Network
+                Map<String, List<NetworkLite>> vNasNetworkMap = getVNasNetworksMap(ports, dbClient);
+                if (!vNasNetworkMap.isEmpty()) {
+                    for (Map.Entry<String, List<NetworkLite>> vNasEntry : vNasNetworkMap.entrySet()) {
+                        String nativeId = vNasEntry.getKey();
+                        VirtualNAS vNas = findvNasByNativeId(nativeId, dbClient);
+                        if (vNas != null) {
+                            for (NetworkLite network : vNasEntry.getValue()) {
+                                Set<String> varraySet = new HashSet<String>(network.getAssignedVirtualArrays());
+                                if (vNas.getAssignedVirtualArrays() == null) {
+                                    vNas.setAssignedVirtualArrays(new StringSet());
+                                }
+                                vNas.getAssignedVirtualArrays().addAll(varraySet);
+                            }
+                            modifiedServers.add(vNas);
+                        }
+
+                    }
+                }
             }
-            
-            if(!modifiedServers.isEmpty()){
-            	dbClient.persistObject(modifiedServers);
-            }	
+
+            if (!modifiedServers.isEmpty()) {
+                dbClient.persistObject(modifiedServers);
+            }
         } catch (Exception e) {
             _log.error("Update Port Association process failed", e);
         }
@@ -281,24 +290,31 @@ public class StoragePortAssociationHelper {
         }
         return networkPorts;
     }
-    
+
+    /**
+     * 
+     * 
+     * @param sp StorgaePort
+     * @param dbClient
+     * @return VirtualNAS associated with StorgaePort
+     */
     private static VirtualNAS getStoragePortVirtualNAS(StoragePort sp, DbClient dbClient) {
 
-    	URIQueryResultList vNasUriList = new URIQueryResultList();
-    	dbClient.queryByConstraint(
-    			ContainmentConstraint.Factory.getVirtualNASContainStoragePortConstraint(sp.getId()), vNasUriList);
+        URIQueryResultList vNasUriList = new URIQueryResultList();
+        dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getVirtualNASContainStoragePortConstraint(sp.getId()), vNasUriList);
 
-    	Iterator<URI> vNasIter = vNasUriList.iterator();
-    	while (vNasIter.hasNext()) {
-    		VirtualNAS vNas = dbClient.queryObject(VirtualNAS.class, vNasIter.next());
-    		if (vNas != null && !vNas.getInactive()) {
-    			return vNas;
-    		}
-    	}
-    	return null;
+        Iterator<URI> vNasIter = vNasUriList.iterator();
+        while (vNasIter.hasNext()) {
+            VirtualNAS vNas = dbClient.queryObject(VirtualNAS.class, vNasIter.next());
+            if (vNas != null && !vNas.getInactive()) {
+                return vNas;
+            }
+        }
+        return null;
 
     }
-    
+
     /**
      * Gets the networks of the virtual nas and organized in a map.
      * This code assumes that an end point exists in one and only one network.
@@ -309,32 +325,32 @@ public class StoragePortAssociationHelper {
      */
     private static Map<String, List<NetworkLite>> getVNasNetworksMap(
             Collection<StoragePort> sports, DbClient dbClient) {
-    	
-    	Map<String, List<NetworkLite>> vNasNetwork = new HashMap<>();
-        		
+
+        Map<String, List<NetworkLite>> vNasNetwork = new HashMap<>();
+
         NetworkLite network;
         VirtualNAS vNas;
         List<NetworkLite> list = null;
-        
-        for (StoragePort sport : sports) {
-        	if(TransportType.IP.name().equalsIgnoreCase(sport.getTransportType())) {
-        		StorageSystem system = dbClient.queryObject(StorageSystem.class, sport.getStorageDevice());
-        		if (DiscoveredDataObject.Type.vnxfile.name().equals(system.getSystemType())) {
-        			network = NetworkUtil.getEndpointNetworkLite(sport.getPortNetworkId(), dbClient);
-        			vNas = getStoragePortVirtualNAS(sport, dbClient);
-        			if (network != null && network.getInactive() == false
-        					&& network.getTransportType().equals(sport.getTransportType())
-        					&& vNas != null ) {
 
-        				list = vNasNetwork.get(vNas.getNativeGuid());
-        				if (list == null) {
-        					list = new ArrayList<NetworkLite>();
-        					vNasNetwork.put(vNas.getNativeGuid(), list);
-        				}
-        				list.add(network);
-        			}
-        		}
-        	}
+        for (StoragePort sport : sports) {
+            if (TransportType.IP.name().equalsIgnoreCase(sport.getTransportType())) {
+                StorageSystem system = dbClient.queryObject(StorageSystem.class, sport.getStorageDevice());
+                if (DiscoveredDataObject.Type.vnxfile.name().equals(system.getSystemType())) {
+                    network = NetworkUtil.getEndpointNetworkLite(sport.getPortNetworkId(), dbClient);
+                    vNas = getStoragePortVirtualNAS(sport, dbClient);
+                    if (network != null && network.getInactive() == false
+                            && network.getTransportType().equals(sport.getTransportType())
+                            && vNas != null) {
+
+                        list = vNasNetwork.get(vNas.getNativeGuid());
+                        if (list == null) {
+                            list = new ArrayList<NetworkLite>();
+                            vNasNetwork.put(vNas.getNativeGuid(), list);
+                        }
+                        list.add(network);
+                    }
+                }
+            }
         }
         return vNasNetwork;
     }

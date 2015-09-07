@@ -368,7 +368,7 @@ public class BucketService extends TaskResourceService {
         StoragePool pool = null;
         Bucket bucket = new Bucket();
         bucket.setId(URIUtil.createId(Bucket.class));
-        bucket.setLabel(bucket.getLabel());
+        bucket.setLabel(param.getLabel());
         bucket.setPath(param.getNamespace() + "/" + project.getLabel() + "/" + param.getLabel());
         bucket.setHardQuota(SizeUtil.translateSize(param.getHardQuota()));
         bucket.setSoftQuota(SizeUtil.translateSize(param.getSoftQuota()));

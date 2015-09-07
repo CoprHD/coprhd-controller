@@ -62,6 +62,7 @@ distutils.core.setup(
 		      'computelement.py',
 		      'computesystem.py',
 		      'computevpool.py',
+		      'computeimageserver.py',
                       'quotadirectory.py']
                  )]
 )

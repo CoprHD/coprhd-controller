@@ -127,6 +127,7 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
     public ObjectVirtualPoolRestRep getObjectVirtualPool(@PathParam("id") URI id) {
         VirtualPool vpool = getVirtualPool(VirtualPool.Type.object, id);
         ObjectVirtualPoolRestRep restRep = toObjectVirtualPool(vpool);
+        restRep.setMaxRetention(vpool.getMaxRetention());
         return restRep;
     }
 

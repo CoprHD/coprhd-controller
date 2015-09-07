@@ -25,7 +25,7 @@ public class ObjectVirtualPoolRestRep extends VirtualPoolCommonRestRep {
         return maxRetention;
     }
 
-    public void setMaxSnapshots(Integer maxRetention) {
+    public void setMaxRetention(Integer maxRetention) {
         this.maxRetention = maxRetention;
     }
 }

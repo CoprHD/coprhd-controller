@@ -46,7 +46,6 @@ import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -231,9 +230,6 @@ public class BucketService extends TaskResourceService {
             ObjectController controller = getController(ObjectController.class, system.getSystemType());
             controller.createBucket(recommendation.getSourceDevice(), param.getLabel());
             _dbClient.persistObject(bucket);
-            Operation tempOperation = new Operation();
-            tempOperation.ready();
-            bucket.getOpStatus().updateTaskStatus(task, tempOperation);
         } catch (InternalException e) {
             bucket.setInactive(true);
             _dbClient.persistObject(bucket);
@@ -473,7 +469,7 @@ public class BucketService extends TaskResourceService {
 
         if (!softQuota.equals(bucket.getSoftQuota()) || !hardQuota.equals(bucket.getHardQuota())
                 || !retention.equals(bucket.getRetention())) {
-            bucket.setSoftQuota(hardQuota);
+            bucket.setSoftQuota(softQuota);
             bucket.setHardQuota(hardQuota);
             bucket.setRetention(Integer.getInteger(param.getRetention(), 0));
             update = true;

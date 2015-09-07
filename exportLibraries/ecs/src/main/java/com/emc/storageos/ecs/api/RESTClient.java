@@ -2,6 +2,7 @@ package com.emc.storageos.ecs.api;
 
 import com.sun.jersey.api.client.*;
 import com.sun.jersey.api.client.config.ClientConfig;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,6 +11,8 @@ import java.io.InputStream;
 import java.net.URI;
 import java.security.GeneralSecurityException;
 import java.util.concurrent.Future;
+
+import javax.ws.rs.core.MediaType;
 
 public class RESTClient {
 	private Client _client;
@@ -42,6 +45,10 @@ public class RESTClient {
 		WebResource r = _client.resource(url);
 		return r.header("Content-Type", "application/xml").header("X-SDS-AUTH-TOKEN", authToken).get(ClientResponse.class);
 	}
+
+    public ClientResponse post_json(URI url, String body) {
+        return _client.resource(url).type(MediaType.APPLICATION_JSON).post(ClientResponse.class, body);
+    }
 
 	/**
 	 * Close the client

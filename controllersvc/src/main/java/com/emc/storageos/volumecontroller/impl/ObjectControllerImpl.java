@@ -108,7 +108,7 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
 	public void createBucket(URI storage, String name) throws InternalException {
 		// TODO Auto-generated method stub
 		_log.info("ObjectControllerImpl:createBukcet");
-		execOb("createBucket", name);
+		execOb("createBucket", storage, name);
 	}
 
 

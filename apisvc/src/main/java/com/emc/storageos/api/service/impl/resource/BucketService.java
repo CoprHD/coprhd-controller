@@ -45,6 +45,7 @@ import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -146,6 +147,15 @@ public class BucketService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskResourceRep createBucket(BucketParam param, @QueryParam("project") URI id) throws InternalException {
+    	
+        ObjectController controller = getController(ObjectController.class, "ecs");
+        URI uri = URIUtil.createId(StorageSystem.class, param.getLabel()); //storage system ID
+        controller.createBucket(uri, param.getSoftQuota()); //name of bucket
+        //_dbClient.persistObject(bucket);
+
+        TaskResourceRep rep = new TaskResourceRep();
+        return rep;
+        /*
         // check project
         ArgValidator.checkFieldUriType(id, Project.class, "project");
 
@@ -156,7 +166,7 @@ public class BucketService extends TaskResourceService {
         ArgValidator.checkEntity(project, id, isIdEmbeddedInURL(id));
         ArgValidator.checkFieldNotNull(project.getTenantOrg(), "project");
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
-        return initiateBucketCreation(param, project, tenant, null);
+        return initiateBucketCreation(param, project, tenant, null);*/
     }
 
     private TaskResourceRep initiateBucketCreation(BucketParam param, Project project,

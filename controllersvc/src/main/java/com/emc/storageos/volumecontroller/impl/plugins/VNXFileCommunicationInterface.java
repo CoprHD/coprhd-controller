@@ -77,6 +77,7 @@ import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileDiscExecutor;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileExecutor;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
@@ -106,6 +107,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     private static final String PHYSICAL = "PHYSICAL";
     private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
     private static final String UNMANAGED_EXPORT_RULE = "UnManagedExportRule";
+    private static final Long TBsINKB = 1073741824L;
+    
 
     private static int BYTESCONV = 1024;  // VNX defaults to M and apparently Bourne wants K.
 
@@ -287,6 +290,14 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemId);
             // Retrieve control station information.
             discoverControlStation(storageSystem);
+            
+            // Model number
+            VNXFileSshApi sshDmApi = new VNXFileSshApi();
+            sshDmApi.setConnParams(storageSystem.getIpAddress(), storageSystem.getUsername(),
+            		storageSystem.getPassword());
+            String model = sshDmApi.getModelInfo();
+            storageSystem.setModel(model);
+            
             _dbClient.persistObject(storageSystem);
             if (!storageSystem.getReachableStatus()) {
                 throw new VNXFileCollectionException("Failed to connect to " + storageSystem.getIpAddress());
@@ -489,6 +500,27 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 vNas.setParentNasUri(parentNas.getId());
             }
             _logger.info("new Virtual NAS created with guid {} ", vNas.getNativeGuid());
+            
+            // Set the Limit Metric keys!!
+            Long MaxObjects = 2048L;
+            Long MaxCapacity = 200L*TBsINKB;
+            String modelStr = system.getModel();
+            if( modelStr.startsWith("VNX") ){
+            	if ( Long.parseLong(modelStr.substring(3)) > 5300) {
+            		MaxCapacity = 256L*TBsINKB;
+            	}
+            }
+            
+            vNas.getMetrics().put(MetricsKeys.maxStorageCapacity.name(), value)
+            
+            dbMetrics.put(MetricsKeys.storageObjects.name(), String.valueOf(totalObjects));
+            dbMetrics.put(MetricsKeys.storageCapacity.name(), String.valueOf(totalCap));
+
+            // set the over load metrics
+            Long maxCapacity = MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, dbMetrics);
+            Long maxObjects = MetricsKeys.getLong(MetricsKeys.maxStorageObjects, dbMetrics);
+            
+            
 
         }
 

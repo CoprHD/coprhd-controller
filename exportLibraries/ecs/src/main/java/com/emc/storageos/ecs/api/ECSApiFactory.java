@@ -163,8 +163,9 @@ public class ECSApiFactory {
     	else 
     		System.out.println("NOT Sys admin");
     		
-    	ecsApi.getStoragePools();
-    	ecsApi.getStoragePort("10.32.4.98");
+    	//ecsApi.getStoragePools();
+    	//ecsApi.getStoragePort("10.32.4.98");
+    	ecsApi.createBucket("mybucket1", "s3", "repGroup");
     }*/
     
 }

@@ -46,8 +46,9 @@ public class RESTClient {
 		return r.header("Content-Type", "application/xml").header("X-SDS-AUTH-TOKEN", authToken).get(ClientResponse.class);
 	}
 
-    public ClientResponse post_json(URI url, String body) {
-        return _client.resource(url).type(MediaType.APPLICATION_JSON).post(ClientResponse.class, body);
+    public ClientResponse post_json(URI url, String authToken, String body) {
+    	WebResource r = _client.resource(url);
+		return r.header("Content-Type", "application/json").header("X-SDS-AUTH-TOKEN", authToken).post(ClientResponse.class, body);
     }
 
 	/**

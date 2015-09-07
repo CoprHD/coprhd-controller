@@ -198,7 +198,9 @@ public class ECSApi {
     public void createBucket(String name, String namespace, String repGroup) throws ECSException {
     	ClientResponse clientResp = null;
     	
-    	clientResp = _client.post_json(_baseUrl.resolve(URI_CREATE_BUCKET), authToken);
+    	String body = " { \"name\": \""+ name + "\",\"namespace\": \"s3\"}  ";
+    	
+    	clientResp = _client.post_json(_baseUrl.resolve(URI_CREATE_BUCKET), authToken, body);
     	if (clientResp.getStatus() != 200) {
     		if (clientResp.getStatus() == 401 || clientResp.getStatus() == 302) {
     			getAuthToken();
@@ -209,9 +211,6 @@ public class ECSApi {
     			throw ECSException.exceptions.getStoragePoolsAccessFailed(_baseUrl, clientResp.getStatus());
     		}
     	}
-    	
-
-    	
     	
     }
     

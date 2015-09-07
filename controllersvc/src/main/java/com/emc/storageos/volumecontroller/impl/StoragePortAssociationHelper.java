@@ -189,7 +189,7 @@ public class StoragePortAssociationHelper {
     }
 
     /**
-     * 
+     * it return VirtualNAS from database using NativeId
      * 
      * @param nativeId
      * @param dbClient
@@ -292,7 +292,7 @@ public class StoragePortAssociationHelper {
     }
 
     /**
-     * 
+     * it return VirtualNAS contains the given StoragePort
      * 
      * @param sp StorgaePort
      * @param dbClient

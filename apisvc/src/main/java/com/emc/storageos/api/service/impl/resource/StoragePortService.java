@@ -643,7 +643,7 @@ public class StoragePortService extends TaggedResource {
     }
 
     /**
-     * 
+     * It return VirtualNAS for given StoragePort
      * 
      * @param sp A reference to the storage port.
      * @return VirtualNAS for a storage Port

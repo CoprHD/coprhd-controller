@@ -183,7 +183,7 @@ if [ "$ethdev" = "" ] ; then
    ethdev=eth0
 fi
 
-# COP-16713: Sometimes a linux ethernet interface is more than 8 characters
+# COP-16713: Sometimes a linux ethernet interface is more than 9 characters
 #            However, ifconfig will only show the first 9.  If the name is 
 #            long, run "ip link show", which will give us the full name.
 ethdevlen=`echo ${ethdev} | wc -c`

@@ -688,7 +688,10 @@ public class ImageServerControllerImpl implements ImageServerController {
             log.info("calling image server to delete image");
             d.rm(imageServer.getTftpbootDir() + ci.getPathToDirectory());
             log.info("delete done");
-
+            if (imageServer.getComputeImage()!=null && imageServer.getComputeImage().contains(ciId.toString())){
+            	imageServer.getComputeImage().remove(ciId.toString());
+            	dbClient.persistObject(imageServer);
+            }
             WorkflowStepCompleter.stepSucceded(stepId);
         } catch (InternalException e) {
             log.error("Exception deleting image: " + e.getMessage(), e);

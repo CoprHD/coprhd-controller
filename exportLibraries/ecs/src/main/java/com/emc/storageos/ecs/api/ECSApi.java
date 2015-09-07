@@ -195,7 +195,7 @@ public class ECSApi {
     }
     
     
-    public void createBucket(String name, String namespace, String repGroup) throws ECSException {
+    /*public void createBucket(String name, String namespace, String repGroup) throws ECSException {
     	ClientResponse clientResp = null;
     	
     	clientResp = _client.post_json(_baseUrl.resolve(URI_CREATE_BUCKET), authToken);
@@ -210,9 +210,6 @@ public class ECSApi {
     		}
     	}
     	
-
-    	
-    	
-    }
+    }*/
     
 }

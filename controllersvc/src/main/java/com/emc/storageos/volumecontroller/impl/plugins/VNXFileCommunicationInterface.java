@@ -498,7 +498,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
         if (parentNas != null) {
             vNas.setParentNasUri(parentNas.getId());
 
-            StringMap dbMetrics = parentNas.getMetrics();
+            StringMap dbMetrics = vNas.getMetrics();
             _logger.info("new Virtual NAS created with guid {} ", vNas.getNativeGuid());
 
             // Set the Limit Metric keys!!
@@ -513,7 +513,6 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
             dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
-
         }
 
         return vNas;
@@ -542,6 +541,20 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     system, String.valueOf(dm.getId()), NativeGUIDGenerator.PHYSICAL_NAS);
             phyNas.setNativeGuid(physicalNasNativeGuid);
             _logger.info("Physical NAS created with guid {} ", phyNas.getNativeGuid());
+
+            StringMap dbMetrics = phyNas.getMetrics();
+            // Set the Limit Metric keys!!
+            Long MaxObjects = 2048L;
+            Long MaxCapacity = 200L * TBsINKB;
+            String modelStr = system.getModel();
+            if (modelStr.startsWith("VNX")) {
+                if (Long.parseLong(modelStr.substring(3)) > 5300) {
+                    MaxCapacity = 256L * TBsINKB;
+                }
+            }
+
+            dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
+            dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
 
         }
         return phyNas;

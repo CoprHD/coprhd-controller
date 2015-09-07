@@ -497,17 +497,17 @@ public class FileStorageScheduler {
 
         _log.debug("Selecting the least used vNAS from the vNAS list: {}", vNASList);
 
-        List<URI> storageSystemURIList = new ArrayList<URI>();
+        List<String> storageSystemURIList = new ArrayList<String>();
         for (Iterator<Recommendation> iterator = poolRecommendations.iterator(); iterator
                 .hasNext();) {
             Recommendation recommendation = iterator.next();
-            storageSystemURIList.add(recommendation.getSourceStorageSystem());
+            storageSystemURIList.add(recommendation.getSourceStorageSystem().toString());
         }
 
         for (Iterator<VirtualNAS> iterator = vNASList.iterator(); iterator
                 .hasNext();) {
             VirtualNAS vNAS = iterator.next();
-            if (storageSystemURIList.contains(vNAS.getStorageDeviceURI())) {
+            if (storageSystemURIList.contains(vNAS.getStorageDeviceURI().toString())) {
                 return vNAS;
             }
 

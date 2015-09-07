@@ -87,6 +87,9 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             // try to connect to the ECS
             ECSApi ecsApi = getECSDevice(storageSystem);
             String authToken = ecsApi.getAuthToken();
+            if (authToken.isEmpty()) {
+            	throw ECSException.exceptions.discoverFailed("Could not obtain authToken");
+            }
             
             //Make sure user is system admin before proceeding to discovery
             if (!ecsApi.isSystemAdmin()) {
@@ -107,6 +110,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             storageSystem.setIpAddress(accessProfile.getIpAddress());
             storageSystem.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
             storageSystem.setReachableStatus(true);
+            storageSystem.setInactive(false);
             _dbClient.persistObject(storageSystem);
             
             //Discover storage pools
@@ -150,10 +154,11 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                 	storagePool.setPoolName(ecsPool.getName()); 
                 	storagePool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.toString());
                 	storagePool.setPoolServiceType(PoolServiceType.object.toString());
-                	storagePool.setRegistrationStatus(DiscoveredDataObject.RegistrationStatus.REGISTERED.toString());
+                	storagePool.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
                 	storagePool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THICK_ONLY.toString());
                     storagePool.setFreeCapacity(ecsPool.getFreeCapacity()*BYTESCONVERTER*BYTESCONVERTER);
                     storagePool.setTotalCapacity(ecsPool.getTotalCapacity()*BYTESCONVERTER*BYTESCONVERTER);
+                    storagePool.setInactive(false);
                     //storagePool.setSubscribedCapacity((ecsPool.getTotalCapacity()-ecsPool.getFreeCapacity()));
                 	_logger.info("Creating new ECS storage pool using NativeId : {}", storagePoolNativeGuid);
                     storagePool.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
@@ -217,9 +222,13 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             		storagePort.setNativeGuid(portNativeGuid);
             		storagePort.setLabel(portNativeGuid);
             		storagePort.setStorageDevice(storageSystemId);
+            		storagePort.setPortNetworkId(ecsPort.getIpAddress().toLowerCase());
             		storagePort.setPortName(ecsPort.getName());
             		storagePort.setLabel(ecsPort.getName());
+            		//storagePort.setPortSpeed(isilonPort.getPortSpeed());
+                    storagePort.setPortGroup(ecsPort.getName());
             		storagePort.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
+            		storagePort.setOperationalStatus(StoragePort.OperationalStatus.OK.toString());
             		_logger.info("Creating new storage port using NativeGuid : {}", portNativeGuid);
             		newStoragePorts.add(storagePort);
             	} else {

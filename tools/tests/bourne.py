@@ -33,7 +33,13 @@ import zlib
 import struct
 from time import sleep
 
-requests.packages.urllib3.disable_warnings()
+try:
+    # OpenSUSE CoprHD kits tend to display certificate warnings which aren't
+    # relevant to running sanity tests
+    requests.packages.urllib3.disable_warnings()
+except AttributeError:
+    # Swallow error, likely ViPR devkit
+    pass
 
 URI_SERVICES_BASE               = ''
 URI_CATALOG                     = URI_SERVICES_BASE + '/catalog'

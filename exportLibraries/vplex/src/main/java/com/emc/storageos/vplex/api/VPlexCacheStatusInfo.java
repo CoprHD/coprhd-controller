@@ -15,10 +15,10 @@ package com.emc.storageos.vplex.api;
 public class VPlexCacheStatusInfo {
 
     // The status of the request.
-    InvalidateStatus invalidateStatus = InvalidateStatus.IN_PROGRESS;
+    private InvalidateStatus invalidateStatus = InvalidateStatus.IN_PROGRESS;
 
     // The reason why the cache invalidate failed, when it does fail.
-    String invalidateFailedError = "";
+    private String invalidateFailedError = "";
 
     // Enum captures the states.
     public static enum InvalidateStatus {
@@ -71,8 +71,8 @@ public class VPlexCacheStatusInfo {
         StringBuilder str = new StringBuilder();
         str.append("CacheStatusInfo ( ");
         str.append(super.toString());
-        str.append(", invalidateStatus: " + invalidateStatus.name());
-        str.append(", invalidateFailedError: " + invalidateFailedError);
+        str.append(", invalidateStatus: ").append(invalidateStatus.name());
+        str.append(", invalidateFailedError: ").append(invalidateFailedError);
         str.append(" )");
 
         return str.toString();

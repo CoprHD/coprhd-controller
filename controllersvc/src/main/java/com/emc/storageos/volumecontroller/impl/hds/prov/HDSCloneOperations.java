@@ -279,4 +279,9 @@ public class HDSCloneOperations implements CloneOperations {
 
     }
 
+    @Override
+    public void establishVolumeCloneGroupRelation(StorageSystem storage, URI sourceVolume, URI clone, TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
 }

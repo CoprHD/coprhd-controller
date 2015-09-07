@@ -177,7 +177,7 @@ public class SmisUtils {
     }
 
     /*
-     * Parse target group name VMAX V3 only for now
+     * Parse target group name
      */
     public static String getTargetGroupName(String instanceId, Boolean isUsingSMIS80) {
         if (isUsingSMIS80) {

@@ -33,6 +33,7 @@ import static com.emc.storageos.model.ResourceTypeEnum.PROJECT;
 import static com.emc.storageos.model.ResourceTypeEnum.PROTECTION_SET;
 import static com.emc.storageos.model.ResourceTypeEnum.PROTECTION_SYSTEM;
 import static com.emc.storageos.model.ResourceTypeEnum.QUOTA_DIR;
+import static com.emc.storageos.model.ResourceTypeEnum.RDF_GROUP;
 import static com.emc.storageos.model.ResourceTypeEnum.SMIS_PROVIDER;
 import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_POOL;
 import static com.emc.storageos.model.ResourceTypeEnum.STORAGE_PORT;
@@ -49,6 +50,7 @@ import static com.emc.storageos.model.ResourceTypeEnum.VARRAY;
 import static com.emc.storageos.model.ResourceTypeEnum.VCENTER;
 import static com.emc.storageos.model.ResourceTypeEnum.VCENTERDATACENTER;
 import static com.emc.storageos.model.ResourceTypeEnum.VDC;
+import static com.emc.storageos.model.ResourceTypeEnum.VIRTUAL_NAS;
 import static com.emc.storageos.model.ResourceTypeEnum.VOLUME;
 import static com.emc.storageos.model.ResourceTypeEnum.VPLEX_MIRROR;
 import static com.emc.storageos.model.ResourceTypeEnum.VPOOL;
@@ -88,6 +90,7 @@ import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.QuotaDirectory;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.SMISProvider;
 import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -103,6 +106,7 @@ import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VplexMirror;
@@ -133,6 +137,7 @@ public class ResourceTypeMapping {
         classMapping.put(STORAGE_POOL, StoragePool.class);
         classMapping.put(STORAGE_TIER, StorageTier.class);
         classMapping.put(STORAGE_PORT, StoragePort.class);
+        classMapping.put(RDF_GROUP, RemoteDirectorGroup.class);
         classMapping.put(PROTECTION_SYSTEM, ProtectionSystem.class);
         classMapping.put(PROTECTION_SET, ProtectionSet.class);
         classMapping.put(FILE_SNAPSHOT, Snapshot.class);
@@ -170,6 +175,7 @@ public class ResourceTypeMapping {
         classMapping.put(CUSTOM_CONFIG, CustomConfig.class);
         classMapping.put(SYS_EVENT, SysEvent.class);
         classMapping.put(USER_GROUP, UserGroup.class);
+        classMapping.put(VIRTUAL_NAS, VirtualNAS.class);
         classMapping.put(COMPUTE_IMAGESERVER, ComputeImageServer.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping.entrySet()) {

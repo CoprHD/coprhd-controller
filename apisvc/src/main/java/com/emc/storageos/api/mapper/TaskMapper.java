@@ -132,6 +132,9 @@ public class TaskMapper {
         taskResourceRep.setStartTime(task.getStartTime());
         taskResourceRep.setEndTime(task.getEndTime());
         taskResourceRep.setProgress(task.getProgress() != null ? task.getProgress() : 0);
+        taskResourceRep.setQueuedStartTime(task.getQueuedStartTime());
+        taskResourceRep.setQueueName(task.getQueueName());
+
         return taskResourceRep;
     }
 

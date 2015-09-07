@@ -106,6 +106,12 @@ public class ComputeMapper {
         return to;
     }
 
+    /**
+     * Utility mapper method to map feilds of {@link ComputeImageServer} columnFamily
+     *  to {@link ComputeImageServerRestRep} rest representation. 
+     * @param from
+     * @return
+     */
     public static ComputeImageServerRestRep map(ComputeImageServer from) {
         if (from == null) {
             return null;

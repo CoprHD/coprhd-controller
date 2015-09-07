@@ -640,6 +640,12 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(sourceURI, Volume.class, field);
         }
 
+        /**
+         * method to return ContainmentConstraint between {@link ComputeImageJob} and {@link ComputeImageServer}
+         * 
+         * @param imageServerURI {@link URI} imagerServer URI
+         * @return {@link ContainmentConstraint}
+         */
         public static ContainmentConstraint getComputeImageJobsByComputeImageServerConstraint(URI imageServerURI) {
             DataObjectType doType = TypeMap.getDoType(ComputeImageJob.class);
             ColumnField field = doType.getColumnField(COMPUTE_IMAGESERVER_ID);

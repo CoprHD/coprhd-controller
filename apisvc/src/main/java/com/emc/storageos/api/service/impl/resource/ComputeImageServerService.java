@@ -55,6 +55,11 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.google.common.base.Function;
 
+/**
+ * Service class responsible for serving rest requests of ComputeImageServer
+ * 
+ *
+ */
 @Path("/compute/compute-imageservers")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, writeRoles = {
         Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })

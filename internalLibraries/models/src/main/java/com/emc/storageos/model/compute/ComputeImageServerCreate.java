@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.model.compute;
 
+import java.lang.reflect.Constructor;
+
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -27,6 +29,15 @@ public class ComputeImageServerCreate {
 
     }
 
+    /**
+     * ComputeImageServerCreate Constructor
+     * @param imageServerAddress
+     * @param imageServerSecondIp
+     * @param imageServerUser
+     * @param imageServerPassword
+     * @param tftpbootDir
+     * @param osInstallTimeoutMs
+     */
     public ComputeImageServerCreate(String imageServerAddress,
             String imageServerSecondIp, String imageServerUser,
             String imageServerPassword, String tftpbootDir,

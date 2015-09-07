@@ -3068,6 +3068,7 @@ resources.bucket.deleteConfirm=Are you sure you want to delete this bucket?
 resources.buckets.deleteConfirm=Are you sure you want to delete the selected buckets?
 resources.buckets.deleteConfirm.FULL=Are you sure you want to delete the selected buckets fully?
 resources.buckets.deleteConfirm.VIPR_ONLY=Are you sure you want to delete the selected buckets from the inventory?
+resources.bucket.image=assets/Volume.png
 
 resources.exports.none=No Exports
 resources.exportgroups.deleteConfirm=Are you sure you want to delete the selected export groups?

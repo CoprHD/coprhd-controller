@@ -32,12 +32,6 @@
       <dd><img src="/public/img/serviceCatalog/Virtual_Array.png" style="width: 32px;"/> #{spaceForNull virtualArray?.name/}</dd>
       <dt>&{'resources.bucket.vpool'}:</dt>
       <dd><img src="/public/img/serviceCatalog/Virtual_Pool.png" style="width: 32px;"/> #{spaceForNull virtualPool?.name/}</dd>
-      #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN']]}
-        <dt class="moreDetails">&{'resources.bucket.project'}:</dt>
-        <dd class="moreDetails">#{spaceForNull project?.name/}</dd>
-      #{/deadbolt.restrict}
-        
-      
     </dl>
 
     <div class="clearfix"></div>

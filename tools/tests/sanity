@@ -183,10 +183,19 @@ if [ "$ethdev" = "" ] ; then
    ethdev=eth0
 fi
 
+# COP-16713: Sometimes a linux ethernet interface is more than 8 characters
+#            However, ifconfig will only show the first 9.  If the name is 
+#            long, run "ip link show", which will give us the full name.
+ethdevlen=`echo ${ethdev} | wc -c`
+if [ ${ethdevlen} > 8 ] ; then
+    ethdev=`ip link show | grep ${ethdev} | awk '{print $2}' | awk -F: '{print $1}'`
+fi
+
 macaddr=`/sbin/ifconfig ${ethdev} | /usr/bin/awk '/HWaddr/ { print $5 }'`
 if [ "$macaddr" = "" ] ; then
     macaddr=`/sbin/ifconfig en0 | /usr/bin/awk '/ether/ { print $2 }'`
 fi
+
 seed=`date "+%H%M%S%N"`
 seed2b=`printf "%02X" $$ | cut -b1-2`
 hostseed=`echo ${macaddr} | awk -F: '{print $5$6}'`

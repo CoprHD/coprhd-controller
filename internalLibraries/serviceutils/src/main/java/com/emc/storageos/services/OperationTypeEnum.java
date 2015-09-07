@@ -136,6 +136,7 @@ public enum OperationTypeEnum {
     
     CREATE_BUCKET("BucketCreated", "BucketCreateFailed", "Bucket created"),
     DELETE_BUCKET("BucketDeleted", "BucketDeleteFailed", "Bucket deleted"),
+    UPDATE_BUCKET("BucketUpdated", "BucketUpdateFailed", "Bucket updated"),
 
     STORAGE_PORT_REGISTER("StoragePortRegistered", "", "Storage Port Registered"),
     STORAGE_PORT_DEREGISTER("StoragePortUnregistered", "", "Storage Port Unregistered"),

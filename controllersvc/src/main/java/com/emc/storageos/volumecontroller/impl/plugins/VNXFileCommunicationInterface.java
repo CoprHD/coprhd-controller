@@ -513,6 +513,8 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
             dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
+            vNas.setMetrics(dbMetrics);
+
         }
 
         return vNas;
@@ -555,6 +557,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
             dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
+            phyNas.setMetrics(dbMetrics);
 
         }
         return phyNas;

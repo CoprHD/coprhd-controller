@@ -318,11 +318,11 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
         fsCount = fsCapList.size();
 
         // set the values in dbMetrics
-        long totalObjects = fsCount + snapCount;
+        double totalObjects = fsCount + snapCount;
         double loadFactor = 1.0;
 
         if (nasServer instanceof VirtualNAS) {
-            long totalObjectOnDataMover = 0l;
+            double totalObjectOnDataMover = 0.0;
             URI pNaURIs = ((VirtualNAS) nasServer).getParentNasUri();
             if (dmFsCountMAP.containsKey(pNaURIs)) {
                 totalObjectOnDataMover = dmFsCountMAP.get(pNaURIs);
@@ -335,7 +335,7 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
 
         } else if (nasServer instanceof PhysicalNAS) {
 
-            long totalObjectOnAllDataMover = 0l;
+            double totalObjectOnAllDataMover = 0.0;
             for (Integer dmValue : dmFsCountMAP.values()) {
 
                 totalObjectOnAllDataMover = totalObjectOnAllDataMover + dmValue;

@@ -110,6 +110,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             storageSystem.setIpAddress(accessProfile.getIpAddress());
             storageSystem.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
             storageSystem.setReachableStatus(true);
+            storageSystem.setInactive(false);
             _dbClient.persistObject(storageSystem);
             
             //Discover storage pools

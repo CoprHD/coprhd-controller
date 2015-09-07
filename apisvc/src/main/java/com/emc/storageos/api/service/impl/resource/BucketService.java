@@ -27,12 +27,17 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.functions.MapBucket;
+import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.BucketRecommendation;
 import com.emc.storageos.api.service.impl.placement.BucketScheduler;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.response.BulkList;
+import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
+import com.emc.storageos.api.service.impl.response.ResRepFilter;
+import com.emc.storageos.api.service.impl.response.SearchedResRepList;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.NamedURI;
@@ -40,6 +45,7 @@ import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
@@ -49,6 +55,7 @@ import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.TaskResourceRep;
@@ -57,6 +64,7 @@ import com.emc.storageos.model.object.BucketDeleteParam;
 import com.emc.storageos.model.object.BucketParam;
 import com.emc.storageos.model.object.BucketRestRep;
 import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
@@ -64,6 +72,7 @@ import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
+import com.emc.storageos.volumecontroller.ObjectController;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 @Path("/object/buckets")
@@ -177,7 +186,7 @@ public class BucketService extends TaskResourceService {
         if (!VirtualPool.Type.object.name().equals(cos.getType())) {
             throw APIException.badRequests.virtualPoolNotForObjectStorage(VirtualPool.Type.object.name());
         }
-        
+
         // verify quota
         CapacityUtils.validateQuotasForProvisioning(_dbClient, cos, project, tenant, hardQuota, "bucket");
 
@@ -212,9 +221,9 @@ public class BucketService extends TaskResourceService {
 
         // TODO : Controller call
         try {
-            // StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceDevice());
-            // ObjectController controller = getController(ObjectController.class, system.getSystemType());
-            // controller.createBucket(task);
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceDevice());
+            ObjectController controller = getController(ObjectController.class, system.getSystemType());
+            controller.createBucket(recommendation.getSourceDevice(), param.getLabel());
             _dbClient.persistObject(bucket);
             Operation tempOperation = new Operation();
             tempOperation.ready();
@@ -303,6 +312,10 @@ public class BucketService extends TaskResourceService {
          * BucketController controller = getController(Bucket.class, device.getSystemType());
          * controller.delete(device.getId(), null, bucket.getId(), param.getForceDelete(), task);
          */
+        //TODO : Bucket delete needs to happen in Controller. Remove this code.
+        bucket.setInactive(Boolean.TRUE);
+        _dbClient.persistObject(bucket);
+        
         auditOp(OperationTypeEnum.DELETE_BUCKET, true, AuditLogManager.AUDITOP_BEGIN,
                 bucket.getId().toString(), device.getId().toString());
 
@@ -385,5 +398,37 @@ public class BucketService extends TaskResourceService {
     @Override
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.BUCKET;
+    }
+
+    /**
+     * Bucket is not a zone level resource
+     */
+    @Override
+    protected boolean isZoneLevelResource() {
+        return false;
+    }
+
+    /**
+     * Get search results by project alone.
+     * 
+     * @return SearchedResRepList
+     */
+    @Override
+    protected SearchedResRepList getProjectSearchResults(URI projectId) {
+        SearchedResRepList resRepList = new SearchedResRepList(getResourceType());
+        _dbClient.queryByConstraint(
+                ContainmentConstraint.Factory.getProjectBucketConstraint(projectId),
+                resRepList);
+        return resRepList;
+    }
+
+    /**
+     * Get object specific permissions filter
+     * 
+     */
+    @Override
+    public ResRepFilter<? extends RelatedResourceRep> getPermissionFilter(StorageOSUser user,
+            PermissionsHelper permissionsHelper) {
+        return new ProjOwnedResRepFilter(user, permissionsHelper, Bucket.class);
     }
 }

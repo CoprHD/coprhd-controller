@@ -645,10 +645,10 @@ public class CinderExportOperations implements ExportMaskOperations {
         exportMask.setStoragePorts(null);
         
         //Clean the existing zoning map
-        for (String initiatorURIStr : exportMask.getZoningMap().keySet()) {
+        /*for (String initiatorURIStr : exportMask.getZoningMap().keySet()) {
             exportMask.removeZoningMapEntry(initiatorURIStr);
         }
-        exportMask.setZoningMap(null);
+        exportMask.setZoningMap(null);*/
 
         // Now add new target ports and populate the zoning map
         Set<URI> initiatorURIKeys = mapFilteredInitiatorURIVsTargetURIList.keySet();
@@ -660,9 +660,9 @@ public class CinderExportOperations implements ExportMaskOperations {
                 targetPortURIStrings.add(portURI.toString());
             }
             
-            String initiatorURIString = initiatorURI.toString();
+            /*String initiatorURIString = initiatorURI.toString();
             log.info("Adding zoning map entry Initiator is %s and its targetPorts %", initiatorURIString, targetPortURIStrings.toString());
-            exportMask.addZoningMapEntry(initiatorURIString, targetPortURIStrings);
+            exportMask.addZoningMapEntry(initiatorURIString, targetPortURIStrings);*/
         }
 
         log.debug("END - updateTargetsInExportMask");

@@ -114,7 +114,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
             NativeContinuousCopyCreate param, String taskId)
             throws ControllerException {
 
-        if (!(storageSystem.getUsingSmis80() && storageSystem.deviceIsType(Type.vmax))) {
+        if (!((storageSystem.getUsingSmis80() && storageSystem.deviceIsType(Type.vmax)) || storageSystem.deviceIsType(Type.vnxblock))) {
             validateNotAConsistencyGroupVolume(sourceVolume, sourceVirtualPool);
         }
 
@@ -228,7 +228,28 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
 
         boolean isCG = sourceVolume.isInCG();
         if (isCG) {
-            groupMirrorSourceMap = getGroupMirrorSourceMap(mirrors.get(0), sourceVolume);
+            if (mirrors == null) {
+                for (String uriStr : sourceVolume.getMirrors()) {
+                    BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, URI.create(uriStr));
+                    if (!mirror.getInactive()) {
+                        groupMirrorSourceMap = getGroupMirrorSourceMap(mirror, sourceVolume);
+                        break; // only process one mirror group
+                    }
+                }
+            } else {
+                groupMirrorSourceMap = getGroupMirrorSourceMap(mirrors.get(0), sourceVolume);
+            }
+
+            if (groupMirrorSourceMap == null || groupMirrorSourceMap.isEmpty()) {
+                Operation op = new Operation();
+                op.ready();
+                op.setResourceType(ResourceOperationTypeEnum.DETACH_BLOCK_MIRROR);
+                op.setMessage("No continuous copy can be detached");
+                _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId, op);
+                taskList.getTaskList().add(toTask(sourceVolume, taskId, op));
+                return taskList;
+            }
+
             copiesToStop = new ArrayList<URI>(transform(groupMirrorSourceMap.keySet(), FCTN_MIRROR_TO_URI));
         } else {
             List<BlockMirror> blockMirrors = null;
@@ -242,6 +263,15 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
             copiesToStop = getCopiesToStop(blockMirrors, sourceVolume);
             // Ensure we don't attempt to stop any lingering inactive copies
             removeIf(copiesToStop, isMirrorInactivePredicate());
+            if (copiesToStop.size() == 0) {
+                Operation op = new Operation();
+                op.ready();
+                op.setResourceType(ResourceOperationTypeEnum.DETACH_BLOCK_MIRROR);
+                op.setMessage("No continuous copy can be detached");
+                _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId, op);
+                taskList.getTaskList().add(toTask(sourceVolume, taskId, op));
+                return taskList;
+            }
         }
 
         copies = _dbClient.queryObject(BlockMirror.class, copiesToStop);
@@ -318,7 +348,28 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         boolean isCG = sourceVolume.isInCG();
 
         if (isCG) {
-            groupMirrorSourceMap = getGroupMirrorSourceMap(blockMirrors.get(0), sourceVolume);
+            if (blockMirrors == null) {
+                for (String uriStr : sourceVolume.getMirrors()) {
+                    BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, URI.create(uriStr));
+                    if (mirrorIsPausable(mirror)) {
+                        groupMirrorSourceMap = getGroupMirrorSourceMap(mirror, sourceVolume);
+                        break; // only process one mirror group
+                    }
+                }
+            } else {
+                groupMirrorSourceMap = getGroupMirrorSourceMap(blockMirrors.get(0), sourceVolume);
+            }
+
+            if (groupMirrorSourceMap == null || groupMirrorSourceMap.isEmpty()) {
+                Operation op = new Operation();
+                op.ready();
+                op.setResourceType(ResourceOperationTypeEnum.FRACTURE_VOLUME_MIRROR);
+                op.setMessage("No continuous copy can be paused");
+                _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId, op);
+                taskList.getTaskList().add(toTask(sourceVolume, taskId, op));
+                return taskList;
+            }
+
             mirrorsToProcess = new ArrayList<BlockMirror>(groupMirrorSourceMap.keySet());
             mirrorUris = new ArrayList<URI>(transform(mirrorsToProcess, FCTN_MIRROR_TO_URI));
         } else {
@@ -404,7 +455,28 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
         boolean isCG = sourceVolume.isInCG();
 
         if (isCG) {
-            groupMirrorSourceMap = getGroupMirrorSourceMap(blockMirrors.get(0), sourceVolume);
+            if (blockMirrors == null) {
+                for (String uriStr : sourceVolume.getMirrors()) {
+                    BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, URI.create(uriStr));
+                    if (mirrorIsResumable(mirror)) {
+                        groupMirrorSourceMap = getGroupMirrorSourceMap(mirror, sourceVolume);
+                        break; // only process one mirror group
+                    }
+                }
+            } else {
+                groupMirrorSourceMap = getGroupMirrorSourceMap(blockMirrors.get(0), sourceVolume);
+            }
+
+            if (groupMirrorSourceMap == null || groupMirrorSourceMap.isEmpty()) {
+                Operation op = new Operation();
+                op.ready();
+                op.setResourceType(ResourceOperationTypeEnum.RESUME_VOLUME_MIRROR);
+                op.setMessage("No continuous copy can be resumed");
+                _dbClient.createTaskOpStatus(Volume.class, sourceVolume.getId(), taskId, op);
+                taskList.getTaskList().add(toTask(sourceVolume, taskId, op));
+                return taskList;
+            }
+
             mirrorsToProcess = new ArrayList<BlockMirror>(groupMirrorSourceMap.keySet());
             mirrorURIs = new ArrayList<URI>(transform(mirrorsToProcess, FCTN_MIRROR_TO_URI));
         } else {

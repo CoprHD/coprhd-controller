@@ -17,6 +17,7 @@ import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.MIRROR_
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.RETURN_ELEMENTS_TO_STORAGE_POOL;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SNAPSHOT_REPLICATION_TYPE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.TARGET_ELEMENT_SUPPLIER;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.VP_SNAP_VALUE;
 import static java.text.MessageFormat.format;
 import static javax.cim.CIMDataType.UINT16_T;
 
@@ -93,7 +94,7 @@ public class ReplicationUtils {
 
         public ReplicationSettingBuilder addVPSnap() {
             return addProperty(new CIMProperty<Object>(DESIRED_COPY_METHODOLOGY, UINT16_T,
-                    new UnsignedInteger16(2/* VP_SNAP_VALUE */)));
+                    new UnsignedInteger16(VP_SNAP_VALUE)));
         }
 
         public ReplicationSettingBuilder addCreateNewTarget() {
@@ -482,7 +483,7 @@ public class ReplicationUtils {
             if (storageSystem.deviceIsType(Type.vmax)) {
 
                 final CIMObjectPath[] theElements = cimPath.getVolumePaths(storageSystem, deviceIds);
-                inArgs = helper.getReturnElementsToStoragePoolArguments(storageSystem, theElements,
+                inArgs = helper.getReturnElementsToStoragePoolArguments(theElements,
                         SmisConstants.CONTINUE_ON_NONEXISTENT_ELEMENT);
                 method = RETURN_ELEMENTS_TO_STORAGE_POOL;
             } else {

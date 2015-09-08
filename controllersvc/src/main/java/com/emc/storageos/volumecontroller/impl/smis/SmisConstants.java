@@ -59,6 +59,7 @@ public interface SmisConstants {
     static final int RESET_TO_ADAPTIVE_VALUE = 25;
     static final int SPLIT_VALUE = 21;
     static final int DETACH_VALUE = 8;
+    static final int NON_COPY_STATE = -1;
     static final int SNAPSHOT_VALUE = 7;
     static final int READ_WRITE_VALUE = 2;
     static final int MAX_VMAX_RELATIONSHIP_NAME = 5;

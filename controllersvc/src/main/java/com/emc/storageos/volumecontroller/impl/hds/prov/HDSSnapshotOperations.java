@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
@@ -27,11 +26,11 @@ import com.emc.storageos.hds.model.Pool;
 import com.emc.storageos.hds.model.ReplicationInfo;
 import com.emc.storageos.hds.model.SnapshotGroup;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
-import com.emc.storageos.volumecontroller.SnapshotOperations;
+import com.emc.storageos.volumecontroller.DefaultSnapshotOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 
-public class HDSSnapshotOperations implements SnapshotOperations {
+public class HDSSnapshotOperations extends DefaultSnapshotOperations {
 
     private static final Logger log = LoggerFactory.getLogger(HDSSnapshotOperations.class);
     private DbClient dbClient;
@@ -62,7 +61,7 @@ public class HDSSnapshotOperations implements SnapshotOperations {
      */
     @Override
     public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot,
-            Boolean createInactive, TaskCompleter taskCompleter)
+            Boolean createInactive, Boolean readOnly, TaskCompleter taskCompleter)
             throws DeviceControllerException {
         log.info("Create Single Volume Snapshot Started");
 
@@ -229,29 +228,6 @@ public class HDSSnapshotOperations implements SnapshotOperations {
         }
     }
 
-    @Override
-    public void createGroupSnapshots(StorageSystem storage,
-            List<URI> snapshotList, Boolean createInactive,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
-        // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public void activateSingleVolumeSnapshot(StorageSystem storage,
-            URI snapshot, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
-        // TODO Auto-generated method stub
-
-    }
-
-    @Override
-    public void activateGroupSnapshots(StorageSystem storage, URI snapshot,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
-        // TODO Auto-generated method stub
-
-    }
-
     /**
      * 1. Delete ThinImage Pair
      * 2. Delete Dummy lun path from snap volume
@@ -307,12 +283,6 @@ public class HDSSnapshotOperations implements SnapshotOperations {
                     e.getMessage());
             taskCompleter.error(dbClient, serviceError);
         }
-    }
-
-    @Override
-    public void deleteGroupSnapshots(StorageSystem storage, URI snapshot,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
-        throw new DeviceControllerException("UnSupported Operation");
     }
 
     /**
@@ -376,96 +346,5 @@ public class HDSSnapshotOperations implements SnapshotOperations {
             }
         }
         return repInfo;
-    }
-
-    @Override
-    public void restoreGroupSnapshots(StorageSystem storage, URI volume,
-            URI snapshot, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
-        throw new DeviceControllerException("UnSupported Operation");
-    }
-
-    @Override
-    public void copySnapshotToTarget(StorageSystem storage, URI snapshot,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
-        throw new DeviceControllerException("UnSupported Operation");
-    }
-
-    @Override
-    public void copyGroupSnapshotsToTarget(StorageSystem storage,
-            List<URI> snapshotList, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
-        throw new DeviceControllerException("UnSupported Operation");
-    }
-
-    @Override
-    public void terminateAnyRestoreSessions(StorageSystem storage,
-            BlockObject from, URI volume, TaskCompleter taskCompleter)
-            throws Exception {
-        throw new DeviceControllerException("UnSupported Operation");
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void createSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
-            throws DeviceControllerException {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void createGroupSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer)
-            throws DeviceControllerException {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void linkSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
-            String copyMode, TaskCompleter completer)
-            throws DeviceControllerException {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void relinkSnapshotSessionTarget(StorageSystem system, URI tgtSnapSessionURI, URI snapshotURI,
-            TaskCompleter completer) throws DeviceControllerException {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void unlinkSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
-            Boolean deleteTarget, TaskCompleter completer) throws DeviceControllerException {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void restoreSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
-            throws DeviceControllerException {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void deleteSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
-            throws DeviceControllerException {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

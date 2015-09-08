@@ -15,7 +15,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -25,13 +24,13 @@ import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
 import com.emc.storageos.scaleio.api.restapi.response.ScaleIOSnapshotVolumeResponse;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
-import com.emc.storageos.volumecontroller.SnapshotOperations;
+import com.emc.storageos.volumecontroller.DefaultSnapshotOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 
-public class ScaleIOSnapshotOperations implements SnapshotOperations {
+public class ScaleIOSnapshotOperations extends DefaultSnapshotOperations {
 
     private static Logger log = LoggerFactory.getLogger(ScaleIOSnapshotOperations.class);
     private DbClient dbClient;
@@ -41,14 +40,13 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
         this.dbClient = dbClient;
     }
 
-    @SuppressWarnings("UnusedDeclaration")
     public void setScaleIOHandleFactory(ScaleIOHandleFactory scaleIOHandleFactory) {
         this.scaleIOHandleFactory = scaleIOHandleFactory;
     }
 
     @Override
     public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot, Boolean createInactive,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+            Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
             ScaleIORestClient scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storage);
             BlockSnapshot blockSnapshot = dbClient.queryObject(BlockSnapshot.class, snapshot);
@@ -65,16 +63,15 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
 
         } catch (Exception e) {
             log.error("Encountered an exception", e);
-            ServiceCoded code =
-                    DeviceControllerErrors.scaleio.
-                            encounteredAnExceptionFromScaleIOOperation("createSingleVolumeSnapshot", e.getMessage());
+            ServiceCoded code = DeviceControllerErrors.scaleio.encounteredAnExceptionFromScaleIOOperation("createSingleVolumeSnapshot",
+                    e.getMessage());
             taskCompleter.error(dbClient, code);
         }
     }
 
     @Override
     public void createGroupSnapshots(StorageSystem storage, List<URI> snapshotList, Boolean createInactive,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
+            Boolean readOnly, TaskCompleter taskCompleter) throws DeviceControllerException {
         try {
             ScaleIORestClient scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storage);
             List<BlockSnapshot> blockSnapshots = dbClient.queryObject(BlockSnapshot.class, snapshotList);
@@ -104,9 +101,8 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
 
         } catch (Exception e) {
             log.error("Encountered an exception", e);
-            ServiceCoded code =
-                    DeviceControllerErrors.scaleio.
-                            encounteredAnExceptionFromScaleIOOperation("createGroupVolumeSnapshot", e.getMessage());
+            ServiceCoded code = DeviceControllerErrors.scaleio.encounteredAnExceptionFromScaleIOOperation("createGroupVolumeSnapshot",
+                    e.getMessage());
             taskCompleter.error(dbClient, code);
         }
     }
@@ -148,9 +144,8 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
 
         } catch (Exception e) {
             log.error("Encountered an exception", e);
-            ServiceCoded code =
-                    DeviceControllerErrors.scaleio.
-                            encounteredAnExceptionFromScaleIOOperation("deleteSingleVolumeSnapshot", e.getMessage());
+            ServiceCoded code = DeviceControllerErrors.scaleio.encounteredAnExceptionFromScaleIOOperation("deleteSingleVolumeSnapshot",
+                    e.getMessage());
             taskCompleter.error(dbClient, code);
         }
     }
@@ -180,104 +175,9 @@ public class ScaleIOSnapshotOperations implements SnapshotOperations {
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             log.error("Encountered an exception", e);
-            ServiceCoded code =
-                    DeviceControllerErrors.scaleio.
-                            encounteredAnExceptionFromScaleIOOperation("deleteGroupSnapshots", e.getMessage());
+            ServiceCoded code = DeviceControllerErrors.scaleio.encounteredAnExceptionFromScaleIOOperation("deleteGroupSnapshots",
+                    e.getMessage());
             taskCompleter.error(dbClient, code);
         }
-    }
-
-    @Override
-    public void restoreSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot,
-            TaskCompleter taskCompleter) throws DeviceControllerException {
-        throw new UnsupportedOperationException("Not yet implemented");
-    }
-
-    @Override
-    public void restoreGroupSnapshots(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
-        throw new UnsupportedOperationException("Not yet implemented");
-    }
-
-    @Override
-    public void copySnapshotToTarget(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
-        throw new UnsupportedOperationException("Not yet implemented");
-    }
-
-    @Override
-    public void copyGroupSnapshotsToTarget(StorageSystem storage, List<URI> snapshotList, TaskCompleter taskCompleter)
-            throws DeviceControllerException {
-        throw new UnsupportedOperationException("Not yet implemented");
-    }
-
-    @Override
-    public void terminateAnyRestoreSessions(StorageSystem storage, BlockObject from, URI volume,
-            TaskCompleter taskCompleter) throws Exception {
-        throw new UnsupportedOperationException("Not supported");
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void createSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
-            throws DeviceControllerException {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void createGroupSnapshotSession(StorageSystem system, List<URI> snapSessionURIs, TaskCompleter completer)
-            throws DeviceControllerException {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void linkSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
-            String copyMode, TaskCompleter completer)
-            throws DeviceControllerException {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void relinkSnapshotSessionTarget(StorageSystem system, URI tgtSnapSessionURI, URI snapshotURI,
-            TaskCompleter completer) throws DeviceControllerException {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void unlinkSnapshotSessionTarget(StorageSystem system, URI snapSessionURI, URI snapshotURI,
-            Boolean deleteTarget, TaskCompleter completer) throws DeviceControllerException {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void restoreSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
-            throws DeviceControllerException {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void deleteSnapshotSession(StorageSystem system, URI snapSessionURI, TaskCompleter completer)
-            throws DeviceControllerException {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

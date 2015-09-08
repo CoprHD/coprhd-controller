@@ -235,6 +235,10 @@ public class ViPRCoreClient {
     public StorageSystems storageSystems() {
         return new StorageSystems(this, client);
     }
+    
+    public VirtualNasServers virtualNasServers() {
+        return new VirtualNasServers(this, client);
+    }
 
     public StorageTiers storageTiers() {
         return new StorageTiers(this, client);

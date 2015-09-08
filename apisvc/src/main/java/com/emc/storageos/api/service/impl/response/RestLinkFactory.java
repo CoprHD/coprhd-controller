@@ -11,12 +11,13 @@ import java.util.concurrent.ConcurrentMap;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockMirror;
-import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ProtectionSet;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -46,6 +47,9 @@ public final class RestLinkFactory
                     return secondaryResourceLink(res.getService(), resource.getId(), parentId);
                 case STORAGE_PORT:
                     parentId = ((StoragePort) resource).getStorageDevice();
+                    return secondaryResourceLink(res.getService(), resource.getId(), parentId);
+                case RDF_GROUP:
+                    parentId = ((RemoteDirectorGroup) resource).getSourceStorageSystemUri();
                     return secondaryResourceLink(res.getService(), resource.getId(), parentId);
                 case BLOCK_MIRROR:
                     parentId = ((BlockMirror) resource).getSource().getURI();
@@ -85,6 +89,7 @@ public final class RestLinkFactory
             if (res == ResourceTypeEnum.STORAGE_POOL ||
                     res == ResourceTypeEnum.STORAGE_PORT ||
                     res == ResourceTypeEnum.BLOCK_MIRROR ||
+                    res == ResourceTypeEnum.RDF_GROUP ||
                     res == ResourceTypeEnum.VPLEX_MIRROR) {
                 URI link = _linkCache.get(resource_id);
                 if (link == null) {
@@ -116,6 +121,7 @@ public final class RestLinkFactory
 
             if (res == ResourceTypeEnum.STORAGE_POOL ||
                     res == ResourceTypeEnum.STORAGE_PORT ||
+                    res == ResourceTypeEnum.RDF_GROUP ||
                     res == ResourceTypeEnum.BLOCK_MIRROR ||
                     res == ResourceTypeEnum.VPLEX_MIRROR ||
                     res == ResourceTypeEnum.PROTECTION_SET) {

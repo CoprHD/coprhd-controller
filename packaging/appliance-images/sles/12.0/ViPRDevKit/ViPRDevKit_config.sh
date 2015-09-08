@@ -373,6 +373,14 @@ chown -Rh storageos:storageos /data/zk
 #--------------------------------------
 baseCleanMount
 
+# Add more specific alias on ViPRDevKit:
+cat  >> /etc/bash.bashrc.local <<DEVKIT_ALIAS
+alias installeclipse='zypper --no-gpg-checks install xorg-x11-Xvnc libcairo2 xauth libgtk-2_0-0 xkbcomp'
+alias installintellij='zypper --no-gpg-checks install xorg-x11-Xvnc xauth libgtk-2_0-0 xkbcomp'
+alias startvnc='vncserver; xrdp'
+alias stopvnc='vncserver -kill :1; xrdp -kill'   
+DEVKIT_ALIAS
+
 exit 0
 
 #######################################################

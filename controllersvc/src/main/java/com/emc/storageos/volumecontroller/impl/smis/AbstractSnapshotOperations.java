@@ -66,10 +66,14 @@ public abstract class AbstractSnapshotOperations implements SnapshotOperations {
      * @param storage [required] - StorageSystem object representing the array
      * @param snapshot [required] - BlockSnapshot URI representing the previously created
      *            snap for the volume
+     * @param createInactive - Indicates if the snapshots should be created but not
+     *            activated
+     * @param readOnly - Indicates if the snapshot should be read only.
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      */
     @Override
-    public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot, Boolean createInactive, TaskCompleter taskCompleter)
+    public void createSingleVolumeSnapshot(StorageSystem storage, URI snapshot, Boolean createInactive, Boolean readOnly,
+            TaskCompleter taskCompleter)
             throws DeviceControllerException {
         try {
             BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
@@ -223,5 +227,14 @@ public abstract class AbstractSnapshotOperations implements SnapshotOperations {
             TaskCompleter taskCompleter) throws Exception {
         // Default: no implementation because not every array needs to support this
         // functionality
+    }
+    @Override
+    public void resyncSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void resyncGroupSnapshots(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

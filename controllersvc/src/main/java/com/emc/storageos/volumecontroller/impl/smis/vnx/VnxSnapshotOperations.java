@@ -220,11 +220,15 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
      * @param storage [required] - StorageSystem object representing the array
      * @param snapshot [required] - BlockSnapshot URI representing the previously created
      *            snap for the volume
+     * @param createInactive - Indicates if the snapshots should be created but not
+     *            activated
+     * @param readOnly - Indicates if the snapshot should be read only.
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      * @throws DeviceControllerException
      */
     @Override
-    public void createGroupSnapshots(StorageSystem storage, List<URI> snapshotList, Boolean createInactive, TaskCompleter taskCompleter)
+    public void createGroupSnapshots(StorageSystem storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly,
+            TaskCompleter taskCompleter)
             throws DeviceControllerException {
         try {
             URI snapshot = snapshotList.get(0);

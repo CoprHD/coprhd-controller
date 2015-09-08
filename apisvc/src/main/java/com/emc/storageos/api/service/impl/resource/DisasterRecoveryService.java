@@ -5,7 +5,6 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Iterator;
 import java.util.List;
 
@@ -27,6 +26,7 @@ import com.emc.storageos.db.client.model.Site;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteList;
@@ -40,9 +40,10 @@ import com.emc.storageos.security.authorization.Role;
 public class DisasterRecoveryService extends TaggedResource {
 
     private static final Logger log = LoggerFactory.getLogger(DisasterRecoveryService.class);
-
+    private SiteMapper siteMapper;
+    
     public DisasterRecoveryService() {
-
+        siteMapper = new SiteMapper();
     }
 
     @POST
@@ -77,7 +78,7 @@ public class DisasterRecoveryService extends TaggedResource {
         log.info("Update VCD to persist new standby site ID");
         _dbClient.persistObject(vdc);
 
-        return SiteMapper.map(standbySite);
+        return siteMapper.map(standbySite);
     }
 
     @GET
@@ -88,12 +89,13 @@ public class DisasterRecoveryService extends TaggedResource {
 
         VirtualDataCenter vdc = queryLocalVDC();
 
-        try {
-            for (String id : vdc.getStandbyIDs()) {
-                standbyList.getSites().add(SiteMapper.map(queryResource(new URI(id))));
+        List<URI> ids = _dbClient.queryByType(Site.class, true);
+        Iterator<Site> iter = _dbClient.queryIterativeObjects(Site.class, ids);
+        while (iter.hasNext()) {
+            Site standby = iter.next();
+            if (vdc.getStandbyIDs().contains(standby.getId().toString())) {
+                standbyList.getSites().add(siteMapper.map(standby));
             }
-        } catch (URISyntaxException e) {
-            log.error("Failed to construct site object ID {}", e);
         }
         
         return standbyList;
@@ -113,7 +115,7 @@ public class DisasterRecoveryService extends TaggedResource {
             Site standby = iter.next();
             if (vdc.getStandbyIDs().contains(standby.getId().toString())) {
                 if (standby.getUuid().equals(id)) {
-                    return SiteMapper.map(standby);
+                    return siteMapper.map(standby);
                 }
             }
         }
@@ -138,7 +140,7 @@ public class DisasterRecoveryService extends TaggedResource {
                     log.info("Find standby site in local VDC and remove it");
                     _dbClient.persistObject(vdc);
                     _dbClient.markForDeletion(standby);
-                    return SiteMapper.map(standby);
+                    return siteMapper.map(standby);
                 }
             }
         }
@@ -161,20 +163,15 @@ public class DisasterRecoveryService extends TaggedResource {
 
     @Override
     protected ResourceTypeEnum getResourceType() {
-        return ResourceTypeEnum.STANDBY;
+        return ResourceTypeEnum.SITE;
+    }
+    
+    // encapsulate the get local VDC operation for easy UT writing because VDCUtil.getLocalVdc is static method
+    VirtualDataCenter queryLocalVDC() {
+        return VdcUtil.getLocalVdc();
     }
 
-    private VirtualDataCenter queryLocalVDC() {
-        List<URI> ids = _dbClient.queryByType(VirtualDataCenter.class, true);
-        Iterator<VirtualDataCenter> iter = _dbClient.queryIterativeObjects(VirtualDataCenter.class, ids);
-        while (iter.hasNext()) {
-            VirtualDataCenter vdc = iter.next();
-            if (vdc.getLocal()) {
-                log.info("find local vdc instance");
-                return vdc;
-            }
-        }
-
-        return null;
+    public void setSiteMapper(SiteMapper siteMapper) {
+        this.siteMapper = siteMapper;
     }
 }

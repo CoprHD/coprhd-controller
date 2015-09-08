@@ -47,10 +47,7 @@ titleKey = 'tenants.' + (tenant?.id ? 'edit' : 'create') + '.title';
     #{/field}
 	#{field 'tenant.namespace'}
         #{Form.controlGroup field:field, width:3}
-          <div class="input-group">
             #{Form.inputText field:field/}
-            <span class="input-group-addon"></span>
-          </div>
           %{
 			field.helpText = messages.get("${field.name}.help")
           %}

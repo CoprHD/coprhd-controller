@@ -147,7 +147,7 @@ public class ECSApiFactory {
         return ecsApi;
     }
     
-   /* 
+   
     public static void main(String[] args) {
     	System.out.println("starting ecs main");
     	URI uri = URI.create(String.format("https://10.247.78.171:4443/login"));
@@ -163,7 +163,13 @@ public class ECSApiFactory {
     	else 
     		System.out.println("NOT Sys admin");
     		
-    	ecsApi.getStoragePools();
-    }*/
+    	//ecsApi.getStoragePools();
+    	//ecsApi.getStoragePort("10.32.4.98");
+
+    	//createBucket(String name, String namespace, String repGroup, 
+    	//String retentionPeriod, String blkSizeHQ, String notSizeSQ) throws ECSException {
+    	ecsApi.createBucket("mybucket2", "s3", "urn:storageos:ReplicationGroupInfo:b3bf2d47-d732-457c-bb9b-d260eb53a76a:global", 
+    			"4", "99", "55", "testlogin");
+    }
     
 }

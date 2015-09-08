@@ -7,12 +7,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.VirtualPool;
+import com.emc.storageos.model.object.BucketParam;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
+import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.ObjectController;
+import com.emc.storageos.volumecontroller.ObjectDeviceInputOutput;
 import com.emc.storageos.volumecontroller.ObjectStorageDevice;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 
@@ -71,8 +78,36 @@ public class ObjectDeviceController implements ObjectController {
 		_log.info("ObjectDeviceController:startMonitoring");
 
 	}
-	
-	//Implementation
-	//Create bucket and delete bucket
 
+	@Override
+	public void createBucket(URI storage, URI uriPool, URI bkt, BucketParam param, String opId) throws ControllerException {
+		// TODO Auto-generated method stub
+		_log.info("ObjectDeviceController:createBucket");
+		StorageSystem storageObj = null;
+		
+		try {
+			StoragePool stPool = _dbClient.queryObject(StoragePool.class, uriPool);
+			Bucket bucketObj = _dbClient.queryObject(Bucket.class, bkt);
+			ObjectDeviceInputOutput args = new ObjectDeviceInputOutput();
+			storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+
+			args.setName(param.getLabel());
+			args.setNamespace(param.getNamespace());
+			args.setRepGroup(stPool.getNativeId()); //recommended storeage pool
+			args.setRetentionPeriod(param.getRetention());
+			args.setBlkSizeHQ(param.getHardQuota());
+			args.setNotSizeSQ(param.getSoftQuota());
+			args.setOwner(param.getOwner());
+
+			BiosCommandResult result = getDevice(storageObj.getSystemType()).doCreateBucket(storageObj, args);
+			if (!result.getCommandPending()) {
+				bucketObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
+			}
+
+			_dbClient.persistObject(bucketObj);
+		} catch (Exception e) {
+			_log.error("Unable to create Bucket storage {}, pool {}, Bucket {}: {}", param);
+		}
+	}
+	
 }

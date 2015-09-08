@@ -9,10 +9,12 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
+import com.emc.storageos.model.object.BucketParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ObjectController;
@@ -44,13 +46,13 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
 	@Override
 	public void connectStorage(URI storage) throws InternalException {
 		_log.info("ObjectControllerImpl:connectStorage");
-		 execFS("connectStorage", storage);
+		 execOb("connectStorage", storage);
 
 	}
 
 	@Override
 	public void disconnectStorage(URI storage) throws InternalException {
-		execFS("disconnectStorage", storage);
+		execOb("disconnectStorage", storage);
 
 	}
 
@@ -92,16 +94,26 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
 	}
 
 	@Override
-	protected Controller lookupDeviceController(DiscoveredSystemObject device) {
+	public Controller lookupDeviceController(DiscoveredSystemObject device) {
         // dummy impl that returns the first one
 		_log.info("ObjectControllerImpl:lookupDeviceController");
         return _deviceImpl.iterator().next();	
         }
 	
-    private void execFS(String methodName, Object... args) throws InternalException {
+    private void execOb(String methodName, Object... args) throws InternalException {
     	StringBuilder logMsgBuilder = new StringBuilder(String.format(
                 "ObjectControllerImpl Method=%s StorageSystem.class:%s", methodName, StorageSystem.class));
         queueTask(_dbClient, StorageSystem.class, _dispatcher, methodName, args);
     }
+
+	@Override
+	//public void createBucket(URI storage, URI vPool, URI buck, BucketParam param, String opId) throws InternalException;
+	public void createBucket(URI storage,  URI vPool, URI bkt, BucketParam param, String opId) throws InternalException {
+		// TODO Auto-generated method stub
+		_log.info("ObjectControllerImpl:createBukcet");
+		execOb("createBucket", storage, vPool, bkt, param, opId);
+	}
+
+
 
 }

@@ -4,8 +4,9 @@ import java.net.URI;
 
 public class ECSStoragePool {
 	private String name;
-	private int TotalCapacity;
-	private int FreeCapacity;
+	private String id;
+	private Long TotalCapacity;
+	private Long FreeCapacity;
 	
     public String getName() {
         return name;
@@ -15,19 +16,27 @@ public class ECSStoragePool {
         this.name = name;
     }
     
-    public int getTotalCapacity() {
+    public String getId() {
+        return id;
+    }
+    
+    public void setId(String id) {
+        this.id = id;
+    }
+    
+    public Long getTotalCapacity() {
         return TotalCapacity;
     }
     
-    public void setTotalCapacity(int TotalCapacity) {
+    public void setTotalCapacity(Long TotalCapacity) {
         this.TotalCapacity = TotalCapacity;
     }
 
-    public int getFreeCapacity() {
+    public Long getFreeCapacity() {
         return FreeCapacity;
     }
     
-    public void setFreeCapacity(int FreeCapacity) {
+    public void setFreeCapacity(Long FreeCapacity) {
         this.FreeCapacity = FreeCapacity;
     }
 

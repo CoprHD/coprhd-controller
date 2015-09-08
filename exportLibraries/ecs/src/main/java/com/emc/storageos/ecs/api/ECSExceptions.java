@@ -22,4 +22,14 @@ public interface ECSExceptions {
     @DeclareServiceCode(ServiceCode.ECS_STATS_ERROR)
     public ECSException getStoragePoolsFailed(final String response, final Throwable cause);
 
+    @DeclareServiceCode(ServiceCode.ECS_STATS_ERROR)
+    public ECSException createBucketFailed(final String response, final Throwable cause);
+
+    @DeclareServiceCode(ServiceCode.ECS_NON_SYSTEM_ADMIN_ERROR)
+    public ECSException discoverFailed(final String response);
+    
+	@DeclareServiceCode(ServiceCode.ECS_CONNECTION_ERROR)
+	public ECSException errorCreatingServerURL(final String host, final int port, final Throwable e);
+
+
 }

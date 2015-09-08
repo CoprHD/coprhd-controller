@@ -1,6 +1,8 @@
 package com.emc.storageos.volumecontroller.impl.ecs;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.httpclient.HttpClient;
@@ -14,8 +16,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.ecs.api.ECSApi;
 import com.emc.storageos.ecs.api.ECSApiFactory;
+import com.emc.storageos.ecs.api.ECSException;
+import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.ObjectDeviceInputOutput;
 import com.emc.storageos.volumecontroller.ObjectStorageDevice;
+import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.sun.jersey.client.apache.ApacheHttpClientHandler;
 
 public class ECSObjectStorageDevice implements ObjectStorageDevice {
@@ -44,4 +52,27 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
 	    	_log.info("From ECSObjectStorageDevice:init");
 
 	    }
+
+		@Override
+		public BiosCommandResult doCreateBucket(StorageSystem storageObj, ObjectDeviceInputOutput args) 
+				throws ControllerException {
+			// TODO Auto-generated method stub
+			_log.info("ECSObjectStorageDevice:doCreateBucket");
+
+			try {
+				URI deviceURI = new URI("https", null, storageObj.getIpAddress(), storageObj.getPortNumber(), "/", null, null);
+				ECSApi ecsApi = ecsApiFactory.getRESTClient(deviceURI, storageObj.getUsername(), storageObj.getPassword());
+
+				String id = ecsApi.createBucket(args.getName(), args.getNamespace(), args.getRepGroup(), 
+						args.getRetentionPeriod(), args.getBlkSizeHQ(), args.getNotSizeSQ(), args.getOwner());
+
+				_log.info("ECSObjectStorageDevice:doCreateBucket {} - complete");
+				return BiosCommandResult.createSuccessfulResult();
+			} catch (URISyntaxException ex) {
+	    		throw ECSException.exceptions.errorCreatingServerURL(storageObj.getIpAddress(), storageObj.getPortNumber(), ex);
+			} catch (ECSException e) {
+				_log.error("doCreateBucket failed.", e);
+				return BiosCommandResult.createErrorResult(e);
+			}
+		}
 }

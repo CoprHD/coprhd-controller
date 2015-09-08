@@ -249,6 +249,30 @@ public class ProjectService extends TaggedResource {
             }
         };
 
+        QueryResultList<TypedRelatedResourceRep> bucket = new QueryResultList<TypedRelatedResourceRep>() {
+            @Override
+            public TypedRelatedResourceRep createQueryHit(URI uri) {
+                TypedRelatedResourceRep resource = new TypedRelatedResourceRep();
+                resource.setId(uri);
+                resource.setType(ResourceTypeEnum.BUCKET);
+                return resource;
+            }
+
+            @Override
+            public TypedRelatedResourceRep createQueryHit(URI uri, String name, UUID timestamp) {
+                TypedRelatedResourceRep resource = new TypedRelatedResourceRep();
+                resource.setId(uri);
+                resource.setType(ResourceTypeEnum.BUCKET);
+                resource.setName(name);
+                return resource;
+            }
+
+            @Override
+            public TypedRelatedResourceRep createQueryHit(URI uri, Object entry) {
+                return createQueryHit(uri);
+            }
+        };
+
         QueryResultList<TypedRelatedResourceRep> exportgroup = new QueryResultList<TypedRelatedResourceRep>() {
             @Override
             public TypedRelatedResourceRep createQueryHit(URI uri) {
@@ -374,6 +398,8 @@ public class ProjectService extends TaggedResource {
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getProjectFileshareConstraint(project.getId()), file);
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getProjectBucketConstraint(project.getId()), bucket);
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getProjectExportGroupConstraint(project.getId()), exportgroup);
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getProjectBlockSnapshotConstraint(project.getId()), blockSnapshot);
@@ -388,7 +414,7 @@ public class ProjectService extends TaggedResource {
 
         ResourceList list = new ResourceList();
         list.setResources(new ChainedList<TypedRelatedResourceRep>(file.iterator(),
-                volume.iterator(), exportgroup.iterator(), blockSnapshot.iterator(),
+                volume.iterator(), bucket.iterator(), exportgroup.iterator(), blockSnapshot.iterator(),
                 fileSnapshot.iterator(), file.iterator(), volume.iterator(),
                 exportgroup.iterator(), protectionSet.iterator(), blockConsistencySet.iterator()));
         return list;

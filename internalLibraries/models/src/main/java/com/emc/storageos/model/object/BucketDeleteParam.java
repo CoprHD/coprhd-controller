@@ -13,7 +13,7 @@ import javax.xml.bind.annotation.XmlRootElement;
  * @valid true
  * @valid false
  */
-@XmlRootElement(name = "filesystem_deactivate")
+@XmlRootElement(name = "bucket_deactivate")
 public class BucketDeleteParam {
 
     private boolean forceDelete;

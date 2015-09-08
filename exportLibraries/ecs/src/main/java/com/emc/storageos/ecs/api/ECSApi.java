@@ -15,11 +15,14 @@ import org.codehaus.jettison.json.JSONArray;
 import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
 import org.json.simple.parser.JSONParser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.sun.jersey.api.client.ClientResponse;
 
 public class ECSApi {
+	private Logger _log = LoggerFactory.getLogger(ECSApi.class);
     private final URI _baseUrl;
     private final RESTClient _client;
     private String authToken;
@@ -50,6 +53,7 @@ public class ECSApi {
     }
     
     public String getAuthToken() throws ECSException {
+    	_log.info("ECSApi:getAuthToken enter");
     	List<String> authTokenList = null;
     	ClientResponse clientResp = null;
 
@@ -64,6 +68,7 @@ public class ECSApi {
     		throw ECSException.exceptions.invalidReturnParameters(_baseUrl);
     	}
     	authToken = authTokenList.get(0);
+    	_log.info("ECSApi:getAuthToken leave");
     	return authToken;
     }
     
@@ -91,6 +96,7 @@ public class ECSApi {
     }
     
     public List<ECSStoragePool> getStoragePools() throws ECSException {
+    	_log.info("ECSApi:getStoragePools enter--");
     	ClientResponse clientResp = null;
     	
     	clientResp = _client.get_json(_baseUrl.resolve(URI_STORAGE_POOL), authToken);
@@ -179,6 +185,7 @@ public class ECSApi {
             }
         }
 
+    	_log.info("ECSApi:getStoragePools leave");
         return ecsPools;
     }
 
@@ -196,12 +203,13 @@ public class ECSApi {
     
     
     public String createBucket(String name, String namespace, String repGroup, String retentionPeriod, String blkSizeHQ, String notSizeSQ, String owner) throws ECSException {
+    	_log.info("ECSApi:createBucket enter");
     	ClientResponse clientResp = null;
     	String id = null;
     	String body = " { \"name\": \""+ name + "\", " + "\"vpool\": \"" + repGroup +  "\", \"namespace\": \"" + namespace + "\"}  ";
 
     	try {
-    		
+    		_log.info("ECSApi:createBucket URI_CREATE_BUCKET");
     		clientResp = _client.post_json(_baseUrl.resolve(URI_CREATE_BUCKET), authToken, body);
     		if (clientResp.getStatus() != 200) {
     			if (clientResp.getStatus() == 401 || clientResp.getStatus() == 302) {
@@ -223,6 +231,7 @@ public class ECSApi {
 
     		//update retention period
     		if (retentionPeriod != null) {
+    			_log.info("ECSApi:createBucket update retention");
     			ClientResponse clientResp2 = null;
 
     			String body2 = " { \"period\": \""+ retentionPeriod + "\", \"namespace\": \"" + namespace + "\"}  ";
@@ -252,6 +261,7 @@ public class ECSApi {
 
     		//update hard=block and soft=notification quota
     		if (blkSizeHQ != null && notSizeSQ != null) {
+    			_log.info("ECSApi:createBucket update hard and soft quota");
     			ClientResponse clientResp3 = null;
 
     			String body3 = " {  \"blockSize\": \""+ blkSizeHQ + "\", \"notificationSize\": \""+ notSizeSQ +
@@ -281,6 +291,7 @@ public class ECSApi {
 
     		//update owner
     		if (owner != null) {
+    			_log.info("ECSApi:createBucket update owner");
     			ClientResponse clientResp4 = null;
 
     			String body4 = " { \"new_owner\": \""+ owner + "\", \"namespace\": \"" + namespace + "\"}  ";
@@ -306,14 +317,18 @@ public class ECSApi {
     				clientResp4.close();
     			}
     		}//end update owner
-    		
+    	
+    		_log.info("ECSApi:createBucket leave");
     		return id;
     	} catch (ECSException ie) {
+    		_log.info("ECSApi:createBucket ECSException");
     		throw ie;
     	} catch (Exception e) {
+    		_log.info("ECSApi:createBucket Exception");
     		String response = String.format("%1$s", (clientResp == null) ? "" : clientResp);
     		throw ECSException.exceptions.createBucketFailed(response, e);
     	} finally {
+    		_log.info("ECSApi:createBucket leave2");
     		if (clientResp != null) {
     			clientResp.close();
     		}

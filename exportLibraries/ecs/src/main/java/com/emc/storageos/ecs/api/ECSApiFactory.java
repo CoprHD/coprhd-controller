@@ -148,7 +148,7 @@ public class ECSApiFactory {
     }
     
    
-    public static void main(String[] args) {
+    /*public static void main(String[] args) {
     	System.out.println("starting ecs main");
     	URI uri = URI.create(String.format("https://10.247.78.171:4443/login"));
     	ECSApiFactory factory = new ECSApiFactory();
@@ -170,6 +170,6 @@ public class ECSApiFactory {
     	//String retentionPeriod, String blkSizeHQ, String notSizeSQ) throws ECSException {
     	ecsApi.createBucket("5557", "s3", "urn:storageos:ReplicationGroupInfo:b3bf2d47-d732-457c-bb9b-d260eb53a76a:global", 
     			"4", "99", "55", "root");
-    }
+    }*/
     
 }

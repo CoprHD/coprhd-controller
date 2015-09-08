@@ -250,13 +250,20 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
 
             for (Volume volume : volumes) {
                 try {
-                    if (null != XtremIOProvUtils
-                            .isVolumeAvailableInArray(client, volume.getLabel(), clusterName)) {
+                    if (null != XtremIOProvUtils.isVolumeAvailableInArray(client, volume.getLabel(), clusterName)) {
+                        if (volume.getConsistencyGroup() != null) {
+                            BlockConsistencyGroup consistencyGroupObj = dbClient.queryObject(BlockConsistencyGroup.class,
+                                    volume.getConsistencyGroup());
+                            // first remove the volume from cg and then delete
+                            _log.info("Removing the volume {} from consistency group {}", volume.getLabel(), consistencyGroupObj.getLabel());
+                            client.removeVolumeFromConsistencyGroup(volume.getLabel(), consistencyGroupObj.getLabel(), clusterName);
+                        }
+                        _log.info("Deleting the volume {}", volume.getLabel());
                         client.deleteVolume(volume.getLabel(), clusterName);
                     }
                     volume.setInactive(true);
+                    volume.setConsistencyGroup(NullColumnValueGetter.getNullURI());
                     dbClient.persistObject(volume);
-
                 } catch (Exception e) {
                     failedVolumes.add(volume.getLabel());
                     _log.error("Error during volume {} delete.", volume.getLabel(), e);

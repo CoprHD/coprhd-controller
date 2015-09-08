@@ -2,7 +2,7 @@
  * Copyright (c) 2008-2015 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.api.service.impl.resource;
+package com.emc.storageos.systemservices.impl.resource;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
 import javax.crypto.SecretKey;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -22,10 +23,14 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.api.mapper.SiteMapper;
+import com.emc.storageos.api.service.impl.resource.ArgValidator;
+import com.emc.storageos.api.service.impl.resource.TaggedResource;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.Site;

@@ -27,8 +27,7 @@ dependencies {
     testCompile library(enunciate),
             rootProject.toolsJar,
             project(":coordinatorsvc"),
-            "org.testng:testng:6.7",
-            "org.mockito:mockito-all:1.9.5"
+            "org.testng:testng:6.7"
     testRuntime library(log4j)
     testRuntime library(commons_logging)
 }

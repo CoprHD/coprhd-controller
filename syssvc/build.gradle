@@ -29,7 +29,8 @@ dependencies {
             project(":backup")
 
     testCompile library(enunciate),
-            rootProject.toolsJar
+            rootProject.toolsJar,
+            "org.mockito:mockito-all:1.9.5"
 }
 
 task genconfig_test(type: Exec) {

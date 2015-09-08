@@ -117,6 +117,12 @@
                 </bean>
                 <ref bean="backupService" />
                 <bean class="org.codehaus.jackson.jaxrs.JacksonJaxbJsonProvider"/>
+                
+                <bean class="com.emc.storageos.systemservices.impl.resource.DisasterRecoveryService">
+                  <property name="dbClient" ref="dbclient"/>
+                  <property name="coordinator" ref="coordinator"/>
+                  <property name="apiSignatureGenerator" ref="keyGenerator"/>
+                </bean>
             </set>
         </property>
     </bean>

@@ -903,12 +903,16 @@ class Configuration(object):
                   }
         return params
 
-    def get_properties(self, type=None):
+    def get_properties(self, type=None , nodename=None):
         uri_conf = None
         if(type == None):
             uri_conf = Configuration.URI_PROPS
-        else:
+        elif(type is not None and nodename is not None):
+            uri_conf = Configuration.URI_PROPS + "?node_name=" + nodename
+        elif(type is not None and nodename is None):
             uri_conf = Configuration.URI_PROPS_CATEGORY.format(type)
+        elif ( type is None and nodename is not None):
+            uri_conf = Configuration.URI_PROPS + "?node_name=" + nodename
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "GET", uri_conf,
                                              None)
@@ -919,10 +923,15 @@ class Configuration(object):
 
         return o
 
-    def get_properties_metadata(self):
+    def get_properties_metadata(self , nodename):
+        
+        if(nodename is not None):
+            uri = Configuration.URI_PROPS_METADATA + "?node_name=" + nodename
+        else:
+            uri = Configuration.URI_PROPS_METADATA
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
-            "GET", Configuration.URI_PROPS_METADATA,
+            "GET", uri,
             None)
         if(not s):
             return None
@@ -931,7 +940,7 @@ class Configuration(object):
 
         return o
 
-    def set_properties(self, propertiesfile, propertyname, propertyvaluefile):
+    def set_properties(self, propertiesfile, propertyname, propertyvaluefile , nodename):
 
         try:
             if(propertiesfile):
@@ -946,6 +955,11 @@ class Configuration(object):
 
         except Exception as e:
             raise SOSError(e.errno, e.strerror)
+        
+        if(nodename is not None):
+            uri= Configuration.URI_PROPS + "?node_name=" + nodename
+        else:
+            uri = Configuration.URI_PROPS
 
         if(propertiesfile):
             params = self.prepare_properties_body(props)
@@ -956,7 +970,7 @@ class Configuration(object):
             body = json.dumps(params)
 
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
-                                             "PUT", Configuration.URI_PROPS,
+                                             "PUT", uri,
                                              body)
         if(not s):
             return None
@@ -2061,6 +2075,10 @@ def get_properties_parser(subcommand_parsers, common_parser):
         choices=Configuration.URI_CONFIG_PROPERTY_TYPE,
         help='configuration property type',
         dest='type')
+    get_properties_parser.add_argument(
+        '-nodename', '-ndname',
+        help='nodename',
+        dest='nodename')
 
 
     get_properties_parser.set_defaults(func=get_properties)
@@ -2069,7 +2087,7 @@ def get_properties_parser(subcommand_parsers, common_parser):
 def get_properties(args):
     obj = Configuration(args.ip, Configuration.DEFAULT_SYSMGR_PORT)
     try:
-        return common.format_json_object(obj.get_properties(args.type))
+        return common.format_json_object(obj.get_properties(args.type , args.nodename))
     except SOSError as e:
         common.format_err_msg_and_raise(
             "get",
@@ -2086,6 +2104,12 @@ def get_properties_metadata_parser(subcommand_parsers, common_parser):
         parents=[common_parser],
         conflict_handler='resolve',
         help='Get Properties Meta Data.')
+    mandatory_args = get_properties_metadata_parser.add_argument_group(
+        'mandatory arguments')
+    get_properties_metadata_parser.add_argument('-nodename', '-ndname',
+                                       help='nodename ',
+                                       metavar='<nodename>',
+                                       dest='nodename')
 
     get_properties_metadata_parser.set_defaults(func=get_properties_metadata)
 
@@ -2093,7 +2117,7 @@ def get_properties_metadata_parser(subcommand_parsers, common_parser):
 def get_properties_metadata(args):
     obj = Configuration(args.ip, Configuration.DEFAULT_SYSMGR_PORT)
     try:
-        return common.format_json_object(obj.get_properties_metadata())
+        return common.format_json_object(obj.get_properties_metadata(args.nodename))
     except SOSError as e:
         common.format_err_msg_and_raise(
             "get",
@@ -2133,6 +2157,10 @@ def set_properties_parser(subcommand_parsers, common_parser):
                                        help='property value file',
                                        metavar='<propertyvaluefile>',
                                        dest='propertyvaluefile')
+    set_properties_parser.add_argument('-nodename', '-ndname',
+                                       help='nodename ',
+                                       metavar='<nodename>',
+                                       dest='nodename')
 
     set_properties_parser.set_defaults(func=set_properties)
 
@@ -2157,7 +2185,8 @@ def set_properties(args):
             obj.set_properties(
                 args.propertyfile,
                 args.propertyname,
-                args.propertyvaluefile))
+                args.propertyvaluefile,
+                args.nodename))
     except SOSError as e:
         common.format_err_msg_and_raise(
             "set",

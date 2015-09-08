@@ -139,7 +139,6 @@ import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
-import com.sun.jersey.api.NotFoundException;
 
 /**
  * A service that provides APIs for viewing, updating and removing hosts and their

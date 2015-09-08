@@ -28,7 +28,7 @@ public class OsInstallStatusPoller implements Runnable {
     private static final Logger log = LoggerFactory.getLogger(OsInstallStatusPoller.class);
 
     private boolean beingPolled = false;
-    private Long POLLING_INTERVAL = 60000L;
+    private static final Long POLLING_INTERVAL = 60000L;
     private Map<String, OsInstallStatus> sessionStatusMap = Collections
             .synchronizedMap(new HashMap<String, OsInstallStatus>());
         private DbClient dbClient;

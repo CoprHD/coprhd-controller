@@ -38,7 +38,6 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.ResourceTypeEnum;
-import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.compute.ComputeImageBulkRep;
 import com.emc.storageos.model.compute.ComputeImageCreate;
@@ -131,7 +130,6 @@ public class ComputeImageService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep createComputeImage(ComputeImageCreate param) {
         log.info("createComputeImage");
-        TaskList taskList = new TaskList();
         // unique name required
         ArgValidator.checkFieldNotEmpty(param.getName(), "name");
         checkDuplicateLabel(ComputeImage.class, param.getName(), param.getName());
@@ -209,7 +207,6 @@ public class ComputeImageService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep updateComputeImage(@PathParam("id") URI id, ComputeImageUpdate param) {
         log.info("updateComputeImage: {}, new name: {}", id, param.getName());
-        TaskList taskList = new TaskList();
         ArgValidator.checkFieldUriType(id, ComputeImage.class, "id");
         ArgValidator.checkFieldNotEmpty(param.getName(), "name");
 
@@ -242,34 +239,8 @@ public class ComputeImageService extends TaskResourceService {
 
         auditOp(OperationTypeEnum.UPDATE_COMPUTE_IMAGE, true, null,
                 ci.getId().toString(), ci.getImageUrl());
-        
-        
-        boolean hasImportTask = false;
-        try {
 
-            List<URI> ids = _dbClient.queryByType(ComputeImageServer.class,
-                    true);
-            for (URI imageServerId : ids) {
-                ComputeImageServer imageServer = _dbClient.queryObject(
-                        ComputeImageServer.class, imageServerId);
-
-                if (reImport
-                        || imageServer.getComputeImage() == null
-                        || !imageServer.getComputeImage().contains(
-                                ci.getId().toString())) {
-                    hasImportTask = true;
-                }
-            }
-            if (hasImportTask) {
-                return doImportImage(ci);
-            } else {
-                return getReadyOp(ci, ResourceOperationTypeEnum.UPDATE_IMAGE);
-            }
-        } catch (Exception e) {
-            ci.setComputeImageStatus(ComputeImageStatus.NOT_AVAILABLE.name());
-            _dbClient.persistObject(ci);
-            throw e;
-        }
+       return createUpdateTasks(ci, reImport);
         
     }
 
@@ -427,5 +398,43 @@ public class ComputeImageService extends TaskResourceService {
     @Override
     protected ComputeImage queryResource(URI id) {
         return queryObject(ComputeImage.class, id, false);
+    }
+
+    /**
+     * Method to create and initiate task to controller.
+     * 
+     * @param ci
+     *            {@link ComputeImage} instance
+     * @param reImport
+     *            boolean to let identify if a reimport of images is required
+     * @return {@link TaskResourceRep}
+     */
+    private TaskResourceRep createUpdateTasks(ComputeImage ci, boolean reImport) {
+        boolean hasImportTask = false;
+        try {
+
+            List<URI> ids = _dbClient.queryByType(ComputeImageServer.class,
+                    true);
+            for (URI imageServerId : ids) {
+                ComputeImageServer imageServer = _dbClient.queryObject(
+                        ComputeImageServer.class, imageServerId);
+
+                if (reImport
+                        || imageServer.getComputeImage() == null
+                        || !imageServer.getComputeImage().contains(
+                                ci.getId().toString())) {
+                    hasImportTask = true;
+                }
+            }
+            if (hasImportTask) {
+                return doImportImage(ci);
+            } else {
+                return getReadyOp(ci, ResourceOperationTypeEnum.UPDATE_IMAGE);
+            }
+        } catch (Exception e) {
+            ci.setComputeImageStatus(ComputeImageStatus.NOT_AVAILABLE.name());
+            _dbClient.persistObject(ci);
+            throw e;
+        }
     }
 }

@@ -25,7 +25,6 @@ import com.emc.storageos.db.client.model.ComputeElementHBA;
 import com.emc.storageos.db.client.model.ComputeFabricUplinkPort;
 import com.emc.storageos.db.client.model.ComputeFabricUplinkPortChannel;
 import com.emc.storageos.db.client.model.ComputeImageJob;
-import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeLanBoot;
 import com.emc.storageos.db.client.model.ComputeLanBootImagePath;
 import com.emc.storageos.db.client.model.ComputeSanBoot;

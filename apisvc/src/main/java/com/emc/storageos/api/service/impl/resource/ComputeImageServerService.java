@@ -117,7 +117,8 @@ public class ComputeImageServerService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response deleteComputeImageServer(@PathParam("id") URI id) {
-        // Validate the provider
+        // Validate the imageServer
+        log.info("Delete computeImageServer id {} ",id);
         ArgValidator.checkFieldUriType(id, ComputeImageServer.class, "id");
         ComputeImageServer imageServer = _dbClient.queryObject(
                 ComputeImageServer.class, id);
@@ -142,6 +143,9 @@ public class ComputeImageServerService extends TaskResourceService {
                                 .setComputeImageServer(NullColumnValueGetter
                                         .getNullURI());
                         _dbClient.persistObject(computeSystem);
+                        log.info(
+                                "Disassociating imageServer {} from ComputeSystem id {} ",
+                                id, computeSystem.getId());
                     }
                 }
             }
@@ -171,6 +175,7 @@ public class ComputeImageServerService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep createComputeImageServer(
             ComputeImageServerCreate createParams) {
+        log.info("Create computeImageServer");
         String imageServerAddress = createParams.getImageServerIp();
         ArgValidator.checkFieldNotEmpty(imageServerAddress, IMAGESERVER_IP);
         checkDuplicateLabel(ComputeImageServer.class, imageServerAddress,
@@ -277,6 +282,7 @@ public class ComputeImageServerService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public ComputeImageServerRestRep updateComputeImageServer(
             @PathParam("id") URI id, ComputeImageServerUpdate param) {
+        log.info("Update computeImageServer id {} ",id);
         ComputeImageServer imageServer = _dbClient.queryObject(
                 ComputeImageServer.class, id);
         if (null == imageServer || imageServer.getInactive()) {
@@ -385,20 +391,25 @@ public class ComputeImageServerService extends TaskResourceService {
      * if so throws an appropriate exception
      * @param imageServerURI
      */
-    private void checkActiveJobsForImageServer(URI imageServerURI)
-    {
-     // make sure there are no active jobs associated with this imageserver
+    private void checkActiveJobsForImageServer(URI imageServerURI) {
+        log.info(
+                "Check if any active ComputeImageJobs are present for imageServer id {} ",
+                imageServerURI);
+        // make sure there are no active jobs associated with this imageserver
         URIQueryResultList computeImageJobsUriList = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory
-                .getComputeImageJobsByComputeImageServerConstraint(imageServerURI),
-                computeImageJobsUriList);
+        _dbClient
+                .queryByConstraint(
+                        ContainmentConstraint.Factory
+                                .getComputeImageJobsByComputeImageServerConstraint(imageServerURI),
+                        computeImageJobsUriList);
         Iterator<URI> iterator = computeImageJobsUriList.iterator();
         while (iterator.hasNext()) {
             ComputeImageJob job = _dbClient.queryObject(ComputeImageJob.class,
                     iterator.next());
             if (job.getJobStatus().equals(
                     ComputeImageJob.JobStatus.CREATED.name())) {
-                throw APIException.badRequests.cannotDeleteOrUpdateImageServerWhileInUse();
+                throw APIException.badRequests
+                        .cannotDeleteOrUpdateImageServerWhileInUse();
             }
         }
     }

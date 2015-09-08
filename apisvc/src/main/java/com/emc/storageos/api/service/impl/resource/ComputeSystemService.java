@@ -170,7 +170,7 @@ public class ComputeSystemService extends TaskResourceService {
                 _log.info(" updating service profile template:" + serviceProfileTemplate.getLabel() + " id:"
                         + serviceProfileTemplate.getId().toString());
                 boolean valid = isUpdatingSPTValid(serviceProfileTemplate, dbClient);
-                ;
+
                 if (valid) {
                     NamedRelatedResourceRep sptNamedRelatedResource = new NamedRelatedResourceRep();
                     sptNamedRelatedResource.setId(serviceProfileTemplate.getId());
@@ -451,7 +451,7 @@ public class ComputeSystemService extends TaskResourceService {
     private boolean isUpdatingSPTValidForVarrays(StringSet varrayIds, UCSServiceProfileTemplate serviceProfileTemplate) {
         boolean isValid = true;
         _log.debug("Is uSPT:" + serviceProfileTemplate.getLabel() + " valid for varrays");
-        ;
+
         URIQueryResultList uriBootPolicies = new URIQueryResultList();
         _dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getComputeSystemBootPolicyConstraint(serviceProfileTemplate.getComputeSystem()),
@@ -495,7 +495,6 @@ public class ComputeSystemService extends TaskResourceService {
 
         }
         _log.info("SPT:" + serviceProfileTemplate.getLabel() + "isValid:" + isValid);
-        ;
         return isValid;
     }
 

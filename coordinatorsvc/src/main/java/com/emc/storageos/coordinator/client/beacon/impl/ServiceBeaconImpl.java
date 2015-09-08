@@ -119,7 +119,7 @@ public class ServiceBeaconImpl implements ServiceBeacon {
         _serviceParentPath = String.format("%1$s/%2$s%3$s/%4$s/%5$s",
                 ZkPath.SITES, siteId, ZkPath.SERVICE, _service.getName(), _service.getVersion());
         _servicePath = String.format("%1$s/%2$s", _serviceParentPath, _service.getId());
-        _log.info("lbyb servicePath={}", _servicePath);
+
         try {
             checkStaleRegistration();
         } catch (Exception ex) {
@@ -180,7 +180,6 @@ public class ServiceBeaconImpl implements ServiceBeacon {
 
         try {
             EnsurePath path = new EnsurePath(_serviceParentPath);
-            _log.info("lbyb _serviceParentPath={}", _serviceParentPath);
             path.ensure(_zkConnection.curator().getZookeeperClient());
         } catch (Exception e) {
             throw CoordinatorException.fatals

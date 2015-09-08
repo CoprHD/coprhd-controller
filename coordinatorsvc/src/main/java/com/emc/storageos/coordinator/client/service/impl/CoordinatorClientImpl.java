@@ -450,7 +450,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                 }
             }
         } catch (final Exception e) {
-            log.info("lby1 e=",e);
+            log.info("Failed to persist service configuration e=",e);
             throw CoordinatorException.fatals.unableToPersistTheConfiguration(e);
         }
     }
@@ -1064,7 +1064,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                 }
             }
         } catch (Exception e) {
-            log.info("lby e=",e);
+            log.info("Failed to persist runtime state e=",e);
             throw CoordinatorException.fatals.unableToPersistTheState(e);
         }
     }

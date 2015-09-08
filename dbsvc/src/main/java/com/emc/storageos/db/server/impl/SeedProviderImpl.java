@@ -99,7 +99,7 @@ public class SeedProviderImpl implements SeedProvider {
         try {
             CoordinatorClientInetAddressMap nodeMap = _client.getInetAddessLookupMap();
             List<Configuration> configs = _client.queryAllConfiguration(Constants.DB_CONFIG);
-            _logger.info("lby configs={} size={}", configs, configs.size());
+            _logger.info("configs={} size={}", configs, configs.size());
             List<InetAddress> seeds = new ArrayList<>(configs.size());
             for (int i = 0; i < configs.size(); i++) {
                 Configuration config = configs.get(i);

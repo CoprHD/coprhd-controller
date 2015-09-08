@@ -1109,14 +1109,16 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         BlockConsistencyGroupRestRep cg = api(ctx).blockConsistencyGroups().get(consistencyGroup);
         for (RelatedResourceRep vol : cg.getVolumes()) {
             VolumeRestRep volume = api(ctx).blockVolumes().get(vol);
-            RelatedResourceRep protectionSetId = volume.getProtection().getRpRep().getProtectionSet();
-            ProtectionSetRestRep protectionSet = api(ctx).blockVolumes().getProtectionSet(volume.getId(), protectionSetId.getId());
-            for (RelatedResourceRep protectionVolume : protectionSet.getVolumes()) {
-                VolumeRestRep vol1 = api(ctx).blockVolumes().get(protectionVolume);
-                if (vol1.getProtection().getRpRep().getPersonality().equalsIgnoreCase("METADATA")) {
-                    String capacity = api(ctx).blockVolumes().get(protectionVolume).getCapacity();
-                    if (minimumSize == null || Float.parseFloat(capacity) < Float.parseFloat(minimumSize)) {
-                        minimumSize = capacity;
+            if (volume.getProtection() != null && volume.getProtection().getRpRep() != null) {
+                RelatedResourceRep protectionSetId = volume.getProtection().getRpRep().getProtectionSet();
+                ProtectionSetRestRep protectionSet = api(ctx).blockVolumes().getProtectionSet(volume.getId(), protectionSetId.getId());
+                for (RelatedResourceRep protectionVolume : protectionSet.getVolumes()) {
+                    VolumeRestRep vol1 = api(ctx).blockVolumes().get(protectionVolume);
+                    if (vol1.getProtection().getRpRep().getPersonality().equalsIgnoreCase("METADATA")) {
+                        String capacity = api(ctx).blockVolumes().get(protectionVolume).getCapacity();
+                        if (minimumSize == null || Float.parseFloat(capacity) < Float.parseFloat(minimumSize)) {
+                            minimumSize = capacity;
+                        }
                     }
                 }
             }

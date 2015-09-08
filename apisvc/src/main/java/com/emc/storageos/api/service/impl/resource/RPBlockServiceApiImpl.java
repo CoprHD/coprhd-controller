@@ -1452,6 +1452,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             volume = _dbClient.queryObject(Volume.class, volume.getId());
         }
         
+        volume.setLabel(label);
         volume.setCapacity(SizeUtil.translateSize(size));
         volume.setThinlyProvisioned(VirtualPool.ProvisioningType.Thin
                 .toString()

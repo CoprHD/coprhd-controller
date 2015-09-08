@@ -39,7 +39,15 @@
     });
 
     function setDefaults() {
+        var tftpDir = $('#computeImageServers_tftpBootDir');
+        var installTo = $('#computeImageServers_osInstallTimeOut');
 
+        if (!tftpDir.val()) {
+        	tftpDir.val('/opt/tftpboot/');
+        }
+        if (!installTo.val()) {
+        	installTo.val('3600');
+        }
     }
     
   </script>
@@ -58,12 +66,8 @@
    
 
   <fieldset>
-    #{field 'computeImageServers.name'}
-      #{Form.inputTextControlGroup field:field, required:true, cssClass:'initialFocus' /}
-    #{/field} 
-
     #{field 'computeImageServers.imageServerIp'}
-      #{Form.inputTextControlGroup field:field, required:!editMode /}
+      #{Form.inputTextControlGroup field:field, required:!editMode, cssClass:'initialFocus' /}
     #{/field}
     
     #{field 'computeImageServers.osInstallNetworkAddress'}

@@ -311,7 +311,20 @@ public class UnManagedVolume extends UnManagedDiscoveredObject {
 
     public enum Types {
         SOURCE,
-        TARGET
+        TARGET,
+        REGULAR;
+
+        public static boolean isSourceVolume(Types types) {
+            return SOURCE == types;
+        }
+
+        public static boolean isTargetVolume(Types types) {
+            return TARGET == types;
+        }
+
+        public static boolean isRegularVolume(Types types) {
+            return REGULAR == types;
+        }
     }
     
     public String toString() {

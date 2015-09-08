@@ -14,7 +14,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.common.base.Joiner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -23,11 +22,11 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.AutoTieringPolicy.HitachiTieringPolicy;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.AutoTieringPolicy.HitachiTieringPolicy;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
@@ -44,6 +43,7 @@ import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
+import com.google.common.base.Joiner;
 
 /**
  * 
@@ -149,7 +149,7 @@ public class HDSVolumeDiscoverer {
         }
         if (!updateUnManagedVolumeList.isEmpty()
                 && updateUnManagedVolumeList.size() > limit) {
-            partitionManager.updateInBatches(updateUnManagedVolumeList,
+            partitionManager.updateAndReIndexInBatches(updateUnManagedVolumeList,
                     Constants.DEFAULT_PARTITION_SIZE, dbClient,
                     HDSConstants.UNMANAGED_VOLUME);
             updateUnManagedVolumeList.clear();
@@ -260,31 +260,15 @@ public class HDSVolumeDiscoverer {
                 pool.getId(), unManagedVolumeCharacteristics
                         .get(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED
                                 .name()).toString());
-        if (unManagedVolumeInformation
-                .containsKey(SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())) {
 
-            log.debug("Matched Pools :" + Joiner.on("\t").join(matchedVPools));
-            if (null != matchedVPools && matchedVPools.isEmpty()) {
-                // replace with empty string set doesn't work, hence added
-                // explicit code to remove all
-                unManagedVolumeInformation.get(
-                        SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())
-                        .clear();
-            } else {
-                // replace with new StringSet
-                unManagedVolumeInformation.get(
-                        SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())
-                        .replace(matchedVPools);
-                log.info("Replaced Pools :"
-                        + Joiner.on("\t")
-                                .join(unManagedVolumeInformation
-                                        .get(SupportedVolumeInformation.SUPPORTED_VPOOL_LIST
-                                                .toString())));
-            }
+        log.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
+        if (null == matchedVPools || matchedVPools.isEmpty()) {
+            // clear all matched vpools
+            unManagedVolume.getSupportedVpoolUris().clear();
         } else {
-            unManagedVolumeInformation.put(
-                    SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString(),
-                    matchedVPools);
+            // replace with new StringSet
+            unManagedVolume.getSupportedVpoolUris().replace(matchedVPools);
+            log.info("Replaced Pools : {}", Joiner.on("\t").join(unManagedVolume.getSupportedVpoolUris()));
         }
         unManagedVolume.addVolumeInformation(unManagedVolumeInformation);
 

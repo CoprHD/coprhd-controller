@@ -91,7 +91,6 @@ import com.emc.storageos.model.project.ProjectParam;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.systems.StorageSystemConnectivityRestRep;
 import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
-import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
@@ -536,7 +535,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * {@inheritDoc}
      */
     @Override
-    public TaskResourceRep deactivateMirror(StorageSystem vplexStorageSystem, URI mirrorURI,
+    public TaskList deactivateMirror(StorageSystem vplexStorageSystem, URI mirrorURI,
             String taskId) {
         VplexMirror mirror = _dbClient.queryObject(VplexMirror.class, mirrorURI);
         Volume sourceVolume = _dbClient.queryObject(Volume.class, mirror.getSource().getURI());
@@ -572,7 +571,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             _dbClient.error(Volume.class, mirror.getSource().getURI(), taskId, e);
         }
 
-        return toTask(sourceVolume, Arrays.asList(mirror), taskId, op);
+        TaskList taskList = new TaskList();
+        taskList.getTaskList().add(toTask(sourceVolume, Arrays.asList(mirror), taskId, op));
+        return taskList;
     }
 
     /**
@@ -845,9 +846,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             VirtualArray haVirtualArray = _dbClient.queryObject(VirtualArray.class,
                     vplexRecommendation.getVirtualArray());
             createVolume = prepareVolumeForRequest(getVolumeCapacity(importVolume),
-                vplexProject, haVirtualArray, vpool, vplexRecommendation.getSourceStorageSystem(),
-                vplexRecommendation.getSourceStoragePool(), importVolume.getLabel() + "-1", 
-                ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME, taskId, _dbClient);
+                    vplexProject, haVirtualArray, vpool, vplexRecommendation.getSourceStorageSystem(),
+                    vplexRecommendation.getSourceStoragePool(), importVolume.getLabel() + "-1",
+                    ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME, taskId, _dbClient);
             createVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
             _dbClient.persistObject(createVolume);
             VolumeDescriptor desc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
@@ -971,9 +972,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             // Prepare the created volume.
             VirtualArray haVirtualArray = _dbClient.queryObject(VirtualArray.class,
                     vplexRecommendation.getVirtualArray());
-            createVolume = prepareVolumeForRequest(getVolumeCapacity(existingVolume), vplexProject, 
+            createVolume = prepareVolumeForRequest(getVolumeCapacity(existingVolume), vplexProject,
                     haVirtualArray, vpool, vplexRecommendation.getSourceStorageSystem(),
-                    vplexRecommendation.getSourceStoragePool(), vplexVolume.getLabel() + "-1", 
+                    vplexRecommendation.getSourceStoragePool(), vplexVolume.getLabel() + "-1",
                     ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME, taskId, _dbClient);
             createVolume.addInternalFlags(Flag.INTERNAL_OBJECT);
             _dbClient.persistObject(createVolume);
@@ -1533,7 +1534,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         // Create a volume for the new backend volume to which
         // data will be migrated.
         URI targetStorageSystem = recommendations.get(0).getSourceStorageSystem();
-        URI targetStoragePool = recommendations.get(0).getSourceStoragePool();        
+        URI targetStoragePool = recommendations.get(0).getSourceStoragePool();
         Volume targetVolume = prepareVolumeForRequest(capacity,
                 targetProject, varray, vpool, targetStorageSystem, targetStoragePool,
                 targetLabel, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME,
@@ -1676,9 +1677,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         int recIndex = (premadeRecs && isHA) ? 1 : 0;
 
         // Create a volume for the new backend volume to which
-        // data will be migrated.               
+        // data will be migrated.
         URI targetStorageSystem = recommendations.get(recIndex).getSourceStorageSystem();
-        URI targetStoragePool = recommendations.get(recIndex).getSourceStoragePool();        
+        URI targetStoragePool = recommendations.get(recIndex).getSourceStoragePool();
         Volume targetVolume = prepareVolumeForRequest(capacity,
                 targetProject, varray, vpool, targetStorageSystem, targetStoragePool,
                 targetLabel, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME,
@@ -2448,21 +2449,23 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                         vplexStorageSystemURI, createdMirror.getId(), null, capabilities);
                 descriptors.add(descriptor);
 
-        		// Create backend volume object and add it to the VplexMirror created above.
-        		Volume volume = prepareVolume(createdMirror, backendVolume, mirrorVpool, varray, vplexRecommendation.getSourceStorageSystem(), 
-        				vplexRecommendation.getSourceStoragePool(), mirrorLabelBuilder.toString(), thinVolumePreAllocationSize, capabilities, _dbClient);
-        		op = new Operation();
-        		op.setResourceType(ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
-        		_dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId, op);
-        		URI volumeId = volume.getId();
-        		allVolumes.add(volumeId);
-        		s_logger.info("Prepared volume {}", volumeId);
+                // Create backend volume object and add it to the VplexMirror created above.
+                Volume volume = prepareVolume(createdMirror, backendVolume, mirrorVpool, varray,
+                        vplexRecommendation.getSourceStorageSystem(),
+                        vplexRecommendation.getSourceStoragePool(), mirrorLabelBuilder.toString(), thinVolumePreAllocationSize,
+                        capabilities, _dbClient);
+                op = new Operation();
+                op.setResourceType(ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
+                _dbClient.createTaskOpStatus(Volume.class, volume.getId(), taskId, op);
+                URI volumeId = volume.getId();
+                allVolumes.add(volumeId);
+                s_logger.info("Prepared volume {}", volumeId);
 
-        		// Add descriptor for the backend volume
-        		descriptor = new VolumeDescriptor(
-        				VolumeDescriptor.Type.BLOCK_DATA, 
-        				vplexRecommendation.getSourceStorageSystem(), volumeId, vplexRecommendation.getSourceStoragePool(), capabilities);
-        		descriptors.add(descriptor);
+                // Add descriptor for the backend volume
+                descriptor = new VolumeDescriptor(
+                        VolumeDescriptor.Type.BLOCK_DATA,
+                        vplexRecommendation.getSourceStorageSystem(), volumeId, vplexRecommendation.getSourceStoragePool(), capabilities);
+                descriptors.add(descriptor);
 
             }
         }
@@ -2712,7 +2715,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * {@inheritDoc}
      */
     @Override
-    public TaskResourceRep pauseNativeContinuousCopies(StorageSystem storageSystem,
+    public TaskList pauseNativeContinuousCopies(StorageSystem storageSystem,
             Volume sourceVolume, List<BlockMirror> blockMirrors, Boolean sync, String taskId)
             throws ControllerException {
         throw APIException.methodNotAllowed.notSupportedForVplexVolumes();
@@ -2722,9 +2725,19 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      * {@inheritDoc}
      */
     @Override
-    public TaskResourceRep resumeNativeContinuousCopies(StorageSystem storageSystem,
+    public TaskList resumeNativeContinuousCopies(StorageSystem storageSystem,
             Volume sourceVolume, List<BlockMirror> blockMirrors, String taskId)
             throws ControllerException {
+        throw APIException.methodNotAllowed.notSupportedForVplexVolumes();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public TaskResourceRep establishVolumeAndNativeContinuousCopyGroupRelation(
+            StorageSystem storageSystem, Volume sourceVolume,
+            BlockMirror blockMirror, String taskId) throws ControllerException {
         throw APIException.methodNotAllowed.notSupportedForVplexVolumes();
     }
 
@@ -3035,7 +3048,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
      */
     @Override
     public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId) {
-        s_logger.info(String.format("Request to restore VPlex volume %s from snapshot %s.", 
+        s_logger.info(String.format("Request to restore VPlex volume %s from snapshot %s.",
                 parentVolume.getId().toString(), snapshot.getId().toString()));
         super.restoreSnapshot(snapshot, parentVolume, taskId);
     }

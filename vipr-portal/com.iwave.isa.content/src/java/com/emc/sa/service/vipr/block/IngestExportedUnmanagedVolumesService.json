@@ -30,6 +30,12 @@
       lockable: true
     },
     
+    volumeFilter:{
+      type:"assetType.vipr.volumeFilter",
+      default: 0
+    },
+    
+    
     ingestionMethod:{
       type:"assetType.vipr.exportedIngestionMethod",
       lockable: true,

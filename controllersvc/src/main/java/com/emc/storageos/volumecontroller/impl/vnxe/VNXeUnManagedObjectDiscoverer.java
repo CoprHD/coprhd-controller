@@ -34,9 +34,9 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedCifsShareACL;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBFileShare;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemInformation;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
@@ -139,7 +139,7 @@ public class VNXeUnManagedObjectDiscoverer {
                         Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_VOLUME);
             }
             if (!unManagedVolumesUpdate.isEmpty()) {
-                partitionManager.updateInBatches(unManagedVolumesUpdate,
+                partitionManager.updateAndReIndexInBatches(unManagedVolumesUpdate,
                         Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_VOLUME);
             }
 
@@ -202,7 +202,7 @@ public class VNXeUnManagedObjectDiscoverer {
 
             if (!unManagedFilesystemsUpdate.isEmpty()) {
                 // Update UnManagedFilesystem
-                partitionManager.updateInBatches(unManagedFilesystemsUpdate,
+                partitionManager.updateAndReIndexInBatches(unManagedFilesystemsUpdate,
                         Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_FILESYSTEM);
             }
 
@@ -732,24 +732,14 @@ public class VNXeUnManagedObjectDiscoverer {
             }
             StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(dbClient, pool.getId(),
                     unManagedVolumeCharacteristics.get(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()));
-            if (unManagedVolumeInformation
-                    .containsKey(SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())) {
-
-                log.debug("Matched Pools :" + Joiner.on("\t").join(matchedVPools));
-                if (null != matchedVPools && matchedVPools.isEmpty()) {
-                    // replace with empty string set doesn't work, hence added explicit code to remove all
-                    unManagedVolumeInformation.get(
-                            SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).clear();
-                } else {
-                    // replace with new StringSet
-                    unManagedVolumeInformation.get(
-                            SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).replace(matchedVPools);
-                    log.info("Replaced Pools :" + Joiner.on("\t").join(unManagedVolumeInformation.get(
-                            SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())));
-                }
+            log.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
+            if (null == matchedVPools || matchedVPools.isEmpty()) {
+                // clear all existing supported vpools.
+                unManagedVolume.getSupportedVpoolUris().clear();
             } else {
-                unManagedVolumeInformation.put(
-                        SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString(), matchedVPools);
+                // replace with new StringSet
+                unManagedVolume.getSupportedVpoolUris().replace(matchedVPools);
+                log.info("Replaced Pools : {}", Joiner.on("\t").join(unManagedVolume.getSupportedVpoolUris()));
             }
 
         }
@@ -834,24 +824,15 @@ public class VNXeUnManagedObjectDiscoverer {
                     unManagedFileSystemCharacteristics.get(
                             UnManagedFileSystem.SupportedFileSystemCharacterstics.IS_THINLY_PROVISIONED
                                     .toString()));
-            if (unManagedFileSystemInformation.containsKey(UnManagedFileSystem.SupportedFileSystemInformation.
-                    SUPPORTED_VPOOL_LIST.toString())) {
-
-                if (null != matchedVPools && matchedVPools.isEmpty()) {
-                    // replace with empty string set doesn't work, hence added explicit code to remove all
-                    unManagedFileSystemInformation.get(
-                            SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).clear();
-                } else {
-                    // replace with new StringSet
-                    unManagedFileSystemInformation.get(
-                            SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).replace(matchedVPools);
-                    log.info("Replaced Pools :" + Joiner.on("\t").join(unManagedFileSystemInformation.get(
-                            SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())));
-                }
+            log.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
+            if (null == matchedVPools || matchedVPools.isEmpty()) {
+                // clear all existing supported vpools.
+                unManagedFileSystem.getSupportedVpoolUris().clear();
             } else {
-                unManagedFileSystemInformation
-                        .put(UnManagedFileSystem.SupportedFileSystemInformation.SUPPORTED_VPOOL_LIST
-                                .toString(), matchedVPools);
+                // replace with new StringSet
+                unManagedFileSystem.getSupportedVpoolUris().replace(matchedVPools);
+                log.info("Replaced Pools :"
+                        + Joiner.on("\t").join(unManagedFileSystem.getSupportedVpoolUris()));
             }
 
         }

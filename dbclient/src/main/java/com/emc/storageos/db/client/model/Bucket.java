@@ -161,6 +161,7 @@ public class Bucket extends DataObject implements ProjectResource {
 
     public void setRetention(Integer retention) {
         this._retention = retention;
+        setChanged("varray");
     }
 
     @Name("path")
@@ -170,6 +171,7 @@ public class Bucket extends DataObject implements ProjectResource {
 
     public void setPath(String path) {
         this._path = path;
+        setChanged("path");
     }
 
     @Name("namespace")
@@ -177,8 +179,9 @@ public class Bucket extends DataObject implements ProjectResource {
         return _namespace;
     }
 
-    public void setNamespace(String _namespace) {
-        this._namespace = _namespace;
+    public void setNamespace(String namespace) {
+        this._namespace = namespace;
+        setChanged("namespace");
     }
 
     @Name("owner")
@@ -188,5 +191,6 @@ public class Bucket extends DataObject implements ProjectResource {
 
     public void setOwner(String owner) {
         this._owner = owner;
+        setChanged("owner");
     }
 }

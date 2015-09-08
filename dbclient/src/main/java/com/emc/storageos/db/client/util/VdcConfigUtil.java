@@ -222,8 +222,17 @@ public class VdcConfigUtil {
 
             int nodeCount = Integer.valueOf(nodeCountStr);
             for (int i = 1; i <= nodeCount; i++) {
-                propertyValues.add(vdcConfig.get(String.format(VDC_IPADDR_PTN,
-                        vdcShortId, i)));
+                propertyValues.add(vdcConfig.get(String.format(VDC_IPADDR_PTN, vdcShortId, i)));
+                propertyValues.add(vdcConfig.get(String.format(VDC_IPADDR6_PTN, vdcShortId, i)));
+            }
+
+            String standbyNodeCntStr = vdcConfig.get(String.format(VDC_STANDBY_NODE_COUNT_PTN, vdcShortId));
+            propertyValues.add(standbyNodeCntStr);
+
+            int standbyNodeCnt = Integer.valueOf(standbyNodeCntStr);
+            for (int i = 1; i <= standbyNodeCnt; i++) {
+                propertyValues.add(String.format(VDC_STANDBY_IPADDR_PTN, vdcShortId, i));
+                propertyValues.add(String.format(VDC_STANDBY_IPADDR6_PTN, vdcShortId, i));
             }
         }
 

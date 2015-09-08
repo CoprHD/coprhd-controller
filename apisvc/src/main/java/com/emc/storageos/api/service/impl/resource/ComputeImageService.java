@@ -189,7 +189,6 @@ public class ComputeImageService extends TaskResourceService {
         op.setResourceType(ResourceOperationTypeEnum.IMPORT_IMAGE);
         _dbClient.createTaskOpStatus(ComputeImage.class, ci.getId(), task._opId, op);
         controller.importImageToServers(task);
-        //controller.importImage(task,imageServer.getId());
         return TaskMapper.toTask(ci, task._opId, op);
     }
 

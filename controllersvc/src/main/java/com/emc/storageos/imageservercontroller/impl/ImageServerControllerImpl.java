@@ -326,7 +326,7 @@ public class ImageServerControllerImpl implements ImageServerController {
                             .format("Importing image for %s", imageServerId),
                             null, imageServerId, imageServerId.toString(), this
                                     .getClass(), new Workflow.Method(
-                                    "importImageMethod", ciId, imageServerId),
+                                    "importImageMethod", ciId, imageServer, null),
                             null, null);
                     wfHasSteps = true;
                 }
@@ -338,42 +338,6 @@ public class ImageServerControllerImpl implements ImageServerController {
             log.error("importImage caught an exception.", e);
             ServiceError serviceError = DeviceControllerException.errors
                     .jobFailed(e);
-            completer.error(dbClient, serviceError);
-        }
-    }
-    
-    /**
-     * Imports image to a given imageServer
-     * @param task {@link AsyncTask} instance
-     * @param imageServerId {@link URI} imageServer URI 
-     */
-    @Override
-    public void importImage(AsyncTask task,URI imageServerId) throws InternalException {
-        log.info("importImage");
-
-        URI ciId = task._id;
-        ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class, imageServerId);
-        TaskCompleter completer = null;
-        try {
-            completer = new ComputeImageCompleter(ciId, task._opId, OperationTypeEnum.CREATE_COMPUTE_IMAGE, EVENT_SERVICE_TYPE);
-            boolean imageServerVerified = verifyImageServer(imageServer);
-            if (!imageServerVerified) {
-                throw ImageServerControllerException.exceptions.imageServerNotSetup("Can't perform image import: "
-                            + imageServerErrorMsg);
-            }
-
-            Workflow workflow = workflowService.getNewWorkflow(this, IMPORT_IMAGE_WF, true, task._opId);
-            workflow.createStep(IMPORT_IMAGE_STEP,
-                    String.format("importing image %s", ciId), null,
-                    ciId, ciId.toString(),
-                    this.getClass(),
-                    new Workflow.Method("importImageMethod", ciId, imageServer.getId()),
-                    null,
-                    null);
-            workflow.executePlan(completer, "Success");
-        } catch (Exception e) {
-            log.error("importImage caught an exception.", e);
-            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             completer.error(dbClient, serviceError);
         }
     }
@@ -495,15 +459,15 @@ public class ImageServerControllerImpl implements ImageServerController {
     /**
      * Method to import an image
      * @param ciId {@link URI} computeImage URI 
-     * @param imageServerId {@link URI} imageServer URI 
+     * @param imageServer {@link ComputeImageServer} imageServer instance
+     * @param opName operation Name
      * @param stepId {@link String} step Id
      */
-    public void importImageMethod(URI ciId, URI imageServerId, String stepId) {
-        log.info("importImageMethod {}", ciId);
+    public void importImageMethod(URI ciId, ComputeImageServer imageServer, String opName, String stepId) {
+        log.info("importImageMethod importing image {} on to imageServer {}", ciId, imageServer.getId());
         ImageServerDialog d = null;
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
-            ComputeImageServer imageServer = dbClient.queryObject(ComputeImageServer.class,imageServerId);
 
             ComputeImage ci = dbClient.queryObject(ComputeImage.class, ciId);
             importImage(imageServer, ci, d);
@@ -514,7 +478,9 @@ public class ImageServerControllerImpl implements ImageServerController {
             WorkflowStepCompleter.stepFailed(stepId, e);
         } catch (Exception e) {
             log.error("Unexpected exception importing image: " + e.getMessage(), e);
-            String opName = ResourceOperationTypeEnum.IMPORT_IMAGE.getName();
+            if(null == opName) {
+                opName = ResourceOperationTypeEnum.IMPORT_IMAGE.getName();
+            }
             WorkflowStepCompleter.stepFailed(stepId, ImageServerControllerException.exceptions.unexpectedException(opName, e));
         } finally {
             try {
@@ -983,10 +949,11 @@ public class ImageServerControllerImpl implements ImageServerController {
      * Method to verify and import images on the imageserver
      *
      * @param task {@link AsyncTask} instance
+     * @param opName operation Name
      *
      */
     @Override
-    public void verifyImageServerAndImportExistingImages(AsyncTask task) {
+    public void verifyImageServerAndImportExistingImages(AsyncTask task, String opName) {
         TaskCompleter completer = null;
         log.info("Verifying imageServer and importing any existing images on to the server");
         try {
@@ -1021,8 +988,8 @@ public class ImageServerControllerImpl implements ImageServerController {
                                 .toString(), IMAGESERVER_VERIFICATION_STEP,
                                 computeImageServerID, computeImageServerID
                                         .toString(), this.getClass(),
-                                new Workflow.Method("performImportImage",
-                                        imageServer, computeImage), null, null);
+                                new Workflow.Method("importImageMethod",
+                                        computeImage.getId(), imageServer, opName), null, null);
                     }
                 }
             }
@@ -1031,7 +998,6 @@ public class ImageServerControllerImpl implements ImageServerController {
             log.error(
                     "Unexpected exception waiting for finish: "
                             + ex.getMessage(), ex);
-            // TODO: Need to decide if we need to throw a ServiceError.
         }
     }
 
@@ -1054,41 +1020,6 @@ public class ImageServerControllerImpl implements ImageServerController {
         }
 
         return imageList;
-    }
-
-    /**
-     * Method to perform an image import to the specified imagegserver
-     * @param imageServer {@link ComputeImageServer} instance
-     * @param image {@link ComputeImage} instance
-     * @param stepId workflow stepid being executed.
-     */
-    public void performImportImage(ComputeImageServer imageServer, ComputeImage image, String stepId) {
-        WorkflowStepCompleter.stepExecuting(stepId);
-        log.info("Executing method performImportImage");
-        ImageServerDialog d = null;
-        try {
-            importImage(imageServer, image, d);
-            WorkflowStepCompleter.stepSucceded(stepId);
-        } catch (InternalException e) {
-            log.error("Exception importing image: " + e.getMessage(), e);
-            WorkflowStepCompleter.stepFailed(stepId, e);
-        } catch (Exception e) {
-            log.error(
-                    "Unexpected exception importing image: " + e.getMessage(),
-                    e);
-            String opName = ResourceOperationTypeEnum.CREATE_VERIFY_COMPUTE_IMAGE_SERVER.getName();
-            WorkflowStepCompleter.stepFailed(stepId,
-                    ImageServerControllerException.exceptions
-                            .unexpectedException(opName, e));
-        } finally {
-            try {
-                if (d != null && d.isConnected()) {
-                    d.close();
-                }
-            } catch (Exception e) {
-                log.error("failed to close image server dialog", e);
-            }
-        }
     }
 
     /**

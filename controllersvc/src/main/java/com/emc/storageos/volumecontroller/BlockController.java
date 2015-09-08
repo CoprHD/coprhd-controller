@@ -117,7 +117,8 @@ public interface BlockController extends BlockStorageManagementController {
      * @param opId Operation ID.
      * @throws InternalException When an exception occurs creating the snapshot
      */
-    public void createSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId) throws InternalException;
+    public void createSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId)
+            throws InternalException;
 
     /**
      * This interface is for the snapshot active. The createSnapshot may have done
@@ -167,7 +168,7 @@ public interface BlockController extends BlockStorageManagementController {
      */
     public void resyncSnapshot(URI storage, URI volume, URI snapshot, Boolean updateOpStatus, String opId)
             throws InternalException;
-    
+
     /**
      * Resynchronize clone from its source volume
      * 
@@ -193,12 +194,12 @@ public interface BlockController extends BlockStorageManagementController {
      * Create a mirror of a volume
      * 
      * @param storage URI of storage controller
-     * @param mirror URI of block mirror
+     * @param mirrorList List of URIs of block mirrors
      * @param createInactive value of WaitForCopyState
      * @param opId Operation ID
      * @throws InternalException When an exception occurs creating the mirror
      */
-    public void createMirror(URI storage, URI mirror, Boolean createInactive, String opId) throws InternalException;
+    public void createMirror(URI storage, List<URI> mirrorList, Boolean isCG, Boolean createInactive, String opId) throws InternalException;
 
     /**
      * Attach new mirror(s) for the given volume
@@ -208,7 +209,7 @@ public interface BlockController extends BlockStorageManagementController {
      * @param opId
      * @throws InternalException
      */
-    public void attachNativeContinuousCopies(URI storage, URI sourceVolume, String opId) throws InternalException;
+    public void attachNativeContinuousCopies(URI storage, URI sourceVolume, List<URI> mirrorList, String opId) throws InternalException;
 
     /**
      * Detach the given mirrors
@@ -244,34 +245,47 @@ public interface BlockController extends BlockStorageManagementController {
     public void resumeNativeContinuousCopies(URI storage, List<URI> mirrors, String opId) throws InternalException;
 
     /**
+     * Establishes group relation between volume group and mirror group.
+     *
+     * @param storage the storage
+     * @param sourceVolume the source volume
+     * @param mirror the mirror
+     * @param opId the op id
+     * @throws ControllerException the controller exception
+     */
+    public void establishVolumeAndNativeContinuousCopyGroupRelation(URI storage, URI sourceVolume, URI mirror, String opId)
+            throws ControllerException;
+
+    /**
      * Detach a mirror or mirrors of a volume or volumes.
      * 
      * @param storage URI of storage controller.
-     * @param mirror URI of block mirror
+     * @param mirrorList List of URIs of block mirrors
+     * @param deleteGroup Flag for deleting replication group or not
      * @param opId Operation ID
      * @throws InternalException When an exception occurs detaching the mirror
      */
-    public void detachMirror(URI storage, URI mirror, String opId) throws InternalException;
+    public void detachMirror(URI storage, List<URI> mirrorList, Boolean deleteGroup, String opId) throws InternalException;
 
     /**
      * Delete a mirror or mirrors of a volume or volumes.
      * 
      * @param storage URI of storage controller.
-     * @param mirror URI of block mirror
+     * @param mirrorList List of URIs of block mirrors
      * @param opId Operation ID
      * @throws InternalException When an exception occurs deleting the mirror
      */
-    public void deleteMirror(URI storage, URI mirror, String opId) throws InternalException;
+    public void deleteMirror(URI storage, List<URI> mirrorList, String opId) throws InternalException;
 
     /**
      * Detach and delete a mirror or mirrors of a volume or volumes.
      * 
      * @param storage URI of storage controller.
-     * @param mirror URI of block mirror
+     * @param mirrorList List of URIs of block mirrors
      * @param opId Operation ID
      * @throws InternalException When an exception occurs deactivating the mirror
      */
-    public void deactivateMirror(URI storage, URI mirror, String opId) throws InternalException;
+    public void deactivateMirror(URI storage, List<URI> mirrorList, String opId) throws InternalException;
 
     /**
      * Orchestrates the creation of full copy volumes
@@ -323,6 +337,18 @@ public interface BlockController extends BlockStorageManagementController {
      * @param opId
      */
     public void detachFullCopy(URI storage, List<URI> fullCopy, String opId);
+
+    /**
+     * Establishes group relation between volume group and full copy group.
+     *
+     * @param storage the storage
+     * @param sourceVolume the source volume
+     * @param fullCopy the full copy
+     * @param opId the op id
+     * @throws ControllerException the controller exception
+     */
+    public void establishVolumeAndFullCopyGroupRelation(URI storage, URI sourceVolume, URI fullCopy, String opId)
+            throws ControllerException;
 
     /**
      * Rollback step for create meta volume

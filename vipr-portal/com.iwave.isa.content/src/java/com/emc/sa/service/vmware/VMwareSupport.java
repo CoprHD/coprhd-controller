@@ -13,6 +13,7 @@ import static com.emc.sa.service.vipr.ViPRExecutionUtils.logWarn;
 
 import java.net.URI;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -29,6 +30,7 @@ import com.emc.sa.service.vipr.file.tasks.FindFilesystemWithDatastore;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
 import com.emc.sa.service.vmware.block.tasks.CreateVmfsDatastore;
+import com.emc.sa.service.vmware.block.tasks.DetachLunsFromHost;
 import com.emc.sa.service.vmware.block.tasks.ExpandVmfsDatastore;
 import com.emc.sa.service.vmware.block.tasks.ExtendVmfsDatastore;
 import com.emc.sa.service.vmware.block.tasks.FindHostScsiDiskForLun;
@@ -36,6 +38,7 @@ import com.emc.sa.service.vmware.block.tasks.FindLunsBackingDatastore;
 import com.emc.sa.service.vmware.block.tasks.RefreshStorage;
 import com.emc.sa.service.vmware.block.tasks.SetMultipathPolicy;
 import com.emc.sa.service.vmware.block.tasks.SetStorageIOControl;
+import com.emc.sa.service.vmware.block.tasks.UnmountVmfsDatastore;
 import com.emc.sa.service.vmware.block.tasks.VerifyDatastoreHostMounts;
 import com.emc.sa.service.vmware.file.tasks.CreateNfsDatastore;
 import com.emc.sa.service.vmware.file.tasks.GetEndpoints;
@@ -43,14 +46,12 @@ import com.emc.sa.service.vmware.file.tasks.TagDatastoreOnFilesystem;
 import com.emc.sa.service.vmware.file.tasks.UntagDatastoreOnFilesystem;
 import com.emc.sa.service.vmware.tasks.ConnectToVCenter;
 import com.emc.sa.service.vmware.tasks.DeleteDatastore;
-import com.emc.sa.service.vmware.tasks.DetachDatastoreDevices;
 import com.emc.sa.service.vmware.tasks.EnterMaintenanceMode;
 import com.emc.sa.service.vmware.tasks.FindCluster;
 import com.emc.sa.service.vmware.tasks.FindDatastore;
 import com.emc.sa.service.vmware.tasks.FindESXHost;
 import com.emc.sa.service.vmware.tasks.GetVcenter;
 import com.emc.sa.service.vmware.tasks.GetVcenterDataCenter;
-import com.emc.sa.service.vmware.tasks.UnmountDatastore;
 import com.emc.sa.service.vmware.tasks.VerifyDatastoreDoesNotExist;
 import com.emc.sa.service.vmware.tasks.VerifyDatastoreForRemoval;
 import com.emc.sa.service.vmware.tasks.VerifySupportedMultipathPolicy;
@@ -66,6 +67,7 @@ import com.emc.storageos.model.file.FileSystemExportParam;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.iwave.ext.vmware.HostStorageAPI;
 import com.iwave.ext.vmware.VCenterAPI;
 import com.iwave.ext.vmware.VMWareException;
 import com.vmware.vim25.DatastoreHostMount;
@@ -223,6 +225,14 @@ public class VMwareSupport {
 
     }
 
+    public void detachLuns(HostSystem host, List<HostScsiDisk> disks) {
+        execute(new DetachLunsFromHost(host, disks));
+    }
+
+    public void unmountVmfsDatastore(HostSystem host, Datastore datastore) {
+        execute(new UnmountVmfsDatastore(host, datastore));
+    }
+
     /**
      * Sets the storage IO control for the given datastore
      * 
@@ -318,24 +328,55 @@ public class VMwareSupport {
      * @param datastore
      *            the datastore.
      */
-    public void deleteVmfsDatastore(Collection<VolumeRestRep> volumes, URI hostOrClusterId, Datastore datastore) {
+    public void deleteVmfsDatastore(Collection<VolumeRestRep> volumes, URI hostOrClusterId, final Datastore datastore) {
         List<HostSystem> hosts = getHostsForDatastore(datastore);
         if (hosts.isEmpty()) {
             throw new IllegalStateException("Datastore is not mounted by any hosts");
         }
+
         enterMaintenanceMode(datastore);
+        setStorageIOControl(datastore, false);
 
-        try {
-            // recommended approach is to turn off Storage IO, unmount and detach Datastore devices
-            setStorageIOControl(datastore, false);
-            execute(new UnmountDatastore(hosts, datastore));
-            execute(new DetachDatastoreDevices(hosts, datastore));
-        } catch (VMWareException e) {
-            // if the recommended approach fails, go with the tried and true method
-            execute(new DeleteDatastore(hosts.get(0), datastore));
+        executeOnHosts(hosts, new HostSystemCallback() {
+            @Override
+            public void exec(HostSystem host) {
+                unmountVmfsDatastore(host, datastore);
+            }
+        });
+
+        final Map<HostSystem, List<HostScsiDisk>> hostDisks = buildHostDiskMap(hosts, datastore);
+
+        execute(new DeleteDatastore(hosts.get(0), datastore));
+
+        executeOnHosts(hosts, new HostSystemCallback() {
+            @Override
+            public void exec(HostSystem host) {
+                List<HostScsiDisk> disks = hostDisks.get(host);
+                detachLuns(host, disks);
+            }
+        });
+        removeVmfsDatastoreTag(volumes, hostOrClusterId);
+    }
+
+    private Map<HostSystem, List<HostScsiDisk>> buildHostDiskMap(List<HostSystem> hosts, Datastore datastore) {
+
+        Map<HostSystem, List<HostScsiDisk>> hostDisks = new HashMap<>();
+
+        for (HostSystem host : hosts) {
+            List<HostScsiDisk> disks = new HostStorageAPI(host).listDisks(datastore);
+            hostDisks.put(host, disks);
         }
+        return hostDisks;
+    }
 
-        execute(new RefreshStorage(hosts));
+    private void executeOnHosts(List<HostSystem> hosts, HostSystemCallback callback) {
+        for (HostSystem host : hosts) {
+            callback.exec(host);
+        }
+    }
+
+    private interface HostSystemCallback {
+        public void exec(HostSystem host);
     }
 
     /**

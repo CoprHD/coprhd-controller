@@ -139,6 +139,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
      * 
      * @param partitionManager
      */
+    @Override
     public void setPartitionManager(PartitionManager partitionManager) {
         _partitionManager = partitionManager;
     }
@@ -529,7 +530,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
         try {
             // set batch size for persisting unmanaged volumes
-            Map<String, String> props = (Map<String, String>) accessProfile.getProps();
+            Map<String, String> props = accessProfile.getProps();
             if (null != props && null != props.get(Constants.METERING_RECORDS_PARTITION_SIZE)) {
                 BATCH_SIZE = Integer.parseInt(props.get(Constants.METERING_RECORDS_PARTITION_SIZE));
             }
@@ -554,8 +555,8 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     timer = System.currentTimeMillis();
                     s_logger.info("Looking at Virtual Volume {}", name);
 
-                    // kill switch (system setting) can be used to stop
-                    // a long-running out control discovery session
+                    // UnManagedVolume discover does a pretty expensive
+                    // iterative call into the VPLEX API to get extended details
                     String discoveryKillSwitch = ControllerUtils
                             .getPropertyValueFromCoordinator(
                                     _coordinator, VplexBackendIngestionContext.DISCOVERY_KILL_SWITCH);
@@ -564,9 +565,9 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                                 + "so discontinuing unmanaged volume discovery");
                         return;
                     }
-                    
-                    // filters out volumes names that don't match the
-                    // discovery filter system setting
+                    // on every volume in each cluster. First it gets all the
+                    // volume names/paths (the inexpensive "lite" call), then
+                    // iterates through them getting the details to populate the
                     String discoveryFilter = ControllerUtils
                             .getPropertyValueFromCoordinator(
                                     _coordinator, VplexBackendIngestionContext.DISCOVERY_FILTER);
@@ -575,19 +576,19 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                         s_logger.warn("name {} doesn't match discovery filter {}", name, discoveryFilter);
                         continue;
                     }
-                    
-                    VPlexVirtualVolumeInfo info = allVirtualVolumes.get(name);
-                    
-                    // UnManagedVolume discover does a pretty expensive
-                    // iterative call into the VPLEX API to get extended details
-                    // on every volume in each cluster. First it gets all the
-                    // volume names/paths (the inexpensive "lite" call), then
-                    // iterates through them getting the details to populate the
                     // VPlexVirtualVolumeInfo objects with extended details
+                    VPlexVirtualVolumeInfo info = allVirtualVolumes.get(name);
                     // needed for unmanaged volume discovery.
                     // In my testing, I ran into situations where this took so
                     // long that by the time it got to some arbitrary volume to
                     // populate with more details, that volume had been deleted
+                    // by some other process and the VPLEX API threw a 404 Not
+                    // Found. ...which then caused the whole unmanaged volume
+                    // discovery process to fail.
+                    // So, there is a very rare chance that processing could get
+                    // to this point and the name would would be in the key set,
+                    // but the info object would be null... basically if it got
+                    // to here null, it would mean a 404 happened earlier.
                     // by some other process and the VPLEX API threw a 404 Not
                     // Found. ...which then caused the whole unmanaged volume
                     // discovery process to fail.
@@ -894,26 +895,14 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             }
         }
 
-        if (unManagedVolumeInformation
-                .containsKey(SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())) {
-
-            if (null != matchedVPools && matchedVPools.isEmpty()) {
-                // replace with empty string set doesn't work, hence added explicit code to remove all
-                unManagedVolumeInformation.get(
-                        SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).clear();
-                s_logger.info("No matching VPOOLS found for unmanaged volume " + volume.getLabel());
-            } else {
-                // replace with new StringSet
-                unManagedVolumeInformation.get(
-                        SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).replace(matchedVPools);
-                s_logger.info("Replaced Pools :" + Joiner.on("\t").join(unManagedVolumeInformation.get(
-                        SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())));
-            }
+        if (null == matchedVPools || matchedVPools.isEmpty()) {
+            // clean all supported vpools.
+            volume.getSupportedVpoolUris().clear();
+            s_logger.info("No matching VPOOLS found for unmanaged volume " + volume.getLabel());
         } else {
-            unManagedVolumeInformation.put(
-                    SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString(), matchedVPools);
-            s_logger.info("Matching VPOOLS found for unmanaged volume " + volume.getLabel()
-                    + " are " + matchedVPools.toString());
+            // replace with new StringSet
+            volume.getSupportedVpoolUris().replace(matchedVPools);
+            s_logger.info("Replaced Pools : {}", volume.getSupportedVpoolUris());
         }
 
         // add this info to the unmanaged volume object
@@ -931,7 +920,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 s_logger.warn("error discovering backend structure for {}: ", 
                         volume.getNativeGuid(), ex);
                 // no need to throw further
-            }
+    }
         }
     }
 
@@ -959,12 +948,12 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
     }
 
     /**
-     * Handles persisting UnManagedVolumes in batches.
+     * Used to determine the value of the IS_INGESTABLE flag.
      * 
-     * @param unManagedVolumesToCreate UnManagedVolumes to be created
-     * @param unManagedVolumesToUpdate UnManagedVolumes to be updated
-     * @param flush if true, persistence with be forced
+     * @param info a VPlexVirtualVolumeInfo descriptor
+     * @return true if the virtual volume is ingestable by ViPR
      */
+
     private void persistUnManagedVolumes(List<UnManagedVolume> unManagedVolumesToCreate,
             List<UnManagedVolume> unManagedVolumesToUpdate, boolean flush) {
         if (null != unManagedVolumesToCreate) {
@@ -976,7 +965,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         }
         if (null != unManagedVolumesToUpdate) {
             if (flush || (unManagedVolumesToUpdate.size() > BATCH_SIZE)) {
-                _partitionManager.updateInBatches(unManagedVolumesToUpdate,
+                _partitionManager.updateAndReIndexInBatches(unManagedVolumesToUpdate,
                         BATCH_SIZE, _dbClient, UNMANAGED_VOLUME);
                 unManagedVolumesToUpdate.clear();
             }

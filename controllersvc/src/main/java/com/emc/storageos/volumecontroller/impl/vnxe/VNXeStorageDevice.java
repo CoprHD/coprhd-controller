@@ -1318,6 +1318,13 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
+    public void doEstablishVolumeNativeContinuousCopyGroupRelation(
+            StorageSystem storage, URI sourceVolume, URI mirror,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
     public void doDeleteMirror(StorageSystem storage, URI mirror,
             TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
@@ -2308,6 +2315,13 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
+    public void doEstablishVolumeFullCopyGroupRelation(
+            StorageSystem storage, URI sourceVolume, URI fullCopy,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
     public void doRestoreFromGroupClone(StorageSystem storageSystem,
             List<URI> cloneVolume, TaskCompleter taskCompleter) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
@@ -2341,4 +2355,46 @@ public class VNXeStorageDevice extends VNXeOperations
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
         
     }
+
+    @Override
+    public void doCreateGroupMirrors(StorageSystem storage,
+            List<URI> mirrorList, Boolean createInactive,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doFractureGroupMirrors(StorageSystem storage,
+            List<URI> mirrorList, Boolean sync, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doDetachGroupMirrors(StorageSystem storage,
+            List<URI> mirrorList, Boolean deleteGroup, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doResumeGroupNativeContinuousCopies(StorageSystem storage,
+            List<URI> mirrorList, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doDeleteGroupMirrors(StorageSystem storage,
+            List<URI> mirrorList, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+	@Override
+    public void doRemoveMirrorFromDeviceMaskingGroup(StorageSystem system,
+            List<URI> mirrors, TaskCompleter completer)
+            throws DeviceControllerException {
+		throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+	}
 }

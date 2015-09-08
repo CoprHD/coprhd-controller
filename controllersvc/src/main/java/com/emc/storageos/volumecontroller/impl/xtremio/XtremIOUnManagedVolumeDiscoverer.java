@@ -218,8 +218,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
                         storageSystem, storagePool, dbClient);
 
                 if (hasSnaps) {
-                    StringSet parentMatchedVPools = unManagedVolume.getVolumeInformation().get(
-                            SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString());
+                    StringSet parentMatchedVPools = unManagedVolume.getSupportedVpoolUris();
                     StringSet discoveredSnaps = discoverVolumeSnaps(storageSystem, volume.getSnaps(), unManagedVolumeNatvieGuid,
                             parentMatchedVPools, xtremIOClient, xioClusterName, dbClient, igUnmanagedVolumesMap, igKnownVolumesMap);
                     // set the HAS_REPLICAS property
@@ -259,7 +258,7 @@ public class XtremIOUnManagedVolumeDiscoverer {
             unManagedVolumesToCreate.clear();
         }
         if (!unManagedVolumesToUpdate.isEmpty()) {
-            partitionManager.updateInBatches(unManagedVolumesToUpdate,
+            partitionManager.updateAndReIndexInBatches(unManagedVolumesToUpdate,
                     Constants.DEFAULT_PARTITION_SIZE, dbClient, UNMANAGED_VOLUME);
             unManagedVolumesToUpdate.clear();
         }
@@ -314,22 +313,14 @@ public class XtremIOUnManagedVolumeDiscoverer {
 
         StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
 
-        if (unManagedVolumeInformation.containsKey(SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())) {
-            log.debug("Matched Pools :" + Joiner.on("\t").join(parentMatchedVPools));
-            if (null != parentMatchedVPools && parentMatchedVPools.isEmpty()) {
-                // replace with empty string set doesn't work, hence added explicit code to remove all
-                unManagedVolumeInformation.get(
-                        SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).clear();
-            } else {
-                // replace with new StringSet
-                unManagedVolumeInformation.get(
-                        SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).replace(parentMatchedVPools);
-                log.info("Replaced Pools :" + Joiner.on("\t").join(unManagedVolumeInformation.get(
-                        SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())));
-            }
+        log.debug("Matched Pools : {}", Joiner.on("\t").join(parentMatchedVPools));
+        if (null == parentMatchedVPools || parentMatchedVPools.isEmpty()) {
+            // Clearn all vpools as no matching vpools found.
+            unManagedVolume.getSupportedVpoolUris().clear();
         } else {
-            unManagedVolumeInformation.put(
-                    SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString(), parentMatchedVPools);
+            // replace with new StringSet
+            unManagedVolume.getSupportedVpoolUris().replace(parentMatchedVPools);
+            log.info("Replaced Pools :{}", Joiner.on("\t").join(unManagedVolume.getSupportedVpoolUris()));
         }
     }
 
@@ -641,24 +632,14 @@ public class XtremIOUnManagedVolumeDiscoverer {
             }
             StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(dbClient, pool.getId(),
                     unManagedVolumeCharacteristics.get(SupportedVolumeCharacterstics.IS_THINLY_PROVISIONED.toString()));
-            if (unManagedVolumeInformation
-                    .containsKey(SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())) {
-
-                log.debug("Matched Pools :" + Joiner.on("\t").join(matchedVPools));
-                if (null != matchedVPools && matchedVPools.isEmpty()) {
-                    // replace with empty string set doesn't work, hence added explicit code to remove all
-                    unManagedVolumeInformation.get(
-                            SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).clear();
-                } else {
-                    // replace with new StringSet
-                    unManagedVolumeInformation.get(
-                            SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).replace(matchedVPools);
-                    log.info("Replaced Pools :" + Joiner.on("\t").join(unManagedVolumeInformation.get(
-                            SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())));
-                }
+            log.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
+            if (null == matchedVPools || matchedVPools.isEmpty()) {
+                // clear all existing supported vpools.
+                unManagedVolume.getSupportedVpoolUris().clear();
             } else {
-                unManagedVolumeInformation.put(
-                        SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString(), matchedVPools);
+                // replace with new StringSet
+                unManagedVolume.getSupportedVpoolUris().replace(matchedVPools);
+                log.info("Replaced Pools : {}", Joiner.on("\t").join(unManagedVolume.getSupportedVpoolUris()));
             }
 
         }

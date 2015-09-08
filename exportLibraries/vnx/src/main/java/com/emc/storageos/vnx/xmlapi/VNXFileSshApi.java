@@ -38,6 +38,7 @@ public class VNXFileSshApi {
     public static final String VNX_CIFS = "cifs";
     public static final String NAS_FS = "/nas/bin/nas_fs";
     public static final String SHARE = "share";
+    public static final String SERVER_MODEL = "/nas/sbin/model";
 
     private static final Logger _log = LoggerFactory.getLogger(VNXFileSshApi.class);
 
@@ -857,6 +858,35 @@ public class VNXFileSshApi {
         }
 
         return userInfo;
+    }
+    
+    public String getModelInfo() {
+        String modelStr = new String("VNX7500");
+        
+        try {
+            // Prepare arguments for CLI command
+            StringBuilder data = new StringBuilder();
+            data.append("");
+
+            // Execute command
+            XMLApiResult result = this.executeSsh(VNXFileSshApi.SERVER_USER_CMD, data.toString());
+
+            if (result.isCommandSuccess()) {
+                // Parse message to get user properties
+            	String tmpModelStr = result.getMessage();
+            	if(tmpModelStr != null && tmpModelStr.startsWith("VNX")) {
+            		modelStr = tmpModelStr;
+            	}
+            }
+            
+        } catch (Exception ex) {
+            StringBuilder message = new StringBuilder();
+            message.append("VNX File getModel failed ");
+            message.append(", due to {}");
+            _log.error(message.toString(), ex);
+        }
+
+        return modelStr;
     }
 
     // nas_fs -name testSAPCliThinFS -type uxfs -create size=100M pool="clarsas_archive" -auto_extend yes -thin yes

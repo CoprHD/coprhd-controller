@@ -54,7 +54,7 @@ public enum MetricsKeys {
     /** Storage capacity of storage objects */
     storageCapacity,
     /** Indicate load on datamover in compared with all dataMover combined. */
-    loadFactor,
+    percentLoad,
 
     /** Indicates whether the storage server is overloaded or not */
     overLoaded,

@@ -10,7 +10,6 @@ import static java.text.MessageFormat.format;
 
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -307,10 +306,11 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
             BlockSnapshot snapshot, String taskId) throws ControllerException {
 
         _log.info("START establish Volume and Snapshot group relation");
-        Operation op = _dbClient.createTaskOpStatus(Volume.class, sourceVolume
-                .getId(), taskId,
-                ResourceOperationTypeEnum.ESTABLISH_VOLUME_SNAPSHOT, snapshot
-                        .getId().toString());
+        // Create the task on the block snapshot
+        Operation op = _dbClient.createTaskOpStatus(BlockSnapshot.class, snapshot.getId(),
+                taskId, ResourceOperationTypeEnum.ESTABLISH_VOLUME_SNAPSHOT);
+        snapshot.getOpStatus().put(taskId, op);
+
         try {
             BlockController controller = getController(BlockController.class,
                     storageSystem.getSystemType());
@@ -322,9 +322,9 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
                     + "Source volume: %s, Snapshot: %s",
                     sourceVolume.getId(), snapshot.getId());
             _log.error(errorMsg, e);
-            _dbClient.error(Volume.class, sourceVolume.getId(), taskId, e);
+            _dbClient.error(BlockSnapshot.class, snapshot.getId(), taskId, e);
         }
 
-        return toTask(sourceVolume, Arrays.asList(snapshot), taskId, op);
+        return toTask(snapshot, taskId, op);
     }
 }

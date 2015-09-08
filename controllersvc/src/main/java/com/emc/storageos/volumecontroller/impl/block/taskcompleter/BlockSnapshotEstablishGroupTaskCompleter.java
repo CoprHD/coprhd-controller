@@ -33,10 +33,12 @@ public class BlockSnapshotEstablishGroupTaskCompleter extends BlockSnapshotTaskC
 
     public BlockSnapshotEstablishGroupTaskCompleter(URI id, String opId) {
         super(BlockSnapshot.class, id, opId);
+        setNotifyWorkflow(true);
     }
 
     public BlockSnapshotEstablishGroupTaskCompleter(List<URI> ids, String opId) {
         super(BlockSnapshot.class, ids, opId);
+        setNotifyWorkflow(true);
     }
 
     @Override

@@ -494,12 +494,6 @@ public class BlockSnapshotService extends TaskResourceService {
         // Create the task identifier.
         String taskId = UUID.randomUUID().toString();
 
-        // Create the operation status entry in the status map for the snapshot.
-        Operation op = new Operation();
-        op.setResourceType(ResourceOperationTypeEnum.ESTABLISH_VOLUME_SNAPSHOT);
-        _dbClient.createTaskOpStatus(BlockSnapshot.class, snapshot.getId(), taskId, op);
-        snapshot.getOpStatus().put(taskId, op);
-
         BlockServiceApi blockServiceApiImpl = getBlockServiceImpl("default");
 
         // Create the audit log entry.

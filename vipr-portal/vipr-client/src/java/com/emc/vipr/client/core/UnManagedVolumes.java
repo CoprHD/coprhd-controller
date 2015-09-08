@@ -11,6 +11,7 @@ import java.util.List;
 
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.TaskList;
 import com.emc.storageos.model.block.UnManagedBulkRep;
 import com.emc.storageos.model.block.UnManagedVolumeList;
@@ -151,10 +152,10 @@ public class UnManagedVolumes extends AbstractCoreBulkResources<UnManagedVolumeR
      *            the ID of the host.
      * @return the list of unmanaged volume references.
      */
-    public List<NamedRelatedResourceRep> listByHost(URI hostId) {
+    public List<RelatedResourceRep> listByHost(URI hostId) {
         UnManagedVolumeList response = client.get(UnManagedVolumeList.class,
                 PathConstants.UNMANAGED_VOLUME_BY_HOST_URL, hostId);
-        return ResourceUtils.defaultList(response.getNamedUnManagedVolumes());
+        return ResourceUtils.defaultList(response.getUnManagedVolumes());
     }
 
     /**
@@ -179,7 +180,7 @@ public class UnManagedVolumes extends AbstractCoreBulkResources<UnManagedVolumeR
      * @return the list of unmanaged volumes.
      */
     public List<UnManagedVolumeRestRep> getByHost(URI hostId, ResourceFilter<UnManagedVolumeRestRep> filter) {
-        List<NamedRelatedResourceRep> refs = listByHost(hostId);
+        List<RelatedResourceRep> refs = listByHost(hostId);
         return getByRefs(refs, filter);
     }
 
@@ -192,10 +193,10 @@ public class UnManagedVolumes extends AbstractCoreBulkResources<UnManagedVolumeR
      *            the ID of the cluster.
      * @return the list of unmanaged volume references.
      */
-    public List<NamedRelatedResourceRep> listByCluster(URI clusterId) {
+    public List<RelatedResourceRep> listByCluster(URI clusterId) {
         UnManagedVolumeList response = client.get(UnManagedVolumeList.class,
                 PathConstants.UNMANAGED_VOLUME_BY_CLUSTER_URL, clusterId);
-        return ResourceUtils.defaultList(response.getNamedUnManagedVolumes());
+        return ResourceUtils.defaultList(response.getUnManagedVolumes());
     }
 
     /**
@@ -221,7 +222,7 @@ public class UnManagedVolumes extends AbstractCoreBulkResources<UnManagedVolumeR
      * @return the list of unmanaged volumes.
      */
     public List<UnManagedVolumeRestRep> getByCluster(URI clusterId, ResourceFilter<UnManagedVolumeRestRep> filter) {
-        List<NamedRelatedResourceRep> refs = listByCluster(clusterId);
+        List<RelatedResourceRep> refs = listByCluster(clusterId);
         return getByRefs(refs, filter);
     }
 

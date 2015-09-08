@@ -56,7 +56,7 @@ public class UnManagedFileSystemList {
      * 
      * @valid none
      */
-    @XmlElement(name = "unmanaged_filesystem")
+    @XmlElement(name = "named_unmanaged_filesystem")
     public List<NamedRelatedResourceRep> getNamedUnManagedFileSystem() {
         if (namedUnManagedFileSystem == null) {
             namedUnManagedFileSystem = new ArrayList<NamedRelatedResourceRep>();

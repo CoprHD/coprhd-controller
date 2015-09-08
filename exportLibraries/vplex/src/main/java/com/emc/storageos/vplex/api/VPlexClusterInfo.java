@@ -21,13 +21,13 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
     private String clusterId;
 
     // Information about the storage systems accessible to the cluster.
-    List<VPlexStorageSystemInfo> storageSystemInfoList = new ArrayList<VPlexStorageSystemInfo>();
+    private List<VPlexStorageSystemInfo> storageSystemInfoList = new ArrayList<VPlexStorageSystemInfo>();
 
     // Information about the storage volumes accessible to the cluster.
-    List<VPlexStorageVolumeInfo> storageVolumeInfoList = new ArrayList<VPlexStorageVolumeInfo>();
+    private List<VPlexStorageVolumeInfo> storageVolumeInfoList = new ArrayList<VPlexStorageVolumeInfo>();
 
     // Information about the system volumes accessible to the cluster.
-    List<VPlexSystemVolumeInfo> systemVolumeInfoList = new ArrayList<VPlexSystemVolumeInfo>();
+    private List<VPlexSystemVolumeInfo> systemVolumeInfoList = new ArrayList<VPlexSystemVolumeInfo>();
     
 	/**
      * Getter for the assembly id.
@@ -139,7 +139,7 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
         for (VPlexStorageVolumeInfo storageVolumeInfo : storageVolumeInfoList) {
             String clusterVolumeName = storageVolumeInfo.getName();
             s_logger.info("Cluster volume name is {}", clusterVolumeName);
-            int startIndex = clusterVolumeName.indexOf(":") + 1;
+            int startIndex = clusterVolumeName.indexOf(':') + 1;
             if (startIndex != -1) {
                 clusterVolumeName = clusterVolumeName.substring(startIndex);
                 s_logger.info("Trimmed cluster volume name is {}", clusterVolumeName);
@@ -217,8 +217,8 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
         StringBuilder str = new StringBuilder();
         str.append("ClusterInfo ( ");
         str.append(super.toString());
-        str.append(", assemblyId: " + topLevelAssembly);
-        str.append(", clusterId: " + clusterId);
+        str.append(", assemblyId: ").append(topLevelAssembly);
+        str.append(", clusterId: ").append(clusterId);
         for (VPlexStorageSystemInfo storageSystemInfo : storageSystemInfoList) {
             str.append(", ");
             str.append(storageSystemInfo.toString());

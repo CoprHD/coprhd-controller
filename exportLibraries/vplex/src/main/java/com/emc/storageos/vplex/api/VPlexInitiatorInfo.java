@@ -246,9 +246,9 @@ public class VPlexInitiatorInfo extends VPlexResourceInfo {
         StringBuilder str = new StringBuilder();
         str.append("InitiatorInfo ( ");
         str.append(super.toString());
-        str.append(", portWwn: " + portWwn);
-        str.append(", nodeWwn: " + nodeWwn);
-        str.append(", registrationName: " + registrationName);
+        str.append(", portWwn: ").append(portWwn);
+        str.append(", nodeWwn: ").append(nodeWwn);
+        str.append(", registrationName: ").append(registrationName);
         str.append(" )");
         return str.toString();
     }

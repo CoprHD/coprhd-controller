@@ -711,6 +711,21 @@ public interface VPlexApiExceptions {
 
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException systemTypeNotSupported(String systemType);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedGettingStorageVolumeInfoForIngestion(String reason);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedGettingDeviceNameForStorageVolume(String reason);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException deviceStructureIsIncompatibleForIngestion(String reason);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException failedGettingDeviceStructure(String reason);
+
+    @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
+    public VPlexApiException backendIngestionContextLoadFailure(String reason);
     
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException failedGettingStorageVolumeInfo(String clusterName, String status);
@@ -723,5 +738,4 @@ public interface VPlexApiExceptions {
     
     @DeclareServiceCode(ServiceCode.VPLEX_API_ERROR)
     public VPlexApiException failedToValidateExportMask(String exporURI, final Throwable cause);
-    
 }

@@ -85,9 +85,9 @@ public class VPlexTargetInfo extends VPlexResourceInfo {
         StringBuilder str = new StringBuilder();
         str.append("TargetInfo ( ");
         str.append(super.toString());
-        str.append(", portWWN: " + portWwn);
-        str.append(", nodeWWN: " + nodeWwn);
-        str.append(", exportStatus: " + exportStatus);
+        str.append(", portWWN: ").append(portWwn);
+        str.append(", nodeWWN: ").append(nodeWwn);
+        str.append(", exportStatus: ").append(exportStatus);
         str.append(" )");
         return str.toString();
     }

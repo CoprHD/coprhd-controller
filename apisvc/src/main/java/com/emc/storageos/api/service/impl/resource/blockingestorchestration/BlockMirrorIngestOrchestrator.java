@@ -37,7 +37,7 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
             List<UnManagedVolume> unManagedVolumesIngestedSuccessfully,
             Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported,
             Class<T> clazz,
-            Map<String, StringBuffer> taskStatusMap) throws IngestionException {
+            Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) throws IngestionException {
 
         // Validate the unManagedVolume properties
         validateUnManagedVolume(unManagedVolume, vPool);

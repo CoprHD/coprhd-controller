@@ -9,11 +9,10 @@ import java.util.List;
 
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
 import com.emc.storageos.model.file.UnManagedFileSystemRestRep;
-import com.emc.vipr.client.core.filters.UnmanagedFileSystemVirtualPoolFilter;
 
 public class GetUnmanagedFilesystems extends ViPRExecutionTask<List<UnManagedFileSystemRestRep>> {
-    private URI storageSystem;
-    private URI virtualPool;
+    private final URI storageSystem;
+    private final URI virtualPool;
 
     public GetUnmanagedFilesystems(String storageSystem, String virtualPool) {
         this(uri(storageSystem), uri(virtualPool));
@@ -27,7 +26,6 @@ public class GetUnmanagedFilesystems extends ViPRExecutionTask<List<UnManagedFil
 
     @Override
     public List<UnManagedFileSystemRestRep> executeTask() throws Exception {
-        UnmanagedFileSystemVirtualPoolFilter filter = new UnmanagedFileSystemVirtualPoolFilter(virtualPool);
-        return getClient().unmanagedFileSystems().getByStorageSystem(storageSystem, filter);
+        return getClient().unmanagedFileSystems().getByStorageSystemVirtualPool(storageSystem, virtualPool, null);
     }
 }

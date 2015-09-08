@@ -70,6 +70,7 @@ public class VPlexApiConstants {
     public static final URI URI_DISTRIBUTED_DEVICES = URI.create("/vplex/distributed-storage/distributed-devices/");
     public static final URI URI_CLAIM_VOLUME = URI.create("/vplex/storage-volume+claim");
     public static final URI URI_UNCLAIM_VOLUME = URI.create("/vplex/storage-volume+unclaim");
+    public static final URI URI_STORAGE_VOLUME_USED_BY = URI.create("/vplex/storage-volume+used-by");
     public static final URI URI_CREATE_EXTENT = URI.create("/vplex/extent+create");
     public static final URI URI_DESTROY_EXTENT = URI.create("/vplex/extent+destroy");
     public static final URI URI_CREATE_LOCAL_DEVICE = URI.create("/vplex/local-device+create");
@@ -160,6 +161,8 @@ public class VPlexApiConstants {
     public static final String ARG_PAUSED = "--paused";
     public static final String ARG_DISCARD = "--discard";
     public static final String ARG_GEOMETRY_RAID0 = "raid-0";
+    public static final String ARG_GEOMETRY_RAID1 = "raid-1";
+    public static final String ARG_GEOMETRY_RAIDC = "raid-C";
     public static final String ARG_UNCLAIM = "--unclaim-storage-volumes";
     public static final String ARG_APPC = "--appc";
     public static final String ARG_THIN_REBUILD = "--thin-rebuild";
@@ -172,12 +175,15 @@ public class VPlexApiConstants {
     public static final String UNDERSCORE_OPERATOR = "_";
     public static final String PLUS_OPERATOR = "+";
     public static final String HYPHEN_OPERATOR = "-";
-
+    
     // Virtual Volume Locality
     public static final String LOCAL_VIRTUAL_VOLUME = "local";
     public static final String DISTRIBUTED_VIRTUAL_VOLUME = "distributed";
-
-    // The prefix and suffix VPlex applies to an extent when created
+    
+    // Virtual Volume VPD-ID 
+    public static final String VOLUME_WWN_PREFIX = "VPD83T3:";
+    
+    // The prefix and suffix VPlex applies to an extent when created 
     // for a storage volume. Note that the suffix implies that only
     // one extent is created for the storage volumes.
     public static final String EXTENT_PREFIX = "extent_";
@@ -230,6 +236,9 @@ public class VPlexApiConstants {
 
     // Type for a system volume that is a logging volume
     public static final String LOGGING_VOLUME_TYPE = "logging-volume";
+
+    // Component type for a storage volume
+    public static final String STORAGE_VOLUME_TYPE = "storage-volume";
 
     // When trying to find storage volumes these parameters control how
     // long we will try and find those volumes before giving up.

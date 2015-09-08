@@ -137,6 +137,34 @@ public class DisasterRecoveryService extends TaggedResource {
         return null;
     }
 
+    @DELETE
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}")
+    public SiteRestRep removeStandby(@PathParam("id") String id) {
+        log.info("Begin to remove standby site from local vdc");
+        
+        VirtualDataCenter vdc = VdcUtil.getLocalVdc();
+        String primarySiteId = this.coordinator.getPrimarySiteId();
+        Collection<String> standbyIds = getStandbyIds(primarySiteId, vdc.getSiteIDs());
+        
+        List<URI> ids = _dbClient.queryByType(Site.class, true);
+        Iterator<Site> iter = _dbClient.queryIterativeObjects(Site.class, ids);
+        while (iter.hasNext()) {
+            Site standby = iter.next();
+            if (standbyIds.contains(standby.getId().toString())) {
+                if (standby.getUuid().equals(id)) {
+                    log.info("Find standby site in local VDC and remove it");
+                    vdc.getSiteIDs().remove(standby.getId());
+                    _dbClient.persistObject(vdc);
+                    _dbClient.markForDeletion(standby);
+                    return SiteMapper.map(standby);
+                }
+            }
+        }
+        
+        return null;
+    }
+    
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/standby/config")
@@ -145,9 +173,9 @@ public class DisasterRecoveryService extends TaggedResource {
         String siteId = this.coordinator.getSiteId();
         VirtualDataCenter vdc = VdcUtil.getLocalVdc();
         SecretKey key = apiSignatureGenerator.getSignatureKey(SignatureKeyType.INTERVDC_API);
-        
+
         Site localSite = new Site();
-        
+
         localSite.setUuid(siteId);
         localSite.setVip(vdc.getApiEndpoint());
         localSite.getHostIPv4AddressMap().putAll(vdc.getHostIPv4AddressesMap());
@@ -165,29 +193,29 @@ public class DisasterRecoveryService extends TaggedResource {
     public SiteRestRep addPrimary(SiteAddParam param) {
         log.info("Begin to add primary site");
 
-        Site standbySite = new Site();
-        standbySite.setId(URIUtil.createId(Site.class));
-        standbySite.setUuid(param.getUuid());
-        standbySite.setName(param.getName());
-        standbySite.setVip(param.getVip());
-        standbySite.getHostIPv4AddressMap().putAll(new StringMap(param.getHostIPv4AddressMap()));
-        standbySite.getHostIPv6AddressMap().putAll(new StringMap(param.getHostIPv6AddressMap()));
-        
+        Site primarySite = new Site();
+        primarySite.setId(URIUtil.createId(Site.class));
+        primarySite.setUuid(param.getUuid());
+        primarySite.setName(param.getName());
+        primarySite.setVip(param.getVip());
+        primarySite.getHostIPv4AddressMap().putAll(new StringMap(param.getHostIPv4AddressMap()));
+        primarySite.getHostIPv6AddressMap().putAll(new StringMap(param.getHostIPv6AddressMap()));
+
         VirtualDataCenter vdc = VdcUtil.getLocalVdc();
 
         if (vdc.getSiteIDs() == null) {
             vdc.setSiteIDs(new StringSet());
         }
 
-        vdc.getSiteIDs().add(standbySite.getId().toString());
+        vdc.getSiteIDs().add(primarySite.getId().toString());
 
         log.info("Persist primary site to DB");
-        _dbClient.createObject(standbySite);
-        
+        _dbClient.createObject(primarySite);
+
         log.info("Update VCD to persist new site ID");
         _dbClient.persistObject(vdc);
 
-        return SiteMapper.map(standbySite);
+        return SiteMapper.map(primarySite);
     }
     
     @Override

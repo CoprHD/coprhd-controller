@@ -4,12 +4,19 @@
  */
 package com.emc.vipr.client;
 
+import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.Site;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.model.dr.SiteAddParam;
+import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.model.tenant.TenantResponse;
 import com.emc.storageos.model.user.UserInfo;
 import com.emc.vipr.client.core.*;
 import com.emc.vipr.client.impl.RestClient;
 
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 
 public class ViPRCoreClient {
     protected RestClient client;
@@ -314,5 +321,22 @@ public class ViPRCoreClient {
     
     public Site site(){
         return new Site(this, client);
+    }
+    
+    public static void main(String[] args) {
+        ViPRCoreClient client = new ViPRCoreClient(args[0], true);
+        SiteRestRep standbyConfig = client.site().getStandbyConfig();
+        System.out.println("standbyConfig: " + standbyConfig.toString());
+        SiteAddParam siteParam = new SiteAddParam();
+        siteParam.setUuid("Site-UUID-1");
+        siteParam.setVip("vip");
+        siteParam.setName("vdc1");
+        Map<String, String> ipv4 = new HashMap<String, String>();
+        ipv4.put("vipr1", "10.247.101.111");
+        ipv4.put("vipr2", "10.247.101.112");
+        ipv4.put("vipr3", "10.247.101.113");
+        siteParam.setHostIPv4AddressMap(ipv4);
+        SiteRestRep addPrimary = client.site().addPrimary(siteParam);
+        System.out.println("addPrimary:" + addPrimary.toString());
     }
 }

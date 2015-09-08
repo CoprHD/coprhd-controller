@@ -49,6 +49,7 @@ public class Site extends DataObject {
     }
     
     @Name("secretKey")
+    @Encrypt
     public String getSecretKey() {
         return secretKey;
     }

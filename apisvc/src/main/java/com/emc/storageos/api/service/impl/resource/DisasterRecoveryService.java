@@ -75,11 +75,6 @@ public class DisasterRecoveryService extends TaggedResource {
         }
         
         VirtualDataCenter vdc = queryLocalVDC();
-
-        if (vdc.getSiteIDs() == null) {
-            vdc.setSiteIDs(new StringSet());
-        }
-
         vdc.getSiteIDs().add(standbySite.getId().toString());
 
         log.info("Persist standby site to DB");

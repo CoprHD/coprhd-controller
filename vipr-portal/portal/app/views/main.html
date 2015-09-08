@@ -208,7 +208,7 @@
         #{/deadbolt.restrict}
 
         #{deadbolt.restrict roles:[['SECURITY_ADMIN'], ['TENANT_ADMIN']]}
-        #{if util.VCenterUtils.checkCompatibleVDCVersion(controllers.auth.UserGroup.EXPECTED_GEO_VERSION)}
+        #{if controllers.infra.VirtualDataCenters.checkCompatibleVDCVersion(controllers.auth.UserGroup.EXPECTED_GEO_VERSION)}
             #{nav.item 'userGroups', href: @auth.UserGroup.list()/}
         #{/if}	
         #{/deadbolt.restrict}

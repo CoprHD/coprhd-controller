@@ -148,7 +148,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     private boolean isSiteSpecificSectionInited() throws Exception {
-        String sitePath = String.format("%1$s/%2$s", ZkPath.SITES, siteId);
+        String sitePath = getSitePrefix();
         try {
             Stat stat = getZkConnection().curator().checkExists().forPath(sitePath);
             return stat != null;
@@ -159,7 +159,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     }
 
     private void createSiteSpecificSection() throws Exception {
-        String sitePath = String.format("%1$s/%2$s", ZkPath.SITES, siteId);
+        String sitePath = getSitePrefix();
         ZkConnection zkConnection = getZkConnection();
         try {
             //create /sites/${siteID} path
@@ -263,7 +263,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             checkAndCreateSiteSpecificSection();
 
             String sitePrefix = getSitePrefix();
-            String servicePath = String.format("%s%s",  sitePrefix, ZkPath.SERVICE.toString());
+            String servicePath = getServicePath();
             EnsurePath path = new EnsurePath(servicePath);
             path.ensure(_zkConnection.curator().getZookeeperClient());
         } catch (Exception e) {
@@ -480,7 +480,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             configPaths = _zkConnection.curator().getChildren().forPath(serviceParentPath);
         } catch (KeeperException.NoNodeException ignore) {
             // Ignore exception, don't re-throw
-            log.info("Caught exception but ignoring it: " + ignore);
+            log.debug("Caught exception but ignoring it: " + ignore);
             return Arrays.asList(new Configuration[0]);
         } catch (Exception e) {
             throw CoordinatorException.fatals.unableToListAllConfigurationForKind(kind, e);
@@ -499,6 +499,13 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         StringBuilder builder = new StringBuilder(ZkPath.SITES.toString());
         builder.append("/");
         builder.append(siteId);
+        return builder.toString();
+    }
+
+    private String getServicePath() {
+        String sitePrefix= getSitePrefix();
+        StringBuilder builder = new StringBuilder(sitePrefix);
+        builder.append(ZkPath.SERVICE.toString());
         return builder.toString();
     }
 
@@ -593,10 +600,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      */
     private List<String> lookupServicePath(String serviceRoot) throws CoordinatorException {
         List<String> services = null;
-        String fullPath = null;
-        String sitePrefix = getSitePrefix();
+        String fullPath = String.format("%1$s/%2$s", getServicePath(), serviceRoot);
         try {
-            fullPath = String.format("%1$s%2$s/%3$s", sitePrefix, ZkPath.SERVICE.toString(), serviceRoot);
             services = _zkConnection.curator().getChildren().forPath(fullPath);
         } catch (KeeperException.NoNodeException e) {
             throw CoordinatorException.retryables.cannotFindNode(fullPath, e);
@@ -628,9 +633,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             data = _zkConnection
                     .curator()
                     .getData()
-                    .forPath(
-                            String.format("%1$s%2$s/%3$s/%4$s", sitePrefix, ZkPath.SERVICE.toString(), serviceRoot,
-                                    id));
+                    .forPath(String.format("%1$s/%2$s/%3$s", getServicePath(), serviceRoot, id));
             return data;
         } catch (Exception e) {
             log.warn("e=", e);
@@ -646,7 +649,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
         if (servicePaths.isEmpty()) {
             throw CoordinatorException.retryables.cannotLocateService(String.format("%1$s/%2$s",
-                    ZkPath.SERVICE.toString(), serviceRoot));
+                    getServicePath(), serviceRoot));
         }
         // poor man's load balancing
         Collections.shuffle(servicePaths);

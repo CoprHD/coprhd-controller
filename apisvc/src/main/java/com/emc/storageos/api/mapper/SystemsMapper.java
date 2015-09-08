@@ -199,7 +199,7 @@ public class SystemsMapper {
         if (percentBusy != null) {
             to.setAvgEmaPercentagebusy(percentBusy.toString());
         }
-        percentBusy = MetricsKeys.getDoubleOrNull(MetricsKeys.avgPercentBusy, from.getMetrics());
+        percentBusy = MetricsKeys.getDoubleOrNull(MetricsKeys.avgPortPercentBusy, from.getMetrics());
         if (percentBusy != null) {
             to.setAvgPercentagebusy(percentBusy.toString());
         }

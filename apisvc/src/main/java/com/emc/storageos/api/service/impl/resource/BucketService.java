@@ -161,13 +161,15 @@ public class BucketService extends TaskResourceService {
         ArgValidator.checkFieldNotNull(project.getTenantOrg(), "project");
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
 
+        final String bucketName = param.getNamespace() + "_" + project.getLabel() + "_" + param.getLabel();
+        final String bucketPath = param.getNamespace() + "/" + project.getLabel() + "/" + param.getLabel();
         // No need to generate any name -- Since the requirement is to use the customizing label we should use the same.
         // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _
-        final String bucketName = param.getNamespace() + "_" + project.getLabel() + "_" + param.getLabel();
         final String convertedName = bucketName.replaceAll("[^\\dA-Za-z\\_]", "");
         _log.info("Original name {} and converted name {}", bucketName, convertedName);
         // There could be bucket with same name created with different projects/namespaces. Updating name to match this scenario.
         param.setLabel(convertedName);
+        param.setPath(bucketPath);
 
         // Check if there already exist a bucket with same name.
         checkForDuplicateName(param.getLabel(), Bucket.class, null, null, _dbClient);
@@ -368,7 +370,7 @@ public class BucketService extends TaskResourceService {
         Bucket bucket = new Bucket();
         bucket.setId(URIUtil.createId(Bucket.class));
         bucket.setLabel(param.getLabel());
-        bucket.setPath(param.getNamespace() + "/" + project.getLabel() + "/" + param.getLabel());
+        bucket.setPath(param.getPath());
         bucket.setHardQuota(SizeUtil.translateSize(param.getHardQuota()));
         bucket.setSoftQuota(SizeUtil.translateSize(param.getSoftQuota()));
         bucket.setRetention(Integer.valueOf(param.getRetention()));

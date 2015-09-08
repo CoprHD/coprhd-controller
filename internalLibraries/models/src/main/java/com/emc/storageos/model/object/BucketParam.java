@@ -26,6 +26,7 @@ public class BucketParam {
     private String retention;
     private String namespace;
     private String owner;
+    private String path;
 
     public BucketParam() {
     }
@@ -138,5 +139,14 @@ public class BucketParam {
 
     public void setOwner(String owner) {
         this.owner = owner;
+    }
+
+    @XmlElement(required = false, name = "path")
+    public String getPath() {
+        return path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
     }
 }

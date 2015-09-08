@@ -364,12 +364,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     Volume sourceVolume = StorageScheduler.getPrecreatedVolume(_dbClient, taskList, newVolumeLabel);
                     
                     // Assemble a Replication Set; A Collection of volumes.  One production, and any number of targets.
-                    String rsetName = null;
-                    if (numberOfVolumesInRequest > 1) {
-                        rsetName = "RSet-" + newVolumeLabel + "-" + totalVolumeCount+1;
-                    } else {
-                        rsetName = "RSet-" + newVolumeLabel;
-                    }
+                        String rsetName = "RSet-" + newVolumeLabel;
     
                     // Increment total volume count
                     totalVolumeCount++;
@@ -378,31 +373,31 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     param.setName(newVolumeLabel);
                                                             
                     ///////// SOURCE ///////////                       
-                        if (!isChangeVpoolForProtectedVolume) {                       
+                        if (!isChangeVpoolForProtectedVolume) {
                             Volume changeVpoolVolume = null;
-                            if (isChangeVpool) {                            
+                            if (isChangeVpool) {
                                 changeVpoolVolume = _dbClient.queryObject(Volume.class, changeVpoolVolumeURI);
                                 _log.info(String.format("Change Vpool, use existing Source Volume [%s].", changeVpoolVolume.getLabel()));
                             } else {
-                        _log.info("Create RP Source Volume...");
+                                _log.info("Create RP Source Volume...");
                             }
 
                         // Create the source
                         sourceVolume = createRecoverPointVolume(sourceRec, newVolumeLabel, project, capabilities, 
-                                                                    consistencyGroup, param, protectionSystemURI, Volume.PersonalityTypes.SOURCE,
-                                                                    rsetName, sourceVolume, taskList, task, 
-                                                                    (metroPointEnabled ? activeSourceCopyName : srcCopyName), 
-                                                                    descriptors, sourceJournal, 
-                                                                        (metroPointEnabled ? standbyJournal : null), 
-                                                                        changeVpoolVolume, isChangeVpool, isSrcAndHaSwapped);                      
+                                    consistencyGroup, param, protectionSystemURI, Volume.PersonalityTypes.SOURCE,
+                                    rsetName, sourceVolume, taskList, task,
+                                    (metroPointEnabled ? activeSourceCopyName : srcCopyName),
+                                    descriptors, sourceJournal,
+                                    (metroPointEnabled ? standbyJournal : null),
+                                    changeVpoolVolume, isChangeVpool, isSrcAndHaSwapped);
                     } else {                                                                                        
                             _log.info("Change vpool on already protected Volume...");
-                            // Get one of the existing protected source volumes from the CG that we loaded earlier, doesn't matter which. 
-                            sourceVolume = allVolumesInCG.get(volumeCount);                        
-                        }                                                
-                    
+                            // Get one of the existing protected source volumes from the CG that we loaded earlier, doesn't matter which.
+                            sourceVolume = allVolumesInCG.get(volumeCount);
+                        }
+
                         volumeURIs.add(sourceVolume.getId());
-                        
+
                     // NOTE: This is only needed for MetroPoint and Distributed RP+VPLEX(HA as RP source), 
                     //       nothing will happen for regular RP volumes.
                     //
@@ -429,7 +424,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         // Grab the target's varray
                         VirtualArray targetVirtualArray = _dbClient.queryObject(VirtualArray.class, targetRec.getVirtualArray());
                                                 
-                            _log.info(String.format("Create Target (%s)...", targetVirtualArray.getLabel()));
+                        _log.info(String.format("Create Target (%s)...", targetVirtualArray.getLabel()));
                         
                         // Check to see if there is a change vpool of a already protected source, if so, we could potentially not need
                         // to provision this target.
@@ -448,10 +443,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         
                         // Create the target
                         Volume targetVolume = createRecoverPointVolume(targetRec, targetVolumeName,
-                                                                        project, capabilities, consistencyGroup, param,                                                                            
-                                                                        protectionSystemURI, Volume.PersonalityTypes.TARGET,
-                                                                        rsetName, sourceVolume, taskList, task, null, descriptors,
-                                                                            targetJournals.get(targetVirtualArray.getId()), null,  null, false, false);
+                                    project, capabilities, consistencyGroup, param,
+                                    protectionSystemURI, Volume.PersonalityTypes.TARGET,
+                                    rsetName, null, taskList, task, null, descriptors,
+                                    targetJournals.get(targetVirtualArray.getId()), null, null, false, false);
                         volumeInfoBuffer.append(logVolumeInfo(targetVolume));                                    
                         volumeURIs.add(targetVolume.getId());
                     }
@@ -489,10 +484,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                           
                             // Create the standby target
                             Volume standbyTargetVolume = createRecoverPointVolume(standbyTargetRec, 
-                                                                                    standbyTargetVolumeName,
-                                                                                    project, capabilities, consistencyGroup, param,                                                                            
-                                                                                    protectionSystemURI, Volume.PersonalityTypes.TARGET,
-                                                                                    rsetName, sourceVolume, taskList, task, null, descriptors, 
+                                        standbyTargetVolumeName,
+                                        project, capabilities, consistencyGroup, param,
+                                        protectionSystemURI, Volume.PersonalityTypes.TARGET,
+                                        rsetName, null, taskList, task, null, descriptors,
                                                                                         targetJournals.get(standyTargetVirtualArray.getId()), null,  null, false, false);
                             volumeInfoBuffer.append(logVolumeInfo(standbyTargetVolume));                                    
                             volumeURIs.add(standbyTargetVolume.getId());                                                      
@@ -916,7 +911,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                          sourceVolume, journalVolume, standbyJournalVolume, vplex, 
                                          changeVpoolVolume);
 
-            boolean createTask = isTaskRequired(rpVolume, capabilities, vplex, isChangeVpool);
+            boolean createTask = isTaskRequired(rpVolume, capabilities, vplex, isChangeVpool, taskList);
             if (createTask) {
                 // Create a task for this volume
                 createTaskForVolume(rpVolume, capabilities, taskList, task, isChangeVpool);
@@ -929,16 +924,18 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * Determines whether or not we need to generate a task for this operation.
      * 
      * @param rpVolume Volume to check
-     * @param capabilities 
+     * @param capabilities
      * @param vplex VPLEX flag
      * @param isChangeVpool Change vpool flag
+     * @param taskList task list
      * @return True is task is needed, false otherwise.
      */
-    private boolean isTaskRequired(Volume rpVolume, VirtualPoolCapabilityValuesWrapper capabilities, boolean vplex, boolean isChangeVpool) {
+    private boolean isTaskRequired(Volume rpVolume, VirtualPoolCapabilityValuesWrapper capabilities, boolean vplex, boolean isChangeVpool, TaskList taskList) {
         boolean rpNonVplexSourceVolume = (Volume.PersonalityTypes.SOURCE.name().equals(rpVolume.getPersonality()) && !vplex);        
         boolean rpVplexSourceVolumeAndChangeVpool = (Volume.PersonalityTypes.SOURCE.name().equals(rpVolume.getPersonality()) && vplex && isChangeVpool);
         boolean addJournalVolume = capabilities.getAddJournalCapacity();
-        boolean createTask = rpNonVplexSourceVolume || rpVplexSourceVolumeAndChangeVpool || addJournalVolume;
+        boolean notAlreadyInTaskList = (StorageScheduler.getPrecreatedVolume(_dbClient, taskList, rpVolume.getLabel()) == null);
+        boolean createTask = rpNonVplexSourceVolume || rpVplexSourceVolumeAndChangeVpool || addJournalVolume || notAlreadyInTaskList;
         return createTask;
     }
     

@@ -47,7 +47,7 @@ public class ObjectDeviceInputOutput {
 	}
 
 	public void setBlkSizeHQ(String blkSizeHQ) {
-		this.name = blkSizeHQ;
+		this.blkSizeHQ = blkSizeHQ;
 	}
 	
 	public String getBlkSizeHQ() {
@@ -55,7 +55,7 @@ public class ObjectDeviceInputOutput {
 	}
 
 	public void setNotSizeSQ(String notSizeSQ) {
-		this.name = notSizeSQ;
+		this.notSizeSQ = notSizeSQ;
 	}
 	
 	public String getNotSizeSQ() {

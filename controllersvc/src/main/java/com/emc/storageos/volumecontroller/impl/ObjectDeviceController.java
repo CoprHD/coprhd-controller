@@ -80,7 +80,8 @@ public class ObjectDeviceController implements ObjectController {
 	}
 
 	@Override
-	public void createBucket(URI storage, URI uriPool, URI bkt, BucketParam param, String opId) throws ControllerException {
+	public void createBucket(URI storage, URI uriPool, URI bkt, String label, String namespace, String retention,
+			String hardQuota, String softQuota, String owner, String opId) throws ControllerException {
 		// TODO Auto-generated method stub
 		_log.info("ObjectDeviceController:createBucket");
 		StorageSystem storageObj = null;
@@ -91,13 +92,13 @@ public class ObjectDeviceController implements ObjectController {
 			ObjectDeviceInputOutput args = new ObjectDeviceInputOutput();
 			storageObj = _dbClient.queryObject(StorageSystem.class, storage);
 
-			args.setName(param.getLabel());
-			args.setNamespace(param.getNamespace());
+			args.setName(label);
+			args.setNamespace(namespace);
 			args.setRepGroup(stPool.getNativeId()); //recommended storeage pool
-			args.setRetentionPeriod(param.getRetention());
-			args.setBlkSizeHQ(param.getHardQuota());
-			args.setNotSizeSQ(param.getSoftQuota());
-			args.setOwner(param.getOwner());
+			args.setRetentionPeriod(retention);
+			args.setBlkSizeHQ(hardQuota);
+			args.setNotSizeSQ(softQuota);
+			args.setOwner(owner);
 
 			BiosCommandResult result = getDevice(storageObj.getSystemType()).doCreateBucket(storageObj, args);
 			if (!result.getCommandPending()) {
@@ -106,7 +107,7 @@ public class ObjectDeviceController implements ObjectController {
 
 			_dbClient.persistObject(bucketObj);
 		} catch (Exception e) {
-			_log.error("Unable to create Bucket storage {}, pool {}, Bucket {}: {}", param);
+			_log.error("Unable to create Bucket storage");
 		}
 	}
 	

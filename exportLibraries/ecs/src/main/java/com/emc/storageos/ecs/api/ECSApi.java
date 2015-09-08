@@ -198,7 +198,6 @@ public class ECSApi {
     public String createBucket(String name, String namespace, String repGroup, String retentionPeriod, String blkSizeHQ, String notSizeSQ, String owner) throws ECSException {
     	ClientResponse clientResp = null;
     	String id = null;
-    	//String body = " { \"name\": \""+ name + "\", \"namespace\": \"" + namespace + "\"}  ";
     	String body = " { \"name\": \""+ name + "\", " + "\"vpool\": \"" + repGroup +  "\", \"namespace\": \"" + namespace + "\"}  ";
 
     	try {

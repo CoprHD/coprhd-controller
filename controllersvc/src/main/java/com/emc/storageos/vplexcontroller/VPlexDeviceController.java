@@ -4584,7 +4584,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Select from an existing ExportMask if possible
             ExportMaskPlacementDescriptor descriptor = backendMgr.chooseBackendExportMask(vplexSystem, storageSystem, varray, volumeMap,
-                    dependantStepId);
+                    lastStep);
             // For every ExportMask in the descriptor ...
             for (URI exportMaskURI : descriptor.getPlacedMasks()) {
                 // Create steps to place each set of volumes into its assigned ExportMask

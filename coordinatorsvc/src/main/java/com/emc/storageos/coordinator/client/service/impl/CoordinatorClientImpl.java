@@ -262,7 +262,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         try {
             checkAndCreateSiteSpecificSection();
 
-            String sitePrefix = getSitePrefix();
             String servicePath = getServicePath();
             EnsurePath path = new EnsurePath(servicePath);
             path.ensure(_zkConnection.curator().getZookeeperClient());

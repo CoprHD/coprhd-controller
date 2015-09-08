@@ -13,7 +13,7 @@
     <bean id="beacon" class="com.emc.storageos.coordinator.client.beacon.impl.ServiceBeaconImpl" init-method="init" destroy-method="stop">
         <property name="zkConnection" ref="zkconn"/>
         <property name="service" ref="serviceinfo"/>
-        <property name="siteId" value="${site_id}"/>
+        <property name="siteId" value="63bbac33-c68f-9afd-eb9c-10ac70375f0d"/>
     </bean>
 
 </beans>

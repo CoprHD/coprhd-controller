@@ -9,4 +9,9 @@
         <property name="endpoint" value="http://localhost:8080/"/>
         <property name="version" value="1"/>
     </bean>
+    <bean id="beacon" class="com.emc.storageos.coordinator.client.beacon.impl.ServiceBeaconImpl" init-method="init" destroy-method="stop">
+        <property name="zkConnection" ref="zkconn"/>
+        <property name="service" ref="serviceinfo"/>
+        <property name="siteId" value="63bbac33-c68f-9afd-eb9c-10ac70375f0d"/>                            
+    </bean>
 </beans>

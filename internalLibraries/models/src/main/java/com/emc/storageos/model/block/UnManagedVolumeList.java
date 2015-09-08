@@ -51,7 +51,7 @@ public class UnManagedVolumeList {
      * 
      * @valid none
      */
-    @XmlElement(name = "unmanaged_volume")
+    @XmlElement(name = "named_unmanaged_volume")
     public List<NamedRelatedResourceRep> getNamedUnManagedVolumes() {
         if (namedUnManagedVolumes == null) {
             namedUnManagedVolumes = new ArrayList<NamedRelatedResourceRep>();

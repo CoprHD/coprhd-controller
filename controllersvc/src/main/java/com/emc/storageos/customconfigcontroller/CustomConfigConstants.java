@@ -69,4 +69,5 @@ public interface CustomConfigConstants {
     public String PORT_ALLOCATION_EMA_FACTOR = "PortAllocationEmaFactor";
     public String PORT_ALLOCATION_METRICS_ENABLED = "PortAllocationMetricsEnabled";
     public String MIGRATION_SPEED = "VPlexMigrationSpeed";
+    public String NAS_DYNAMIC_PERFORMANCE_PLACEMENT_ENABLED = "NasDynamicPerformancePlacementEnabled";
 }

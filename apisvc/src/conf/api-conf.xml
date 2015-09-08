@@ -583,6 +583,7 @@
                 
                 <bean class="com.emc.storageos.api.service.impl.resource.DisasterRecoveryService">
                   <property name="dbClient" ref="dbclient"/>
+                  <property name="coordinator" ref="coordinator"/>
                 </bean>
             </set>
         </property>

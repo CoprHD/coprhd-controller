@@ -50,7 +50,6 @@ import java.util.concurrent.*;
 import java.util.regex.Pattern;
 
 import static com.emc.storageos.coordinator.client.model.Constants.*;
-import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.TARGET_INFO;
 import static com.emc.storageos.coordinator.client.model.PropertyInfoExt.*;
 import static com.emc.storageos.coordinator.mapper.PropertyInfoMapper.decodeFromString;
 
@@ -1431,5 +1430,17 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 	public void setSiteId(String siteId) {
 		this.siteId = siteId;
 	}
-    
+	
+	@Override
+	public String getPrimarySiteId() {
+	    String path = String.format("%1$s/%2$s", ZkPath.SITES.toString(), Constants.SITE_PRIMARY_PTR);
+	    String primarySiteId = null;
+	    try {
+	        byte[] data = _zkConnection.curator().getData().forPath(path);
+            primarySiteId = new String(data, "UTF-8");
+        } catch (Exception e) {
+            throw CoordinatorException.retryables.errorWhileFindingNode(path, e);
+        }
+        return primarySiteId;
+	}  
 }

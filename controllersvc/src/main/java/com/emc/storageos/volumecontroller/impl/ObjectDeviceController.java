@@ -103,7 +103,6 @@ public class ObjectDeviceController implements ObjectController {
 			_log.info("ObjectDeviceController:createBucket URI and Type: " + storage.toString() + "   " +
 					storageObj.getSystemType());
 			BiosCommandResult result = getDevice(storageObj.getSystemType()).doCreateBucket(storageObj, args);
-			_log.info("ObjectDeviceController:createBucket 1111");
 			if (!result.getCommandPending()) {
 				bucketObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 			}

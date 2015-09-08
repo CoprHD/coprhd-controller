@@ -61,14 +61,12 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
 
 			try {
 				URI deviceURI = new URI("https", null, storageObj.getIpAddress(), storageObj.getPortNumber(), "/", null, null);
-				_log.info("ECSObjectStorageDevice:doCreateBucket 11111");
-				ECSApi ecsApi = ecsApiFactory.getRESTClient(deviceURI, storageObj.getUsername(), storageObj.getPassword());
-				_log.info("ECSObjectStorageDevice:doCreateBucket 2222222");
 
+				ECSApi ecsApi = ecsApiFactory.getRESTClient(deviceURI, storageObj.getUsername(), storageObj.getPassword());
+				
 				String id = ecsApi.createBucket(args.getName(), args.getNamespace(), args.getRepGroup(), 
 						args.getRetentionPeriod(), args.getBlkSizeHQ(), args.getNotSizeSQ(), args.getOwner());
-				_log.info("ECSObjectStorageDevice:doCreateBucket 33333333");
-
+				
 				_log.info("ECSObjectStorageDevice:doCreateBucket end");
 				return BiosCommandResult.createSuccessfulResult();
 			} catch (URISyntaxException ex) {

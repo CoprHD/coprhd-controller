@@ -2,8 +2,9 @@
  * Copyright (c) 2008-2015 EMC Corporation
  * All Rights Reserved
  */
-package com.emc.storageos.api.mapper;
+package com.emc.storageos.systemservices.impl.util;
 
+import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.db.client.model.Site;
 import com.emc.storageos.model.dr.SiteRestRep;
 

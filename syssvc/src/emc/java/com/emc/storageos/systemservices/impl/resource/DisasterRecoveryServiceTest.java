@@ -14,7 +14,6 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.emc.storageos.api.mapper.SiteMapper;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Site;
@@ -22,6 +21,7 @@ import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.systemservices.impl.resource.DisasterRecoveryService;
+import com.emc.storageos.systemservices.impl.util.SiteMapper;
 
 public class DisasterRecoveryServiceTest {
 

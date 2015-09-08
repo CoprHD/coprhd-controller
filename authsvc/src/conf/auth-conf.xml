@@ -120,11 +120,6 @@
         <property name="displayRateInMins" value="15" />
     </bean>
   
-    <bean id="beacon" class="com.emc.storageos.coordinator.client.beacon.impl.ServiceBeaconImpl" init-method="init" destroy-method="stop">
-        <property name="zkConnection" ref="zkconn"/>
-        <property name="service" ref="serviceinfo"/>
-    </bean>
-    
     <bean id="authnserver" class="com.emc.storageos.auth.service.impl.AuthenticationServerImpl">
 		<property name="application" ref="authnServiceApp" />
         <property name="dbClient" ref="dbclient"/>

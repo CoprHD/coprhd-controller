@@ -22,12 +22,6 @@
 
     <bean class="org.springframework.context.annotation.CommonAnnotationBeanPostProcessor" />
 
-	<bean id="beacon"
-		class="com.emc.storageos.coordinator.client.beacon.impl.ServiceBeaconImpl" init-method="init" destroy-method="stop">
-		<property name="zkConnection" ref="zkconn" />
-		<property name="service" ref="serviceinfo" />
-	</bean>
-
 	<bean id="bourneDbClient" class="com.emc.sa.model.dao.BourneDbClient"
 		init-method="init">
 		<property name="dbClient" ref="dbclient" />

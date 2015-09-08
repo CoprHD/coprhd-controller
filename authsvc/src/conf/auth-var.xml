@@ -10,4 +10,10 @@
 		<property name="version" value="1" />
 	</bean>
 
+    <bean id="beacon" class="com.emc.storageos.coordinator.client.beacon.impl.ServiceBeaconImpl" init-method="init" destroy-method="stop">
+        <property name="zkConnection" ref="zkconn"/>
+        <property name="service" ref="serviceinfo"/>
+        <property name="siteId" value="${site_id}"/>
+    </bean>
+
 </beans>

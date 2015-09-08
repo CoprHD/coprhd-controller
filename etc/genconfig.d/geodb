@@ -10,7 +10,7 @@
 # it is provided by or on behalf of EMC.
 
 _get_geodbvar_props() {
-    _get_props vdc_myid node_id node_index
+    _get_props vdc_myid node_id node_index site_id
 }
 
 _get_geodbconf_props() {
@@ -45,6 +45,8 @@ _get_geodbconf_props() {
         IFS="${OLD_IFS}"
     fi
     echo "vdc_seeds_ipaddr=$(echo $list | tr ' ' ',')"
+
+    _get_props site_id
 }
 
 _get_geodb_jmx_props() {

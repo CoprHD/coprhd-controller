@@ -33,6 +33,7 @@ public class SeedProviderImpl implements SeedProvider {
 
     private static final String ID = "id";
     private static final String COORDINATORS = "coordinators";
+    private static final String SITE_ID= "siteid";
 
     private String _id;
     private CoordinatorClientImpl _client;
@@ -78,6 +79,11 @@ public class SeedProviderImpl implements SeedProvider {
 
         CoordinatorClientImpl client = new CoordinatorClientImpl();
         client.setZkConnection(connection);
+
+        String siteId= args.get(SITE_ID);
+        _logger.info("siteId={}", siteId);
+        client.setSiteId(siteId);
+
         ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("/nodeaddrmap-var.xml");
         CoordinatorClientInetAddressMap inetAddressMap = (CoordinatorClientInetAddressMap) ctx.getBean("inetAddessLookupMap");
         if (inetAddressMap == null) {
@@ -93,6 +99,7 @@ public class SeedProviderImpl implements SeedProvider {
         try {
             CoordinatorClientInetAddressMap nodeMap = _client.getInetAddessLookupMap();
             List<Configuration> configs = _client.queryAllConfiguration(Constants.DB_CONFIG);
+            _logger.info("lby configs={} size={}", configs, configs.size());
             List<InetAddress> seeds = new ArrayList<>(configs.size());
             for (int i = 0; i < configs.size(); i++) {
                 Configuration config = configs.get(i);

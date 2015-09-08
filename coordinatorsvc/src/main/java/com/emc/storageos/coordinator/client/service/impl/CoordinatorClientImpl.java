@@ -86,7 +86,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     private NodeCacheWatcher nodeWatcher = new NodeCacheWatcher();
 
     private String siteId;
-    
+
     /**
      * Set ZK cluster connection. Connection must be built but not connected when this method is
      * called
@@ -147,6 +147,77 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         ovfProperties = ovfProps;
     }
 
+    private boolean isSiteSpecificSectionInited() throws Exception {
+        String sitePath = String.format("%1$s/%2$s", ZkPath.SITES, siteId);
+        try {
+            Stat stat = getZkConnection().curator().checkExists().forPath(sitePath);
+            return stat != null;
+        } catch (Exception e) {
+            log.error("Failed to access the path {}. Error {}", sitePath, e);
+            throw e;
+        }
+    }
+
+    private void createSiteSpecificSection() throws Exception {
+        String sitePath = String.format("%1$s/%2$s", ZkPath.SITES, siteId);
+        ZkConnection zkConnection = getZkConnection();
+        try {
+            //create /sites/${siteID} path
+            EnsurePath ensurePath = new EnsurePath(sitePath);
+            log.info("create ZK path {}", sitePath);
+            ensurePath.ensure(zkConnection.curator().getZookeeperClient());
+        }catch(Exception e) {
+            log.error("Failed to set site info of {}. Error {}", sitePath, e);
+            throw e;
+        }
+
+        // update primary site pointer to /sites/primary if it does not exists
+        String primarySitePointer = String.format("%1$s/%2$s", ZkPath.SITES, Constants.SITE_PRIMARY_PTR);
+        try {
+            boolean notExists = getZkConnection().curator().checkExists().forPath(primarySitePointer) == null;
+            if (notExists) {
+                EnsurePath ePath = new EnsurePath(primarySitePointer);
+                log.info("create ZK path {}", primarySitePointer);
+                ePath.ensure(zkConnection.curator().getZookeeperClient());
+                byte[] data = siteId.getBytes();
+                zkConnection.curator().setData().forPath(primarySitePointer, data);
+            }
+        }catch(Exception e) {
+            log.error("Failed to persist {} to {}", siteId, primarySitePointer);
+            throw e;
+        }
+    }
+
+    /**
+     * Check and initialize site specific section for current site. If site specific section is empty,
+     * we always assume current site is primary site
+     *
+     * @throws Exception
+     */
+    public void checkAndCreateSiteSpecificSection() throws Exception {
+        if (isSiteSpecificSectionInited()) {
+            log.info("Site specific section for {} initialized", siteId);
+            return;
+        }
+
+        log.info("The site specific section for {} has NOT been initialized", siteId);
+        InterProcessLock lock = getLock(ZkPath.SITES.name());
+        try {
+            lock.acquire();
+            if (!isSiteSpecificSectionInited())
+                createSiteSpecificSection();
+        }catch (Exception e) {
+            log.error("Failed to acquire the lock for {}. Error {}", ZkPath.SITES, e);
+            throw e;
+        } finally {
+            try {
+                lock.release();
+            }catch (Exception e) {
+                log.error("Failed to release the lock for {}. Error {}", ZkPath.SITES, e);
+            }
+        }
+    }
+
     @Override
     public void start() throws IOException {
         if (_zkConnection.curator().isStarted()) {
@@ -187,8 +258,13 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                     }
                 });
         _zkConnection.connect();
+
         try {
-            EnsurePath path = new EnsurePath(ZkPath.SERVICE.toString());
+            checkAndCreateSiteSpecificSection();
+
+            String sitePrefix = getSitePrefix();
+            String servicePath = String.format("%s%s",  sitePrefix, ZkPath.SERVICE.toString());
+            EnsurePath path = new EnsurePath(servicePath);
             path.ensure(_zkConnection.curator().getZookeeperClient());
         } catch (Exception e) {
             // if startup fails, shut down our thread pool so whoever called us will exit cleanly if
@@ -360,8 +436,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     public void persistServiceConfiguration(Configuration... configs) throws CoordinatorException {
         try {
             for (Configuration config : configs) {
-                String configParentPath = String.format("%1$s/%2$s", ZkPath.CONFIG,
-                        config.getKind());
+                String configParentPath = getKindPath(config.getKind());
 
                 EnsurePath path = new EnsurePath(configParentPath);
                 path.ensure(_zkConnection.curator().getZookeeperClient());
@@ -375,6 +450,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                 }
             }
         } catch (final Exception e) {
+            log.info("lby1 e=",e);
             throw CoordinatorException.fatals.unableToPersistTheConfiguration(e);
         }
     }
@@ -398,13 +474,13 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public List<Configuration> queryAllConfiguration(String kind) throws CoordinatorException {
-        String serviceParentPath = String.format("%1$s/%2$s", ZkPath.CONFIG, kind);
+        String serviceParentPath = getKindPath(kind);
         List<String> configPaths;
         try {
             configPaths = _zkConnection.curator().getChildren().forPath(serviceParentPath);
         } catch (KeeperException.NoNodeException ignore) {
             // Ignore exception, don't re-throw
-            log.debug("Caught exception but ignoring it: " + ignore);
+            log.info("Caught exception but ignoring it: " + ignore);
             return Arrays.asList(new Configuration[0]);
         } catch (Exception e) {
             throw CoordinatorException.fatals.unableToListAllConfigurationForKind(kind, e);
@@ -419,9 +495,36 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         return configs;
     }
 
+    private String getSitePrefix() {
+        StringBuilder builder = new StringBuilder(ZkPath.SITES.toString());
+        builder.append("/");
+        builder.append(siteId);
+        return builder.toString();
+    }
+
+    private String getKindPath(String kind) {
+        StringBuilder builder = new StringBuilder();
+        if (isSiteSpecific(kind)) {
+            String sitePrefix = getSitePrefix();
+            builder.append(sitePrefix);
+        }
+        builder.append(ZkPath.CONFIG);
+        builder.append("/");
+        builder.append(kind);
+
+        return builder.toString();
+    }
+
+    private boolean isSiteSpecific(String kind) {
+        if (kind.startsWith(Constants.GEODB_CONFIG) || kind.startsWith(Constants.DB_CONFIG)) {
+            return true;
+        }
+        return false;
+    }
+
     @Override
     public Configuration queryConfiguration(String kind, String id) throws CoordinatorException {
-        String servicePath = String.format("%1$s/%2$s/%3$s", ZkPath.CONFIG, kind, id);
+        String servicePath = String.format("%s/%s", getKindPath(kind), id);
         try {
             byte[] data = _zkConnection.curator().getData().forPath(servicePath);
             return ConfigurationImpl.parse(data);
@@ -491,8 +594,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     private List<String> lookupServicePath(String serviceRoot) throws CoordinatorException {
         List<String> services = null;
         String fullPath = null;
+        String sitePrefix = getSitePrefix();
         try {
-            fullPath = String.format("%1$s/%2$s", ZkPath.SERVICE.toString(), serviceRoot);
+            fullPath = String.format("%1$s%2$s/%3$s", sitePrefix, ZkPath.SERVICE.toString(), serviceRoot);
             services = _zkConnection.curator().getChildren().forPath(fullPath);
         } catch (KeeperException.NoNodeException e) {
             throw CoordinatorException.retryables.cannotFindNode(fullPath, e);
@@ -519,12 +623,13 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      */
     private byte[] getServiceData(String serviceRoot, String id) {
         byte[] data = null;
+        String sitePrefix = getSitePrefix();
         try {
             data = _zkConnection
                     .curator()
                     .getData()
                     .forPath(
-                            String.format("%1$s/%2$s/%3$s", ZkPath.SERVICE.toString(), serviceRoot,
+                            String.format("%1$s%2$s/%3$s/%4$s", sitePrefix, ZkPath.SERVICE.toString(), serviceRoot,
                                     id));
             return data;
         } catch (Exception e) {
@@ -904,7 +1009,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public <T extends CoordinatorSerializable> T queryRuntimeState(String key, Class<T> clazz) throws CoordinatorException {
-        String path = ZkPath.STATE + "/" + key;
+        String sitePrefix = getSitePrefix();
+
+        String path = String.format("%s%s/%s",sitePrefix,ZkPath.STATE, key);
 
         try {
             byte[] data = _zkConnection.curator().getData().forPath(path);
@@ -922,7 +1029,9 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     @Override
     public <T extends CoordinatorSerializable> void persistRuntimeState(String key, T state) throws CoordinatorException {
-        String path = ZkPath.STATE + "/" + key;
+        String sitePrefix = getSitePrefix();
+
+        String path = String.format("%s%s/%s",sitePrefix,ZkPath.STATE, key);
 
         try {
             int lastSlash = path.lastIndexOf('/');
@@ -955,6 +1064,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                 }
             }
         } catch (Exception e) {
+            log.info("lby e=",e);
             throw CoordinatorException.fatals.unableToPersistTheState(e);
         }
     }
@@ -1431,5 +1541,4 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 	public void setSiteId(String siteId) {
 		this.siteId = siteId;
 	}
-    
 }

@@ -39,6 +39,7 @@ public class GeoSeedProviderImpl implements SeedProvider {
 
     private static final String SEEDS = "seeds";
     private static final String COORDINATORS = "coordinators";
+    private static final String SITE_ID= "siteid";
 
     private CoordinatorClient coordinator;
     private List<String> seeds = new ArrayList<>();
@@ -99,6 +100,11 @@ public class GeoSeedProviderImpl implements SeedProvider {
 
         CoordinatorClientImpl client = new CoordinatorClientImpl();
         client.setZkConnection(connection);
+
+        String siteId= args.get(SITE_ID);
+        log.info("siteId={}", siteId);
+        client.setSiteId(siteId);
+
         ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("/nodeaddrmap-var.xml");
         CoordinatorClientInetAddressMap inetAddressMap = (CoordinatorClientInetAddressMap) ctx.getBean("inetAddessLookupMap");
         if (inetAddressMap == null) {

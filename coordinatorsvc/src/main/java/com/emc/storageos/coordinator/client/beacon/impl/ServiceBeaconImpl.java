@@ -51,6 +51,12 @@ public class ServiceBeaconImpl implements ServiceBeacon {
 
     private volatile boolean _bStarted = false;
 
+    private String siteId;
+
+    public void setSiteId(String id) {
+        siteId = id;
+    }
+
     /**
      * Reacts to connect/reconnect events by registering if necessary
      */
@@ -86,9 +92,6 @@ public class ServiceBeaconImpl implements ServiceBeacon {
      */
     public void setService(ServiceImpl service) {
         _service = service;
-        _serviceParentPath = String.format("%1$s/%2$s/%3$s",
-                ZkPath.SERVICE, _service.getName(), _service.getVersion());
-        _servicePath = String.format("%1$s/%2$s", _serviceParentPath, _service.getId());
     }
 
     /**
@@ -113,6 +116,10 @@ public class ServiceBeaconImpl implements ServiceBeacon {
         _zkConnection.curator().getConnectionStateListenable().addListener(_connectionListener);
         _zkConnection.connect();
 
+        _serviceParentPath = String.format("%1$s/%2$s%3$s/%4$s/%5$s",
+                ZkPath.SITES, siteId, ZkPath.SERVICE, _service.getName(), _service.getVersion());
+        _servicePath = String.format("%1$s/%2$s", _serviceParentPath, _service.getId());
+        _log.info("lbyb servicePath={}", _servicePath);
         try {
             checkStaleRegistration();
         } catch (Exception ex) {
@@ -173,6 +180,7 @@ public class ServiceBeaconImpl implements ServiceBeacon {
 
         try {
             EnsurePath path = new EnsurePath(_serviceParentPath);
+            _log.info("lbyb _serviceParentPath={}", _serviceParentPath);
             path.ensure(_zkConnection.curator().getZookeeperClient());
         } catch (Exception e) {
             throw CoordinatorException.fatals

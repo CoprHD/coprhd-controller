@@ -89,4 +89,13 @@ public class BlockSnapshotSessionUnlinkTargetCompleter extends TaskLockingComple
             s_logger.error("Failed updating status for unlink targets from snapshot session step {}", getOpId(), e);
         }
     }
+
+    /**
+     * Gets if the target is to be deleted.
+     * 
+     * @return true if the target is to be deleted, false otherwise.
+     */
+    public boolean getDeleteTarget() {
+        return _deleteTarget;
+    }
 }

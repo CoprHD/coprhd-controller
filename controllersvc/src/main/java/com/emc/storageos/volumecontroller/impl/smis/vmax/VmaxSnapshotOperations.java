@@ -82,6 +82,7 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSession
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionLinkTargetJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionRelinkTargetJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionRestoreJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockSnapshotSessionUnlinkTargetJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVmaxCGTargetVolumesJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisDeleteVmaxCGTargetVolumesJob;
 import com.google.common.base.Predicate;
@@ -1471,13 +1472,17 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                 // know the target device was created. Now we try and get
                 // the sync object path representing the linked target so
                 // that it can be detached.
+                boolean syncObjectFound = false;
                 CIMObjectPath syncObjectPath = _cimPath.getSyncObject(system, snapshot);
                 if (!SmisConstants.NULL_CIM_OBJECT_PATH.equals(syncObjectPath)) {
+                    syncObjectFound = true;
                     CIMArgument[] inArgs = _helper.getUnlinkBlockSnapshotSessionTargetInputArguments(syncObjectPath);
                     CIMArgument[] outArgs = new CIMArgument[5];
                     CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(system);
+                    SmisBlockSnapshotSessionUnlinkTargetJob job = new SmisBlockSnapshotSessionUnlinkTargetJob(null,
+                            system.getId(), completer);
                     _helper.invokeMethodSynchronously(system, replicationSvcPath, SmisConstants.MODIFY_REPLICA_SYNCHRONIZATION, inArgs,
-                            outArgs, null);
+                            outArgs, job);
 
                     // Succeeded in unlinking the target from the snapshot.
                     snapshot.setSettingsInstance(NullColumnValueGetter.getNullStr());
@@ -1510,8 +1515,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
                     targetDeviceIds.add(targetDeviceId);
                     deleteTargetDevices(system, targetDeviceIds.toArray(new String[1]), completer);
                     _log.info("Delete target device complete");
-                } else {
-                    // We are done.
+                } else if (!syncObjectFound) {
+                    // Need to be sure the completer is called.
                     completer.ready(_dbClient);
                 }
             } catch (Exception e) {

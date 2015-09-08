@@ -23,16 +23,19 @@
     <dl class="dl-horizontal pull-left">  
       <dt>&{'resources.bucket.path'}:</dt>
       <dd>
+       &nbsp;
        ${bucket.path}
         &nbsp;
       </dd>
       <dt>&{'resources.bucket.owner'}:</dt>
       <dd>
+       &nbsp;
        ${bucket.owner}
         &nbsp;
       </dd>
       <dt>&{'resources.bucket.protocols'}:</dt>
       <dd>
+       &nbsp;
         #{list bucket.protocols, as:'protocol'}
           ${protocol}#{if !protocol_isLast},#{/if}
         #{/list}

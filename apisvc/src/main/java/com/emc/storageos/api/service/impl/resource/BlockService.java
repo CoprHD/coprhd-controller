@@ -4473,10 +4473,7 @@ public class BlockService extends TaskResourceService {
 
         // Check that the project and the CG project are the same
         final URI expectedId = consistencyGroup.getProject().getURI();
-        checkProjectsMatch(expectedId, project.getId());
-        
-        // check if CG's storage system is associated to the requested virtual array
-        validateCGValidWithVirtualArray(consistencyGroup, varray);
+        checkProjectsMatch(expectedId, project.getId());                
 
         // Validate the CG type is RP
         if (!consistencyGroup.getRequestedTypes().contains(BlockConsistencyGroup.Types.RP.toString())) {

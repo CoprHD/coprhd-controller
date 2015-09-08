@@ -36,6 +36,11 @@ public class BlockSnapshotSessionDeleteCompleter extends TaskCompleter {
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded) throws DeviceControllerException {
         if (isNotifyWorkflow()) {
             // If there is a workflow, update the step to complete.
+            // Note that the snapshot session is marked inactive in
+            // the workflow completer rather than this workflow step
+            // completer. In this way we able better able to prevent
+            // access to snapshot session after it has been marked
+            // inactive.
             updateWorkflowStatus(status, coded);
         }
     }

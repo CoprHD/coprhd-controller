@@ -5,18 +5,14 @@
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
 import java.net.URI;
-import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
@@ -32,10 +28,6 @@ public class BlockSnapshotSessionRelinkTargetsWorkflowCompleter extends BlockSna
     public static final String SNAPSHOT_SESSION_RELINK_TARGETS_SUCCESS_MSG = "Re-linked targets for Block Snapshot Session %s for source %s";
     public static final String SNAPSHOT_SESSION_RELINK_TARGETS_FAIL_MSG = "Failed to re-link targets for Block Snapshot Session %s for source %s";
 
-    // The URIs of the BlockSnapshot instances representing the target volumes
-    // to be re-linked to the session
-    private final List<URI> _snapshotURIs;
-
     // A logger.
     private static final Logger s_logger = LoggerFactory.getLogger(BlockSnapshotSessionRelinkTargetsWorkflowCompleter.class);
 
@@ -43,13 +35,10 @@ public class BlockSnapshotSessionRelinkTargetsWorkflowCompleter extends BlockSna
      * Constructor
      * 
      * @param snapSessionURI The URI of the target BlockSnapshotSession instance.
-     * @param snapshotURIs The URIs of the BlockSnapshot instances representing the
-     *            targets volume to be re-linked to the target session.
      * @param taskId The unique task identifier.
      */
-    public BlockSnapshotSessionRelinkTargetsWorkflowCompleter(URI snapSessionURI, List<URI> snapshotURIs, String taskId) {
+    public BlockSnapshotSessionRelinkTargetsWorkflowCompleter(URI snapSessionURI, String taskId) {
         super(snapSessionURI, taskId);
-        _snapshotURIs = snapshotURIs;
     }
 
     /**
@@ -72,54 +61,16 @@ public class BlockSnapshotSessionRelinkTargetsWorkflowCompleter extends BlockSna
                     setErrorOnDataObject(dbClient, BlockSnapshotSession.class, tgtSnapSessionURI, coded);
                     break;
                 case ready:
-                default:
                     setReadyOnDataObject(dbClient, BlockSnapshotSession.class, tgtSnapSessionURI);
-
-                    // Remove the linked targets from the linked targets list for their
-                    // current snapshot session and add them to the linked targets for
-                    // the target session.
-                    boolean tgtSnapSessionModified = false;
-                    StringSet tgtSnapSessionTargets = tgtSnapSession.getLinkedTargets();
-                    for (URI snapshotURI : _snapshotURIs) {
-                        List<BlockSnapshotSession> snaphotSessionsList = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient,
-                                BlockSnapshotSession.class,
-                                ContainmentConstraint.Factory.getLinkedTargetSnapshotSessionConstraint(snapshotURI));
-                        if (snaphotSessionsList.isEmpty()) {
-                            // The target is not linked to an active snapshot session.
-                            throw DeviceControllerException.exceptions.unexpectedCondition(String.format(
-                                    "Cound not find active snapshot session for linked target %s", snapshotURI));
-                        }
-
-                        // A target can only be linked to a single session.
-                        BlockSnapshotSession currentSnapSession = snaphotSessionsList.get(0);
-
-                        // If the target was not re-linked to the same snapshot session
-                        // update the linked targets list for both the current and target
-                        // snapshot sessions.
-                        if (!currentSnapSession.getId().equals(tgtSnapSessionURI)) {
-                            String snapshotId = snapshotURI.toString();
-                            // Remove from the current snapshot session.
-                            StringSet currentSnapSessionTargets = currentSnapSession.getLinkedTargets();
-                            currentSnapSessionTargets.remove(snapshotId);
-                            dbClient.persistObject(currentSnapSession);
-
-                            // Add to the target snapshot session.
-                            if (tgtSnapSessionTargets == null) {
-                                tgtSnapSessionTargets = new StringSet();
-                                tgtSnapSession.setLinkedTargets(tgtSnapSessionTargets);
-                            }
-                            tgtSnapSessionTargets.add(snapshotId);
-                            tgtSnapSessionModified = true;
-                        }
-                    }
-
-                    if (tgtSnapSessionModified) {
-                        dbClient.persistObject(tgtSnapSession);
-                    }
+                    break;
+                default:
+                    String errMsg = String.format("Unexpected status %s for completer for task %s", status.name(), getOpId());
+                    s_logger.info(errMsg);
+                    throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
             }
 
             if (isNotifyWorkflow()) {
-                // If there is a workflow, update the step to complete.
+                // If there is a workflow, update the task to complete.
                 updateWorkflowStatus(status, coded);
             }
             s_logger.info("Done re-link target volumes task {} with status: {}", getOpId(), status.name());

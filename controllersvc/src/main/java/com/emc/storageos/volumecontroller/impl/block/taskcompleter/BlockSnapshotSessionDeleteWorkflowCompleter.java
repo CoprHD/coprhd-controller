@@ -60,16 +60,20 @@ public class BlockSnapshotSessionDeleteWorkflowCompleter extends BlockSnapshotSe
                     setErrorOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI, coded);
                     break;
                 case ready:
-                default:
                     setReadyOnDataObject(dbClient, BlockSnapshotSession.class, snapSessionURI);
 
                     // Mark snapshot session inactive.
                     snapSession.setInactive(true);
                     dbClient.persistObject(snapSession);
+                    break;
+                default:
+                    String errMsg = String.format("Unexpected status %s for completer for task %s", status.name(), getOpId());
+                    s_logger.info(errMsg);
+                    throw DeviceControllerException.exceptions.unexpectedCondition(errMsg);
             }
 
             if (isNotifyWorkflow()) {
-                // If there is a workflow, update the step to complete.
+                // If there is a workflow, update the task to complete.
                 updateWorkflowStatus(status, coded);
             }
             s_logger.info("Done delete snapshot session task {} with status: {}", getOpId(), status.name());

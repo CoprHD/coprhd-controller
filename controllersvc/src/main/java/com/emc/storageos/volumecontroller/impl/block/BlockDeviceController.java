@@ -4364,7 +4364,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
     @Override
     public void relinkTargetsToSnapshotSession(URI systemURI, URI tgtSnapSessionURI, List<URI> snapshotURIs,
             String opId) throws InternalException {
-        TaskCompleter completer = new BlockSnapshotSessionRelinkTargetsWorkflowCompleter(tgtSnapSessionURI, snapshotURIs, opId);
+        TaskCompleter completer = new BlockSnapshotSessionRelinkTargetsWorkflowCompleter(tgtSnapSessionURI, opId);
         try {
             // Get a new workflow to execute the linking of the target volumes
             // to the new session.

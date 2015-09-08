@@ -90,7 +90,6 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
     private static final Logger _log = LoggerFactory.getLogger(VmaxSnapshotOperations.class);
     private static final String[] PL_ONLY_EMC_UNIQUE_ID = new String[] { CP_EMC_UNIQUE_ID };
     private static final String[] PL_STORAGE_EXTENT_INITIAL_USAGE = new String[] { CP_STORAGE_EXTENT_INITIAL_USAGE };
-    private static final String VMAX10K = "VMAX10K";
 
     private FindProviderFactory findProviderFactory;
 

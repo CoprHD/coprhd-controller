@@ -1001,7 +1001,7 @@ public class VPlexUtil {
      */
     public static boolean verifyVolumesInCG(List<Volume> volumes, List<Volume> cgVolumes, DbClient dbClient) {
         boolean result = true;
-        //sort all the volumes in the CG based on the backend volume's storage system.
+        // Sort all the volumes in the CG based on the backend volume's storage system.
         Map<String, List<String>> cgBackendSystemToVolumesMap = new HashMap<String, List<String>>();
         for (Volume cgVolume : cgVolumes) {
             Volume srcVolume = VPlexUtil.getVPLEXBackendVolume(cgVolume, true, dbClient);
@@ -1012,7 +1012,7 @@ public class VPlexUtil {
             }
             vols.add(cgVolume.getId().toString());
         }
-        // sort the passed volumes, and make sure the volumes are in the CG.
+        // Sort the passed volumes, and make sure the volumes are in the CG.
         Map<String, List<String>> backendSystemToVolumesMap = new HashMap<String, List<String>>();
         for (Volume volume : volumes) {
             Volume srcVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);

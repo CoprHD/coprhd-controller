@@ -3525,9 +3525,9 @@ public class BlockService extends TaskResourceService {
             URI storageId = cg.getStorageController();
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageId);
             if (DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType())) {
-                //For VPlex, the volumes should include all volumes, which are in the same backend storage system, in the CG.
+                // For VPlex, the volumes should include all volumes, which are in the same backend storage system, in the CG.
                  if (!VPlexUtil.verifyVolumesInCG(volumes, cgVolumes, _dbClient)) {
-                     throw APIException.badRequests.cantChangeVarrayVolumeIsNotInCG();
+                     throw APIException.badRequests.cantChangeVarrayNotAllCGVolumes();
                  }
             } else {
                 verifyVolumesInCG(volumes, cgVolumes);

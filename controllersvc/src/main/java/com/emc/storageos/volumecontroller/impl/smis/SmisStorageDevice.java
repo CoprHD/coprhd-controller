@@ -1526,8 +1526,9 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 consistencyGroup.setStorageController(storage.getId());
             }
             _dbClient.persistObject(consistencyGroup);
-            // Set task to ready
+            // This function could be called from doAddToConsistencyGroup() with a null taskCompleter.
             if (taskCompleter != null) {
+                // Set task to ready. 
                 taskCompleter.ready(_dbClient);
             }
         } catch (Exception e) {

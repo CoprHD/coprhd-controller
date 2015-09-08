@@ -10,6 +10,7 @@ import static controllers.Common.backToReferrer;
 import java.net.URI;
 import java.util.List;
 
+import models.SearchScopes;
 import models.datatable.ComputeImageServersDataTable;
 import models.datatable.ComputeImageServersDataTable.ComputeImageServerInfo;
 
@@ -23,7 +24,6 @@ import play.data.validation.Validation;
 import play.mvc.With;
 import util.ComputeImageServerUtils;
 import util.MessagesUtils;
-import util.validation.HostNameOrIpAddressCheck;
 
 import com.emc.storageos.model.compute.ComputeImageServerCreate;
 import com.emc.storageos.model.compute.ComputeImageServerRestRep;
@@ -51,7 +51,8 @@ public class ComputeImageServers extends ViprResourceController {
     //
 
     private static void addReferenceData() {
-
+        renderArgs.put("searchScopeTypeList", SearchScopes.options(
+                SearchScopes.ONELEVEL, SearchScopes.SUBTREE));
     }
 
     public static void list() {
@@ -90,22 +91,6 @@ public class ComputeImageServers extends ViprResourceController {
         render("@edit", ComputeImageServer);
     }
 
-    public static void createClone(@As(",") String[] ids) {
-        if (ids != null && ids.length > 0) {
-            String imageId = ids[0];
-            createAClone(imageId);
-        }
-    }
-
-    public static void createAClone(String ImageServerId) {
-        addReferenceData();
-
-        ComputeImageServerRestRep computeImageServer = ComputeImageServerUtils
-                .getComputeImageServer(ImageServerId);
-        ComputeImageServerForm ComputeImageServer = new ComputeImageServerForm(computeImageServer, true);
-        render("@edit", ComputeImageServer);
-    }
-
     @FlashException("list")
     public static void edit(String id) {
         addReferenceData();
@@ -123,15 +108,18 @@ public class ComputeImageServers extends ViprResourceController {
 
     @FlashException(keep = true, referrer = { "create", "edit" })
     public static void save(ComputeImageServerForm computeImageServers) {
+        System.out.println("ComputeImageServers line 128 ");
         if (computeImageServers != null) {
         }
         computeImageServers.validate("computeImageServers");
 
         if (Validation.hasErrors()) {
+            System.out.println("ComputeImageServers if validate errors " + Validation.errors());
+
             handleError(computeImageServers);
         }
         computeImageServers.save();
-        flash.success(MessagesUtils.get(SAVED, computeImageServers.name));
+        flash.success(MessagesUtils.get(SAVED, computeImageServers.imageServerIp));
         backToReferrer();
         list();
     }
@@ -140,12 +128,8 @@ public class ComputeImageServers extends ViprResourceController {
         params.flash();
         Validation.keep();
         if (computeImageServers.isNew()) {
-            if (computeImageServers.id == null) {
-                create();
-            }
-            else {
-                createAClone(computeImageServers.id.toString());
-            }
+            System.out.println("ComputeImageServers handle errors " + Validation.errors());
+            create();
         }
         else {
             edit(computeImageServers.id);
@@ -162,11 +146,6 @@ public class ComputeImageServers extends ViprResourceController {
         list();
     }
 
-    public static void cloneImageServer(String id) {
-        cloneImageServer(id);
-        list();
-    }
-
     public static class ComputeImageServerForm {
 
         public String id;
@@ -178,8 +157,6 @@ public class ComputeImageServers extends ViprResourceController {
 
         @MaxSize(2048)
         public String imageServerIp;
-
-        public URI imageServerId;
 
         @MaxSize(2048)
         public String imageServerSecondIp;
@@ -204,9 +181,6 @@ public class ComputeImageServers extends ViprResourceController {
         @MaxSize(2048)
         public String confirmPassword = "";// NOSONAR ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.")
 
-        public String cloneName;
-        public String cloneUrl;
-
         public ComputeImageServerForm() {
         }
 
@@ -217,12 +191,10 @@ public class ComputeImageServers extends ViprResourceController {
             this.osInstallNetworkAddress = computeImageServer.getImageServerSecondIp();
             this.status = computeImageServer.getComputeImageServerStatus();
             this.tftpBootDir = computeImageServer.getTftpbootDir();
-        }
-
-        public ComputeImageServerForm(ComputeImageServerRestRep computeImageServer, boolean clone) {
-            this.cloneName = computeImageServer.getName();
-            this.imageServerId = computeImageServer.getId();
-            this.cloneUrl = computeImageServer.getImageServerIp();
+            this.userName = computeImageServer.getImageServerUser();
+            this.osInstallTimeOut = computeImageServer.getOsInstallTimeoutMs();
+            this.password = ""; // the platform will never return the real password //NOSONAR
+            // ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.")
         }
 
         public boolean isNew() {
@@ -230,20 +202,23 @@ public class ComputeImageServers extends ViprResourceController {
         }
 
         public boolean isCreate() {
-            return StringUtils.isBlank(this.id) && this.imageServerId == null;
+            return StringUtils.isBlank(this.id);
         }
 
         public void validate(String fieldName) {
-            Validation.valid(fieldName, this);
-            Validation.required(fieldName + ".name", this.name);
-            if (isCreate()) {
-                Validation.required(fieldName + ".imageServerIp", this.imageServerIp);
-                if (!HostNameOrIpAddressCheck.isValidIp(imageServerIp)) {
-                    Validation.addError(fieldName + ".imageServerIp",
-                            MessagesUtils.get("computeSystem.invalid.ipAddress"));
-                }
-            }
-
+            /*
+             * Validation.valid(fieldName, this);
+             * if (isCreate()) {
+             * Validation.required(fieldName + ".password", this.password);
+             * System.out.println("ComputeImageServers validate ip no this " + imageServerIp);
+             * Validation.required(fieldName + ".imageServerIp", this.imageServerIp);
+             * if (!HostNameOrIpAddressCheck.isValidHostNameOrIp(imageServerIp)) {
+             * System.out.println("ComputeImageServers not ip " + imageServerIp);
+             * Validation.addError(fieldName + ".imageServerIp",
+             * MessagesUtils.get("computeSystem.invalid.ipAddress"));
+             * }
+             * }
+             */
         }
 
         public URI save() {
@@ -263,8 +238,6 @@ public class ComputeImageServers extends ViprResourceController {
             createParam.setOsInstallTimeoutMs(this.osInstallTimeOut);
             createParam.setTftpbootDir(this.tftpBootDir);
             createParam.setImageServerSecondIp(this.osInstallNetworkAddress);
-            System.out.println("createP " + createParam.getTftpbootDir() + " this tftp " + this.tftpBootDir);
-            System.out.println("createP " + createParam.getOsInstallTimeoutMs() + "osTO " + this.osInstallTimeOut.toString());
             return ComputeImageServerUtils.create(createParam);
         }
 

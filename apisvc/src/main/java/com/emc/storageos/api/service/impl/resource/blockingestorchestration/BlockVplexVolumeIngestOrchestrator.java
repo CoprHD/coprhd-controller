@@ -861,7 +861,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
     @Override
     protected void validateAutoTierPolicy(String autoTierPolicyId, UnManagedVolume unManagedVolume, VirtualPool vPool) {
-        // skip auto tiering validation for virtual volume (on needed on backend volumes)
+        // skip auto tiering validation for virtual volume (only needed on backend volumes)
         if (!VolumeIngestionUtil.isVplexVolume(unManagedVolume)) {
             super.validateAutoTierPolicy(autoTierPolicyId, unManagedVolume, vPool);
         }

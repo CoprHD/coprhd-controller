@@ -4,6 +4,23 @@
  */
 package com.emc.storageos.srdfcontroller;
 
+import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
+import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
+import static com.google.common.collect.Collections2.transform;
+import static java.util.Arrays.asList;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
@@ -16,6 +33,10 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.locking.LockRetryException;
+import com.emc.storageos.locking.LockTimeoutValue;
+import com.emc.storageos.locking.LockType;
+import com.emc.storageos.model.block.Copy;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
@@ -23,7 +44,24 @@ import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.RemoteMirroring;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
-import com.emc.storageos.volumecontroller.impl.block.taskcompleter.*;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.BlockSnapshotRestoreCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFAddPairToGroupCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFChangeCopyModeTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFExpandCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkFailOverCancelCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkFailOverCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkPauseCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkResumeCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkStartCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkStopCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkSuspendCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFLinkSyncCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFMirrorCreateCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFMirrorRollbackCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFRemoveDeviceGroupsCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFSwapCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFTaskCompleter;
+import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflowCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.SRDFOperations.Mode;
 import com.emc.storageos.volumecontroller.impl.smis.srdf.SRDFUtils;
 import com.emc.storageos.workflow.Workflow;
@@ -33,18 +71,6 @@ import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.*;
-
-import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
-import static com.emc.storageos.db.client.util.CommonTransformerFunctions.FCTN_STRING_TO_URI;
-import static com.google.common.collect.Collections2.transform;
-import static java.util.Arrays.asList;
 
 /**
  * SRDF-specific Controller implementation with support for block orchestration.
@@ -196,13 +222,18 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         Map<URI, Volume> uriVolumeMap = queryVolumes(volumeDescriptors);
 
         /**
+         * Locks that must be acquired before continuing.
+         */
+        acquireWorkflowLockOrThrow(workflow, generateLocks(volumeDescriptors, uriVolumeMap));
+
+        /**
          * If copy Mode synchronous, then always run createElementReplica, irrespective of
          * whether existing volumes are present in RA Group or not. Consistency parameter
          * doesn't have any effect , hence creating replication groups for each volume
          * doesn't make sense. Moreover, SMI-S has done rigorous testing of
          * Pause,resume,fail over,fail back on StorageSynchronized rather than on Groups.
          */
-        boolean volumePartOfCG = isVolumePartOfCG(targetDescriptors, uriVolumeMap);
+        boolean volumePartOfCG = isVolumePartOfCG(sourceDescriptors, uriVolumeMap);
 
         if (!volumePartOfCG) {
             createNonCGSRDFVolumes(workflow, waitFor, sourceDescriptors, uriVolumeMap);
@@ -321,10 +352,13 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         }
         // RDF Groups must be in sync with Array, to be able to make the right
         // decision for Async Groups.
-        Set diff = new HashSet<String>();
-        Sets.difference(volumes, new HashSet<String>(group.getVolumes()))
-                .copyInto(diff);
-        if (!diff.isEmpty()) {
+        /*
+         * Check the following 2 conditions.
+         * 1. If there are no volumes in RDFGroup on Array & volumes in RDFGroup in ViPR DB.
+         * 2. If there are volumes in RDFGroup on Array & no volumes in RDFGroup in ViPR DB.
+         */
+        if ((group.getVolumes().isEmpty() && volumes.size() > 0)
+                || (group.getVolumes().size() > 0 && volumes.isEmpty())) {
             // throw Exception rediscover source and target arrays.
             log.warn("RDF Group {} out of sync with Array", group.getNativeGuid());
             List<URI> sourceURIs = VolumeDescriptor.getVolumeURIs(sourceDescriptors);
@@ -386,24 +420,24 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         }
         // Generate workflow step to refresh target system after CG creation.
         if (null != system) {
-            waitFor = addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, system, waitFor, workflow);
+            waitFor = addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, system, null, waitFor, workflow);
         }
         if (null != targetSystem) {
-            addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, targetSystem, waitFor, workflow);
+            addStepToRefreshSystem(CREATE_SRDF_MIRRORS_STEP_GROUP, targetSystem, null, waitFor, workflow);
         }
     }
 
-    private String addStepToRefreshSystem(String stepGroup, StorageSystem system, String waitFor, Workflow workflow) {
-        Workflow.Method refreshTargetSystemsMethod = new Method(REFRESH_SRDF_TARGET_SYSTEM, system.getId());
+    private String addStepToRefreshSystem(String stepGroup, StorageSystem system, List<URI> volumeIds, String waitFor, Workflow workflow) {
+        Workflow.Method refreshTargetSystemsMethod = new Method(REFRESH_SRDF_TARGET_SYSTEM, system.getId(), volumeIds);
         return workflow.createStep(stepGroup, REFRESH_SYSTEM_STEP_DESC, waitFor, system.getId(),
                 system.getSystemType(), getClass(), refreshTargetSystemsMethod, rollbackMethodNullMethod(), null);
     }
 
-    public void refreshStorageSystemStep(URI sourceSystem, String opId) {
+    public void refreshStorageSystemStep(URI sourceSystem, List<URI> volumeIds, String opId) {
         log.info("START refreshing system {}", sourceSystem);
         try {
             WorkflowStepCompleter.stepExecuting(opId);
-            getRemoteMirrorDevice().refreshStorageSystem(sourceSystem);
+            getRemoteMirrorDevice().refreshStorageSystem(sourceSystem, volumeIds);
         } catch (Exception e) {
             log.warn("Refreshing system step failed", e);
         } finally {
@@ -462,11 +496,25 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                         null);
             }
         }
+
+        /**
+         * If R1/R2 has group snap/clone/mirror, add pair to group is not supported unless we provide force flag.
+         * Step-1: In such a case, provide force flag.
+         * When force flag is provided, existing volume-replica group relation becomes INVALID.
+         * Step-2: Create new snap/clone/mirror for new R1/R2 volumes,
+         * add them to DeviceMaskingGroup (DMG) which is equivalent to its ReplicationGroup (RG)
+         * (adding new devices to existing RG is not supported. As a workaround, add them to DMG)
+         * 
+         * Note: This is supported from SMI-S 8.0.3.11 onwards.
+         * Step-2 will be called from API to create replica objects for new volumes and add them to DMG.
+         */
+        boolean forceAdd = utils.checkIfR1OrR2HasReplica(group);
+
         /*
          * 2. Invoke AddSyncpair with the created StorageSynchronized from Step 1
          */
 
-        Workflow.Method addMethod = addVolumePairsToCgMethod(system.getId(), sourceURIs, group.getId(), vpoolChangeUri);
+        Workflow.Method addMethod = addVolumePairsToCgMethod(system.getId(), sourceURIs, group.getId(), vpoolChangeUri, forceAdd);
         Workflow.Method rollbackAddMethod = rollbackAddSyncVolumePairMethod(system.getId(), sourceURIs, targetURIs, false);
         return workflow.createStep(CREATE_SRDF_MIRRORS_STEP_GROUP,
                 CREATE_SRDF_MIRRORS_STEP_DESC, CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_GROUP, system.getId(),
@@ -504,7 +552,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     null);
         }
         /* 2. Invoke AddSyncpair with the created StorageSynchronized from Step 1 */
-        Workflow.Method addMethod = addVolumePairsToCgMethod(system.getId(), sourceURIs, group.getId(), null);
+        Workflow.Method addMethod = addVolumePairsToCgMethod(system.getId(), sourceURIs, group.getId(), null, false);
         Workflow.Method rollbackAddMethod = rollbackAddSyncVolumePairMethod(system.getId(), sourceURIs, targetURIS, false);
         workflow.createStep(CREATE_SRDF_MIRRORS_STEP_GROUP,
                 CREATE_SRDF_MIRRORS_STEP_DESC, CREATE_SRDF_SYNC_VOLUME_PAIR_STEP_GROUP, system.getId(),
@@ -523,17 +571,29 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     }
 
     private boolean isVolumePartOfCG(List<VolumeDescriptor> sourceDescriptors, Map<URI, Volume> uriVolumeMap) {
-        Volume firstTarget = getFirstTarget(sourceDescriptors, uriVolumeMap);
-        return (firstTarget.getConsistencyGroup() != null);
+        Volume source = uriVolumeMap.get(sourceDescriptors.get(0).getVolumeURI());
+        return (source != null && source.getConsistencyGroup() != null);
     }
 
     private Volume getFirstTarget(List<VolumeDescriptor> descriptors, Map<URI, Volume> uriVolumeMap) {
-        for (VolumeDescriptor volumeDescriptor : descriptors) {
-            if (VolumeDescriptor.Type.SRDF_TARGET.equals(volumeDescriptor.getType())) {
-                return uriVolumeMap.get(volumeDescriptor.getVolumeURI());
+        List<VolumeDescriptor> targetDescriptors = VolumeDescriptor.filterByType(descriptors, VolumeDescriptor.Type.SRDF_TARGET);
+
+        if (targetDescriptors.isEmpty()) {
+            for (VolumeDescriptor volumeDescriptor : descriptors) {
+                if (VolumeDescriptor.Type.SRDF_SOURCE.equals(volumeDescriptor.getType())) {
+                    Volume source = uriVolumeMap.get(volumeDescriptor.getVolumeURI());
+                    return getFirstTarget(source);
+                }
+            }
+        } else {
+            for (VolumeDescriptor volumeDescriptor : descriptors) {
+                if (VolumeDescriptor.Type.SRDF_TARGET.equals(volumeDescriptor.getType())) {
+                    return uriVolumeMap.get(volumeDescriptor.getVolumeURI());
+                }
             }
         }
-        throw new IllegalStateException("Excepted a target descriptor to exist");
+
+        throw new IllegalStateException("Expected a target volume to exist");
     }
 
     private Volume getFirstTarget(Volume sourceVolume) {
@@ -576,7 +636,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         dbClient.persistObject(group);
 
         if (null != volumes && volumes.size() == volumeMap.size() && volumePartOfCG) {
-            log.info("Deleting all the volumes  {} in CG  in one attempt", Joiner.on(",").join(volumeMap.keySet()));
+            log.info("Deleting all the volumes {} in CG  in one attempt", Joiner.on(",").join(volumeMap.keySet()));
             return true;
         }
         return false;
@@ -618,6 +678,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 getClass(), detachMethod, null, null);
 
         waitFor = detachMirrorStep;
+        List<URI> targetVolumeIds = new ArrayList<URI>();
 
         for (Volume source : sourcesVolumeMap.values()) {
             StringSet srdfTargets = source.getSrdfTargets();
@@ -642,7 +703,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         }
         // refresh provider before invoking deleteVolume call
         if (null != targetSystem) {
-            addStepToRefreshSystem(DELETE_SRDF_MIRRORS_STEP_GROUP, targetSystem, waitFor, workflow);
+            addStepToRefreshSystem(DELETE_SRDF_MIRRORS_STEP_GROUP, targetSystem, targetVolumeIds, waitFor, workflow);
         }
         return DELETE_SRDF_MIRRORS_STEP_GROUP;
     }
@@ -661,6 +722,13 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         Map<URI, Volume> sourcesVolumeMap = queryVolumes(sourceDescriptors);
         StorageSystem system = null;
         StorageSystem targetSystem = null;
+        List<URI> targetVolumeURIs = new ArrayList<URI>();
+
+        /**
+         * Locks that must be acquired before continuing.
+         */
+        acquireWorkflowLockOrThrow(workflow, generateLocks(sourceDescriptors, sourcesVolumeMap));
+
         if (canRemoveSrdfCg(sourcesVolumeMap)) {
             // invoke workflow to delete CG
             log.info("Invoking SRDF Consistency Group Deletion with all its volumes");
@@ -701,6 +769,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                 } else {
                     // Defensive steps to prevent orphaned SRDF Volumes, which cannot be deleted.
                     // First we remove the sync pair from Async CG...
+                    targetVolumeURIs.add(targetURI);
                     Workflow.Method removePairFromGroupMethod = removePairFromGroup(system.getId(),
                             source.getId(), targetURI, true);
                     String removePairFromGroupWorkflowDesc = String.format(REMOVE_SRDF_PAIR_STEP_DESC, target.getSrdfCopyMode());
@@ -728,7 +797,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         }
         // refresh provider before invoking deleteVolume call
         if (null != targetSystem) {
-            addStepToRefreshSystem(DELETE_SRDF_MIRRORS_STEP_GROUP, targetSystem, waitFor, workflow);
+            addStepToRefreshSystem(DELETE_SRDF_MIRRORS_STEP_GROUP, targetSystem, targetVolumeURIs, waitFor, workflow);
         }
         return DELETE_SRDF_MIRRORS_STEP_GROUP;
     }
@@ -982,19 +1051,20 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         return true;
     }
 
-    private Method addVolumePairsToCgMethod(URI systemURI, List<URI> sourceURIs, URI remoteDirectorGroupURI, URI vpoolChangeUri) {
-        return new Workflow.Method(ADD_SYNC_VOLUME_PAIRS_METHOD, systemURI, sourceURIs, remoteDirectorGroupURI, vpoolChangeUri);
+    private Method addVolumePairsToCgMethod(URI systemURI, List<URI> sourceURIs, URI remoteDirectorGroupURI, URI vpoolChangeUri,
+            boolean forceAdd) {
+        return new Workflow.Method(ADD_SYNC_VOLUME_PAIRS_METHOD, systemURI, sourceURIs, remoteDirectorGroupURI, vpoolChangeUri, forceAdd);
     }
 
     public boolean addVolumePairsToCgMethodStep(URI systemURI, List<URI> sourceURIs, URI remoteDirectorGroupURI, URI vpoolChangeUri,
-            String opId) {
+            boolean forceAdd, String opId) {
         log.info("START Add VolumePair to CG");
         TaskCompleter completer = null;
         try {
             WorkflowStepCompleter.stepExecuting(opId);
             StorageSystem system = getStorageSystem(systemURI);
             completer = new SRDFAddPairToGroupCompleter(sourceURIs, vpoolChangeUri, opId);
-            getRemoteMirrorDevice().doAddVolumePairsToCg(system, sourceURIs, remoteDirectorGroupURI, completer);
+            getRemoteMirrorDevice().doAddVolumePairsToCg(system, sourceURIs, remoteDirectorGroupURI, forceAdd, completer);
         } catch (Exception e) {
             ServiceError error = DeviceControllerException.errors.jobFailed(e);
             if (null != completer) {
@@ -1122,7 +1192,9 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
         List<Volume> volumes = dbClient.queryObject(Volume.class, volumeURIs);
         Map<URI, Volume> volumeMap = new HashMap<URI, Volume>();
         for (Volume volume : volumes) {
-            volumeMap.put(volume.getId(), volume);
+            if (volume != null) {
+                volumeMap.put(volume.getId(), volume);
+            }
         }
         return volumeMap;
     }
@@ -1155,13 +1227,13 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     }
 
     @Override
-    public void performProtectionOperation(final URI systemUri, final URI id,
+    public void performProtectionOperation(final URI systemUri, final Copy copy,
             final String op, final String task) throws InternalException {
         TaskCompleter completer = null;
         try {
             URI sourceVolumeUri = null;
             StorageSystem system = dbClient.queryObject(StorageSystem.class, systemUri);
-            Volume volume = dbClient.queryObject(Volume.class, id);
+            Volume volume = dbClient.queryObject(Volume.class, copy.getCopyID());
             List<String> targetVolumeUris = new ArrayList<String>();
             List<URI> combined = new ArrayList<URI>();
             if (PersonalityTypes.SOURCE.toString().equalsIgnoreCase(volume.getPersonality())) {
@@ -1267,6 +1339,14 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                     StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class,
                             targetVolume.getStorageController());
                     getRemoteMirrorDevice().doStopLink(targetSystem, targetVolume, completer);
+                }
+            } else if (op.equalsIgnoreCase("change-copy-mode")) {
+                completer = new SRDFChangeCopyModeTaskCompleter(combined, task, copy.getCopyMode());
+                for (String target : targetVolumeUris) {
+                    Volume targetVolume = dbClient.queryObject(Volume.class, URI.create(target));
+                    StorageSystem targetSystem = dbClient.queryObject(StorageSystem.class,
+                            targetVolume.getStorageController());
+                    getRemoteMirrorDevice().doChangeCopyMode(targetSystem, targetVolume, completer);
                 }
             }
         } catch (Exception e) {
@@ -1400,7 +1480,7 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
                             String detachVolumePairWorkflowDesc = String.format(DETACH_SRDF_PAIR_STEP_DESC, target.getSrdfCopyMode());
 
                             Workflow.Method addSyncPairMethod = addVolumePairsToCgMethod(system.getId(),
-                                    sourceUris, group.getId(), null);
+                                    sourceUris, group.getId(), null, false);
 
                             String removeAsyncPairStep = workflow.createStep(DELETE_SRDF_MIRRORS_STEP_GROUP,
                                     removePairFromGroupWorkflowDesc, waitFor, system.getId(),
@@ -1490,19 +1570,19 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
     }
 
     @Override
-    public String addStepsForRestoreVolume(Workflow workflow, String waitFor, 
-                                                URI storage, URI pool, URI volume, URI snapshot,
-                                                Boolean updateOpStatus, String taskId,
-                                                BlockSnapshotRestoreCompleter completer) throws InternalException {
+    public String addStepsForRestoreVolume(Workflow workflow, String waitFor,
+            URI storage, URI pool, URI volume, URI snapshot,
+            Boolean updateOpStatus, String taskId,
+            BlockSnapshotRestoreCompleter completer) throws InternalException {
         // Nothing to do, no steps to add
         return waitFor;
     }
-    
-	public void setUtils(SRDFUtils utils) {
-		this.utils = utils;
-	}
-	
-	/**
+
+    public void setUtils(SRDFUtils utils) {
+        this.utils = utils;
+    }
+
+    /**
      * Creates a rollback workflow method that does nothing, but allows rollback
      * to continue to prior steps back up the workflow chain.
      * 
@@ -1510,5 +1590,44 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
      */
     private Workflow.Method rollbackMethodNullMethod() {
         return new Workflow.Method(ROLLBACK_METHOD_NULL);
+    }
+
+    /**
+     * Attempts to acquire a workflow lock based on the RDF group name.
+     *
+     * @param workflow
+     * @param locks
+     * @throws LockRetryException
+     */
+    private void acquireWorkflowLockOrThrow(Workflow workflow, List<String> locks) throws LockRetryException {
+        log.info("Attempting to acquire workflow lock {}", Joiner.on(',').join(locks));
+        workflowService.acquireWorkflowLocks(workflow, locks,
+                LockTimeoutValue.get(LockType.SRDF_PROVISIONING));
+    }
+
+    private List<String> generateLocks(List<VolumeDescriptor> volumeDescriptors, Map<URI, Volume> uriVolumeMap) {
+        // List of resulting locks
+        List<String> locks = new ArrayList<>();
+
+        // Resources for building the locks
+        Volume firstTarget = getFirstTarget(volumeDescriptors, uriVolumeMap);
+        Volume source = uriVolumeMap.get(firstTarget.getSrdfParent().getURI());
+
+        if (source == null) {
+            log.error("Source volume was not found: {}", firstTarget.getSrdfParent().getURI());
+            throw DeviceControllerException.exceptions.invalidObjectNull();
+        }
+
+        StorageSystem sourceSystem = dbClient.queryObject(StorageSystem.class, source.getStorageController());
+        RemoteDirectorGroup rdfGroup = dbClient.queryObject(RemoteDirectorGroup.class, firstTarget.getSrdfGroup());
+
+        // Generate the locks
+        locks.add(generateRDFGroupLock(sourceSystem, rdfGroup));
+
+        return locks;
+    }
+
+    private String generateRDFGroupLock(StorageSystem sourceSystem, RemoteDirectorGroup rdfGroup) {
+        return sourceSystem.getSerialNumber() + "-rdfg-" + rdfGroup.getSourceGroupId();
     }
 }

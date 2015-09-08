@@ -23,12 +23,8 @@ public class PxeIntegrationService {
     private static final Logger log = LoggerFactory.getLogger(PxeIntegrationService.class);
 
     private static final String ESXI5X_UUID_TEMPLATE = "imageserver/esxi5x_uuid.template";
-    // private static final String RHEL_UUID_TEMPLATE = "imageserver/rhel_uuid.template";
-    //
+
     private static final String ESXI5X_UNATTENDED_TEMPLATE = "imageserver/esxi5x_unattended.template";
-    // private static final String RHEL_UNATTENDED_TEMPLATE = "imageserver/rhel_unattended.template";
-    // private static final String CENTOS_UNATTENDED_TEMPLATE = "imageserver/centos_unattended.template";
-    // private static final String ORACLE_UNATTENDED_TEMPLATE = "imageserver/oracle_unattended.template";
 
     private static final String RHEL_FIRSTBOOT_SH = "imageserver/rhel-firstboot.sh";
     private static final String ESXI_FIRSTBOOT_SH = "imageserver/esxi-firstboot.sh";
@@ -38,12 +34,7 @@ public class PxeIntegrationService {
     public void createSession(ImageServerDialog d, ComputeImageJob job, ComputeImage ci, ComputeImageServer imageServer) {
         if (ci._isEsxi5x()) {
             createEsxi5xSession(d, job, ci, imageServer);
-        } /*
-           * else if (os._isEsx4x()) {
-           * createEsx4xUuidConfigFile(session, os);
-           * }
-           */else if (ci._isRedhat() || ci._isCentos() || ci._isOracle()) {
-            // createRhelPxeIdentifierFile(session, os);
+        } else if (ci._isRedhat() || ci._isCentos() || ci._isOracle()) {
             throw ImageServerControllerException.exceptions.unknownOperatingSystem();
         } else {
             throw ImageServerControllerException.exceptions.unknownOperatingSystem();
@@ -95,13 +86,7 @@ public class PxeIntegrationService {
 
     private String generateKickstart(ComputeImageJob job, ComputeImage ci, ComputeImageServer imageServer) {
         log.info("generateKickstart for sess: " + job.getId());
-        String content = null;
-        if (ci._isLinux()) {
-            // content = generateKickstartLinux(session, os);
-        } else {
-            content = generateKickstartEsxEsxi(job, ci, imageServer);
-        }
-        return content;
+        return generateKickstartEsxEsxi(job, ci, imageServer);
     }
 
     private String generateKickstartEsxEsxi(ComputeImageJob job, ComputeImage ci, ComputeImageServer imageServer) {

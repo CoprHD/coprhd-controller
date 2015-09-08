@@ -56,6 +56,7 @@ import com.emc.storageos.db.client.model.Token;
 import com.emc.storageos.db.client.model.UCSServiceProfileTemplate;
 import com.emc.storageos.db.client.model.UCSVhbaTemplate;
 import com.emc.storageos.db.client.model.UCSVnicTemplate;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.WorkflowStep;
@@ -240,6 +241,12 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(StoragePort.class);
             ColumnField field = doType.getColumnField("storageHADomain");
             return new ContainmentConstraintImpl(portGroup, StoragePort.class, field);
+        }
+
+        public static ContainmentConstraint getStorageDeviceVirtualNasConstraint(URI device) {
+            DataObjectType doType = TypeMap.getDoType(VirtualNAS.class);
+            ColumnField field = doType.getColumnField(STORAGE_DEVICE);
+            return new ContainmentConstraintImpl(device, VirtualNAS.class, field);
         }
 
         public static ContainmentConstraint getVirtualArrayStorageDeviceConstraint(URI varray) {
@@ -634,12 +641,42 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(snapshotURI, CifsShareACL.class, field);
         }
 
+        public static ContainmentConstraint getVirtualNASByParentConstraint(URI physicalNAS) {
+            DataObjectType doType = TypeMap.getDoType(VirtualNAS.class);
+            ColumnField field = doType.getColumnField("parentNasUri");
+            return new ContainmentConstraintImpl(physicalNAS, VirtualNAS.class, field);
+        }
+
         public static ContainmentConstraint getAssociatedSourceVolumeConstraint(URI sourceURI) {
             DataObjectType doType = TypeMap.getDoType(Volume.class);
             ColumnField field = doType.getColumnField("associatedSourceVolume");
             return new ContainmentConstraintImpl(sourceURI, Volume.class, field);
         }
 
+        public static ContainmentConstraint getVirtualNASInVirtualArrayConstraint(URI varray) {
+            DataObjectType doType = TypeMap.getDoType(VirtualNAS.class);
+            ColumnField field = doType.getColumnField("assignedVirtualArrays");
+            return new ContainmentConstraintImpl(varray, VirtualNAS.class, field);
+        }
+
+        public static ContainmentConstraint getVirtualNASContainStoragePortConstraint(URI port) {
+            DataObjectType doType = TypeMap.getDoType(VirtualNAS.class);
+            ColumnField field = doType.getColumnField("storagePorts");
+            return new ContainmentConstraintImpl(port, VirtualNAS.class, field);
+        }
+
+        public static ContainmentConstraint getStoragePortFileshareConstraint(URI storagePort) {
+            DataObjectType doType = TypeMap.getDoType(FileShare.class);
+            ColumnField field = doType.getColumnField("storagePort");
+            return new ContainmentConstraintImpl(storagePort, FileShare.class, field);
+        }
+
+        /**
+         * method to return ContainmentConstraint between {@link ComputeImageJob} and {@link ComputeImageServer}
+         * 
+         * @param imageServerURI {@link URI} imagerServer URI
+         * @return {@link ContainmentConstraint}
+         */
         public static ContainmentConstraint getComputeImageJobsByComputeImageServerConstraint(URI imageServerURI) {
             DataObjectType doType = TypeMap.getDoType(ComputeImageJob.class);
             ColumnField field = doType.getColumnField(COMPUTE_IMAGESERVER_ID);

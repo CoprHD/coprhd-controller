@@ -123,6 +123,8 @@ public class PathConstants {
             + "/{hostId}/unmanaged-volumes";
     public static final String UNMANAGED_VOLUME_BY_CLUSTER_URL = CLUSTER_URL
             + "/{clusterId}/unmanaged-volumes";
+    public static final String UNMANAGED_VOLUME_BY_STORAGE_SYSTEM_AND_VIRTUAL_POOL_URL = STORAGE_SYSTEM_URL
+            + "/{storageSystemId}/unmanaged/{virtualPool}/volumes";
 
     public static final String UNMANAGED_EXPORTS_URL = "/vdc/unmanaged/export-masks";
     public static final String UNMANAGED_EXPORTS_BY_HOST_URL = HOST_URL
@@ -133,6 +135,8 @@ public class PathConstants {
     public static final String UNMANAGED_FILESYSTEMS_URL = "/vdc/unmanaged/filesystems";
     public static final String UNMANAGED_FILESYSTEM_BY_STORAGE_SYSTEM_URL = STORAGE_SYSTEM_URL
             + "/{storageSystemId}/unmanaged/filesystems";
+    public static final String UNMANAGED_FILESYSTEM_BY_STORAGE_SYSTEM_VIRTUAL_POOL_URL = STORAGE_SYSTEM_URL
+            + "/{storageSystemId}/unmanaged/{virtualPool}/filesystems";
 
     public static final String CUSTOM_CONFIG_URL = "/config/controller";
     public static final String CUSTOM_CONFIG_TYPE_URL = CUSTOM_CONFIG_URL + "/types";
@@ -140,4 +144,9 @@ public class PathConstants {
     public static final String USER_GROUP_URL = "/vdc/admin/user-groups";
     public static final String CHECK_COMPATIBLE_VDC_URL = "/vdc/check-compatibility";
     public static final String CHECK_IS_GEO_DISTRIBUTED_VDC_URL = "/vdc/check-geo-distributed";
+
+    public static final String VIRTUAL_NAS_SERVER_URL = "/vdc/vnas-servers";
+    public static final String VIRTUAL_NAS_SERVER_BY_STORAGE_SYSTEM_URL = "/vdc/storage-systems/{storage-system-id}/vnasservers";
+    public static final String VIRTUAL_NAS_SERVER_BY_VARRAY_URL = VIRTUAL_NAS_SERVER_URL + "/varray/{varray-id}";
+    public static final String VIRTUAL_NAS_SERVER_BY_PROJECT_URL = "/project/{project-id}";
 }

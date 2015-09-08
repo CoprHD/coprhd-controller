@@ -315,7 +315,7 @@ class Logging(object):
                     pass
 
     def get_logs(self, log, severity, start, end, node,
-                 regex, format, maxcount, filepath):
+                 regex, format, maxcount, filepath , nodename):
 
         params = ''
         if (log != ''):
@@ -339,6 +339,9 @@ class Logging(object):
         if (maxcount != ''):
             params += '&' if ('?' in params) else '?'
             params += "maxcount=" + maxcount
+        if (nodename != ''):
+            params += '&' if ('?' in params) else '?'
+            params += "node_name=" + nodename   
 
         tmppath = filepath + ".tmp"
 
@@ -395,25 +398,25 @@ class Logging(object):
         if(not resp):
             return None
 
-    def get_log_level(self, loglst, nodelst):
+    def get_log_level(self, loglst, nodelst ,nodename):
         request = ""
 
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "GET", Logging.URI_LOG_LEVELS +
                                              self.prepare_get_log_lvl_params(
                                                  loglst,
-                                                 nodelst),
+                                                 nodelst ,nodename ),
                                              None)
         if(not s):
             return None
         o = common.json_decode(s)
         return o
 
-    def set_log_level(self, severity, logs, nodes, expiretime):
+    def set_log_level(self, severity, logs, nodes, expiretime , nodename):
         request = ""
 
         params = self.prepare_set_log_level_body(severity, logs, nodes,
-                                                  expiretime)
+                                                  expiretime , nodename)
 
         if (params):
             body = json.dumps(params)
@@ -504,7 +507,7 @@ class Logging(object):
             params += "maxcount=" + args.maxcount
         return params
 
-    def prepare_get_log_lvl_params(self, loglst, nodelst):
+    def prepare_get_log_lvl_params(self, loglst, nodelst ,nodename):
         params = ''
         if(loglst):
             for log in loglst:
@@ -514,6 +517,10 @@ class Logging(object):
             for node in nodelst:
                 params += '&' if ('?' in params) else '?'
                 params += "node_id=" + node
+        if(nodename):
+            for ndname in nodename:
+                params += '&' if ('?' in params) else '?'
+                params += "node_name=" + ndname
         return params
 
     def prepare_alert_params(self, params, args):
@@ -531,7 +538,7 @@ class Logging(object):
                   }
         return params
 
-    def prepare_set_log_level_body(self, severity, logs, nodes, expiretime):
+    def prepare_set_log_level_body(self, severity, logs, nodes, expiretime ,nodename):
         params = {'severity': int(severity)}
         if (logs):
             params['log_name'] = logs
@@ -539,6 +546,8 @@ class Logging(object):
             params['node_id'] = nodes
         if (expiretime):
             params['expir_in_min'] = expiretime
+        if (nodename):
+            params['node_name'] = nodename
 
         return params
 
@@ -615,10 +624,15 @@ class Monitoring(object):
         self.__ipAddr = ipAddr
         self.__port = port
 
-    def get_stats(self, nodeid):
-
-        if(nodeid):
+    def get_stats(self, nodeid , nodename):
+        
+        if(nodeid is not None):
             uri = Monitoring.URI_MONITOR_STATS + "?node_id=" + nodeid
+        if(nodename is not None):
+            uri = Monitoring.URI_MONITOR_STATS + "?node_name=" + nodename
+            
+        if(nodeid and nodename):
+            uri = Monitoring.URI_MONITOR_STATS + "?node_id=" + nodeid + "&node_name=" + nodename
         else:
             uri = Monitoring.URI_MONITOR_STATS
 
@@ -632,10 +646,15 @@ class Monitoring(object):
 
         return o
 
-    def get_health(self, nodeid):
-
-        if(nodeid):
+    def get_health(self, nodeid , nodename):
+        
+        if(nodeid is not None):
             uri = Monitoring.URI_MONITOR_HEALTH + "?node_id=" + nodeid
+        if(nodename is not None):
+            uri = Monitoring.URI_MONITOR_HEALTH + "?node_name=" + nodename
+
+        if(nodeid is not None and nodename is not None):
+            uri = Monitoring.URI_MONITOR_HEALTH + "?node_id=" + nodeid + "&node_name=" + nodename
         else:
             uri = Monitoring.URI_MONITOR_HEALTH
 
@@ -649,15 +668,21 @@ class Monitoring(object):
 
         return o
 
-    def get_diagnostics(self, nodeid, verbose):
+    def get_diagnostics(self, nodeid,nodename , verbose):
 
         if(verbose):
             uri = Monitoring.URI_MONITOR_DIAGNOSTICS + "?verbose=1"
         else:
             uri = Monitoring.URI_MONITOR_DIAGNOSTICS + "?verbose=0"
+            
+        if(nodeid is not None):
+            uri = Monitoring.URI_MONITOR_DIAGNOSTICS + "?node_id=" + nodeid
+        if(nodename is not None):
+            uri = Monitoring.URI_MONITOR_DIAGNOSTICS + "?node_name=" + nodename
+    
 
-        if(nodeid):
-            uri = uri + "&node_id=" + nodeid
+        if(nodeid and nodename):
+            uri = uri + "&node_id=" + nodeid + "&node_name=" + nodename
 
         (s, h) = common.service_json_request(self.__ipAddr, self.__port,
                                              "GET", uri,
@@ -1069,6 +1094,12 @@ def get_logs_parser(subcommand_parsers, common_parser):
                                  dest='log',
                                  help='Log Name',
                                  default='')
+    
+    get_logs_parser.add_argument('-nodename', '-ndname',
+                                 metavar='<nodename>',
+                                 dest='nodename',
+                                 help='Node name',
+                                 default='')
 
     add_log_args(get_logs_parser)
 
@@ -1122,7 +1153,8 @@ def get_logs(args):
             args.regular,
             args.format,
             args.maxcount,
-            args.filepath)
+            args.filepath ,
+            args.nodename)
     except SOSError as e:
         common.format_err_msg_and_raise("get", "logs", e.err_text, e.err_code)
 
@@ -1148,6 +1180,11 @@ def get_log_level_parser(subcommand_parsers, common_parser):
                                       dest='nodes',
                                       help='Nodes',
                                       nargs="+")
+    get_log_level_parser.add_argument('-nodename', '-ndname',
+                                      metavar='<nodesname>',
+                                      dest='nodename',
+                                      help='Nodename ',
+                                      nargs="+")
 
     get_log_level_parser.set_defaults(func=get_log_level)
 
@@ -1156,7 +1193,7 @@ def get_log_level(args):
     obj = Logging(args.ip, Logging.DEFAULT_SYSMGR_PORT)
     from common import TableGenerator
     try:
-        res = obj.get_log_level(args.logs, args.nodes)
+        res = obj.get_log_level(args.logs, args.nodes ,args.nodename)
         return common.format_json_object(res)
     except SOSError as e:
         common.format_err_msg_and_raise(
@@ -1197,6 +1234,11 @@ def set_log_level_parser(subcommand_parsers, common_parser):
                                       dest='nodes',
                                       help='Nodes',
                                       nargs="+")
+    set_log_level_parser.add_argument('-nodename', '-ndname',
+                                      metavar='<nodename>',
+                                      dest='nodename',
+                                      help='Nodenames',
+                                      nargs="+")
     set_log_level_parser.add_argument('-expiretime', '-ext',
                                   metavar='<expiretime>',
                                   dest='expiretime',
@@ -1215,7 +1257,7 @@ def set_log_level(args):
     obj = Logging(args.ip, Logging.DEFAULT_SYSMGR_PORT)
     from common import TableGenerator
     try:
-        res = obj.set_log_level(args.severity, args.logs, args.nodes, args.expiretime)
+        res = obj.set_log_level(args.severity, args.logs, args.nodes, args.expiretime ,args.nodename)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "set",
@@ -1804,6 +1846,12 @@ def get_stats_parser(subcommand_parsers, common_parser):
                                   dest='node',
                                   help='Node',
                                   default='')
+    get_stats_parser.add_argument('-nodename', '-ndname',
+                                  metavar='<node>',
+                                  dest='nodename',
+                                  help='Node',
+                                  default='')
+
 
     get_stats_parser.set_defaults(func=get_stats)
 
@@ -1811,7 +1859,7 @@ def get_stats_parser(subcommand_parsers, common_parser):
 def get_stats(args):
     obj = Monitoring(args.ip, Monitoring.DEFAULT_SYSMGR_PORT)
     try:
-        return common.format_json_object(obj.get_stats(args.node))
+        return common.format_json_object(obj.get_stats(args.node , args.nodename))
     except SOSError as e:
         common.format_err_msg_and_raise(
             "get",
@@ -1834,6 +1882,12 @@ def get_health_parser(subcommand_parsers, common_parser):
                                    dest='node',
                                    help='Node',
                                    default='')
+    get_health_parser.add_argument('-nodename', '-ndname',
+                                   metavar='<node>',
+                                   dest='nodename',
+                                   help='Node',
+                                   default='')
+
 
     get_health_parser.set_defaults(func=get_health)
 
@@ -1841,7 +1895,7 @@ def get_health_parser(subcommand_parsers, common_parser):
 def get_health(args):
     obj = Monitoring(args.ip, Monitoring.DEFAULT_SYSMGR_PORT)
     try:
-        return common.format_json_object(obj.get_health(args.node))
+        return common.format_json_object(obj.get_health(args.node,args.nodename))
     except SOSError as e:
         common.format_err_msg_and_raise(
             "get",
@@ -1864,6 +1918,12 @@ def get_diagnostics_parser(subcommand_parsers, common_parser):
                                         dest='node',
                                         help='Node',
                                         default='')
+    
+    get_diagnostics_parser.add_argument('-nodename', '-ndname',
+                                        metavar='<node>',
+                                        dest='nodename',
+                                        help='Node',
+                                        default='')
 
     get_diagnostics_parser.add_argument('-verbose', '-v',
                                         action='store_true',
@@ -1877,7 +1937,7 @@ def get_diagnostics(args):
     obj = Monitoring(args.ip, Monitoring.DEFAULT_SYSMGR_PORT)
     try:
         return common.format_json_object(
-            obj.get_diagnostics(args.node, args.verbose))
+            obj.get_diagnostics(args.node,args.nodename, args.verbose))
     except SOSError as e:
         common.format_err_msg_and_raise(
             "get",

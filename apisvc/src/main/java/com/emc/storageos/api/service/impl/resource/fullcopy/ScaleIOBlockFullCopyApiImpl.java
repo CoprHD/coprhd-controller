@@ -42,21 +42,7 @@ public class ScaleIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     public List<BlockObject> getAllSourceObjectsForFullCopyRequest(BlockObject fcSourceObj) {
-        // No CG operation support for ScaleIO.
-        List<BlockObject> fcSourceObjList = new ArrayList<BlockObject>();
-        fcSourceObjList.add(fcSourceObj);
-        return fcSourceObjList;
-    }
-
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Map<URI, Volume> getFullCopySetMap(BlockObject fcSourceObj,
-            Volume fullCopyVolume) {
-        Map<URI, Volume> fullCopyMap = new HashMap<URI, Volume>();
-        fullCopyMap.put(fullCopyVolume.getId(), fullCopyVolume);
-        return fullCopyMap;
+        return super.getAllSourceObjectsForFullCopyRequest(fcSourceObj);
     }
 
     /**

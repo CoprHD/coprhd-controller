@@ -22,6 +22,7 @@
     	<property name="customConfigTypes">
             <list>
                 <ref bean="sanZoneName"/>
+                <ref bean="sanZoneAddVolumeCheckZoning"/>
                 <ref bean="vnxHostStorageGroupName"/>
                 <ref bean="vmaxHostMaskingViewName"/>
                 <ref bean="vmaxClusterMaskingViewName"/>
@@ -52,6 +53,7 @@
                 <ref bean="vplexStorageViewName"/>
                 <ref bean="vplexMigrationSpeed"/>
                 <ref bean="vplexVmaxMaskingViewMaximumVolumes"/>
+                <ref bean="nasDynamicPerformancePlacementEnabled"/>
             </list>
         </property>
     </bean>
@@ -94,6 +96,22 @@
                 <ref bean="nsMaxLengthConstraint"/>
                 <ref bean="illegalFirstCharConstraint"/>
             </list>
+        </property>
+    </bean>
+
+    <bean id="sanZoneAddVolumeCheckZoning" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+        <property name="name" value="SanZoneAddVolumeCheckZoning"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Boolean"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="true"/>
+            </map>
         </property>
     </bean>
     
@@ -773,6 +791,23 @@
                 <ref bean="maxConstraintForEmaFactor"/>
                 <ref bean="minConstraintZero"/>
             </list>
+        </property>
+    </bean>
+    
+    <bean id="nasDynamicPerformancePlacementEnabled" class="com.emc.storageos.customconfigcontroller.CustomConfigType">
+    	<property name="name" value="NasDynamicPerformancePlacementEnabled"/>
+        <property name="configType" value="SimpleValue"/>
+        <property name="type" value="Boolean"/>
+        <property name="scope">
+            <map>
+                <entry key="global" value="default"/>
+				<entry key="systemType" value="vnxfile"/>
+            </map>
+        </property>
+        <property name="defaultValues">
+            <map>
+                <entry key="default" value="false"/>
+            </map>
         </property>
     </bean>
     

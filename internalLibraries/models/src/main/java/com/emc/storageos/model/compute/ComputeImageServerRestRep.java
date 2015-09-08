@@ -32,6 +32,10 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
 
     private String computeImageServerStatus;
 
+    private Integer osInstallTimeoutMs;
+
+    private String imageServerUser;
+
     public ComputeImageServerRestRep() {
 
     }
@@ -39,8 +43,8 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
     /**
      * @return the imageServerIp
      */
-    @XmlElement(name = "imageServerIp")
-    @JsonProperty("imageServerIp")
+    @XmlElement(name = "imageserver_ip")
+    @JsonProperty("imageserverip")
     public String getImageServerIp() {
         return imageServerIp;
     }
@@ -56,8 +60,8 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
     /**
      * @return the imageServerSecondIp
      */
-    @XmlElement(name = "imageServerSecondIp")
-    @JsonProperty("imageServerSecondIp")
+    @XmlElement(name = "imageserver_secondip")
+    @JsonProperty("imageserversecondip")
     public String getImageServerSecondIp() {
         return imageServerSecondIp;
     }
@@ -94,8 +98,8 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
     /**
      * @return the tftpbootDir
      */
-    @XmlElement(name = "tftpbootDir")
-    @JsonProperty("tftpbootDir")
+    @XmlElement(name = "tftpbootdir")
+    @JsonProperty("tftpbootdir")
     public String getTftpbootDir() {
         return tftpbootDir;
     }
@@ -108,8 +112,8 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
         this.tftpbootDir = tftpbootDir;
     }
 
-    @XmlElement(name = "computeImageServerStatus")
-    @JsonProperty("computeImageServerStatus")
+    @XmlElement(name = "imageserver_status")
+    @JsonProperty("imageserver_status")
     public String getComputeImageServerStatus() {
         return computeImageServerStatus;
 
@@ -117,5 +121,39 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
 
     public void setComputeImageServerStatus(String computeImageServerStatus) {
         this.computeImageServerStatus = computeImageServerStatus;
+    }
+
+    /**
+     * @return the imageServerUser
+     */
+    @XmlElement(name = "imageserver_user")
+    @JsonProperty("imageserver_user")
+    public String getImageServerUser() {
+        return imageServerUser;
+    }
+
+    /**
+     * @param imageServerUser
+     *            the imageServerUser to set
+     */
+    public void setImageServerUser(String imageServerUser) {
+        this.imageServerUser = imageServerUser;
+    }
+
+    /**
+     * @return the osInstallTimeoutMs
+     */
+    @XmlElement(name = "osinstall_timeoutms")
+    @JsonProperty("osinstall_timeoutms")
+    public Integer getOsInstallTimeoutMs() {
+        return osInstallTimeoutMs;
+    }
+
+    /**
+     * @param osInstallTimeoutMs
+     *            the osInstallTimeoutMs to set
+     */
+    public void setOsInstallTimeoutMs(Integer osInstallTimeoutMs) {
+        this.osInstallTimeoutMs = osInstallTimeoutMs;
     }
 }

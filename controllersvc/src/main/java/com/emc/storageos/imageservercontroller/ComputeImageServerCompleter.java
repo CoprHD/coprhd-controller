@@ -15,6 +15,10 @@ import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 
+/**
+ * Completer class for handling ComputeImageServer completion tasks
+ *
+ */
 @SuppressWarnings("serial")
 public class ComputeImageServerCompleter extends TaskCompleter{
 
@@ -29,6 +33,12 @@ public class ComputeImageServerCompleter extends TaskCompleter{
         this.serviceType = serviceType;
     }
 
+    /**
+     * Method to be invoked on job execution completion
+     * @param dbClient {@link DBClient} instance
+     * @param Status {@link Status} of job
+     * @param coded {@link ServiceCoded} instance
+     */
     @Override
     protected void complete(DbClient dbClient, Status status, ServiceCoded coded)
             throws DeviceControllerException {
@@ -40,7 +50,6 @@ public class ComputeImageServerCompleter extends TaskCompleter{
         if (status == Status.error) {
             if (opType == OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES) {
                 imageServer.setComputeImageServerStatus(ComputeImageStatus.NOT_AVAILABLE.name());
-                //imageServer.setLastImportStatusMessage(coded.getMessage());
                 dbClient.persistObject(imageServer);
             }
             dbClient.error(ComputeImageServer.class, getId(), getOpId(), coded);

@@ -36,6 +36,10 @@ public class ComputeImageServerBulkRep extends BulkRestRep {
         return computeImageServers;
     }
 
+    /**
+     * setter for compute image servers
+     * @param computeImageServers {@link List} of ComputeImageServerRestRep
+     */
     public void setComputeImageServers(List<ComputeImageServerRestRep> computeImageServers) {
         this.computeImageServers = computeImageServers;
     }

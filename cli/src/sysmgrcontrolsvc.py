@@ -31,12 +31,24 @@ class ControlService(object):
         self.__ipAddr = ipAddr
         self.__port = port
 
-    def rebootNode(self, nodeId):
+    def rebootNode(self, nodeId , nodename):
+        
+        if(nodeId is not None):
+            uri = ControlService.URI_CONTROL_NODE_REBOOT + "?node_id=" + nodeId
+        if(nodename is not None):
+            uri = ControlService.URI_CONTROL_NODE_REBOOT + "?node_name=" + nodename
+
+        
+        if(nodeId is not None and nodename is not None):
+            uri = ControlService.URI_CONTROL_NODE_REBOOT + "?node_id=" + nodeId + "&node_name=" + nodename
+        else:
+            uri = ControlService.URI_CONTROL_NODE_REBOOT
+
         #START - rebootNode
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "POST",
-            ControlService.URI_CONTROL_NODE_REBOOT.format(nodeId),
+            uri,
             None)
         if(not s):
             return None
@@ -62,13 +74,28 @@ class ControlService(object):
         
     
 
-    def restartService(self, nodeId, serviceName):
+    def restartService(self, nodeId, serviceName , nodename):
+        
+        params = ''
+        if (nodeId != ''):
+            params += '&' if ('?' in params) else '?'
+            params += "node_id=" + nodeId
+        if (serviceName != ''):
+            params += '&' if ('?' in params) else '?'
+            params += "name=" + serviceName
+        if (nodename != ''):
+            params += '&' if ('?' in params) else '?'
+            params += "node_name=" + nodename
+        
+        
+        else:
+            uri = ControlService.URI_CONTROL_SERVICE_RESTART
+        
         #START - restartService
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,
             "POST",
-            ControlService.URI_CONTROL_SERVICE_RESTART.format(
-                nodeId, serviceName), None)
+            uri + params, None)
         if(not s):
             return None
 
@@ -195,6 +222,10 @@ def restart_service_parser(subcommand_parsers, common_parser):
                                 metavar='<servicename>',
                                 help='Name of the service to be restarted',
                                 required=True)
+    restart_service_parser.add_argument('-nodename', '-ndname ',
+                                dest='nodename',
+                                metavar='<node_name>',
+                                help='Name of the node to be restarted')
 
     restart_service_parser.set_defaults(func=restart_service)
 
@@ -202,6 +233,7 @@ def restart_service_parser(subcommand_parsers, common_parser):
 def restart_service(args):
     nodeId = args.nodeid
     serviceName = args.servicename
+    nodename = args.nodename
 
     try:
         response = common.ask_continue(
@@ -211,7 +243,7 @@ def restart_service(args):
             nodeId)
         if(str(response) == "y"):
             contrlSvcObj = ControlService(args.ip, args.port)
-            contrlSvcObj.restartService(nodeId, serviceName)
+            contrlSvcObj.restartService(nodeId, serviceName , nodename)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "restart-service",
@@ -243,18 +275,24 @@ def reboot_node_parser(subcommand_parsers, common_parser):
                                 metavar='<nodeid>',
                                 dest='nodeid',
                                 required=True)
+    
+    reboot_node_parser.add_argument('-nodename', '-ndname',
+                                help='name of the node to be rebooted',
+                                metavar='<nodename>',
+                                dest='nodename')
 
     reboot_node_parser.set_defaults(func=reboot_node)
 
 
 def reboot_node(args):
     nodeId = args.nodeid
+    nodename = args.nodename
 
     try:
-        response = common.ask_continue("reboot node:" + nodeId)
+        response = common.ask_continue("reboot node:" + nodeId )
         if(str(response) == "y"):
             contrlSvcObj = ControlService(args.ip, args.port)
-            contrlSvcObj.rebootNode(nodeId)
+            contrlSvcObj.rebootNode(nodeId , nodename )
     except SOSError as e:
         common.format_err_msg_and_raise(
             "reboot-node",

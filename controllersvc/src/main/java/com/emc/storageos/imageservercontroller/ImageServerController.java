@@ -12,14 +12,12 @@ import com.emc.storageos.volumecontroller.AsyncTask;
 
 public interface ImageServerController extends Controller {
 
-    public void importImage(AsyncTask task, URI imageServerId) throws InternalException;
+    void deleteImage(AsyncTask task) throws InternalException;
 
-    public void deleteImage(AsyncTask task) throws InternalException;
+    void installOperatingSystem(AsyncTask task, URI computeImageJob) throws InternalException;
 
-    public void installOperatingSystem(AsyncTask task, URI computeImageJob) throws InternalException;
+    void verifyImageServerAndImportExistingImages(AsyncTask task, String opName);
 
-    public void verifyImageServerAndImportExistingImages(AsyncTask task);
-
-	public void importImageToServers(AsyncTask task) throws InternalException;
+    void importImageToServers(AsyncTask task) throws InternalException;
 
 }

@@ -23,12 +23,22 @@ public class CleanupResource {
     private String _url;
     private BalancedWebResource _user;
     private Object _requestParam;
+    private int _expectedStatus;
 
     public CleanupResource(String method, String url, BalancedWebResource user, Object requestParam) {
         _method = method;
         _url = url;
         _user = user;
         _requestParam = requestParam;
+        _expectedStatus = 200;
+    }
+
+    public CleanupResource(String method, String url, BalancedWebResource user, Object requestParam, int expectedStatus) {
+        _method = method;
+        _url = url;
+        _user = user;
+        _requestParam = requestParam;
+        _expectedStatus = expectedStatus;
     }
 
     // Function that iterates the list in reverse order and cleans up all the registered
@@ -41,15 +51,15 @@ public class CleanupResource {
                 CleanupResource cleanupResource = reverseItr.next();
                 if (cleanupResource._method.equalsIgnoreCase("delete")) {
                     ClientResponse response = cleanupResource._user.path(cleanupResource._url).delete(ClientResponse.class);
-                    Assert.assertEquals(200, response.getStatus());
+                    Assert.assertEquals(cleanupResource._expectedStatus, response.getStatus());
                 } else if (cleanupResource._method.equalsIgnoreCase("put")) {
                     ClientResponse response = cleanupResource._user.path(cleanupResource._url).put(ClientResponse.class,
                             cleanupResource._requestParam);
-                    Assert.assertEquals(200, response.getStatus());
+                    Assert.assertEquals(cleanupResource._expectedStatus, response.getStatus());
                 } else if (cleanupResource._method.equalsIgnoreCase("post")) {
                     ClientResponse response = cleanupResource._user.path(cleanupResource._url).post(ClientResponse.class,
                             cleanupResource._requestParam);
-                    Assert.assertEquals(200, response.getStatus());
+                    Assert.assertEquals(cleanupResource._expectedStatus, response.getStatus());
                 }
             }
         }

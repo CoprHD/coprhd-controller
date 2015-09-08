@@ -78,15 +78,8 @@
         <property name="coordinator" ref="coordinator"/>
         <property name="matcherFramework" ref="matcherFramework"/>
         <property name="rpHelper" ref="rphelper"/>
-        <property name="blockScheduler" ref="storagescheduler" />
-    </bean>
-
-    <bean id="rpvplexscheduler" class="com.emc.storageos.api.service.impl.placement.RPVPlexScheduler">
-        <property name="dbClient" ref="dbclient"/>
-        <property name="rpHelper" ref="rphelper"/>
-        <property name="blockScheduler" ref="storagescheduler" />
-        <property name="recoverPointScheduler" ref="rpscheduler" />
         <property name="vplexScheduler" ref="vplexscheduler" />
+        <property name="blockScheduler" ref="storagescheduler" />
     </bean>
 
     <bean id="srdfscheduler" class="com.emc.storageos.api.service.impl.placement.SRDFScheduler">
@@ -99,9 +92,11 @@
             ="com.emc.storageos.db.client.util.ResourceOnlyNameGenerator"/>
     <bean id="exportGroupNameGenerator"
           class="com.emc.storageos.db.client.util.ExportGroupNameGenerator"/>
+    
     <bean id="filescheduler" class="com.emc.storageos.api.service.impl.placement.FileStorageScheduler">
         <property name="dbClient" ref="dbclient"/>
         <property name="scheduleUtils" ref="storagescheduler" />
+        <property name="customConfigHandler" ref="customConfigHandler" />
     </bean>
 
     <bean id="dbModelObjectScanner" class="com.emc.storageos.db.common.DataObjectScanner" init-method="init">
@@ -181,7 +176,7 @@
         <property name="coordinator" ref="coordinator"/>
         <property name="matcherFramework" ref="matcherFramework"/>
     </bean>
-
+    
     <bean id="virtualArrayService" class="com.emc.storageos.api.service.impl.resource.VirtualArrayService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
@@ -236,6 +231,9 @@
     
     <bean id ="blockVplexVolumeIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockVplexVolumeIngestOrchestrator">
         <property name="dbClient" ref="dbclient"/>
+        <property name="ingestStrategyFactory" ref="ingestStrategyFactory"/>
+        <property name="tenantsService" ref="tenantsService"/>
+        <property name="coordinator" ref="coordinator"/>
     </bean>
     
     <bean id ="maskPerHostIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.MaskPerHostIngestOrchestrator">
@@ -267,15 +265,6 @@
          <property name="coordinator" ref="coordinator"/>
          <property name="blockScheduler" ref="srdfscheduler"/>
     </bean>
-    
-    <bean id="rpVPlexBlockServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.RPVPlexBlockServiceApiImpl">
-         <property name="dbClient" ref="dbclient"/>
-         <property name="coordinator" ref="coordinator"/>
-         <property name="blockScheduler" ref="rpvplexscheduler"/>
-         <property name="rpHelper" ref="rphelper"/>
-         <property name ="vplexBlockServiceApiImpl" ref="vplexBlockServiceApiImpl"/>
-         <property name ="rpBlockServiceApiImpl" ref="rpBlockServiceApiImpl"/>
-    </bean>
 
     <bean id="vplexBlockServiceApiImpl" class="com.emc.storageos.api.service.impl.resource.VPlexBlockServiceApiImpl">
          <property name="dbClient" ref="dbclient"/>
@@ -299,8 +288,7 @@
             <entry key="block" value-ref="storagescheduler"/>
             <entry key="rp" value-ref="rpscheduler"/>
             <entry key="vplex" value-ref="vplexscheduler"/>
-            <entry key="srdf" value-ref="srdfscheduler"/>
-            <entry key="rpvplex" value-ref="rpvplexscheduler"/>
+            <entry key="srdf" value-ref="srdfscheduler"/>            
         </map>
         </property>
         <property name="dbClient" ref="dbclient"/>
@@ -356,7 +344,6 @@
            <entry key="vplex" value-ref="vplexBlockServiceApiImpl"/>
            <entry key="mirror" value-ref="blockMirrorServiceApiImpl" />
            <entry key="group" value-ref="defaultBlockServiceApiImpl" />
-           <entry key="rpvplex" value-ref="rpVPlexBlockServiceApiImpl" />
        </map>
        </property>
     </bean>
@@ -454,6 +441,11 @@
                     <property name="coordinator" ref="coordinator"/>
                     <property name="retryAttempts" value="5"/>
                 </bean>
+                <bean class="com.emc.storageos.api.service.impl.resource.VirtualNasService">
+                    <property name="dbClient" ref="dbclient"/>
+                    <property name="coordinator" ref="coordinator"/>
+                    <property name="retryAttempts" value="5"/>
+                </bean>
                 <ref bean="virtualArrayService"/>
                 <ref bean="networkService"/>
                 <bean class="com.emc.storageos.api.service.impl.resource.ExportGroupService">
@@ -517,7 +509,7 @@
                     <property name="coordinator" ref="coordinator"/>
                     <property name="ingestStrategyFactory" ref="ingestStrategyFactory"/>
                 </bean>
-                
+
                 <bean class="com.emc.storageos.api.service.impl.resource.UnManagedFilesystemService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>

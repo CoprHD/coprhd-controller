@@ -343,10 +343,17 @@
         <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory"/>
         <property name="xtremioExportOperationHelper" ref="xtremioExportOperationHelper"/>
         <property name="nameGenerator" ref="defaultNameGenerator"/>
+        <property name="snapshotOperations" ref="xtremioSnapshotOperations"/>
     </bean>
     
     <bean id="xtremioExportOperationHelper" class="com.emc.storageos.volumecontroller.impl.xtremio.XtremIOExportOperations">
         <property name="dbClient" ref="dbclient"/>
+        <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory"/>
+    </bean>
+    
+    <bean id="xtremioSnapshotOperations" class="com.emc.storageos.volumecontroller.impl.xtremio.XtremIOSnapshotOperations">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="nameGenerator" ref="defaultNameGenerator"/>
         <property name="xtremioRestClientFactory" ref="xtremioRestClientFactory"/>
     </bean>
 
@@ -679,6 +686,12 @@
         <property name="workflowService" ref="workflowService" />
         <property name="blockDeviceController" ref="blockDeviceController" />
     </bean>
+    
+    <bean id="vplexCinderMaskingOrchestrator" class="com.emc.storageos.volumecontroller.impl.block.VplexCinderMaskingOrchestrator">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="workflowService" ref="workflowService" />
+        <property name="blockDeviceController" ref="blockDeviceController" />
+    </bean>
 
     <bean id="srdfDeviceController" class="com.emc.storageos.srdfcontroller.SRDFDeviceController">
         <property name="dbClient" ref="dbclient" />
@@ -821,6 +834,7 @@
                 <ref bean="vplexHDSMaskingOrchestrator"/>
 		        <ref bean="vplexVmaxMaskingOrchestrator"/>
 		        <ref bean="vplexVnxMaskingOrchestrator"/>
+		        <ref bean="vplexCinderMaskingOrchestrator"/>		        
                 <ref bean="computeSystemController"/>
                 <ref bean="computeDeviceController"/>
                 <ref bean="imageservercontroller"/>
@@ -954,11 +968,6 @@
     	<property name="blockExportController" ref="blockExportController"></property>
     </bean>
 
-	<!--bean id="imageServerConf" class="com.emc.storageos.imageservercontroller.ImageServerConf" init-method="init">
-		<property name="coordinator" ref="coordinator"/>
-		<property name="encryptionProvider" ref="encryptionProvider"/>
-	</bean-->
-	
     <bean id="pxeIntegrationService" class="com.emc.storageos.imageservercontroller.impl.PxeIntegrationService">
     </bean>
 
@@ -1170,6 +1179,7 @@
         <property name="capacityCompute" ref="capacityCompute" />
         <property name="configInfo" ref="configinfo" />
         <property name="dataObjectScanner" ref="dataObjectScanner"/>
+        <property name="controlRequestTaskConsumer" ref="controlRequestTaskConsumer"/>
     </bean>
 
 	<bean id="monitoringJobConsumer"
@@ -1300,5 +1310,8 @@
     </bean>
     <bean id="lockTimeoutValue" class="com.emc.storageos.locking.LockTimeoutValue">
         <property name="coordinator" ref="coordinator"/>
+    </bean>
+    <bean id="controlRequestTaskConsumer" class="com.emc.storageos.volumecontroller.impl.ControlRequestTaskConsumer">
+        <property name="dispatcher" ref="dispatcher"/>
     </bean>
 </beans>

@@ -27,6 +27,15 @@ public class ComputeImageServerCreate {
 
     }
 
+    /**
+     * ComputeImageServerCreate Constructor
+     * @param imageServerAddress
+     * @param imageServerSecondIp
+     * @param imageServerUser
+     * @param imageServerPassword
+     * @param tftpbootDir
+     * @param osInstallTimeoutMs
+     */
     public ComputeImageServerCreate(String imageServerAddress,
             String imageServerSecondIp, String imageServerUser,
             String imageServerPassword, String tftpbootDir,
@@ -43,8 +52,8 @@ public class ComputeImageServerCreate {
     /**
      * @return the imageServerIp
      */
-    @XmlElement(required = true, name = "imageServerIp")
-    @JsonProperty("imageServerIp")
+    @XmlElement(required = true, name = "imageserver_ip")
+    @JsonProperty("imageserver_ip")
     public String getImageServerIp() {
         return imageServerIp;
     }
@@ -60,8 +69,8 @@ public class ComputeImageServerCreate {
     /**
      * @return the imageServerSecondIp
      */
-    @XmlElement(required = true, name = "imageServerSecondIp")
-    @JsonProperty("imageServerSecondIp")
+    @XmlElement(required = true, name = "imageserver_secondip")
+    @JsonProperty("imageserver_secondip")
     public String getImageServerSecondIp() {
         return imageServerSecondIp;
     }
@@ -77,8 +86,8 @@ public class ComputeImageServerCreate {
     /**
      * @return the imageServerUser
      */
-    @XmlElement(required = true, name = "imageServerUser")
-    @JsonProperty("imageServerUser")
+    @XmlElement(required = true, name = "imageserver_user")
+    @JsonProperty("imageserver_user")
     public String getImageServerUser() {
         return imageServerUser;
     }
@@ -94,8 +103,8 @@ public class ComputeImageServerCreate {
     /**
      * @return the password
      */
-    @XmlElement(required = true)
-    @JsonProperty("imageServerPassword")
+    @XmlElement(required = true , name = "imageserver_password")
+    @JsonProperty("imageserver_password")
     public String getImageServerPassword() {
         return imageServerPassword;
     }
@@ -111,8 +120,8 @@ public class ComputeImageServerCreate {
     /**
      * @return the tftpbootDir
      */
-    @XmlElement(required = true, name = "tftpbootDir")
-    @JsonProperty("tftpbootDir")
+    @XmlElement(required = true, name = "tftpbootdir")
+    @JsonProperty("tftpbootdir")
     public String getTftpbootDir() {
         return tftpbootDir;
     }
@@ -128,8 +137,8 @@ public class ComputeImageServerCreate {
     /**
      * @return the osInstallTimeoutMs
      */
-    @XmlElement(required = true, name = "osInstallTimeoutMs")
-    @JsonProperty("osInstallTimeoutMs")
+    @XmlElement(required = true, name = "osinstall_timeoutms")
+    @JsonProperty("osinstalltimeoutms")
     public Integer getOsInstallTimeoutMs() {
         return osInstallTimeoutMs;
     }

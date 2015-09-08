@@ -106,6 +106,12 @@ public class ComputeMapper {
         return to;
     }
 
+    /**
+     * Utility mapper method to map feilds of {@link ComputeImageServer} columnFamily
+     *  to {@link ComputeImageServerRestRep} rest representation. 
+     * @param from
+     * @return
+     */
     public static ComputeImageServerRestRep map(ComputeImageServer from) {
         if (from == null) {
             return null;
@@ -122,6 +128,8 @@ public class ComputeMapper {
         to.setImageServerSecondIp(from.getImageServerSecondIp());
         to.setTftpbootDir(from.getTftpbootDir());
         to.setComputeImageServerStatus(from.getComputeImageServerStatus());
+        to.setImageServerUser(from.getImageServerUser());
+        to.setOsInstallTimeoutMs(from.getOsInstallTimeoutMs());
         if (from.getComputeImage() != null) {
             for (String computeimage : from.getComputeImage()) {
                 to.getComputeImage().add(toRelatedResource(ResourceTypeEnum.COMPUTE_IMAGE, URI.create(computeimage)));

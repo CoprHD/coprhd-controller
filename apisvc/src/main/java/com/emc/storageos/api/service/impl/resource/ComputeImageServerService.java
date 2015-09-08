@@ -37,6 +37,7 @@ import com.emc.storageos.db.client.model.ComputeImageJob;
 import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.imageservercontroller.ImageServerController;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
@@ -55,16 +56,22 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.google.common.base.Function;
 
+/**
+ * Service class responsible for serving rest requests of ComputeImageServer
+ * 
+ *
+ */
 @Path("/compute/compute-imageservers")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, writeRoles = {
         Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class ComputeImageServerService extends TaskResourceService {
 
-    private static final Logger log = LoggerFactory.getLogger(ComputeImageServerService.class);
+    private static final Logger log = LoggerFactory
+            .getLogger(ComputeImageServerService.class);
 
     private static final String EVENT_SERVICE_TYPE = "ComputeImageServer";
 
-    private static final String IMAGESERVER_IP= "imageServerIp";
+    private static final String IMAGESERVER_IP = "imageServerIp";
 
     private static final String TFTPBOOTDIR = "tftpbootDir";
 
@@ -110,26 +117,15 @@ public class ComputeImageServerService extends TaskResourceService {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public Response deleteComputeImageServer(@PathParam("id") URI id) {
-        // Validate the provider
+        // Validate the imageServer
+        log.info("Delete computeImageServer id {} ",id);
         ArgValidator.checkFieldUriType(id, ComputeImageServer.class, "id");
         ComputeImageServer imageServer = _dbClient.queryObject(
                 ComputeImageServer.class, id);
         ArgValidator.checkEntityNotNull(imageServer, id, isIdEmbeddedInURL(id));
 
         // make sure there are no active jobs associated with this imageserver
-        URIQueryResultList computeImageJobsUriList = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory
-                .getComputeImageJobsByComputeImageServerConstraint(id),
-                computeImageJobsUriList);
-        Iterator<URI> iterator = computeImageJobsUriList.iterator();
-        while (iterator.hasNext()) {
-            ComputeImageJob job = _dbClient.queryObject(ComputeImageJob.class,
-                    iterator.next());
-            if (job.getJobStatus().equals(
-                    ComputeImageJob.JobStatus.CREATED.name())) {
-                throw APIException.badRequests.cannotDeleteComputeWhileInUse();
-            }
-        }
+        checkActiveJobsForImageServer(id);
 
         // Remove the association with the ComputeSystem and then delete the
         // imageServer
@@ -143,8 +139,13 @@ public class ComputeImageServerService extends TaskResourceService {
                 for (ComputeSystem computeSystem : computeSystems) {
                     if (computeSystem.getComputeImageServer() != null
                             && computeSystem.getComputeImageServer().equals(id)) {
-                        computeSystem.setComputeImageServer(null);
+                        computeSystem
+                                .setComputeImageServer(NullColumnValueGetter
+                                        .getNullURI());
                         _dbClient.persistObject(computeSystem);
+                        log.info(
+                                "Disassociating imageServer {} from ComputeSystem id {} ",
+                                id, computeSystem.getId());
                     }
                 }
             }
@@ -174,11 +175,11 @@ public class ComputeImageServerService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep createComputeImageServer(
             ComputeImageServerCreate createParams) {
+        log.info("Create computeImageServer");
         String imageServerAddress = createParams.getImageServerIp();
-        ArgValidator.checkFieldNotEmpty(imageServerAddress,
+        ArgValidator.checkFieldNotEmpty(imageServerAddress, IMAGESERVER_IP);
+        checkDuplicateLabel(ComputeImageServer.class, imageServerAddress,
                 IMAGESERVER_IP);
-        checkDuplicateLabel(ComputeImageServer.class,
-                imageServerAddress, IMAGESERVER_IP);
 
         String bootDir = createParams.getTftpbootDir();
         String osInstallAddress = createParams.getImageServerSecondIp();
@@ -187,8 +188,8 @@ public class ComputeImageServerService extends TaskResourceService {
         Integer installTimeout = createParams.getOsInstallTimeoutMs();
 
         ArgValidator.checkFieldNotEmpty(bootDir, TFTPBOOTDIR);
-        ArgValidator
-                .checkFieldNotEmpty(osInstallAddress, IMAGESERVER_SECONDARY_IP);
+        ArgValidator.checkFieldNotEmpty(osInstallAddress,
+                IMAGESERVER_SECONDARY_IP);
         ArgValidator.checkFieldNotEmpty(username, IMAGESERVER_USER);
         ArgValidator.checkFieldNotEmpty(password, IMAGESERVER_PASSWORD);
         ArgValidator.checkFieldNotNull(installTimeout, OS_INSTALL_TIMEOUT_MS);
@@ -203,22 +204,24 @@ public class ComputeImageServerService extends TaskResourceService {
         imageServer.setOsInstallTimeoutMs((int) installTimeout);
         imageServer.setImageServerSecondIp(osInstallAddress);
 
-        auditOp(OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES, true,
-                null, imageServer.getId().toString(),
-                imageServer.getImageServerIp());
+        auditOp(OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES, true, null,
+                imageServer.getId().toString(), imageServer.getImageServerIp());
 
         _dbClient.createObject(imageServer);
 
         ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
         String taskId = UUID.randomUUID().toString();
-        AsyncTask task = new AsyncTask(ComputeImageServer.class, imageServer.getId(), taskId);
+        AsyncTask task = new AsyncTask(ComputeImageServer.class,
+                imageServer.getId(), taskId);
         tasks.add(task);
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.CREATE_VERIFY_COMPUTE_IMAGE_SERVER);
-        _dbClient.createTaskOpStatus(ComputeImageServer.class, imageServer.getId(), taskId, op);
+        _dbClient.createTaskOpStatus(ComputeImageServer.class,
+                imageServer.getId(), taskId, op);
 
-        ImageServerController controller = getController(ImageServerController.class, null);
-        controller.verifyImageServerAndImportExistingImages(task);
+        ImageServerController controller = getController(
+                ImageServerController.class, null);
+        controller.verifyImageServerAndImportExistingImages(task, op.getName());
         return toTask(imageServer, taskId, op);
     }
 
@@ -253,10 +256,12 @@ public class ComputeImageServerService extends TaskResourceService {
         List<URI> ids = _dbClient.queryByType(ComputeImageServer.class, true);
 
         ComputeImageServerList imageServerList = new ComputeImageServerList();
-        Iterator<ComputeImageServer> iter = _dbClient.queryIterativeObjects(ComputeImageServer.class, ids);
+        Iterator<ComputeImageServer> iter = _dbClient.queryIterativeObjects(
+                ComputeImageServer.class, ids);
         while (iter.hasNext()) {
             ComputeImageServer imageServer = iter.next();
-                imageServerList.getComputeImageServers().add(DbObjectMapper.toNamedRelatedResource(imageServer));
+            imageServerList.getComputeImageServers().add(
+                    DbObjectMapper.toNamedRelatedResource(imageServer));
         }
 
         return imageServerList;
@@ -277,8 +282,9 @@ public class ComputeImageServerService extends TaskResourceService {
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public ComputeImageServerRestRep updateComputeImageServer(
             @PathParam("id") URI id, ComputeImageServerUpdate param) {
-        ComputeImageServer imageServer = _dbClient.queryObject(ComputeImageServer.class,
-                id);
+        log.info("Update computeImageServer id {} ",id);
+        ComputeImageServer imageServer = _dbClient.queryObject(
+                ComputeImageServer.class, id);
         if (null == imageServer || imageServer.getInactive()) {
             throw APIException.notFound.unableToFindEntityInURL(id);
         } else {
@@ -290,12 +296,14 @@ public class ComputeImageServerService extends TaskResourceService {
             Integer installTimeout = param.getOsInstallTimeoutMs();
 
             ArgValidator.checkFieldNotEmpty(bootDir, TFTPBOOTDIR);
-            ArgValidator
-                    .checkFieldNotEmpty(osInstallAddress, IMAGESERVER_SECONDARY_IP);
+            ArgValidator.checkFieldNotEmpty(osInstallAddress,
+                    IMAGESERVER_SECONDARY_IP);
             ArgValidator.checkFieldNotEmpty(username, IMAGESERVER_USER);
             ArgValidator.checkFieldNotEmpty(password, IMAGESERVER_PASSWORD);
-            ArgValidator.checkFieldNotNull(installTimeout, OS_INSTALL_TIMEOUT_MS);
-
+            ArgValidator.checkFieldNotNull(installTimeout,
+                    OS_INSTALL_TIMEOUT_MS);
+            // make sure there are no active jobs associated with this imageserver
+            checkActiveJobsForImageServer(id);
             imageServer.setLabel(imageServerAddress);
             imageServer.setImageServerIp(imageServerAddress);
             imageServer.setTftpbootDir(bootDir);
@@ -312,14 +320,18 @@ public class ComputeImageServerService extends TaskResourceService {
 
             ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
             String taskId = UUID.randomUUID().toString();
-            AsyncTask task = new AsyncTask(ComputeImageServer.class, imageServer.getId(), taskId);
+            AsyncTask task = new AsyncTask(ComputeImageServer.class,
+                    imageServer.getId(), taskId);
             tasks.add(task);
             Operation op = new Operation();
             op.setResourceType(ResourceOperationTypeEnum.UPDATE_VERIFY_COMPUTE_IMAGE_SERVER);
-            _dbClient.createTaskOpStatus(ComputeImageServer.class, imageServer.getId(), taskId, op);
+            _dbClient.createTaskOpStatus(ComputeImageServer.class,
+                    imageServer.getId(), taskId, op);
 
-            ImageServerController controller = getController(ImageServerController.class, null);
-            controller.verifyImageServerAndImportExistingImages(task);
+            ImageServerController controller = getController(
+                    ImageServerController.class, null);
+            controller.verifyImageServerAndImportExistingImages(task,
+                    op.getName());
         }
         return map(imageServer);
     }
@@ -345,22 +357,26 @@ public class ComputeImageServerService extends TaskResourceService {
     @Override
     public ComputeImageServerBulkRep queryBulkResourceReps(List<URI> ids) {
 
-        Iterator<ComputeImageServer> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
-        return new ComputeImageServerBulkRep(BulkList.wrapping(_dbIterator, COMPUTE_IMAGESERVER_MAPPER));
+        Iterator<ComputeImageServer> _dbIterator = _dbClient
+                .queryIterativeObjects(getResourceClass(), ids);
+        return new ComputeImageServerBulkRep(BulkList.wrapping(_dbIterator,
+                COMPUTE_IMAGESERVER_MAPPER));
     }
 
     private final ComputeImageServerMapper COMPUTE_IMAGESERVER_MAPPER = new ComputeImageServerMapper();
 
-    private class ComputeImageServerMapper implements Function<ComputeImageServer, ComputeImageServerRestRep> {
+    private class ComputeImageServerMapper implements
+            Function<ComputeImageServer, ComputeImageServerRestRep> {
         @Override
-        public ComputeImageServerRestRep apply(final ComputeImageServer imageserver) {
+        public ComputeImageServerRestRep apply(
+                final ComputeImageServer imageserver) {
             return ComputeMapper.map(imageserver);
         }
     }
 
     @Override
-    protected ComputeImageServerBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
+    protected ComputeImageServerBulkRep queryFilteredBulkResourceReps(
+            List<URI> ids) {
         return queryBulkResourceReps(ids);
     }
 
@@ -368,6 +384,34 @@ public class ComputeImageServerService extends TaskResourceService {
     @Override
     public Class<ComputeImageServer> getResourceClass() {
         return ComputeImageServer.class;
+    }
+
+    /**
+     * Check if the given imageServer has any active computeImageJob
+     * if so throws an appropriate exception
+     * @param imageServerURI
+     */
+    private void checkActiveJobsForImageServer(URI imageServerURI) {
+        log.info(
+                "Check if any active ComputeImageJobs are present for imageServer id {} ",
+                imageServerURI);
+        // make sure there are no active jobs associated with this imageserver
+        URIQueryResultList computeImageJobsUriList = new URIQueryResultList();
+        _dbClient
+                .queryByConstraint(
+                        ContainmentConstraint.Factory
+                                .getComputeImageJobsByComputeImageServerConstraint(imageServerURI),
+                        computeImageJobsUriList);
+        Iterator<URI> iterator = computeImageJobsUriList.iterator();
+        while (iterator.hasNext()) {
+            ComputeImageJob job = _dbClient.queryObject(ComputeImageJob.class,
+                    iterator.next());
+            if (job.getJobStatus().equals(
+                    ComputeImageJob.JobStatus.CREATED.name())) {
+                throw APIException.badRequests
+                        .cannotDeleteOrUpdateImageServerWhileInUse();
+            }
+        }
     }
 
 }

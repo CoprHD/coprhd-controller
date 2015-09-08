@@ -90,9 +90,9 @@ public class DisasterRecoveryService extends TaggedResource {
         VirtualDataCenter vdc = queryLocalVDC();
 
         List<URI> ids = _dbClient.queryByType(Site.class, true);
-        Iterator<Site> iter = _dbClient.queryIterativeObjects(Site.class, ids);
-        while (iter.hasNext()) {
-            Site standby = iter.next();
+        Iterator<Site> sites = _dbClient.queryIterativeObjects(Site.class, ids);
+        while (sites.hasNext()) {
+            Site standby = sites.next();
             if (vdc.getStandbyIDs().contains(standby.getId().toString())) {
                 standbyList.getSites().add(siteMapper.map(standby));
             }
@@ -110,9 +110,9 @@ public class DisasterRecoveryService extends TaggedResource {
         VirtualDataCenter vdc = queryLocalVDC();
         
         List<URI> ids = _dbClient.queryByType(Site.class, true);
-        Iterator<Site> iter = _dbClient.queryIterativeObjects(Site.class, ids);
-        while (iter.hasNext()) {
-            Site standby = iter.next();
+        Iterator<Site> sites = _dbClient.queryIterativeObjects(Site.class, ids);
+        while (sites.hasNext()) {
+            Site standby = sites.next();
             if (vdc.getStandbyIDs().contains(standby.getId().toString())) {
                 if (standby.getUuid().equals(id)) {
                     return siteMapper.map(standby);
@@ -132,9 +132,9 @@ public class DisasterRecoveryService extends TaggedResource {
         VirtualDataCenter vdc = queryLocalVDC();
         
         List<URI> ids = _dbClient.queryByType(Site.class, true);
-        Iterator<Site> iter = _dbClient.queryIterativeObjects(Site.class, ids);
-        while (iter.hasNext()) {
-            Site standby = iter.next();
+        Iterator<Site> sites = _dbClient.queryIterativeObjects(Site.class, ids);
+        while (sites.hasNext()) {
+            Site standby = sites.next();
             if (vdc.getStandbyIDs().contains(standby.getId().toString())) {
                 if (standby.getUuid().equals(id)) {
                     log.info("Find standby site in local VDC and remove it");

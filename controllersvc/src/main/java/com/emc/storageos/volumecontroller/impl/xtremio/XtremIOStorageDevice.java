@@ -162,6 +162,7 @@ public class XtremIOStorageDevice extends DefaultBlockStorageDevice {
                     volume.setNativeId(createdVolume.getVolInfo().get(0));
                     volume.setWWN(createdVolume.getVolInfo().get(0));
                     volume.setDeviceLabel(volume.getLabel());
+                    volume.setAccessState(Volume.VolumeAccessState.READWRITE.name());
                     // When a volume is created, the WWN field will be empty, hence use the volume's native Id as WWN
                     // If the REST API wwn field is populated, then use it.
                     if (!createdVolume.getWwn().isEmpty()) {

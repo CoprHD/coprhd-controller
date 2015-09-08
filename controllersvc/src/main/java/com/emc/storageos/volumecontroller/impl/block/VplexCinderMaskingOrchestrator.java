@@ -218,9 +218,12 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
         
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
-            
             // Export Mask is updated, read it from DB
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
+            
+            // First step would be to update the zoning map based on the connectivity
+            updateZoningMap(initiatorPortMap, exportMask);
+            
             VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI, initiatorPortMap, exportMask, null, directorToInitiatorIds,
                     idToInitiatorMap, _dbClient, portWwnToClusterMap);
             
@@ -230,6 +233,17 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             _log.error("Failed to validate export mask for cinder: ", ex);
             VPlexApiException vplexex = DeviceControllerExceptions.vplex.failedToValidateExportMask(exportMaskURI.toString(), ex);
             WorkflowStepCompleter.stepFailed(stepId, vplexex);
+        }
+        
+    }
+
+    private void updateZoningMap(Map<URI, List<StoragePort>> initiatorPortMap, ExportMask exportMask) {
+        
+        Map<URI, List<StoragePort>> nwUriVsTargetPorts = new HashMap<>();
+        StringSet targetPorts = exportMask.getStoragePorts();
+        for(String targetPortUri : targetPorts) {
+            StoragePort targetPort = _dbClient.queryObject(StoragePort.class, URI.create(targetPortUri));
+            
         }
         
     }

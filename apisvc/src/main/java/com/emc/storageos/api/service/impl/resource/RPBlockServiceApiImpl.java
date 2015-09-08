@@ -84,6 +84,7 @@ import com.emc.storageos.model.vpool.VirtualPoolChangeOperationEnum;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.protectioncontroller.impl.recoverpoint.RPHelper;
 import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
+import com.emc.storageos.recoverpoint.impl.RecoverPointClient.RecoverPointCGCopyType;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
@@ -95,6 +96,7 @@ import com.emc.storageos.volumecontroller.RPRecommendation;
 import com.emc.storageos.volumecontroller.Recommendation;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.google.common.collect.Lists;
 
 /**
  * Block Service subtask (parts of larger operations) RecoverPoint implementation.
@@ -296,8 +298,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             // Prepare the Journals first           
             List<Volume> sourceJournals = new ArrayList<Volume>();
             Map<URI, Volume> targetJournals = new HashMap<URI, Volume>();
-                
-            
+                   
             try {
                 prepareRpJournals(rpProtectionRec, project, consistencyGroup, vpool, originalVpool, param, numberOfVolumesInRequest, 
                                     newVolumeLabel, isChangeVpoolForProtectedVolume, capabilities, protectionSystemURI, taskList, task, 
@@ -511,6 +512,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             
                 volumeInfoBuffer.append(String.format(NEW_LINE));
             _log.info(volumeInfoBuffer.toString());
+                
         }
         }
                                
@@ -521,12 +523,21 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * Used to create a task and add it to the TaskList
      * 
      * @param volume Volume that the task is for
+     * @param capabilities 
      * @param taskList The TaskList to store tasks
      * @param task Task Id
      * @param isChangeVpool Boolean to determine if this is a change vpool op
      */
-    private void createTaskForVolume(Volume volume, TaskList taskList, String task) {                
+    private void createTaskForVolume(Volume volume, VirtualPoolCapabilityValuesWrapper capabilities, TaskList taskList, String task, boolean isChangeVpool) {                
         ResourceOperationTypeEnum type = ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME;
+        
+        if (isChangeVpool) {
+            type = ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL;
+        }
+        
+        if (capabilities.getAddJournalCapacity()) {
+        	type = ResourceOperationTypeEnum.ADD_JOURNAL_VOLUME;
+        }
         
         // Create the OP
         Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(), task, type);            
@@ -585,6 +596,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         
         Volume sourceJournal = null;
         Volume standbyJournal = null;
+        
         List<Volume> cgSourceVolumes = new ArrayList<Volume>();
         List<Volume> cgTargetVolumes = new ArrayList<Volume>();
         
@@ -593,7 +605,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // however, for all other creates we are either re-using an existing journal or
         // just creating a single journal. 
         // i.e. the majority of the time we are only creating a single journal.
-        boolean journalOnlyCreate = false;
+        boolean journalOnlyCreate = capabilities.getAddJournalCapacity();
         
         // Only check for existing source journals if this is not a direct journal add operation.
         if (!journalOnlyCreate) {
@@ -698,10 +710,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         	_dbClient.persistObject(sourceVolume);        	
         }
         
-        // Only need to add to the source journals map if we are NOT doing an add journal operation
-        if (!journalOnlyCreate) {
+        
             // Add the source journals at the specified indices 
             sourceJournals.add(0, sourceJournal);
+        if (standbyJournal != null) {
             sourceJournals.add(1, standbyJournal);
         }
         
@@ -725,9 +737,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     targetCopyVarray = targetJournalVarray;
                 }
                 
+                // only need to enter this block if we already have existing journals in the CG
+                // and we want to see if more space is required or if we are performing an add
+                // journal volume operation
+                if (!cgTargetVolumes.isEmpty() && !capabilities.getAddJournalCapacity()) {
                 VpoolProtectionVarraySettings protectionSettings = _rpHelper.getProtectionSettings(originalVpool, targetCopyVarray);
-                
-                if (!cgTargetVolumes.isEmpty()) {
                     boolean isAdditionalTargetJournalRequired = _rpHelper.isAdditionalJournalRequiredForCG(protectionSettings.getJournalSize(), consistencyGroup, param.getSize(), 
                                                                                                           tnumberOfVolumesInRequest, Volume.PersonalityTypes.TARGET.toString(), 
                                                                                                           targetJournalRec.getInternalSiteName());
@@ -766,14 +780,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     volumeURIs.add(targetJournalVolume.getId());                        
                     volumeInfoBuffer.append(logVolumeInfo(targetJournalVolume));
                     
-                    // Only need to add to the target journals map if we are NOT doing an add journal operation
-                    if (!journalOnlyCreate) {
                         targetJournals.put(targetCopyVarray.getId(), targetJournalVolume);
                     }
                 }
             }
         }
-    }
     
     /**
      * There are instances where the varray we're provisioning to and the varray associated to the protection copy
@@ -905,10 +916,10 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                          sourceVolume, journalVolume, standbyJournalVolume, vplex, 
                                          changeVpoolVolume);
 
-            boolean createTask = isTaskRequired(rpVolume, vplex, isChangeVpool);
+            boolean createTask = isTaskRequired(rpVolume, capabilities, vplex, isChangeVpool);
             if (createTask) {
                 // Create a task for this volume
-                createTaskForVolume(rpVolume, taskList, task);
+                createTaskForVolume(rpVolume, capabilities, taskList, task, isChangeVpool);
             }
 
             return rpVolume;
@@ -918,13 +929,16 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * Determines whether or not we need to generate a task for this operation.
      * 
      * @param rpVolume Volume to check
+     * @param capabilities 
      * @param vplex VPLEX flag
      * @param isChangeVpool Change vpool flag
      * @return True is task is needed, false otherwise.
      */
-    private boolean isTaskRequired(Volume rpVolume, boolean vplex, boolean isChangeVpool) {
+    private boolean isTaskRequired(Volume rpVolume, VirtualPoolCapabilityValuesWrapper capabilities, boolean vplex, boolean isChangeVpool) {
         boolean rpNonVplexSourceVolume = (Volume.PersonalityTypes.SOURCE.name().equals(rpVolume.getPersonality()) && !vplex);        
-        boolean createTask = rpNonVplexSourceVolume && !isChangeVpool;
+        boolean rpVplexSourceVolumeAndChangeVpool = (Volume.PersonalityTypes.SOURCE.name().equals(rpVolume.getPersonality()) && vplex && isChangeVpool);
+        boolean addJournalVolume = capabilities.getAddJournalCapacity();
+        boolean createTask = rpNonVplexSourceVolume || rpVplexSourceVolumeAndChangeVpool || addJournalVolume;
         return createTask;
     }
     
@@ -3050,4 +3064,122 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         // TODO BBB - not sure how to not check this for just RP?
         vplexBlockServiceApiImpl.validateConsistencyGroupName(consistencyGroup);
     } 
+    
+    /**
+     * Add additional journal volume(s) to an existing recoverpoint
+     * consistency group copy
+     * 
+     * @param param - journal volume(s) creation parameters
+     * @param project - the project
+     * @param journalVarray - the virtual array for the journal(s)
+     * @param journalVpool - the virtual pool for the journal(s)
+     * @param consistencyGroup - the recoverpoint consistency group
+     * @param capabilities - parameters for the journal volume(s)
+     * @param task - the task identifier
+     * @return TaskList
+     */
+    public TaskList addJournalCapacity(VolumeCreate param, Project project, VirtualArray journalVarray,
+            VirtualPool journalVpool, BlockConsistencyGroup consistencyGroup, VirtualPoolCapabilityValuesWrapper capabilities, String task) {
+        
+        ProtectionSystem  protectionSystem = getBlockScheduler().getCgProtectionSystem(consistencyGroup.getId());
+        if (protectionSystem != null) {
+            _log.info(
+                    "Narrowing down placement to use protection system {}, which is currently used by RecoverPoint consistency group {}.",
+                    protectionSystem.getLabel(), consistencyGroup);
+        } else {
+        	throw APIException.badRequests.noProtectionSystemAssociatedWithTheCG(consistencyGroup.getId().toString());
+        }
+        
+        String copyName = param.getName();
+        String internalSiteName = null;
+        String sourceInternalSiteName = null;
+        boolean isSource = false;
+        boolean isMPStandby = false;
+        boolean isTarget = false;
+        List<Volume> cgVolumes = _rpHelper.getCgVolumes(consistencyGroup.getId());
+        if (cgVolumes.isEmpty()) {
+        	throw APIException.badRequests.noExistingVolumesInCG(consistencyGroup.getId().toString());
+        }
+        
+        for (Volume cgVolume : cgVolumes) {
+        	if (cgVolume.getPersonality() != null) {
+        		if (cgVolume.getPersonality().equals((Volume.PersonalityTypes.SOURCE.name()))) {
+        			sourceInternalSiteName = cgVolume.getInternalSiteName();
+        			break;
+        		}
+        	}
+        }
+        
+        if (sourceInternalSiteName == null) {
+        	throw APIException.badRequests.noSourceVolumesInCG(consistencyGroup.getId().toString());
+        }
+        
+        boolean foundCopy = false;
+        int copyType = RecoverPointCGCopyType.PRODUCTION.getCopyNumber();
+        for (Volume cgVolume : cgVolumes) {        	
+        	if (cgVolume.getPersonality() != null) {
+        		if (!cgVolume.getPersonality().equals(Volume.PersonalityTypes.METADATA.name()) && cgVolume.getRpCopyName().equals(copyName)) {        		
+        			foundCopy = true;
+        			internalSiteName = cgVolume.getInternalSiteName();
+        			if (cgVolume.getPersonality().equals((Volume.PersonalityTypes.SOURCE.name()))) {
+        				if (cgVolume.getRpCopyName().contains("Standby")) {
+        					isMPStandby = true;
+        				} else {
+        					isSource = true;
+        				}
+        				copyType = RecoverPointCGCopyType.PRODUCTION.getCopyNumber();
+        			} else {
+        				isTarget = true;
+        				if (internalSiteName.equalsIgnoreCase(sourceInternalSiteName)) {
+        					copyType = RecoverPointCGCopyType.LOCAL.getCopyNumber();
+        				} else {
+        					copyType = RecoverPointCGCopyType.REMOTE.getCopyNumber();
+        				}
+        			}
+        			break;
+        		}
+        	}
+        }
+        
+        if (!foundCopy) {
+        	throw APIException.badRequests.unableToFindTheSpecifiedCopy(copyName);
+        }
+        
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.RP_COPY_TYPE, copyType);
+        
+        RPProtectionRecommendation rpProtectionRecommendation = new RPProtectionRecommendation();
+        rpProtectionRecommendation.setProtectionDevice(protectionSystem.getId());
+                
+        
+        RPRecommendation journalRecommendation = getBlockScheduler().buildJournalRecommendation(rpProtectionRecommendation, internalSiteName,
+        		new Long(capabilities.getSize()).toString(), journalVarray, journalVpool, 
+        		protectionSystem, capabilities, capabilities.getResourceCount(), null, false);        
+        if (journalRecommendation == null) {
+        	throw APIException.badRequests.unableToFindSuitableJournalRecommendation();
+        }
+        
+        if (isSource) {
+        	rpProtectionRecommendation.setSourceJournalRecommendation(journalRecommendation);
+        }
+        
+        if (isMPStandby) {
+        	rpProtectionRecommendation.setStandbyJournalRecommendation(journalRecommendation);
+        }
+        
+        if (isTarget) {
+        	List<RPRecommendation> journalRecommendations = Lists.newArrayList();
+            journalRecommendations.add(journalRecommendation);
+        	rpProtectionRecommendation.setTargetJournalRecommendations(journalRecommendations);
+        }                 
+        
+        List<Recommendation> recommendations = Lists.newArrayList();
+        recommendations.add(rpProtectionRecommendation);
+        
+        // need to set the journal copy name to something unique
+        param.setName(copyName + "_" + task);
+                
+        TaskList taskList = new TaskList();
+        return this.createVolumes(param, project, journalVarray, journalVpool, recommendations, taskList, task, capabilities);
+
     }
+}

@@ -24,6 +24,7 @@ import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
+import com.emc.sa.service.vipr.block.tasks.AddJournalCapacity;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToConsistencyGroup;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToExport;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockVolume;
@@ -202,6 +203,20 @@ public class BlockStorageUtils {
 
     public static List<ExportGroupRestRep> findExportsContainingHost(URI host, URI projectId, URI varrayId) {
         return execute(new FindExportsContainingHost(host, projectId, varrayId));
+    }
+
+    public static List<URI> addJournalCapacity(URI projectId, URI virtualArrayId, URI virtualPoolId, double sizeInGb, Integer count,
+            URI consistencyGroupId, String copyName) {
+        String volumeSize = gbToVolumeSize(sizeInGb);
+        Tasks<VolumeRestRep> tasks = execute(new AddJournalCapacity(virtualPoolId, virtualArrayId, projectId, volumeSize,
+                count, consistencyGroupId, copyName));
+        List<URI> volumeIds = Lists.newArrayList();
+        for (Task<VolumeRestRep> task : tasks.getTasks()) {
+            URI volumeId = task.getResourceId();
+            addAffectedResource(volumeId);
+            volumeIds.add(volumeId);
+        }
+        return volumeIds;
     }
 
     public static List<URI> createVolumes(URI projectId, URI virtualArrayId, URI virtualPoolId,

@@ -33,17 +33,26 @@ public class BlockSnapshotEstablishGroupTaskCompleter extends BlockSnapshotTaskC
 
     public BlockSnapshotEstablishGroupTaskCompleter(URI id, String opId) {
         super(BlockSnapshot.class, id, opId);
-        setNotifyWorkflow(true);
     }
 
     public BlockSnapshotEstablishGroupTaskCompleter(List<URI> ids, String opId) {
         super(BlockSnapshot.class, ids, opId);
-        setNotifyWorkflow(true);
     }
 
     @Override
     protected void complete(DbClient dbClient, Operation.Status status, ServiceCoded coded) throws DeviceControllerException {
-        logger.info("Done Establish Volume-Snapshot group relation {}, with Status: {}", getOpId(), status.name());
-        super.complete(dbClient, status, coded);
+        try {
+            super.complete(dbClient, status, coded);
+            switch (status) {
+                case error:
+                    dbClient.error(BlockSnapshot.class, getId(), getOpId(), coded);
+                    break;
+                default:
+                    dbClient.ready(BlockSnapshot.class, getId(), getOpId());
+            }
+            logger.info("Done Establish Volume-Snapshot group relation {}, with Status: {}", getOpId(), status.name());
+        } catch (Exception e) {
+            logger.error("Failed updating status. Establish Volume-Snapshot group relation {}, for task " + getOpId(), getId(), e);
+        }
     }
 }

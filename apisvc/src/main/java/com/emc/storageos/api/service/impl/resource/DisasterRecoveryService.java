@@ -182,7 +182,7 @@ public class DisasterRecoveryService extends TaggedResource {
         localSite.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
 
         log.info("localSite: {}", localSite);
-        return SiteMapper.map(localSite);
+        return siteMapper.map(localSite);
     }
     
     @POST()
@@ -214,7 +214,7 @@ public class DisasterRecoveryService extends TaggedResource {
         log.info("Update VCD to persist new site ID");
         _dbClient.persistObject(vdc);
 
-        return SiteMapper.map(primarySite);
+        return siteMapper.map(primarySite);
     }
     
     @Override

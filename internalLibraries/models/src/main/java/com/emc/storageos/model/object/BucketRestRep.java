@@ -35,6 +35,7 @@ public class BucketRestRep extends DataObjectRestRep {
     private String namespace;
     private String owner;
     private String retention;
+    private String path;
     private String nativeId;
 
     @XmlElement(name = "native_id")
@@ -215,5 +216,14 @@ public class BucketRestRep extends DataObjectRestRep {
 
     public void setRetention(String retention) {
         this.retention = retention;
+    }
+
+    @XmlElement
+    public String getPath() {
+        return path;
+    }
+
+    public void setPath(String path) {
+        this.path = path;
     }
 }

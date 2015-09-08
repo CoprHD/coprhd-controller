@@ -40,6 +40,7 @@ public class BucketMapper {
         to.setProtocols(from.getProtocol());
         to.setNamespace(from.getNamespace());
         to.setOwner(from.getOwner());
+        to.setPath(from.getPath());
 
         to.setNativeId(from.getNativeId());
         to.setStorageSystem(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageDevice()));

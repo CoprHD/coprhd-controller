@@ -43,8 +43,8 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
     /**
      * @return the imageServerIp
      */
-    @XmlElement(name = "imageServerIp")
-    @JsonProperty("imageServerIp")
+    @XmlElement(name = "imageserver_ip")
+    @JsonProperty("imageserverip")
     public String getImageServerIp() {
         return imageServerIp;
     }
@@ -60,8 +60,8 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
     /**
      * @return the imageServerSecondIp
      */
-    @XmlElement(name = "imageServerSecondIp")
-    @JsonProperty("imageServerSecondIp")
+    @XmlElement(name = "imageserver_secondip")
+    @JsonProperty("imageserversecondip")
     public String getImageServerSecondIp() {
         return imageServerSecondIp;
     }
@@ -98,8 +98,8 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
     /**
      * @return the tftpbootDir
      */
-    @XmlElement(name = "tftpbootDir")
-    @JsonProperty("tftpbootDir")
+    @XmlElement(name = "tftpbootdir")
+    @JsonProperty("tftpbootdir")
     public String getTftpbootDir() {
         return tftpbootDir;
     }
@@ -112,8 +112,8 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
         this.tftpbootDir = tftpbootDir;
     }
 
-    @XmlElement(name = "computeImageServerStatus")
-    @JsonProperty("computeImageServerStatus")
+    @XmlElement(name = "imageserver_status")
+    @JsonProperty("imageserver_status")
     public String getComputeImageServerStatus() {
         return computeImageServerStatus;
 
@@ -126,8 +126,8 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
     /**
      * @return the imageServerUser
      */
-    @XmlElement(name = "imageServerUser")
-    @JsonProperty("imageServerUser")
+    @XmlElement(name = "imageserver_user")
+    @JsonProperty("imageserver_user")
     public String getImageServerUser() {
         return imageServerUser;
     }
@@ -143,8 +143,8 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
     /**
      * @return the osInstallTimeoutMs
      */
-    @XmlElement(name = "osInstallTimeoutMs")
-    @JsonProperty("osInstallTimeoutMs")
+    @XmlElement(name = "osinstall_timeoutms")
+    @JsonProperty("osinstall_timeoutms")
     public Integer getOsInstallTimeoutMs() {
         return osInstallTimeoutMs;
     }

@@ -279,7 +279,7 @@ public enum ResourceOperationTypeEnum {
     UPDATE_VCENTER_CLUSTER("UPDATE VCENTER CLUSTER", "update a cluster in vCenter server"),
     SYS_EVENT("SYSTEM EVENT", "System Event"),
     CREATE_VERIFY_COMPUTE_IMAGE_SERVER("CREATE AND VERIFY COMPUTE IMAGE SERVER","Create and verify a compute image server"),
-    UPDATE_VERIFY_COMPUTE_IMAGE_SERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER","Update aand verify a compute image server");
+    UPDATE_VERIFY_COMPUTE_IMAGE_SERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER","Update and verify a compute image server");
 
     private final String name;
     private final String description;

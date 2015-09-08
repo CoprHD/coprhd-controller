@@ -28,7 +28,7 @@ public class ComputeImageServerList {
     }
 
     /**
-     * List of compute imager server URLs with name
+     * List of compute image server URLs with name
      *
      * @valid none
      */

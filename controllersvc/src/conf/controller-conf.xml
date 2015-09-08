@@ -968,11 +968,6 @@
     	<property name="blockExportController" ref="blockExportController"></property>
     </bean>
 
-	<!--bean id="imageServerConf" class="com.emc.storageos.imageservercontroller.ImageServerConf" init-method="init">
-		<property name="coordinator" ref="coordinator"/>
-		<property name="encryptionProvider" ref="encryptionProvider"/>
-	</bean-->
-	
     <bean id="pxeIntegrationService" class="com.emc.storageos.imageservercontroller.impl.PxeIntegrationService">
     </bean>
 

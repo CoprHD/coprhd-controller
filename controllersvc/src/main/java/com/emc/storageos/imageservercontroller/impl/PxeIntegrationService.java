@@ -38,12 +38,7 @@ public class PxeIntegrationService {
     public void createSession(ImageServerDialog d, ComputeImageJob job, ComputeImage ci, ComputeImageServer imageServer) {
         if (ci._isEsxi5x()) {
             createEsxi5xSession(d, job, ci, imageServer);
-        } /*
-           * else if (os._isEsx4x()) {
-           * createEsx4xUuidConfigFile(session, os);
-           * }
-           */else if (ci._isRedhat() || ci._isCentos() || ci._isOracle()) {
-            // createRhelPxeIdentifierFile(session, os);
+        } else if (ci._isRedhat() || ci._isCentos() || ci._isOracle()) {
             throw ImageServerControllerException.exceptions.unknownOperatingSystem();
         } else {
             throw ImageServerControllerException.exceptions.unknownOperatingSystem();

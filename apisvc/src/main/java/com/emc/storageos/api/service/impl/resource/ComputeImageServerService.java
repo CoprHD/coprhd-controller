@@ -124,19 +124,7 @@ public class ComputeImageServerService extends TaskResourceService {
         ArgValidator.checkEntityNotNull(imageServer, id, isIdEmbeddedInURL(id));
 
         // make sure there are no active jobs associated with this imageserver
-        URIQueryResultList computeImageJobsUriList = new URIQueryResultList();
-        _dbClient.queryByConstraint(ContainmentConstraint.Factory
-                .getComputeImageJobsByComputeImageServerConstraint(id),
-                computeImageJobsUriList);
-        Iterator<URI> iterator = computeImageJobsUriList.iterator();
-        while (iterator.hasNext()) {
-            ComputeImageJob job = _dbClient.queryObject(ComputeImageJob.class,
-                    iterator.next());
-            if (job.getJobStatus().equals(
-                    ComputeImageJob.JobStatus.CREATED.name())) {
-                throw APIException.badRequests.cannotDeleteComputeWhileInUse();
-            }
-        }
+        checkActiveJobsForImageServer(id);
 
         // Remove the association with the ComputeSystem and then delete the
         // imageServer
@@ -308,7 +296,8 @@ public class ComputeImageServerService extends TaskResourceService {
             ArgValidator.checkFieldNotEmpty(password, IMAGESERVER_PASSWORD);
             ArgValidator.checkFieldNotNull(installTimeout,
                     OS_INSTALL_TIMEOUT_MS);
-
+            // make sure there are no active jobs associated with this imageserver
+            checkActiveJobsForImageServer(id);
             imageServer.setLabel(imageServerAddress);
             imageServer.setImageServerIp(imageServerAddress);
             imageServer.setTftpbootDir(bootDir);
@@ -389,6 +378,29 @@ public class ComputeImageServerService extends TaskResourceService {
     @Override
     public Class<ComputeImageServer> getResourceClass() {
         return ComputeImageServer.class;
+    }
+
+    /**
+     * Check if the given imageServer has any active computeImageJob
+     * if so throws an appropriate exception
+     * @param imageServerURI
+     */
+    private void checkActiveJobsForImageServer(URI imageServerURI)
+    {
+     // make sure there are no active jobs associated with this imageserver
+        URIQueryResultList computeImageJobsUriList = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getComputeImageJobsByComputeImageServerConstraint(imageServerURI),
+                computeImageJobsUriList);
+        Iterator<URI> iterator = computeImageJobsUriList.iterator();
+        while (iterator.hasNext()) {
+            ComputeImageJob job = _dbClient.queryObject(ComputeImageJob.class,
+                    iterator.next());
+            if (job.getJobStatus().equals(
+                    ComputeImageJob.JobStatus.CREATED.name())) {
+                throw APIException.badRequests.cannotDeleteOrUpdateImageServerWhileInUse();
+            }
+        }
     }
 
 }

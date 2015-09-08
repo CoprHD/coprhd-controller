@@ -545,19 +545,19 @@ public class ImageServerControllerImpl implements ImageServerController {
         // make sure it is not already loaded
         List<URI> ids = dbClient.queryByType(ComputeImage.class, true);
         Iterator<ComputeImage> iter = dbClient.queryIterativeObjects(ComputeImage.class, ids);
-		while (iter.hasNext()) {
-			ComputeImage existingImage = iter.next();
-			if (osMetadata.fullName().equals(existingImage.getImageName())
-					&& imageServer.getComputeImage() != null
-					&& imageServer.getComputeImage().contains(
-							existingImage.getId().toString())) {
-				log.error("This image is already imported, id: {}",
-						existingImage.getId());
-				cleanupTemp(imageserverDialog, tempDir, imagePath);
-				throw ImageServerControllerException.exceptions
-						.duplicateImage(osMetadata.fullName());
-			}
-		}
+        while (iter.hasNext()) {
+            ComputeImage existingImage = iter.next();
+            if (osMetadata.fullName().equals(existingImage.getImageName())
+                    && imageServer.getComputeImage() != null
+                    && imageServer.getComputeImage().contains(
+                            existingImage.getId().toString())) {
+                log.error("This image is already imported, id: {}",
+                        existingImage.getId());
+                cleanupTemp(imageserverDialog, tempDir, imagePath);
+                throw ImageServerControllerException.exceptions
+                        .duplicateImage(osMetadata.fullName());
+            }
+        }
         log.info("Compute image '" + osMetadata.fullName() + "' will be loaded.");
 
         // copy OS into TFTP boot directory

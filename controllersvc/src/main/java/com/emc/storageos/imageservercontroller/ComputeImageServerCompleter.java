@@ -50,7 +50,6 @@ public class ComputeImageServerCompleter extends TaskCompleter{
         if (status == Status.error) {
             if (opType == OperationTypeEnum.IMAGESERVER_VERIFY_IMPORT_IMAGES) {
                 imageServer.setComputeImageServerStatus(ComputeImageStatus.NOT_AVAILABLE.name());
-                //imageServer.setLastImportStatusMessage(coded.getMessage());
                 dbClient.persistObject(imageServer);
             }
             dbClient.error(ComputeImageServer.class, getId(), getOpId(), coded);

@@ -481,7 +481,7 @@ class Tenant(object):
         o = common.json_decode(s)
         return o['id']
 
-    def tenant_create(self, name, key, value, domain):
+    def tenant_create(self, name, key, value, domain , namespace):
         '''
         creates a tenant
         parameters:
@@ -499,6 +499,7 @@ class Tenant(object):
                 parms = {
                     'name': name
                 }
+                parms ['namespace'] = namespace
                 keyval = dict()
 
                 if(key):
@@ -537,6 +538,44 @@ class Tenant(object):
             raise SOSError(SOSError.ENTRY_ALREADY_EXISTS_ERR,
                            "Tenant create failed: subtenant with same" +
                            "name already exists")
+            
+            
+            
+            
+    # ROUTINE FOR ADD NAMESPACE
+    def add_namespace(self, name, namespace, description):
+        '''
+        creates a tenant
+        parameters:
+            label:  label of the tenant
+            parent: parent tenant of the tenant
+        Returns:
+            JSON payload response
+        '''
+
+        try:
+            tenant = self.tenant_show(name)
+
+            
+
+            parms = dict()
+
+            
+            
+            
+            parms['name'] = name
+            parms['description'] = description
+            parms['namespace'] = namespace
+
+            body = json.dumps(parms)
+            print body 
+
+            (s, h) = common.service_json_request(
+                self.__ipAddr, self.__port, "PUT",
+                self.URI_TENANTS.format(tenant['id']), body)
+
+        except SOSError as e:
+            raise e
 
     def tenant_add_attribute(self, label, key, value, domain):
         '''
@@ -734,6 +773,12 @@ def create_parser(subcommand_parsers, common_parser):
     create_parser.add_argument('-value',
                                help='value of AD attribute to map to tenant',
                                dest='value', metavar='<value>')
+    
+    create_parser.add_argument('-namespace',
+                               help='namespace to map to tenant',
+                               dest='namespace', metavar='<namespace>')
+
+    
 
     mandatory_args.add_argument('-domain',
                                 help='domain',
@@ -746,7 +791,7 @@ def create_parser(subcommand_parsers, common_parser):
 def tenant_create(args):
     obj = Tenant(args.ip, args.port)
     try:
-        res = obj.tenant_create(args.name, args.key, args.value, args.domain)
+        res = obj.tenant_create(args.name, args.key, args.value, args.domain , args.namespace)
     except SOSError as e:
         if (e.err_code in [SOSError.NOT_FOUND_ERR,
                            SOSError.ENTRY_ALREADY_EXISTS_ERR]):
@@ -754,6 +799,52 @@ def tenant_create(args):
                            args.name + ": Create failed\n" + e.err_text)
         else:
             raise e
+        
+
+
+def add_namespace_parser(subcommand_parsers, common_parser):
+    # create command parser
+    add_namespace_parser = subcommand_parsers.add_parser(
+        'add-namespace',
+        description='ViPR Namespace Create CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Adding namespace')
+
+    mandatory_args = add_namespace_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='Name of Tenant',
+                                metavar='<tenantname>',
+                                dest='name',
+                                required=True)
+    mandatory_args.add_argument('-namespace',
+                               help='namespace to map to tenant',
+                               dest='namespace', metavar='<namespace>')
+    
+    mandatory_args.add_argument('-description',
+                               help='description field',
+                               dest='description', metavar='<description>')
+
+    
+
+    
+
+    add_namespace_parser.set_defaults(func=add_namespace_create)
+
+
+def add_namespace_create(args):
+    obj = Tenant(args.ip, args.port)
+    try:
+        res = obj.add_namespace(args.name , args.namespace ,args.description)
+    except SOSError as e:
+        if (e.err_code in [SOSError.NOT_FOUND_ERR,
+                           SOSError.ENTRY_ALREADY_EXISTS_ERR]):
+            raise SOSError(e.err_code, "Add Namespace " +
+                           args.name + ": failed\n" + e.err_text)
+        else:
+            raise e
+
+
 
 
 # TENANT add attribute routines
@@ -1693,6 +1784,8 @@ def tenant_parser(parent_subparser, common_parser):
 
     # show command parser
     show_parser(subcommand_parsers, common_parser)
+    
+    add_namespace_parser(subcommand_parsers, common_parser)
 
     # query command parser
     #query_parser(subcommand_parsers, common_parser)

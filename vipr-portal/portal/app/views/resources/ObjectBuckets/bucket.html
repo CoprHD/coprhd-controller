@@ -20,7 +20,17 @@
       >&{'resources.bucket.deleteLink'}</a><br/>      
     #{/Resources.actions}
     
-    <dl class="dl-horizontal pull-left">      
+    <dl class="dl-horizontal pull-left">  
+      <dt>&{'resources.bucket.path'}:</dt>
+      <dd>
+       ${bucket.path}
+        &nbsp;
+      </dd>
+      <dt>&{'resources.bucket.owner'}:</dt>
+      <dd>
+       ${bucket.owner}
+        &nbsp;
+      </dd>
       <dt>&{'resources.bucket.protocols'}:</dt>
       <dd>
         #{list bucket.protocols, as:'protocol'}

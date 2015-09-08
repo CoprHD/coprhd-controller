@@ -28,10 +28,14 @@ public class DisasterRecoveryServiceTest {
     private Site standbySite1;
     private Site standbySite2;
     private Site standbySite3;
+    private List<URI> uriList;
+    private List<Site> standbySites;
 
     @Before
     public void setUp() throws Exception {
-
+        uriList = new LinkedList<URI>();
+        standbySites = new LinkedList<Site>();
+        
         // setup standby site
         standbySite1 = new Site();
         standbySite1.setId(new URI("site-object-id-1"));
@@ -71,10 +75,9 @@ public class DisasterRecoveryServiceTest {
 
     @Test
     public void testGetAllStandby() {
-        LinkedList<URI> uriList = new LinkedList<URI>();
+        
         doReturn(uriList).when(dbClientMock).queryByType(Site.class, true);
 
-        List<Site> standbySites = new LinkedList<Site>();
         standbySites.add(standbySite1);
         standbySites.add(standbySite2);
         standbySites.add(standbySite3);
@@ -91,10 +94,8 @@ public class DisasterRecoveryServiceTest {
 
     @Test
     public void testGetStandby() {
-        LinkedList<URI> uriList = new LinkedList<URI>();
         doReturn(uriList).when(dbClientMock).queryByType(Site.class, true);
 
-        List<Site> standbySites = new LinkedList<Site>();
         standbySites.add(standbySite1);
         standbySites.add(standbySite2);
         doReturn(standbySites.iterator()).when(dbClientMock).queryIterativeObjects(Site.class, uriList);
@@ -105,10 +106,8 @@ public class DisasterRecoveryServiceTest {
 
     @Test
     public void testGetStandby_NotBelongLocalVDC() {
-        LinkedList<URI> uriList = new LinkedList<URI>();
         doReturn(uriList).when(dbClientMock).queryByType(Site.class, true);
 
-        List<Site> standbySites = new LinkedList<Site>();
         standbySites.add(standbySite1);
         standbySites.add(standbySite2);
         standbySites.add(standbySite3);

@@ -40,8 +40,9 @@ class VirtualPool(object):
     URI_VPOOL_REFRESH_POOLS = URI_VPOOL_SHOW + "/refresh-matched-pools"
     URI_VPOOL_ASSIGN_POOLS = URI_VPOOL_SHOW + "/assign-matched-pools"
     URI_VPOOL_SEARCH = URI_VPOOL + "/search?name={1}"
+    URI_OBJECT_VPOOL = '/object/vpools'
 
-    PROTOCOL_TYPE_LIST = ['FC', 'iSCSI', 'NFS', 'CIFS']
+    PROTOCOL_TYPE_LIST = ['FC', 'iSCSI', 'NFS', 'CIFS' , 'S3' , 'Atmos' ,'Swift']
     RAID_LEVEL_LIST = ['RAID1', 'RAID2', 'RAID3', 'RAID4',
                        'RAID5', 'RAID6', 'RAID10']
     BOOL_TYPE_LIST = ['true', 'false']
@@ -470,7 +471,7 @@ class VirtualPool(object):
     def vpool_create(self, name, description, vpooltype, protocols,
                      varrays, provisiontype, rp, rp_policy,
                      systemtype, raidlevel, fastpolicy, drivetype, expandable,
-                     usematchedpools, max_snapshots, max_mirrors, vpoolmirror,
+                     usematchedpools, max_snapshots ,maxretention, max_mirrors, vpoolmirror,
                      multivolconsistency, autotierpolicynames,
                      ha, minpaths,
                      maxpaths, pathsperinitiator, srdf, fastexpansion,
@@ -480,7 +481,7 @@ class VirtualPool(object):
         It will send REST API request to ViPR instance.
         parameters:
             name : Name of the VPOOL.
-            vpooltype : Type of the VPOOL { 'file', 'block' }
+            vpooltype : Type of the VPOOL { 'file', 'block' , 'object'}
             max_snapshots: max number of native snapshots
             max_mirrors: max number of native continuous copies
         return
@@ -528,6 +529,11 @@ class VirtualPool(object):
                 parms['use_matched_pools'] = "true"
             else:
                 parms['use_matched_pools'] = "false"
+                
+        if(vpooltype == 'object'):       
+        
+            if(maxretention is not None):
+                parms['max_retention'] = maxretention
 
         if(vpooltype == 'file'):
             # max snapshot for file protection
@@ -588,7 +594,7 @@ class VirtualPool(object):
             if(fastpolicy is not None):
                 parms['auto_tiering_policy_name'] = fastpolicy
 
-            if(drivetype):
+            if(drivetype and vpooltype != "object"):
                 parms['drive_type'] = drivetype
 
             # volume expansion is support
@@ -671,6 +677,7 @@ class VirtualPool(object):
                 parms['protection'] = block_vpool_protection_param
 
         body = json.dumps(parms)
+        print body 
         try:
             (s, h) = common.service_json_request(
                 self.__ipAddr, self.__port, "POST",
@@ -983,16 +990,20 @@ def create_parser(subcommand_parsers, common_parser):
                                dest='varrays',
                                nargs='+',
                                required=True)
-    mandatory_args.add_argument('-provisiontype', '-pt',
+    create_parser.add_argument('-provisiontype', '-pt',
                                help='Provision type values can be Thin or ' +
                                'Thick ',
                                metavar='<provisiontype>',
-                               dest='provisiontype',
-                               required=True)
+                               dest='provisiontype')
     create_parser.add_argument('-maxsnapshots', '-msnp',
                                help='Maximum number of native snapshots',
                                metavar='<max_snapshots>',
                                dest='max_snapshots')
+    create_parser.add_argument('-maxretention', '-mxrtn',
+                               help='Maximum retention period',
+                               metavar='<max_retention>',
+                               dest='maxretention')
+    
     create_parser.add_argument(
         '-maxcontinuouscopies', '-mcc',
         help='Maximum number of native continuous copies',
@@ -1045,7 +1056,7 @@ def create_parser(subcommand_parsers, common_parser):
                                default='file',
                                dest='type',
                                metavar='<vpooltype>',
-                               choices=['file', 'block'])
+                               choices=['file', 'block' ,'object'])
     mandatory_args.add_argument('-description', '-desc',
                                help='Description of VPool',
                                dest='description',
@@ -1156,6 +1167,7 @@ def vpool_create(args):
                                args.expandable,
                                args.usematchedpools,
                                args.max_snapshots,
+                               args.maxretention ,
                                args.maxcontinuouscopies,
                                args.continuouscopiesvpool,
                                args.multivolconsistency,
@@ -1804,7 +1816,7 @@ def list_parser(subcommand_parsers, common_parser):
                              help='Type of VPool',
                              dest='type',
                              metavar='<vpooltype>',
-                             choices=['file', 'block'])
+                             choices=['file', 'block' , 'object'])
     list_parser.add_argument('-v', '-verbose',
                              dest='verbose',
                              help='List VPool with details',

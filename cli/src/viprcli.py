@@ -62,7 +62,7 @@ import quotadirectory
 import sanfabrics
 import keystore
 import truststore
-
+import bucket
 
 import warnings
 
@@ -169,6 +169,7 @@ computelement.computelement_parser(module_parsers, common_parser)
 computevpool.computevpool_parser(module_parsers, common_parser)
 keystore.keystore_parser(module_parsers, common_parser)
 truststore.truststore_parser(module_parsers, common_parser)
+bucket.bucket_parser(module_parsers, common_parser)
 network.network_parser(module_parsers, common_parser)
 
 

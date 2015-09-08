@@ -9,10 +9,12 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
+import com.emc.storageos.model.object.BucketParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ObjectController;
@@ -105,10 +107,11 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
     }
 
 	@Override
-	public void createBucket(URI storage, String name) throws InternalException {
+	//public void createBucket(URI storage, URI vPool, URI buck, BucketParam param, String opId) throws InternalException;
+	public void createBucket(URI storage,  URI vPool, URI bkt, BucketParam param, String opId) throws InternalException {
 		// TODO Auto-generated method stub
 		_log.info("ObjectControllerImpl:createBukcet");
-		execOb("createBucket", storage, name);
+		execOb("createBucket", storage, vPool, bkt, param, opId);
 	}
 
 

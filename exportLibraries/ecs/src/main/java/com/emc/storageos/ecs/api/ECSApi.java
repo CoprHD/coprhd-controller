@@ -29,7 +29,7 @@ public class ECSApi {
     private static final URI URI_STORAGE_POOL = URI.create("/vdc/data-service/vpools.json");
     private final String ECS_VARRAY_BASE = "/object/capacity/";
     private static final URI URI_CREATE_BUCKET = URI.create("/object/bucket.json");
-
+    private final String ECS_BUCKET_UPDATE_BASE = "/object/bucket/";
     private static final String ROLE_SYSTEM_ADMIN = "<role>SYSTEM_ADMIN</role>";
     
     /**
@@ -195,23 +195,130 @@ public class ECSApi {
     }
     
     
-    public void createBucket(String name, String namespace, String repGroup) throws ECSException {
+    public String createBucket(String name, String namespace, String repGroup, String retentionPeriod, String blkSizeHQ, String notSizeSQ, String owner) throws ECSException {
     	ClientResponse clientResp = null;
-    	
-    	String body = " { \"name\": \""+ name + "\",\"namespace\": \"s3\"}  ";
-    	
-    	clientResp = _client.post_json(_baseUrl.resolve(URI_CREATE_BUCKET), authToken, body);
-    	if (clientResp.getStatus() != 200) {
-    		if (clientResp.getStatus() == 401 || clientResp.getStatus() == 302) {
-    			getAuthToken();
-    			clientResp = _client.get_json(_baseUrl.resolve(URI_STORAGE_POOL), authToken);
-    		}
+    	String id = null;
+    	//String body = " { \"name\": \""+ name + "\", \"namespace\": \"" + namespace + "\"}  ";
+    	String body = " { \"name\": \""+ name + "\", " + "\"vpool\": \"" + repGroup +  "\", \"namespace\": \"" + namespace + "\"}  ";
+
+    	try {
     		
+    		clientResp = _client.post_json(_baseUrl.resolve(URI_CREATE_BUCKET), authToken, body);
     		if (clientResp.getStatus() != 200) {
-    			throw ECSException.exceptions.getStoragePoolsAccessFailed(_baseUrl, clientResp.getStatus());
+    			if (clientResp.getStatus() == 401 || clientResp.getStatus() == 302) {
+    				getAuthToken();
+    				clientResp = _client.get_json(_baseUrl.resolve(URI_STORAGE_POOL), authToken);
+    			}
+
+    			if (clientResp.getStatus() != 200) {
+    				JSONObject jObj = clientResp.getEntity(JSONObject.class);
+    				throw ECSException.exceptions.getStoragePoolsAccessFailed(_baseUrl, clientResp.getStatus());
+    			}
+    		}
+
+    		//extract bucket id
+    		JSONObject jObj = clientResp.getEntity(JSONObject.class);
+    		if (jObj.has("id")) {
+    			id = jObj.getString("id");
+    		}
+
+    		//update retention period
+    		if (retentionPeriod != null) {
+    			ClientResponse clientResp2 = null;
+
+    			String body2 = " { \"period\": \""+ retentionPeriod + "\", \"namespace\": \"" + namespace + "\"}  ";
+
+    			//ECS_BUCKET_UPDATE_BASE
+    			String bucketRetention = ECS_BUCKET_UPDATE_BASE + name + "/retention.json";
+    			URI uriBucketRetention = URI.create(bucketRetention);
+
+    			clientResp2 = _client.put_json(_baseUrl.resolve(uriBucketRetention), authToken, body2);
+    			if (clientResp2.getStatus() != 200) {
+    				if (clientResp2.getStatus() == 401 || clientResp2.getStatus() == 302) {
+    					getAuthToken();
+    					clientResp2 = _client.get_json(_baseUrl.resolve(uriBucketRetention), authToken);
+    				}
+
+    				if (clientResp2.getStatus() != 200) {
+    					JSONObject jObj2 = clientResp2.getEntity(JSONObject.class);
+    					throw ECSException.exceptions.getStoragePoolsAccessFailed(_baseUrl, clientResp2.getStatus());
+    				}
+    			}
+
+    			if (clientResp2 != null) {
+    				clientResp2.close();
+    			}
+    		}//end retention period != null
+
+
+    		//update hard=block and soft=notification quota
+    		if (blkSizeHQ != null && notSizeSQ != null) {
+    			ClientResponse clientResp3 = null;
+
+    			String body3 = " {  \"blockSize\": \""+ blkSizeHQ + "\", \"notificationSize\": \""+ notSizeSQ +
+    					  "\", \"namespace\": \"" + namespace + "\"}  ";
+    			
+    			//ECS_BUCKET_UPDATE_BASE
+    			String bucketQuota = ECS_BUCKET_UPDATE_BASE + name + "/quota.json";
+    			URI uriBucketQuota = URI.create(bucketQuota);
+
+    			clientResp3 = _client.put_json(_baseUrl.resolve(uriBucketQuota), authToken, body3);
+    			if (clientResp3.getStatus() != 200) {
+    				if (clientResp3.getStatus() == 401 || clientResp3.getStatus() == 302) {
+    					getAuthToken();
+    					clientResp3 = _client.get_json(_baseUrl.resolve(uriBucketQuota), authToken);
+    				}
+
+    				if (clientResp3.getStatus() != 200) {
+    					JSONObject jObj3 = clientResp3.getEntity(JSONObject.class);
+    					throw ECSException.exceptions.getStoragePoolsAccessFailed(_baseUrl, clientResp3.getStatus());
+    				}
+    			}
+
+    			if (clientResp3 != null) {
+    				clientResp3.close();
+    			}
+    		}//end update hard=block and soft=notification quota
+
+    		//update owner
+    		if (owner != null) {
+    			ClientResponse clientResp4 = null;
+
+    			String body4 = " { \"new_owner\": \""+ owner + "\", \"namespace\": \"" + namespace + "\"}  ";
+    			
+    			//ECS_BUCKET_UPDATE_BASE
+    			String bucketOwner = ECS_BUCKET_UPDATE_BASE + name + "/owner.json";
+    			URI uriBucketOwner = URI.create(bucketOwner);
+
+    			clientResp4 = _client.post_json(_baseUrl.resolve(uriBucketOwner), authToken, body4);
+    			if (clientResp4.getStatus() != 200) {
+    				if (clientResp4.getStatus() == 401 || clientResp4.getStatus() == 302) {
+    					getAuthToken();
+    					clientResp4 = _client.get_json(_baseUrl.resolve(uriBucketOwner), authToken);
+    				}
+
+    				if (clientResp4.getStatus() != 200) {
+    					JSONObject jObj4 = clientResp4.getEntity(JSONObject.class);
+    					throw ECSException.exceptions.getStoragePoolsAccessFailed(_baseUrl, clientResp4.getStatus());
+    				}
+    			}
+
+    			if (clientResp4 != null) {
+    				clientResp4.close();
+    			}
+    		}//end update owner
+    		
+    		return id;
+    	} catch (ECSException ie) {
+    		throw ie;
+    	} catch (Exception e) {
+    		String response = String.format("%1$s", (clientResp == null) ? "" : clientResp);
+    		throw ECSException.exceptions.createBucketFailed(response, e);
+    	} finally {
+    		if (clientResp != null) {
+    			clientResp.close();
     		}
     	}
-    	
-    }
-    
+
+    }//end create bucket
 }

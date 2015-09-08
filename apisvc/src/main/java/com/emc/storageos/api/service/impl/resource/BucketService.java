@@ -235,8 +235,7 @@ public class BucketService extends TaskResourceService {
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceDevice());
             ObjectController controller = getController(ObjectController.class, system.getSystemType());
-            controller.createBucket(recommendation.getSourceDevice(), param.getLabel());
-            _dbClient.persistObject(bucket);
+            controller.createBucket(recommendation.getSourceDevice(), recommendation.getSourcePool(), bucket.getId(), param, task);
         } catch (InternalException e) {
             bucket.setInactive(true);
             _dbClient.persistObject(bucket);

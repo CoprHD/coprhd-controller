@@ -194,7 +194,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             }
             
             //Get storage ports
-            /*HashMap<String, List<StoragePort>> storagePorts = new HashMap<String, List<StoragePort>>();
+            HashMap<String, List<StoragePort>> storagePorts = new HashMap<String, List<StoragePort>>();
             List<StoragePort> newStoragePorts = new ArrayList<StoragePort>();
             List<StoragePort> existingStoragePorts = new ArrayList<StoragePort>();
             List<ECSStoragePort> ecsStoragePorts = ecsApi.getStoragePort(storageSystem.getIpAddress());
@@ -254,7 +254,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
 
             if(storagePorts.get(EXISTING).size() > 0) {
                 _dbClient.persistObject(storagePorts.get(EXISTING)); 
-            }*/
+            }
 
 		}  catch (Exception e) {
             detailedStatusMessage = String.format("Discovery failed for Storage System ECS: because %s",

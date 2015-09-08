@@ -564,6 +564,9 @@ public class VPlexBackendManager {
             for (ExportMask mask : exportMasks.values()) {
                 if (mask.hasVolume(blockObjectURI)) {
                     maskToVolumes.get(mask.getId().toString()).add(blockObjectURI);
+                } else {
+                    _log.info(String.format("ExportMask %s (%s) does not contain volume %s", 
+                            mask.getMaskName(), mask.getId(), blockObjectURI));
                 }
             }
         }
@@ -572,6 +575,10 @@ public class VPlexBackendManager {
         String previousStepId = waitFor;
         for (ExportMask mask : exportMasks.values()) {
             List<URI> volumes = maskToVolumes.get(mask.getId().toString());
+            if (volumes.isEmpty()) {
+                _log.info("No volumes to remove for Export Mask: " + mask.getId());
+                continue;
+            }
             previousStepId = waitFor;
 
             // Verify the ExportMask is present on the system, or check if it was renamed

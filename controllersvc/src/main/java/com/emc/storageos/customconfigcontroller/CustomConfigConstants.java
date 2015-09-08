@@ -73,4 +73,5 @@ public interface CustomConfigConstants {
     public String PORT_ALLOCATION_USE_PREZONED_PORT_BACKEND = "PortAllocationUsePrezonedPortsBackEnd";
 
     public String MIGRATION_SPEED = "VPlexMigrationSpeed";
+    public String NAS_DYNAMIC_PERFORMANCE_PLACEMENT_ENABLED = "NasDynamicPerformancePlacementEnabled";
 }

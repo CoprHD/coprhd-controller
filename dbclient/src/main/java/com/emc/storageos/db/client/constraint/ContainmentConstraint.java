@@ -640,10 +640,28 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(snapshotURI, CifsShareACL.class, field);
         }
 
+        public static ContainmentConstraint getVirtualNASByParentConstraint(URI physicalNAS) {
+            DataObjectType doType = TypeMap.getDoType(VirtualNAS.class);
+            ColumnField field = doType.getColumnField("parentNasUri");
+            return new ContainmentConstraintImpl(physicalNAS, VirtualNAS.class, field);
+        }
+
         public static ContainmentConstraint getAssociatedSourceVolumeConstraint(URI sourceURI) {
             DataObjectType doType = TypeMap.getDoType(Volume.class);
             ColumnField field = doType.getColumnField("associatedSourceVolume");
             return new ContainmentConstraintImpl(sourceURI, Volume.class, field);
+        }
+
+        public static ContainmentConstraint getVirtualNASInVirtualArrayConstraint(URI varray) {
+            DataObjectType doType = TypeMap.getDoType(VirtualNAS.class);
+            ColumnField field = doType.getColumnField("assignedVirtualArrays");
+            return new ContainmentConstraintImpl(varray, VirtualNAS.class, field);
+        }
+
+        public static ContainmentConstraint getVirtualNASContainStoragePortConstraint(URI port) {
+            DataObjectType doType = TypeMap.getDoType(VirtualNAS.class);
+            ColumnField field = doType.getColumnField("storagePorts");
+            return new ContainmentConstraintImpl(port, VirtualNAS.class, field);
         }
 
         public static ContainmentConstraint getStoragePortFileshareConstraint(URI storagePort) {

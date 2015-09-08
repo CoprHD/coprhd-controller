@@ -54,7 +54,6 @@ import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFil
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBFileShare;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedSMBShareMap;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.plugins.AccessProfile;
 import com.emc.storageos.plugins.BaseCollectionException;
@@ -77,6 +76,7 @@ import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 import com.emc.storageos.volumecontroller.impl.StoragePortAssociationHelper;
+import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileDiscExecutor;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileExecutor;
 import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
@@ -106,6 +106,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
     private static final String PHYSICAL = "PHYSICAL";
     private static final Integer MAX_UMFS_RECORD_SIZE = 1000;
     private static final String UNMANAGED_EXPORT_RULE = "UnManagedExportRule";
+    private static final Long TBsINKB = 1073741824L;
 
     private static int BYTESCONV = 1024;  // VNX defaults to M and apparently Bourne wants K.
 
@@ -287,6 +288,14 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemId);
             // Retrieve control station information.
             discoverControlStation(storageSystem);
+
+            // Model number
+            VNXFileSshApi sshDmApi = new VNXFileSshApi();
+            sshDmApi.setConnParams(storageSystem.getIpAddress(), storageSystem.getUsername(),
+                    storageSystem.getPassword());
+            String model = sshDmApi.getModelInfo();
+            storageSystem.setModel(model);
+
             _dbClient.persistObject(storageSystem);
             if (!storageSystem.getReachableStatus()) {
                 throw new VNXFileCollectionException("Failed to connect to " + storageSystem.getIpAddress());
@@ -433,6 +442,10 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             ImplicitPoolMatcher.matchModifiedStoragePoolsWithAllVpool(poolsToMatchWithVpool, _dbClient, _coordinator,
                     storageSystemId);
 
+            // Update the virtual nas association with virtual arrays!!!
+            // For existing virtual nas ports!!
+            StoragePortAssociationHelper.runUpdateVirtualNasAssociationsProcess(allExistingPorts, null, _dbClient);
+
             // discovery succeeds
             detailedStatusMessage = String.format("Discovery completed successfully for Storage System: %s",
                     storageSystemId.toString());
@@ -469,22 +482,37 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
         VirtualNAS vNas = new VirtualNAS();
 
-        if (vNas != null) {
-            vNas.setNasName(vdm.getVdmName());
-            vNas.setStorageDeviceURI(system.getId());
-            vNas.setNativeId(vdm.getVdmId());
-            vNas.setNasState(vdm.getState());
-            vNas.setId(URIUtil.createId(VirtualNAS.class));
+        vNas.setNasName(vdm.getVdmName());
+        vNas.setStorageDeviceURI(system.getId());
+        vNas.setNativeId(vdm.getVdmId());
+        vNas.setNasState(vdm.getState());
+        vNas.setId(URIUtil.createId(VirtualNAS.class));
 
-            String nasNativeGuid = NativeGUIDGenerator.generateNativeGuid(
-                    system, vdm.getVdmId(), NativeGUIDGenerator.VIRTUAL_NAS);
-            vNas.setNativeGuid(nasNativeGuid);
+        String nasNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                system, vdm.getVdmId(), NativeGUIDGenerator.VIRTUAL_NAS);
+        vNas.setNativeGuid(nasNativeGuid);
 
-            PhysicalNAS parentNas = findPhysicalNasByNativeId(system, vdm.getMoverId());
-            if (parentNas != null) {
-                vNas.setParentNasUri(parentNas.getId());
-            }
+        PhysicalNAS parentNas = findPhysicalNasByNativeId(system, vdm.getMoverId());
+
+        if (parentNas != null) {
+            vNas.setParentNasUri(parentNas.getId());
+
+            StringMap dbMetrics = vNas.getMetrics();
             _logger.info("new Virtual NAS created with guid {} ", vNas.getNativeGuid());
+
+            // Set the Limit Metric keys!!
+            Long MaxObjects = 2048L;
+            Long MaxCapacity = 200L * TBsINKB;
+            String modelStr = system.getModel();
+            if (modelStr.startsWith("VNX")) {
+                if (Long.parseLong(modelStr.substring(3)) > 5300) {
+                    MaxCapacity = 256L * TBsINKB;
+                }
+            }
+
+            dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
+            dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
+            vNas.setMetrics(dbMetrics);
 
         }
 
@@ -514,6 +542,21 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     system, String.valueOf(dm.getId()), NativeGUIDGenerator.PHYSICAL_NAS);
             phyNas.setNativeGuid(physicalNasNativeGuid);
             _logger.info("Physical NAS created with guid {} ", phyNas.getNativeGuid());
+
+            StringMap dbMetrics = phyNas.getMetrics();
+            // Set the Limit Metric keys!!
+            Long MaxObjects = 2048L;
+            Long MaxCapacity = 200L * TBsINKB;
+            String modelStr = system.getModel();
+            if (modelStr.startsWith("VNX")) {
+                if (Long.parseLong(modelStr.substring(3)) > 5300) {
+                    MaxCapacity = 256L * TBsINKB;
+                }
+            }
+
+            dbMetrics.put(MetricsKeys.maxStorageCapacity.name(), String.valueOf(MaxCapacity));
+            dbMetrics.put(MetricsKeys.maxStorageObjects.name(), String.valueOf(MaxObjects));
+            phyNas.setMetrics(dbMetrics);
 
         }
         return phyNas;
@@ -1517,7 +1560,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
             if (!existingUnManagedFileSystems.isEmpty()) {
                 // Update UnManagedFilesystem
-                _dbClient.persistObject(existingUnManagedFileSystems);
+                _dbClient.updateAndReindexObject(existingUnManagedFileSystems);
             }
 
             // discovery succeeds
@@ -3310,24 +3353,15 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
             // We should check matched vpool based on storagepool of type for given fs.
             // In vipr, storagepool of thin is taken as THICK
             StringSet matchedVPools = DiscoveryUtils.getMatchedVirtualPoolsForPool(_dbClient, pool.getId());
-            if (unManagedFileSystemInformation.containsKey(UnManagedFileSystem.SupportedFileSystemInformation.
-                    SUPPORTED_VPOOL_LIST.toString())) {
-
-                if (null != matchedVPools && matchedVPools.isEmpty()) {
-                    // replace with empty string set doesn't work, hence added explicit code to remove all
-                    unManagedFileSystemInformation.get(
-                            SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).clear();
-                } else {
-                    // replace with new StringSet
-                    unManagedFileSystemInformation.get(
-                            SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString()).replace(matchedVPools);
-                    _logger.info("Replaced Pools :" + Joiner.on("\t").join(unManagedFileSystemInformation.get(
-                            SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString())));
-                }
+            _logger.debug("Matched Pools : {}", Joiner.on("\t").join(matchedVPools));
+            if (null == matchedVPools || matchedVPools.isEmpty()) {
+                // clear all existing supported vpools.
+                unManagedFileSystem.getSupportedVpoolUris().clear();
             } else {
-                unManagedFileSystemInformation
-                        .put(UnManagedFileSystem.SupportedFileSystemInformation.SUPPORTED_VPOOL_LIST
-                                .toString(), matchedVPools);
+                // replace with new StringSet
+                unManagedFileSystem.getSupportedVpoolUris().replace(matchedVPools);
+                _logger.info("Replaced Pools :"
+                        + Joiner.on("\t").join(unManagedFileSystem.getSupportedVpoolUris()));
             }
 
         }

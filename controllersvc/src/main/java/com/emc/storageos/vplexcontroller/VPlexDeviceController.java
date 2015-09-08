@@ -1950,10 +1950,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             for (Initiator init : inits) {
                 String port = init.getInitiatorPort();
-                String normalizedName = port;
-                if (WWNUtility.isValidWWN(port)) {
-                    normalizedName = WWNUtility.getUpperWWNWithNoColons(port);
-                }
+                String normalizedName = Initiator.normalizePort(port);
                 _log.info("   looking at initiator " + normalizedName + " host " + init.getHostName());
                 if (initiatorPorts.contains(normalizedName)) {
                     _log.info("      found a matching initiator for " + normalizedName
@@ -6004,6 +6001,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         for (URI uri : uris) {
             _log.info("Volume URI is {}", uri);
             Volume volume = _dbClient.queryObject(Volume.class, uri);
+            if (volume == null || volume.getInactive()) {
+                continue;
+            }
             URI sourceSystemURI = volume.getStorageController();
             _log.info("Storage system URI is {}", sourceSystemURI);
             List<ExportGroup> sourceExportGroups = getExportGroupsForVolume(volume);
@@ -8211,7 +8211,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             .getSupportingDeviceInfo();
                     List<VPlexDeviceInfo> localDeviceInfoList = ddInfo.getLocalDeviceInfo();
                     for (VPlexDeviceInfo localDeviceInfo : localDeviceInfoList) {
-                        _log.info("localDeviceInfo: {}, {}", localDeviceInfo.getName(), localDeviceInfo.getClusterId());
+                        _log.info("localDeviceInfo: {}, {}", localDeviceInfo.getName(), localDeviceInfo.getCluster());
 
                         // If no varray is passed, then we need to check both
                         // sides of the volume, else only the side specified by
@@ -8221,7 +8221,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             String varrayCluster = ConnectivityUtil.getVplexClusterForVarray(
                                     varrayURI, vplexSystem.getId(), dbClient);
                             _log.info("varrayCluster:{}", varrayCluster);
-                            if (!localDeviceInfo.getClusterId().contains(varrayCluster)) {
+                            if (!localDeviceInfo.getCluster().contains(varrayCluster)) {
                                 continue;
                             }
                         }

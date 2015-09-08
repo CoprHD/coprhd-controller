@@ -97,9 +97,11 @@
             ="com.emc.storageos.db.client.util.ResourceOnlyNameGenerator"/>
     <bean id="exportGroupNameGenerator"
           class="com.emc.storageos.db.client.util.ExportGroupNameGenerator"/>
+    
     <bean id="filescheduler" class="com.emc.storageos.api.service.impl.placement.FileStorageScheduler">
         <property name="dbClient" ref="dbclient"/>
         <property name="scheduleUtils" ref="storagescheduler" />
+        <property name="customConfigHandler" ref="customConfigHandler" />
     </bean>
 
     <bean id="dbModelObjectScanner" class="com.emc.storageos.db.common.DataObjectScanner" init-method="init">
@@ -234,6 +236,9 @@
     
     <bean id ="blockVplexVolumeIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.BlockVplexVolumeIngestOrchestrator">
         <property name="dbClient" ref="dbclient"/>
+        <property name="ingestStrategyFactory" ref="ingestStrategyFactory"/>
+        <property name="tenantsService" ref="tenantsService"/>
+        <property name="coordinator" ref="coordinator"/>
     </bean>
     
     <bean id ="maskPerHostIngestOrchestrator" class="com.emc.storageos.api.service.impl.resource.blockingestorchestration.MaskPerHostIngestOrchestrator">
@@ -503,7 +508,7 @@
                     <property name="coordinator" ref="coordinator"/>
                     <property name="ingestStrategyFactory" ref="ingestStrategyFactory"/>
                 </bean>
-                
+
                 <bean class="com.emc.storageos.api.service.impl.resource.UnManagedFilesystemService">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>

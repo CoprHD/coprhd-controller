@@ -30,6 +30,7 @@ import com.emc.storageos.Controller;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.StorageScheduler;
 import com.emc.storageos.api.service.impl.resource.fullcopy.BlockFullCopyManager;
+import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyzer;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
@@ -241,7 +242,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @throws ControllerException
      */
     @Override
-    public TaskResourceRep pauseNativeContinuousCopies(StorageSystem storageSystem, Volume sourceVolume,
+    public TaskList pauseNativeContinuousCopies(StorageSystem storageSystem, Volume sourceVolume,
             List<BlockMirror> blockMirrors, Boolean sync,
             String taskId) throws ControllerException {
         throw APIException.methodNotAllowed.notSupported();
@@ -253,7 +254,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @throws ControllerException
      */
     @Override
-    public TaskResourceRep resumeNativeContinuousCopies(StorageSystem storageSystem, Volume sourceVolume,
+    public TaskList resumeNativeContinuousCopies(StorageSystem storageSystem, Volume sourceVolume,
             List<BlockMirror> blockMirrors, String taskId)
             throws ControllerException {
         throw APIException.methodNotAllowed.notSupported();
@@ -265,7 +266,19 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      * @throws ControllerException
      */
     @Override
-    public TaskResourceRep deactivateMirror(StorageSystem storageSystem, URI mirrorURI, String task) throws ControllerException {
+    public TaskResourceRep establishVolumeAndNativeContinuousCopyGroupRelation(
+            StorageSystem storageSystem, Volume sourceVolume,
+            BlockMirror blockMirror, String taskId) throws ControllerException {
+        throw APIException.methodNotAllowed.notSupported();
+    }
+
+    /**
+     * {@inheritDoc}
+     * 
+     * @throws ControllerException
+     */
+    @Override
+    public TaskList deactivateMirror(StorageSystem storageSystem, URI mirrorURI, String task) throws ControllerException {
         throw APIException.methodNotAllowed.notSupported();
     }
 
@@ -1253,8 +1266,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
     @Override
     public void restoreSnapshot(BlockSnapshot snapshot, Volume parentVolume, String taskId) {
         BlockOrchestrationController controller = getController(BlockOrchestrationController.class,
-                BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);                     
-        controller.restoreVolume(snapshot.getStorageController(), parentVolume.getPool(), 
+                BlockOrchestrationController.BLOCK_ORCHESTRATION_DEVICE);
+        controller.restoreVolume(snapshot.getStorageController(), parentVolume.getPool(),
                 parentVolume.getId(), snapshot.getId(), taskId);
     }
 
@@ -1484,14 +1497,20 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         }
 
         // Validate the volume is not in this CG or any other CG.
-        List<URI> cgVolumeURIs = new ArrayList<URI>();
-        for (Volume cgVolume : cgVolumes) {
-            cgVolumeURIs.add(cgVolume.getId());
-        }
-        if (cgVolumeURIs.contains(volumeURI)) {
-            throw APIException.badRequests
-                    .invalidParameterConsistencyGroupAlreadyContainsVolume(volumeURI);
-        } else if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+        /*
+         * List<URI> cgVolumeURIs = new ArrayList<URI>();
+         * for (Volume cgVolume : cgVolumes) {
+         * cgVolumeURIs.add(cgVolume.getId());
+         * }
+         * if (cgVolumeURIs.contains(volumeURI)) {
+         * throw APIException.badRequests
+         * .invalidParameterConsistencyGroupAlreadyContainsVolume(volumeURI);
+         * } else if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())) {
+         * }
+         */
+        // Validate the volume is not in any other CG.
+        if (!NullColumnValueGetter.isNullURI(volume.getConsistencyGroup())
+                && !cg.getId().equals(volume.getConsistencyGroup())) {
             throw APIException.badRequests
                     .invalidParameterVolumeAlreadyInAConsistencyGroup(cg.getId(),
                             volume.getConsistencyGroup());
@@ -1511,6 +1530,9 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         // For VPLEX volumes the backend storage must be on the same
         // array as the volumes currently in the consistency group.
         verifySystemForVolumeToBeAddedToCG(volume, cg, cgStorageSystem);
+
+        // Don't allow partially ingested volume to be added to CG.
+        BlockServiceUtils.validateNotAnInternalBlockObject(volume, false);
     }
 
     /**

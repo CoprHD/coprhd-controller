@@ -27,10 +27,9 @@ import com.emc.storageos.volumecontroller.impl.smis.CIMObjectPathFactory;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisCommandHelper;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYNC_TYPE;
 import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import com.emc.storageos.volumecontroller.impl.smis.SmisUtils;
-
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.*;
 
 /**
  * Utils for consistency group related operations for snapshot and clone
@@ -82,7 +81,7 @@ public class VmaxGroupOperationsUtils {
             CIMObjectPath replicationSvc = cimPath.getControllerReplicationSvcPath(storage);
             CIMInstance replicaSettingData = null;
 
-            if (storage.checkIfVmax3()) {
+            if (storage.checkIfVmax3() && syncType != SYNC_TYPE.MIRROR) {
                 String instanceId = targetGroupPath.getKey(SmisConstants.CP_INSTANCE_ID).getValue().toString();
                 replicaLabel = SmisUtils.getTargetGroupName(instanceId, storage.getUsingSmis80());
 
@@ -95,6 +94,8 @@ public class VmaxGroupOperationsUtils {
             } else if (syncType == SYNC_TYPE.CLONE) {
                 replicaSettingData = ReplicationUtils.getReplicationSettingForGroupClones(storage, helper,
                         cimPath, createInactive);
+            } else if (syncType == SYNC_TYPE.MIRROR) {
+                replicaSettingData = ReplicationUtils.getReplicationSettingForGroupMirrors(storage, helper, cimPath);
             } else {
                 replicaSettingData = ReplicationUtils.getReplicationSettingForGroupSnapshots(storage, helper, cimPath, thinProvisioning);
             }

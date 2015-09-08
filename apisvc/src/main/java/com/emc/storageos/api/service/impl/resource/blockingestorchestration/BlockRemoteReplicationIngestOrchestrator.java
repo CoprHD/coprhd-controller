@@ -70,7 +70,7 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
             List<UnManagedVolume> unManagedVolumesSuccessfullyProcessed,
             Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported,
             Class<T> clazz,
-            Map<String, StringBuffer> taskStatusMap) throws IngestionException {
+            Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) throws IngestionException {
         String volumeNativeGuid = unManagedVolume.getNativeGuid().replace(VolumeIngestionUtil.UNMANAGEDVOLUME,
                 VolumeIngestionUtil.VOLUME);
         BlockObject blockObject = VolumeIngestionUtil.checkIfVolumeExistsInDB(volumeNativeGuid, _dbClient);
@@ -85,7 +85,7 @@ public class BlockRemoteReplicationIngestOrchestrator extends BlockVolumeIngestO
         if (null == blockObject) {
             blockObject = super.ingestBlockObjects(systemCache, poolCache, system, unManagedVolume, vPool, virtualArray, project, tenant,
                     unManagedVolumesSuccessfullyProcessed, createdObjectMap, updatedObjectMap, unManagedVolumeExported, clazz,
-                    taskStatusMap);
+                    taskStatusMap, vplexIngestionMethod);
 
             if (null == blockObject) {
                 _logger.warn("SRDF Volume ingestion failed for unmanagedVolume {}", unManagedVolume.getNativeGuid());

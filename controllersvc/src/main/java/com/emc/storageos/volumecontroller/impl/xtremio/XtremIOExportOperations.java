@@ -230,7 +230,7 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
 
     @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
-        // TODO Auto-generated method stub
+        // CTRL-13080 fix - refresh mask will not be used by XtremIo exports, hence returning null is not an issue.
         return null;
     }
 

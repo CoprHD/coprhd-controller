@@ -1355,10 +1355,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             Collection<URI> hostURIs,
             ListMultimap<String, String> computeResourceToPortNames) {
         for (Initiator initiator : initiators) {
-            String normalizedName = initiator.getInitiatorPort();
-            if (WWNUtility.isValidWWN(normalizedName)) {
-                normalizedName = WWNUtility.getUpperWWNWithNoColons(initiator.getInitiatorPort());
-            }
+            String normalizedName = Initiator.normalizePort(initiator.getInitiatorPort());
             portNames.add(normalizedName);
             portNameToInitiatorURI.put(normalizedName, initiator.getId());
             if (hostURIs != null) {

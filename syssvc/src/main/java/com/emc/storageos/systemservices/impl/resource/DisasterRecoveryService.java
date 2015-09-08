@@ -5,7 +5,6 @@
 package com.emc.storageos.systemservices.impl.resource;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Collections;
@@ -28,16 +27,14 @@ import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.api.service.impl.resource.ArgValidator;
-import com.emc.storageos.api.service.impl.resource.TaggedResource;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.Site;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.common.VdcUtil;
-import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
@@ -50,12 +47,13 @@ import com.emc.storageos.systemservices.impl.util.SiteMapper;
 @Path("/site")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN },
         writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-public class DisasterRecoveryService extends TaggedResource {
+public class DisasterRecoveryService {
 
     private static final Logger log = LoggerFactory.getLogger(DisasterRecoveryService.class);
     private CoordinatorClient coordinator = null;
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
+    protected DbClient _dbClient;
     
     public DisasterRecoveryService() {
         siteMapper = new SiteMapper();
@@ -216,19 +214,6 @@ public class DisasterRecoveryService extends TaggedResource {
 
         return siteMapper.map(primarySite);
     }
-    
-    @Override
-    protected Site queryResource(URI id) {
-        ArgValidator.checkUri(id);
-        Site standby = _dbClient.queryObject(Site.class, id);
-        ArgValidator.checkEntityNotNull(standby, id, isIdEmbeddedInURL(id));
-        return standby;
-    }
-
-    @Override
-    protected URI getTenantOwner(URI id) {
-        return null;
-    }
 
     private Collection<String> getStandbyIds(Set<String> siteIds) {
         Set<String> standbyIds = new HashSet<String>();
@@ -240,11 +225,6 @@ public class DisasterRecoveryService extends TaggedResource {
             }
         }
         return Collections.unmodifiableCollection(standbyIds);
-    }
-
-    @Override
-    protected ResourceTypeEnum getResourceType() {
-        return ResourceTypeEnum.SITE;
     }
     
     // encapsulate the get local VDC operation for easy UT writing because VDCUtil.getLocalVdc is static method
@@ -270,5 +250,9 @@ public class DisasterRecoveryService extends TaggedResource {
     
     public void setSiteMapper(SiteMapper siteMapper) {
         this.siteMapper = siteMapper;
+    }
+    
+    public void setDbClient(DbClient dbClient) {
+        _dbClient = dbClient;
     }
 }

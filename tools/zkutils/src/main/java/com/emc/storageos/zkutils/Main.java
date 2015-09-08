@@ -13,8 +13,6 @@ import java.security.cert.CertificateException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.coordinator.client.model.MigrationStatus;
-
 /**
  * Create simple cli for zk, implements these functions:
  * 1. Dump contents from zk in human readable form
@@ -196,9 +194,9 @@ public class Main {
                     stop();
                     break;
                 case RESET:
-                    MigrationStatus status = processServiceCmdArgs(args);
+                    processServiceCmdArgs(args);
                     initServiceCmdHandler();
-                    serviceCmdHandler.resetMigrationStatus(status);
+                    serviceCmdHandler.resetMigrationFailed();
                     break;
                 case GETKEYANDCERT:
                     if (args.length > 1) {
@@ -316,10 +314,8 @@ public class Main {
      * 
      * @param args
      *            the args from Main
-     * @return MigrationStatus
-     * 
      */
-    private static MigrationStatus processServiceCmdArgs(String[] args) {
+    private static void processServiceCmdArgs(String[] args) {
         String argument;
         if (args.length != 2) {
             throw new IllegalArgumentException("Wrong arguments");
@@ -330,7 +326,6 @@ public class Main {
             log.error("Invalid command:{} for {}", argument, Command.RESET);
             throw new IllegalArgumentException("Invalid command: " + argument);
         }
-        return MigrationStatus.FAILED;
     }
 
     private static void stop() {

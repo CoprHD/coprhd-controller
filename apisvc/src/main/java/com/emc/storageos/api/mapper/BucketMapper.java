@@ -16,7 +16,6 @@ import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.object.BucketRestRep;
 
 public class BucketMapper {
-    private static final Logger _log = LoggerFactory.getLogger(FileMapper.class);
 
     public static BucketRestRep map(Bucket from) {
         if (from == null) {
@@ -25,17 +24,23 @@ public class BucketMapper {
         BucketRestRep to = new BucketRestRep();
         mapDataObjectFields(from, to);
 
-        if (from.getProject() != null) {
+        if (null != from.getProject()) {
             to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject().getURI()));
         }
-        if (from.getTenant() != null) {
+        if (null != from.getTenant()) {
             to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant().getURI()));
+        }
+        if (null != from.getRetention()) {
+            to.setRetention(from.getRetention().toString());
         }
         to.setHardQuota(CapacityUtils.convertBytesToGBInStr(from.getHardQuota()));
         to.setSoftQuota(CapacityUtils.convertBytesToGBInStr(from.getSoftQuota()));
         to.setVirtualPool(toRelatedResource(ResourceTypeEnum.OBJECT_VPOOL, from.getVirtualPool()));
         to.setVirtualArray(toRelatedResource(ResourceTypeEnum.VARRAY, from.getVirtualArray()));
         to.setProtocols(from.getProtocol());
+        to.setNamespace(from.getNamespace());
+        to.setOwner(from.getOwner());
+
         to.setNativeId(from.getNativeId());
         to.setStorageSystem(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageDevice()));
         to.setPool(toRelatedResource(ResourceTypeEnum.STORAGE_POOL, from.getPool(), from.getStorageDevice()));

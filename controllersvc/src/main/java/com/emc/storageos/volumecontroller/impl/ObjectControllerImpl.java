@@ -92,7 +92,7 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
 	}
 
 	@Override
-	protected Controller lookupDeviceController(DiscoveredSystemObject device) {
+	public Controller lookupDeviceController(DiscoveredSystemObject device) {
         // dummy impl that returns the first one
 		_log.info("ObjectControllerImpl:lookupDeviceController");
         return _deviceImpl.iterator().next();	
@@ -108,7 +108,7 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
 	public void createBucket(URI storage, String name) throws InternalException {
 		// TODO Auto-generated method stub
 		_log.info("ObjectControllerImpl:createBukcet");
-		execOb("createBucket", name);
+		execOb("createBucket", storage, name);
 	}
 
 

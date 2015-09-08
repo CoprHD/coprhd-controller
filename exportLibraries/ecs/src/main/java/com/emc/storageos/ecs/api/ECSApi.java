@@ -28,6 +28,7 @@ public class ECSApi {
     private static final URI URI_WHOAMI = URI.create("/user/whoami");
     private static final URI URI_STORAGE_POOL = URI.create("/vdc/data-service/vpools.json");
     private final String ECS_VARRAY_BASE = "/object/capacity/";
+    private static final URI URI_CREATE_BUCKET = URI.create("/object/bucket.json");
 
     private static final String ROLE_SYSTEM_ADMIN = "<role>SYSTEM_ADMIN</role>";
     
@@ -192,4 +193,25 @@ public class ECSApi {
     	
     	return ecsPort;
     }
+    
+    
+    public void createBucket(String name, String namespace, String repGroup) throws ECSException {
+    	ClientResponse clientResp = null;
+    	
+    	String body = " { \"name\": \""+ name + "\",\"namespace\": \"s3\"}  ";
+    	
+    	clientResp = _client.post_json(_baseUrl.resolve(URI_CREATE_BUCKET), authToken, body);
+    	if (clientResp.getStatus() != 200) {
+    		if (clientResp.getStatus() == 401 || clientResp.getStatus() == 302) {
+    			getAuthToken();
+    			clientResp = _client.get_json(_baseUrl.resolve(URI_STORAGE_POOL), authToken);
+    		}
+    		
+    		if (clientResp.getStatus() != 200) {
+    			throw ECSException.exceptions.getStoragePoolsAccessFailed(_baseUrl, clientResp.getStatus());
+    		}
+    	}
+    	
+    }
+    
 }

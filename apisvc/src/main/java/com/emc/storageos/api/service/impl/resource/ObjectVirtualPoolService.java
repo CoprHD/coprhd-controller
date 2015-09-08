@@ -89,8 +89,9 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
         ArgValidator.checkFieldNotEmpty(param.getDescription(), VPOOL_DESCRIPTION);
         VirtualPoolUtil.validateObjectVirtualPoolCreateParams(param, _dbClient);
         VirtualPool cos = prepareVirtualPool(param);
-        cos.setMaxRetention(param.getMaxRetention());
-
+        if (null != param.getMaxRetention()) {
+            cos.setMaxRetention(param.getMaxRetention());
+        }
         // update the implicit pools matching with this VirtualPool.
         ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(cos, _dbClient, _coordinator);
         _dbClient.createObject(cos);
@@ -127,6 +128,9 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
     public ObjectVirtualPoolRestRep getObjectVirtualPool(@PathParam("id") URI id) {
         VirtualPool vpool = getVirtualPool(VirtualPool.Type.object, id);
         ObjectVirtualPoolRestRep restRep = toObjectVirtualPool(vpool);
+        if (null != vpool.getMaxRetention()) {
+            restRep.setMaxRetention(vpool.getMaxRetention());
+        }
         return restRep;
     }
 
@@ -273,6 +277,9 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
 
         // set common update VirtualPool Params here.
         populateCommonVirtualPoolUpdateParams(cos, param);
+        if (null != param.getMaxRetention()) {
+            cos.setMaxRetention(param.getMaxRetention());
+        }
 
         if (null != param.getSystemType()) {
             if (cos.getArrayInfo().containsKey(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE)) {

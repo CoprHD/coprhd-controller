@@ -87,6 +87,9 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             // try to connect to the ECS
             ECSApi ecsApi = getECSDevice(storageSystem);
             String authToken = ecsApi.getAuthToken();
+            if (authToken.isEmpty()) {
+            	throw ECSException.exceptions.discoverFailed("Could not obtain authToken");
+            }
             
             //Make sure user is system admin before proceeding to discovery
             if (!ecsApi.isSystemAdmin()) {
@@ -101,12 +104,13 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             		authToken.substring(0, 20)); //Take first 20 chars in authToken as there is not other id from ECS is available
             storageSystem.setNativeGuid(nativeGuid);
             storageSystem.setSerialNumber(nativeGuid); //No serial num API exposed
-            //storageSystem.setUsername(accessProfile.getUserName());
-            //storageSystem.setPassword(accessProfile.getPassword());
+            storageSystem.setUsername(accessProfile.getUserName());
+            storageSystem.setPassword(accessProfile.getPassword());
             storageSystem.setPortNumber(accessProfile.getPortNumber());
             storageSystem.setIpAddress(accessProfile.getIpAddress());
             storageSystem.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
             storageSystem.setReachableStatus(true);
+            storageSystem.setInactive(false);
             _dbClient.persistObject(storageSystem);
             
             //Discover storage pools
@@ -120,8 +124,14 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             for (ECSStoragePool ecsPool : ecsStoragePools)  {
             	// Check if this storage pool was already discovered
                 storagePool = null;
-                String storagePoolNativeGuid = NativeGUIDGenerator.generateNativeGuid(
-                        storageSystem, ecsPool.getId(), NativeGUIDGenerator.POOL);
+            	StorageSystem tempSystem = new StorageSystem();
+            	tempSystem.setSystemType("ecs");
+            	tempSystem.setSerialNumber("0123456789");
+
+            	String storagePoolNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+            			tempSystem, ecsPool.getId(), NativeGUIDGenerator.POOL);     	
+                //String storagePoolNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                //        storageSystem, ecsPool.getId(), NativeGUIDGenerator.POOL);
                 @SuppressWarnings("deprecation")
                 List<URI> poolURIs = _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
                         getStoragePoolByNativeGuidConstraint(storagePoolNativeGuid));
@@ -150,10 +160,11 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                 	storagePool.setPoolName(ecsPool.getName()); 
                 	storagePool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.toString());
                 	storagePool.setPoolServiceType(PoolServiceType.object.toString());
-                	storagePool.setRegistrationStatus(DiscoveredDataObject.RegistrationStatus.REGISTERED.toString());
+                	storagePool.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
                 	storagePool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THICK_ONLY.toString());
                     storagePool.setFreeCapacity(ecsPool.getFreeCapacity()*BYTESCONVERTER*BYTESCONVERTER);
                     storagePool.setTotalCapacity(ecsPool.getTotalCapacity()*BYTESCONVERTER*BYTESCONVERTER);
+                    storagePool.setInactive(false);
                     //storagePool.setSubscribedCapacity((ecsPool.getTotalCapacity()-ecsPool.getFreeCapacity()));
                 	_logger.info("Creating new ECS storage pool using NativeId : {}", storagePoolNativeGuid);
                     storagePool.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
@@ -183,7 +194,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             }
             
             //Get storage ports
-            HashMap<String, List<StoragePort>> storagePorts = new HashMap<String, List<StoragePort>>();
+            /*HashMap<String, List<StoragePort>> storagePorts = new HashMap<String, List<StoragePort>>();
             List<StoragePort> newStoragePorts = new ArrayList<StoragePort>();
             List<StoragePort> existingStoragePorts = new ArrayList<StoragePort>();
             List<ECSStoragePort> ecsStoragePorts = ecsApi.getStoragePort(storageSystem.getIpAddress());
@@ -217,9 +228,13 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             		storagePort.setNativeGuid(portNativeGuid);
             		storagePort.setLabel(portNativeGuid);
             		storagePort.setStorageDevice(storageSystemId);
+            		storagePort.setPortNetworkId(ecsPort.getIpAddress().toLowerCase());
             		storagePort.setPortName(ecsPort.getName());
             		storagePort.setLabel(ecsPort.getName());
+            		//storagePort.setPortSpeed(isilonPort.getPortSpeed());
+                    storagePort.setPortGroup(ecsPort.getName());
             		storagePort.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
+            		storagePort.setOperationalStatus(StoragePort.OperationalStatus.OK.toString());
             		_logger.info("Creating new storage port using NativeGuid : {}", portNativeGuid);
             		newStoragePorts.add(storagePort);
             	} else {
@@ -239,7 +254,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
 
             if(storagePorts.get(EXISTING).size() > 0) {
                 _dbClient.persistObject(storagePorts.get(EXISTING));
-            }
+            }*/
 
 		}  catch (Exception e) {
             detailedStatusMessage = String.format("Discovery failed for Storage System ECS: because %s",

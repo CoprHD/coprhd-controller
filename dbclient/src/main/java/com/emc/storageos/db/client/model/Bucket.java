@@ -35,8 +35,16 @@ public class Bucket extends DataObject implements ProjectResource {
     private URI _virtualArray;
     // storage protocols supported by this Bucket
     private StringSet _protocols;
+    // Retention period for objects in bucket
+    private Integer _retention;
+    // Bucket Path
+    private String _path;
+    // Bucket namespace
+    private String _namespace;
+    // Bucket Owner
+    private String _owner;
     // native device ID as created by storage device
-    private String nativeId;
+    private String _nativeId;
 
     @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
     @Name("project")
@@ -138,11 +146,47 @@ public class Bucket extends DataObject implements ProjectResource {
 
     @Name("nativeId")
     public String getNativeId() {
-        return nativeId;
+        return _nativeId;
     }
 
     public void setNativeId(String nativeId) {
-        this.nativeId = nativeId;
+        this._nativeId = nativeId;
         setChanged("nativeId");
+    }
+
+    @Name("retention")
+    public Integer getRetention() {
+        return null!=_retention ? _retention : 0;
+    }
+
+    public void setRetention(Integer retention) {
+        this._retention = retention;
+    }
+
+    @Name("path")
+    public String getPath() {
+        return _path;
+    }
+
+    public void setPath(String path) {
+        this._path = path;
+    }
+
+    @Name("namespace")
+    public String getNamespace() {
+        return _namespace;
+    }
+
+    public void setNamespace(String _namespace) {
+        this._namespace = _namespace;
+    }
+
+    @Name("owner")
+    public String getOwner() {
+        return _owner;
+    }
+
+    public void setOwner(String owner) {
+        this._owner = owner;
     }
 }

@@ -886,7 +886,7 @@ public class RecoverPointClientIntegrationTest {
         }
         logger.info("Create the CG with two replication sets");
         CGRequestParams createCGParams = createCGParamsHelper(true, true, 2);
-        rpClient.createCG(createCGParams, false);
+        rpClient.createCG(createCGParams, false, false);
     }
 
     @Test
@@ -925,7 +925,7 @@ public class RecoverPointClientIntegrationTest {
         // CreateCGRequestParams createCGParams = CreateCGParamsHelper(true, false, 2);
         CGRequestParams createCGParams = createCGParamsHelper(true, false, 1);
 
-        rpClient.createCG(createCGParams, false);
+        rpClient.createCG(createCGParams, false, false);
     }
 
     public void recreateCGAndBookmark() throws RecoverPointException {

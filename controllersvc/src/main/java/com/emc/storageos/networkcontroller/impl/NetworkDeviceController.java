@@ -19,6 +19,9 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
+import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
+import com.emc.storageos.customconfigcontroller.DataSourceFactory;
+import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,6 +46,7 @@ import com.emc.storageos.db.client.model.NetworkSystem;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol.Transport;
+import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -103,6 +107,11 @@ public class NetworkDeviceController implements NetworkController {
     private AuditLogManager _auditMgr;
     @Autowired
     private DbModelClient dbModelClient;
+    @Autowired
+    private DataSourceFactory dataSourceFactory;
+    @Autowired
+    private CustomConfigHandler customConfigHandler;
+
 
     private RecordableEventManager _eventManager;
 
@@ -1035,7 +1044,7 @@ public class NetworkDeviceController implements NetworkController {
                     ex.getMessage(), ex);
             WorkflowStepCompleter.stepFailed(token, svcError);
         }
-        return doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token);
+        return doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token, true);
     }
 
     /**
@@ -1045,11 +1054,12 @@ public class NetworkDeviceController implements NetworkController {
      * @param exportMaskURIs
      * @param volumeURIs
      * @param token
+     * @param checkZones  Flag to enable or disable zoning check on a Network System
      * @return
      */
     private boolean doZoneExportMasksCreate(ExportGroup exportGroup,
-            List<URI> exportMaskURIs, Collection<URI> volumeURIs, String token) {
-        boolean status = false;
+            List<URI> exportMaskURIs, Collection<URI> volumeURIs, String token, boolean checkZones) {
+        BiosCommandResult result = null;
         NetworkFCContext context = new NetworkFCContext();
         try {
             if (!checkZoningRequired(token, exportGroup.getVirtualArray())) {
@@ -1067,24 +1077,31 @@ public class NetworkDeviceController implements NetworkController {
 
             // Compute the zones for the ExportGroup
             // [hala] make sure we do not rollback existing zones
-            List<Initiator> exportInitiators = ExportUtils.getExportMasksInitiators(exportMaskURIs, _dbClient);
-            Map<String, List<Zone>> zonesMap = getInitiatorsZones(exportInitiators);
-            List<NetworkFCZoneInfo> zones = _networkScheduler.
-                    getZoningTargetsForExportMasks(exportGroup, exportMaskURIs, volumeURIs, zonesMap);
+            Map<String, List<Zone>> zonesMap = new HashMap<String, List<Zone>>();
+            if (checkZones) {
+                List<Initiator> exportInitiators = ExportUtils.getExportMasksInitiators(exportMaskURIs, _dbClient);
+                zonesMap.putAll(getInitiatorsZones(exportInitiators));
+            }
 
+            List<NetworkFCZoneInfo> zones = _networkScheduler.
+                    getZoningTargetsForExportMasks(exportGroup, exportMaskURIs, volumeURIs, zonesMap, checkZones);
             context.getZoneInfos().addAll(zones);
             logZones(zones);
 
             // If there are no zones to do, we were successful.
-            if (context.getZoneInfos().isEmpty()) {
-                WorkflowStepCompleter.stepSucceded(token);
-                return true;
+            if (!checkZones) {
+                if (!context.getZoneInfos().isEmpty()) {
+                    String[] newOrExisting = new String[1];
+                    for (NetworkFCZoneInfo zoneInfo : context.getZoneInfos()) {
+                        addZoneReference(exportGroup.getId(), zoneInfo, newOrExisting);
+                    }
+                }
+                result = BiosCommandResult.createSuccessfulResult();
+            } else {
+                // Now call addZones to add all the required zones.
+                result = addRemoveZones(exportGroup.getId(),
+                        context.getZoneInfos(), false);
             }
-
-            // Now call addZones to add all the required zones.
-            BiosCommandResult result = addRemoveZones(exportGroup.getId(),
-                    context.getZoneInfos(), false);
-            status = result.isCommandSuccess();
 
             // Save our zone infos in case we want to rollback.
             WorkflowService.getInstance().storeStepData(token, context);
@@ -1100,7 +1117,7 @@ public class NetworkDeviceController implements NetworkController {
                     ex.getMessage(), ex);
             WorkflowStepCompleter.stepFailed(token, svcError);
         }
-        return status;
+        return (result != null && result.isCommandSuccess());
     }
 
     /**
@@ -1138,7 +1155,28 @@ public class NetworkDeviceController implements NetworkController {
         _log.info(String.format
                 ("Entering zoneExportAddVolumes for ExportGroup: %s (%s) Volumes: %s",
                         exportGroup.getLabel(), exportGroup.getId(), volumeURIs.toString()));
-        return doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token);
+        //Check if Zoning needs to be checked from system config
+        //call the doZoneExportMasksCreate to check/create/remove zones with the flag
+        String addZoneWhileAddingVolume =  customConfigHandler.getComputedCustomConfigValue(
+                CustomConfigConstants.ZONE_ADD_VOLUME,
+                CustomConfigConstants.GLOBAL_KEY, null);
+        //Default behavior is we allow zoning checks against the Network System
+        Boolean addZoneOnDeviceOperation = true;
+        _log.info("zoneExportAddVolumes checking for custom config value {} to skip zoning checks : (Default) : {}",
+                addZoneWhileAddingVolume, addZoneOnDeviceOperation);
+        if(addZoneWhileAddingVolume != null) {
+            addZoneOnDeviceOperation = Boolean.valueOf(addZoneWhileAddingVolume);
+            _log.info("Boolean convereted of : {} : returned by Config handler as : {} ",
+                    addZoneWhileAddingVolume, addZoneOnDeviceOperation);
+        } else {
+            _log.info("Config handler returned null for value so going by default value {}", addZoneOnDeviceOperation);
+        }
+
+        _log.info("zoneExportAddVolumes checking for custom config value {} to skip zoning checks : (Custom Config) : {}",
+                addZoneWhileAddingVolume, addZoneOnDeviceOperation);
+
+        return doZoneExportMasksCreate(exportGroup, exportMaskURIs, volumeURIs, token,
+                addZoneOnDeviceOperation);
     }
 
     /**

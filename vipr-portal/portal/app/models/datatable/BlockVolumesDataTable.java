@@ -18,6 +18,7 @@ import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.google.common.collect.Lists;
+
 import controllers.resources.BlockVolumes;
 
 public class BlockVolumesDataTable extends DataTable {
@@ -28,6 +29,8 @@ public class BlockVolumesDataTable extends DataTable {
         addColumn("varray");
         addColumn("vpool");
         addColumn("protocols");
+        addColumn("wwn");
+        addColumn("consistencygroup");
         sortAll();
         setDefaultSort("name", "asc");
 
@@ -60,10 +63,16 @@ public class BlockVolumesDataTable extends DataTable {
         public String vpool;
         public Set<String> protocols;
         public boolean srdfTarget;
+        public String consistencygroup = "";
+        public String wwn = "";
 
         public Volume(VolumeRestRep volume, Map<URI, String> varrayMap, Map<URI, String> vpoolMap) {
             id = volume.getId();
             name = volume.getName();
+            if(volume.getConsistencyGroup() != null){
+            	consistencygroup = getViprClient().blockConsistencyGroups().get(volume.getConsistencyGroup().getId()).getName();
+            }
+            wwn = volume.getWwn();
             srdfTarget = volume.getProtection() != null && volume.getProtection().getSrdfRep() != null
                     && volume.getProtection().getSrdfRep().getAssociatedSourceVolume() != null;
             this.rowLink = createLink(BlockVolumes.class, "volume", "volumeId", id);

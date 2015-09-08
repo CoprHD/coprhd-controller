@@ -66,6 +66,7 @@ import com.emc.storageos.model.file.ShareACL;
 import com.emc.storageos.model.file.ShareACLs;
 import com.emc.storageos.model.file.SmbShareResponse;
 import com.emc.storageos.model.file.SnapshotExportUpdateParams;
+import com.emc.storageos.volumecontroller.FileControllerConstants;
 import com.emc.storageos.volumecontroller.FileShareExport;
 import com.emc.vipr.client.Task;
 import com.google.common.collect.Lists;
@@ -108,12 +109,12 @@ public class FileStorageUtils {
         Task<FileShareRestRep> task = execute(new CreateFileSystem(label, sizeInGb, virtualPool, virtualArray, project));
         addAffectedResource(task);
         URI fileSystemId = task.getResourceId();
-        addRollback(new DeactivateFileSystem(fileSystemId));
+        addRollback(new DeactivateFileSystem(fileSystemId, FileControllerConstants.DeleteTypeEnum.FULL));
         logInfo("file.storage.filesystem.task", fileSystemId, task.getOpId());
         return fileSystemId;
     }
 
-    public static void deleteFileSystem(URI fileSystemId) {
+    public static void deleteFileSystem(URI fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
         // Remove snapshots for the volume
         for (FileSnapshotRestRep snapshot : getFileSnapshots(fileSystemId)) {
             deleteFileSnapshot(snapshot.getId());
@@ -135,7 +136,7 @@ public class FileStorageUtils {
         }
 
         // Remove the FileSystem
-        deactivateFileSystem(fileSystemId);
+        deactivateFileSystem(fileSystemId, fileDeletionType);
     }
 
     public static void deleteFileSnapshot(URI fileSnapshotId) {
@@ -158,8 +159,8 @@ public class FileStorageUtils {
         deactivateFileSnapshot(fileSnapshotId);
     }
 
-    public static void deactivateFileSystem(URI fileSystemId) {
-        Task<FileShareRestRep> response = execute(new DeactivateFileSystem(fileSystemId));
+    public static void deactivateFileSystem(URI fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
+        Task<FileShareRestRep> response = execute(new DeactivateFileSystem(fileSystemId, fileDeletionType));
         addAffectedResource(response);
         logInfo("file.storage.task", response.getOpId());
     }

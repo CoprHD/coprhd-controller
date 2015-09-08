@@ -28,8 +28,13 @@
       required: false
     },
     
+    volumeFilter:{
+      type:"assetType.vipr.sourceVolumeFilter",
+      default: 0
+    },
+    
     volume:{
-      type:"assetType.vipr.virtualPoolChangeVolumeWithSource",
+      type:"assetType.vipr.virtualPoolChangeVolumeWithSourceFilter",
       select: "many"
     }
   }

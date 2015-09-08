@@ -6,6 +6,7 @@
 0644  root:root      etc/logrotate.d/ntp                  file
 0644  root:root      etc/logrotate.d/nginx                file
 0644  root:root      etc/logrotate.d/audit                file
+0644  root:root      etc/logrotate.d/syslog               file
 0644  root:root      etc/rsyslog.conf                     file
 0644  root:root      etc/rsyslog.early.conf               file
 0700  root:root      etc/cron.hourly/logrotate            file

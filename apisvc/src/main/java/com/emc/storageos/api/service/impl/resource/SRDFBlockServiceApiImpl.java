@@ -36,7 +36,6 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.Constraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.PrefixConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockSnapshot;
@@ -56,7 +55,6 @@ import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.Volume.VolumeAccessState;
 import com.emc.storageos.db.client.model.VpoolRemoteCopyProtectionSettings;
-import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.client.util.SizeUtil;
 import com.emc.storageos.db.common.DependencyChecker;
@@ -177,9 +175,6 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             final BlockConsistencyGroup consistencyGroup, final int volumeCounter,
             final String volumeLabel) {
         List<URI> volumeURIs = new ArrayList<URI>();
-        BlockConsistencyGroup newConsistencyGroup = null;
-        boolean newCGCreated = false;
-        boolean error = false;
         try {
             // Create an entire Protection object for each recommendation result.
             Iterator<Recommendation> recommendationsIter = recommendations.iterator();
@@ -231,69 +226,23 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                                     _permissionsHelper)) {
                         VpoolRemoteCopyProtectionSettings settings = settingMap
                                 .get(protectionVirtualArray.getId());
-                        // TODO come up with proper name format
 
-                        // create CGs if SRDF Async
-                        if (null != consistencyGroup) {
-                            String cgName = consistencyGroup.getLabel() + "-Target-"
-                                    + protectionVirtualArray.getLabel();
-                            List<BlockConsistencyGroup> groups = CustomQueryUtility
-                                    .queryActiveResourcesByConstraint(_dbClient,
-                                            BlockConsistencyGroup.class, PrefixConstraint.Factory
-                                                    .getFullMatchConstraint(
-                                                            BlockConsistencyGroup.class, "label",
-                                                            cgName));
-                            if (groups.isEmpty()) {
-                                newCGCreated = true;
-                                // create CG
-                                newConsistencyGroup = new BlockConsistencyGroup();
-                                newConsistencyGroup
-                                        .setId(URIUtil.createId(BlockConsistencyGroup.class));
-                                newConsistencyGroup.setLabel(cgName);
-                                newConsistencyGroup.setProject(new NamedURI(project.getId(), param
-                                        .getName()));
-                                newConsistencyGroup.setTenant(new NamedURI(project.getTenantOrg()
-                                        .getURI(), param.getName()));
-                                // ModifyReplica on GroupSync for swap operation will try to create CG with same name on target provider.
-                                // For 4.6.x, better to use a different name for target CG.
-                                StringBuffer label = new StringBuffer(consistencyGroup.getLabel());
-                                if (!storageSystem.getUsingSmis80()) {
-                                    label.append(LABEL_SUFFIX_FOR_46X);
-                                }
-                                newConsistencyGroup.setAlternateLabel(label.toString());
-                                _dbClient.createObject(newConsistencyGroup);
-
-                            } else {
-                                newConsistencyGroup = groups.get(0);
-                            }
-                        }
-
-                        // TODO consistencyGroup Name format : max length only 8 letters.
+                        // COP-16363 Create target BCG in controllersvc
 
                         // Prepare and populate CG request for the SRDF targets
                         volumeURIs.addAll(prepareTargetVolumes(param, project, vpool, recommendation,
-                                new StringBuilder(newVolumeLabel), protectionVirtualArray, newConsistencyGroup,
+                                new StringBuilder(newVolumeLabel), protectionVirtualArray,
                                 settings, srcVolume, task, taskList));
                     }
                 }
             }
         } catch (InternalException e) {
-            error = true;
             _log.error("Rolling back the created CGs if any.");
             throw e;
         } catch (Exception e) {
-            error = true;
             _log.error("Rolling back the created CGs if any.");
             throw APIException.badRequests.srdfInternalError(e);
-        } finally {
-            if (error) {
-                // Clearing newly created CGs
-                if (newCGCreated && null != newConsistencyGroup) {
-                    newConsistencyGroup.setInactive(true);
-                    _dbClient.persistObject(newConsistencyGroup);
                 }
-            }
-        }
         return volumeURIs;
     }
 
@@ -512,8 +461,6 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      *            label building to create volume labels
      * @param targetVirtualArray
      *            protection varray we're playing with
-     * @param consistencyGroup
-     *            cg id
      * @param settings
      *            settings
      * @param task
@@ -523,7 +470,6 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
     private List<URI> prepareTargetVolumes(final VolumeCreate param, final Project project,
             final VirtualPool vpool, final SRDFRecommendation recommendation,
             final StringBuilder volumeLabelBuilder, final VirtualArray targetVirtualArray,
-            final BlockConsistencyGroup consistencyGroup,
             final VpoolRemoteCopyProtectionSettings settings, final Volume srcVolume,
             final String task, final TaskList taskList) {
         Volume volume;
@@ -544,9 +490,10 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                 targetVirtualArray,
                 targetVpool,
                 param.getSize(),
-                recommendation, new StringBuilder(volumeLabelBuilder.toString()).append(
-                                "-target-" + targetVirtualArray.getLabel()).toString(),
-                consistencyGroup, task, true, Volume.PersonalityTypes.TARGET, srcVolume.getId(), recommendation
+                recommendation,
+                new StringBuilder(volumeLabelBuilder.toString()).append(
+                        "-target-" + targetVirtualArray.getLabel()).toString(), null,
+                task, true, Volume.PersonalityTypes.TARGET, srcVolume.getId(), recommendation
                                 .getVirtualArrayTargetMap().get(targetVirtualArray.getId())
                                 .getSourceRAGroup(), settings.getCopyMode());
         volumeURIs.add(volume.getId());
@@ -734,7 +681,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
     }
 
     @Override
-    public TaskResourceRep deactivateMirror(final StorageSystem device, final URI mirrorURI,
+    public TaskList deactivateMirror(final StorageSystem device, final URI mirrorURI,
             final String task) {
         // FIXME Should use relevant ServiceCodeException here
         throw new UnsupportedOperationException();

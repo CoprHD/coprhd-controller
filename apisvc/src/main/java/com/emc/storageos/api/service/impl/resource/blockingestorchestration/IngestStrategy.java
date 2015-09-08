@@ -42,10 +42,9 @@ public class IngestStrategy {
             List<UnManagedVolume> unManagedVolumesToBeDeleted,
             Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported,
             Class<T> clazz,
-            Map<String, StringBuffer> taskStatusMap) {
+            Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) {
         return ingestResourceOrchestrator.ingestBlockObjects(systemCache, poolCache, system, unManagedVolume, vPool, virtualArray,
                 project, tenant, unManagedVolumesToBeDeleted, createdObjectMap, updatedObjectMap, unManagedVolumeExported, clazz,
-                taskStatusMap);
-
+                taskStatusMap, vplexIngestionMethod);
     }
 }

@@ -47,10 +47,11 @@ public interface FileController extends StorageController {
      * @param pool URI of storage pool of FS share.
      * @param uri URI of filesystem share or snapshot to be deleted.
      * @param forceDelete optional boolean that represents to force delete of a file system.
+     * @param deleteType optional String that represents to type of delete(FULL/VIPR_ONLY) of a file system.
      * @param opId Operation status ID to track this operation (in FileShare)
      * @throws InternalException Storage controller exceptions.
      */
-    public void delete(URI storage, URI pool, URI uri, boolean forceDelete, String opId) throws InternalException;
+    public void delete(URI storage, URI pool, URI uri, boolean forceDelete, String deleteType, String opId) throws InternalException;
 
     /**
      * Export a filesystem to one or more remote mount points.

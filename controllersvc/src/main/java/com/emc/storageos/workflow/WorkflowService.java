@@ -17,9 +17,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import com.emc.storageos.db.client.model.Task;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
-
+import org.apache.curator.framework.CuratorFramework;
+import org.apache.curator.framework.recipes.locks.InterProcessLock;
+import org.apache.curator.framework.state.ConnectionState;
+import org.apache.curator.framework.state.ConnectionStateListener;
+import org.apache.curator.utils.ZKPaths;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,24 +32,23 @@ import com.emc.storageos.coordinator.client.service.DistributedDataManager;
 import com.emc.storageos.coordinator.common.impl.ZkPath;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.Task;
+import com.emc.storageos.db.client.model.util.TaskUtils;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.locking.DistributedOwnerLockService;
+import com.emc.storageos.locking.LockRetryException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
+import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.impl.Dispatcher;
 import com.emc.storageos.workflow.Workflow.Step;
 import com.emc.storageos.workflow.Workflow.StepState;
 import com.emc.storageos.workflow.Workflow.StepStatus;
-
-import org.apache.curator.framework.CuratorFramework;
-import org.apache.curator.framework.recipes.locks.InterProcessLock;
-import org.apache.curator.framework.state.ConnectionState;
-import org.apache.curator.framework.state.ConnectionStateListener;
-import org.apache.curator.utils.ZKPaths;
 
 /**
  * A singleton WorkflowService is created on each Bourne node to manage Workflows.
@@ -63,6 +64,7 @@ import org.apache.curator.utils.ZKPaths;
  */
 public class WorkflowService {
     private static final Logger _log = LoggerFactory.getLogger(WorkflowService.class);
+    private static final Long MILLISECONDS_IN_SECOND = 1000L;
     private static volatile WorkflowService _instance = null;
     private DbClient _dbClient;
     private CoordinatorClient _coordinator;
@@ -1036,7 +1038,7 @@ public class WorkflowService {
             }
 
             if (workflow.getOrchTaskId() != null) {
-                List<Task> tasks = com.emc.storageos.db.client.model.util.TaskUtils.findTasksForRequestId(_dbClient,
+                List<Task> tasks = TaskUtils.findTasksForRequestId(_dbClient,
                         workflow.getOrchTaskId());
                 if (tasks != null && false == tasks.isEmpty()) {
                     for (Task task : tasks) {
@@ -1237,6 +1239,27 @@ public class WorkflowService {
     }
 
     /**
+     * Given a Workflow step id, search ZK and return the immediate parent Workflow.
+     *
+     * @param stepId Workflow step id
+     * @return Workflow
+     */
+    public Workflow getWorkflowFromStepId(String stepId) {
+        try {
+            String parentPath = getZKStep2WorkflowPath(stepId);
+            if (_dataManager.checkExists(parentPath) != null) {
+                parentPath = (String) _dataManager.getData(parentPath, false);
+                if (parentPath != null) {
+                    return (Workflow) _dataManager.getData(parentPath, false);
+                }
+            }
+        } catch (Exception e) {
+            return null;
+        }
+        return null;
+    }
+
+    /**
      * Acquires locks on behalf of a Workflow. If successfully acquired,
      * they are saved in the Workflow state and will be released when the
      * workflow completes.
@@ -1257,7 +1280,11 @@ public class WorkflowService {
                 return true;
             }
             gotLocks = _ownerLocker.acquireLocks(locksToAcquire,
-                    workflow.getWorkflowURI().toString(), time);
+                    workflow.getWorkflowURI().toString(), getOrchestrationIdStartTime(workflow), time);
+        } catch (LockRetryException ex) {
+            _log.info(String.format("Lock retry exception key: %s remaining time %d", ex.getLockIdentifier(),
+                    ex.getRemainingWaitTimeSeconds()));
+            throw ex;
         } catch (Exception ex) {
             _log.error("Unable to acquire workflow locks", ex);
         }
@@ -1291,6 +1318,11 @@ public class WorkflowService {
             if (workflow == null) {
                 throw new WorkflowException("Could not load workflow for step: " + stepId);
             }
+            Long stepStartTimeSeconds = System.currentTimeMillis();
+            StepStatus stepStatus = workflow.getStepStatusMap().get(stepId);
+            if (stepStatus != null && stepStatus.startTime != null) {
+                stepStartTimeSeconds = stepStatus.startTime.getTime() / MILLISECONDS_IN_SECOND;
+            }
             List<String> locksToAcquire = new ArrayList<String>(lockKeys);
             // Remove any locks this workflow has already acquired,
             // so as not to acquire them multiple times.
@@ -1300,7 +1332,12 @@ public class WorkflowService {
             if (locksToAcquire.isEmpty()) {
                 return true;
             }
-            gotLocks = _ownerLocker.acquireLocks(locksToAcquire, stepId, time);
+            gotLocks = _ownerLocker.acquireLocks(locksToAcquire, stepId, stepStartTimeSeconds, time);
+        } catch (LockRetryException ex) {
+            _log.info(String.format("Lock retry exception key: %s remaining time %d", ex.getLockIdentifier(),
+                    ex.getRemainingWaitTimeSeconds()));
+            WorkflowStepCompleter.stepQueued(stepId);
+            throw ex;
         } catch (Exception ex) {
             _log.info("Exception acquiring WorkflowStep locks: ", ex);
         }
@@ -1533,6 +1570,51 @@ public class WorkflowService {
             return workflow;
         }
         return null;
+    }
+
+    /**
+     * Attempts to intuit the start time for a provisioning operation from the orchestrationId.
+     * This may be either a step in an outer workflow, or a task. The Workflow itself is not used
+     * because when retrying for a workflow lock, a new workflow is created every time.
+     * 
+     * @param workflow Workflow
+     * @return start time in seconds
+     */
+    private Long getOrchestrationIdStartTime(Workflow workflow) {
+        Long timeInSeconds = 0L;
+        String orchestrationId = workflow._orchTaskId;
+        if (workflow._nested) {
+            String parentPath = getZKStep2WorkflowPath(orchestrationId);
+            try {
+                if (_dataManager.checkExists(parentPath) != null) {
+                    parentPath = (String) _dataManager.getData(parentPath, false);
+                    // Load the Workflow state from ZK
+                    if (parentPath != null) {
+                        Workflow parentWorkflow = (Workflow) _dataManager.getData(parentPath, false);
+                        // Get the StepStatus for our step.
+                        StepStatus status = parentWorkflow.getStepStatus(orchestrationId);
+                        if (status != null) {
+                            timeInSeconds = status.startTime.getTime() / MILLISECONDS_IN_SECOND;
+                            ;
+                        }
+                    }
+                }
+            } catch (Exception ex) {
+                _log.error("An error occurred", ex);
+            }
+        }
+        if (timeInSeconds == 0) {
+            // See if there is a task with this id.
+            List<Task> tasks = TaskUtils.findTasksForRequestId(_dbClient, orchestrationId);
+            for (Task task : tasks) {
+                timeInSeconds = task.getStartTime().getTimeInMillis() / MILLISECONDS_IN_SECOND;
+            }
+        }
+        if (timeInSeconds == 0) {
+            // Last resort - current time
+            timeInSeconds = System.currentTimeMillis() / MILLISECONDS_IN_SECOND;
+        }
+        return timeInSeconds;
     }
 
     public static void completerStepSucceded(String stepId)

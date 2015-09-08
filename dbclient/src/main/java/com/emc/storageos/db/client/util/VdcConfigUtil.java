@@ -4,12 +4,11 @@
  */
 package com.emc.storageos.db.client.util;
 
-import java.net.Inet6Address;
-import java.net.InetAddress;
-import java.net.URI;
-import java.net.UnknownHostException;
+import java.net.*;
 import java.util.*;
 
+import com.emc.storageos.db.client.model.Site;
+import com.emc.storageos.db.client.model.StringSet;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,8 +31,10 @@ public class VdcConfigUtil {
     public static final String VDC_IDS = "vdc_ids";
     public static final String VDC_NODE_COUNT_PTN = "vdc_%s_node_count";
     public static final String VDC_IPADDR_PTN = "vdc_%s_network_%d_ipaddr";
-
     public static final String VDC_IPADDR6_PTN = "vdc_%s_network_%d_ipaddr6";
+    public static final String VDC_STANDBY_NODE_COUNT_PTN = "vdc_%s_standby_node_count";
+    public static final String VDC_STANDBY_IPADDR6_PTN = "vdc_%s_standby_network_%d_ipaddr6";
+    public static final String VDC_STANDBY_IPADDR_PTN = "vdc_%s_standby_network_%d_ipaddr";
     public static final String VDC_VIP_PTN = "vdc_%s_network_vip";
     public static final String VDC_VIP6_PTN = "vdc_%s_network_vip6";
 
@@ -77,13 +78,7 @@ public class VdcConfigUtil {
             String address;
             StringMap IPv4Addresses = vdc.getHostIPv4AddressesMap();
             StringMap IPv6Addresses = vdc.getHostIPv6AddressesMap();
-            List<String> hostNameListV4 = new ArrayList<>(IPv4Addresses.keySet());
-            List<String> hostNameListV6 = new ArrayList<>(IPv6Addresses.keySet());
-            List<String> hostNameList = hostNameListV4;
-
-            if (hostNameListV4.isEmpty()) {
-                hostNameList = hostNameListV6;
-            }
+            List<String> hostNameList = getHostsFromIPAddrMap(IPv4Addresses, IPv6Addresses);
 
             // sort the host names (node1, node2, node3 ...), 5 nodes tops so it's
             // simpler than sorting vdc short ids below
@@ -129,6 +124,8 @@ public class VdcConfigUtil {
                 throw new IllegalStateException(String.format("Mismatched node counts." +
                         "%d from hostCount, %d from hostList", vdc.getHostCount(), i));
             }
+
+            genSiteProperties(vdcConfig, vdc);
         }
 
         if (cnt == 0) {
@@ -152,6 +149,52 @@ public class VdcConfigUtil {
         log.info("vdc config property: \n{}", vdcConfig.toString());
 
         return vdcConfig;
+    }
+
+    private void genSiteProperties(Map<String, String> vdcConfig, VirtualDataCenter vdc) {
+        String address;
+        int standbyNodeCnt = 0;
+        String shortId = vdc.getShortId();
+        StringSet standbySiteIds = vdc.getStandbyIDs();
+        if (standbySiteIds != null && !standbySiteIds.isEmpty()) {
+            for (String siteIdStr : standbySiteIds) {
+                try {
+                    // TODO: we need an implementation of URISet
+                    URI siteId = new URI(siteIdStr);
+                    Site site = dbclient.queryObject(Site.class, siteId);
+                    StringMap standbyIPv4Addrs = site.getHostIPv4AddressMap();
+                    StringMap standbyIPv6Addrs = site.getHostIPv6AddressMap();
+                    List<String> standbyHosts = getHostsFromIPAddrMap(standbyIPv4Addrs, standbyIPv6Addrs);
+
+                    for (String hostName : standbyHosts) {
+                        standbyNodeCnt++;
+                        address = standbyIPv4Addrs.get(hostName);
+                        vdcConfig.put(String.format(VDC_STANDBY_IPADDR_PTN, shortId, standbyNodeCnt),
+                                address == null ? "" : address);
+
+                        address = standbyIPv6Addrs.get(hostName);
+                        vdcConfig.put(String.format(VDC_STANDBY_IPADDR6_PTN, shortId, standbyNodeCnt),
+                                address == null ? "" : address);
+                    }
+                } catch (URISyntaxException e) {
+                    log.error("Cannot parse site id: {}", siteIdStr);
+                    throw new IllegalStateException(e);
+                }
+            }
+        }
+
+        vdcConfig.put(String.format(VDC_STANDBY_NODE_COUNT_PTN, shortId), String.valueOf(standbyNodeCnt));
+    }
+
+    private List<String> getHostsFromIPAddrMap(StringMap IPv4Addresses, StringMap IPv6Addresses) {
+        List<String> hostNameListV4 = new ArrayList<>(IPv4Addresses.keySet());
+        List<String> hostNameListV6 = new ArrayList<>(IPv6Addresses.keySet());
+        List<String> hostNameList = hostNameListV4;
+
+        if (hostNameListV4.isEmpty()) {
+            hostNameList = hostNameListV6;
+        }
+        return hostNameList;
     }
 
     /**

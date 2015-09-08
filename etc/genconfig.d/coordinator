@@ -15,6 +15,22 @@ _get_coordinator_var() {
         echo "network_${i}_ipaddr_service=${!var}"
     done
 
+    local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_standby_node_count"
+    local standby_cnt="${!var}"
+    if [ -n "${standby_cnt}" ]; then
+        local primary_cnt="${_GENCONFIG_node_count}"
+        local standby_indexes="$(seq --separator=' ' $((${primary_cnt} + 1)) $((${primary_cnt} + ${standby_cnt})))"
+        echo "--foreach:iter_site:${standby_indexes}"
+        for standby_index in ${standby_indexes}; do
+            var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_standby_network_$((${standby_index} - ${primary_cnt}))_ipaddr"
+            var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_standby_network_$((${standby_index} - ${primary_cnt}))_ipaddr6"
+            local ipaddr="${!var}"
+            [ -z "${ipaddr}" ] && ipaddr="[${!var6}]"
+            echo "standby_${standby_index}_ipaddr_service=${ipaddr}"
+        done
+    else
+        echo "--foreach:iter_site:"
+    fi
     _get_props node_id node_index
 }
 

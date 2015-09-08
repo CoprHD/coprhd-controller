@@ -70,18 +70,18 @@ public class XtremIOProvUtils {
         }
         return volume;
     }
-    
+
     public static XtremIOConsistencyGroup isCGAvailableInArray(XtremIOClient client, String label, String clusterName) {
-    	XtremIOConsistencyGroup cg = null;
-    	try {
-    		cg = client.getConsistencyGroupDetails(label, clusterName);
-    	} catch (Exception e) {
+        XtremIOConsistencyGroup cg = null;
+        try {
+            cg = client.getConsistencyGroupDetails(label, clusterName);
+        } catch (Exception e) {
             _log.info("Consistency group {} not available in Array.", label);
         }
-    	
-    	return cg;
+
+        return cg;
     }
-    
+
     public static XtremIOConsistencyGroup isSnapsetAvailableInArray(XtremIOClient client, String label, String clusterName) {
         XtremIOConsistencyGroup cg = null;
         try {
@@ -89,13 +89,13 @@ public class XtremIOProvUtils {
         } catch (Exception e) {
             _log.info("Snapshot Set {} not available in Array.", label);
         }
-        
+
         return cg;
     }
-    
+
     public static Map<String, String> createFoldersForVolumeAndSnaps(XtremIOClient client, String rootVolumeFolderName)
             throws Exception {
-        
+
         List<String> folderNames = client.getVolumeFolderNames();
         _log.info("Volume folder Names found on Array : {}", Joiner.on("; ").join(folderNames));
         Map<String, String> folderNamesMap = new HashMap<String, String>();
@@ -128,7 +128,7 @@ public class XtremIOProvUtils {
 
         return folderNamesMap;
     }
-    
+
     public static Map<String, String> createTagsForVolumeAndSnaps(XtremIOClient client, String rootTagName, String clusterName)
             throws Exception {
         List<String> tagNames = client.getTagNames(clusterName);
@@ -138,25 +138,25 @@ public class XtremIOProvUtils {
         String snapshotsTagName = XtremIOConstants.V2_SNAPSHOT_ROOT_FOLDER.concat(rootTagName);
         tagNamesMap.put(XtremIOConstants.VOLUME_KEY, volumesTagName);
         tagNamesMap.put(XtremIOConstants.SNAPSHOT_KEY, snapshotsTagName);
-        
+
         if (!tagNames.contains(volumesTagName)) {
             _log.info("Sending create volume tag request {}", volumesTagName);
             client.createTag(volumesTagName, null, XtremIOConstants.XTREMIO_ENTITY_TYPE.Volume.name(), clusterName);
         } else {
             _log.info("Found {} tag on the Array.", volumesTagName);
         }
-        
+
         if (!tagNames.contains(snapshotsTagName)) {
             _log.info("Sending create snapshot tag request {}", snapshotsTagName);
             client.createTag(snapshotsTagName, null, XtremIOConstants.XTREMIO_ENTITY_TYPE.SnapshotSet.name(), clusterName);
         } else {
             _log.info("Found {} tag on the Array.", snapshotsTagName);
         }
-        
+
         return tagNamesMap;
-        
+
     }
-    
+
     public static void cleanupVolumeFoldersIfNeeded(XtremIOClient client, String xioClusterName, String volumeFolderName,
             StorageSystem storageSystem) throws Exception {
         try {
@@ -164,9 +164,10 @@ public class XtremIOProvUtils {
             // Find the # volumes in folder, if the Volume folder is empty,
             // then delete the folder too
             XtremIOTag tag = client.getTagDetails(volumeFolderName, XTREMIO_ENTITY_TYPE.Volume.name(), xioClusterName);
-            int numberOfVolumes = Integer.parseInt(tag.getNumberOfVolumes());
-            if(numberOfVolumes == 0) {
-                if(isVersion2) {
+            String numOfVols = isVersion2 ? tag.getNumberOfDirectObjs() : tag.getNumberOfVolumes();
+            int numberOfVolumes = Integer.parseInt(numOfVols);
+            if (numberOfVolumes == 0) {
+                if (isVersion2) {
                     client.deleteTag(volumeFolderName, XtremIOConstants.XTREMIO_ENTITY_TYPE.Volume.name(), xioClusterName);
                 } else {
                     String volumesFolderName = volumeFolderName.concat(XtremIOConstants.VOLUMES_SUBFOLDER);

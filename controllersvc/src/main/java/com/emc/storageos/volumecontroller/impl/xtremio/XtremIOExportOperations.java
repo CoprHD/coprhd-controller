@@ -625,9 +625,9 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         String tempIGFolderName = getInitiatorGroupFolderName(clusterName, hostName, system);
         XtremIOTag igFolder = client.getTagDetails(tempIGFolderName, XTREMIO_ENTITY_TYPE.InitiatorGroup.name(), xioClusterName);
 
-        if (null != igFolder && "0".equalsIgnoreCase(igFolder.getNumberOfIGs())) {
+        if (null != igFolder && "0".equalsIgnoreCase(igFolder.getNumberOfDirectObjs())) {
             try {
-                _log.info("# of IGs  {} in Folder {}", igFolder.getNumberOfIGs(), clusterName);
+                _log.info("# of IGs  {} in Folder {}", igFolder.getNumberOfDirectObjs(), clusterName);
                 client.deleteTag(tempIGFolderName, XtremIOConstants.XTREMIO_ENTITY_TYPE.InitiatorGroup.name(), xioClusterName);
             } catch (Exception e) {
                 _log.warn("Deleting Initatiator Group Folder{} fails", clusterName, e);

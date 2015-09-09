@@ -55,8 +55,8 @@ public class DisasterRecoveryServiceTest {
 
         // setup local VDC
         VirtualDataCenter localVDC = new VirtualDataCenter();
-        localVDC.getStandbyIDs().add(standbySite1.getId().toString());
-        localVDC.getStandbyIDs().add(standbySite2.getId().toString());
+        localVDC.getSiteIDs().add(standbySite1.getId().toString());
+        localVDC.getSiteIDs().add(standbySite2.getId().toString());
 
         // mock DBClient
         dbClientMock = mock(DbClient.class);

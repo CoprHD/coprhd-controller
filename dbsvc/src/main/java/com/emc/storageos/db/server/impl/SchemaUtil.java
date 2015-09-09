@@ -286,8 +286,9 @@ public class SchemaUtil {
                 }
 
                 // create CF's
-                if (kd != null && !onStandby) {
-                    checkCf(kd, clusterContext);
+                if (kd != null) {
+                    if (!onStandby)
+                        checkCf(kd, clusterContext);
                     _log.info("scan and setup db schema succeed");
                     return;
                 }

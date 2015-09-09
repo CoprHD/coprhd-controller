@@ -29,6 +29,7 @@
                 </foreach>
             </list>
         </property>
+        <property name="onStandby" value="false"/>
     </bean>
     
 </beans>

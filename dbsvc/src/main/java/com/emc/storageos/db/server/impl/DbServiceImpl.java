@@ -457,7 +457,9 @@ public class DbServiceImpl implements DbService {
             encryption = InternodeEncryption.none;
             setDisableDbEncryptionFlag();
         }
-        DatabaseDescriptor.getServerEncryptionOptions().internode_encryption = encryption;
+        // TODO rethink db encryption after ipsec is finished. Keep all db communication as
+        // unencrypted for now
+        //DatabaseDescriptor.getServerEncryptionOptions().internode_encryption = encryption;
     }
 
     private boolean setDisableDbEncryptionFlag() {
@@ -564,18 +566,20 @@ public class DbServiceImpl implements DbService {
         _dbClient.start();
 
         // Setup the vdc information, so that login enabled before migration
-        if (!isGeoDbsvc() && !_schemaUtil.isStandbyMode()) {
+        if (!isGeoDbsvc()) {
             _schemaUtil.checkAndSetupBootStrapInfo(_dbClient);
         }
 
         if (_handler.run()) {
             // Setup the bootstrap info root tenant, if root tenant migrated from local db, then skip it
-            if (isGeoDbsvc() && !_schemaUtil.isStandbyMode()) {
+            if (isGeoDbsvc()) {
                 _schemaUtil.checkAndSetupBootStrapInfo(_dbClient);
             }
 
-            // Start dbsvc background tasks
-            startBackgroundTasks();
+            if (!_schemaUtil.isOnStandby()) {
+                // Start dbsvc background tasks
+                startBackgroundTasks();
+            }
             _log.info("DB service started");
         } else {
             _log.error("DB migration failed. Skipping starting background tasks.");

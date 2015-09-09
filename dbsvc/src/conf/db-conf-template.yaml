@@ -577,7 +577,9 @@ index_interval: 128
 # http://download.oracle.com/javase/6/docs/technotes/guides/security/jsse/JSSERefGuide.html#CreateKeystore
 #
 server_encryption_options:
-    internode_encryption: ${db_encryption}
+    # TODO rethink db encryption after ipsec is finished
+    # internode_encryption: ${db_encryption}
+    internode_encryption: none
     keystore: /opt/storageos/conf/storageos.ks
     keystore_password: geostorageos
     truststore: /opt/storageos/conf/storageos.ts

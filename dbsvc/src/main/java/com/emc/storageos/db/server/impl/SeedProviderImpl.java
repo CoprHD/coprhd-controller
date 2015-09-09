@@ -111,8 +111,15 @@ public class SeedProviderImpl implements SeedProvider {
         try {
             CoordinatorClientInetAddressMap nodeMap = _client.getInetAddessLookupMap();
             List<Configuration> configs = _client.queryAllConfiguration(Constants.DB_CONFIG);
-            _logger.info("configs={} size={}", configs, configs.size());
-            List<InetAddress> seeds = new ArrayList<>(configs.size());
+            List<InetAddress> seeds = new ArrayList<>();
+
+            // Add extra seeds
+            for (String seed : extraSeeds) {
+                if (StringUtils.isNotEmpty(seed)) {
+                    seeds.add(InetAddress.getByName(seed));
+                }
+            }
+            
             for (int i = 0; i < configs.size(); i++) {
                 Configuration config = configs.get(i);
                 // Bypasses item of "global" and folders of "version", just check db configurations.
@@ -145,13 +152,7 @@ public class SeedProviderImpl implements SeedProvider {
                 }
             }
 
-            // Add extra seeds
-            for (String seed : extraSeeds) {
-                if (StringUtils.isNotEmpty(seed)) {
-                    seeds.add(InetAddress.getByName(seed));
-                }
-            }
-
+            _logger.info("Seeds list {}", StringUtils.join(seeds.toArray(), ","));
             return seeds;
         } catch (Exception e) {
             throw new IllegalStateException(e);

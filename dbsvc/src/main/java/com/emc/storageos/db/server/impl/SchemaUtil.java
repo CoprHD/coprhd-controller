@@ -96,7 +96,7 @@ public class SchemaUtil {
     private Properties _dbCommonInfo;
     private PasswordUtils _passwordUtils;
     private DbClientContext clientContext;
-    private boolean standbyMode = false;
+    private boolean onStandby = false;
 
     public void setClientContext(DbClientContext clientContext) {
         this.clientContext = clientContext;
@@ -165,12 +165,22 @@ public class SchemaUtil {
         _vdcShortId = vdcId;
     }
 
-    public void setStandbyMode(boolean standbyMode) {
-        this.standbyMode = standbyMode;
+    /**
+     * Set true for standby site
+     * 
+     * @param onStandby
+     */
+    public void setOnStandby(boolean onStandby) {
+        this.onStandby = onStandby;
     }
 
-    public boolean isStandbyMode() {
-    	return standbyMode;
+    /**
+     * Check if current dbsvc is in standby site
+     *
+     * @return
+     */
+    public boolean isOnStandby() {
+        return onStandby;
     }
 
     /**
@@ -257,7 +267,7 @@ public class SchemaUtil {
                 if (kd == null) {
                     _log.info("keyspace not exist yet");
 
-                    if (waitForSchema) {
+                    if (waitForSchema || onStandby) {
                         _log.info("wait for schema from other site");
                     } else {
                         // fresh install
@@ -271,12 +281,12 @@ public class SchemaUtil {
                     }
                 } else {
                     // this is an existing cluster
-                    if (!standbyMode)
+                    if (!onStandby)
                         checkStrategyOptions(kd, cluster, replicationFactor);
                 }
 
                 // create CF's
-                if (kd != null && !standbyMode) {
+                if (kd != null && !onStandby) {
                     checkCf(kd, clusterContext);
                     _log.info("scan and setup db schema succeed");
                     return;
@@ -837,6 +847,12 @@ public class SchemaUtil {
      * check and setup root tenant or my vdc info, if it doesn't exist
      */
     public void checkAndSetupBootStrapInfo(DbClient dbClient) {
+        // No need to add bootstrap records on standby site
+        if (isOnStandby()) {
+            _log.info("Skip bootstrap info setup on standby");
+            return;
+        }
+        
         // Only the first VDC need check root tenant
         if (isGeoDbsvc()) {
             if (_vdcList != null && _vdcList.size() > 1) {

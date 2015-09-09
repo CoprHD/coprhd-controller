@@ -205,6 +205,7 @@ seed_provider:
           - coordinators: "coordinator://localhost:2181"
             id: "db-standalone"
             seeds: ""
+            siteid: "a6cbcc20-99a8-4461-a3f6-0a8aa4433646"
 
 # For workloads with more data than can fit in memory, Cassandra's
 # bottleneck will be reads that need to fetch data from

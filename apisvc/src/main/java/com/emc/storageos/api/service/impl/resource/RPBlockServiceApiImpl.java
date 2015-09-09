@@ -528,12 +528,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param task Task Id
      * @param isChangeVpool Boolean to determine if this is a change vpool op
      */
-    private void createTaskForVolume(Volume volume, VirtualPoolCapabilityValuesWrapper capabilities, TaskList taskList, String task, boolean isChangeVpool) {                
-        ResourceOperationTypeEnum type = ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME;
-        
-        if (isChangeVpool) {
-            type = ResourceOperationTypeEnum.CHANGE_BLOCK_VOLUME_VPOOL;
-        }
+    private void createTaskForVolume(Volume volume, VirtualPoolCapabilityValuesWrapper capabilities, TaskList taskList, String task) {                
+        ResourceOperationTypeEnum type = ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME;                
         
         if (capabilities.getAddJournalCapacity()) {
         	type = ResourceOperationTypeEnum.ADD_JOURNAL_VOLUME;
@@ -920,7 +916,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             boolean createTask = isTaskRequired(rpVolume, capabilities, vplex, isChangeVpool);
             if (createTask) {
                 // Create a task for this volume
-                createTaskForVolume(rpVolume, capabilities, taskList, task, isChangeVpool);
+                createTaskForVolume(rpVolume, capabilities, taskList, task);
             }
 
             return rpVolume;
@@ -3100,6 +3096,21 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         	if (cgVolume.getPersonality() != null) {
         		if (cgVolume.getPersonality().equals((Volume.PersonalityTypes.SOURCE.name()))) {
         			sourceInternalSiteName = cgVolume.getInternalSiteName();
+        			if(_rpHelper.isMetroPointVolume(cgVolume)) {
+        				// we need to add mp standby copy to the list of Volumes, active copy is already there
+        				StringSet associatedVolumes = cgVolume.getAssociatedVolumes();
+        				if (associatedVolumes != null && !associatedVolumes.isEmpty()) {                                                                                                                                
+        					for (String associatedVolumeStr : associatedVolumes) {
+        						URI associatedVolumeURI = URI.create(associatedVolumeStr);
+        						Volume associatedVolume = _dbClient.queryObject(Volume.class, associatedVolumeURI);
+        						if (associatedVolume.getRpCopyName().equalsIgnoreCase(copyName)) {
+        							sourceInternalSiteName = associatedVolume.getInternalSiteName();
+        							cgVolumes.add(associatedVolume);
+        							break;
+        						}
+        					}
+        				}        				
+        			}
         			break;
         		}
         	}
@@ -3112,7 +3123,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         boolean foundCopy = false;
         int copyType = RecoverPointCGCopyType.PRODUCTION.getCopyNumber();
         for (Volume cgVolume : cgVolumes) {        	
-        	if (cgVolume.getPersonality() != null) {
+        	if (cgVolume.getPersonality() != null) {        		
         		if (!cgVolume.getPersonality().equals(Volume.PersonalityTypes.METADATA.name()) && cgVolume.getRpCopyName().equals(copyName)) {        		
         			foundCopy = true;
         			internalSiteName = cgVolume.getInternalSiteName();

@@ -295,8 +295,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // RP + VPlex CGs cannot be be deleted without VPlex controller intervention.
         if (consistencyGroup.getTypes().contains(Types.SRDF.toString()) ||
                 (consistencyGroup.getTypes().contains(Types.RP.toString()) &&
-                        !consistencyGroup.getTypes().contains(Types.VPLEX.toString()))
-                ||
+                !consistencyGroup.getTypes().contains(Types.VPLEX.toString())) ||
                 deleteUncreatedConsistencyGroup(consistencyGroup)) {
             final URIQueryResultList cgVolumesResults = new URIQueryResultList();
             _dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()),
@@ -633,8 +632,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         auditBlockConsistencyGroup(OperationTypeEnum.ACTIVATE_CONSISTENCY_GROUP_SNAPSHOT,
                 AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, snapshot.getId()
-                        .toString(),
-                snapshot.getLabel());
+                        .toString(), snapshot.getLabel());
         return toTask(snapshot, task, op);
     }
 
@@ -698,8 +696,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         auditBlockConsistencyGroup(OperationTypeEnum.DELETE_CONSISTENCY_GROUP_SNAPSHOT,
                 AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, snapshot.getId()
-                        .toString(),
-                snapshot.getLabel());
+                        .toString(), snapshot.getLabel());
 
         return response;
     }
@@ -857,7 +854,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         StorageOSUser user = getUserFromContext();
         if (!(_permissionsHelper.userHasGivenRole(user, project.getTenantOrg().getURI(),
                 Role.TENANT_ADMIN) || _permissionsHelper.userHasGivenACL(user, project.getId(),
-                        ACL.OWN, ACL.ALL))) {
+                ACL.OWN, ACL.ALL))) {
             throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
         }
     }

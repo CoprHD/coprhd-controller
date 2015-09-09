@@ -314,6 +314,9 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             }
         }
         
+        // STEP 6 - persist the mask
+        _dbClient.updateAndReindexObject(exportMask);
+        
     }
 
     @Override

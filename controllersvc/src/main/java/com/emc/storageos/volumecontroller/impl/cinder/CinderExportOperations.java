@@ -636,31 +636,19 @@ public class CinderExportOperations implements ExportMaskOperations {
         } // End volume iteration
 
         // Clean all existing targets in the export mask and add new targets
-        /*List<URI> storagePortListFromMask = StringSetUtil.stringSetToUriList(exportMask.getStoragePorts());
+        List<URI> storagePortListFromMask = StringSetUtil.stringSetToUriList(exportMask.getStoragePorts());
         for (URI removeUri : storagePortListFromMask) {
             exportMask.removeTarget(removeUri);
         }
-        exportMask.setStoragePorts(null);*/
-        
-        // Clean the existing zoning map
-        for (String initiatorURIStr : exportMask.getZoningMap().keySet()) {
-            exportMask.removeZoningMapEntry(initiatorURIStr);
-        }
-        exportMask.setZoningMap(null);
+        exportMask.setStoragePorts(null);
 
         // Now add new target ports and populate the zoning map
         Set<URI> initiatorURIKeys = mapFilteredInitiatorURIVsTargetURIList.keySet();
         for (URI initiatorURI : initiatorURIKeys) {
-            //StringSet targetPortURIStrings = new StringSet();
             List<URI> storagePortURIList = mapFilteredInitiatorURIVsTargetURIList.get(initiatorURI);
             for (URI portURI : storagePortURIList) {
                 exportMask.addTarget(portURI);
-                //targetPortURIStrings.add(portURI.toString());
             }
-            
-            /*String initiatorURIString = initiatorURI.toString();
-            log.info(String.format("Adding zoning map entry - Initiator is %s and its targetPorts %s", initiatorURIString, targetPortURIStrings.toString()));
-            exportMask.addZoningMapEntry(initiatorURIString, targetPortURIStrings);*/
         }
 
         log.debug("END - updateTargetsInExportMask");

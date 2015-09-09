@@ -44,8 +44,8 @@ import com.emc.storageos.model.block.SnapshotSessionCreateParam;
 import com.emc.storageos.model.block.SnapshotSessionLinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionNewTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionRelinkTargetsParam;
-import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetParam;
+import com.emc.storageos.model.block.SnapshotSessionUnlinkTargetsParam;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InterNodeHMACAuthFilter;
 import com.emc.storageos.security.authentication.StorageOSUser;
@@ -264,7 +264,7 @@ public class BlockSnapshotSessionManager {
                 newTargetsCopyMode);
 
         // Prepare the BlockSnapshot instances to represent the new linked targets.
-        List<URI> snapshotURIs = snapSessionApiImpl.prepareSnapshotsForSession(snapSessionSourceObj, 1, newLinkedTargetsCount,
+        List<URI> snapshotURIs = snapSessionApiImpl.prepareSnapshotsForSession(snapSessionSourceObj, 0, newLinkedTargetsCount,
                 newTargetsName);
 
         // Create a unique task identifier.

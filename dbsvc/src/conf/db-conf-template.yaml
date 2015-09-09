@@ -204,6 +204,7 @@ seed_provider:
       parameters:
           - coordinators: "<foreach iterator="iter" separator=", ">coordinator://${network_${iter}_ipaddr_service}:2181</foreach>"
             id: "db-${node_index}"
+            siteid: "${site_id}"
 
 # For workloads with more data than can fit in memory, Cassandra's
 # bottleneck will be reads that need to fetch data from

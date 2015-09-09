@@ -86,9 +86,6 @@ public class ServiceBeaconImpl implements ServiceBeacon {
      */
     public void setService(ServiceImpl service) {
         _service = service;
-        _serviceParentPath = String.format("%1$s/%2$s/%3$s",
-                ZkPath.SERVICE, _service.getName(), _service.getVersion());
-        _servicePath = String.format("%1$s/%2$s", _serviceParentPath, _service.getId());
     }
 
     /**
@@ -112,6 +109,10 @@ public class ServiceBeaconImpl implements ServiceBeacon {
 
         _zkConnection.curator().getConnectionStateListenable().addListener(_connectionListener);
         _zkConnection.connect();
+
+        _serviceParentPath = String.format("%1$s/%2$s%3$s/%4$s/%5$s",
+                ZkPath.SITES, _zkConnection.getSiteId(), ZkPath.SERVICE, _service.getName(), _service.getVersion());
+        _servicePath = String.format("%1$s/%2$s", _serviceParentPath, _service.getId());
 
         try {
             checkStaleRegistration();

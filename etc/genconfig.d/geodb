@@ -45,6 +45,8 @@ _get_geodbconf_props() {
         IFS="${OLD_IFS}"
     fi
     echo "vdc_seeds_ipaddr=$(echo $list | tr ' ' ',')"
+
+    _get_props site_id
 }
 
 _get_geodb_jmx_props() {

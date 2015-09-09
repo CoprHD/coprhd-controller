@@ -56,23 +56,7 @@ _get_coordinatorclient_var() {
 
     echo "node_count=${_GENCONFIG_node_count}"
 
-    _get_site_id_var
-}
-
-# Get site uuid. It is generated once at first boot and based on vip
-# and store to /data/zk
-_get_site_id_var() {
-    local site_id_file="/data/zk/siteid"
-    local site_id=""
-    if [ -f ${site_id_file} ] && [ -s ${site_id_file} ] ; then
-        site_id=$(cat ${site_id_file})
-    else
-        local seed="${_GENCONFIG_network_vip},${_GENCONFIG_network_vip6}"
-        local chksum=$(echo $seed | /usr/bin/sha1sum | cut -d ' ' -f 1)
-        site_id="${chksum:0:8}-${chksum:9:4}-${chksum:13:4}-${chksum:17:4}-${chksum:22:12}"
-        echo "${site_id}" > ${site_id_file}
-    fi
-    echo "site_id=${site_id}"
+    _get_props site_id
 }
 
 _genconfig_exec _gen_template_cluster   /opt/storageos/conf/coordinator-var.xml         $(_get_coordinator_var)

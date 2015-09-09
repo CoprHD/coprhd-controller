@@ -24,6 +24,7 @@
         </property>
         <!-- 9 minutes timeout -->
         <property name="timeoutMs" value="540000"/>
+        <property name="siteId" value="a6cbcc20-99a8-4461-a3f6-0a8aa4433646"/>
     </bean>
 
     <context:property-placeholder location="classpath:syssvc-info.properties" />
@@ -37,7 +38,6 @@
         <property name="defaultProperties" ref="defaultProperties"/>
         <property name="ovfProperties" ref="ovfProperties"/>                                                    
         <property name="dbVersionInfo" ref="dbVersionInfo"/>
-        <property name="siteId" value="a6cbcc20-99a8-4461-a3f6-0a8aa4433646"/>
     </bean>
 
     <bean id="nodeCount" class="java.lang.Integer">

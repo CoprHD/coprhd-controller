@@ -173,18 +173,24 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
     }
 
     /**
-     * computeMoverCapacity - computes the total capacity of data mover/vdm
-     * based on file systems capacity and snapshots capacity
+     * computeMoverCapacity - computes the total capacity of all data mover/vdm
+     * based on file systems capacity and snapshots capacity and store in a map
      * 
-     * @param nasFsMountMap
-     * @param fsCapMap
-     * @param snapCapFsMap
-     * @param snapCapFsMap
+     * @param nasFsMountMap map which store mover to list of fileSystem id
+     * @param fsCapMap file capacity map from previous call
+     * @param snapCapFsMap file system id , snapshot id and capacity map from previous call
      * 
      */
 
     private Map<String, Long> computeMoverCapacity(Map<String, List<String>> nasFsMountMap,
             Map<String, Long> fsCapMap, Map<String, Map<String, Long>> snapCapFsMap) {
+
+        Map<String, Long> snapCapMap = new HashMap<String, Long>();
+
+        for (Map<String, Long> snapCapEntry : snapCapFsMap.values()) {
+            snapCapMap.putAll(snapCapEntry);
+
+        }
 
         Map<String, Long> moverCapacityMap = new HashMap<String, Long>();
 
@@ -198,23 +204,20 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
             Long moverTotalCapacity = 0L;
 
             for (String fsNativeId : eachNas.getValue()) {
-                moverTotalCapacity = moverTotalCapacity + (fsCapMap.get(fsNativeId) != null ?
-                        fsCapMap.get(fsNativeId) : 0);
 
-                // Include snap shot capacity on the fs too !!!
-                Long fsSnapTotalCapacity = 0L;
-                Map<String, Long> fsSnapCapMap = snapCapFsMap.get(fsNativeId);
-                if (fsSnapCapMap != null && !fsSnapCapMap.isEmpty()) {
-                    for (Entry<String, Long> eachFsSnap : fsSnapCapMap.entrySet()) {
-                        fsSnapTotalCapacity = fsSnapTotalCapacity + eachFsSnap.getValue();
-                    }
+                // if filesystem id belong to snapshot then take size from snapCapMap else fsCapMap
+                if (snapCapMap.get(fsNativeId) != null) {
+
+                    moverTotalCapacity = moverTotalCapacity + snapCapMap.get(fsNativeId);
+
                 }
-
-                // Add snap capacity
-                moverTotalCapacity = moverTotalCapacity + fsSnapTotalCapacity;
+                else if (fsCapMap.get(fsNativeId) != null) {
+                    moverTotalCapacity = moverTotalCapacity + fsCapMap.get(fsNativeId);
+                }
 
             }
             moverCapacityMap.put(eachNas.getKey(), moverTotalCapacity);
+
         }
         return moverCapacityMap;
     }
@@ -222,11 +225,12 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
     /**
      * get the DB metrics for each data mover or VDM
      * 
-     * @param fsList
-     * @param fsCapList
-     * @param snapCapFsMap
-     * @param nasServer
-     * @param dmFsCountMAP
+     * @param storageSystem
+     * @param dbClient
+     * @param dmFsMountMap
+     * @param dmCapacityMap
+     * @param vdmFsMountMap
+     * @param vdmCapacityMap
      */
     private void prepareDBMetrics(StorageSystem storageSystem, DbClient dbClient,
             final Map<String, List<String>> dmFsMountMap, final Map<String, Long> dmCapacityMap,
@@ -273,7 +277,7 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
                         // Update dbMetrics for vNAS!!
                         StringMap vNasDbMetrics = virtualNAS.getMetrics();
                         vNasDbMetrics.put(MetricsKeys.storageObjects.name(), String.valueOf(vNasObjects));
-                        vNasDbMetrics.put(MetricsKeys.storageCapacity.name(), String.valueOf(vNasCapacity));
+                        vNasDbMetrics.put(MetricsKeys.usedStorageCapacity.name(), String.valueOf(vNasCapacity));
 
                         modifiedVNas.add(virtualNAS);
 
@@ -301,7 +305,7 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
 
                 StringMap pNasDbMetrics = pNAS.getMetrics();
                 pNasDbMetrics.put(MetricsKeys.storageObjects.name(), String.valueOf(totalDmObjects));
-                pNasDbMetrics.put(MetricsKeys.storageCapacity.name(), String.valueOf(totalDmCapacity));
+                pNasDbMetrics.put(MetricsKeys.usedStorageCapacity.name(), String.valueOf(totalDmCapacity));
 
                 long maxObjects = MetricsKeys.getLong(MetricsKeys.maxStorageObjects, pNasDbMetrics);
                 long maxCapacity = MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, pNasDbMetrics);

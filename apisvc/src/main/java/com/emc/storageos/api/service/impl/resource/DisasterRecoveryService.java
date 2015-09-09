@@ -5,7 +5,6 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Collections;
@@ -13,6 +12,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+
 import javax.crypto.SecretKey;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -22,19 +22,24 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.api.mapper.SiteMapper;
+import com.emc.storageos.coordinator.client.model.RepositoryInfo;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.Site;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.db.client.util.DbUtil;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.dr.SiteAddParam;
+import com.emc.storageos.model.dr.SiteAttachPrecheckResponse;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
@@ -51,6 +56,7 @@ public class DisasterRecoveryService extends TaggedResource {
     private CoordinatorClient coordinator = null;
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
+    private DbUtil dbUtil;
     
     public DisasterRecoveryService() {
         siteMapper = new SiteMapper();
@@ -212,6 +218,32 @@ public class DisasterRecoveryService extends TaggedResource {
         return siteMapper.map(primarySite);
     }
     
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/precheck")
+    public SiteAttachPrecheckResponse precheckStandbyConfig() {
+        SiteAttachPrecheckResponse response = new SiteAttachPrecheckResponse();
+        String siteID = coordinator.getSiteId();
+        
+        //step 0 whether this is a primary site
+        response.setPrimarySite(siteID.equals(coordinator.getPrimarySiteId()));
+        
+        //step 1 whether this site has been attached to other primary
+        
+        
+        //step 2 has data in DB
+        response.setHasData(dbUtil.hasDataInDb());
+        
+        //step 3 populate software version
+        try {
+            response.setSoftwareVersion(coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion().toString());
+        } catch (Exception e) {
+            log.error("Fail to get software version {}", e);
+        }
+        
+        return response;
+    }
+    
     @Override
     protected Site queryResource(URI id) {
         ArgValidator.checkUri(id);
@@ -265,5 +297,9 @@ public class DisasterRecoveryService extends TaggedResource {
     
     public void setSiteMapper(SiteMapper siteMapper) {
         this.siteMapper = siteMapper;
+    }
+    
+    public void setDbUtil(DbUtil dbUtil) {
+        this.dbUtil = dbUtil;
     }
 }

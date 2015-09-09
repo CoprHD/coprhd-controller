@@ -19,7 +19,7 @@ public class Site extends DataObject {
     private StringMap hostIPv6AddressMap = new StringMap();
     private String softwareVersion;
     private String dbSchemaVersion;
-    private boolean freshInstallation;
+    private Boolean freshInstallation;
 
     @Name("uuid")
     public String getUuid() {
@@ -89,6 +89,7 @@ public class Site extends DataObject {
 
     public void setSoftwareVersion(String softwareVersion) {
         this.softwareVersion = softwareVersion;
+        setChanged("softwareVersion");
     }
     
     @Name("dbSchemaVersion")
@@ -98,15 +99,17 @@ public class Site extends DataObject {
 
     public void setDbSchemaVersion(String dbSchemaVersion) {
         this.dbSchemaVersion = dbSchemaVersion;
+        setChanged("dbSchemaVersion");
     }
     
     @Name("freshInstallation")
-    public boolean isFreshInstallation() {
+    public Boolean isFreshInstallation() {
         return freshInstallation;
     }
 
-    public void setFreshInstallation(boolean freshInstallation) {
+    public void setFreshInstallation(Boolean freshInstallation) {
         this.freshInstallation = freshInstallation;
+        setChanged("freshInstallation");
     }
 
     @Override

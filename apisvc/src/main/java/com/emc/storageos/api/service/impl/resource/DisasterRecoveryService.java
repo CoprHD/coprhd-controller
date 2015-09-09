@@ -39,7 +39,6 @@ import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.Site;
 import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -95,7 +94,9 @@ public class DisasterRecoveryService extends TaggedResource {
         return siteMapper.map(standbySite);
     }
 
-    
+    /**
+     * Get all sites including standby and primary
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public SiteList getAllStandby() {
@@ -103,7 +104,7 @@ public class DisasterRecoveryService extends TaggedResource {
         SiteList standbyList = new SiteList();
         
         VirtualDataCenter vdc = queryLocalVDC();
-        Collection<String> standbyIds = getStandbyIds(vdc.getSiteIDs());
+        Collection<String> standbyIds = vdc.getSiteIDs();
 
         List<URI> ids = _dbClient.queryByType(Site.class, true);
         Iterator<Site> sites = _dbClient.queryIterativeObjects(Site.class, ids);
@@ -116,12 +117,17 @@ public class DisasterRecoveryService extends TaggedResource {
         
         return standbyList;
     }
-
+    
+    /**
+     * Get specified site according site ID
+     * @param id site ID
+     * @return
+     */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
     public SiteRestRep getStandby(@PathParam("id") String id) {
-        log.info("Begin to get standby site by uuid");
+        log.info("Begin to get standby site by uuid {}", id);
         
         VirtualDataCenter vdc = queryLocalVDC();
         
@@ -136,7 +142,8 @@ public class DisasterRecoveryService extends TaggedResource {
                 }
             }
         }
-
+        
+        log.info("Can't find site with specified site ID {}", id);
         return null;
     }
 
@@ -189,7 +196,6 @@ public class DisasterRecoveryService extends TaggedResource {
         
         try {
             localSite.setSoftwareVersion(coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion().toString());
-            
         } catch (Exception e) {
             log.error("Fail to get software version {}", e);
         }
@@ -214,11 +220,6 @@ public class DisasterRecoveryService extends TaggedResource {
         primarySite.getHostIPv6AddressMap().putAll(new StringMap(param.getHostIPv6AddressMap()));
 
         VirtualDataCenter vdc = queryLocalVDC();
-
-        if (vdc.getSiteIDs() == null) {
-            vdc.setSiteIDs(new StringSet());
-        }
-
         vdc.getSiteIDs().add(primarySite.getId().toString());
 
         log.info("Persist primary site to DB");
@@ -262,14 +263,14 @@ public class DisasterRecoveryService extends TaggedResource {
     
     protected boolean isFreshInstallation() {
         Configuration setupConfig = coordinator.queryConfiguration(CONFIG_KIND, CONFIG_ID);
-        boolean complete = (setupConfig != null) && StringUtils.equals(setupConfig.getConfig(COMPLETE), Boolean.TRUE.toString());
+        boolean freshInstall = (setupConfig == null) || Boolean.parseBoolean(setupConfig.getConfig(COMPLETE)) == false;
         
-        log.info("Fresh installation {}", complete);
-        return complete;
+        log.info("Fresh installation {}", freshInstall);
+        return freshInstall;
     }
     
     // encapsulate the get local VDC operation for easy UT writing because VDCUtil.getLocalVdc is static method
-    VirtualDataCenter queryLocalVDC() {
+    protected VirtualDataCenter queryLocalVDC() {
         return VdcUtil.getLocalVdc();
     }
     

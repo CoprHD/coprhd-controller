@@ -312,8 +312,8 @@ public class FileStorageScheduler {
                 }
 
                 if (value == 0) {
-                    Long storageCapacityOfV1 = MetricsKeys.getLong(MetricsKeys.storageCapacity, v1.getMetrics());
-                    Long storageCapacityOfV2 = MetricsKeys.getLong(MetricsKeys.storageCapacity, v2.getMetrics());
+                    Long storageCapacityOfV1 = MetricsKeys.getLong(MetricsKeys.usedStorageCapacity, v1.getMetrics());
+                    Long storageCapacityOfV2 = MetricsKeys.getLong(MetricsKeys.usedStorageCapacity, v2.getMetrics());
                     value = storageCapacityOfV1.compareTo(storageCapacityOfV2);
                 }
 
@@ -344,8 +344,8 @@ public class FileStorageScheduler {
                 // 1. Sort virtual nas servers based on static load factor 'storageCapacity'.
                 // 2. If multiple virtual nas servers found to be similar performance,
                 // sort the virtual nas based on number of storage objects!!!
-                Long storageCapacityOfV1 = MetricsKeys.getLong(MetricsKeys.storageCapacity, v1.getMetrics());
-                Long storageCapacityOfV2 = MetricsKeys.getLong(MetricsKeys.storageCapacity, v2.getMetrics());
+                Long storageCapacityOfV1 = MetricsKeys.getLong(MetricsKeys.usedStorageCapacity, v1.getMetrics());
+                Long storageCapacityOfV2 = MetricsKeys.getLong(MetricsKeys.usedStorageCapacity, v2.getMetrics());
 
                 int value = storageCapacityOfV1.compareTo(storageCapacityOfV2);
 

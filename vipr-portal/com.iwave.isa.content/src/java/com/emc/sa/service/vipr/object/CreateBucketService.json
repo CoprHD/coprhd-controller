@@ -1,12 +1,16 @@
 {
-  baseKey:"ObjetStorageService.CreateBucket",
+  baseKey:"ObjectStorageService.CreateBucket",
   serviceId:"CreateBucket",
   roles: [
     "HOME_TENANT_ADMIN"
   ],
   fields:{
     name:{
-    
+        type:"text",
+        validation:{
+            min:2,
+            max:128
+        }
     },
 
     virtualPool:{
@@ -16,6 +20,57 @@
     project:{
       type:"assetType.vipr.project",
       lockable: true
+    }, 
+    
+    softQuota:{
+        type:"number",
+        validation:{
+            min:1
+        },
+        required: "false"
+    },
+    
+    hardQuota:{
+        type:"number",
+        validation:{
+            min:1
+        },
+        required: "false"
+    },
+    
+    retention:{
+        type:"number",
+        validation:{
+            min:1
+        },
+        required:"false"
+    },
+    
+    namespace:{
+        type:"text",
+        validation:{
+            min:2,
+            max:128
+        },
+        required:"false"
+    },
+    
+    tenant:{
+        type:"text",
+        validation:{
+            min:2,
+            max:128
+        },
+        required:"false"
+    },
+    
+    owner:{
+        type:"text",
+        validation:{
+            min:2,
+            max:128
+        },
+        required:"false"
     }
   }
 }

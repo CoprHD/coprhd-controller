@@ -1,21 +1,18 @@
 {
-  baseKey:"ObjetStorageService.DeleteBucket",
+  baseKey:"ObjectStorageService.DeleteBucket",
   serviceId:"DeleteBucket",
   roles: [
     "HOME_TENANT_ADMIN"
   ],
   fields:{
-    name:{
-    
-    },
-
-    virtualPool:{
-      type:"assetType.vipr.objectVirtualPool"
-    },
-    
     project:{
       type:"assetType.vipr.project",
       lockable: true
+    },
+    
+    buckets:{
+      type:"assetType.vipr.sourceBucketsWithDeletion",
+      select: "many"
     }
   }
 }

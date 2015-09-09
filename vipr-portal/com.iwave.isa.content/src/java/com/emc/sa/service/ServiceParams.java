@@ -83,8 +83,8 @@ public interface ServiceParams {
     public String PLATFORM = "platform";
     public String NTP_SERVER = "ntpServer";
     public String MANAGEMENT_NETWORK = "managementNetwork";
-    public String HOST_PASSWORD = "hostPassword"; // NOSONAR ("False positive, field does not store a password”)
-    public String CONFIRM_PASSWORD = "confirmPassword"; // NOSONAR ("False positive, field does not store a password”)
+    public String HOST_PASSWORD = "hostPassword"; // NOSONAR ("False positive, field does not store a password")
+    public String CONFIRM_PASSWORD = "confirmPassword"; // NOSONAR ("False positive, field does not store a password")
 
     public String MAXUSERS = "maxUsers";
     public String PERMISSIONTYPE = "permissionType";
@@ -99,4 +99,11 @@ public interface ServiceParams {
     public String OPLOCK = "oplock";
     public String SECURITY_STYLE = "securityStyle";
     public String QUOTA_DIRECTORIES = "quotaDirectories";
+    
+    public String SOFT_QUOTA = "softQuota";
+    public String HARD_QUOTA = "hardQuota";
+    public String RETENTION = "retention";
+    public String NAMESPACE = "namespace";
+    public String TENANT = "tenant";
+    public String OWNER = "owner";
 }

@@ -329,4 +329,9 @@ public class XtremIOSnapshotOperations extends XtremIOOperations implements Snap
         return volumeGroupFolderName;
     }
 
+    @Override
+    public void establishVolumeSnapshotGroupRelation(StorageSystem storage, URI sourceVolume,
+            URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

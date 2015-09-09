@@ -1308,8 +1308,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
-        // Verify the full copy.
-        URI fcSourceURI = verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
+     // Get the full copy source.
+        Volume fullCopyVolume = (Volume) BlockFullCopyUtils.queryFullCopyResource(
+                fullCopyURI, uriInfo, true, _dbClient);
+        URI fcSourceURI = fullCopyVolume.getAssociatedSourceVolume();
 
         // Detach the full copy. Note that it will take into account the
         // fact that the volume is in a CG.

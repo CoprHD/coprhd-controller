@@ -354,7 +354,7 @@ public class BlockFullCopyUtils {
     public static boolean isFullCopyDetached(Volume volume, DbClient dbClient) {
         boolean result = false;
         String replicaState = volume.getReplicaState();
-        if ( !!isVolumeFullCopy(volume, dbClient) &&replicaState != null && !replicaState.isEmpty()) {
+        if ( !isVolumeFullCopy(volume, dbClient) &&replicaState != null && !replicaState.isEmpty()) {
             ReplicationState state = ReplicationState.getEnumValue(replicaState);
             if (state != null && state == ReplicationState.DETACHED) {
                 result = true;

@@ -297,4 +297,8 @@ public class BlockProviderUtils {
         return volumeNameMap;
     }
 
+    public static boolean isSupportedVPool(BlockVirtualPoolRestRep vpool) {
+        return vpool != null && vpool.getMultiVolumeConsistent() != null && vpool.getMultiVolumeConsistent();
+    }
+
 }

@@ -66,7 +66,7 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
     /**
      * Maps the StorageSystem (for VPlex, VNX, VMAX) and/or ProtectionSystem (for RP)
      * to the corresponding consistency groups that have been created.
-     * 
+     *
      * Here are the different permutations that can exist based on types:
      * RP: [protectionSystem->cg1]
      * LOCAL: [storageSystem->cg1]
@@ -109,6 +109,7 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         setChanged("varray");
     }
 
+    @Override
     @Name("project")
     @NamedRelationIndex(cf = "NamedRelation", type = Project.class)
     public NamedURI getProject() {
@@ -120,6 +121,7 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
         setChanged("project");
     }
 
+    @Override
     @NamedRelationIndex(cf = "NamedRelation")
     @Name("tenant")
     public NamedURI getTenant() {
@@ -231,7 +233,7 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
      * associated consistency groups that have been created,
      * which is indicated by the presence in types. If nothing has been
      * requested yet, we haven't created the consistencyGroup.
-     * 
+     *
      * @return true if the ConsistencyGroup has been created, false otherwise.
      */
     public boolean created() {
@@ -241,7 +243,7 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
     /**
      * Returns true if CG creation has been initiated or even completed
      * as given by something was recorded in requestedTypes().
-     * 
+     *
      * @return true if CG creation has been initiated.
      */
     public boolean creationInitiated() {
@@ -251,7 +253,7 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
     /**
      * Check to see if the consistency group has been created for the given
      * storage system.
-     * 
+     *
      * @param storageSystemUri The storage system URI
      * @return true if the consistency group has been created, false otherwise.
      */
@@ -269,7 +271,7 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
 
     /**
      * Convenience method to add a consistency group type.
-     * 
+     *
      * @param types The types to add to this consistency group.
      */
     public void addConsistencyGroupTypes(String... cgTypes) {
@@ -284,9 +286,9 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
 
     /**
      * Determines if the consistency group has the passed type.
-     * 
+     *
      * @param type The type to check.
-     * 
+     *
      * @return true when the consistency group has the type, false otherwise.
      */
     public boolean checkForType(Types type) {
@@ -299,7 +301,7 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
 
     /**
      * Add a mapping of storage systems to consistency group names.
-     * 
+     *
      * @param systemUri The StorageSystem or ProtectionSystem URI string.
      * @param cgName The consistency group name.
      */
@@ -318,7 +320,7 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
 
     /**
      * Remove a mapping of storage system to consistency group name.
-     * 
+     *
      * @param systemUri The StorageSystem or ProtectionSystem URI string.
      * @param cgName The consistency group name.
      */
@@ -357,30 +359,29 @@ public class BlockConsistencyGroup extends DataObject implements ProjectResource
 
     /**
      * checks to see if the CG name matches the name ViPR has stored for the storage system
-     * 
+     *
      * @param cgId id of the CG in the DB
      * @param storageSystemId storage system to check the CG name
      * @param cgParams cg params with CG name
      * @return true if the CG name exists in the ViPR db
      */
     public boolean nameExistsForStorageSystem(URI storageSystemId, String cgName) {
-        return cgName != null ? cgName.equals(getNameOnStorageSystem(storageSystemId))
+        return cgName != null ? cgName.equals(getCgNameOnStorageSystem(storageSystemId))
                 : false;
     }
 
     /**
-     * returns the name of the CG on the storage system if ViPR has created this CG on the storage system in the past
-     * 
+     * Returns the name of the CG on the storage system if ViPR has created this CG on the storage system in the past.
+     *
      * @param cgId id of the CG in the ViPR db
      * @param storageSystemId storage system to get the name for
      * @return the CG name or null if ViPR has not created the CG on the storage system
      */
-    public String getNameOnStorageSystem(URI storageSystemId) {
+    public String getCgNameOnStorageSystem(URI storageSystemId) {
         String cgName = null;
         StringSetMap ssm = this.getSystemConsistencyGroups();
         if (ssm != null) {
-            String rpSysId = storageSystemId.toString();
-            StringSet ss = ssm.get(rpSysId);
+            StringSet ss = ssm.get(storageSystemId.toString());
             if (ss != null) {
                 Iterator<String> itr = ss.iterator();
                 if (itr.hasNext()) {

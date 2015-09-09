@@ -229,7 +229,7 @@ public interface RecoverPointExceptions {
     public RecoverPointException failedToGetRPSiteID(final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)
-    public RecoverPointException failedToRecreateReplicationSet(final String volumeWWN,
+    public RecoverPointException failedToRecreateReplicationSet(final String volumeWWNs,
             final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.RECOVER_POINT_ERROR)

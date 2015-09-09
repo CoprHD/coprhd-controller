@@ -7,7 +7,7 @@
 
     <bean id="scaleio"
           class="com.emc.storageos.volumecontroller.impl.plugins.ScaleIOCommunicationInterface">
-        <property name="scaleIOCLIFactory" ref="scaleIOCLIFactory"/>
+        <property name="scaleIOHandleFactory" ref="scaleIOHandleFactory"/>
     </bean>
 
 </beans>

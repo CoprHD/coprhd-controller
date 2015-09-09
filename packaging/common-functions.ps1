@@ -66,7 +66,7 @@ function IsValidNodeCount($paramValue, $label) {
 	}
 
 	$isValid=$true
-	if (($paramValue -ne "3") -and ($paramValue -ne "5") -and ($paramValue -ne "1")) {
+	if ((($paramValue -ne "3") -and ($paramValue -ne "5") -and ($paramValue -ne "1")) -or (($Script:isVMX -eq $true) -and ($paramValue -ne "1"))) {
 		Write-Host "Invalid  $label"
 		$isValid=$false
 	}
@@ -177,6 +177,20 @@ function IsValidVlan($paramValue, $label) {
 		$count=[Convert]::ToInt32($paramValue)
 	}
 	catch {
+		Write-Host "Invalid  $label"
+		$isValid=$false
+	}
+	return $isValid
+}
+
+# VMX only
+function IsValidNet($paramValue, $label) {
+	if ([string]::IsNullOrEmpty($paramValue)) {
+		return $false
+	}
+
+	$isValid=$true
+	if (($paramValue.ToLower() -ne "bridged") -and ($paramValue.ToLower() -ne "nat")) {
 		Write-Host "Invalid  $label"
 		$isValid=$false
 	}
@@ -504,7 +518,11 @@ function hasDupIPv6Props() {
 }
 
 function CheckNetWorkProperties($isInteractive) {
-	$newNodeCount=CheckParam $Script:nodeCount "Node count [ 1 (evaluation only) | 3 | 5 ]" $isInteractive $false IsValidNodeCount
+    $nodeCountLabel = "Node count [ 1 (evaluation only) | 3 | 5 ]"
+    if ($Script:isVMX -eq $true) {
+        $nodeCountLabel = "Node count [ 1 (Node count can only be 1 in install-vmx mode) ]"
+    }
+	$newNodeCount=CheckParam $Script:nodeCount $nodeCountLabel $isInteractive $false IsValidNodeCount
 	if ($Script:nodeCount -ne $newNodeCount) {
 		if ($newNodeCount -ne "5") {
 			if (-not $Script:isCPUCountGiven) {

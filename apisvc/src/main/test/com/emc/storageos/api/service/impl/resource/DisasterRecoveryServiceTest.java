@@ -3,15 +3,19 @@ package com.emc.storageos.api.service.impl.resource;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
 import java.net.URI;
+import java.security.NoSuchAlgorithmException;
 import java.util.LinkedList;
 import java.util.List;
 import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
+
+
 import org.junit.Before;
 import org.junit.Test;
 
@@ -22,6 +26,7 @@ import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
@@ -90,19 +95,13 @@ public class DisasterRecoveryServiceTest {
         drService.setApiSignatureGenerator(apiSignatureGeneratorMock);
         
         standbyConfig = new Site();
-        standbyConfig.setId(new URI("standby-site-object-id-1"));
         standbyConfig.setUuid("standby-site-uuid-1");
         standbyConfig.setVip(localVDC.getApiEndpoint());
         standbyConfig.setHostIPv4AddressMap(localVDC.getHostIPv4AddressesMap());
         standbyConfig.setHostIPv6AddressMap(localVDC.getHostIPv6AddressesMap());
         
-
-        
         doReturn(standbyConfig.getUuid()).when(this.coordinatorMock).getSiteId();
         doReturn("primary-site-id").when(this.coordinatorMock).getPrimarySiteId();
-        KeyGenerator keyGenerator = KeyGenerator.getInstance("HmacSHA256");
-        SecretKey key = keyGenerator.generateKey();
-        doReturn(key).when(apiSignatureGeneratorMock).getSignatureKey(SignatureKeyType.INTERVDC_API);
         doReturn(localVDC).when(drService).queryLocalVDC();
     }
     
@@ -165,6 +164,17 @@ public class DisasterRecoveryServiceTest {
     
     @Test
     public void testGetStandbyConfig() {
+        SecretKey key = null;
+        try {
+            KeyGenerator keyGenerator = null;
+            keyGenerator = KeyGenerator.getInstance("HmacSHA256");
+            key = keyGenerator.generateKey();
+        } catch (NoSuchAlgorithmException e) {
+            fail("generate key fail");
+        }
+        
+        doReturn(key).when(apiSignatureGeneratorMock).getSignatureKey(SignatureKeyType.INTERVDC_API);
+        doReturn(SiteState.ACTIVE).when(this.coordinatorMock).getSiteState();
         SiteRestRep response = drService.getStandbyConfig();
         compareSiteResponse(response, standbyConfig);
     }
@@ -180,6 +190,7 @@ public class DisasterRecoveryServiceTest {
 
     protected void compareSiteResponse(SiteRestRep response, Site site) {
         assertNotNull(response);
+        assertEquals(response.getId(), site.getId());
         assertEquals(response.getUuid(), site.getUuid());
         assertEquals(response.getName(), site.getName());
         assertEquals(response.getVip(), site.getVip());

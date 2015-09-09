@@ -1444,4 +1444,17 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         }
         return primarySiteId;
 	}  
+	
+	@Override
+    public SiteState getSiteState() {
+        String path = String.format("%1$s/%2$s/%3$s", ZkPath.SITES.toString(), this.getSiteId(), Constants.SITE_STATE);
+        SiteState state = null;
+        try {
+            byte[] data = _zkConnection.curator().getData().forPath(path);
+            state = SiteState.valueOf(new String(data, "UTF-8"));
+        } catch (Exception e) {
+            throw CoordinatorException.retryables.errorWhileFindingNode(path, e);
+        }
+        return state;
+    }
 }

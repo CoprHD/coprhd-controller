@@ -25,6 +25,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.mapper.SiteMapper;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.Site;
@@ -171,19 +172,21 @@ public class DisasterRecoveryService extends TaggedResource {
     public SiteRestRep getStandbyConfig() {
         log.info("Begin to get standby config");
         String siteId = this.coordinator.getSiteId();
+        SiteState siteState = this.coordinator.getSiteState();
         VirtualDataCenter vdc = queryLocalVDC();
         SecretKey key = apiSignatureGenerator.getSignatureKey(SignatureKeyType.INTERVDC_API);
         Site localSite = new Site();
 
         localSite.setUuid(siteId);
         localSite.setVip(vdc.getApiEndpoint());
-        localSite.setState(Site.State.ACTIVE.name());
         localSite.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
         localSite.getHostIPv4AddressMap().putAll(vdc.getHostIPv4AddressesMap());
         localSite.getHostIPv6AddressMap().putAll(vdc.getHostIPv6AddressesMap());
-
-        log.info("localSite: {}", localSite);
-        return siteMapper.map(localSite);
+        
+        SiteRestRep response = siteMapper.map(localSite);
+        response.setState(siteState.name());
+        log.info("response: {}", response);
+        return response;
     }
     
     /**

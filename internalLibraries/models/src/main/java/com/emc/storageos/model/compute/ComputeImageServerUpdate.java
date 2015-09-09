@@ -12,15 +12,10 @@ import org.codehaus.jackson.annotate.JsonProperty;
 @XmlRootElement(name = "compute_imageserver_update")
 public class ComputeImageServerUpdate {
     private String imageServerIp;
-
     private String imageServerSecondIp;
-
     private String imageServerUser;
-
     private String imageServerPassword;
-
-    private String tftpbootDir;
-
+    private String tftpBootDir;
     private Integer osInstallTimeoutMs;
 
     public ComputeImageServerUpdate() {
@@ -29,14 +24,14 @@ public class ComputeImageServerUpdate {
 
     public ComputeImageServerUpdate(String imageServerAddress,
             String imageServerSecondIp, String imageServerUser,
-            String imageServerPassword, String tftpbootDir,
+            String imageServerPassword, String tftpBootDir,
             Integer osInstallTimeoutMs) {
         super();
         this.imageServerIp = imageServerAddress;
         this.imageServerSecondIp = imageServerSecondIp;
         this.imageServerUser = imageServerUser;
         this.imageServerPassword = imageServerPassword;
-        this.tftpbootDir = tftpbootDir;
+        this.tftpBootDir = tftpBootDir;
         this.osInstallTimeoutMs = osInstallTimeoutMs;
     }
 
@@ -109,20 +104,20 @@ public class ComputeImageServerUpdate {
     }
 
     /**
-     * @return the tftpbootDir
+     * @return the tftpBootDir
      */
-    @XmlElement(required = true, name = "tftpbootdir")
-    @JsonProperty("tftpbootDir")
-    public String getTftpbootDir() {
-        return tftpbootDir;
+    @XmlElement(required = true, name = "tftpBootdir")
+    @JsonProperty("tftpBootDir")
+    public String getTftpBootDir() {
+        return tftpBootDir;
     }
 
     /**
-     * @param tftpbootDir
-     *            the tftpbootDir to set
+     * @param tftpBootdir
+     *            the tftpBootdir to set
      */
-    public void setTftpbootDir(String tftpbootDir) {
-        this.tftpbootDir = tftpbootDir;
+    public void setTftpBootDir(String tftpBootdir) {
+        this.tftpBootDir = tftpBootdir;
     }
 
     /**

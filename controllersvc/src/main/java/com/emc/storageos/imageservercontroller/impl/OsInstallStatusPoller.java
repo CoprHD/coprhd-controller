@@ -82,8 +82,8 @@ public class OsInstallStatusPoller implements Runnable {
 	            d = new ImageServerDialog(session, imageServer.getSshTimeoutMs());
 	            d.init();
 	
-	            successes = d.lsDir(imageServer.getTftpbootDir() + HTTP_SUCCESS_DIR);
-	            failures = d.lsDir(imageServer.getTftpbootDir() + HTTP_FAILURE_DIR);
+	            successes = d.lsDir(imageServer.getTftpBootDir() + HTTP_SUCCESS_DIR);
+	            failures = d.lsDir(imageServer.getTftpBootDir() + HTTP_FAILURE_DIR);
 	
 	            log.info("successes: {}; failures: {}", Arrays.asList(successes), Arrays.asList(failures));
 	

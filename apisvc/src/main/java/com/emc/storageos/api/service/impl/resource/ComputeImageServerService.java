@@ -61,7 +61,7 @@ import com.google.common.base.Function;
  * 
  *
  */
-@Path("/compute/compute-imageservers")
+@Path("/compute/imageservers")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR }, writeRoles = {
         Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class ComputeImageServerService extends TaskResourceService {
@@ -70,17 +70,11 @@ public class ComputeImageServerService extends TaskResourceService {
             .getLogger(ComputeImageServerService.class);
 
     private static final String EVENT_SERVICE_TYPE = "ComputeImageServer";
-
     private static final String IMAGESERVER_IP = "imageServerIp";
-
-    private static final String TFTPBOOTDIR = "tftpbootDir";
-
+    private static final String TFTPBOOTDIR = "tftpBootDir";
     private static final String IMAGESERVER_SECONDARY_IP = "imageServerSecondIp";
-
     private static final String IMAGESERVER_PASSWORD = "imageServerPassword";
-
     private static final String IMAGESERVER_USER = "imageServerUser";
-
     private static final String OS_INSTALL_TIMEOUT_MS = "osInstallTimeoutMs";
 
     @Override
@@ -181,7 +175,7 @@ public class ComputeImageServerService extends TaskResourceService {
         checkDuplicateLabel(ComputeImageServer.class, imageServerAddress,
                 IMAGESERVER_IP);
 
-        String bootDir = createParams.getTftpbootDir();
+        String bootDir = createParams.getTftpBootDir();
         String osInstallAddress = createParams.getImageServerSecondIp();
         String username = createParams.getImageServerUser();
         String password = createParams.getImageServerPassword();
@@ -198,7 +192,7 @@ public class ComputeImageServerService extends TaskResourceService {
         imageServer.setId(URIUtil.createId(ComputeImageServer.class));
         imageServer.setLabel(imageServerAddress);
         imageServer.setImageServerIp(imageServerAddress);
-        imageServer.setTftpbootDir(bootDir);
+        imageServer.setTftpBootDir(bootDir);
         imageServer.setImageServerUser(username);
         imageServer.setImageServerPassword(password);
         imageServer.setOsInstallTimeoutMs((int) installTimeout);
@@ -289,7 +283,7 @@ public class ComputeImageServerService extends TaskResourceService {
             throw APIException.notFound.unableToFindEntityInURL(id);
         } else {
             String imageServerAddress = param.getImageServerIp();
-            String bootDir = param.getTftpbootDir();
+            String bootDir = param.getTftpBootDir();
             String osInstallAddress = param.getImageServerSecondIp();
             String username = param.getImageServerUser();
             String password = param.getImageServerPassword();
@@ -306,7 +300,7 @@ public class ComputeImageServerService extends TaskResourceService {
             checkActiveJobsForImageServer(id);
             imageServer.setLabel(imageServerAddress);
             imageServer.setImageServerIp(imageServerAddress);
-            imageServer.setTftpbootDir(bootDir);
+            imageServer.setTftpBootDir(bootDir);
             imageServer.setImageServerUser(username);
             imageServer.setImageServerPassword(password);
             imageServer.setOsInstallTimeoutMs((int) installTimeout);

@@ -1995,7 +1995,7 @@ public class HostService extends TaskResourceService {
         } else {
             ComputeImageServer imageServer = queryObject(
                     ComputeImageServer.class, imageServerURI, true);
-            StringSet computeImagesSet = imageServer.getComputeImage();
+            StringSet computeImagesSet = imageServer.getComputeImages();
             if (computeImagesSet == null
                     || !computeImagesSet.contains(img.getId().toString())) {
                 throw APIException.badRequests

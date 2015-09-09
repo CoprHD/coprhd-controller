@@ -58,6 +58,11 @@
     <bean id="blockstoragescheduler" class="com.emc.storageos.volumecontroller.placement.BlockStorageScheduler">
         <property name="dbClient" ref="dbclient"/>
         <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
+        <property name="networkScheduler" ref="networkScheduler"/>
+    </bean>
+
+    <bean id="networkScheduler" class="com.emc.storageos.networkcontroller.impl.NetworkScheduler">
+        <property name="dbClient" ref="dbclient"/>
     </bean>
     
     <bean id="storagescheduler" class="com.emc.storageos.api.service.impl.placement.StorageScheduler">

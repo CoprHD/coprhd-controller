@@ -107,7 +107,7 @@ public class ComputeMapper {
     }
 
     /**
-     * Utility mapper method to map feilds of {@link ComputeImageServer} columnFamily
+     * Utility mapper method to map fields of {@link ComputeImageServer} columnFamily
      *  to {@link ComputeImageServerRestRep} rest representation. 
      * @param from
      * @return
@@ -122,17 +122,17 @@ public class ComputeMapper {
         try {
             to.setLink(new RestLinkRep("self", RestLinkFactory.simpleServiceLink(ResourceTypeEnum.COMPUTE_IMAGESERVER, from.getId())));
         } catch (URISyntaxException e) {
-            LOG.warn("URI syntax Excetption while trying to created self link.", e);
+            LOG.warn("Error while creating self link URI.", e);
         }
         to.setImageServerIp(from.getImageServerIp());
         to.setImageServerSecondIp(from.getImageServerSecondIp());
-        to.setTftpbootDir(from.getTftpbootDir());
+        to.setTftpBootDir(from.getTftpBootDir());
         to.setComputeImageServerStatus(from.getComputeImageServerStatus());
         to.setImageServerUser(from.getImageServerUser());
         to.setOsInstallTimeoutMs(from.getOsInstallTimeoutMs());
-        if (from.getComputeImage() != null) {
-            for (String computeimage : from.getComputeImage()) {
-                to.getComputeImage().add(toRelatedResource(ResourceTypeEnum.COMPUTE_IMAGE, URI.create(computeimage)));
+        if (from.getComputeImages() != null) {
+            for (String computeimage : from.getComputeImages()) {
+                to.getComputeImages().add(toRelatedResource(ResourceTypeEnum.COMPUTE_IMAGE, URI.create(computeimage)));
             }
         }
         return to;

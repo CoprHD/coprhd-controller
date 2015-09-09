@@ -401,4 +401,9 @@ public class StubCoordinatorClientImpl implements CoordinatorClient {
     public String getSiteId() {
     	return "testsiteid";
     }
+
+    @Override
+    public String getPrimarySiteId() {
+        return "test-primary-site-id";
+    }
 }

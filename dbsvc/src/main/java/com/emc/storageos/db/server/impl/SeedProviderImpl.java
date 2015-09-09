@@ -89,8 +89,13 @@ public class SeedProviderImpl implements SeedProvider {
         connection.setServer(uri);
         connection.build();
 
+        String siteId= args.get(Constants.SITE_ID);
+        connection.setSiteId(siteId);
+        _logger.info("siteId={}", siteId);
+
         CoordinatorClientImpl client = new CoordinatorClientImpl();
         client.setZkConnection(connection);
+
         ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("/nodeaddrmap-var.xml");
         CoordinatorClientInetAddressMap inetAddressMap = (CoordinatorClientInetAddressMap) ctx.getBean("inetAddessLookupMap");
         if (inetAddressMap == null) {
@@ -106,6 +111,7 @@ public class SeedProviderImpl implements SeedProvider {
         try {
             CoordinatorClientInetAddressMap nodeMap = _client.getInetAddessLookupMap();
             List<Configuration> configs = _client.queryAllConfiguration(Constants.DB_CONFIG);
+            _logger.info("configs={} size={}", configs, configs.size());
             List<InetAddress> seeds = new ArrayList<>(configs.size());
             for (int i = 0; i < configs.size(); i++) {
                 Configuration config = configs.get(i);

@@ -613,12 +613,14 @@ public class BackupOps {
 
     private void releaseLock(InterProcessLock lock) {
         if (lock == null) {
+            log.info("The lock is null, no need to release");
             return;
         }
         try {
             lock.release();
+            log.info("Release lock successful");
         } catch (Exception ignore) {
-            log.error("lock release failed, {}", ignore.getMessage());
+            log.error("Release lock failed, {}", ignore.getMessage());
         }
     }
 

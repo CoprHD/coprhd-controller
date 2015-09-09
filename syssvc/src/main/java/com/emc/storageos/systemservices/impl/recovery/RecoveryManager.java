@@ -638,14 +638,14 @@ public class RecoveryManager implements Runnable {
      */
     private void releaseLock(InterProcessLock lock) {
         if (lock == null) {
-            log.info("The recovery lock is null");
+            log.info("The recovery lock is null, no need to release");
             return;
         }
         try {
             lock.release();
-            log.info("Release recovery lock");
+            log.info("Release recovery lock successful");
         } catch (Exception ignore) {
-            log.warn("Release lock failed, {}", ignore.getMessage());
+            log.warn("Release recovery lock failed, {}", ignore.getMessage());
         }
     }
 

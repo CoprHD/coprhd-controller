@@ -24,7 +24,7 @@ public class VirtualDataCenterMapper {
         to.setGeoCommandEndpoint(from.getGeoCommandEndpoint());
         to.setGeoDataEndpoint(from.getGeoDataEndpoint());
         to.setLastSeenTimeInMillis(from.getLastSeenTimeInMillis());
-        to.setStandbyIDs(from.getStandbyIDs());
+        to.setSiteIDs(from.getSiteIDs());
         return to;
     }
 }

@@ -212,24 +212,31 @@ public class ECSApi {
     		_log.info("ECSApi:createBucket URI_CREATE_BUCKET");
     		clientResp = _client.post_json(_baseUrl.resolve(URI_CREATE_BUCKET), authToken, body);
     		if (clientResp.getStatus() != 200) {
-    			if (clientResp.getStatus() == 401 || clientResp.getStatus() == 302) {
-    				_log.info("getting new auth token");
+    			//if (clientResp.getStatus() == 401 || clientResp.getStatus() == 302) {
+    				_log.info("getting new auth token " + clientResp.getStatus());
     				getAuthToken();
     				clientResp = _client.post_json(_baseUrl.resolve(URI_CREATE_BUCKET), authToken, body);
-    			}
+    			//}
 
     			if (clientResp.getStatus() != 200) {
     				JSONObject jObj = clientResp.getEntity(JSONObject.class);
-    				_log.info("ECSApi:createBucket resp error " + jObj.toString());
+    				_log.info("ECSApi:createBucket resp error " + jObj.toString() + " " + _baseUrl.resolve(URI_CREATE_BUCKET).toString() + " " + body 
+    						+ "  " + authToken);
     				throw ECSException.exceptions.getStoragePoolsAccessFailed(_baseUrl, clientResp.getStatus());
     			}
     		}
+    		
+    		//working
+			JSONObject jObj = clientResp.getEntity(JSONObject.class);
+			_log.info("ECSApi:createBucket working " + jObj.toString() + " " + _baseUrl.resolve(URI_CREATE_BUCKET).toString() + " " + body 
+					+ "  " + authToken);
+
 
     		//extract bucket id
-    		JSONObject jObj = clientResp.getEntity(JSONObject.class);
-    		if (jObj.has("id")) {
-    			id = jObj.getString("id");
-    		}
+//    		JSONObject jObj = clientResp.getEntity(JSONObject.class);
+//    		if (jObj.has("id")) {
+//    			id = jObj.getString("id");
+//    		}
 
     		//update retention period
     		if (retentionPeriod != null) {
@@ -244,11 +251,12 @@ public class ECSApi {
 
     			clientResp2 = _client.put_json(_baseUrl.resolve(uriBucketRetention), authToken, body2);
     			if (clientResp2.getStatus() != 200) {
-    				if (clientResp2.getStatus() == 401 || clientResp2.getStatus() == 302) {
+    				//if (clientResp2.getStatus() == 401 || clientResp2.getStatus() == 302) {
+    				_log.info("getting new auth token " + clientResp2.getStatus());
     					_log.info("getting new auth token");
     					getAuthToken();
     					clientResp2 = _client.put_json(_baseUrl.resolve(uriBucketRetention), authToken, body2);
-    				}
+    				//}
 
     				if (clientResp2.getStatus() != 200) {
     					JSONObject jObj2 = clientResp2.getEntity(JSONObject.class);
@@ -277,11 +285,11 @@ public class ECSApi {
 
     			clientResp3 = _client.put_json(_baseUrl.resolve(uriBucketQuota), authToken, body3);
     			if (clientResp3.getStatus() != 200) {
-    				if (clientResp3.getStatus() == 401 || clientResp3.getStatus() == 302) {
-    					_log.info("getting new auth token");
+    				//if (clientResp3.getStatus() == 401 || clientResp3.getStatus() == 302) {
+    				_log.info("getting new auth token " + clientResp3.getStatus());
     					getAuthToken();
     					clientResp3 = _client.put_json(_baseUrl.resolve(uriBucketQuota), authToken, body3);
-    				}
+    				//}
 
     				if (clientResp3.getStatus() != 200) {
     					JSONObject jObj3 = clientResp3.getEntity(JSONObject.class);
@@ -308,11 +316,11 @@ public class ECSApi {
 
     			clientResp4 = _client.post_json(_baseUrl.resolve(uriBucketOwner), authToken, body4);
     			if (clientResp4.getStatus() != 200) {
-    				if (clientResp4.getStatus() == 401 || clientResp4.getStatus() == 302) {
-    					_log.info("getting new auth token");
+    				//if (clientResp4.getStatus() == 401 || clientResp4.getStatus() == 302) {
+    				_log.info("getting new auth token " + clientResp4.getStatus());
     					getAuthToken();
     					clientResp4 = _client.post_json(_baseUrl.resolve(uriBucketOwner), authToken, body4);
-    				}
+    				//}
 
     				if (clientResp4.getStatus() != 200) {
     					JSONObject jObj4 = clientResp4.getEntity(JSONObject.class);

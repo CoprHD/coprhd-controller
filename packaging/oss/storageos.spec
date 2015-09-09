@@ -87,7 +87,9 @@ fi
 /etc/genconfig.d/geo
 /etc/genconfig.d/geodb
 /etc/genconfig.d/nginx
+/etc/genconfig.d/password
 /etc/genconfig.d/portal
+/etc/genconfig.d/security
 /etc/genconfig.d/ssh
 /etc/genconfig.d/ssh_auth_key
 /etc/genconfig.d/ssl
@@ -103,6 +105,7 @@ fi
 /etc/genconfig.d/boot/10geodb
 /etc/genconfig.d/boot/10nginx
 /etc/genconfig.d/boot/10portal
+/etc/genconfig.d/boot/00security
 /etc/genconfig.d/boot/00ssl
 /etc/genconfig.d/boot/10syssvc
 /etc/gentmpl

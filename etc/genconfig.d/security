@@ -43,6 +43,24 @@ _gen_passwd() {
     _genconfig_done
 }
 
+# Add user svcuser if it does not exist
+_gen_svcuser() {
+    getent passwd svcuser >&/dev/null || useradd svcuser -c "Appliance Maintenance" -d /home/svcuser -m
+    usermod svcuser -u 1001 -s /usr/bin/rbash
+    chmod 750 /home/svcuser
+    chmod 640 /home/svcuser/.bashrc
+    _genconfig_done
+}
+
+# Add user and group storageos if they do not exist
+_gen_storageos() {
+    getent group  storageos >&/dev/null || groupadd -g 444 storageos
+    getent passwd storageos >&/dev/null || useradd -r -d /opt/storageos -c "StorageOS"   -g 444 -u 444 -s /bin/bash storageos
+    _genconfig_done
+}
+
+_genconfig_exec _gen_svcuser
+_genconfig_exec _gen_storageos
 . /etc/genconfig.d/ssh
 . /etc/genconfig.d/password
 _genconfig_exec _gen_securetty           /etc/securetty

@@ -3103,8 +3103,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         					for (String associatedVolumeStr : associatedVolumes) {
         						URI associatedVolumeURI = URI.create(associatedVolumeStr);
         						Volume associatedVolume = _dbClient.queryObject(Volume.class, associatedVolumeURI);
-        						if (associatedVolume.getRpCopyName().equalsIgnoreCase(copyName)) {
+        						if (associatedVolume.getRpCopyName().equalsIgnoreCase(copyName) && !associatedVolume.getRpCopyName().equalsIgnoreCase(cgVolume.getRpCopyName())) {
         							sourceInternalSiteName = associatedVolume.getInternalSiteName();
+        							associatedVolume.setPersonality(Volume.PersonalityTypes.SOURCE.name());
         							cgVolumes.add(associatedVolume);
         							break;
         						}

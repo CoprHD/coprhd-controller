@@ -1532,7 +1532,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 taskCompleter.ready(_dbClient);
             }
         } catch (Exception e) {
-            _log.info("Failed to create consistency group: " + e);
+            _log.error("Failed to create consistency group: " + e);
             ServiceError error = DeviceControllerErrors.smis.methodFailed(
                     "doCreateConsistencyGroup", e.getMessage());
             // Set task to error
@@ -1926,17 +1926,19 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                                 return;
                             }
                         } else {
-                            storage = storageSystem;                    
-                            cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
-                            cgPathInstance = _helper.checkExists(storage, cgPath, false, false);
-                            // If there is no consistency group with the given name, set the
-                            // operation to error
-                            if (cgPathInstance == null) {
-                                taskCompleter.error(_dbClient, DeviceControllerException.exceptions
+                            forProvider = storageSystem;
+                        }
+                    }
+                    if (!createCG) {
+                        cgPath = _cimPath.getReplicationGroupPath(forProvider, storage.getSerialNumber(), groupName);
+                        cgPathInstance = _helper.checkExists(forProvider, cgPath, false, false);
+                        // If there is no consistency group with the given name, set the
+                        // operation to error
+                        if (cgPathInstance == null) {
+                            taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                                     .consistencyGroupNotFound(consistencyGroup.getLabel(),
                                             consistencyGroup.getCgNameOnStorageSystem(storage.getId())));
-                                return;
-                            }
+                            return;
                         }
                     }
                 }
@@ -1979,6 +1981,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             }
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
+            _log.error("Problem in adding volumes to Consistency Group {}", consistencyGroupId, e);
             // Remove any references to the consistency group
             for (URI volume : volumes) {
                 BlockObject volumeObject = uriToBlockObjectMap.get(volume);
@@ -2253,6 +2256,12 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     public void doEstablishVolumeNativeContinuousCopyGroupRelation(final StorageSystem storage, final URI sourceVolume,
             final URI mirror, final TaskCompleter taskCompleter) throws DeviceControllerException {
         _mirrorOperations.establishVolumeNativeContinuousCopyGroupRelation(storage, sourceVolume, mirror, taskCompleter);
+    }
+
+    @Override
+    public void doEstablishVolumeSnapshotGroupRelation(final StorageSystem storage, final URI sourceVolume,
+            final URI snapshot, final TaskCompleter taskCompleter) throws DeviceControllerException {
+        _snapshotOperations.establishVolumeSnapshotGroupRelation(storage, sourceVolume, snapshot, taskCompleter);
     }
 
     @Override

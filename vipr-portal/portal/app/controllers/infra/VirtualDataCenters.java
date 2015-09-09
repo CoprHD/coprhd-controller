@@ -7,7 +7,6 @@ package controllers.infra;
 import static com.emc.vipr.client.core.util.ResourceUtils.refIds;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static com.emc.vipr.client.core.util.ResourceUtils.uris;
-import static util.BourneUtil.getViprClient;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -359,17 +358,5 @@ public class VirtualDataCenters extends ViprResourceController {
             VirtualDataCenterRestRep vdcRestRep = VirtualDataCenterUtils.get(vdc.getId().toString());
             return new VirtualDataCenter(vdcRestRep);
         }
-    }
-
-
-    public static boolean checkCompatibleVDCVersion(String expectedVersion) {
-        boolean result = false;
-        try {
-            result = getViprClient().vdcs().isCompatibleVDCVersion(expectedVersion);
-        } catch (Exception e) {
-            flash.error(MessagesUtils.get("vdc.compatible.error", e.getMessage()));
-            Common.handleError();
-        }
-        return result;
     }
 }

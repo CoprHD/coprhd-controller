@@ -34,7 +34,10 @@ public interface ECSExceptions {
 	@DeclareServiceCode(ServiceCode.ECS_CONNECTION_ERROR)
 	public ECSException errorCreatingServerURL(final String host, final int port, final Throwable e);
 
-	@DeclareServiceCode(ServiceCode.ECS_BUCKET_OPERATION_ERROR)
-    public ECSException bucketUpdateFailed(final URI baseUrl, final Throwable e);
+	@DeclareServiceCode(ServiceCode.ECS_BUCKET_UPDATE_ERROR)
+    public ECSException bucketUpdateFailed(final String bucketName, final String attributeType);
+
+	@DeclareServiceCode(ServiceCode.ECS_BUCKET_DELETE_ERROR)
+    public ECSException bucketDeleteFailed(final String bucketName);
 
 }

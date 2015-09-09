@@ -1,25 +1,17 @@
 package com.emc.storageos.ecs.api;
 
-import java.io.IOException;
-import java.io.StringWriter;
 import java.net.URI;
 import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import javax.ws.rs.core.MultivaluedMap;
 
 import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONException;
 import org.codehaus.jettison.json.JSONObject;
-import org.json.simple.parser.JSONParser;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gson.Gson;
 import com.sun.jersey.api.client.ClientResponse;
 
 public class ECSApi {
@@ -364,21 +356,15 @@ public class ECSApi {
                 String quotaUpdate = " { \"blockSize\": \"" + hardQuota + "\", \"notificationSize\": \"" + softQuota
                         + "\", \"namespace\": \"" + namespace + "\" }  ";
                 final String path = MessageFormat.format(URI_UPDATE_BUCKET_QUOTA, bucketName);
-                clientResp = _client.post_json(_baseUrl.resolve(path), authToken, quotaUpdate);
+                clientResp = put(path, quotaUpdate);
+                
                 if (clientResp.getStatus() != 200) {
-                    if (clientResp.getStatus() == 401 || clientResp.getStatus() == 302) {
-                        getAuthToken();
-                        clientResp = _client.get_json(_baseUrl.resolve(URI_UPDATE_BUCKET_QUOTA), authToken);
-                    }
-
-                    if (clientResp.getStatus() != 200) {
-                        throw ECSException.exceptions.getStoragePoolsAccessFailed(_baseUrl, clientResp.getStatus());
-                    }
+                    throw ECSException.exceptions.bucketUpdateFailed(bucketName, "Quota");
                 }
             }
         }
     }
-
+    
     public void updateBucketRetention(String bucketName, String namespace, Integer retention) throws ECSException {
         ClientResponse clientResp = null;
 
@@ -386,15 +372,9 @@ public class ECSApi {
             if (null != retention) {
                 String retentionUpdate = " { \"period\": \"" + retention + "\", \"namespace\": \"" + namespace + "\" }  ";
                 final String path = MessageFormat.format(URI_UPDATE_BUCKET_RETENTION, bucketName);
-                clientResp = _client.post_json(_baseUrl.resolve(path), authToken, retentionUpdate);
+                clientResp = put(path, retentionUpdate);
                 if (clientResp.getStatus() != 200) {
-                    if (clientResp.getStatus() == 401 || clientResp.getStatus() == 302) {
-                        getAuthToken();
-                        clientResp = _client.get_json(_baseUrl.resolve(URI_UPDATE_BUCKET_RETENTION), authToken);
-                    }
-                    if (clientResp.getStatus() != 200) {
-                        throw ECSException.exceptions.getStoragePoolsAccessFailed(_baseUrl, clientResp.getStatus());
-                    }
+                    throw ECSException.exceptions.bucketUpdateFailed(bucketName, "Retention");
                 }
             }
         }
@@ -406,17 +386,29 @@ public class ECSApi {
         if (null != bucketName) {
             String deleteBody = " {  }  ";
             final String path = MessageFormat.format(URI_DEACTIVATE_BUCKET, bucketName);
-            clientResp = _client.post_json(_baseUrl.resolve(path), authToken, deleteBody);
-            if (clientResp.getStatus() != 200) {
-                if (clientResp.getStatus() == 401 || clientResp.getStatus() == 302) {
-                    getAuthToken();
-                    clientResp = _client.get_json(_baseUrl.resolve(URI_DEACTIVATE_BUCKET), authToken);
-                }
+            clientResp = post(path, deleteBody);
 
-                if (clientResp.getStatus() != 200) {
-                    throw ECSException.exceptions.getStoragePoolsAccessFailed(_baseUrl, clientResp.getStatus());
-                }
+            if (clientResp.getStatus() != 200) {
+                throw ECSException.exceptions.bucketDeleteFailed(bucketName);
             }
         }
+    }
+    
+    private ClientResponse post(final String uri, final String body){
+        ClientResponse clientResp = _client.post_json(_baseUrl.resolve(uri), authToken, body);
+        if (clientResp.getStatus() == 401) {
+            getAuthToken();
+            clientResp = _client.post_json(_baseUrl.resolve(uri), authToken, body);
+        }
+        return clientResp;
+    }
+    
+    private ClientResponse put(final String uri, final String body){
+        ClientResponse clientResp = _client.put_json(_baseUrl.resolve(uri), authToken, body);
+        if (clientResp.getStatus() == 401) {
+            getAuthToken();
+            clientResp = _client.put_json(_baseUrl.resolve(uri), authToken, body);
+        }
+        return clientResp;
     }
 }

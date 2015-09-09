@@ -534,7 +534,8 @@ public enum ServiceCode {
     ECS_STORAGEPOOL_ERROR(650003),
     ECS_STATS_ERROR(65004),
     ECS_NON_SYSTEM_ADMIN_ERROR(65005),
-    ECS_BUCKET_OPERATION_ERROR(65010),
+    ECS_BUCKET_UPDATE_ERROR(65010),
+    ECS_BUCKET_DELETE_ERROR(65011),
 
     // ****************************
     // Old style of Service codes

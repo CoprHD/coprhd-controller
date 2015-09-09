@@ -10,8 +10,10 @@ import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,6 +76,7 @@ public class FileStorageScheduler {
      * @param vArray
      * @param vPool
      * @param capabilities
+     * @param project
      * @return list of recommended storage ports for VNAS
      */
     public List<FileRecommendation> placeFileShare(VirtualArray vArray,
@@ -89,26 +92,89 @@ public class FileStorageScheduler {
         List<StoragePool> candidatePools = _scheduler.getMatchingPools(vArray,
                 vPool, capabilities);
 
+        // Get the recommendation based on virtual nas servers
+        Map<VirtualNAS, List<StoragePool>> vNASPoolMap = getRecommendedVirtualNASBasedOnCandidatePools(
+                vPool, vArray.getId(), candidatePools, project);
+        
+        VirtualNAS firstVNAS = null;
+        if(!vNASPoolMap.isEmpty()) {
+        	for (VirtualNAS eachVNAS : vNASPoolMap.keySet()) {
+        		firstVNAS = eachVNAS;
+        		break;
+			}
+        }
+        _log.info("Best vNAS selected: {}", firstVNAS.getNasName());
+        List<StoragePool> recommendedPools = vNASPoolMap.get(firstVNAS); 
+        
+        if(recommendedPools !=null && !recommendedPools.isEmpty()) {
+        	candidatePools = recommendedPools;
+        }
+        
         // Get the recommendations for the candidate pools.
         List<Recommendation> poolRecommendations = _scheduler
                 .getRecommendationsForPools(vArray.getId().toString(),
                         candidatePools, capabilities);
-
-        // Get the File recommendation based on virtual nas servers!!!
-        List<FileRecommendation> recommendations = getRecommendedStoragePortsForFilePlacemet(
-                vPool, vArray.getId(), poolRecommendations, project);
+        
+        List<FileRecommendation> fileRecommendations = null;
+        if(firstVNAS !=null) {
+	        fileRecommendations = getFileRecommendationsForVNAS(firstVNAS,
+	        		vArray.getId(), vPool, poolRecommendations);
+        }
+        
+        if(fileRecommendations.isEmpty()) {
+        	fileRecommendations = selectStorageHADomainMatchingVpool(vPool,
+        			vArray.getId(), poolRecommendations);
+        }
         // We need to place all the resources. If we can't then
         // log an error and clear the list of recommendations.
-        if (recommendations.isEmpty()) {
+        if (fileRecommendations.isEmpty()) {
             _log.error(
                     "Could not find matching pools for virtual array {} & vpool {}",
                     vArray.getId(), vPool.getId());
         }
 
-        return recommendations;
+        return fileRecommendations;
     }
 
     /**
+     * Returns the File recommendations for vNAS
+     * @param vNAS
+     * @param vArrayURI
+     * @param vPool
+     * @param poolRecommendations
+     * @return
+     */
+    private List<FileRecommendation> getFileRecommendationsForVNAS(VirtualNAS vNAS, 
+    		URI vArrayURI, VirtualPool vPool, List<Recommendation> poolRecommendations) {
+    	
+    	List<FileRecommendation> fileRecommendations = new ArrayList<FileRecommendation>();
+    	List<StoragePort> ports = getAssociatedStoragePorts(vNAS);
+    	
+    	List<URI> storagePortURIList = new ArrayList<URI>();
+    	for (Iterator<StoragePort> iterator = ports.iterator(); iterator.hasNext();) {
+			StoragePort storagePort = iterator.next();
+			storagePortURIList.add(storagePort.getId());
+		}
+    	
+    	for (Iterator<Recommendation> iterator = poolRecommendations.iterator();
+    			iterator.hasNext();) {
+    		
+			Recommendation recommendation =  iterator.next();
+			FileRecommendation fRec = new FileRecommendation(recommendation);
+			
+			URI storageDevice = fRec.getSourceStorageSystem();
+			
+			if(vNAS.getStorageDeviceURI().equals(storageDevice)) {
+				fRec.setStoragePorts(storagePortURIList);
+				fileRecommendations.add(fRec);
+			}
+			
+		}
+		
+		return fileRecommendations;
+	}
+
+	/**
      * Select storage port for exporting file share to the given client. One IP
      * transport zone per varray. Selects only one storage port for all exports
      * of a file share
@@ -212,15 +278,15 @@ public class FileStorageScheduler {
      * @return list of recommended storage ports for VNAS
      *
      */
-    private List<FileRecommendation> getRecommendedStoragePortsForFilePlacemet(
+    private Map<VirtualNAS, List<StoragePool>> getRecommendedVirtualNASBasedOnCandidatePools(
             VirtualPool vPool, URI vArrayURI,
-            List<Recommendation> poolRecommendations, Project project) {
-
-        List<FileRecommendation> result = new ArrayList<FileRecommendation>();
+            List<StoragePool> candidatePools, Project project) {
+    	
+    	Map<VirtualNAS, List<StoragePool>> map = new HashMap<VirtualNAS, List<StoragePool>>();
 
         _log.info(
                 "Get matching recommendations based on assigned VNAS to project {}",
-                project);
+                project.getLabel());
 
         List<VirtualNAS> vNASList = getVNASServersInProject(project, vArrayURI,
                 vPool);
@@ -232,7 +298,6 @@ public class FileStorageScheduler {
             vNASList = getUnassignedVNASServers(vArrayURI, vPool);
         }
 
-        VirtualNAS vNAS = null;
         if (vNASList != null && !vNASList.isEmpty()) {
 
             String dynamicPerformanceEnabled = customConfigHandler.getComputedCustomConfigValue(
@@ -248,44 +313,22 @@ public class FileStorageScheduler {
                 sortVNASListOnStaticLoad(vNASList);
             }
 
-            vNAS = getTheLeastUsedVNASServerBasedOnPoolRecommendation(vNASList, poolRecommendations);
-
-            _log.info("Best vNAS selected for placemene: {}", vNAS);
         }
 
-        for (Recommendation recommendation : poolRecommendations) {
-            FileRecommendation rec = new FileRecommendation(recommendation);
-
-            if (vNAS != null
-                    && rec.getSourceStorageSystem().equals(vNAS.getStorageDeviceURI())) {
-
-                _log.debug("Getting the storage ports of VNAS server: {}",
-                        vNAS.getId());
-
-                List<StoragePort> storagePortList = getAssociatedStoragePorts(vNAS);
-
-                if (storagePortList != null && !storagePortList.isEmpty()) {
-
-                    List<URI> spURIList = new ArrayList<URI>();
-
-                    for (StoragePort sp : storagePortList) {
-                        spURIList.add(sp.getId());
-                    }
-                    rec.setStoragePorts(spURIList);
-                    result.add(rec);
-                }
-            }
+        for(VirtualNAS vNAS: vNASList) {
+        	
+        	List<StoragePool> storagePools = new ArrayList<StoragePool>();
+        	
+        	for (StoragePool storagePool : candidatePools) {
+        	
+	            if (vNAS.getStorageDeviceURI().equals(storagePool.getStorageDevice())) {
+	            	storagePools.add(storagePool);
+	            }
+        	}
+        	map.put(vNAS, storagePools);
         }
 
-        if (result.isEmpty()) {
-            // No valid vNas server found for any reason!!!
-            // pick the File recommendation by vPool.
-            // This case will cover all other file storage for file placement based on vPool.
-            _log.debug("No recommendations found for selecting vNAS. Calling selectStorageHADomainMatchingVpool");
-            result = selectStorageHADomainMatchingVpool(vPool, vArrayURI,
-                    poolRecommendations);
-        }
-        return result;
+        return map;
     }
 
     /**
@@ -482,38 +525,6 @@ public class FileStorageScheduler {
         }
         return spList;
 
-    }
-
-    /**
-     * Get the least used VNAS from list of VNAS servers
-     * 
-     * @param vNASList
-     * @param poolRecommendations
-     * @return vNAS
-     * 
-     */
-    private VirtualNAS getTheLeastUsedVNASServerBasedOnPoolRecommendation(List<VirtualNAS> vNASList,
-            List<Recommendation> poolRecommendations) {
-
-        _log.debug("Selecting the least used vNAS from the vNAS list: {}", vNASList);
-
-        List<String> storageSystemURIList = new ArrayList<String>();
-        for (Iterator<Recommendation> iterator = poolRecommendations.iterator(); iterator
-                .hasNext();) {
-            Recommendation recommendation = iterator.next();
-            storageSystemURIList.add(recommendation.getSourceStorageSystem().toString());
-        }
-
-        for (Iterator<VirtualNAS> iterator = vNASList.iterator(); iterator
-                .hasNext();) {
-            VirtualNAS vNAS = iterator.next();
-            if (storageSystemURIList.contains(vNAS.getStorageDeviceURI().toString())) {
-                return vNAS;
-            }
-
-        }
-        _log.info("No overlapping virtual nas server found by pool recommendation");
-        return null;
     }
 
     /**

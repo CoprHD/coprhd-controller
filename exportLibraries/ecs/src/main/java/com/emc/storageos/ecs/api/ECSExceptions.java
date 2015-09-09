@@ -6,6 +6,9 @@ import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
 public interface ECSExceptions {
+    
+    @DeclareServiceCode(ServiceCode.ECS_RETURN_PARAM_ERROR)
+    public ECSException invalidBaseURI(final String ip, final String port);
 
     @DeclareServiceCode(ServiceCode.ECS_CONNECTION_ERROR)
     public ECSException unableToConnect(final URI baseUrl, final int status);
@@ -31,5 +34,7 @@ public interface ECSExceptions {
 	@DeclareServiceCode(ServiceCode.ECS_CONNECTION_ERROR)
 	public ECSException errorCreatingServerURL(final String host, final int port, final Throwable e);
 
+	@DeclareServiceCode(ServiceCode.ECS_BUCKET_OPERATION_ERROR)
+    public ECSException bucketUpdateFailed(final URI baseUrl, final Throwable e);
 
 }

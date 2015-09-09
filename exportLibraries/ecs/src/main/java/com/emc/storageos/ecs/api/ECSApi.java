@@ -3,6 +3,7 @@ package com.emc.storageos.ecs.api;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.net.URI;
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -34,6 +35,9 @@ public class ECSApi {
     private static final URI URI_CREATE_BUCKET = URI.create("/object/bucket.json");
     private final String ECS_BUCKET_UPDATE_BASE = "/object/bucket/";
     private static final String ROLE_SYSTEM_ADMIN = "<role>SYSTEM_ADMIN</role>";
+    private static final String URI_UPDATE_BUCKET_RETENTION = "/object/bucket/{0}/retention.json";
+    private static final String URI_UPDATE_BUCKET_QUOTA = "/object/bucket/{0}/quota.json";
+    private static final String URI_DEACTIVATE_BUCKET = "/object/bucket/{0}/deactivate.json";
     
     /**
      * Constructor for using http connections
@@ -351,4 +355,68 @@ public class ECSApi {
     	}
 
     }//end create bucket
+    
+    public void updateBucketQuota(String bucketName, String namespace, Long softQuota, Long hardQuota) throws ECSException {
+        ClientResponse clientResp = null;
+
+        if (null != namespace && null != bucketName) {
+            if (null != softQuota || null != hardQuota) {
+                String quotaUpdate = " { \"blockSize\": \"" + hardQuota + "\", \"notificationSize\": \"" + softQuota
+                        + "\", \"namespace\": \"" + namespace + "\" }  ";
+                final String path = MessageFormat.format(URI_UPDATE_BUCKET_QUOTA, bucketName);
+                clientResp = _client.post_json(_baseUrl.resolve(path), authToken, quotaUpdate);
+                if (clientResp.getStatus() != 200) {
+                    if (clientResp.getStatus() == 401 || clientResp.getStatus() == 302) {
+                        getAuthToken();
+                        clientResp = _client.get_json(_baseUrl.resolve(URI_UPDATE_BUCKET_QUOTA), authToken);
+                    }
+
+                    if (clientResp.getStatus() != 200) {
+                        throw ECSException.exceptions.getStoragePoolsAccessFailed(_baseUrl, clientResp.getStatus());
+                    }
+                }
+            }
+        }
+    }
+
+    public void updateBucketRetention(String bucketName, String namespace, Integer retention) throws ECSException {
+        ClientResponse clientResp = null;
+
+        if (null != namespace && null != bucketName) {
+            if (null != retention) {
+                String retentionUpdate = " { \"period\": \"" + retention + "\", \"namespace\": \"" + namespace + "\" }  ";
+                final String path = MessageFormat.format(URI_UPDATE_BUCKET_RETENTION, bucketName);
+                clientResp = _client.post_json(_baseUrl.resolve(path), authToken, retentionUpdate);
+                if (clientResp.getStatus() != 200) {
+                    if (clientResp.getStatus() == 401 || clientResp.getStatus() == 302) {
+                        getAuthToken();
+                        clientResp = _client.get_json(_baseUrl.resolve(URI_UPDATE_BUCKET_RETENTION), authToken);
+                    }
+                    if (clientResp.getStatus() != 200) {
+                        throw ECSException.exceptions.getStoragePoolsAccessFailed(_baseUrl, clientResp.getStatus());
+                    }
+                }
+            }
+        }
+    }
+
+    public void deleteBucket(String bucketName) throws ECSException {
+        ClientResponse clientResp = null;
+
+        if (null != bucketName) {
+            String deleteBody = " {  }  ";
+            final String path = MessageFormat.format(URI_DEACTIVATE_BUCKET, bucketName);
+            clientResp = _client.post_json(_baseUrl.resolve(path), authToken, deleteBody);
+            if (clientResp.getStatus() != 200) {
+                if (clientResp.getStatus() == 401 || clientResp.getStatus() == 302) {
+                    getAuthToken();
+                    clientResp = _client.get_json(_baseUrl.resolve(URI_DEACTIVATE_BUCKET), authToken);
+                }
+
+                if (clientResp.getStatus() != 200) {
+                    throw ECSException.exceptions.getStoragePoolsAccessFailed(_baseUrl, clientResp.getStatus());
+                }
+            }
+        }
+    }
 }

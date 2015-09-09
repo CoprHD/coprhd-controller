@@ -114,4 +114,33 @@ public class ObjectDeviceController implements ObjectController {
 		//}
 	}
 	
+    @Override
+    public void deleteBucket(URI storage, URI bucket, String task) throws ControllerException {
+        _log.info("ObjectDeviceController:deleteBucket");
+        Bucket bucketObj = _dbClient.queryObject(Bucket.class, bucket);
+        StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+        BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteBucket(storageObj, bucketObj);
+
+        if (result.getCommandPending()) {
+            return;
+        }
+        bucketObj.getOpStatus().updateTaskStatus(task, result.toOperation());
+    }
+
+    @Override
+    public void updateBucket(URI storage, URI bucket, Long softQuota, Long hardQuota, Integer retention,
+            String task) throws ControllerException {
+        _log.info("ObjectDeviceController:updateBucket");
+
+        Bucket bucketObj = _dbClient.queryObject(Bucket.class, bucket);
+        StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+        BiosCommandResult result = getDevice(storageObj.getSystemType()).doUpdateBucket(storageObj, bucketObj, softQuota, hardQuota,
+                retention);
+
+        if (result.getCommandPending()) {
+            return;
+        }
+        bucketObj.getOpStatus().updateTaskStatus(task, result.toOperation());
+    }
+	
 }

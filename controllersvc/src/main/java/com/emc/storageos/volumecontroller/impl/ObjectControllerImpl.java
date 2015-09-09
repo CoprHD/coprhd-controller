@@ -116,6 +116,15 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
 		_log.info("ObjectControllerImpl:createBukcet end");
 	}
 
+    @Override
+    public void deleteBucket(URI storage, URI bucket, String task) throws InternalException {
+        _log.info("ObjectControllerImpl:deleteBukcet");
+        execOb("deleteBucket", storage, bucket, task);
+    }
 
-
+    @Override
+    public void updateBucket(URI storage, URI bucket, Long softQuota, Long hardQuota, Integer retention, String task) throws InternalException {
+        _log.info("ObjectControllerImpl:updateBukcet");
+        execOb("updateBucket", storage, bucket, softQuota, hardQuota, retention, task);
+    }
 }

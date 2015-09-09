@@ -20,7 +20,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.upgrade.BaseCustomMigrationCallback;
-import com.emc.storageos.db.client.upgrade.callbacks.FullCopyVolumeReplicaStateMigration;
+import com.emc.storageos.db.client.upgrade.callbacks.FullCopyVolumeDetachedStateMigration;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.server.DbsvcTestBase;
 import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
@@ -47,7 +47,7 @@ public class FullCopyVolumeDetachedStateMigrationTest extends DbSimpleMigrationT
         customMigrationCallbacks.put("2.3", new ArrayList<BaseCustomMigrationCallback>() {
             private static final long serialVersionUID = 2L;
             {
-                add(new FullCopyVolumeReplicaStateMigration());
+                add(new FullCopyVolumeDetachedStateMigration());
             }
         });
 

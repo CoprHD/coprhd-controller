@@ -109,7 +109,7 @@ public class SystemHealth extends Controller {
         trySetRenderArgs(promises);
         render();
     }
-
+    @Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN") })
     public static void dbHealth() {
         DbRepairStatus dbstatus = AdminDashboardUtils.gethealthdb();
         int progress = dbstatus.getProgress();

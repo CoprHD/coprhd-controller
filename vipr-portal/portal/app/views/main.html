@@ -55,18 +55,24 @@
 #{nav.mainMenu}
 
   *{ DASHBOARD }*
-  #{deadbolt.restrict roles:[['SYSTEM_AUDITOR'],['SYSTEM_ADMIN'],['RESTRICTED_SYSTEM_ADMIN'],['SYSTEM_MONITOR']]}
+  #{deadbolt.restrict roles:[['SYSTEM_AUDITOR'],['SYSTEM_ADMIN'],['RESTRICTED_SYSTEM_ADMIN'],['SYSTEM_MONITOR'], ['SECURITY_ADMIN']]}
     #{nav.menu 'adminDashboard', icon:'vipricon-dashboard'}
-        #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR'], ['SYSTEM_AUDITOR']]}
+        #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR'], ['SYSTEM_AUDITOR'], ['SECURITY_ADMIN']]}
           #{nav.menuSection 'nav.adminDashboard'}
-            #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR']]}
+            #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR'], ['SECURITY_ADMIN']]}
+               #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR']]}
               #{nav.item 'adminDashboardPage', href: @AdminDashboard.dashboard()/}
               #{nav.item 'systemHealthDashboard', href: @SystemHealth.systemHealth()/}
               #{if controllers.SystemHealth.isNodeRecoveryEnabled()}
                 #{nav.item 'systemNodeRecovery', href: @SystemHealth.nodeRecovery()/}
               #{/if}
-              #{nav.item 'dbHealthDashboard', href: @SystemHealth.dbHealth()/}
+              #{/deadbolt.restrict}
+              #{deadbolt.restrict roles:[['SYSTEM_MONITOR'], ['SYSTEM_ADMIN'], ['SECURITY_ADMIN']]}
+               #{nav.item 'dbHealthDashboard', href: @SystemHealth.dbHealth()/}
+              #{/deadbolt.restrict}
+               #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['RESTRICTED_SYSTEM_ADMIN'], ['SYSTEM_MONITOR']]}
               #{nav.item 'systemHealthLogs', href: @SystemHealth.logs()/}
+               #{/deadbolt.restrict}
             #{/deadbolt.restrict}
             #{deadbolt.restrict roles:[['SYSTEM_AUDITOR']]}
               #{nav.item 'auditLog', href: @infra.AuditLog.list()/}

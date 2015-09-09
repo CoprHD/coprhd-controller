@@ -11,6 +11,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -426,9 +427,10 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                 throw DeviceControllerException.exceptions.failedToAcquireLock(lockKeys.toString(),
                         "UpdateConsistencyGroup: " + cg.getLabel());
             }
-
+            
+            boolean isIngestedCG = isAddingBackendCGForIngestedCG(cg, addVolumesList);
             // If necessary, create a step to update the local CGs.
-            if (cg.getTypes().contains(Types.LOCAL.toString())) {
+            if (cg.getTypes().contains(Types.LOCAL.toString()) || isIngestedCG) {
                 // We need to determine the backend systems that own the local CGs and the
                 // volumes to be added/removed from each. There should really only be either
                 // one of two backend systems depending upon whether or not the volumes are
@@ -476,7 +478,7 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
             }
 
             // Now create a step to add volumes to the CG.
-            if ((addVolumesList != null) && !addVolumesList.isEmpty()) {
+            if ((addVolumesList != null) && !addVolumesList.isEmpty() && !isIngestedCG) {
                 // See if the CG contains no volumes. If so, we need to
                 // make sure the visibility and storage cluster info for
                 // the VPLEX CG is correct for these volumes we are adding.
@@ -641,5 +643,28 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                 removeMethod, removeRollbackMethod, null);
         log.info("Created step for remove volumes from consistency group.");
         return waitFor;
+    }
+    
+    /**
+     * Check update consistency group operation is for adding back end consistency groups for ingested CG.
+     * @param cg
+     * @param addVolumesList
+     * @return
+     */
+    private boolean isAddingBackendCGForIngestedCG(BlockConsistencyGroup cg, List<URI>addVolumesList) {
+        boolean result = false;
+        if (cg.getTypes().contains(Types.LOCAL.toString())) {
+            // Not ingested CG
+            return result;
+        }
+        List<Volume> cgVolumes = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, dbClient, null);
+        Set<String> cgVolumeURIs = new HashSet<String>();
+        for (Volume cgVolume : cgVolumes) {
+            cgVolumeURIs.add(cgVolume.getId().toString());
+        }
+        if (!addVolumesList.isEmpty() && cgVolumeURIs.contains(addVolumesList.get(0).toString())) {
+            result = true;
+        }
+        return result;
     }
 }

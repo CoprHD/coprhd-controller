@@ -2216,7 +2216,9 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 }
             }
         }
-
+        // If the CG is ingested, and we would like to back end CGs for those virtual volumes in the CG,
+        // all the virtual volumes in the CG have to be selected.
+        verifyAddVolumesToIngestedCG(consistencyGroup, addVolumesList);
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, consistencyGroup.getId(),
                 taskId, ResourceOperationTypeEnum.UPDATE_CONSISTENCY_GROUP);
 
@@ -3186,9 +3188,43 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap,
             String snapshotType, String snapshotName, BlockFullCopyManager fcManager) {
         super.validateCreateSnapshot(reqVolume, volumesToSnap, snapshotType, snapshotName, fcManager);
-        //if there are more than one volume in the consistency group, and they are on different backend storage system, return error.
+        // If there are more than one volume in the consistency group, and they are on different backend storage system, return error.
         if (volumesToSnap.size()>1 && !VPlexUtil.isVPLEXCGBackendVolumesInSameStorage(volumesToSnap, _dbClient)) {
             throw APIException.badRequests.snapshotNotAllowedWhenCGAcrossMultipleSystems();
         }
+    }
+    
+    /**
+     * Verify the add volumes are valid for ingested consistency group. For ingested consistency group, the valid add volumes 
+     * are either all virtual volumes in the CG, or a new virtual volume
+     * @param consistencyGroup
+     * @param addVolumesList
+     */
+    private void verifyAddVolumesToIngestedCG(BlockConsistencyGroup cg, List<URI>addVolumesList) {
+        if (cg.getTypes().contains(Types.LOCAL.toString())) {
+            // Not ingested CG
+            return;
+        }
+        List<Volume> cgVolumes = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, _dbClient, null);
+        Set<String> cgVolumeURIs = new HashSet<String>();
+        for (Volume cgVolume : cgVolumes) {
+            cgVolumeURIs.add(cgVolume.getId().toString());
+        }
+        boolean isExistingVolume = false;
+        boolean hasNewVolume = false;
+        for (URI addVolume : addVolumesList) {
+            if (cgVolumeURIs.contains(addVolume.toString())) {
+                isExistingVolume = true;
+            } else {
+                hasNewVolume = true;
+            }
+        }
+        if (isExistingVolume && hasNewVolume) {
+            throw APIException.badRequests.cantAddMixVolumesToIngestedCG(cg.getLabel());
+        } else if (isExistingVolume && (cgVolumes.size() != addVolumesList.size())) {
+            // Not all virtual volumes are selected
+            throw APIException.badRequests.notAllVolumesAddedToIngestedCG(cg.getLabel());
+        }
+        
     }
 }

@@ -2413,4 +2413,10 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException fullCopyNotAllowedWhenCGAcrossMultipleSystems();
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cantAddMixVolumesToIngestedCG(final String cgName);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException notAllVolumesAddedToIngestedCG(final String cgName);
 }

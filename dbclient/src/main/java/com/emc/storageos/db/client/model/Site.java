@@ -14,6 +14,7 @@ public class Site extends DataObject {
     private String uuid;
     private String name;
     private String vip;
+    private String secretKey;
     private StringMap hostIPv4AddressMap = new StringMap();
     private StringMap hostIPv6AddressMap = new StringMap();
 
@@ -45,6 +46,17 @@ public class Site extends DataObject {
     public void setVip(String vip) {
         this.vip = vip;
         setChanged("vip");
+    }
+    
+    @Name("secretKey")
+    @Encrypt
+    public String getSecretKey() {
+        return secretKey;
+    }
+
+    public void setSecretKey(String secretKey) {
+        this.secretKey = secretKey;
+        setChanged("secretKey");
     }
 
     @Name("hostIPv4AddressMap")

@@ -36,6 +36,14 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
     public SiteList listAllSites() {
         return client.get(SiteList.class, PathConstants.SITE_URL);
     }
+    
+    public SiteRestRep getStandbyConfig() {
+        return client.get(SiteRestRep.class, PathConstants.SITE_URL + "/standby/config");
+    }
+    
+    public SiteRestRep addPrimary(SiteAddParam input) {
+        return client.post(SiteRestRep.class, input, PathConstants.SITE_URL + "/standby/config");
+    }
 
     @Override
     public List<SiteRestRep> getAll(ResourceFilter<SiteRestRep> filter) {

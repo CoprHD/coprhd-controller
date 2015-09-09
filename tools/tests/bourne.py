@@ -202,6 +202,9 @@ URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_ACTIVATE   = URI_BLOCK_CONSISTENCY_GROUP_SN
 URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_DEACTIVATE = URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT + "/deactivate"
 URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_RESTORE    = URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT + "/restore"
 
+URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE       = URI_BLOCK_CONSISTENCY_GROUP + "/protection/continuous-copies"
+URI_BLOCK_CONSISTENCY_GROUP_SWAP                  = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/swap"
+
 URI_NETWORKSYSTEMS              = URI_SERVICES_BASE   + '/vdc/network-systems'
 URI_NETWORKSYSTEM               = URI_NETWORKSYSTEMS  + '/{0}'
 URI_NETWORKSYSTEM_DISCOVER      = URI_NETWORKSYSTEMS  + '/{0}/discover'
@@ -3955,6 +3958,30 @@ class Bourne:
         s = self.api_sync_2(id, task_id, self.block_consistency_group_show_task)
         return (o, s)
 
+    def block_consistency_group_swap(self, group, copyType, targetVarray):
+        copies_param = dict()
+        copy = dict()
+        copy_entries = []
+
+        copy['type'] = copyType
+        copy['copyID'] = targetVarray
+        copy_entries.append(copy)
+        copies_param['copy'] = copy_entries
+        
+        o = self.api('POST', URI_BLOCK_CONSISTENCY_GROUP_SWAP.format(group), copies_param )
+        self.assert_is_dict(o)
+        
+        if ('task' in o):
+            tasks = []
+            for task in o['task']:
+                s = self.api_sync_2(task['resource']['id'], task['op_id'], self.block_consistency_group_show_task)
+                tasks.append(s)
+            s = tasks
+        else:
+            s = o['details']
+
+        return s
+
     def block_consistency_group_snapshot_show_task(self, group, snapshot, task):
         return self.api('GET', URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_TASKS.format(group, snapshot, task))
 
@@ -3962,7 +3989,7 @@ class Bourne:
         return self.api('GET', URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT.format(group, snapshot))
 
     def block_consistency_group_snapshot_query(self, group, name):
-        if (self.__is_uri(name)):
+        if (self.__is_uri(name)):   
             return name
 
         return (self.block_consistency_group_snapshot_get_id_by_name(group, name))

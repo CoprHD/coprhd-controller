@@ -44,6 +44,11 @@ public class ComputeMapper {
         to.setUsername(from.getUsername());
         to.setVersion(from.getVersion());
         to.setOsInstallNetwork(from.getOsInstallNetwork());
+        if (from.getComputeImageServer()!=null){
+        	to.setComputeImageServer(from.getComputeImageServer().toString());
+        }else{
+        	to.setComputeImageServer("");
+        }
 
         // sort vlans as numbers
         List<Integer> vlanIds = new ArrayList<Integer>();

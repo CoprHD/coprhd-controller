@@ -50,11 +50,13 @@ import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssignerFactory;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.workflow.Workflow;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -224,12 +226,13 @@ public class VPlexBackendManager {
      * @param array [IN] - Storage Array storage system
      * @param varrayURI [IN] - Virtual array
      * @param volumeMap [IN] - Map of URI to their corresponding Volume object
+     * @param stepId the workflow step id used find the workflow where the existing zone information is stored
      * @return ExportMaskPlacementDescriptor - data structure that will indicate the mapping of ExportMasks to
      *         ExportGroups and ExportMasks to Volumes.
      * @throws ControllerException
      */
     public ExportMaskPlacementDescriptor chooseBackendExportMask(StorageSystem vplex, StorageSystem array, URI varrayURI,
-            Map<URI, Volume> volumeMap)
+            Map<URI, Volume> volumeMap, String stepId)
             throws ControllerException {
         _log.info(String.format("Searching for existing ExportMasks between Vplex %s (%s) and Array %s (%s) in Varray %s",
                 vplex.getLabel(), vplex.getNativeGuid(), array.getLabel(), array.getNativeGuid(), varrayURI));
@@ -274,14 +277,14 @@ public class VPlexBackendManager {
                 // Did not find any reusable ExportMasks. Either there were some that matched initiators, but did not meeting the
                 // VPlex criteria, or there were no existing masks for the backend at all.
                 Map<URI, Volume> volumesToPlace = placementDescriptor.getVolumesToPlace();
-                createVPlexBackendExportMasksForVolumes(vplex, array, varrayURI, placementDescriptor, invalidMasks, volumesToPlace);
+                createVPlexBackendExportMasksForVolumes(vplex, array, varrayURI, placementDescriptor, invalidMasks, volumesToPlace, stepId);
             } else if (placementDescriptor.hasUnPlacedVolumes()) {
                 // There were some matching ExportMasks found on the backend array, but we also have some unplaced
                 // volumes. We need to create new ExportMasks to hold these unplaced volumes.
 
                 // We will leave the placement hint to whatever was determined by the suggestExportMasksForPlacement call
                 Map<URI, Volume> unplacedVolumes = placementDescriptor.getUnplacedVolumes();
-                createVPlexBackendExportMasksForVolumes(vplex, array, varrayURI, placementDescriptor, invalidMasks, unplacedVolumes);
+                createVPlexBackendExportMasksForVolumes(vplex, array, varrayURI, placementDescriptor, invalidMasks, unplacedVolumes, stepId);
             }
 
             // At this point, we have:
@@ -308,7 +311,8 @@ public class VPlexBackendManager {
 
     /**
      * Validate the mask for only non OpenStack storage systems now.
-     * For OpenStack, Export Mask will get validated later before the zoning step 
+     * For OpenStack, Export Mask will get validated later before the zoning step
+     * 
      * @param array
      * @param varrayURI
      * @param maskSet
@@ -319,10 +323,10 @@ public class VPlexBackendManager {
             Map<URI, ExportMask> maskSet, Set<URI> invalidMasks,
             ExportMask mask, ExportMaskPlacementDescriptor placementDescriptor,
             Map<URI, Volume> volumeMap, String logMsg) {
-        
+
         if (!isOpenStack(array)) {
-            
-            _log.info(logMsg);            
+
+            _log.info(logMsg);
             if (VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI,
                     _initiatorPortMap, mask, invalidMasks,
                     _directorToInitiatorIds, _idToInitiatorMap, _dbClient, _portWwnToClusterMap)) {
@@ -338,7 +342,6 @@ public class VPlexBackendManager {
         }
     }
 
-    
     /**
      * Returns the Storage Ports on a VPlex that should be used for a particular
      * storage array. This is done by finding ports in the VPlex and array that have
@@ -692,18 +695,33 @@ public class VPlexBackendManager {
     /**
      * Returns a list of all possible allocatable ports on an array for a given set of Networks.
      * 
-     * @param arrayURI -- URI of storage array (VMAX, VNX, ...)
-     * @param networkURI -- Set<URI> of networks
+     * @param array the storage array
      * @param varray -- URI of varray
+     * @param networkURI -- Set<URI> of networks
+     * @param zonesByNetwork an OUT param to collect the zones found grouped by network
+     * @param token the workflow step id
+     * 
      * @return
      */
-    public Map<URI, List<StoragePort>> getAllocatablePorts(URI arrayURI, Set<URI> networkURIs, URI varray) {
-        Map<URI, List<StoragePort>> networkToPortsMap = new HashMap<URI, List<StoragePort>>();
-        for (URI networkURI : networkURIs) {
-            List<StoragePort> ports = _blockStorageScheduler.selectStoragePorts(arrayURI, networkURI, varray);
-            networkToPortsMap.put(networkURI, ports);
+    public Map<URI, List<StoragePort>> getAllocatablePorts(StorageSystem array, Set<URI> networkURIs, URI varray,
+            Map<NetworkLite, StringSetMap> zonesByNetwork, String stepId) {
+        Collection<NetworkLite> networks = NetworkUtil.queryNetworkLites(networkURIs, _dbClient);
+        Map<URI, List<StoragePort>> map = new HashMap<URI, List<StoragePort>>();
+
+        // find all the available storage ports
+        Map<NetworkLite, List<StoragePort>> tempMap = _blockStorageScheduler.selectStoragePortsInNetworks(array.getId(), networks, varray);
+
+        // if the user requests to use only pre-zoned ports, then filter to pre-zoned ports only
+        if (_networkDeviceController.getNetworkScheduler().portAllocationUseExistingZones(array.getSystemType(), true)) {
+            Map<NetworkLite, List<Initiator>> initiatorsByNetwork = NetworkUtil.getInitiatorsByNetwork(_initiators, _dbClient);
+            tempMap = _blockStorageScheduler.getPrezonedPortsForInitiators(_networkDeviceController,
+                    tempMap, initiatorsByNetwork, zonesByNetwork, stepId);
         }
-        return networkToPortsMap;
+
+        for (NetworkLite network : tempMap.keySet()) {
+            map.put(network.getId(), tempMap.get(network));
+        }
+        return map;
     }
 
     public ExportMask generateExportMask(URI arrayURI, String namePrefix,
@@ -767,11 +785,11 @@ public class VPlexBackendManager {
 
         Map<URI, Integer> volumeLunIdMap = createVolumeMap(array.getId(), exportGroup, volumeMap);
         _dbClient.persistObject(exportGroup);
-        
+
         String zoningStep = null;
         String maskStepId = workflow.createStepId();
         String reValidateExportMaskStep = workflow.createStepId();
-        
+
         ExportMaskAddVolumeCompleter createCompleter = new ExportMaskAddVolumeCompleter(
                 exportGroup.getId(), exportMask.getId(), volumeLunIdMap, maskStepId);
         List<URI> volumeList = new ArrayList<URI>();
@@ -779,12 +797,12 @@ public class VPlexBackendManager {
         ExportTaskCompleter rollbackCompleter =
                 new ExportMaskOnlyRemoveVolumeCompleter(exportGroup.getId(),
                         exportMask.getId(), volumeList, maskStepId);
-        
+
         String previousStepId = dependantStepId;
-        
-        String zoningDependentStep = ((isMaskingFirst && isOpenStack )? reValidateExportMaskStep :
-                                      ((isMaskingFirst && !isOpenStack) ? maskStepId : previousStepId));
-        
+
+        String zoningDependentStep = ((isMaskingFirst && isOpenStack) ? reValidateExportMaskStep :
+                ((isMaskingFirst && !isOpenStack) ? maskStepId : previousStepId));
+
         if (exportMask.getCreatedBySystem()) {
             _log.info(String.format("Creating zone references for Backend ExportMask %s",
                     exportMask.getMaskName()));
@@ -800,7 +818,7 @@ public class VPlexBackendManager {
                     zoningDependentStep, nullURI, "network-system",
                     _networkDeviceController.getClass(),
                     zoneCreateMethod, zoneDeleteMethod, null);
-            
+
             if (!isMaskingFirst) {
                 previousStepId = zoningStep;
             }
@@ -814,12 +832,12 @@ public class VPlexBackendManager {
         workflow.createStep(EXPORT_STEP, "createOrAddVolumesToExportMask: " + exportMask.getMaskName(),
                 previousStepId, array.getId(), array.getSystemType(), orca.getClass(),
                 updateMaskMethod, rollbackMaskMethod, maskStepId);
-        
+
         // For OpenStack - Additional step of validating the export mask is needed
         // This is required as the export mask gets updated by reading the cinder response.
-        if(isOpenStack) {
-            
-            // START - validateExportMask Step            
+        if (isOpenStack) {
+
+            // START - validateExportMask Step
             Workflow.Method validateMaskMethod = ((VplexCinderMaskingOrchestrator) orca).validateExportMaskMethod(varrayURI,
                     _initiatorPortMap, exportMask.getId(), _directorToInitiatorIds, _idToInitiatorMap, _portWwnToClusterMap);
             workflow.createStep(REVALIDATE_MASK, "revalidateExportMask: " + exportMask.getMaskName(),
@@ -827,7 +845,7 @@ public class VPlexBackendManager {
             // END - validateExportMask Step
 
         }
-        
+
         _log.info(String.format(
                 "VPLEX ExportGroup %s (%s) vplex %s varray %s",
                 exportGroup.getLabel(), exportGroup.getId(), vplex.getId(),
@@ -851,7 +869,7 @@ public class VPlexBackendManager {
         return (array.getSystemType().equals(DiscoveredDataObject.Type.vnxblock.name())
                 || array.getSystemType().equals(DiscoveredDataObject.Type.vnxe.name())
                 || array.getSystemType().equals(DiscoveredDataObject.Type.openstack.name()));
-        
+
     }
 
     /**
@@ -894,7 +912,7 @@ public class VPlexBackendManager {
     }
 
     public Map<ExportMask, ExportGroup> generateExportMasks(
-            URI varrayURI, StorageSystem vplex, StorageSystem array) {
+            URI varrayURI, StorageSystem vplex, StorageSystem array, String stepId) {
         // Build the data structures used for analysis and validation.
         buildDataStructures(vplex, array, varrayURI);
 
@@ -906,14 +924,20 @@ public class VPlexBackendManager {
 
         // First we must determine the Initiator Groups and PortGroups to be used.
         VplexBackEndMaskingOrchestrator orca = getOrch(array);
+
+        // get the allocatable ports - if the custom config requests pre-zoned ports to be used
+        // get the existing zones in zonesByNetwork
+        Map<NetworkLite, StringSetMap> zonesByNetwork = new HashMap<NetworkLite, StringSetMap>();
         Map<URI, List<StoragePort>> allocatablePorts =
-                getAllocatablePorts(array.getId(), _networkMap.keySet(), varrayURI);
+                getAllocatablePorts(array, _networkMap.keySet(), varrayURI, zonesByNetwork, stepId);
         Set<Map<URI, List<StoragePort>>> portGroups =
                 orca.getPortGroups(allocatablePorts, _networkMap, varrayURI, initiatorGroups.size());
 
         // Now generate the Masking Views that will be needed.
         Map<ExportMask, ExportGroup> exportMasksMap = new HashMap<ExportMask, ExportGroup>();
         Iterator<Map<String, Map<URI, Set<Initiator>>>> igIterator = initiatorGroups.iterator();
+        // get the assigner needed - it is with a pre-zoned ports assigner or the default
+        StoragePortsAssigner assigner = StoragePortsAssignerFactory.getAssignerForZones(array.getSystemType(), zonesByNetwork);
         for (Map<URI, List<StoragePort>> portGroup : portGroups) {
             String maskName = clusterName.replaceAll("[^A-Za-z0-9_]", "_");
             _log.info("Generating ExportMask: " + maskName);
@@ -921,7 +945,7 @@ public class VPlexBackendManager {
                 igIterator = initiatorGroups.iterator();
             }
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup = igIterator.next();
-            StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, _networkMap);
+            StringSetMap zoningMap = orca.configureZoning(portGroup, initiatorGroup, _networkMap, assigner);
             ExportMask exportMask = generateExportMask(array.getId(), maskName, portGroup, initiatorGroup, zoningMap);
 
             // Set a flag indicating that we do not want to remove zoningMap entries
@@ -1230,7 +1254,7 @@ public class VPlexBackendManager {
             _log.info(String.format("Validating ExportMask %s (%s) %s", mask.getMaskName(), mask.getId(),
                     (mask.getCreatedBySystem() ? "ViPR created" : "Externally created")));
             // No necessary to skip here for Openstack, as cinder backend orchestrator returns the empty set
-            if (VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI,_initiatorPortMap, mask, invalidMasks,
+            if (VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI, _initiatorPortMap, mask, invalidMasks,
                     _directorToInitiatorIds, _idToInitiatorMap, _dbClient, _portWwnToClusterMap)) {
                 if (mask.getCreatedBySystem()) {
                     viprCreatedMasks = true;
@@ -1251,7 +1275,7 @@ public class VPlexBackendManager {
             Map<ExportMask, ExportGroup> uninitializedMasks = searchDbForExportMasks(array, _initiators, false);
             // Add these into contention for lowest volume count.
             for (ExportMask mask : uninitializedMasks.keySet()) {
-                
+
                 validateMaskAndPlaceVolumes(array, varrayURI, maskSet, invalidMasks, mask,
                         placementDescriptor, volumeMap, String.format("Validating uninitialized ViPR ExportMask %s (%s)",
                                 mask.getMaskName(), mask.getId()));
@@ -1271,10 +1295,12 @@ public class VPlexBackendManager {
      * @param placementDescriptor [IN/OUT] - The output of calling VPlexBackendMaskingOrchestrator.suggestExportMasksForPlacement
      * @param invalidMasks [IN] - List of Masks that match the initiator list, but do not meet VPlex reuse criteria
      * @param volumes [IN] - List of volumes to map to the new ExportMasks
+     * @param stepId the workflow step id used to find the workflow to locate the zoning map stored in ZK
      * @throws VPlexApiException
      */
     private void createVPlexBackendExportMasksForVolumes(StorageSystem vplex, StorageSystem array, URI varrayURI,
-            ExportMaskPlacementDescriptor placementDescriptor, Set<URI> invalidMasks, Map<URI, Volume> volumes) throws VPlexApiException {
+            ExportMaskPlacementDescriptor placementDescriptor, Set<URI> invalidMasks, Map<URI, Volume> volumes,
+            String stepId) throws VPlexApiException {
         Map<URI, ExportMask> maskSet = placementDescriptor.getMasks();
 
         if (!invalidMasks.isEmpty()) {
@@ -1284,14 +1310,14 @@ public class VPlexBackendManager {
             _log.info("Did not find any existing export masks");
         }
         _log.info("Attempting to generate ExportMasks...");
-        Map<ExportMask, ExportGroup> generatedMasks = generateExportMasks(varrayURI, vplex, array);
+        Map<ExportMask, ExportGroup> generatedMasks = generateExportMasks(varrayURI, vplex, array, stepId);
         if (generatedMasks.isEmpty()) {
             _log.info("Unable to generate any ExportMasks");
             throw VPlexApiException.exceptions.couldNotGenerateArrayExportMask(
                     vplex.getNativeGuid(), array.getNativeGuid(), _cluster);
         }
         // Validate the generated masks too.
-        for (ExportMask mask : generatedMasks.keySet()) {            
+        for (ExportMask mask : generatedMasks.keySet()) {
             validateMaskAndPlaceVolumes(array, varrayURI, maskSet, invalidMasks, mask,
                     placementDescriptor, volumes, String.format("Validating generated ViPR Export Mask %s (%s)",
                             mask.getMaskName(), mask.getId()));

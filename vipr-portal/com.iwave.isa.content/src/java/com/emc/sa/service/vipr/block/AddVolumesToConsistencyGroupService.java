@@ -18,8 +18,12 @@ import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
 import com.emc.sa.service.vipr.ViPRService;
 import com.emc.sa.service.vipr.block.tasks.GetActiveContinuousCopiesForVolume;
+import com.emc.sa.service.vipr.block.tasks.GetActiveFullCopiesForVolume;
+import com.emc.sa.service.vipr.block.tasks.GetActiveSnapshotsForVolume;
 import com.emc.storageos.model.block.BlockMirrorRestRep;
 import com.emc.storageos.model.block.BlockObjectRestRep;
+import com.emc.storageos.model.block.BlockSnapshotRestRep;
+import com.emc.storageos.model.block.VolumeRestRep;
 import com.google.common.collect.Lists;
 
 @Service("AddVolumesToConsistencyGroup")
@@ -46,6 +50,8 @@ public class AddVolumesToConsistencyGroupService extends ViPRService {
             BlockStorageUtils.createContinuousCopy(uri(volumeIds.get(0)), null, 1, BlockStorageUtils.COPY_SRDF, targets.get(0));
         }
 
+
+        // Continuous copy
         // add source volume mirror's to the CG
         Map<URI, List<URI>> sourceMirrors = addSourceVolumeMirrors();
 
@@ -57,6 +63,34 @@ public class AddVolumesToConsistencyGroupService extends ViPRService {
 
         // start continuous copies on the r2 mirrors
         startContinuousCopy(targetMirrors);
+
+
+        // Snapshot
+        // add source volumes' snapshots to the CG
+        Map<URI, List<URI>> sourceSnapshots = addSourceVolumeSnapshots();
+
+        // start snapshot on the r1 snapshots
+        startSnapshot(sourceSnapshots);
+
+        // add target volumes' snapshots to the CG
+        Map<URI, List<URI>> targetSnapshots = addTargetVolumeSnapshots();
+
+        // start snapshot on the r2 snapshots
+        startSnapshot(targetSnapshots);
+
+
+        // Full copy
+        // add source volumes' full copies to the CG
+        Map<URI, List<URI>> sourceFullCopies = addSourceVolumeFullCopies();
+
+        // start full copies on the r1 full copies
+        startFullCopy(sourceFullCopies);
+
+        // add target volumes' full copies to the CG
+        Map<URI, List<URI>> targetFullCopies = addTargetVolumeFullCopies();
+
+        // start full copies on the r2 full copies
+        startFullCopy(targetFullCopies);
     }
 
     /**
@@ -77,6 +111,40 @@ public class AddVolumesToConsistencyGroupService extends ViPRService {
     }
 
     /**
+     * Start full copy on one block object that has a full copy
+     * 
+     * @param fullCopies map of block object to full copies
+     */
+    public void startFullCopy(Map<URI, List<URI>> fullCopies) {
+        Iterator<URI> it = fullCopies.keySet().iterator();
+        while (it.hasNext()) {
+            URI blockObject = it.next();
+            List<URI> copyIds = fullCopies.get(blockObject);
+            if (!copyIds.isEmpty()) {
+                BlockStorageUtils.startFullCopy(copyIds.get(0));
+                break;
+            }
+        }
+    }
+
+    /**
+     * Start snapshot on one block object that has a snapshot
+     * 
+     * @param snapshots map of block object to snapshots
+     */
+    public void startSnapshot(Map<URI, List<URI>> snapshots) {
+        Iterator<URI> it = snapshots.keySet().iterator();
+        while (it.hasNext()) {
+            URI blockObject = it.next();
+            List<URI> copyIds = snapshots.get(blockObject);
+            if (!copyIds.isEmpty()) {
+                BlockStorageUtils.startSnapshot(copyIds.get(0));
+                break;
+            }
+        }
+    }
+
+    /**
      * Get mirrors for a given volume id
      * 
      * @param volumeId the volume id to use
@@ -89,6 +157,36 @@ public class AddVolumesToConsistencyGroupService extends ViPRService {
             blockMirrors.add(blockMirrorId.getId());
         }
         return blockMirrors;
+    }
+
+    /**
+     * Get full copies for a given volume id
+     * 
+     * @param volumeId the volume id to use
+     * @return list of full copy ids
+     */
+    public List<URI> getFullCopies(URI volumeId) {
+        List<URI> fullCopies = Lists.newArrayList();
+        List<VolumeRestRep> fullCopyRestReps = execute(new GetActiveFullCopiesForVolume(volumeId));
+        for (VolumeRestRep fullCopyId : fullCopyRestReps) {
+            fullCopies.add(fullCopyId.getId());
+        }
+        return fullCopies;
+    }
+
+    /**
+     * Get snapshots for a given volume id
+     * 
+     * @param volumeId the volume id to use
+     * @return list of snapshot ids
+     */
+    public List<URI> getSnapshots(URI volumeId) {
+        List<URI> blockSnapshots = Lists.newArrayList();
+        List<BlockSnapshotRestRep> blockSnapshotRestReps = execute(new GetActiveSnapshotsForVolume(volumeId));
+        for (BlockSnapshotRestRep blockSnapshotId : blockSnapshotRestReps) {
+            blockSnapshots.add(blockSnapshotId.getId());
+        }
+        return blockSnapshots;
     }
 
     /**
@@ -145,6 +243,96 @@ public class AddVolumesToConsistencyGroupService extends ViPRService {
             BlockStorageUtils.addVolumesToConsistencyGroup(targetCG, blockMirrors);
         }
         return mirrorsMap;
+    }
+
+    /**
+     * Adds all source volumes' full copies to the consistency group
+     * 
+     * @return map of source volume to full copies
+     */
+    public Map<URI, List<URI>> addSourceVolumeFullCopies() {
+        List<URI> fullCopies = Lists.newArrayList();
+        Map<URI, List<URI>> fullCopiesMap = new HashMap<>();
+        for (URI volumeId : uris(volumeIds)) {
+            List<URI> volumeFullCopies = getFullCopies(volumeId);
+            fullCopies.addAll(volumeFullCopies);
+            fullCopiesMap.put(volumeId, volumeFullCopies);
+        }
+        if (!fullCopies.isEmpty()) {
+            BlockStorageUtils.addVolumesToConsistencyGroup(consistencyGroup, fullCopies);
+        }
+        return fullCopiesMap;
+    }
+
+    /**
+     * Adds all target volumes' full copies to the target consistency group
+     * 
+     * @return map of target volume to full copies
+     */
+    public Map<URI, List<URI>> addTargetVolumeFullCopies() {
+        List<URI> fullCopies = Lists.newArrayList();
+        Map<URI, List<URI>> fullCopiesMap = new HashMap<>();
+        URI targetCG = null;
+        for (URI volumeId : uris(volumeIds)) {
+            List<URI> targets = getTargets(volumeId);
+            for (URI target : targets) {
+                if (targetCG == null) {
+                    targetCG = getConsistencyGroup(target);
+                }
+                List<URI> volumeFullCopies = getFullCopies(target);
+                fullCopies.addAll(volumeFullCopies);
+                fullCopiesMap.put(target, volumeFullCopies);
+            }
+        }
+        if (!fullCopies.isEmpty() && targetCG != null) {
+            BlockStorageUtils.addVolumesToConsistencyGroup(targetCG, fullCopies);
+        }
+        return fullCopiesMap;
+    }
+
+    /**
+     * Adds all source volumes' snapshots to the consistency group
+     * 
+     * @return map of source volume to snapshots
+     */
+    public Map<URI, List<URI>> addSourceVolumeSnapshots() {
+        List<URI> blockSnapshots = Lists.newArrayList();
+        Map<URI, List<URI>> snapshotsMap = new HashMap<>();
+        for (URI volumeId : uris(volumeIds)) {
+            List<URI> snapshots = getSnapshots(volumeId);
+            blockSnapshots.addAll(snapshots);
+            snapshotsMap.put(volumeId, snapshots);
+        }
+        if (!blockSnapshots.isEmpty()) {
+            BlockStorageUtils.addVolumesToConsistencyGroup(consistencyGroup, blockSnapshots);
+        }
+        return snapshotsMap;
+    }
+
+    /**
+     * Adds all target volumes' snapshots to the target consistency group
+     * 
+     * @return map of target volume to snapshots
+     */
+    public Map<URI, List<URI>> addTargetVolumeSnapshots() {
+        List<URI> blockSnapshots = Lists.newArrayList();
+        Map<URI, List<URI>> snapshotsMap = new HashMap<>();
+        URI targetCG = null;
+        for (URI volumeId : uris(volumeIds)) {
+            List<URI> targets = getTargets(volumeId);
+            for (URI target : targets) {
+                if (targetCG == null) {
+                    targetCG = getConsistencyGroup(target);
+                }
+                List<URI> snapshots = getSnapshots(target);
+                blockSnapshots.addAll(snapshots);
+                snapshotsMap.put(target, snapshots);
+            }
+        }
+        if (!blockSnapshots.isEmpty() && targetCG != null) {
+            BlockStorageUtils.addVolumesToConsistencyGroup(targetCG, blockSnapshots);
+        }
+        return snapshotsMap;
     }
 
     /**

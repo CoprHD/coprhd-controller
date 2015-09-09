@@ -7,15 +7,6 @@
     <import resource="classpath:dbversion-info.xml"/>
     <import resource="classpath:dbclient-conf.xml"/>
 
-    <bean id="dbclient" class="com.emc.storageos.db.client.impl.DbClientImpl">
-        <property name="coordinatorClient" ref="coordinator"/>
-        <property name="dbVersionInfo" ref="dbVersionInfo"/>
-        <property name="encryptionProvider" ref="encryptionProvider"/>
-        <property name="geoEncryptionProvider" ref="geoEncryptionProvider"/>
-        <property name="localContext" ref="dbclientcontext"/>
-        <property name="geoContext" ref="geodbclientcontext"/>
-    </bean>
-
     <bean id="dbtest" class="DbTest">
         <property name="dbClient" ref="dbclient" />
     </bean>

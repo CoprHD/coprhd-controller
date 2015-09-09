@@ -21,29 +21,36 @@ import java.net.URI;
 
 public class DbTest {
 
-    @Autowired
-    DbClient dbClient;
+    public DbClient getDbClient() {
+        return dbClient;
+    }
 
-    static URI projectId = URIUtil.createId(Project.class);
-    static URI tenantId = URIUtil.createId(TenantOrg.class);
+    public void setDbClient(DbClient dbClient) {
+        this.dbClient = dbClient;
+    }
 
-    public void test1() {
+    private DbClient dbClient;
+
+    static URI projectId = URI.create("Project1");
+    static URI tenantId = URI.create("Tenant1");
+
+    public void test1() throws Exception {
         Event event = genEvent();
         String bucketId = dbClient.insertTimeSeries(EventTimeSeries.class, event);
         System.out.println("insert ok " + bucketId);
     }
 
-    public Event genEvent() {
+    public Event genEvent() throws Exception {
 
         Event event = new Event();
 
-        URI objId = URIUtil.createId(Volume.class);
+        URI objId = URI.create("Volume:" + System.nanoTime());
 
         event.setEventType(RecordableEventManager.EventType.VolumeCreated.name());
         event.setService("block");
         event.setResourceId(objId);
         event.setNativeGuid(objId.toString());
-        event.setVirtualPool(URIUtil.createId(VirtualPool.class));
+        event.setVirtualPool(URI.create("VirtualPool1"));
         event.setEventId(RecordableBourneEvent.getUniqueEventId());
         event.setTimeInMillis(System.currentTimeMillis());
         event.setTenantId(tenantId);
@@ -60,7 +67,7 @@ public class DbTest {
         return event;
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
 
         ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("/dbtest-conf.xml");
         DbTest dbTest = (DbTest) ctx.getBean("dbtest");

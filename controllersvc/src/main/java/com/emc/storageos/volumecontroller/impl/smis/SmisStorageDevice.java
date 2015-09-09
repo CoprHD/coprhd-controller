@@ -185,25 +185,24 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 storagePool.getNativeGuid()));
         // volumeGroupObjectPath is required for VMAX3
         CIMObjectPath volumeGroupObjectPath = _helper.getVolumeGroupPath(storageSystem, volumes.get(0), storagePool);
+        List<String> volumeLabels = new ArrayList<>();
 
         for (Volume volume : volumes) {
             logMsgBuilder.append(String.format("%nVolume:%s , IsThinlyProvisioned: %s",
                     volume.getLabel(), volume.getThinlyProvisioned()));
-            // We don't need a label when we are to create more than
-            // one volume. In fact we can't set the label in this
-            // case for VMAX, else the request will fail.
-            if (label == null && volumes.size() == 1) {
-                String tenantName = "";
-                try {
-                    TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, volume.getTenant()
-                            .getURI());
-                    tenantName = tenant.getLabel();
-                } catch (DatabaseException e) {
-                    _log.error("Error lookup TenantOrb object", e);
-                }
-                label = _nameGenerator.generate(tenantName, volume.getLabel(), volume.getId()
-                        .toString(), '-', SmisConstants.MAX_VOLUME_NAME_LENGTH);
+
+            String tenantName = "";
+            try {
+                TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, volume.getTenant()
+                        .getURI());
+                tenantName = tenant.getLabel();
+            } catch (DatabaseException e) {
+                _log.error("Error lookup TenantOrb object", e);
             }
+            label = _nameGenerator.generate(tenantName, volume.getLabel(), volume.getId()
+                    .toString(), '-', SmisConstants.MAX_VOLUME_NAME_LENGTH);
+            volumeLabels.add(label);
+
             if (capacity == null) {
                 capacity = volume.getCapacity();
             }
@@ -226,7 +225,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     autoTierPolicyName = null;
                 }
                 inArgs = _helper.getCreateVolumesInputArgumentsOnFastEnabledPool(storageSystem,
-                        storagePool, label, capacity, volumes.size(), isThinlyProvisioned,
+                        storagePool, volumeLabels, capacity, volumes.size(), isThinlyProvisioned,
                         autoTierPolicyName);
             } else {
                 if (!storageSystem.checkIfVmax3() && isThinlyProvisioned && null != thinVolumePreAllocationSize) {
@@ -234,18 +233,18 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                             storageSystem, storagePool, thinVolumePreAllocationSize);
                 }
                 if (storageSystem.checkIfVmax3() && volumeGroupObjectPath != null) {
-                    inArgs = _helper.getCreateVolumesInputArguments(storageSystem, storagePool, label,
+                    inArgs = _helper.getCreateVolumesInputArguments(storageSystem, storagePool, volumeLabels,
                             capacity, volumes.size(), isThinlyProvisioned, true, volumeGroupObjectPath,
                             (null != thinVolumePreAllocationSize));
                 } else {
-                    inArgs = _helper.getCreateVolumesInputArguments(storageSystem, storagePool, label,
+                    inArgs = _helper.getCreateVolumesInputArguments(storageSystem, storagePool, volumeLabels,
                             capacity, volumes.size(), isThinlyProvisioned, poolSetting, true);
                 }
             }
             CIMArgument[] outArgs = new CIMArgument[5];
             StorageSystem forProvider = _helper.getStorageSystemForProvider(storageSystem, volumes.get(0));
             _helper.invokeMethod(forProvider, configSvcPath,
-                    SmisConstants.CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL, inArgs, outArgs);
+                    _helper.createVolumesMethodName(forProvider), inArgs, outArgs);
             CIMObjectPath job = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
             if (job != null) {
                 SmisJob createSmisJob = volumes.size() > 1 ? new SmisCreateMultiVolumeJob(job,

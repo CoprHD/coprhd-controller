@@ -24,11 +24,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
 import com.emc.storageos.volumecontroller.impl.providerfinders.FindProviderFactory;
-import com.emc.storageos.volumecontroller.impl.smis.AbstractSnapshotOperations;
-import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
-import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
-import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
-import com.emc.storageos.volumecontroller.impl.smis.SmisException;
+import com.emc.storageos.volumecontroller.impl.smis.*;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateCGSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateSnapshotJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockRestoreSnapshotJob;
@@ -853,13 +849,15 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             SmisCreateVmaxCGTargetVolumesJob job = new SmisCreateVmaxCGTargetVolumesJob(null, storage.getId(), sourceGroupName,
                     label, createInactive, taskCompleter);
 
-            _helper.invokeMethodSynchronously(storage, configSvcPath, CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL, inArgs, outArgs, job);
+            _helper.invokeMethodSynchronously(storage, configSvcPath,
+                    _helper.createVolumesMethodName(storage), inArgs, outArgs, job);
 
             return job.getTargetDeviceIds();
         } catch (Exception e) {
             final String errMsg = format("An error occurred when creating target devices on storage system {0}", storage.getId());
             _log.error(errMsg, e);
-            taskCompleter.error(_dbClient, SmisException.errors.methodFailed(CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL, e.getMessage()));
+            taskCompleter.error(_dbClient,
+                    SmisException.errors.methodFailed(_helper.createVolumesMethodName(storage), e.getMessage()));
             throw new SmisException(errMsg, e);
         }
 

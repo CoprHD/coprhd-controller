@@ -58,14 +58,15 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
 import com.emc.storageos.volumecontroller.Recommendation;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 import com.emc.storageos.volumecontroller.impl.utils.AttributeMapBuilder;
 import com.emc.storageos.volumecontroller.impl.utils.AttributeMatcherFramework;
+import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 import com.emc.storageos.volumecontroller.impl.utils.ProvisioningAttributeMapBuilder;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MaxResourcesMatcher;
-import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 
 /**
  * Basic storage scheduling functions of block and file storage. StorageScheduler is done based on desired
@@ -129,6 +130,7 @@ public class StorageScheduler implements Scheduler {
      * @param capabilities
      * @return list of VolumeRecommendation instances
      */
+    @Override
     public List<VolumeRecommendation> getRecommendationsForResources(VirtualArray neighborhood, Project project, VirtualPool cos,
             VirtualPoolCapabilityValuesWrapper capabilities) {
 
@@ -163,8 +165,8 @@ public class StorageScheduler implements Scheduler {
             while (count > 0) {
                 VolumeRecommendation volumeRecommendation = new VolumeRecommendation(VolumeRecommendation.VolumeType.BLOCK_VOLUME,
                         capabilities.getSize(), cos, neighborhood.getId());
-                volumeRecommendation.addStoragePool(recommendation.getSourcePool());
-                volumeRecommendation.addStorageSystem(recommendation.getSourceDevice());
+                volumeRecommendation.addStoragePool(recommendation.getSourceStoragePool());
+                volumeRecommendation.addStorageSystem(recommendation.getSourceStorageSystem());
                 volumeRecommendations.add(volumeRecommendation);
                 if (capabilities.getBlockConsistencyGroup() != null) {
                     volumeRecommendation.setParameter(VolumeRecommendation.ARRAY_CG, capabilities.getBlockConsistencyGroup());
@@ -176,7 +178,7 @@ public class StorageScheduler implements Scheduler {
         return volumeRecommendations;
     }
 
-    public void getRecommendationsForMirrors(VirtualArray neighborhood, VirtualPool cos,
+    public void getRecommendationsForMirrors(VirtualArray vArray, VirtualPool vPool,
             VirtualPoolCapabilityValuesWrapper capabilities, List<Recommendation> volumeRecommendations) {
 
         List<VolumeRecommendation> mirrorRecommendations = new ArrayList<VolumeRecommendation>();
@@ -192,15 +194,15 @@ public class StorageScheduler implements Scheduler {
             attributeMap.put(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
 
             Set<String> virtualArraySet = new HashSet<String>();
-            virtualArraySet.add(neighborhood.getId().toString());
+            virtualArraySet.add(vArray.getId().toString());
             attributeMap.put(AttributeMatcher.Attributes.varrays.name(), virtualArraySet);
 
             _log.info("Matching pools for storage system {} ", storageSystem);
-            List<StoragePool> matchedPools = getMatchingPools(neighborhood, cos, capabilities, attributeMap);
+            List<StoragePool> matchedPools = getMatchingPools(vArray, vPool, capabilities, attributeMap);
             if (matchedPools == null || matchedPools.isEmpty()) {
                 // TODO fix message and throw service code exception
-                _log.warn("VArray {} does not have storage pools which match VPool {}.", neighborhood.getId(), cos.getId());
-                throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(cos.getId(), neighborhood.getId());
+                _log.warn("VArray {} does not have storage pools which match VPool {}.", vArray.getId(), vPool.getId());
+                throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vPool.getId(), vArray.getId());
             }
 
             // place all mirrors for this storage system in the matched pools
@@ -209,7 +211,7 @@ public class StorageScheduler implements Scheduler {
                 StoragePool poolForMirror = placeLocalMirror(matchedPools, sourceRecommendation);
                 // create mirror volume recommendation
                 VolumeRecommendation mirrorRecommendation = new VolumeRecommendation(VolumeRecommendation.VolumeType.BLOCK_LOCAL_MIRROR,
-                        capabilities.getSize(), cos, neighborhood.getId());
+                        capabilities.getSize(), vPool, vArray.getId());
                 mirrorRecommendation.addStoragePool(poolForMirror.getId());
                 mirrorRecommendation.addStorageSystem(poolForMirror.getStorageDevice());
                 mirrorRecommendation.setParameter(VolumeRecommendation.BLOCK_VOLUME, sourceRecommendation);
@@ -295,8 +297,8 @@ public class StorageScheduler implements Scheduler {
             while (count > 0) {
                 VolumeRecommendation volumeRecommendation = new VolumeRecommendation(VolumeRecommendation.VolumeType.BLOCK_COPY,
                         capabilities.getSize(), vPool, vArray.getId());
-                volumeRecommendation.addStoragePool(recommendation.getSourcePool());
-                volumeRecommendation.addStorageSystem(recommendation.getSourceDevice());
+                volumeRecommendation.addStoragePool(recommendation.getSourceStoragePool());
+                volumeRecommendation.addStorageSystem(recommendation.getSourceStorageSystem());
                 volumeRecommendations.add(volumeRecommendation);
                 if (capabilities.getBlockConsistencyGroup() != null) {
                     volumeRecommendation.setParameter(VolumeRecommendation.ARRAY_CG, capabilities.getBlockConsistencyGroup());
@@ -752,9 +754,9 @@ public class StorageScheduler implements Scheduler {
                 _log.debug("Recommending storage pool {} for {} resources.",
                         recommendedPool.getId(), currentCount);
                 Recommendation recommendation = new Recommendation();
-                recommendation.setSourcePool(recommendedPool.getId());
+                recommendation.setSourceStoragePool(recommendedPool.getId());
                 recommendation.setResourceCount(currentCount);
-                recommendation.setSourceDevice(recommendedPool.getStorageDevice());
+                recommendation.setSourceStorageSystem(recommendedPool.getStorageDevice());
                 recommendations.add(recommendation);
 
                 // Update the count of resources for which we have created
@@ -917,13 +919,16 @@ public class StorageScheduler implements Scheduler {
                 URI volumeId = volumeRecommendation.getId();
                 Volume volume = _dbClient.queryObject(Volume.class, volumeId);
 
-                StringBuilder mirrorLabelBuilder = new StringBuilder(volumeLabel);
+                String mirrorLabel = volumeLabel;
+                if (volume.isInCG()) {
+                    mirrorLabel = ControllerUtils.getMirrorLabel(volume.getLabel(), volumeLabel);
+                }
                 if (volumeCount > 1) {
-                    mirrorLabelBuilder.append('-').append(volumeCounter++);
+                    mirrorLabel = ControllerUtils.getMirrorLabel(mirrorLabel, volumeCounter++);
                 }
                 // Prepare a single mirror based on source volume and storage pool recommendation
                 BlockMirror mirror = initializeMirror(volume, vPool, recommendation.getCandidatePools().get(0),
-                        mirrorLabelBuilder.toString(), _dbClient);
+                        mirrorLabel, _dbClient);
 
                 // set mirror id in recommendation
                 recommendation.setId(mirror.getId());
@@ -1161,6 +1166,10 @@ public class StorageScheduler implements Scheduler {
         BlockMirror createdMirror = new BlockMirror();
         createdMirror.setSource(new NamedURI(volume.getId(), volume.getLabel()));
         createdMirror.setId(URIUtil.createId(BlockMirror.class));
+        URI cgUri = volume.getConsistencyGroup();
+        if (!NullColumnValueGetter.isNullURI(cgUri)) {
+            createdMirror.setConsistencyGroup(cgUri);
+        }
         createdMirror.setLabel(volumeLabel);
         createdMirror.setStorageController(volume.getStorageController());
         createdMirror.setVirtualArray(volume.getVirtualArray());

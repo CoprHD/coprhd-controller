@@ -405,19 +405,19 @@ public class SRDFScheduler implements Scheduler {
                     // A single recommendation object will create a set of volumes for an SRDF pair.
                     SRDFRecommendation rec = new SRDFRecommendation();
 
-                    // For each target varray, we start the process of matching source and destination
-                    // pools to one storage system.
-                    Map<VirtualArray, Set<StorageSystem>> varrayTargetDeviceMap = new HashMap<VirtualArray, Set<StorageSystem>>();
-                    for (VirtualArray targetVarray1 : targetVarrayPoolMap.keySet()) {
-                        if (rec.getSourcePool() == null) {
-                            rec.setSourcePool(recommendedPool.getId());
-                            rec.setResourceCount(currentCount);
-                            rec.setSourceDevice(recommendedPool.getStorageDevice());
-                            rec.setVirtualArrayTargetMap(new HashMap<URI, Target>());
-                            rec.setVpoolChangeVolume(vpoolChangeVolume != null ? vpoolChangeVolume
-                                    .getId() : null);
-                            rec.setVpoolChangeVpool(vpoolChangeVolume != null ? vpool.getId() : null);
-                        }
+        			// For each target varray, we start the process of matching source and destination
+        			// pools to one storage system.
+        			Map<VirtualArray, Set<StorageSystem>> varrayTargetDeviceMap = new HashMap<VirtualArray, Set<StorageSystem>>();
+        			for (VirtualArray targetVarray1 : targetVarrayPoolMap.keySet()) {
+        				if (rec.getSourceStoragePool() == null) {
+        					rec.setSourceStoragePool(recommendedPool.getId());
+        					rec.setResourceCount(currentCount);
+        					rec.setSourceStorageSystem(recommendedPool.getStorageDevice());
+        					rec.setVirtualArrayTargetMap(new HashMap<URI, Target>());
+        					rec.setVpoolChangeVolume(vpoolChangeVolume != null ? vpoolChangeVolume
+        							.getId() : null);
+        					rec.setVpoolChangeVpool(vpoolChangeVolume != null ? vpool.getId() : null);
+        				}
 
                         if (targetVarrayPoolMap.get(targetVarray1) == null
                                 || targetVarrayPoolMap.get(targetVarray1).isEmpty()) {

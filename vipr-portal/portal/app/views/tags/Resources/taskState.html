@@ -2,9 +2,12 @@
   state = _state 
 }%
 
-#{if state == 'pending'}
-  #{icon 'refresh', class:"rotate"/} &{'resources.tasks.pending'}
+#{if state == 'queued'}
+  #{icon 'lock'/} &{'resources.tasks.queued'}
 #{/if}
+#{elseif state == 'pending'}
+  #{icon 'refresh', class:"rotate"/} &{'resources.tasks.pending'}
+#{/elseif}
 #{elseif state == 'ready'}
   #{icon 'ok'/} &{'resources.tasks.ready'}
 #{/elseif}

@@ -5,13 +5,13 @@
 package com.emc.storageos.volumecontroller.impl.smis;
 
 import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefreshIfRequired;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_BEFORE_ACTIVATE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_STATE_RESTORED_INT_VALUE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_NEW_TARGET_VALUE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DIFFERENTIAL_CLONE_VALUE;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_BEFORE_ACTIVATE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.GET_DEFAULT_REPLICATION_SETTING_DATA;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.TARGET_ELEMENT_SUPPLIER;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.PROVISIONING_TARGET_SAME_AS_SOURCE;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.TARGET_ELEMENT_SUPPLIER;
 import static javax.cim.CIMDataType.UINT16_T;
 
 import java.net.URI;
@@ -32,13 +32,13 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -237,7 +237,7 @@ public class AbstractCloneOperations implements CloneOperations {
                     CIMObjectPath syncObject = _cimPath.getStorageSynchronized(sourceSystem, sourceObj, storageSystem, clone);
                     CIMInstance instance = _helper.checkExists(storageSystem, syncObject, false, false);
                     if (instance != null) {
-                        CIMArgument[] inArgs = _helper.getDetachCloneSynchronizationInputArguments(syncObject);
+                        CIMArgument[] inArgs = _helper.getDetachSynchronizationInputArguments(syncObject);
                         CIMArgument[] outArgs = new CIMArgument[5];
                         _helper.callModifyReplica(storageSystem, inArgs, outArgs);
                     } else {
@@ -479,6 +479,11 @@ public class AbstractCloneOperations implements CloneOperations {
     public void detachGroupClones(StorageSystem storage, List<URI> clones, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
 
+    }
+
+    @Override
+    public void establishVolumeCloneGroupRelation(StorageSystem storage, URI sourceVolume, URI clone, TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     /**

@@ -78,6 +78,7 @@ import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.ProtectionSet;
 import com.emc.storageos.db.client.model.ProtectionSystem;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.RemoteDirectorGroup.SupportedCopyModes;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -190,6 +191,7 @@ public class BlockService extends TaskResourceService {
         PAUSE("pause", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_PAUSE),
         SUSPEND("suspend", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_SUSPEND),
         RESUME("resume", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_RESUME),
+        CHANGE_COPY_MODE("change-copy-mode", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION_CHANGE_COPY_MODE),
         UNKNOWN("unknown", ResourceOperationTypeEnum.PERFORM_PROTECTION_ACTION);
 
         private String op;
@@ -347,8 +349,13 @@ public class BlockService extends TaskResourceService {
         // Validate the source volume URI
         ArgValidator.checkFieldUriType(id, Volume.class, "id");
 
-        // Don't operate on ingested volumes.
         Volume volume = _dbClient.queryObject(Volume.class, id);
+
+        // Make sure that we don't have some pending
+        // operation against the volume
+        checkForPendingTasks(Arrays.asList(volume.getTenant().getURI()), Arrays.asList(volume));
+
+        // Don't operate on ingested volumes.
         VolumeIngestionUtil.checkOperationSupportedOnIngestedVolume(volume,
                 ResourceOperationTypeEnum.CREATE_VOLUME_MIRROR, _dbClient);
 
@@ -369,10 +376,10 @@ public class BlockService extends TaskResourceService {
             // Validate a copy type was passed
             ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
+            URI copyID = copy.getCopyID();
             // If copyID is null all copies are started
             if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
                 // If copyID is not set all copies are started
-                URI copyID = copy.getCopyID();
                 if (!URIUtil.isValid(copyID)) {
                     copyID = null;
                 }
@@ -386,9 +393,17 @@ public class BlockService extends TaskResourceService {
                 taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.START.getRestOp());
                 taskList.getTaskList().add(taskResp);
             } else if (copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
-                NativeContinuousCopyCreate mirror = new NativeContinuousCopyCreate(
-                        copy.getName(), copy.getCount());
-                taskList = startMirrors(id, mirror);
+                if (URIUtil.isValid(copyID) && URIUtil.isType(copyID, BlockMirror.class)) {
+                    /**
+                     * To establish group relationship between volume group and mirror group
+                     */
+                    taskResp = establishVolumeMirrorGroupRelation(id, copy, ProtectionOp.START.getRestOp());
+                    taskList.getTaskList().add(taskResp);
+                } else {
+                    NativeContinuousCopyCreate mirror = new NativeContinuousCopyCreate(
+                            copy.getName(), copy.getCount());
+                    taskList = startMirrors(id, mirror);
+                }
             } else {
                 throw APIException.badRequests.invalidCopyType(copy.getType());
             }
@@ -423,6 +438,13 @@ public class BlockService extends TaskResourceService {
 
         // Validate the source volume URI
         ArgValidator.checkFieldUriType(id, Volume.class, "id");
+
+        Volume volume = _dbClient.queryObject(Volume.class, id);
+
+        // Make sure that we don't have some pending
+        // operation against the volume
+        checkForPendingTasks(Arrays.asList(volume.getTenant().getURI()), Arrays.asList(volume));
+
         boolean vplexVolume = checkIfVolumeIsForVplex(id);
 
         // Validate the list of copies
@@ -483,7 +505,7 @@ public class BlockService extends TaskResourceService {
             srdfVolumeURIList.add(id);
             for (Copy copy : param.getCopies()) {
                 URI copyID = copy.getCopyID();
-                if (URIUtil.isValid(copyID)) {
+                if (URIUtil.isType(copyID, Volume.class) && URIUtil.isValid(copyID)) {
                     srdfVolumeURIList.add(copyID);
                     break;
                 }
@@ -540,13 +562,16 @@ public class BlockService extends TaskResourceService {
     /**
      * Activate a full copy.
      * <p>
-     * This method is deprecated. Use /block/full-copies/{id}/activate instead with {id} representing full copy URI id 
-     * @prereq Create full copy as inactive
+     * This method is deprecated. Use /block/full-copies/{id}/activate instead with {id} representing full copy URI id
      * 
+     * @prereq Create full copy as inactive
+     *
      * @param id the URN of a ViPR Source volume
      * @param fullCopyId Full copy URI
-     * 
-     * @brief Activate full copy. This method is deprecated. Use /block/full-copies/{id}/activate instead with {id} representing full copy URI id
+     *
+     * @brief Activate full copy
+     * @brief Activate full copy. This method is deprecated. Use /block/full-copies/{id}/activate instead with {id} representing full copy
+     *        URI id
      * 
      * @return TaskResourceRep
      */
@@ -562,13 +587,15 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Show synchronization progress for a full copy.
+     * 
      * <p>
      * This method is deprecated. Use /block/full-copies/{id}/check-progress instead with {id} representing full copy URI id
-     * @prereq none
      * 
+     * @prereq none
+     *
      * @param id the URN of a ViPR Source volume
      * @param fullCopyId Full copy URI
-     * 
+     *
      * @brief Show full copy synchronization progress
      * 
      * @return VolumeRestRep
@@ -585,14 +612,16 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Detach a full copy from its source volume.
+     * 
      * <p>
      * This method is deprecated. Use /block/full-copies/{id}/detach instead with {id} representing full copy URI id
+     * 
      * @prereq Create full copy as inactive
      * @prereq Activate full copy
-     * 
+     *
      * @param id the URN of a ViPR Source volume
      * @param id the URN of Full copy volume
-     * 
+     *
      * @brief Detach full copy
      * 
      * @return TaskResourceRep
@@ -990,9 +1019,6 @@ public class BlockService extends TaskResourceService {
     private static BlockServiceApi getBlockServiceImpl(VirtualPool vpool, DbClient dbClient) {
         // Mutually exclusive logic that selects an implementation of the block service
         if (VirtualPool.vPoolSpecifiesProtection(vpool)) {
-            if ((VirtualPool.vPoolSpecifiesHighAvailability(vpool))) {
-                return getBlockServiceImpl(DiscoveredDataObject.Type.rpvplex.name());
-            }
             return getBlockServiceImpl(DiscoveredDataObject.Type.rp.name());
         } else if (VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
             return getBlockServiceImpl(DiscoveredDataObject.Type.vplex.name());
@@ -1027,9 +1053,6 @@ public class BlockService extends TaskResourceService {
         // RP volumes may not be in an RP CoS (like after failover), so look to the volume properties
         if (!NullColumnValueGetter.isNullURI(volume.getProtectionController())
                 && volume.checkForRp()) {
-            if (volume.getAssociatedVolumes() != null && !volume.getAssociatedVolumes().isEmpty()) {
-                return getBlockServiceImpl(DiscoveredDataObject.Type.rpvplex.name());
-            }
             return getBlockServiceImpl(DiscoveredDataObject.Type.rp.name());
         }
 
@@ -1134,6 +1157,10 @@ public class BlockService extends TaskResourceService {
                 (!getFullCopyManager().volumeCanBeExpanded(volume))) {
             throw APIException.badRequests.fullCopyExpansionNotAllowed(volume.getLabel());
         }
+
+        // Make sure that we don't have some pending
+        // operation against the volume
+        checkForPendingTasks(Arrays.asList(volume.getTenant().getURI()), Arrays.asList(volume));
 
         // Get the new size.
         Long newSize = SizeUtil.translateSize(param.getNewSize());
@@ -1283,6 +1310,7 @@ public class BlockService extends TaskResourceService {
      * @return TaskList
      * 
      * @throws ControllerException
+     * 
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -1363,12 +1391,13 @@ public class BlockService extends TaskResourceService {
 
     /**
      * Request to cancel a prior test failover of the protection link associated with the param.copyID.
-     * 
+     *
      * NOTE: This is an asynchronous operation.
      * 
      * If volume is srdf protected, then its a no-op
      * <p>
      * This method is deprecated. Use /block/volumes/{id}/protection/continuous-copies/failover-cancel instead.
+     * 
      * @prereq none
      * 
      * @param id the URN of a ViPR Source volume
@@ -1546,6 +1575,65 @@ public class BlockService extends TaskResourceService {
         return taskList;
     }
 
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/copymode")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskList changeCopyMode(@PathParam("id") URI id, CopiesParam param)
+            throws ControllerException {
+
+        TaskResourceRep taskResp = null;
+        TaskList taskList = new TaskList();
+
+        // Validate the source volume URI
+        ArgValidator.checkFieldUriType(id, Volume.class, "id");
+
+        // Validate the list of copies
+        ArgValidator.checkFieldNotEmpty(param.getCopies(), "copies");
+
+        // Verify that the copy IDs are either all specified or none are specified
+        // for a particular protection type. Combinations are not allowed
+        verifyCopyIDs(param);
+
+        // Process the list of copies
+        for (Copy copy : param.getCopies()) {
+
+            // Validate a copy type was passed
+            ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
+
+            String copyMode = copy.getCopyMode();
+            // Validate a copy mode was passed
+            ArgValidator.checkFieldNotEmpty(copyMode, "copyMode");
+            Volume volume = queryVolumeResource(id);
+            ArgValidator.checkEntity(volume, id, true);
+
+            if (volume.hasConsistencyGroup()) {
+                if (TechnologyType.SRDF.name().equalsIgnoreCase(copy.getType())) {
+
+                    if (RemoteDirectorGroup.SupportedCopyModes.ASYNCHRONOUS.name().equalsIgnoreCase(copyMode)
+                            || RemoteDirectorGroup.SupportedCopyModes.SYNCHRONOUS.name().equalsIgnoreCase(copyMode)
+                            || RemoteDirectorGroup.SupportedCopyModes.ADAPTIVECOPY.name().equalsIgnoreCase(copyMode)) {
+                        taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.CHANGE_COPY_MODE.getRestOp());
+                        taskList.getTaskList().add(taskResp);
+                    } else {
+                        throw APIException.badRequests.invalidSRDFCopyMode(copy.getType());
+                    }
+
+                } else {
+                    throw APIException.badRequests.invalidCopyType(copy.getType());
+                }
+            } else {
+                /**
+                 * As of now ViPR supports change copy mode operations only for volumes with CG.
+                 */
+                throw APIException.badRequests.invalidSRDFCopyMode(volume.getNativeId());
+            }
+
+        }
+
+        return taskList;
+    }
+
     /**
      * Get the details of a specific volume
      * 
@@ -1689,7 +1777,7 @@ public class BlockService extends TaskResourceService {
         // Make sure that we don't have some pending
         // operation against the volume
         if (!force) {
-            deleteCheckForPendingTasks(Arrays.asList(volume.getTenant().getURI()), Arrays.asList(volume));
+            checkForPendingTasks(Arrays.asList(volume.getTenant().getURI()), Arrays.asList(volume));
         }
 
         BlockServiceApi blockServiceApi = getBlockServiceImpl(volume);
@@ -1825,7 +1913,7 @@ public class BlockService extends TaskResourceService {
         // Make sure that we don't have some pending
         // operation against the volume
         if (!force) {
-            deleteCheckForPendingTasks(tenantSet, volumes);
+            checkForPendingTasks(tenantSet, volumes);
         }
 
         // Make sure we have task identifier.
@@ -2034,6 +2122,10 @@ public class BlockService extends TaskResourceService {
 
         validateSourceVolumeHasExported(requestedVolume);
 
+        // Make sure that we don't have some pending
+        // operation against the volume
+        checkForPendingTasks(Arrays.asList(requestedVolume.getTenant().getURI()), Arrays.asList(requestedVolume));
+
         // Set default type, if not set at all.
         if (param.getType() == null) {
             param.setType(TechnologyType.NATIVE.toString());
@@ -2046,6 +2138,11 @@ public class BlockService extends TaskResourceService {
             createInactive = param.getCreateInactive();
         }
 
+        // Set whether the snapshot should be read only
+        Boolean readOnly = Boolean.FALSE;
+        if (param.getReadOnly() != null) {
+            readOnly = param.getReadOnly();
+        }
         // Get the block service implementation for the volume. The manner
         // in which snapshots are created an initialized can be different
         // based on the volume being snapped.
@@ -2082,7 +2179,7 @@ public class BlockService extends TaskResourceService {
 
         // Invoke the block service API implementation to create the snapshot
         blockServiceApiImpl.createSnapshot(requestedVolume, snapshotURIs, snapshotType,
-                createInactive, taskId);
+                createInactive, readOnly, taskId);
 
         // Record a message in the audit log.
         auditOp(OperationTypeEnum.CREATE_VOLUME_SNAPSHOT, true,
@@ -2291,18 +2388,18 @@ public class BlockService extends TaskResourceService {
 
             if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
                 taskResp = performProtectionAction(id, copyID, ProtectionOp.PAUSE.getRestOp());
+                taskList.getTaskList().add(taskResp);
             } else if (!vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
-                taskResp = pauseMirrors(id, copy.getSync(), copyID);
+                TaskList pauseTaskList = pauseMirrors(id, copy.getSync(), copyID);
+                taskList.getTaskList().addAll(pauseTaskList.getTaskList());
             } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
                 taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.PAUSE.getRestOp());
+                taskList.getTaskList().add(taskResp);
             } else if (vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
                 throw APIException.badRequests.actionNotApplicableForVplexVolumeMirrors(ProtectionOp.PAUSE.getRestOp());
             } else {
                 throw APIException.badRequests.invalidCopyType(copy.getType());
             }
-
-            // Add the task for this copy
-            taskList.getTaskList().add(taskResp);
 
             // If copyID is null, we have already paused all copies
             if (copyID == null) {
@@ -2365,18 +2462,18 @@ public class BlockService extends TaskResourceService {
             // If copyID is null all copies are paused
             if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
                 taskResp = performProtectionAction(id, copyID, ProtectionOp.RESUME.getRestOp());
+                taskList.getTaskList().add(taskResp);
             } else if (!vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
-                taskResp = resumeMirrors(id, copyID);
+                TaskList resumeTaskList = resumeMirrors(id, copyID);
+                taskList.getTaskList().addAll(resumeTaskList.getTaskList());
             } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
                 taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.RESUME.getRestOp());
+                taskList.getTaskList().add(taskResp);
             } else if (vplexVolume && copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
                 throw APIException.badRequests.actionNotApplicableForVplexVolumeMirrors(ProtectionOp.RESUME.getRestOp());
             } else {
                 throw APIException.badRequests.invalidCopyType(copy.getType());
             }
-
-            // Add task for this copy
-            taskList.getTaskList().add(taskResp);
 
             // If copyID is null, we have already resumed all copies
             if (copyID == null) {
@@ -2409,11 +2506,16 @@ public class BlockService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
     public TaskList deactivateMirror(@PathParam("id") URI id, CopiesParam param) throws ControllerException {
 
-        TaskResourceRep taskResp = null;
         TaskList taskList = new TaskList();
 
         // Validate the source volume URI
         ArgValidator.checkFieldUriType(id, Volume.class, "id");
+
+        Volume volume = _dbClient.queryObject(Volume.class, id);
+
+        // Make sure that we don't have some pending
+        // operation against the volume
+        checkForPendingTasks(Arrays.asList(volume.getTenant().getURI()), Arrays.asList(volume));
 
         // Validate the list of copies
         ArgValidator.checkFieldNotEmpty(param.getCopies(), "copies");
@@ -2430,7 +2532,7 @@ public class BlockService extends TaskResourceService {
             // Validate a copy type was passed
             ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
 
-            if (copy.getType().equalsIgnoreCase(TechnologyType.NATIVE.toString())) {
+            if (TechnologyType.NATIVE.toString().equalsIgnoreCase(copy.getType())) {
 
                 String task = UUID.randomUUID().toString();
 
@@ -2463,10 +2565,10 @@ public class BlockService extends TaskResourceService {
                 auditOp(OperationTypeEnum.DEACTIVATE_VOLUME_MIRROR, true, AuditLogManager.AUDITOP_BEGIN,
                         copyID.toString(), mirrorLabel);
 
-                taskResp = blockServiceApi.deactivateMirror(device, mirrorURI, task);
+                TaskList deactivateTaskList = blockServiceApi.deactivateMirror(device, mirrorURI, task);
 
                 // Add task for this copy
-                taskList.getTaskList().add(taskResp);
+                taskList.getTaskList().addAll(deactivateTaskList.getTaskList());
 
             } else {
                 throw APIException.badRequests.invalidCopyType(copy.getType());
@@ -2508,6 +2610,10 @@ public class BlockService extends TaskResourceService {
             throw APIException.badRequests.protectionVolumeInvalidTargetOfVolume(copyID, id);
         }
 
+        // Make sure that we don't have some pending
+        // operation against the volume
+        checkForPendingTasks(Arrays.asList(volume.getTenant().getURI()), Arrays.asList(volume));
+
         String task = UUID.randomUUID().toString();
         Operation status = new Operation();
         status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
@@ -2521,7 +2627,7 @@ public class BlockService extends TaskResourceService {
                 return toTask(volume, task, status);
             }
 
-            if (PersonalityTypes.SOURCE.toString().equalsIgnoreCase(
+            if (PersonalityTypes.SOURCE.name().equalsIgnoreCase(
                     copyVolume.getPersonality())) {
                 if (op.equalsIgnoreCase(ProtectionOp.FAILOVER_CANCEL.getRestOp()) || op.equalsIgnoreCase(ProtectionOp.FAILOVER.getRestOp())
                         || op.equalsIgnoreCase(ProtectionOp.SWAP.getRestOp())) {
@@ -2535,6 +2641,12 @@ public class BlockService extends TaskResourceService {
                             ServiceCode.IO_ERROR,
                             "Target Volume Empty for a given source R1 {0}, hence cannot proceed with failover or failback.",
                             new Object[] { copyVolume.getNativeGuid() });
+                } else if (PersonalityTypes.TARGET.name().equalsIgnoreCase(copyVolume.getPersonality()) &&
+                        RemoteDirectorGroup.SupportedCopyModes.ADAPTIVECOPY.name().equalsIgnoreCase(copyVolume.getSrdfCopyMode())) {
+
+                    if (ProtectionOp.CHANGE_COPY_MODE.getRestOp().equalsIgnoreCase(op)) {
+                        validateVpoolCopyModeSetting(volume, copy.getCopyMode());
+                    }
                 }
             }
 
@@ -2555,13 +2667,72 @@ public class BlockService extends TaskResourceService {
                     copyVolume.getStorageController());
             SRDFController controller = getController(SRDFController.class,
                     system.getSystemType());
-            controller.performProtectionOperation(system.getId(), copyID, op, task);
+            controller.performProtectionOperation(system.getId(), copy, op, task);
         } else {
             throw new ServiceCodeException(ServiceCode.IO_ERROR,
                     "Volume {0} is not SRDF protected",
                     new Object[] { copyVolume.getNativeGuid() });
         }
         return toTask(volume, task, status);
+    }
+
+    private void validateVpoolCopyModeSetting(Volume srcVolume, String newCopyMode) {
+        if (srcVolume != null) {
+            URI virtualPoolURI = srcVolume.getVirtualPool();
+            VirtualPool virtualPool = _dbClient.queryObject(VirtualPool.class, virtualPoolURI);
+            if (virtualPool != null) {
+                StringMap remoteCopySettingsMap = virtualPool.getProtectionRemoteCopySettings();
+                if (remoteCopySettingsMap != null) {
+                    for (Map.Entry<URI, VpoolRemoteCopyProtectionSettings> entry : VirtualPool.getRemoteProtectionSettings(virtualPool,
+                            _dbClient).entrySet()) {
+                        VpoolRemoteCopyProtectionSettings copySetting = entry.getValue();
+                        if (!newCopyMode.equalsIgnoreCase(copySetting.getCopyMode())) {
+                            throw APIException.badRequests.invalidCopyModeOp(newCopyMode, copySetting.getCopyMode());
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private TaskResourceRep establishVolumeMirrorGroupRelation(URI id, Copy copy, String op)
+            throws InternalException {
+        URI copyID = copy.getCopyID();
+        ArgValidator.checkFieldUriType(copyID, BlockMirror.class, "copyID");
+        // Get the volume associated with the URI
+        Volume volume = queryVolumeResource(id);
+        BlockMirror mirror = queryMirror(copyID);
+
+        ArgValidator.checkEntity(volume, id, true);
+        ArgValidator.checkEntity(mirror, copyID, true);
+
+        StringSet mirrors = volume.getMirrors();
+        if (mirrors == null || mirrors.isEmpty()) {
+            throw APIException.badRequests.invalidParameterVolumeHasNoContinuousCopies(id);
+        }
+
+        if (!mirror.getSource().getURI().equals(id)) {
+            throw APIException.badRequests.invalidParameterBlockCopyDoesNotBelongToVolume(copyID, id);
+        }
+
+        if (!volume.hasConsistencyGroup() ||
+                !mirror.hasConsistencyGroup()) {
+            throw APIException.badRequests.blockObjectHasNoConsistencyGroup();
+        }
+
+        String task = UUID.randomUUID().toString();
+        Operation status = new Operation();
+        status.setResourceType(ProtectionOp.getResourceOperationTypeEnum(op));
+        _dbClient.createTaskOpStatus(Volume.class, volume.getId(), task, status);
+
+        auditOp(OperationTypeEnum.ESTABLISH_VOLUME_MIRROR, true, AuditLogManager.AUDITOP_BEGIN,
+                mirrors);
+
+        StorageSystem system = _dbClient.queryObject(StorageSystem.class,
+                volume.getStorageController());
+        BlockServiceApi blockServiceApi = getBlockServiceImpl("mirror");
+        return blockServiceApi.establishVolumeAndNativeContinuousCopyGroupRelation(system, volume,
+                mirror, task);
     }
 
     /**
@@ -2588,6 +2759,10 @@ public class BlockService extends TaskResourceService {
                     "Attempt to do protection link management on unprotected volume: {0}",
                     new Object[] { volume.getWWN() });
         }
+
+        // Make sure that we don't have some pending
+        // operation against the volume
+        checkForPendingTasks(Arrays.asList(volume.getTenant().getURI()), Arrays.asList(volume));
 
         String task = UUID.randomUUID().toString();
         Operation status = new Operation();
@@ -2716,6 +2891,7 @@ public class BlockService extends TaskResourceService {
      * Change the virtual pool of a VMAX and VNX volume to allow change of Auto-tiering policy
      * associated with it.
      * Since this method has been deprecated use POST /block/volumes/vpool-change
+     * 
      * @brief Change the virtual pool for a volume.
      * 
      * @prereq none
@@ -2873,7 +3049,12 @@ public class BlockService extends TaskResourceService {
             ArgValidator.checkFieldUriType(id, Volume.class, "volume");
             Volume volume = queryVolumeResource(id);
             volumes.add(volume);
+
+            // Make sure that we don't have some pending
+            // operation against the volume
+            checkForPendingTasks(Arrays.asList(volume.getTenant().getURI()), Arrays.asList(volume));
         }
+
         _log.info("Found volumes");
 
         /**
@@ -3285,6 +3466,10 @@ public class BlockService extends TaskResourceService {
                 _log.info("Found new VirtualArray {}", tgtVarrayURI);
             }
 
+            // Make sure that we don't have some pending
+            // operation against the volume
+            checkForPendingTasks(Arrays.asList(volume.getTenant().getURI()), Arrays.asList(volume));
+
             // Get the appropriate block service implementation for the
             // volume. Note that this same implementation is used to
             // execute the change. If it is possible that volumes
@@ -3337,7 +3522,16 @@ public class BlockService extends TaskResourceService {
         if (cg != null) {
             // all volume in CG must have been passed.
             _log.info("Verify all volumes in CG {}:{}", cg.getId(), cg.getLabel());
-            verifyVolumesInCG(volumes, cgVolumes);
+            URI storageId = cg.getStorageController();
+            StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageId);
+            if (DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType())) {
+                // For VPlex, the volumes should include all volumes, which are in the same backend storage system, in the CG.
+                 if (!VPlexUtil.verifyVolumesInCG(volumes, cgVolumes, _dbClient)) {
+                     throw APIException.badRequests.cantChangeVarrayNotAllCGVolumes();
+                 }
+            } else {
+                verifyVolumesInCG(volumes, cgVolumes);
+            }
         }
 
         // Create a task for each volume and set the initial
@@ -3838,11 +4032,6 @@ public class BlockService extends TaskResourceService {
 
         if (protectionSystemURI != null || (protectionSystemURI == null
                 && VirtualPool.vPoolSpecifiesProtection(vpool))) {
-            if ((DiscoveredDataObject.Type.vplex.name().equals(systemType)) ||
-                    VirtualPool.vPoolSpecifiesHighAvailability(vpool)) {
-                _log.info("Returning RP+VPlex block service implementation.");
-                return _blockServiceApis.get(DiscoveredDataObject.Type.rpvplex.name());
-            }
             // Assume RP for now if the volume is associated with an
             // RP controller regardless of the VirtualPool change.
             // Also if the volume is unprotected currently and the vpool specifies protection.
@@ -4201,6 +4390,117 @@ public class BlockService extends TaskResourceService {
         _log.info("Protection set status: " + protectionSet.getProtectionStatus());
         return map(protectionSet);
     }
+    
+    /**
+     * This api allows the user to add new journal volume(s) to a recoverpoint
+     * consistency group copy
+     * 
+     * @param param POST data containing the journal volume(s) creation information.
+     * 
+     * @brief Add journal volume(s) to the exiting recoverpoint CG copy
+     * @return A reference to a BlockTaskList containing a list of
+     *         TaskResourceRep references specifying the task data for the
+     *         journal volume creation tasks.
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/protection/addJournalCapacity")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskList addJournalCapacity(VolumeCreate param) throws InternalException {
+        ArgValidator.checkFieldNotNull(param, "volume_create");
+        
+        ArgValidator.checkFieldNotNull(param.getName(), "name");
+        
+        ArgValidator.checkFieldNotNull(param.getSize(), "size");
+        
+        ArgValidator.checkFieldNotNull(param.getCount(), "count");
+        
+        ArgValidator.checkFieldUriType(param.getProject(), Project.class, "project");
+
+        // Get and validate the project.
+        Project project = _permissionsHelper.getObjectById(param.getProject(), Project.class);
+        ArgValidator.checkEntity(project, param.getProject(), isIdEmbeddedInURL(param.getProject()));
+
+        final URI actualId = project.getId();
+        
+        // Verify the user is authorized.
+        BlockServiceUtils.verifyUserIsAuthorizedForRequest(project, getUserFromContext(), _permissionsHelper);
+
+        // Get and validate the varray
+        ArgValidator.checkFieldUriType(param.getVarray(), VirtualArray.class, "varray");
+        VirtualArray varray = BlockServiceUtils.verifyVirtualArrayForRequest(project,
+                param.getVarray(), uriInfo, _permissionsHelper, _dbClient);
+        ArgValidator.checkEntity(varray, param.getVarray(), isIdEmbeddedInURL(param.getVarray()));
+
+        // Get and validate the journal vPool.
+        VirtualPool vpool = getVirtualPoolForVolumeCreateRequest(project, param);
+
+        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.ADD_JOURNAL_CAPACITY, Boolean.TRUE);
+        // Get the count indicating the number of journal volumes to add. If not
+        //passed assume 1. 
+        Integer volumeCount = 1;
+        Long volumeSize = 0L;
+        
+        if (param.getCount() <= 0) {
+        	throw APIException.badRequests.parameterMustBeGreaterThan("count", 0);
+        }
+        if (param.getCount() > MAX_VOLUME_COUNT) {
+        	throw APIException.badRequests.exceedingLimit("count", MAX_VOLUME_COUNT);
+        }
+        volumeCount = param.getCount();
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, volumeCount);        
+
+        // Validate the requested volume size is greater then 0.
+        volumeSize = SizeUtil.translateSize(param.getSize());
+        // Validate the requested volume size is at least 1 GB.
+        if (volumeSize < GB) {
+        	throw APIException.badRequests.leastVolumeSize("1");
+        }
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, volumeSize);        
+        
+        // verify quota
+        long size = volumeCount * SizeUtil.translateSize(param.getSize());
+        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
+        ArgValidator.checkEntity(tenant, project.getTenantOrg().getURI(), false);
+        CapacityUtils.validateQuotasForProvisioning(_dbClient, vpool, project, tenant, size, "volume");    
+        
+        if (null != vpool.getThinVolumePreAllocationPercentage()
+                && 0 < vpool.getThinVolumePreAllocationPercentage()) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, VirtualPoolUtil
+                    .getThinVolumePreAllocationSize(vpool.getThinVolumePreAllocationPercentage(), volumeSize));
+        }
+        
+        if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
+                vpool.getSupportedProvisioningType())) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
+        }
+
+        // Get and validate the BlockConsistencyGroup
+        BlockConsistencyGroup consistencyGroup = queryConsistencyGroup(param.getConsistencyGroup());          
+
+        // Check that the project and the CG project are the same
+        final URI expectedId = consistencyGroup.getProject().getURI();
+        checkProjectsMatch(expectedId, project.getId());                
+
+        // Validate the CG type is RP
+        if (!consistencyGroup.getRequestedTypes().contains(BlockConsistencyGroup.Types.RP.toString())) {
+        	throw APIException.badRequests.consistencyGroupIsNotCompatibleWithRequest(
+        			consistencyGroup.getId(), consistencyGroup.getTypes().toString(), BlockConsistencyGroup.Types.RP.toString());
+        }                                
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, consistencyGroup.getId());           
+        
+        // Create a unique task id if one is not passed in the request.
+        String task = UUID.randomUUID().toString();
+
+        auditOp(OperationTypeEnum.ADD_JOURNAL_VOLUME, true, AuditLogManager.AUDITOP_BEGIN,
+                param.getName(), volumeCount, varray.getId().toString(), actualId.toString());
+        
+        // add the journal capacity to the CG        
+        RPBlockServiceApiImpl blockServiceImpl = (RPBlockServiceApiImpl)getBlockServiceImpl(DiscoveredDataObject.Type.rp.name());
+        return blockServiceImpl.addJournalCapacity(param, project, varray, vpool, consistencyGroup, capabilities, task);
+    }
 
     /**
      * Perform simple validation-- make sure this volume owns the protection set.
@@ -4257,7 +4557,7 @@ public class BlockService extends TaskResourceService {
                 }
             } else {
                 BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, URI.create(mirrorURI));
-                if (!mirror.getInactive() &&
+                if (null != mirror && !mirror.getInactive() &&
                         ((count > 1 && mirror.getLabel().matches("^" + name + "\\-\\d+$")) ||
                         (count == 1 && name.equals(mirror.getLabel())))) {
                     dupList.add(mirror.getLabel());
@@ -4394,6 +4694,10 @@ public class BlockService extends TaskResourceService {
         // Don't operate on VPLEX backend or RP Journal volumes.
         BlockServiceUtils.validateNotAnInternalBlockObject(sourceVolume, false);
 
+        // Make sure that we don't have some pending
+        // operation against the volume
+        checkForPendingTasks(Arrays.asList(sourceVolume.getTenant().getURI()), Arrays.asList(sourceVolume));
+
         if (count <= 0) {
             throw APIException.badRequests.invalidParameterRangeLessThanMinimum("count", count, 1);
         }
@@ -4461,9 +4765,9 @@ public class BlockService extends TaskResourceService {
      * @param sync flag for pause operation; true=split, false=fracture
      * @param copyID copyID Copy volume ID, none specified pauses all copies
      * 
-     * @return TaskResourceRep
+     * @return TaskList
      */
-    private TaskResourceRep pauseMirrors(URI id, String sync, URI copyID) {
+    private TaskList pauseMirrors(URI id, String sync, URI copyID) {
         Volume sourceVolume = queryVolumeResource(id);
         ArgValidator.checkEntity(sourceVolume, id, true);
 
@@ -4508,9 +4812,9 @@ public class BlockService extends TaskResourceService {
      * @param id the URN of a ViPR Source volume
      * @param copyID Copy volume ID, none specified resumes all copies
      * 
-     * @return TaskResourceRep
+     * @return TaskList
      */
-    private TaskResourceRep resumeMirrors(URI id, URI copyID) {
+    private TaskList resumeMirrors(URI id, URI copyID) {
         ArgValidator.checkFieldUriType(id, Volume.class, "id");
         Volume sourceVolume = queryVolumeResource(id);
         ArgValidator.checkEntity(sourceVolume, id, true);

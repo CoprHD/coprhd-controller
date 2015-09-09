@@ -566,11 +566,6 @@ public class UcsComputeDevice implements ComputeDevice {
                 }
 
             }
-            else {
-                /**
-                 * Nothing to do... No-op it
-                 */
-            }
         }
 
         catch (Exception exception) {

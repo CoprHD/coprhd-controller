@@ -1371,9 +1371,9 @@ public class VmaxMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
                     if (bo != null && !mask.hasExistingVolume(bo)) {
 
                         // Make sure the volume hasn't already been added to the user add volume list.
-                        if (mask.hasUserCreatedVolume(bo.getId())) {
+                        /*if (mask.hasUserCreatedVolume(bo.getId())) {
                             // Remove this combo from the
-                        }
+                        }*/
 
                         // Make sure the volume hasn't already been found for this initiator and BO combination.
                         // If that's the case, we can simply move onto the next volume because the volumesWithMask

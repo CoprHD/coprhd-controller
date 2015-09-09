@@ -421,13 +421,13 @@ public class CustomNameResolver extends CustomConfigResolver {
                             systemType);
                 }
                 resolvedValue.append(propertyValue);
-            } else if (token.equals(END_DELIMITER)) {
-                // do nothing
-            } else if (!token.equals(START_DELIMITER)
+            }  else if (!token.equals(START_DELIMITER)
                     && !token.equals(END_DELIMITER)) {
                 // a literal - just append it
                 resolvedValue.append(token);
-            }
+            } /*else if (token.equals(END_DELIMITER)) {
+            // do nothing
+        	}*/
         }
         return resolvedValue.toString();
     }

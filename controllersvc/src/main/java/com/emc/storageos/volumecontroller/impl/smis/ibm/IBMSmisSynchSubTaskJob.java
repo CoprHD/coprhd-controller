@@ -87,10 +87,10 @@ public class IBMSmisSynchSubTaskJob extends SmisSynchSubTaskJob {
                 _status = JobStatus.SUCCESS;
                 _logger.info("IBMSmisSynchSubTaskJob: {} succeeded", instanceId);
             }
-            else {
+           /* else {
                 // if resultObjPaths is not empty, we don't know it is full or partial result
                 // we keep trying, until time out
-            }
+            }*/
         } catch (WBEMException e) {
             if (e.getID() == WBEMException.CIM_ERR_NOT_FOUND) {
                 _status = JobStatus.FAILED;

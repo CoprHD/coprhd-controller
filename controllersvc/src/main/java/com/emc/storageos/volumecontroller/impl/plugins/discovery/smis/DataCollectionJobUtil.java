@@ -889,12 +889,12 @@ public class DataCollectionJobUtil {
                                                 .getRegistrationStatus())) {
                             injectReachableStatusInSystem(storageSystemInDb,
                                     null, NullColumnValueGetter.getNullURI(), false);
-                        } else {
+                        } /*else {
                             // Case 4: not registered and not managed by
                             // provider,
                             // delete it.
                             // deleteUnregisteredStorageSystems(storageSystemInDb);
-                        }
+                        }*/
                     }
                 }
             } catch (Exception e) {

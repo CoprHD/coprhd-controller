@@ -313,7 +313,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
         // TODO there is a bug in smis --- the request to element composition service fails when name is set even for a single volume.
         // todo: the opt 450103 was opened on 05/30
         // if (volumes.size() == 1) {
-        if (false) {
+        /*if (false) {
             String tenantName = "";
             try {
                 TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, volume.getTenant()
@@ -324,7 +324,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
             }
             label = _nameGenerator.generate(tenantName, volume.getLabel(), volume.getId()
                     .toString(), '-', SmisConstants.MAX_VOLUME_NAME_LENGTH);
-        }
+        }*/
 
         Long capacity = volume.getTotalMetaMemberCapacity();
         Integer metaMemberCount = volume.getMetaMemberCount();

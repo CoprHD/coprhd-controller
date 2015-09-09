@@ -511,7 +511,6 @@ public class VcenterDataCenterService extends TaskResourceService {
      * if the user is in another tenant org
      *
      * @param tenantId the tenant organization URI
-     * @param user the user to validated for tenant org privileges.
      */
     protected void verifyAuthorizedSystemOrTenantOrgUser(URI tenantId) {
         if (isSystemAdmin() || isSecurityAdmin()) {
@@ -532,6 +531,13 @@ public class VcenterDataCenterService extends TaskResourceService {
     private void validateTenant(VcenterDataCenterUpdate updateParam, VcenterDataCenter dataCenter) {
         Vcenter vcenter = _dbClient.queryObject(Vcenter.class, dataCenter.getVcenter());
         ArgValidator.checkEntity(vcenter, dataCenter.getVcenter(), isIdEmbeddedInURL(dataCenter.getVcenter()));
+
+        //Set the current tenant of the datacenter to the updateParam if
+        //updateParam does not contain the tenant information.
+        //To set the null tenant for the datacenter, use the string "null".
+        if (updateParam.getTenant() == null) {
+            updateParam.setTenant(dataCenter.getTenant());
+        }
 
         Set<URI> vcenterTenants = _permissionsHelper.getUsageURIsFromAcls(vcenter.getAcls());
         if (!NullColumnValueGetter.isNullURI(updateParam.getTenant()) &&

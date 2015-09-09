@@ -270,7 +270,7 @@ class VcenterDatacenter(object):
             body)
         return common.json_decode(s)
 
-    def vcenterdatacenter_update(self, label, vcenter, tenantname):
+    def vcenterdatacenter_update(self, label, vcenter, tenantname, newtenantname):
         '''
         updates a vcenterdatacenter
         parameters:
@@ -289,14 +289,15 @@ class VcenterDatacenter(object):
 
                 uri = self.vcenterdatacenter_query(label, vcenter, VcenterDatacenter.DATACENTERS_FROM_ALL_TENANTS)
 
-                from tenant import Tenant
-                obj = Tenant(self.__ipAddr, self.__port)
-
-                tenanturi = obj.tenant_query(tenantname)
-
                 params = dict()
                 params['name'] = label
-                params['tenant'] = tenanturi
+                
+                if newtenantname is not None and newtenantname != 'null':
+                    from tenant import Tenant
+                    obj = Tenant(self.__ipAddr, self.__port)
+                    params['tenant'] = obj.tenant_query(newtenantname)
+                elif newtenantname is not None:
+                     params['tenant'] = newtenantname
 
                 body = json.dumps(params)
 
@@ -819,10 +820,16 @@ def update_parser(subcommand_parsers, common_parser):
                                 required=True)
 
     mandatory_args.add_argument('-tenant', '-tn',
-                               help='Name of Tenant',
-                               metavar='<tenant>',
-                               dest='tenant',
-                               required=True)
+                                help='Name of Tenant',
+                                metavar='<tenant>',
+                                dest='tenant',
+                                required=True)
+
+    update_parser.add_argument('-newtenant', '-ntn',
+                               help='Name of the new Tenant to be updated. Provide null if want to remove the exsiting tenant from the datacetner',
+                               metavar='<newtenant>',
+                               dest='newtenant',
+                               default=None)
 
     update_parser.set_defaults(func=vcenterdatacenter_update)
 
@@ -831,7 +838,7 @@ def vcenterdatacenter_update(args):
     obj = VcenterDatacenter(args.ip, args.port)
     try:
         res = obj.vcenterdatacenter_update(args.name,
-                                           args.vcenter, args.tenant)
+                                           args.vcenter, args.tenant, args.newtenant)
     except SOSError as e:
         common.format_err_msg_and_raise("update", "vcenterdatacenter",
                                         e.err_text, e.err_code)

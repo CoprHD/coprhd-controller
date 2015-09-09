@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.auth.ACLAssignmentChanges;
 import com.emc.storageos.model.auth.ACLEntry;
 import com.emc.storageos.model.host.vcenter.*;
@@ -153,7 +154,12 @@ public class VCenters extends ViprResourceController {
         VcenterDataCenterRestRep vcenterDataCenter = VcenterDataCenterUtils.getDataCenter(uri(vcenterDataCenterId));
         if (vcenterDataCenter != null) {
             try {
-                VcenterDataCenterUtils.updateDataCenter(uri(vcenterDataCenterId), uri(tenant));
+                URI tenantId = NullColumnValueGetter.getNullURI();
+                if (StringUtils.isNotBlank(tenant)) {
+                    tenantId = uri(tenant);
+                }
+
+                VcenterDataCenterUtils.updateDataCenter(uri(vcenterDataCenterId), tenantId);
                 list();
             } catch (Exception e) {
                 flash.error(MessagesUtils.get("validation.vcenter.messageAndError", e.getMessage()));

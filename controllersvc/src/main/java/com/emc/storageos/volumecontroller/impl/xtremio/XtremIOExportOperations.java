@@ -23,6 +23,7 @@ import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.DataSource;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -225,6 +226,12 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
     @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
             List<String> initiatorNames, boolean mustHaveAllPorts) {
+        // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
         try {
             _log.info("Refreshing Initiator labels in ViPR.. ");
             XtremIOClient client = getXtremIOClient(storage);
@@ -232,16 +239,17 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
             List<XtremIOInitiator> initiators = client.getXtremIOInitiatorsInfo(xioClusterName);
             List<Initiator> initiatorObjs = new ArrayList<Initiator>();
             for (XtremIOInitiator initiator : initiators) {
-                @SuppressWarnings("deprecation")
-                List<URI> initiatorUris = dbClient
-                        .queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(initiator.getPortAddress()));
-                if (initiatorUris.size() == 0) {
-                    continue;
-                } else {
-                    Initiator initiatorObj = dbClient.queryObject(Initiator.class, initiatorUris.get(0));
+                URIQueryResultList initiatorResult = new URIQueryResultList();
+                dbClient
+                        .queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(initiator.getPortAddress()),
+                                initiatorResult);
+                if (initiatorResult.iterator().hasNext()) {
+                    Initiator initiatorObj = dbClient.queryObject(Initiator.class, initiatorResult.iterator().next());
                     _log.info("Updating Initiator label from {} to {} in ViPR DB", initiatorObj.getLabel(), initiator.getName());
                     initiatorObj.setLabel(initiator.getName());
                     initiatorObjs.add(initiatorObj);
+                } else {
+                    _log.info("No initiator objects in vipr db for port address {}", initiator.getPortAddress());
                 }
             }
             if (!initiatorObjs.isEmpty()) {
@@ -250,11 +258,6 @@ public class XtremIOExportOperations extends XtremIOOperations implements Export
         } catch (Exception e) {
             _log.warn("Refreshing XtremIO Initiator ports failed", e);
         }
-        return null;
-    }
-
-    @Override
-    public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
         // CTRL-13080 fix - refresh mask will not be used by XtremIo exports, hence returning null is not an issue.
         return null;
     }

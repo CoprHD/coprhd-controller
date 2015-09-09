@@ -3626,7 +3626,16 @@ public class BlockService extends TaskResourceService {
         if (cg != null) {
             // all volume in CG must have been passed.
             _log.info("Verify all volumes in CG {}:{}", cg.getId(), cg.getLabel());
-            verifyVolumesInCG(volumes, cgVolumes);
+            URI storageId = cg.getStorageController();
+            StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageId);
+            if (DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType())) {
+                // For VPlex, the volumes should include all volumes, which are in the same backend storage system, in the CG.
+                 if (!VPlexUtil.verifyVolumesInCG(volumes, cgVolumes, _dbClient)) {
+                     throw APIException.badRequests.cantChangeVarrayNotAllCGVolumes();
+                 }
+            } else {
+                verifyVolumesInCG(volumes, cgVolumes);
+            }
         }
 
         // Create a task for each volume and set the initial
@@ -4577,10 +4586,7 @@ public class BlockService extends TaskResourceService {
 
         // Check that the project and the CG project are the same
         final URI expectedId = consistencyGroup.getProject().getURI();
-        checkProjectsMatch(expectedId, project.getId());
-        
-        // check if CG's storage system is associated to the requested virtual array
-        validateCGValidWithVirtualArray(consistencyGroup, varray);
+        checkProjectsMatch(expectedId, project.getId());                
 
         // Validate the CG type is RP
         if (!consistencyGroup.getRequestedTypes().contains(BlockConsistencyGroup.Types.RP.toString())) {

@@ -49,6 +49,7 @@ public enum OperationTypeEnum {
     RESYNCHRONIZE_VOLUME_SNAPSHOT("VolumeSnapshotResynchronized", "VolumeSnapshotResynchronizeFailed", "VolumeSnapshot Resynchronize"),
     ACTIVATE_VOLUME_SNAPSHOT("VolumeSnapshotActivated", "VolumeSnapshotActivateFailed", "VolumeSnapshot Activate"),
     DEACTIVATE_VOLUME_SNAPSHOT("VolumeSnapshotDeactivated", "VolumeSnapshotDeactivateFailed", "VolumeSnapshot Deactivate"),
+    ESTABLISH_VOLUME_SNAPSHOT("VolumeSnapshotGroupEstablished", "VolumeSnapshotGroupEstablishFailed", "VolumeSnapshot GroupEstablish"),
     CHANGE_VOLUME_VPOOL("VolumeVPoolChanged", "VolumeVPoolChangeFailed", "Volume VirtualPool Change"),
     CHANGE_VOLUME_AUTO_TIERING_POLICY("VolumeAutoTieringPolicyChanged", "VolumeAutoTieringPolicyChangeFailed",
             "Volume Auto-tiering Policy Change"),

@@ -1198,6 +1198,9 @@ public interface BadRequestExceptions {
     public BadRequestException snapshotNotActivated(String snapshot);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotEstablishGroupRelationForInactiveSnapshot(final String snapshot);
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException snapshotNullSettingsInstance(String snapshot);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2422,4 +2425,10 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException unableToFindTheSpecifiedCopy(final String copy);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException snapshotNotAllowedWhenCGAcrossMultipleSystems();
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException fullCopyNotAllowedWhenCGAcrossMultipleSystems();
 }

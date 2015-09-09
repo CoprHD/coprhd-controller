@@ -526,6 +526,7 @@ public enum ServiceCode {
     // Unmanaged Volume Errors (64000 - 64999)
     UNMANAGED_VOLUME_INGESTION_EXCEPTION(64000),
     
+    ECS_BASEURI(65000),
     //ECS erros (65000 - 65999)
     ECS_CONNECTION_ERROR(65000),
     ECS_RETURN_PARAM_ERROR(65001),
@@ -533,6 +534,8 @@ public enum ServiceCode {
     ECS_STORAGEPOOL_ERROR(650003),
     ECS_STATS_ERROR(65004),
     ECS_NON_SYSTEM_ADMIN_ERROR(65005),
+    ECS_BUCKET_UPDATE_ERROR(65010),
+    ECS_BUCKET_DELETE_ERROR(65011),
 
     // ****************************
     // Old style of Service codes

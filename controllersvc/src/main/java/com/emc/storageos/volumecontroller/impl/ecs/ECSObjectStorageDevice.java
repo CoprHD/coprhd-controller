@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.ecs.api.ECSApi;
 import com.emc.storageos.ecs.api.ECSApiFactory;
@@ -57,22 +58,89 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
 		public BiosCommandResult doCreateBucket(StorageSystem storageObj, ObjectDeviceInputOutput args) 
 				throws ControllerException {
 			// TODO Auto-generated method stub
-			_log.info("ECSObjectStorageDevice:doCreateBucket");
+			_log.info("ECSObjectStorageDevice:doCreateBucket start");
 
 			try {
 				URI deviceURI = new URI("https", null, storageObj.getIpAddress(), storageObj.getPortNumber(), "/", null, null);
-				ECSApi ecsApi = ecsApiFactory.getRESTClient(deviceURI, storageObj.getUsername(), storageObj.getPassword());
 
+				ECSApi ecsApi = ecsApiFactory.getRESTClient(deviceURI, storageObj.getUsername(), storageObj.getPassword());
+				
 				String id = ecsApi.createBucket(args.getName(), args.getNamespace(), args.getRepGroup(), 
 						args.getRetentionPeriod(), args.getBlkSizeHQ(), args.getNotSizeSQ(), args.getOwner());
-
-				_log.info("ECSObjectStorageDevice:doCreateBucket {} - complete");
+				
+				_log.info("ECSObjectStorageDevice:doCreateBucket end");
 				return BiosCommandResult.createSuccessfulResult();
 			} catch (URISyntaxException ex) {
+				_log.error("ECSObjectStorageDevice:doCreateBucket failed URISyntaxException.", ex);
 	    		throw ECSException.exceptions.errorCreatingServerURL(storageObj.getIpAddress(), storageObj.getPortNumber(), ex);
 			} catch (ECSException e) {
-				_log.error("doCreateBucket failed.", e);
+				_log.error("ECSObjectStorageDevice:doCreateBucket failed. ECSException", e);
 				return BiosCommandResult.createErrorResult(e);
 			}
 		}
+		
+    @Override
+    public BiosCommandResult doUpdateBucket(StorageSystem storageObj, Bucket bucket, Long softQuota, Long hardQuota, Integer retention) {
+        BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
+        boolean persistBucket = false;
+        // Update Quota
+        try {
+            ECSApi objectAPI = getAPI(storageObj);
+            objectAPI.updateBucketQuota(bucket.getLabel(), bucket.getNamespace(), softQuota, hardQuota);
+            bucket.setHardQuota(hardQuota);
+            bucket.setSoftQuota(softQuota);
+            persistBucket = true;
+        } catch (ECSException e) {
+            _log.error("Quota Update for Bucket : {} failed.", bucket.getLabel(), e);
+            result = BiosCommandResult.createErrorResult(e);
+        }
+
+        // Update Retention
+        try {
+            ECSApi objectAPI = getAPI(storageObj);
+            objectAPI.updateBucketRetention(bucket.getLabel(), bucket.getNamespace(), retention);
+            bucket.setRetention(retention);
+            persistBucket = true;
+        } catch (ECSException e) {
+            _log.error("Retention Update for Bucket : {} failed.", bucket.getLabel(), e);
+            result = BiosCommandResult.createErrorResult(e);
+        }
+
+        if (persistBucket) {
+            _dbClient.persistObject(bucket);
+        }
+        return result;
+    }
+
+    @Override
+    public BiosCommandResult doDeleteBucket(StorageSystem storageObj, Bucket bucket) {
+        BiosCommandResult result;
+        try {
+            ECSApi objectAPI = getAPI(storageObj);
+            objectAPI.deleteBucket(bucket.getLabel());
+            bucket.setInactive(true);
+            _dbClient.persistObject(bucket);
+            result = BiosCommandResult.createSuccessfulResult();
+        } catch (ECSException e) {
+            _log.error("Delete Bucket : {} failed.", bucket.getLabel(), e);
+            result = BiosCommandResult.createErrorResult(e);
+        }
+        return result;
+    }
+
+    private ECSApi getAPI(StorageSystem storageObj) throws ControllerException {
+        ECSApi objectAPI = null;
+        URI deviceURI = null;
+        try {
+            deviceURI = new URI("https", null, storageObj.getIpAddress(), storageObj.getPortNumber(), "/", null, null);
+        } catch (URISyntaxException e) {
+            throw ECSException.exceptions.invalidReturnParameters(storageObj.getId());
+        }
+        if (storageObj.getUsername() != null && !storageObj.getUsername().isEmpty()) {
+            objectAPI = ecsApiFactory.getRESTClient(deviceURI, storageObj.getUsername(), storageObj.getPassword());
+        } else {
+            objectAPI = ecsApiFactory.getRESTClient(deviceURI);
+        }
+        return objectAPI;
+    }
 }

@@ -80,34 +80,67 @@ public class ObjectDeviceController implements ObjectController {
 	}
 
 	@Override
-	public void createBucket(URI storage, URI uriPool, URI bkt, BucketParam param, String opId) throws ControllerException {
+	public void createBucket(URI storage, URI uriPool, URI bkt, String label, String namespace, String retention,
+			String hardQuota, String softQuota, String owner, String opId) throws ControllerException {
 		// TODO Auto-generated method stub
-		_log.info("ObjectDeviceController:createBucket");
+		_log.info("ObjectDeviceController:createBucket start");
 		StorageSystem storageObj = null;
 		
-		try {
+	//	try {
 			StoragePool stPool = _dbClient.queryObject(StoragePool.class, uriPool);
 			Bucket bucketObj = _dbClient.queryObject(Bucket.class, bkt);
 			ObjectDeviceInputOutput args = new ObjectDeviceInputOutput();
 			storageObj = _dbClient.queryObject(StorageSystem.class, storage);
 
-			args.setName(param.getLabel());
-			args.setNamespace(param.getNamespace());
+			args.setName(label);
+			args.setNamespace(namespace);
 			args.setRepGroup(stPool.getNativeId()); //recommended storeage pool
-			args.setRetentionPeriod(param.getRetention());
-			args.setBlkSizeHQ(param.getHardQuota());
-			args.setNotSizeSQ(param.getSoftQuota());
-			args.setOwner(param.getOwner());
+			args.setRetentionPeriod(retention);
+			args.setBlkSizeHQ(hardQuota);
+			args.setNotSizeSQ(softQuota);
+			args.setOwner(owner);
 
+			_log.info("ObjectDeviceController:createBucket URI and Type: " + storage.toString() + "   " +
+					storageObj.getSystemType());
 			BiosCommandResult result = getDevice(storageObj.getSystemType()).doCreateBucket(storageObj, args);
 			if (!result.getCommandPending()) {
 				bucketObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 			}
 
-			_dbClient.persistObject(bucketObj);
-		} catch (Exception e) {
-			_log.error("Unable to create Bucket storage {}, pool {}, Bucket {}: {}", param);
-		}
+			//_dbClient.persistObject(bucketObj);
+			_log.info("ObjectDeviceController:createBucket end");
+		//} catch (Exception e) {
+			//_log.error("Unable to create Bucket storage");
+		//}
 	}
+	
+    @Override
+    public void deleteBucket(URI storage, URI bucket, String task) throws ControllerException {
+        _log.info("ObjectDeviceController:deleteBucket");
+        Bucket bucketObj = _dbClient.queryObject(Bucket.class, bucket);
+        StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+        BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteBucket(storageObj, bucketObj);
+
+        if (result.getCommandPending()) {
+            return;
+        }
+        bucketObj.getOpStatus().updateTaskStatus(task, result.toOperation());
+    }
+
+    @Override
+    public void updateBucket(URI storage, URI bucket, Long softQuota, Long hardQuota, Integer retention,
+            String task) throws ControllerException {
+        _log.info("ObjectDeviceController:updateBucket");
+
+        Bucket bucketObj = _dbClient.queryObject(Bucket.class, bucket);
+        StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
+        BiosCommandResult result = getDevice(storageObj.getSystemType()).doUpdateBucket(storageObj, bucketObj, softQuota, hardQuota,
+                retention);
+
+        if (result.getCommandPending()) {
+            return;
+        }
+        bucketObj.getOpStatus().updateTaskStatus(task, result.toOperation());
+    }
 	
 }

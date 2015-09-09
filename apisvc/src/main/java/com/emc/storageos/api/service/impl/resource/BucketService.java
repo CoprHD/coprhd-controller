@@ -237,7 +237,9 @@ public class BucketService extends TaskResourceService {
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceDevice());
             ObjectController controller = getController(ObjectController.class, system.getSystemType());
-            controller.createBucket(recommendation.getSourceDevice(), recommendation.getSourcePool(), bucket.getId(), param, task);
+            controller.createBucket(recommendation.getSourceDevice(), recommendation.getSourcePool(), bucket.getId(), 
+            		param.getLabel(), param.getNamespace(), param.getRetention(), param.getHardQuota(), 
+            		param.getSoftQuota(), param.getOwner(), task);
         } catch (InternalException e) {
             bucket.setInactive(true);
             _dbClient.persistObject(bucket);
@@ -317,15 +319,10 @@ public class BucketService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Bucket.class, bucket.getId(),
                 task, ResourceOperationTypeEnum.DELETE_BUCKET);
         op.setDescription("Bucket deactivate");
-        // TODO : Implement controller operation
-        /*
-         * BucketController controller = getController(Bucket.class, device.getSystemType());
-         * controller.delete(device.getId(), null, bucket.getId(), param.getForceDelete(), task);
-         */
-        // TODO : Bucket delete needs to happen in Controller. Remove this code.
-        bucket.setInactive(Boolean.TRUE);
-        _dbClient.persistObject(bucket);
-
+        
+        ObjectController controller = getController(ObjectController.class, device.getSystemType());
+        controller.deleteBucket(bucket.getStorageDevice(), id, task);
+        
         auditOp(OperationTypeEnum.DELETE_BUCKET, true, AuditLogManager.AUDITOP_BEGIN,
                 bucket.getId().toString(), device.getId().toString());
 
@@ -446,36 +443,19 @@ public class BucketService extends TaskResourceService {
         _log.info(String.format(
                 "BucketUpdate --- Bucket id: %1$s, Task: %2$s", id, task));
 
-        if (bucketUpdateRequired(bucket, param)) {
-            // TODO : controller code to update bucket
-            // bucketController.Update()
-            _dbClient.persistObject(bucket);
-        }
+        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, bucket.getStorageDevice());
 
         Operation op = _dbClient.createTaskOpStatus(Bucket.class, bucket.getId(),
                 task, ResourceOperationTypeEnum.UPDATE_BUCKET);
-        op.setDescription("Bucket updated");
+        op.setDescription("Bucket update");
+        ObjectController controller = getController(ObjectController.class, storageSystem.getSystemType());
+
+        controller.updateBucket(bucket.getStorageDevice(), id, softQuota, hardQuota, retention, task);
 
         auditOp(OperationTypeEnum.UPDATE_BUCKET, true, AuditLogManager.AUDITOP_BEGIN,
                 bucket.getId().toString(), bucket.getStorageDevice().toString());
 
         return toTask(bucket, task, op);
-    }
-
-    private Boolean bucketUpdateRequired(Bucket bucket, BucketUpdateParam param) {
-        Boolean update = false;
-        Long softQuota = SizeUtil.translateSize(param.getSoftQuota());
-        Long hardQuota = SizeUtil.translateSize(param.getHardQuota());
-        Integer retention = null != param.getRetention() ? Integer.valueOf(param.getRetention()) : 0;
-
-        if (!softQuota.equals(bucket.getSoftQuota()) || !hardQuota.equals(bucket.getHardQuota())
-                || !retention.equals(bucket.getRetention())) {
-            bucket.setSoftQuota(softQuota);
-            bucket.setHardQuota(hardQuota);
-            bucket.setRetention(retention);
-            update = true;
-        }
-        return update;
     }
 
     @Override

@@ -219,5 +219,5 @@ public interface InternalServerErrorExceptions {
     public InternalServerErrorException triggerIpReconfigFailed(String errmsg);
     
     @DeclareServiceCode(ServiceCode.SYS_DR_ADD_STANDBY_PRECHECK_FAILED)
-    public InternalServerErrorException addStandbyPrecheckFailed(String errmsg);
+    public InternalServerErrorException addStandbyPrecheckFailed();
 }

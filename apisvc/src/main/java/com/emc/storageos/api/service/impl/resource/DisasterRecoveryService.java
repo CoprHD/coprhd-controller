@@ -49,6 +49,7 @@ import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerato
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 @Path("/site")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN },
@@ -264,41 +265,45 @@ public class DisasterRecoveryService extends TaggedResource {
         return ResourceTypeEnum.SITE;
     }
     
-    protected boolean precheckForStandbyAttach(SiteRestRep standby) {
+    /*
+     * Internal method to check whether standby can be attached to current primary site
+     */
+    protected void precheckForStandbyAttach(SiteAddParam standby) {
         //standby should be refresh install
         if (standby.isFreshInstallation() == false) {
             log.info("Standby is not refresh installation");
-            return false;
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed();
         }
         
         //DB schema version should be same
         String currentDbSchemaVersion = coordinator.getCurrentDbSchemaVersion();
         String standbyDbSchemaVersion = standby.getDbSchemaVersion();
-        if (currentDbSchemaVersion.equalsIgnoreCase(standbyDbSchemaVersion)) {
+        if (!currentDbSchemaVersion.equalsIgnoreCase(standbyDbSchemaVersion)) {
             log.info("Standby db schema version {} is not same as primary {}", standbyDbSchemaVersion, currentDbSchemaVersion);
-            return false;
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed();
         }
         
         //software version should be matched
+        SoftwareVersion currentSoftwareVersion;
+        SoftwareVersion standbySoftwareVersion;
         try {
-            SoftwareVersion currentSoftwareVersion = coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion();
-            SoftwareVersion standbySoftwareVersion = new SoftwareVersion(standby.getSoftwareVersion());
-            if (!currentSoftwareVersion.weakEquals(standbySoftwareVersion)) {
-                log.info("Standby site version {} is not equals to current version {}", standbySoftwareVersion, currentSoftwareVersion);
-                return false;
-            }
+            currentSoftwareVersion = coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion();
+            standbySoftwareVersion = new SoftwareVersion(standby.getSoftwareVersion());
         } catch (Exception e) {
-            log.error("Fail to compare software version {}", e);
-            return false;
+            log.error("Fail to get software version {}", e);
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed();
+        }
+        
+        if (!currentSoftwareVersion.isNaturallySwitchableTo(standbySoftwareVersion)) {
+            log.info("Standby site version {} is not equals to current version {}", standbySoftwareVersion, currentSoftwareVersion);
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed();
         }
         
         //this site should be primary site
         if (!coordinator.getSiteId().equals(coordinator.getPrimarySiteId())) {
             log.info("This site is not primary site");
-            return false;
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed();
         }
-        
-        return true;
     }
     
     protected boolean isFreshInstallation() {

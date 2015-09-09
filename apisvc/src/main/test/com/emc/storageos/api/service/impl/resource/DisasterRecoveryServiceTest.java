@@ -3,10 +3,12 @@ package com.emc.storageos.api.service.impl.resource;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 
+import java.lang.reflect.Constructor;
 import java.net.URI;
 import java.util.LinkedList;
 import java.util.List;
@@ -15,10 +17,14 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.emc.storageos.api.mapper.SiteMapper;
+import com.emc.storageos.coordinator.client.model.ProductName;
+import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Site;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
 
@@ -32,11 +38,27 @@ public class DisasterRecoveryServiceTest {
     private Site standbySite3;
     private List<URI> uriList;
     private List<Site> standbySites;
+    private SiteAddParam standby;
 
     @Before
     public void setUp() throws Exception {
         uriList = new LinkedList<URI>();
         standbySites = new LinkedList<Site>();
+        
+        Constructor constructor = ProductName.class.getDeclaredConstructors()[0];
+        constructor.setAccessible(true);
+        ProductName productName = (ProductName)constructor.newInstance(null);
+        productName.setName("vipr");
+        
+        SoftwareVersion version = new SoftwareVersion("vipr-2.4.0.0.100");
+        LinkedList<SoftwareVersion> available = new LinkedList<SoftwareVersion>();
+        available.add(version);
+        RepositoryInfo repositoryInfo = new RepositoryInfo(new SoftwareVersion("vipr-2.4.0.0.100"), available);
+        
+        standby = new SiteAddParam();
+        standby.setFreshInstallation(true);
+        standby.setDbSchemaVersion("2.4");
+        standby.setSoftwareVersion("vipr-2.4.0.0.150");
         
         // setup standby site
         standbySite1 = new Site();
@@ -72,7 +94,10 @@ public class DisasterRecoveryServiceTest {
         drService.setSiteMapper(new MockSiteMapper());
 
         doReturn(localVDC).when(drService).queryLocalVDC();
-        doReturn("no-id").when(coordinator).getPrimarySiteId();
+        doReturn("123456").when(coordinator).getPrimarySiteId();
+        doReturn("123456").when(coordinator).getSiteId();
+        doReturn("2.4").when(coordinator).getCurrentDbSchemaVersion();
+        doReturn(repositoryInfo).when(coordinator).getTargetInfo(RepositoryInfo.class);
     }
     
     @Test
@@ -130,6 +155,56 @@ public class DisasterRecoveryServiceTest {
     @Test
     public void testRemoveStandby() {
         //TODO this test case will be add when implement detach standby feature
+    }
+    
+    @Test
+    public void testPrecheckForStandbyAttach() throws Exception {
+
+        drService.precheckForStandbyAttach(standby);
+    }
+
+    @Test
+    public void testPrecheckForStandbyAttach_FreshInstall() throws Exception {
+        try {
+            standby.setFreshInstallation(false);
+            drService.precheckForStandbyAttach(standby);
+            fail();
+        } catch (Exception e) {
+            // ignore expected exception
+        }
+    }
+
+    @Test
+    public void testPrecheckForStandbyAttach_DBSchema() throws Exception {
+        try {
+            standby.setDbSchemaVersion("2.3");
+            drService.precheckForStandbyAttach(standby);
+            fail();
+        } catch (Exception e) {
+            // ignore expected exception
+        }
+    }
+
+    @Test
+    public void testPrecheckForStandbyAttach_Version() throws Exception {
+        try {
+            standby.setSoftwareVersion("vipr-2.3.0.0.100");
+            drService.precheckForStandbyAttach(standby);
+            fail();
+        } catch (Exception e) {
+            // ignore expected exception
+        }
+    }
+    
+    @Test
+    public void testPrecheckForStandbyAttach_PrimarySite() throws Exception {
+        try {
+            doReturn("site-is-not-primary").when(coordinator).getSiteId();
+            drService.precheckForStandbyAttach(standby);
+            fail();
+        } catch (Exception e) {
+            // ignore expected exception
+        }
     }
 
     protected void compareSiteResponse(SiteRestRep response, Site site) {

@@ -90,6 +90,7 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable<
 
     public void setNativeId(String nativeId) {
         this.nativeId = nativeId;
+        setChanged("nativeId");
     }
 
     @Name("protocols")
@@ -112,6 +113,7 @@ public class NASServer extends VirtualArrayTaggedResource implements Comparable<
     }
 
     @Name("storagePorts")
+    @AlternateId("AssignedPortsAltIdIndex")
     public StringSet getStoragePorts() {
         if (storagePorts == null) {
             storagePorts = new StringSet();

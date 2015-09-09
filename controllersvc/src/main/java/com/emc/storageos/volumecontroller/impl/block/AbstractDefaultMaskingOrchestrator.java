@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 EMC Corporation
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
  */
 
@@ -44,6 +44,7 @@ import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProtocol;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualArray;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
@@ -306,9 +307,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             pathParams.setAllowFewerPorts(true);
         }
 
-        Map<URI, List<URI>> assignments =
-                _blockScheduler.assignStoragePorts(storage, exportGroup.getVirtualArray(), initiators,
-                        pathParams, null, volumeMap.keySet());
+        Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup,
+                initiators, null, pathParams, volumeMap.keySet(), _networkDeviceController, exportGroup.getVirtualArray(), token);
         List<URI> targets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
 
         String maskName = useComputedMaskName() ? getComputedExportMaskName(storage, exportGroup, initiators) : null;
@@ -508,9 +508,8 @@ abstract public class AbstractDefaultMaskingOrchestrator {
         if (exportGroup.getType() != null) {
             pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
         }
-        Map<URI, List<URI>> assignments =
-                _blockScheduler.assignStoragePorts(storage, exportGroup.getVirtualArray(), initiators,
-                        pathParams, exportMask.getZoningMap(), newVolumeURIs);
+        Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup, initiators,
+                exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, exportGroup.getVirtualArray(), token);
         newTargetURIs = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
         exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments));
         _dbClient.persistObject(exportMask);
@@ -1356,10 +1355,7 @@ abstract public class AbstractDefaultMaskingOrchestrator {
             Collection<URI> hostURIs,
             ListMultimap<String, String> computeResourceToPortNames) {
         for (Initiator initiator : initiators) {
-            String normalizedName = initiator.getInitiatorPort();
-            if (WWNUtility.isValidWWN(normalizedName)) {
-                normalizedName = WWNUtility.getUpperWWNWithNoColons(initiator.getInitiatorPort());
-            }
+            String normalizedName = Initiator.normalizePort(initiator.getInitiatorPort());
             portNames.add(normalizedName);
             portNameToInitiatorURI.put(normalizedName, initiator.getId());
             if (hostURIs != null) {

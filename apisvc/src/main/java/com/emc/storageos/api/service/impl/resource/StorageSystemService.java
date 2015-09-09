@@ -10,6 +10,7 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 import static com.emc.storageos.api.mapper.SystemsMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
+import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,6 +41,7 @@ import com.emc.storageos.api.service.impl.resource.utils.DiscoveredObjectTaskSch
 import com.emc.storageos.api.service.impl.resource.utils.PurgeRunnable;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.cinder.CinderConstants;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -54,6 +56,7 @@ import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.Operation;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
@@ -64,8 +67,14 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StorageSystem.Discovery_Namespaces;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObject.ExportType;
 import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem.SupportedFileSystemCharacterstics;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeCharacterstics;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -81,6 +90,8 @@ import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.ports.StoragePortList;
 import com.emc.storageos.model.ports.StoragePortRequestParam;
 import com.emc.storageos.model.ports.StoragePortRestRep;
+import com.emc.storageos.model.rdfgroup.RDFGroupList;
+import com.emc.storageos.model.rdfgroup.RDFGroupRestRep;
 import com.emc.storageos.model.systems.StorageSystemBulkRep;
 import com.emc.storageos.model.systems.StorageSystemConnectivityList;
 import com.emc.storageos.model.systems.StorageSystemList;
@@ -108,6 +119,7 @@ import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
+import com.emc.storageos.volumecontroller.impl.utils.DiscoveryUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
 import com.google.common.base.Function;
 
@@ -126,6 +138,10 @@ public class StorageSystemService extends TaskResourceService {
     protected static final String POOL_EVENT_SERVICE_SOURCE = "StoragePoolService";
     private static final String POOL_EVENT_SERVICE_TYPE = "storagepool";
     protected static final String STORAGEPOOL_REGISTERED_DESCRIPTION = "Storage Pool Registered";
+
+    private static final String TRUE_STR = "true";
+
+    private static final String FALSE_STR = "false";
 
     @Autowired
     private RecordableEventManager _evtMgr;
@@ -1089,6 +1105,32 @@ public class StorageSystemService extends TaskResourceService {
         return poolList;
     }
 
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/rdf-groups")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public RDFGroupList getAllRAGroups(@PathParam("id") URI id) {
+
+        // Make sure storage system is registered.
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        StorageSystem system = queryResource(id);
+        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
+
+        RDFGroupList rdfGroupList = new RDFGroupList();
+        URIQueryResultList rdfGroupURIs = new URIQueryResultList();
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory.getStorageDeviceRemoteGroupsConstraint(id),
+                rdfGroupURIs);
+        Iterator<URI> rdfGroupIter = rdfGroupURIs.iterator();
+        while (rdfGroupIter.hasNext()) {
+            URI rdfGroupURI = rdfGroupIter.next();
+            RemoteDirectorGroup rdfGroup = _dbClient.queryObject(RemoteDirectorGroup.class, rdfGroupURI);
+            if (rdfGroup != null && !rdfGroup.getInactive()) {
+                rdfGroupList.getRdfGroups().add(toNamedRelatedResource(rdfGroup, rdfGroup.getNativeGuid()));
+            }
+        }
+        return rdfGroupList;
+    }
+
     /**
      * Gets all AutoTier policies associated with registered storage system with the passed
      * id. Only policies which satisfy the below will be returned
@@ -1162,6 +1204,44 @@ public class StorageSystemService extends TaskResourceService {
         ArgValidator.checkEntity(storagePool, poolId, isIdEmbeddedInURL(poolId));
 
         return StoragePoolService.toStoragePoolRep(storagePool, _dbClient, _coordinator);
+    }
+
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/rdf-groups/{rdfGrpId}")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public RDFGroupRestRep getRDFGroup(@PathParam("id") URI id, @PathParam("rdfGrpId") URI rdfGroupId) {
+        // Make sure storage system is registered.
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        StorageSystem system = queryResource(id);
+        ArgValidator.checkEntity(system, id, isIdEmbeddedInURL(id));
+
+        ArgValidator.checkFieldUriType(rdfGroupId, RemoteDirectorGroup.class, "rdfGrpId");
+        RemoteDirectorGroup raGroup = _dbClient.queryObject(RemoteDirectorGroup.class, rdfGroupId);
+        ArgValidator.checkEntity(raGroup, rdfGroupId, isIdEmbeddedInURL(rdfGroupId));
+
+        return toRDFGroupRep(raGroup, _dbClient, _coordinator);
+    }
+
+    private RDFGroupRestRep toRDFGroupRep(RemoteDirectorGroup rdfGroup, DbClient dbClient,
+            CoordinatorClient coordinator) {
+
+        List<URI> volumeList = new ArrayList<URI>();
+        StringSet volumes = rdfGroup.getVolumes();
+        if (volumes != null) {
+            for (String volNativeGuid : volumes) {
+                try {
+                    Volume vol = DiscoveryUtils.checkStorageVolumeExistsInDB(dbClient, volNativeGuid);
+                    if (vol != null && vol.isSRDFSource()) {
+                        volumeList.add(vol.getId());
+                    }
+                } catch (IOException e) {
+                    _log.error(e.getMessage(), e);
+                }
+            }
+        }
+
+        return map(rdfGroup, volumeList);
     }
 
     /**
@@ -1466,6 +1546,125 @@ public class StorageSystemService extends TaskResourceService {
                     .add(toRelatedResource(ResourceTypeEnum.UNMANAGED_VOLUMES, unManagedVolumeUri));
         }
         return unManagedVolumeList;
+    }
+
+    /**
+     * 
+     * List all unmanaged volumes that are available for a storage system &
+     * given vpool.
+     * 
+     * Unmanaged volumes refers to volumes which are available within underlying
+     * storage systems, but still not managed in ViPR. As these volumes are not
+     * managed in ViPR, there will not be any ViPR specific details associated
+     * such as, virtual array, virtual pool, or project.
+     * 
+     * @param id
+     *            the URN of a ViPR storage system
+     * @prereq none
+     * @param vPoolId
+     *            the URN of the Virtual Pool
+     * @param exportType
+     *            Specifies the type of UnManaged Volume.
+     * @brief List of all unmanaged volumes available for a storage system & vpool
+     * @return UnManagedVolumeList
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    @Path("/{id}/unmanaged/{vpoolid}/volumes")
+    public UnManagedVolumeList getUnManagedVPoolVolumes(@PathParam("id") URI id,
+            @PathParam("vpoolid") URI vPoolId, @QueryParam("exportType") String exportType) {
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        ArgValidator.checkFieldUriType(vPoolId, VirtualPool.class, "id");
+        if (exportType == null || exportType.trim().length() < 1) {
+            exportType = ExportType.UNEXPORTED.name();
+        }
+
+        if (ExportType.lookup(exportType) == null) {
+            throw APIException.badRequests.invalidParameterForUnManagedVolumeQuery(exportType);
+        }
+        String isExportedSelected = exportType.equalsIgnoreCase(ExportType.EXPORTED.name()) ? TRUE_STR
+                : FALSE_STR;
+        UnManagedVolumeList unManagedVolumeList = new UnManagedVolumeList();
+        URIQueryResultList result = new URIQueryResultList();
+        _dbClient.queryByConstraint(
+                AlternateIdConstraint.Factory.getUnManagedVolumeSupportedVPoolConstraint(vPoolId.toString()),
+                result);
+        Iterator<UnManagedVolume> unmanagedVolumeItr = _dbClient.queryIterativeObjects(UnManagedVolume.class,
+                result, true);
+        while (unmanagedVolumeItr.hasNext()) {
+            UnManagedVolume umv = unmanagedVolumeItr.next();
+            String umvExportStatus = umv.getVolumeCharacterstics().get(
+                    SupportedVolumeCharacterstics.IS_VOLUME_EXPORTED.toString());
+            if (umv.getStorageSystemUri().equals(id) && null != umvExportStatus
+                    && umvExportStatus.equalsIgnoreCase(isExportedSelected)) {
+                String name = (null == umv.getLabel()) ? umv.getNativeGuid() : umv.getLabel();
+                unManagedVolumeList.getNamedUnManagedVolumes().add(
+                        toNamedRelatedResource(ResourceTypeEnum.UNMANAGED_VOLUMES, umv.getId(), name));
+            } else {
+                _log.info("Ignoring unmanaged volume: {}", umv.getNativeGuid());
+            }
+        }
+        return unManagedVolumeList;
+    }
+
+    /**
+     * 
+     * List all unmanaged FileSystems that are available for a storage system &
+     * given vpool.
+     * 
+     * Unmanaged FileSystems refers to volumes which are available within
+     * underlying storage systems, but still not managed in ViPR. As these
+     * FileSystems are not managed in ViPR, there will not be any ViPR specific
+     * details associated such as, virtual array, virtual pool, or project.
+     * 
+     * @param id
+     *            the URN of a ViPR storage system
+     * @prereq none
+     * @param vPoolId
+     *            the URN of the Virtual Pool
+     * @param exportType
+     *            Specifies the type of UnManaged FileSystem.
+     * @brief List of all unmanaged filesystems available for a storage system & vpool
+     * @return UnManagedFileSystemList
+     */
+    @GET
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    @Path("/{id}/unmanaged/{vpoolid}/filesystems")
+    public UnManagedFileSystemList getUnManagedVPoolFileSystems(@PathParam("id") URI id,
+            @PathParam("vpoolid") URI vPoolId, @QueryParam("exportType") String exportType) {
+        ArgValidator.checkFieldUriType(id, StorageSystem.class, "id");
+        ArgValidator.checkFieldUriType(vPoolId, VirtualPool.class, "id");
+        if (exportType == null || exportType.trim().length() < 1) {
+            exportType = ExportType.UNEXPORTED.toString();
+        }
+
+        if (ExportType.lookup(exportType) == null) {
+            throw APIException.badRequests.invalidParameterForUnManagedVolumeQuery(exportType);
+        }
+        String isExportedSelected = exportType.equalsIgnoreCase(ExportType.EXPORTED.name()) ? TRUE_STR
+                : FALSE_STR;
+        UnManagedFileSystemList unManagedFileSystemList = new UnManagedFileSystemList();
+        URIQueryResultList result = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getUnManagedFileSystemSupportedVPoolConstraint(vPoolId.toString()), result);
+        Iterator<UnManagedFileSystem> unmanagedFileSystemItr = _dbClient.queryIterativeObjects(
+                UnManagedFileSystem.class, result, true);
+        while (unmanagedFileSystemItr.hasNext()) {
+            UnManagedFileSystem umfs = unmanagedFileSystemItr.next();
+            String umfsExportStatus = umfs.getFileSystemCharacterstics().get(
+                    SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED.toString());
+            if (umfs.getStorageSystemUri().equals(id) && null != umfsExportStatus
+                    && isExportedSelected.equalsIgnoreCase(umfsExportStatus)) {
+                String name = (null == umfs.getLabel()) ? umfs.getNativeGuid() : umfs.getLabel();
+                unManagedFileSystemList.getNamedUnManagedFileSystem().add(
+                        toNamedRelatedResource(ResourceTypeEnum.UNMANAGED_FILESYSTEMS, umfs.getId(), name));
+            } else {
+                _log.info("Ignoring unmanaged filesystem: {}", umfs.getNativeGuid());
+            }
+        }
+        return unManagedFileSystemList;
     }
 
     /**

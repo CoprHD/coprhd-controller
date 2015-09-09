@@ -211,6 +211,28 @@ public class BlockFullCopyService extends TaskResourceService {
     }
 
     /**
+     * Generates a group synchronized between volume Replication group
+     * and clone Replication group.
+     * 
+     * @prereq There should be existing Storage synchronized relations
+     * between volumes and clones.
+     * 
+     * @param fullCopyURI The URI of the full copy volume.
+     * 
+     * @return TaskList
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/start")
+    public TaskList startFullCopy(@PathParam("id") URI fullCopyURI)
+        throws InternalException {
+        Volume fullCopyVolume = queryFullCopy(fullCopyURI);
+        return getFullCopyManager().startFullCopy(
+            fullCopyVolume.getAssociatedSourceVolume(), fullCopyURI);
+    }
+
+    /**
      * Show synchronization progress for a full copy.
      * 
      * @prereq none

@@ -39,7 +39,7 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
             List<UnManagedVolume> unManagedVolumesToBeDeleted,
             Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported,
             Class<T> clazz,
-            Map<String, StringBuffer> taskStatusMap) throws IngestionException {
+            Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) throws IngestionException {
 
         BlockSnapshot snapShot = null;
 
@@ -108,9 +108,7 @@ public class BlockSnapIngestOrchestrator extends BlockIngestOrchestrator {
         snapShot.setStorageController(system.getId());
         snapShot.setVirtualArray(virtualArray.getId());
         snapShot.setProject(new NamedURI(project.getId(), snapShot.getLabel()));
-
-        String wwn = PropertySetterUtil.extractValueFromStringSet(SupportedVolumeInformation.WWN.toString(), unManagedVolumeInformation);
-        snapShot.setWWN(wwn);
+        snapShot.setWWN(unManagedVolume.getWwn());
 
         String allocatedCapacity = PropertySetterUtil.extractValueFromStringSet(
                 SupportedVolumeInformation.ALLOCATED_CAPACITY.toString(), unManagedVolume.getVolumeInformation());

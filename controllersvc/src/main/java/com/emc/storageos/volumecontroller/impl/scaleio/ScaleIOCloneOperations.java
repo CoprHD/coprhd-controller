@@ -5,9 +5,19 @@
 
 package com.emc.storageos.volumecontroller.impl.scaleio;
 
+import java.net.URI;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
@@ -23,17 +33,6 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class ScaleIOCloneOperations implements CloneOperations {
 
@@ -65,10 +64,10 @@ public class ScaleIOCloneOperations implements CloneOperations {
             // Snapshots result does not provide capacity info, so we need to perform a queryVolume
             updateCloneFromQueryVolume(scaleIOHandle, cloneObj);
             dbClient.persistObject(cloneObj);
-            
+
             StoragePool pool = dbClient.queryObject(StoragePool.class, cloneObj.getPool());
             pool.removeReservedCapacityForVolumes(Arrays.asList(cloneObj.getId().toString()));
-            ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, cloneObj); 
+            ScaleIOHelper.updateStoragePoolCapacity(dbClient, scaleIOHandle, cloneObj);
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
             Volume clone = dbClient.queryObject(Volume.class, cloneVolume);
@@ -220,6 +219,11 @@ public class ScaleIOCloneOperations implements CloneOperations {
             completer.ready(dbClient);
         }
 
+    }
+
+    @Override
+    public void establishVolumeCloneGroupRelation(StorageSystem storage, URI sourceVolume, URI clone, TaskCompleter completer) {
+        // no support
     }
 
 }

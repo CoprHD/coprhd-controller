@@ -131,11 +131,11 @@ public interface BlockServiceApi {
      * @param sync Boolean flag for pause operation; true=split, false=fracture
      * @param taskId Task ID
      * 
-     * @return Task resource
+     * @return TaskList resource
      * 
      * @throws ControllerException
      */
-    public TaskResourceRep pauseNativeContinuousCopies(StorageSystem storageSystem,
+    public TaskList pauseNativeContinuousCopies(StorageSystem storageSystem,
             Volume sourceVolume, List<BlockMirror> blockMirrors, Boolean sync, String taskId)
             throws ControllerException;
 
@@ -147,13 +147,27 @@ public interface BlockServiceApi {
      * @param blockMirrors
      * @param taskId
      * 
-     * @return
+     * @return TaskList
      * 
      * @throws ControllerException
      */
-    public TaskResourceRep resumeNativeContinuousCopies(StorageSystem storageSystem,
+    public TaskList resumeNativeContinuousCopies(StorageSystem storageSystem,
             Volume sourceVolume, List<BlockMirror> blockMirrors, String taskId)
             throws ControllerException;
+
+    /**
+     * Establish group relation between volume group and native continuous copy group.
+     *
+     * @param storageSystem the storage system
+     * @param sourceVolume the source volume
+     * @param blockMirror the block mirror
+     * @param taskId the task id
+     * @return the task resource rep
+     * @throws ControllerException the controller exception
+     */
+    public TaskResourceRep establishVolumeAndNativeContinuousCopyGroupRelation(
+            StorageSystem storageSystem, Volume sourceVolume,
+            BlockMirror blockMirror, String taskId) throws ControllerException;
 
     /**
      * Deactivate a volume mirror This operation will attempt to both detach and
@@ -164,9 +178,9 @@ public interface BlockServiceApi {
      * @param mirrorURI URI of mirror to be deactivated
      * @param task Task ID
      * 
-     * @return Task resource
+     * @return TaskList
      */
-    public TaskResourceRep deactivateMirror(StorageSystem device, URI mirrorURI,
+    public TaskList deactivateMirror(StorageSystem device, URI mirrorURI,
             String task) throws ControllerException;
 
     /**

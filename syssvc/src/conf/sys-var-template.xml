@@ -21,7 +21,6 @@
     <bean id="beacon" class="com.emc.storageos.systemservices.impl.SysSvcBeaconImpl" init-method="init" destroy-method="stop">
         <property name="zkConnection" ref="zkconn" />
         <property name="service" ref="serviceinfo" />
-        <property name="siteId" value="${site_id}" />
     </bean>
 
     <bean id="statusChecker" class="com.emc.storageos.db.common.DbServiceStatusChecker">

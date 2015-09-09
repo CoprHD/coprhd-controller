@@ -982,6 +982,11 @@
         <property name="coordinator" ref="coordinator"/>
     </bean>
 
+    <bean id="beacon" class="com.emc.storageos.coordinator.client.beacon.impl.ServiceBeaconImpl" init-method="init" destroy-method="stop" depends-on="controllersvc">
+        <property name="zkConnection" ref="zkconn"/>
+        <property name="service" ref="serviceinfo"/>
+    </bean>
+
     <bean id="locklistener" class="com.emc.storageos.volumecontroller.impl.LockStateListener">
     </bean>
 

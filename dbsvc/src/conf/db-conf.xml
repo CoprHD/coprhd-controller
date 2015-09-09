@@ -17,6 +17,11 @@
 
     <context:annotation-config/>
 
+    <bean id="beacon" class="com.emc.storageos.coordinator.client.beacon.impl.ServiceBeaconImpl" init-method="init" destroy-method="stop">
+        <property name="zkConnection" ref="zkconn"/>
+        <property name="service" ref="serviceinfo"/>
+    </bean>
+
     <bean id="statusChecker" class="com.emc.storageos.db.common.DbServiceStatusChecker">
         <property name="coordinator" ref="coordinator"/>
         <property name="clusterNodeCount" ref="nodeCount"/>

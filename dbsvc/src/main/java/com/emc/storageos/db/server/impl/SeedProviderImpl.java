@@ -77,12 +77,12 @@ public class SeedProviderImpl implements SeedProvider {
         connection.setServer(uri);
         connection.build();
 
+        String siteId= args.get(SITE_ID);
+        connection.setSiteId(siteId);
+        _logger.info("siteId={}", siteId);
+
         CoordinatorClientImpl client = new CoordinatorClientImpl();
         client.setZkConnection(connection);
-
-        String siteId= args.get(SITE_ID);
-        _logger.info("siteId={}", siteId);
-        client.setSiteId(siteId);
 
         ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("/nodeaddrmap-var.xml");
         CoordinatorClientInetAddressMap inetAddressMap = (CoordinatorClientInetAddressMap) ctx.getBean("inetAddessLookupMap");

@@ -51,12 +51,6 @@ public class ServiceBeaconImpl implements ServiceBeacon {
 
     private volatile boolean _bStarted = false;
 
-    private String siteId;
-
-    public void setSiteId(String id) {
-        siteId = id;
-    }
-
     /**
      * Reacts to connect/reconnect events by registering if necessary
      */
@@ -117,7 +111,7 @@ public class ServiceBeaconImpl implements ServiceBeacon {
         _zkConnection.connect();
 
         _serviceParentPath = String.format("%1$s/%2$s%3$s/%4$s/%5$s",
-                ZkPath.SITES, siteId, ZkPath.SERVICE, _service.getName(), _service.getVersion());
+                ZkPath.SITES, _zkConnection.getSiteId(), ZkPath.SERVICE, _service.getName(), _service.getVersion());
         _servicePath = String.format("%1$s/%2$s", _serviceParentPath, _service.getId());
 
         try {

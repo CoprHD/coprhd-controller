@@ -97,13 +97,12 @@ public class GeoSeedProviderImpl implements SeedProvider {
         ZkConnection connection = new ZkConnection();
         connection.setServer(uri);
         connection.build();
+        String siteId= args.get(SITE_ID);
+        connection.setSiteId(siteId);
+        log.info("siteId={}", siteId);
 
         CoordinatorClientImpl client = new CoordinatorClientImpl();
         client.setZkConnection(connection);
-
-        String siteId= args.get(SITE_ID);
-        log.info("siteId={}", siteId);
-        client.setSiteId(siteId);
 
         ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("/nodeaddrmap-var.xml");
         CoordinatorClientInetAddressMap inetAddressMap = (CoordinatorClientInetAddressMap) ctx.getBean("inetAddessLookupMap");

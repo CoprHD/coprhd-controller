@@ -224,6 +224,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             return;
         }
 
+        siteId = _zkConnection.getSiteId();
+
         _zkConnection.curator().getConnectionStateListenable()
                 .addListener(new org.apache.curator.framework.state.ConnectionStateListener() {
                     @Override
@@ -1539,10 +1541,6 @@ public class CoordinatorClientImpl implements CoordinatorClient {
     @Override
 	public String getSiteId() {
 		return siteId;
-	}
-
-	public void setSiteId(String siteId) {
-		this.siteId = siteId;
 	}
 
 	@Override

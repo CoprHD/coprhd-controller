@@ -38,6 +38,11 @@
         <property name="serviceName" value="GEOService"/>
     </bean>
     
+    <bean id="beacon" class="com.emc.storageos.coordinator.client.beacon.impl.ServiceBeaconImpl" init-method="init" destroy-method="stop">
+        <property name="zkConnection" ref="zkconn"/>
+        <property name="service" ref="serviceinfo"/>
+    </bean>
+
     <bean id="recordableEventManager"
         class="com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager">
       <property name="dbClient" ref="dbclient"/>

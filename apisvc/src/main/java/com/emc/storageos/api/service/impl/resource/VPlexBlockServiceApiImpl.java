@@ -1139,7 +1139,10 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 s_logger.info("Vpool change is a data migration");
 
                 // Verify only the CG volumes are passed.
-                verifyVolumesInCG(volumes, cg);
+                boolean isSupported = VPlexUtil.verifyVolumesInCG(volumes, cg, _dbClient);
+                if (!isSupported) {
+                    throw APIException.badRequests.cantChangeVpoolNotAllCGVolumes();
+                }
 
                 // All volumes will be migrated in the same workflow.
                 // If there are many volumes in the CG, the workflow
@@ -1222,33 +1225,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         return cg;
     }
 
-    /**
-     * Verifies if the passed volumes are all the volumes in the passed
-     * consistency group.
-     * 
-     * @param volumes The list of volumes to verify
-     * @param cg The consistency group
-     */
-    private void verifyVolumesInCG(List<Volume> volumes, BlockConsistencyGroup cg) {
-        List<Volume> cgVolumes = getActiveCGVolumes(cg);
-        if (volumes.size() < cgVolumes.size()) {
-            throw APIException.badRequests.cantChangeVpoolNotAllCGVolumes();
-        }
-
-        // Make sure only the CG volumes are selected.
-        for (Volume volume : volumes) {
-            boolean found = false;
-            for (Volume cgVolume : cgVolumes) {
-                if (volume.getId().equals(cgVolume.getId())) {
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                throw APIException.badRequests.cantChangeVpoolVolumeIsNotInCG();
-            }
-        }
-    }
 
     /**
      * Verifies if the valid storage pools for the target vpool specify a single
@@ -3206,37 +3182,6 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    protected void verifySystemForVolumeToBeAddedToCG(Volume vplexVolume,
-            BlockConsistencyGroup cg, StorageSystem cgStorageSystem) {
-
-        // Verify the VPLEX system for the volume is the same VPLEX system
-        // for the consistency group.
-        super.verifySystemForVolumeToBeAddedToCG(vplexVolume, cg, cgStorageSystem);
-
-        // Because for VPLEX CGs there are corresponding backend CG(s), we
-        // also need to check that the backend volumes used by VPLEX
-        // volume are on the same array as the backend CGs. Note that CGs
-        // created prior to release 2.2 will not have backend CGs.
-        if (cg.checkForType(Types.LOCAL)) {
-            List<URI> backendCGSystemURIs = BlockConsistencyGroupUtils
-                    .getLocalSystems(cg, _dbClient);
-            StringSet assocVolumes = vplexVolume.getAssociatedVolumes();
-            if (assocVolumes != null) {
-                for (String assocVolumeId : assocVolumes) {
-                    Volume assocVolume = _dbClient.queryObject(Volume.class, URI.create(assocVolumeId));
-                    URI assocVolumeSystemURI = assocVolume.getStorageController();
-                    if (!backendCGSystemURIs.contains(assocVolumeSystemURI)) {
-                        throw APIException.badRequests.notAllowedInvalidBackendSystem();
-                    }
-                }
-            }
-        }
-    }
-
     private void checkIfClusterIsUnknown(String cluster, String varrayURI, String vplexStorageSystemURI) {
         if (cluster.equals(ConnectivityUtil.CLUSTER_UNKNOWN)) {
             throw InternalServerErrorException.internalServerErrors
@@ -3244,4 +3189,16 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         }
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void validateCreateSnapshot(Volume reqVolume, List<Volume> volumesToSnap,
+            String snapshotType, String snapshotName, BlockFullCopyManager fcManager) {
+        super.validateCreateSnapshot(reqVolume, volumesToSnap, snapshotType, snapshotName, fcManager);
+        //if there are more than one volume in the consistency group, and they are on different backend storage system, return error.
+        if (volumesToSnap.size()>1 && !VPlexUtil.isVPLEXCGBackendVolumesInSameStorage(volumesToSnap, _dbClient)) {
+            throw APIException.badRequests.snapshotNotAllowedWhenCGAcrossMultipleSystems();
+        }
+    }
 }

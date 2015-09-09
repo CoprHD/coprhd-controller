@@ -385,11 +385,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         // Create the source
                         sourceVolume = createRecoverPointVolume(sourceRec, newVolumeLabel, project, capabilities, 
                                     consistencyGroup, param, protectionSystemURI, Volume.PersonalityTypes.SOURCE,
-                                    rsetName, sourceVolume, taskList, task,
-                                    (metroPointEnabled ? activeSourceCopyName : srcCopyName),
-                                    descriptors, sourceJournal,
-                                    (metroPointEnabled ? standbyJournal : null),
-                                    changeVpoolVolume, isChangeVpool, isSrcAndHaSwapped);
+                                    rsetName, sourceVolume, null, taskList,
+                                    task,
+                                    (metroPointEnabled ? activeSourceCopyName : srcCopyName), descriptors,
+                                    sourceJournal,
+                                    (metroPointEnabled ? standbyJournal : null), changeVpoolVolume, isChangeVpool, isSrcAndHaSwapped);
                     } else {                                                                                        
                             _log.info("Change vpool on already protected Volume...");
                             // Get one of the existing protected source volumes from the CG that we loaded earlier, doesn't matter which.
@@ -445,8 +445,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                         Volume targetVolume = createRecoverPointVolume(targetRec, targetVolumeName,
                                     project, capabilities, consistencyGroup, param,
                                     protectionSystemURI, Volume.PersonalityTypes.TARGET,
-                                    rsetName, null, taskList, task, null, descriptors,
-                                    targetJournals.get(targetVirtualArray.getId()), null, null, false, false);
+                                    rsetName, null, sourceVolume, taskList, task, null,
+                                    descriptors, targetJournals.get(targetVirtualArray.getId()), null, null, false, false);
                         volumeInfoBuffer.append(logVolumeInfo(targetVolume));                                    
                         volumeURIs.add(targetVolume.getId());
                     }
@@ -487,8 +487,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                         standbyTargetVolumeName,
                                         project, capabilities, consistencyGroup, param,
                                         protectionSystemURI, Volume.PersonalityTypes.TARGET,
-                                        rsetName, null, taskList, task, null, descriptors,
-                                                                                        targetJournals.get(standyTargetVirtualArray.getId()), null,  null, false, false);
+                                        rsetName, null, sourceVolume, taskList, task, null,
+                                        descriptors, targetJournals.get(standyTargetVirtualArray.getId()),  null, null, false, false);
                             volumeInfoBuffer.append(logVolumeInfo(standbyTargetVolume));                                    
                             volumeURIs.add(standbyTargetVolume.getId());                                                      
                         }                        
@@ -649,9 +649,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                                                     newJournalVolumeLabel,
                                                                     project, capabilities, consistencyGroup, param,                                                                            
                                                                     protectionSystemURI, Volume.PersonalityTypes.METADATA,
-                                                                    "RSET_NAME", null, taskList, task, 
-                                                                    sourceCopyName, 
-                                                                    descriptors, null, null,  null, false, false);
+                                                                    "RSET_NAME", null, null, taskList, 
+                                                                    task, 
+                                                                    sourceCopyName, descriptors, null,  null, null, false, false);
                 volumeURIs.add(sourceJournal.getId());
                 volumeInfoBuffer.append(logVolumeInfo(sourceJournal));
             }            
@@ -684,8 +684,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                                                     newJournalVolumeLabel,
                                                                     project, capabilities, consistencyGroup, param,                                                                            
                                                                     protectionSystemURI, Volume.PersonalityTypes.METADATA,
-                                                                    "RSET_NAME", null, taskList, task, standbySourceCopyName, 
-                                                                    descriptors, null, null,  null, false, false);
+                                                                    "RSET_NAME", null, null, taskList, task, 
+                                                                    standbySourceCopyName, descriptors, null,  null, null, false, false);
                 volumeURIs.add(standbyJournal.getId());    
                 volumeInfoBuffer.append(logVolumeInfo(standbyJournal));
             }
@@ -769,9 +769,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                     Volume targetJournalVolume = createRecoverPointVolume(targetJournalRec, newJournalVolumeLabel,
                                                                         project, capabilities, consistencyGroup, param,                                                                            
                                                                         protectionSystemURI, Volume.PersonalityTypes.METADATA,
-                                                                        "RSET_NAME", null, taskList, task, 
-                                                                        targetCopyVarray.getLabel(), descriptors,
-                                                                        null, null, null, false, false);
+                                                                        "RSET_NAME", null, null, taskList, 
+                                                                        task, targetCopyVarray.getLabel(),
+                                                                        descriptors, null, null, null, false, false);
                     volumeURIs.add(targetJournalVolume.getId());                        
                     volumeInfoBuffer.append(logVolumeInfo(targetJournalVolume));
                     
@@ -831,6 +831,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param protectionSystemURI URI for the Protection System being used
      * @param personalityType Personality of the volume
      * @param rsetName Replication set name
+     * @param volume volume to create; null if not pre-created
      * @param sourceVolume Source volume if needed
      * @param taskList Tasklist to capture all tasks for the UI
      * @param task Task Id
@@ -847,11 +848,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                             VirtualPoolCapabilityValuesWrapper capabilities, 
                                             BlockConsistencyGroup consistencyGroup, VolumeCreate param, 
                                             URI protectionSystemURI, Volume.PersonalityTypes personalityType,
-                                            String rsetName, Volume sourceVolume, TaskList taskList, String task,
-                                            String copyName,
-                                            List<VolumeDescriptor> descriptors, Volume journalVolume, Volume standbyJournalVolume, 
-                                            Volume changeVpoolVolume, boolean isChangeVpool, boolean isSrcAndHaSwapped) {
-            Volume rpVolume = sourceVolume;
+                                            String rsetName, Volume volume, Volume sourceVolume, TaskList taskList,
+                                            String task,
+                                            String copyName, List<VolumeDescriptor> descriptors, Volume journalVolume, 
+                                            Volume standbyJournalVolume, Volume changeVpoolVolume, boolean isChangeVpool, boolean isSrcAndHaSwapped) {
+            Volume rpVolume = volume;
             VirtualArray varray = _dbClient.queryObject(VirtualArray.class, rpRec.getVirtualArray());
             VirtualPool vpool = rpRec.getVirtualPool();                          
             String rpInternalSiteName = rpRec.getInternalSiteName();
@@ -1383,33 +1384,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
     }
 
     /**
-    * Prepare Volume for a RecoverPoint protected volume
-    *
-     * @param volume Volume to prepare, could be null if brand new vol
-     * @param project Project for volume
-     * @param varray Varray for volume
-     * @param vpool Vpool for volume
-     * @param size Size of volume
-     * @param recommendation Main rec for this volume
-     * @param label Volume label
-     * @param consistencyGroup CG for volume
-     * @param token Task
-     * @param remote
-     * @param protectionSystemURI
-     * @param personality
-     * @param rsetName
-     * @param internalSiteName
-     * @param rpCopyName
-     * @param taskList
-     * @param task
-     * @param sourceVolume
-     * @param journalVolume
-     * @param standbyJournalVolume
-     * @param vplex
-     * @return
-    */
-    
-    /**
      * Prepare Volume for a RecoverPoint protected volume
      * 
      * @param volume Volume to prepare, could be null if brand new vol
@@ -1533,7 +1507,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 sourceVolume.setRpTargets(new StringSet());
             }
             sourceVolume.getRpTargets().add(volume.getId().toString());
-            _dbClient.persistObject(sourceVolume);
+            _dbClient.updateAndReindexObject(sourceVolume);
         }
 
         return volume;

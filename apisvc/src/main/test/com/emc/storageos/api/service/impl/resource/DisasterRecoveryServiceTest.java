@@ -15,6 +15,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.emc.storageos.api.mapper.SiteMapper;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Site;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
@@ -25,6 +26,7 @@ public class DisasterRecoveryServiceTest {
 
     private DisasterRecoveryService drService;
     private DbClient dbClientMock;
+    private CoordinatorClient coordinator;
     private Site standbySite1;
     private Site standbySite2;
     private Site standbySite3;
@@ -55,17 +57,22 @@ public class DisasterRecoveryServiceTest {
 
         // setup local VDC
         VirtualDataCenter localVDC = new VirtualDataCenter();
-        localVDC.getStandbyIDs().add(standbySite1.getId().toString());
-        localVDC.getStandbyIDs().add(standbySite2.getId().toString());
+        localVDC.getSiteIDs().add(standbySite1.getId().toString());
+        localVDC.getSiteIDs().add(standbySite2.getId().toString());
 
         // mock DBClient
         dbClientMock = mock(DbClient.class);
+        
+        // mock coordinator client
+        coordinator = mock(CoordinatorClient.class);
 
         drService = spy(new DisasterRecoveryService());
         drService.setDbClient(dbClientMock);
+        drService.setCoordinator(coordinator);
         drService.setSiteMapper(new MockSiteMapper());
 
         doReturn(localVDC).when(drService).queryLocalVDC();
+        doReturn("no-id").when(coordinator).getPrimarySiteId();
     }
     
     @Test

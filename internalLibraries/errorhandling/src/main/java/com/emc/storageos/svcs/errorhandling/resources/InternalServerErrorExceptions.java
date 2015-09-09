@@ -217,4 +217,7 @@ public interface InternalServerErrorExceptions {
 
     @DeclareServiceCode(ServiceCode.SYS_IPRECONFIG_TRIGGER_FAILED)
     public InternalServerErrorException triggerIpReconfigFailed(String errmsg);
+    
+    @DeclareServiceCode(ServiceCode.SYS_DR_ADD_STANDBY_PRECHECK_FAILED)
+    public InternalServerErrorException addStandbyPrecheckFailed(String errmsg);
 }

@@ -28,12 +28,12 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.SiteMapper;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Configuration;
 import com.emc.storageos.db.client.URIUtil;
@@ -191,17 +191,20 @@ public class DisasterRecoveryService extends TaggedResource {
         localSite.getHostIPv4AddressMap().putAll(vdc.getHostIPv4AddressesMap());
         localSite.getHostIPv6AddressMap().putAll(vdc.getHostIPv6AddressesMap());
         localSite.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
-        localSite.setDbSchemaVersion(coordinator.getCurrentDbSchemaVersion());
-        localSite.setFreshInstallation(isFreshInstallation());
+        
+        SiteRestRep siteRestRep = siteMapper.map(localSite);
+        
+        siteRestRep.setDbSchemaVersion(coordinator.getCurrentDbSchemaVersion());
+        siteRestRep.setFreshInstallation(isFreshInstallation());
         
         try {
-            localSite.setSoftwareVersion(coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion().toString());
+            siteRestRep.setSoftwareVersion(coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion().toString());
         } catch (Exception e) {
             log.error("Fail to get software version {}", e);
         }
-
+        
         log.info("localSite: {}", localSite);
-        return siteMapper.map(localSite);
+        return siteRestRep;
     }
     
     @POST()
@@ -259,6 +262,43 @@ public class DisasterRecoveryService extends TaggedResource {
     @Override
     protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.SITE;
+    }
+    
+    protected boolean precheckForStandbyAttach(SiteRestRep standby) {
+        //standby should be refresh install
+        if (standby.isFreshInstallation() == false) {
+            log.info("Standby is not refresh installation");
+            return false;
+        }
+        
+        //DB schema version should be same
+        String currentDbSchemaVersion = coordinator.getCurrentDbSchemaVersion();
+        String standbyDbSchemaVersion = standby.getDbSchemaVersion();
+        if (currentDbSchemaVersion.equalsIgnoreCase(standbyDbSchemaVersion)) {
+            log.info("Standby db schema version {} is not same as primary {}", standbyDbSchemaVersion, currentDbSchemaVersion);
+            return false;
+        }
+        
+        //software version should be matched
+        try {
+            SoftwareVersion currentSoftwareVersion = coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion();
+            SoftwareVersion standbySoftwareVersion = new SoftwareVersion(standby.getSoftwareVersion());
+            if (!currentSoftwareVersion.weakEquals(standbySoftwareVersion)) {
+                log.info("Standby site version {} is not equals to current version {}", standbySoftwareVersion, currentSoftwareVersion);
+                return false;
+            }
+        } catch (Exception e) {
+            log.error("Fail to compare software version {}", e);
+            return false;
+        }
+        
+        //this site should be primary site
+        if (!coordinator.getSiteId().equals(coordinator.getPrimarySiteId())) {
+            log.info("This site is not primary site");
+            return false;
+        }
+        
+        return true;
     }
     
     protected boolean isFreshInstallation() {

@@ -17,9 +17,6 @@ public class Site extends DataObject {
     private String secretKey;
     private StringMap hostIPv4AddressMap = new StringMap();
     private StringMap hostIPv6AddressMap = new StringMap();
-    private String softwareVersion;
-    private String dbSchemaVersion;
-    private Boolean freshInstallation;
 
     @Name("uuid")
     public String getUuid() {
@@ -82,36 +79,7 @@ public class Site extends DataObject {
         setChanged("hostIPv6AddressMap");
     }
     
-    @Name("softwareVersion")
-    public String getSoftwareVersion() {
-        return softwareVersion;
-    }
-
-    public void setSoftwareVersion(String softwareVersion) {
-        this.softwareVersion = softwareVersion;
-        setChanged("softwareVersion");
-    }
     
-    @Name("dbSchemaVersion")
-    public String getDbSchemaVersion() {
-        return dbSchemaVersion;
-    }
-
-    public void setDbSchemaVersion(String dbSchemaVersion) {
-        this.dbSchemaVersion = dbSchemaVersion;
-        setChanged("dbSchemaVersion");
-    }
-    
-    @Name("freshInstallation")
-    public Boolean isFreshInstallation() {
-        return freshInstallation;
-    }
-
-    public void setFreshInstallation(Boolean freshInstallation) {
-        this.freshInstallation = freshInstallation;
-        setChanged("freshInstallation");
-    }
-
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
@@ -127,12 +95,6 @@ public class Site extends DataObject {
         builder.append(hostIPv4AddressMap);
         builder.append(", hostIPv6AddressMap=");
         builder.append(hostIPv6AddressMap);
-        builder.append(", softwareVersion=");
-        builder.append(softwareVersion);
-        builder.append(", dbSchemaVersion=");
-        builder.append(dbSchemaVersion);
-        builder.append(", freshInstallation=");
-        builder.append(freshInstallation);
         builder.append("]");
         return builder.toString();
     }

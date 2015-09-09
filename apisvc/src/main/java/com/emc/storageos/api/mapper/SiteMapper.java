@@ -19,9 +19,6 @@ public class SiteMapper {
         to.setVip(from.getVip());
         to.setHostIPv4AddressMap(from.getHostIPv4AddressMap());
         to.setHostIPv6AddressMap(from.getHostIPv6AddressMap());
-        to.setSoftwareVersion(from.getSoftwareVersion());
-        to.setDbSchemaVersion(from.getDbSchemaVersion());
-        to.setFreshInstallation(from.isFreshInstallation());
         return to;
     }
 

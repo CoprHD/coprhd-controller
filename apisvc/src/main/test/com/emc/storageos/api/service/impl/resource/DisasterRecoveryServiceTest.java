@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2008-2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.api.service.impl.resource;
 
 import static org.junit.Assert.assertEquals;

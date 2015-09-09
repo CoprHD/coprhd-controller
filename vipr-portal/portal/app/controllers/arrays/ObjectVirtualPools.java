@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package controllers.arrays;
 
 import static com.emc.vipr.client.core.util.ResourceUtils.id;

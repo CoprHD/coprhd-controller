@@ -16,7 +16,10 @@ import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.impl.PathConstants;
 import com.emc.vipr.client.impl.RestClient;
-
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 
 /**
  * ObjectBuckets resources.

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+
+    <import resource="classpath:coordinatorclient-var.xml"/>
+    <import resource="classpath:dbversion-info.xml"/>
+    <import resource="classpath:dbclient-conf.xml"/>
+
+    <bean id="dbclient" class="com.emc.storageos.db.client.impl.DbClientImpl">
+        <property name="coordinatorClient" ref="coordinator"/>
+        <property name="dbVersionInfo" ref="dbVersionInfo"/>
+        <property name="encryptionProvider" ref="encryptionProvider"/>
+        <property name="geoEncryptionProvider" ref="geoEncryptionProvider"/>
+        <property name="localContext" ref="dbclientcontext"/>
+        <property name="geoContext" ref="geodbclientcontext"/>
+    </bean>
+
+    <bean id="dbtest" class="DbTest">
+        <property name="dbClient" ref="dbclient" />
+    </bean>
+
+</beans>

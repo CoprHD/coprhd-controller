@@ -1,0 +1,15 @@
+apply plugin: 'scripts'
+
+scripts {
+    dbcli {
+        mainClass = 'DbTest'
+        service = false
+        gcDetails = false
+    }
+}
+
+dependencies {
+    compile library(commons_io),
+            library(commons_codec),
+            project(":dbsvc")
+}       

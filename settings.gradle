@@ -37,6 +37,7 @@ addProjects(
         "tools/dbcli",
         "tools/geniso",
         "tools/ipreconfig",
+        "tools/dbtest",
         "vipr-portal/vipr-client",
         "vipr-portal/com.iwave.ext.linux",
         "vipr-portal/com.iwave.ext.windows",

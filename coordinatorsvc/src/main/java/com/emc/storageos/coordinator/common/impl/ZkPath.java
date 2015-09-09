@@ -20,7 +20,6 @@ public enum ZkPath {
     LEADER("/leader"),
     GLOBALLOCK("/globallock"),
     AUTHN("/authservice"),
-
     STATE("/state"),
     LOCKDATA("/lockdata"),
     KVSTORE("/kvstore"),

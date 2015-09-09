@@ -1421,7 +1421,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         RPController controller = getController(RPController.class, system.getSystemType());
 
-        controller.performProtectionOperation(system.getId(), null, targetVolume.getId(), op, task);
+        controller.performProtectionOperation(system.getId(), consistencyGroupId, targetVolume.getId(), op, task);
         /*
          * auditOp(OperationTypeEnum.PERFORM_PROTECTION_ACTION, true, AuditLogManager.AUDITOP_BEGIN,
          * op, copyID.toString(), id.toString(), system.getId().toString());

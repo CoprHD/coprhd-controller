@@ -354,7 +354,8 @@ public class BlockFullCopyUtils {
     public static boolean isFullCopyDetached(Volume volume, DbClient dbClient) {
         boolean result = false;
         String replicaState = volume.getReplicaState();
-        if ( !isVolumeFullCopy(volume, dbClient) &&replicaState != null && !replicaState.isEmpty()) {
+        // When the full copy is detached, it will not have reference to the source volume.
+        if (!isVolumeFullCopy(volume, dbClient) && replicaState != null && !replicaState.isEmpty()) {
             ReplicationState state = ReplicationState.getEnumValue(replicaState);
             if (state != null && state == ReplicationState.DETACHED) {
                 result = true;
@@ -494,8 +495,7 @@ public class BlockFullCopyUtils {
         StorageSystem system = dbClient.queryObject(StorageSystem.class, systemURI);
         int maxCount = Integer.MAX_VALUE;
         if (system != null) {
-            maxCount = BlockFullCopyManager.getMaxFullCopiesForSystemType
-                    (system.getSystemType());
+            maxCount = BlockFullCopyManager.getMaxFullCopiesForSystemType(system.getSystemType());
         }
 
         if ((numRequested + currentCount) > maxCount) {

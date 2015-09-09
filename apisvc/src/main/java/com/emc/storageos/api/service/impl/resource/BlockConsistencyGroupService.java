@@ -295,7 +295,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // RP + VPlex CGs cannot be be deleted without VPlex controller intervention.
         if (consistencyGroup.getTypes().contains(Types.SRDF.toString()) ||
                 (consistencyGroup.getTypes().contains(Types.RP.toString()) &&
-                !consistencyGroup.getTypes().contains(Types.VPLEX.toString())) ||
+                        !consistencyGroup.getTypes().contains(Types.VPLEX.toString()))
+                ||
                 deleteUncreatedConsistencyGroup(consistencyGroup)) {
             final URIQueryResultList cgVolumesResults = new URIQueryResultList();
             _dbClient.queryByConstraint(getVolumesByConsistencyGroup(consistencyGroup.getId()),
@@ -632,7 +633,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         auditBlockConsistencyGroup(OperationTypeEnum.ACTIVATE_CONSISTENCY_GROUP_SNAPSHOT,
                 AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, snapshot.getId()
-                        .toString(), snapshot.getLabel());
+                        .toString(),
+                snapshot.getLabel());
         return toTask(snapshot, task, op);
     }
 
@@ -696,7 +698,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         auditBlockConsistencyGroup(OperationTypeEnum.DELETE_CONSISTENCY_GROUP_SNAPSHOT,
                 AuditLogManager.AUDITLOG_SUCCESS, AuditLogManager.AUDITOP_BEGIN, snapshot.getId()
-                        .toString(), snapshot.getLabel());
+                        .toString(),
+                snapshot.getLabel());
 
         return response;
     }
@@ -795,15 +798,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         }
 
         // resync for OpenStack storage system type is not supported
-        if (Type.openstack.name().equalsIgnoreCase(storage.getSystemType()))
-        {
+        if (Type.openstack.name().equalsIgnoreCase(storage.getSystemType())) {
             throw APIException.methodNotAllowed.notSupportedWithReason(
                     String.format("Snapshot resynchronization is not possible on third-party storage systems"));
         }
 
         // resync for VNX storage system type is not supported
-        if (Type.vnxblock.name().equalsIgnoreCase(storage.getSystemType()))
-        {
+        if (Type.vnxblock.name().equalsIgnoreCase(storage.getSystemType())) {
             throw APIException.methodNotAllowed.notSupportedWithReason(
                     "Snapshot resynchronization is not supported on VNX storage systems");
         }
@@ -856,7 +857,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         StorageOSUser user = getUserFromContext();
         if (!(_permissionsHelper.userHasGivenRole(user, project.getTenantOrg().getURI(),
                 Role.TENANT_ADMIN) || _permissionsHelper.userHasGivenACL(user, project.getId(),
-                ACL.OWN, ACL.ALL))) {
+                        ACL.OWN, ACL.ALL))) {
             throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
         }
     }
@@ -1107,8 +1108,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                     // all volumes should be on the same storage pool
                     if (xivPoolURI == null) {
                         xivPoolURI = volume.getPool();
-                    }
-                    else {
+                    } else {
                         if (!xivPoolURI.equals(volume.getPool())) {
                             throw APIException.badRequests
                                     .invalidParameterIBMXIVConsistencyGroupVolumeNotInPool(volumeURI, xivPoolURI);
@@ -1308,7 +1308,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
-     // Get the full copy source.
+        // Get the full copy source.
         Volume fullCopyVolume = (Volume) BlockFullCopyUtils.queryFullCopyResource(
                 fullCopyURI, uriInfo, true, _dbClient);
         URI fcSourceURI = fullCopyVolume.getAssociatedSourceVolume();

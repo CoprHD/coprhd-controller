@@ -51,6 +51,15 @@ public class XtremIOProvUtils {
         }
     }
 
+    /**
+     * Check if there is a volume with the given name
+     * If found, return the volume
+     * 
+     * @param client
+     * @param label
+     * @param clusterName
+     * @return XtremIO volume if found else null
+     */
     public static XtremIOVolume isVolumeAvailableInArray(XtremIOClient client, String label, String clusterName) {
         XtremIOVolume volume = null;
         try {
@@ -61,6 +70,15 @@ public class XtremIOProvUtils {
         return volume;
     }
 
+    /**
+     * Check if there is a snapshot with the given name
+     * If found, return the snapshot
+     * 
+     * @param client
+     * @param label
+     * @param clusterName
+     * @return XtremIO snapshot if found else null
+     */
     public static XtremIOVolume isSnapAvailableInArray(XtremIOClient client, String label, String clusterName) {
         XtremIOVolume volume = null;
         try {
@@ -71,6 +89,15 @@ public class XtremIOProvUtils {
         return volume;
     }
 
+    /**
+     * Check if there is a consistency group with the given name
+     * If found, return the consistency group
+     * 
+     * @param client
+     * @param label
+     * @param clusterName
+     * @return XtremIO consistency group if found else null
+     */
     public static XtremIOConsistencyGroup isCGAvailableInArray(XtremIOClient client, String label, String clusterName) {
         XtremIOConsistencyGroup cg = null;
         try {
@@ -82,6 +109,15 @@ public class XtremIOProvUtils {
         return cg;
     }
 
+    /**
+     * Check if there is a snapset with the given name
+     * If found, return the snapset
+     * 
+     * @param client
+     * @param label
+     * @param clusterName
+     * @return XtremIO snapset if found else null
+     */
     public static XtremIOConsistencyGroup isSnapsetAvailableInArray(XtremIOClient client, String label, String clusterName) {
         XtremIOConsistencyGroup cg = null;
         try {
@@ -93,6 +129,15 @@ public class XtremIOProvUtils {
         return cg;
     }
 
+    /**
+     * Checks if there is folder with the given name and sub folders for volume and snapshots.
+     * If not found, create them.
+     * 
+     * @param client
+     * @param rootVolumeFolderName
+     * @return map of volume folder name and snapshot folder name
+     * @throws Exception
+     */
     public static Map<String, String> createFoldersForVolumeAndSnaps(XtremIOClient client, String rootVolumeFolderName)
             throws Exception {
 
@@ -129,6 +174,16 @@ public class XtremIOProvUtils {
         return folderNamesMap;
     }
 
+    /**
+     * Checks if there are tags with the given name for volume and snapshots.
+     * If not found, create them.
+     * 
+     * @param client
+     * @param rootTagName
+     * @param clusterName
+     * @return map of volume tag name and snapshot tag name
+     * @throws Exception
+     */
     public static Map<String, String> createTagsForVolumeAndSnaps(XtremIOClient client, String rootTagName, String clusterName)
             throws Exception {
         List<String> tagNames = client.getTagNames(clusterName);
@@ -157,6 +212,16 @@ public class XtremIOProvUtils {
 
     }
 
+    /**
+     * Check the number of volumes under the tag/volume folder.
+     * If zero, delete the tag/folder
+     * 
+     * @param client
+     * @param xioClusterName
+     * @param volumeFolderName
+     * @param storageSystem
+     * @throws Exception
+     */
     public static void cleanupVolumeFoldersIfNeeded(XtremIOClient client, String xioClusterName, String volumeFolderName,
             StorageSystem storageSystem) throws Exception {
         try {

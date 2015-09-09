@@ -20,6 +20,7 @@ public class SiteRestRep extends DataObjectRestRep {
     private String uuid;
     private String name;
     private String vip;
+    private String state;
     private Map<String, String> hostIPv4AddressMap;
     private Map<String, String> hostIPv6AddressMap;
 
@@ -48,6 +49,15 @@ public class SiteRestRep extends DataObjectRestRep {
 
     public void setVip(String vip) {
         this.vip = vip;
+    }
+
+    @XmlElement(name = "state")
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
     }
 
     @XmlElement(name = "hostIPv4AddressMap")
@@ -84,5 +94,4 @@ public class SiteRestRep extends DataObjectRestRep {
         builder.append("]");
         return builder.toString();
     }
-
 }

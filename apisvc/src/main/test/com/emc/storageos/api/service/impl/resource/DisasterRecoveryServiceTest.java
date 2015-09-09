@@ -10,7 +10,8 @@ import static org.mockito.Mockito.spy;
 import java.net.URI;
 import java.util.LinkedList;
 import java.util.List;
-
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -18,8 +19,12 @@ import com.emc.storageos.api.mapper.SiteMapper;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Site;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
+import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 
 public class DisasterRecoveryServiceTest {
 
@@ -28,8 +33,12 @@ public class DisasterRecoveryServiceTest {
     private Site standbySite1;
     private Site standbySite2;
     private Site standbySite3;
+    private Site standbyConfig;
+    private SiteAddParam primarySiteParam;
     private List<URI> uriList;
     private List<Site> standbySites;
+    private CoordinatorClient coordinatorMock;
+    private InternalApiSignatureKeyGenerator apiSignatureGeneratorMock;
 
     @Before
     public void setUp() throws Exception {
@@ -53,18 +62,47 @@ public class DisasterRecoveryServiceTest {
         standbySite3.setId(new URI("site-object-id-3"));
         standbySite3.setUuid("site-uuid-3");
 
+        primarySiteParam = new SiteAddParam();
+        primarySiteParam.setUuid("primary-site-uuid");
+        primarySiteParam.setVip("10.247.101.120");
+        primarySiteParam.setSecretKey("secret-key");
+        primarySiteParam.setHostIPv4AddressMap(standbySite1.getHostIPv4AddressMap());
+        primarySiteParam.setHostIPv6AddressMap(standbySite1.getHostIPv6AddressMap());
+        
         // setup local VDC
         VirtualDataCenter localVDC = new VirtualDataCenter();
-        localVDC.getStandbyIDs().add(standbySite1.getId().toString());
-        localVDC.getStandbyIDs().add(standbySite2.getId().toString());
-
+        localVDC.getSiteIDs().add(standbySite1.getId().toString());
+        localVDC.getSiteIDs().add(standbySite2.getId().toString());
+        localVDC.setApiEndpoint("10.247.101.100");
+        localVDC.setHostIPv4AddressesMap(standbySite1.getHostIPv4AddressMap());
+        localVDC.getHostIPv6AddressesMap().put("vipr1", "11:11:11:11");
+        localVDC.getHostIPv6AddressesMap().put("vipr2", "22:22:22:22");
+        localVDC.getHostIPv6AddressesMap().put("vipr4", "33:33:33:33");
         // mock DBClient
         dbClientMock = mock(DbClient.class);
-
+        coordinatorMock = mock(CoordinatorClient.class);
+        apiSignatureGeneratorMock = mock(InternalApiSignatureKeyGenerator.class);
+        
         drService = spy(new DisasterRecoveryService());
         drService.setDbClient(dbClientMock);
         drService.setSiteMapper(new MockSiteMapper());
+        drService.setCoordinator(coordinatorMock);
+        drService.setApiSignatureGenerator(apiSignatureGeneratorMock);
+        
+        standbyConfig = new Site();
+        standbyConfig.setId(new URI("standby-site-object-id-1"));
+        standbyConfig.setUuid("standby-site-uuid-1");
+        standbyConfig.setVip(localVDC.getApiEndpoint());
+        standbyConfig.setHostIPv4AddressMap(localVDC.getHostIPv4AddressesMap());
+        standbyConfig.setHostIPv6AddressMap(localVDC.getHostIPv6AddressesMap());
+        
 
+        
+        doReturn(standbyConfig.getUuid()).when(this.coordinatorMock).getSiteId();
+        doReturn("primary-site-id").when(this.coordinatorMock).getPrimarySiteId();
+        KeyGenerator keyGenerator = KeyGenerator.getInstance("HmacSHA256");
+        SecretKey key = keyGenerator.generateKey();
+        doReturn(key).when(apiSignatureGeneratorMock).getSignatureKey(SignatureKeyType.INTERVDC_API);
         doReturn(localVDC).when(drService).queryLocalVDC();
     }
     
@@ -124,11 +162,25 @@ public class DisasterRecoveryServiceTest {
     public void testRemoveStandby() {
         //TODO this test case will be add when implement detach standby feature
     }
+    
+    @Test
+    public void testGetStandbyConfig() {
+        SiteRestRep response = drService.getStandbyConfig();
+        compareSiteResponse(response, standbyConfig);
+    }
+    
+    @Test
+    public void testAddPrimary() {
+        SiteRestRep response = drService.addPrimary(primarySiteParam);
+        assertNotNull(response);
+        assertEquals(primarySiteParam.getUuid(), response.getUuid());
+        assertEquals(response.getName(), primarySiteParam.getName());
+        assertEquals(response.getVip(), primarySiteParam.getVip());
+    }
 
     protected void compareSiteResponse(SiteRestRep response, Site site) {
         assertNotNull(response);
         assertEquals(response.getUuid(), site.getUuid());
-        assertEquals(response.getId(), site.getId());
         assertEquals(response.getName(), site.getName());
         assertEquals(response.getVip(), site.getVip());
 

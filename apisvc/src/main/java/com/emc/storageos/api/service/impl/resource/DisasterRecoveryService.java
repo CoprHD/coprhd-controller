@@ -5,7 +5,6 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Collections;
@@ -159,7 +158,14 @@ public class DisasterRecoveryService extends TaggedResource {
         return null;
     }
     
+    /**
+     * Get standby site configuration
+     * 
+     * @param NONE
+     * @return SiteRestRep standby site configuration.
+     */
     @GET
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/standby/config")
     public SiteRestRep getStandbyConfig() {
@@ -167,19 +173,25 @@ public class DisasterRecoveryService extends TaggedResource {
         String siteId = this.coordinator.getSiteId();
         VirtualDataCenter vdc = queryLocalVDC();
         SecretKey key = apiSignatureGenerator.getSignatureKey(SignatureKeyType.INTERVDC_API);
-
         Site localSite = new Site();
 
         localSite.setUuid(siteId);
         localSite.setVip(vdc.getApiEndpoint());
+        localSite.setState(Site.State.ACTIVE.name());
+        localSite.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
         localSite.getHostIPv4AddressMap().putAll(vdc.getHostIPv4AddressesMap());
         localSite.getHostIPv6AddressMap().putAll(vdc.getHostIPv6AddressesMap());
-        localSite.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
 
         log.info("localSite: {}", localSite);
         return siteMapper.map(localSite);
     }
     
+    /**
+     * Add primary site
+     * 
+     * @param SiteAddParam primary site configuration
+     * @return SiteRestRep primary site information
+     */
     @POST()
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -192,6 +204,7 @@ public class DisasterRecoveryService extends TaggedResource {
         primarySite.setUuid(param.getUuid());
         primarySite.setName(param.getName());
         primarySite.setVip(param.getVip());
+        primarySite.setSecretKey(param.getSecretKey());
         primarySite.getHostIPv4AddressMap().putAll(new StringMap(param.getHostIPv4AddressMap()));
         primarySite.getHostIPv6AddressMap().putAll(new StringMap(param.getHostIPv6AddressMap()));
 

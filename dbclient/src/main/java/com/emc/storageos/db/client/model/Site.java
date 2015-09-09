@@ -15,6 +15,7 @@ public class Site extends DataObject {
     private String name;
     private String vip;
     private String secretKey;
+    private String state;
     private StringMap hostIPv4AddressMap = new StringMap();
     private StringMap hostIPv6AddressMap = new StringMap();
 
@@ -59,6 +60,15 @@ public class Site extends DataObject {
         setChanged("secretKey");
     }
 
+    @Name("state")
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
     @Name("hostIPv4AddressMap")
     public StringMap getHostIPv4AddressMap() {
         return hostIPv4AddressMap;
@@ -78,7 +88,7 @@ public class Site extends DataObject {
         this.hostIPv6AddressMap = hostIPv6AddressMap;
         setChanged("hostIPv6AddressMap");
     }
-
+        
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder(this.getClass().getName());
@@ -100,5 +110,9 @@ public class Site extends DataObject {
         builder.append("\n");
 
         return builder.toString();
+    }
+
+    public static enum State {
+        ACTIVE;
     }
 }

@@ -106,4 +106,5 @@ public interface ServiceParams {
     public String NAMESPACE = "namespace";
     public String TENANT = "tenant";
     public String OWNER = "owner";
+    public String BUCKETS = "buckets";
 }

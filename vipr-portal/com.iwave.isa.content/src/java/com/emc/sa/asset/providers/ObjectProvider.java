@@ -79,17 +79,6 @@ public class ObjectProvider extends BaseAssetOptionsProvider {
         return client.objectBuckets().findByProject(project);
     }
     
-    @Asset("sourceBucketsWithDeletion")
-    @AssetDependencies("project")
-    public List<AssetOption> getSourceBucketsWithDeletion(AssetOptionsContext ctx, URI project) {
-        debug("getting source buckets(project=%s)", project);
-
-        List<BucketRestRep> buckets;
-        buckets = listSourceBuckets(api(ctx), project);
-        
-        return createBucketOptions(null, buckets);
-    }
-    
     @Asset("objectVirtualPool")
     public List<AssetOption> getObjectVirtualPools(AssetOptionsContext ctx) {
         debug("getting objectVirtualPools");

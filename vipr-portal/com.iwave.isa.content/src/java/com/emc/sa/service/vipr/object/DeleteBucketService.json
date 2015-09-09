@@ -11,8 +11,7 @@
     },
     
     buckets:{
-      type:"assetType.vipr.sourceBucketsWithDeletion",
-      select: "many"
+      type:"assetType.vipr.sourceBuckets"
     }
   }
 }

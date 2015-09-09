@@ -72,7 +72,7 @@ public class VPlexBackendManager {
     private VPlexApiLockManager _vplexApiLockManager;
     private URI _projectURI, _tenantURI;
     private static final Logger _log = LoggerFactory.getLogger(VPlexBackendManager.class);
-    private static final int initiatorLimit = 32;    // maximum initiators to an array
+    private static final int INITIATOR_LIMIT = 32;    // maximum initiators to an array
     private static final URI nullURI = NullColumnValueGetter.getNullURI();
     private static int NUMBER_INITIATORS_IN_DIRECTOR = 4;
     private static int MAX_CHARS_IN_VPLEX_NAME = 32;
@@ -435,7 +435,7 @@ public class VPlexBackendManager {
                 initiatorMap.put(networkURI, new ArrayList<StoragePort>());
                 for (StoragePort port : vplexInitiatorMap.get(networkURI)) {
                     initiatorMap.get(networkURI).add(port);
-                    if (++initiatorCount >= initiatorLimit) {
+                    if (++initiatorCount >= INITIATOR_LIMIT) {
                         break outter;
                     }
                 }

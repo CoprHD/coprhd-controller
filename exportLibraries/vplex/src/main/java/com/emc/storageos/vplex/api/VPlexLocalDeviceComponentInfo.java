@@ -102,7 +102,7 @@ public class VPlexLocalDeviceComponentInfo extends VPlexResourceInfo {
         StringBuilder str = new StringBuilder();
         str.append("LocalDeviceComponentInfo ( ");
         str.append(super.toString());
-        str.append(", componentType: " + componentType);
+        str.append(", componentType: ").append(componentType);
         str.append(" )");
 
         return str.toString();

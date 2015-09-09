@@ -10,6 +10,9 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.coordinator.client.service.*;
+import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueItemNameGenerator;
+import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -18,10 +21,6 @@ import org.springframework.context.ApplicationContext;
 
 import com.emc.storageos.cinder.api.CinderApiFactory;
 import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
-import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.client.service.DistributedQueue;
-import com.emc.storageos.coordinator.client.service.LeaderSelectorListenerForPeriodicTask;
 import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
@@ -129,6 +128,8 @@ public class ControllerServiceImpl implements ControllerService {
     private MonitoringJobConsumer _monitoringJobConsumer;
     private ConnectionStateListener zkConnectionStateListenerForMonitoring;
     private DataObjectScanner _doScanner;
+    private DistributedLockQueueManager _lockQueueManager;
+    private ControlRequestTaskConsumer _controlRequestTaskConsumer;
 
     ManagedCapacityImpl _capacityCompute;
     LeaderSelector _capacityService;
@@ -485,6 +486,8 @@ public class ControllerServiceImpl implements ControllerService {
 
         _svcBeacon.start();
 
+        startLockQueueService();
+
         startCapacityService();
         loadCustomConfigDefaults();
     }
@@ -492,6 +495,8 @@ public class ControllerServiceImpl implements ControllerService {
     @Override
     public void stop() throws Exception {
         _log.info("Stopping controller service");
+        _controlRequestTaskConsumer.stop();
+        _lockQueueManager.stop();
         _jobScheduler.stop();
         _discoverJobQueue.stop(120000);
         _computeDiscoverJobQueue.stop(120000);
@@ -539,6 +544,37 @@ public class ControllerServiceImpl implements ControllerService {
                 executor);
         _capacityService.autoRequeue();
         _capacityService.start();
+    }
+
+    private void startLockQueueService() {
+        // Configure coordinator with the owner lock around-hook.
+        DistributedAroundHook aroundHook = _distributedOwnerLockService.getDistributedOwnerLockAroundHook();
+        _coordinator.setDistributedOwnerLockAroundHook(aroundHook);
+
+        // Start lock queue task consumer, for sending queued requests back to the Dispatcher
+        _controlRequestTaskConsumer.start();
+        // Gets a started lock queue manager
+        _lockQueueManager = _coordinator.getLockQueue(_controlRequestTaskConsumer);
+
+        // Set lock queue manager where appropriate
+        _dispatcher.setLockQueueManager(_lockQueueManager);
+        _distributedOwnerLockService.setLockQueueManager(_lockQueueManager);
+
+        // Configure how lock queue manager should generate item names.
+        _lockQueueManager.setNameGenerator(new ControlRequestLockQueueItemName());
+
+        // Configure lock queue scheduler
+        DistributedLockQueueScheduler dlqScheduler = new DistributedLockQueueScheduler();
+        dlqScheduler.setCoordinator(_coordinator);
+        dlqScheduler.setLockQueue(_lockQueueManager);
+        dlqScheduler.setValidator(new OwnerLockValidator(_distributedOwnerLockService));
+        dlqScheduler.start();
+
+        // Configure lock queue listeners
+        ControlRequestLockQueueListener controlRequestLockQueueListener = new ControlRequestLockQueueListener();
+        controlRequestLockQueueListener.setDbClient(_dbClient);
+        controlRequestLockQueueListener.setWorkflowService(_workflowService);
+        _lockQueueManager.getListeners().add(controlRequestLockQueueListener);
     }
 
     private void loadCustomConfigDefaults() {
@@ -680,6 +716,10 @@ public class ControllerServiceImpl implements ControllerService {
     public void setDistributedOwnerLockService(
             DistributedOwnerLockServiceImpl _distributedOwnerLockService) {
         this._distributedOwnerLockService = _distributedOwnerLockService;
+    }
+
+    public void setControlRequestTaskConsumer(ControlRequestTaskConsumer consumer) {
+        _controlRequestTaskConsumer = consumer;
     }
 
 }

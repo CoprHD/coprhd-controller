@@ -379,6 +379,14 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
      * {@inheritDoc}
      */
     @Override
+    public TaskList establishVolumeAndFullCopyGroupRelation(Volume sourceVolume, Volume fullCopyVolume) {
+        throw APIException.methodNotAllowed.notSupported();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
     public VolumeRestRep checkProgress(URI sourceURI, Volume fullCopyVolume) {
         Integer result = getSyncPercentage(sourceURI, fullCopyVolume);
         VolumeRestRep volumeRestRep = BlockMapper.map(_dbClient, fullCopyVolume);

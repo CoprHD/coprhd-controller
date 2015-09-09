@@ -44,13 +44,19 @@ public interface SmisConstants {
     static final int STORAGE_VOLUME_FULLY_ALLOCATED = 7;
     static final int THIN_STORAGE_VOLUME = 32768;
     static final int MIRROR_VALUE = 6;
+    static final int LOCAL_LOCALITY_VALUE = 2;
     static final int REMOTE_LOCALITY_VALUE = 3;
+    static final int SYNCHRONOUS_MODE_VALUE = 2;
     static final int CLONE_VALUE = 8;
     static final int FRACTURE_VALUE = 12;
     static final int RESTORED_COPY_STATE = 18;
     static final String SNAPSHOT_SYNC_TYPE_STR = "7";
     static final String RESTORED_SYNC_STATE_STR = "7";
     static final int RESYNC_VALUE = 14;
+    static final int ACTIVATE_CONSISTENCY_VALUE = 3;
+    static final int RESET_TO_SYNC_VALUE = 17;
+    static final int RESET_TO_ASYNC_VALUE = 18;
+    static final int RESET_TO_ADAPTIVE_VALUE = 25;
     static final int SPLIT_VALUE = 21;
     static final int DETACH_VALUE = 8;
     static final int SNAPSHOT_VALUE = 7;
@@ -86,6 +92,7 @@ public interface SmisConstants {
 
     static final int DISSOLVE_VALUE = 9;
     static final int SNAPSHOT_REPLICATION_TYPE = 6;
+    static final int MIRROR_REPLICATION_TYPE = 2;
     static final int EMULATION_VALUE = 10;
 
     static final String DEFAULT_INSTANCE = "DefaultInstance";
@@ -127,6 +134,7 @@ public interface SmisConstants {
     static final String MEMBER = "Member";
     static final String CREATE_GROUP_REPLICA = "CreateGroupReplica";
     static final String CREATE_LIST_REPLICA = "CreateListReplica";
+    static final String CREATE_GROUP_REPLICA_FROM_ELEMENT_SYNCHRONIZATIONS = "CreateGroupReplicaFromElementSynchronizations";
     static final String CLAR_SETTINGS_DEFINE_STATE_SV_SAFS = "Clar_SettingsDefineState_SV_SAFS";
     static final String SYMM_SETTINGS_DEFINE_STATE_SV_SAFS = "Symm_SettingsDefineState_SV_SAFS";
     static final String CLAR_SYNCHRONIZATION_ASPECT_FOR_SOURCE = "Clar_SynchronizationAspectForSource";
@@ -146,6 +154,7 @@ public interface SmisConstants {
     static final String EMC_RETURN_TO_STORAGE_POOL = "EMCReturnToStoragePool";
     static final String RETURN_TO_STORAGE_POOL = "ReturnToStoragePool";
     static final String RETURN_ELEMENTS_TO_STORAGE_POOL = "ReturnElementsToStoragePool";
+    static final int CONTINUE_ON_NONEXISTENT_ELEMENT = 2;
     static final String REMOVE_MEMBERS = "RemoveMembers";
     static final String RELATIONSHIP_NAME = "RelationshipName";
     static final String SE_GROUP_SYNCHRONIZED_RG_RG = "SE_GroupSynchronized_RG_RG";
@@ -190,6 +199,7 @@ public interface SmisConstants {
     static final String EMC_ELEMENT_COMPOSITION_SERVICE = "EMCElementCompositionService";
     static final String CREATE_OR_MODIFY_COMPOSITE_ELEMENT = "CreateOrModifyCompositeElement";
     static final String CIM_STORAGE_SYNCHRONIZED = "CIM_StorageSynchronized";
+    static final String CIM_GROUP_SYNCHRONIZED = "CIM_GroupSynchronized";
     static final String CP_CLAR_FCSCSI_PROTOCOL_ENDPOINT = "Clar_FCSCSIProtocolEndpoint";
     static final String CP_SYMM_FCSCSI_PROTOCOL_ENDPOINT = "Symm_FCSCSIProtocolEndpoint";
     static final String CP_CLAR_ISCSI_PROTOCOL_ENDPOINT = "Clar_iSCSIProtocolEndpoint";
@@ -286,6 +296,7 @@ public interface SmisConstants {
     static final String CP_EMC_NODE_ID = "EMCNodeID";
     static final String CP_FORCE = "Force";
     static final String CP_REPLICATION_SETTING_DATA = "ReplicationSettingData";
+    static final String CP_ELEMENT_SYNCHRONIZATIONS = "ElementSynchronizations";
     static final String CP_DELETE_ON_EMPTY_ELEMENT = "DeleteOnEmptyElement";
     static final String CP_ERROR_DESCRIPTION = "ErrorDescription";
     static final String CP_SYNCHRONIZATION = "Synchronization";
@@ -302,6 +313,7 @@ public interface SmisConstants {
     static final String CP_MANAGED_ELEMENT = "ManagedElement";
     static final String CP_SETTING_DATA = "SettingData";
     static final String CP_WWN_NAME = "EMCWWN";
+    static final String CP_WWN_NAME_ALT = "EMCSVWWN";
     static final String CP_SYNCED_ELEMENT = "SyncedElement";
     static final String CP_SYSTEM_ELEMENT = "SystemElement";
     static final String CP_REMOVE_ELEMENTS = "RemoveElements";
@@ -367,6 +379,7 @@ public interface SmisConstants {
     static final String CP_EMC_COLLECTIONS = "EMCCollections";
     static final String CP_COLLECTIONS = "Collections";
     static final String CP_EMC_FORCE = "EMCForce";
+    static final String CP_MAX_UNITS_CONTROLLED = "MaxUnitsControlled";
 
     // Host IO Limit for VMAX
     static final String EMC_MAX_BANDWIDTH = "EMCMaximumBandwidth";

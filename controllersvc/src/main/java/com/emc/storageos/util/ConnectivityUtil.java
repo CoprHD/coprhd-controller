@@ -256,7 +256,7 @@ public class ConnectivityUtil {
                     getNetworkConnectedStoragePorts(networkUri.toString(), dbClient);
             StorageSystem system = null;
             for (StoragePort port : ports) {
-                if (port == null || port.getInactive() == true) {
+                if (port == null || port.getInactive() == true || port.getStorageDevice() == null) {
                     continue;
                 }
                 if (port.getStorageDevice().equals(seedURI)) {

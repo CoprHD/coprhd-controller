@@ -26,6 +26,8 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
+import com.emc.storageos.volumecontroller.impl.block.ExportMaskPlacementDescriptor;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -67,6 +69,7 @@ import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.VplexMirror;
@@ -130,6 +133,7 @@ import com.emc.storageos.vplex.api.VPlexApiClient;
 import com.emc.storageos.vplex.api.VPlexApiConstants;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.vplex.api.VPlexApiFactory;
+import com.emc.storageos.vplex.api.VPlexApiUtils;
 import com.emc.storageos.vplex.api.VPlexClusterInfo;
 import com.emc.storageos.vplex.api.VPlexDeviceInfo;
 import com.emc.storageos.vplex.api.VPlexDistributedDeviceInfo;
@@ -703,15 +707,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Make a call to re-discover storage system for storageSystemGuids
             client.rediscoverStorageSystems(storageSystemGuids);
 
-            // Make a call to get cluster info
-            List<VPlexClusterInfo> clusterInfoList = client.getClusterInfo(false);
-
             // Now make a call to the VPlexAPIClient.createVirtualVolume for each vplex volume.
             StringBuilder buf = new StringBuilder();
             buf.append("Vplex: " + vplexURI + " created virtual volume(s): ");
 
             List<VPlexVirtualVolumeInfo> virtualVolumeInfos = new ArrayList<VPlexVirtualVolumeInfo>();
             Map<String, Volume> vplexVolumeNameMap = new HashMap<String, Volume>();
+            List<VPlexClusterInfo> clusterInfoList = null;
             for (Volume vplexVolume : volumeMap.keySet()) {
                 URI vplexVolumeId = vplexVolume.getId();
                 _log.info(String.format("Creating virtual volume: %s (%s)", vplexVolume.getLabel(), vplexVolumeId));
@@ -721,9 +723,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 List<VolumeInfo> vinfos = new ArrayList<VolumeInfo>();
                 for (Volume storageVolume : volumeMap.get(vplexVolume)) {
                     StorageSystem storage = storageMap.get(storageVolume.getStorageController());
+                    List<String> itls = VPlexControllerUtils.getVolumeITLs(storageVolume);
                     VolumeInfo info = new VolumeInfo(storage.getNativeGuid(), storage.getSystemType(),
                             storageVolume.getWWN().toUpperCase().replaceAll(":", ""),
-                            storageVolume.getNativeId(), storageVolume.getThinlyProvisioned().booleanValue());
+                            storageVolume.getNativeId(), storageVolume.getThinlyProvisioned().booleanValue(), itls);
+
                     if (storageVolume.getVirtualArray().equals(vplexVolumeVarrayURI)) {
                         // We always want the source backend volume identified first. It
                         // may not be first in the map as the map is derived from the
@@ -737,6 +741,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Update rollback information.
                 rollbackData.add(vinfos);
                 _workflowService.storeStepData(stepId, rollbackData);
+
+                // Make a call to get cluster info
+                if (null == clusterInfoList) {
+
+                    boolean isItlFetch = VPlexApiUtils.isITLBasedSearch(vinfos.get(0));
+                    clusterInfoList = client.getClusterInfo(false, isItlFetch);
+                }
+
                 // Make the call to create a virtual volume. It is distributed if there are two (or more?)
                 // physical volumes.
                 boolean isDistributed = (vinfos.size() >= 2);
@@ -897,7 +909,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#deleteVolumes(java.net.URI, java.util.List, java.lang.String)
      * <p>
      * NOTE: The VolumeDescriptor list will not include the underlying Volumes. These have to be
@@ -1226,9 +1238,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 Volume volume = getDataObject(Volume.class, volumeURI, _dbClient);
                 StorageSystem volumeSystem = getDataObject(StorageSystem.class,
                         volume.getStorageController(), _dbClient);
+                List<String> itls = VPlexControllerUtils.getVolumeITLs(volume);
                 VolumeInfo vInfo = new VolumeInfo(volumeSystem.getNativeGuid(), volumeSystem.getSystemType(), volume
                         .getWWN().toUpperCase().replaceAll(":", ""), volume.getNativeId(),
-                        volume.getThinlyProvisioned().booleanValue());
+                        volume.getThinlyProvisioned().booleanValue(), itls);
                 nativeVolumeInfoList.add(vInfo);
             }
 
@@ -1398,7 +1411,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#exportGroupCreate(java.net.URI, java.net.URI, java.util.Map,
      * java.util.List, java.lang.String)
      */
@@ -1637,7 +1650,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             // storage ports as needed and volumes requested to add if not already present.
                             setupExistingExportMaskWithNewHost(blockObjectMap, vplexSystem, exportGroup, varrayUri,
                                     exportMasksToUpdateOnDevice, exportMasksToUpdateOnDeviceWithInitiators,
-                                    exportMasksToUpdateOnDeviceWithStoragePorts, inits, sharedVplexExportMask);
+                                    exportMasksToUpdateOnDeviceWithStoragePorts, inits, sharedVplexExportMask, opId);
                             foundMatchingStorageView = true;
                             break;
                         } else {
@@ -1675,11 +1688,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                     initiatorWwnToNameMap, vplexSystem, vplexClusterName, inits, exportGroup,
                                     varrayUri, blockObjectMap,
                                     exportMasksToUpdateOnDevice, exportMasksToUpdateOnDeviceWithInitiators,
-                                    exportMasksToUpdateOnDeviceWithStoragePorts);
+                                    exportMasksToUpdateOnDeviceWithStoragePorts, opId);
                             long elapsed = new Date().getTime() - start;
                             _log.info("TIMER: finding an existing storage view took {} ms and returned {}",
                                     elapsed, foundMatchingStorageView);
-
                             break;
                         }
                     case 1:
@@ -1692,7 +1704,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         reuseExistingExportMask(blockObjectMap, vplexSystem, exportGroup,
                                 varrayUri, exportMasksToUpdateOnDevice,
                                 exportMasksToUpdateOnDeviceWithStoragePorts, inits,
-                                allPortsFromMaskMatchForVarray, viprExportMask);
+                                allPortsFromMaskMatchForVarray, viprExportMask, opId);
 
                         foundMatchingStorageView = true;
 
@@ -1722,12 +1734,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         // If sharedExportMask is found then then new host will be added to that exportMask
                         setupExistingExportMaskWithNewHost(blockObjectMap, vplexSystem, exportGroup, varrayUri,
                                 exportMasksToUpdateOnDevice, exportMasksToUpdateOnDeviceWithInitiators,
-                                exportMasksToUpdateOnDeviceWithStoragePorts, inits, sharedVplexExportMask);
+                                exportMasksToUpdateOnDeviceWithStoragePorts, inits, sharedVplexExportMask, opId);
                     } else {
                         _log.info("did not find a matching existing storage view anywhere, so ViPR "
                                 + "will initialize a new one and push it to the VPLEX device");
                         setupNewExportMask(blockObjectMap, vplexSystem, exportGroup, varrayUri,
-                                exportMasksToCreateOnDevice, inits, vplexCluster);
+                                exportMasksToCreateOnDevice, inits, vplexCluster, opId);
                     }
                 }
             }
@@ -1857,6 +1869,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param exportMasksToUpdateOnDevice collection of ExportMasks to update
      * @param exportMasksToUpdateOnDeviceWithInitiators a map of ExportMasks to initiators
      * @param exportMasksToUpdateOnDeviceWithStoragePorts a map of ExportMasks to storage ports
+     * @param opId the workflow step id used to find the workflow to store/load zoning map
      * @return whether or not a storage view was actually found on the device
      */
     private boolean checkForExistingStorageViews(VPlexApiClient client,
@@ -1865,7 +1878,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             ExportGroup exportGroup, URI varrayUri, Map<URI, Integer> blockObjectMap,
             List<ExportMask> exportMasksToUpdateOnDevice,
             Map<URI, List<Initiator>> exportMasksToUpdateOnDeviceWithInitiators,
-            Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts) throws Exception {
+            Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts, String opId) throws Exception {
         boolean foundMatchingStorageView = false;
 
         List<String> initiatorNames = new ArrayList<String>();
@@ -1937,10 +1950,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             for (Initiator init : inits) {
                 String port = init.getInitiatorPort();
-                String normalizedName = port;
-                if (WWNUtility.isValidWWN(port)) {
-                    normalizedName = WWNUtility.getUpperWWNWithNoColons(port);
-                }
+                String normalizedName = Initiator.normalizePort(port);
                 _log.info("   looking at initiator " + normalizedName + " host " + init.getHostName());
                 if (initiatorPorts.contains(normalizedName)) {
                     _log.info("      found a matching initiator for " + normalizedName
@@ -1986,9 +1996,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     blockObjectMap.keySet(), exportGroup.getNumPaths());
 
             // Try to assign new ports by passing in existingMap
-            Map<URI, List<URI>> assignments =
-                    _blockScheduler.assignStoragePorts(vplexSystem, varrayUri, inits,
-                            pathParams, exportMask.getZoningMap(), null);
+            Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplexSystem, exportGroup,
+                    initsToAdd, exportMask.getZoningMap(), pathParams, null, _networkDeviceController, varrayUri, opId);
+            // Consolidate the prezoned ports with the new assignments to get the total ports needed in the mask
             if (assignments != null && !assignments.isEmpty()) {
                 // Update zoningMap if there are new assignments
                 exportMask = ExportUtils.updateZoningMap(_dbClient, exportMask, assignments,
@@ -2023,13 +2033,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param inits the host initiators of the host in question
      * @param allPortsFromMaskMatchForVarray a flag indicating the storage port networking status
      * @param viprExportMask the ExportMask in the ViPR database to re-use
+     * @param opId the workflow step id
      */
     private void reuseExistingExportMask(Map<URI, Integer> blockObjectMap,
             StorageSystem vplexSystem, ExportGroup exportGroup, URI varrayUri,
             List<ExportMask> exportMasksToUpdateOnDevice,
             Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts,
             List<Initiator> inits, boolean allPortsFromMaskMatchForVarray,
-            ExportMask viprExportMask) {
+            ExportMask viprExportMask, String opId) {
 
         exportMasksToUpdateOnDevice.add(viprExportMask);
         exportGroup.addExportMask(viprExportMask.getId());
@@ -2045,9 +2056,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         // there is already exportmask in database but the storageports in that exportmask are not
         // in the passed in varray (varrayUri)
         if (!allPortsFromMaskMatchForVarray) {
-            Map<URI, List<URI>> assignments =
-                    _blockScheduler.assignStoragePorts(vplexSystem, varrayUri, inits,
-                            pathParams, viprExportMask.getZoningMap(), null);
+            Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplexSystem, exportGroup,
+                    inits, viprExportMask.getZoningMap(), pathParams, null, _networkDeviceController, varrayUri, opId);
+            // Consolidate the prezoned ports with the new assignments to get the total ports needed in the mask
             if (assignments != null && !assignments.isEmpty()) {
                 // Update zoning Map with these new assignments
                 viprExportMask = ExportUtils.updateZoningMap(_dbClient, viprExportMask, assignments,
@@ -2066,19 +2077,20 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param exportMasksToCreateOnDevice collection of ExportMasks to create
      * @param inits the host initiators of the host in question
      * @param vplexCluster String representing the VPLEX cluster in question
+     * @param opId the workflow step id
      * @throws Exception
      */
     private void setupNewExportMask(Map<URI, Integer> blockObjectMap,
             StorageSystem vplexSystem, ExportGroup exportGroup,
             URI varrayUri, List<ExportMask> exportMasksToCreateOnDevice,
-            List<Initiator> inits, String vplexCluster) throws Exception {
+            List<Initiator> inits, String vplexCluster, String opId) throws Exception {
         List<URI> hostInits = new ArrayList<URI>();
         for (Initiator init : inits) {
             hostInits.add(init.getId());
         }
 
         ExportMask exportMask = initializeExportMask(
-                vplexSystem, exportGroup, varrayUri, hostInits, blockObjectMap);
+                vplexSystem, exportGroup, varrayUri, hostInits, blockObjectMap, opId);
 
         // CQ:614511 This is a check to ensure that the ExportMask name
         // starts with only a letter, hyphen, or underscore.
@@ -2109,6 +2121,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param exportMasksToUpdateOnDeviceWithStoragePorts Out Param to track exportMasks that needs to be updated with the storageports
      * @param inits List of initiators that needs to be added
      * @param sharedVplexExportMask ExportMask which represents multiple host.
+     * @param opId the workflow step id used to find the workflow to locate the zoning map stored in ZK
      * @throws Exception
      */
     private void setupExistingExportMaskWithNewHost(Map<URI, Integer> blockObjectMap,
@@ -2116,7 +2129,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             URI varrayUri, List<ExportMask> exportMasksToUpdateOnDevice,
             Map<URI, List<Initiator>> exportMasksToUpdateOnDeviceWithInitiators,
             Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts,
-            List<Initiator> inits, ExportMask sharedVplexExportMask) throws Exception {
+            List<Initiator> inits, ExportMask sharedVplexExportMask, String opId) throws Exception {
         List<URI> hostInits = new ArrayList<URI>();
         for (Initiator init : inits) {
             hostInits.add(init.getId());
@@ -2140,9 +2153,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 blockObjectMap.keySet(), exportGroup.getNumPaths());
 
         // Try to assign new ports by passing in existingMap
-        Map<URI, List<URI>> assignments =
-                _blockScheduler.assignStoragePorts(vplexSystem, varrayUri, inits,
-                        pathParams, sharedVplexExportMask.getZoningMap(), null);
+        Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplexSystem, exportGroup,
+                inits, sharedVplexExportMask.getZoningMap(), pathParams, null, _networkDeviceController, varrayUri, opId);
         if (assignments != null && !assignments.isEmpty()) {
             // Update zoningMap if there are new assignments
             sharedVplexExportMask = ExportUtils.updateZoningMap(_dbClient, sharedVplexExportMask, assignments,
@@ -2467,7 +2479,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#exportGroupDelete(java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
@@ -2704,7 +2716,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#exportAddVolume(java.net.URI, java.net.URI, java.net.URI,
      * java.lang.Integer, java.lang.String)
      */
@@ -2929,7 +2941,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#exportRemoveVolume(java.net.URI, java.net.URI, java.net.URI,
      * java.lang.String)
      */
@@ -3209,7 +3221,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#exportAddInitiator(java.net.URI, java.net.URI, java.net.URI,
      * java.lang.String)
      */
@@ -3382,9 +3394,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
 
             // Assign additional StoragePorts if needed.
-            Map<URI, List<URI>> assignments =
-                    _blockScheduler.assignStoragePorts(vplex, varrayURI, initiators,
-                            pathParams, exportMask.getZoningMap(), null);
+            Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplex, exportGroup,
+                    initiators, exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, varrayURI, opId);
             List<URI> newTargetURIs = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
             exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments));
             _dbClient.persistObject(exportMask);
@@ -3811,7 +3822,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#exportRemoveInitiator(java.net.URI, java.net.URI, java.net.URI,
      * java.lang.String)
      */
@@ -4569,19 +4580,19 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
 
             // Select from an existing ExportMask if possible
-            ExportGroup[] returnedExportGroup = new ExportGroup[1];
-            ExportMask exportMask = backendMgr.chooseBackendExportMask(vplexSystem,
-                    storageSystem, varray, returnedExportGroup);
+            ExportMaskPlacementDescriptor descriptor = backendMgr.chooseBackendExportMask(vplexSystem, storageSystem, varray, volumeMap,
+                    lastStep);
+            // For every ExportMask in the descriptor ...
+            for (URI exportMaskURI : descriptor.getPlacedMasks()) {
+                // Create steps to place each set of volumes into its assigned ExportMask
+                ExportGroup exportGroup = descriptor.getExportGroupForMask(exportMaskURI);
+                ExportMask exportMask = descriptor.getExportMask(exportMaskURI);
+                Map<URI, Volume> placedVolumes = descriptor.getPlacedVolumes(exportMaskURI);
 
-            ExportGroup exportGroup = null;
-            if (exportMask != null) {
-                exportGroup = returnedExportGroup[0];
+                // Add the workflow steps.
+                lastStep = backendMgr.addWorkflowStepsToAddBackendVolumes(workflow, lastStep, exportGroup, exportMask, placedVolumes,
+                        varray, vplexSystem, storageSystem);
             }
-            // Add the workflow steps.
-            lastStep = backendMgr.addWorkflowStepsToAddBackendVolumes(
-                    workflow, lastStep,
-                    exportGroup, exportMask,
-                    volumeMap, varray, vplexSystem, storageSystem);
         }
 
         return lastStep;
@@ -5023,10 +5034,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     migrationTarget.getStorageController(), _dbClient);
             _log.info("Storage system for migration target is {}",
                     migrationTarget.getStorageController());
+            List<String> itls = VPlexControllerUtils.getVolumeITLs(migrationTarget);
             VolumeInfo nativeVolumeInfo = new VolumeInfo(
                     targetStorageSystem.getNativeGuid(), targetStorageSystem.getSystemType(), migrationTarget.getWWN()
                             .toUpperCase().replaceAll(":", ""), migrationTarget.getNativeId(),
-                    migrationTarget.getThinlyProvisioned().booleanValue());
+                    migrationTarget.getThinlyProvisioned().booleanValue(), itls);
 
             // Get the migration associated with the target.
             Migration migration = getDataObject(Migration.class, migrationURI, _dbClient);
@@ -5733,10 +5745,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Make the call to create the (non-distributed) virtual volume.
             if (existingVolume != null) {
                 StorageSystem array = getDataObject(StorageSystem.class, existingVolume.getStorageController(), _dbClient);
+                List<String> itls = VPlexControllerUtils.getVolumeITLs(existingVolume);
                 List<VolumeInfo> vinfos = new ArrayList<VolumeInfo>();
                 vinfo = new VolumeInfo(array.getNativeGuid(), array.getSystemType(),
                         existingVolume.getWWN().toUpperCase().replaceAll(":", ""),
-                        existingVolume.getNativeId(), existingVolume.getThinlyProvisioned().booleanValue());
+                        existingVolume.getNativeId(), existingVolume.getThinlyProvisioned().booleanValue(), itls);
                 vinfos.add(vinfo);
                 virtvinfo = client.createVirtualVolume(vinfos, false, true, true, null, null);
                 if (virtvinfo == null) {
@@ -5773,9 +5786,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         vplexVolume.getVirtualArray(), vplexVolume.getStorageController(),
                         _dbClient);
                 StorageSystem array = getDataObject(StorageSystem.class, newVolume.getStorageController(), _dbClient);
+                List<String> itls = VPlexControllerUtils.getVolumeITLs(newVolume);
                 vinfo = new VolumeInfo(array.getNativeGuid(), array.getSystemType(),
                         newVolume.getWWN().toUpperCase().replaceAll(":", ""),
-                        newVolume.getNativeId(), newVolume.getThinlyProvisioned().booleanValue());
+                        newVolume.getNativeId(), newVolume.getThinlyProvisioned().booleanValue(), itls);
                 virtvinfo = client.upgradeVirtualVolumeToDistributed(virtvinfo, vinfo, true, true, clusterId);
                 if (virtvinfo == null) {
                     String opName = ResourceOperationTypeEnum.UPGRADE_VPLEX_LOCAL_TO_DISTRIBUTED.getName();
@@ -5987,6 +6001,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         for (URI uri : uris) {
             _log.info("Volume URI is {}", uri);
             Volume volume = _dbClient.queryObject(Volume.class, uri);
+            if (volume == null || volume.getInactive()) {
+                continue;
+            }
             URI sourceSystemURI = volume.getStorageController();
             _log.info("Storage system URI is {}", sourceSystemURI);
             List<ExportGroup> sourceExportGroups = getExportGroupsForVolume(volume);
@@ -7217,9 +7234,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             Volume mirrorVolume = getDataObject(Volume.class, mirrorVolumeURI, _dbClient);
             StorageSystem mirrorVolumeSystem = getDataObject(StorageSystem.class,
                     mirrorVolume.getStorageController(), _dbClient);
+            List<String> itls = VPlexControllerUtils.getVolumeITLs(mirrorVolume);
             VolumeInfo mirrorInfo = new VolumeInfo(mirrorVolumeSystem.getNativeGuid(), mirrorVolumeSystem.getSystemType(),
                     mirrorVolume.getWWN().toUpperCase().replaceAll(":", ""),
-                    mirrorVolume.getNativeId(), mirrorVolume.getThinlyProvisioned().booleanValue());
+                    mirrorVolume.getNativeId(), mirrorVolume.getThinlyProvisioned().booleanValue(), itls);
             _log.info("Prepared mirror volume info");
 
             // Get the cluster id for this storage volume.
@@ -7700,11 +7718,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 varrayURI = altVarrayURI;
             }
         }
+
         // Assign additional storage port(s).
-        Map<URI, List<URI>> assignments =
-                _blockScheduler.
-                        assignStoragePorts(vplex, varrayURI, initiators,
-                                pathParams, exportMask.getZoningMap(), null);
+        Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplex, exportGroup,
+                initiators, exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, varrayURI, token);
         List<URI> newTargets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
         exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments));
         _dbClient.persistObject(exportMask);
@@ -7959,11 +7976,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * the backend snapshot with the passed URI.
      *
      * @param workflow A reference to a workflow.
-     * @param nativeSystem A reference to the native storage system.
-     * @param nativeFullCopyURIs The URIs of the native full copies.
      * @param waitFor The step to wait for or null.
      * @param rollbackMethod A reference to a rollback method or null.
-     *
+     * @param nativeSystem A reference to the native storage system.
+     * @param nativeFullCopyURIs The URIs of the native full copies.
      * @return RESTORE_VOLUME_STEP
      */
     private String createWorkflowStepForRestoreNativeSnapshot(Workflow workflow,
@@ -8150,7 +8166,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
         return results;
     }
-    
+
     /**
      * Given a list of Initiators, generates a string for logging of all
      * the port WWNs.
@@ -8195,7 +8211,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             .getSupportingDeviceInfo();
                     List<VPlexDeviceInfo> localDeviceInfoList = ddInfo.getLocalDeviceInfo();
                     for (VPlexDeviceInfo localDeviceInfo : localDeviceInfoList) {
-                        _log.info("localDeviceInfo: {}, {}", localDeviceInfo.getName(), localDeviceInfo.getClusterId());
+                        _log.info("localDeviceInfo: {}, {}", localDeviceInfo.getName(), localDeviceInfo.getCluster());
 
                         // If no varray is passed, then we need to check both
                         // sides of the volume, else only the side specified by
@@ -8205,7 +8221,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             String varrayCluster = ConnectivityUtil.getVplexClusterForVarray(
                                     varrayURI, vplexSystem.getId(), dbClient);
                             _log.info("varrayCluster:{}", varrayCluster);
-                            if (!localDeviceInfo.getClusterId().contains(varrayCluster)) {
+                            if (!localDeviceInfo.getCluster().contains(varrayCluster)) {
                                 continue;
                             }
                         }
@@ -8819,9 +8835,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 long totalAllocated = storageVolume.getAllocatedCapacity();
                 long totalProvisioned = storageVolume.getProvisionedCapacity();
                 StorageSystem storage = storageMap.get(storageVolume.getStorageController());
+                List<String> itls = VPlexControllerUtils.getVolumeITLs(storageVolume);
                 VolumeInfo vinfo = new VolumeInfo(storage.getNativeGuid(), storage.getSystemType(),
                         storageVolume.getWWN().toUpperCase().replaceAll(":", ""),
-                        storageVolume.getNativeId(), storageVolume.getThinlyProvisioned().booleanValue());
+                        storageVolume.getNativeId(), storageVolume.getThinlyProvisioned().booleanValue(), itls);
 
                 // Update rollback information.
                 rollbackData.add(vinfo);
@@ -9770,21 +9787,22 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param varrayURI
      * @param initiatorURIs
      * @param volumeMap
+     * @param opId
      * @param targets - OUT parameter containing list of StoragePort target URIs
      * @return an Initialized ExportMask
      * @throws Exception
      */
     private ExportMask initializeExportMask(
             StorageSystem storage, ExportGroup exportGroup, URI varrayURI,
-            List<URI> initiatorURIs, Map<URI, Integer> volumeMap) throws Exception {
+            List<URI> initiatorURIs, Map<URI, Integer> volumeMap, String opId) throws Exception {
         List<Initiator> initiators = _dbClient
                 .queryObject(Initiator.class, initiatorURIs);
         ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(volumeMap.keySet(), 0);
         if (exportGroup.getType() != null) {
             pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
         }
-        Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts
-                (storage, varrayURI, initiators, pathParams, null, volumeMap.keySet());
+        Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup,
+                initiators, null, pathParams, volumeMap.keySet(), _networkDeviceController, varrayURI, opId);
         List<URI> targets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
         String maskName = getComputedExportMaskName(storage, varrayURI, initiators,
                 CustomConfigConstants.VPLEX_STORAGE_VIEW_NAME);

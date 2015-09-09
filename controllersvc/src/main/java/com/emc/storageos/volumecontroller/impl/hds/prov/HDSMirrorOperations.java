@@ -6,6 +6,7 @@ package com.emc.storageos.volumecontroller.impl.hds.prov;
 
 import java.net.URI;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -161,6 +162,12 @@ public class HDSMirrorOperations implements MirrorOperations {
         log.info("resumeSingleVolumeMirror completed");
     }
 
+    @Override
+    public void establishVolumeNativeContinuousCopyGroupRelation(StorageSystem storage, URI sourceVolume,
+            URI mirror, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
     /**
      * 1. Delete ShadowImage Pair
      * 2. Delete DummyLunPath from secondary volume
@@ -284,6 +291,37 @@ public class HDSMirrorOperations implements MirrorOperations {
     public void setHdsProtectionOperations(
             HDSProtectionOperations hdsProtectionOperations) {
         this.hdsProtectionOperations = hdsProtectionOperations;
+    }
+
+    @Override
+    public void createGroupMirrors(StorageSystem storage, List<URI> mirrorList, Boolean createInactive, TaskCompleter taskCompleter) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void fractureGroupMirrors(StorageSystem storage, List<URI> mirrorList, Boolean sync, TaskCompleter taskCompleter) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void resumeGroupMirrors(StorageSystem storage, List<URI> mirrorList, TaskCompleter taskCompleter) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void detachGroupMirrors(StorageSystem storage, List<URI> mirrorList, Boolean deleteGroup, TaskCompleter taskCompleter) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void deleteGroupMirrors(StorageSystem storage, List<URI> mirrorList, TaskCompleter taskCompleter) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void removeMirrorFromDeviceMaskingGroup(StorageSystem system, List<URI> mirrorList,
+            TaskCompleter completer) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
 }

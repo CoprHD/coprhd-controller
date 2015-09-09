@@ -4,10 +4,7 @@
  */
 package com.emc.storageos.auth.impl;
 
-import com.emc.storageos.auth.AuthenticationManager;
-import com.emc.storageos.auth.StorageOSAuthenticationHandler;
-import com.emc.storageos.auth.StorageOSPersonAttributeDao;
-import com.emc.storageos.auth.TokenManager;
+import com.emc.storageos.auth.*;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.PrefixConstraint;
@@ -336,6 +333,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
         private Long _lastNotificationTime = 0L;
         private Long _lastReloadTime = 0L;
         private HashMap<URI, Long> _lastKnownConfiguration = null;
+        private int _lastKnownLdapConnectionTimeout = 0;
 
         private class Waiter {
             private long _t = 0;
@@ -419,6 +417,11 @@ public class CustomAuthenticationManager implements AuthenticationManager {
                     return true;
                 }
             }
+
+            if (_lastKnownLdapConnectionTimeout != SystemPropertyUtil.getLdapConnectionTimeout(_coordinator)) {
+                return true;
+            }
+
             // nothing is changed
             return false;
         }
@@ -433,6 +436,7 @@ public class CustomAuthenticationManager implements AuthenticationManager {
             for (AuthnProvider provider : knownProviders) {
                 _lastKnownConfiguration.put(provider.getId(), provider.getLastModified());
             }
+            _lastKnownLdapConnectionTimeout = SystemPropertyUtil.getLdapConnectionTimeout(_coordinator);
         }
 
         @Override

@@ -17,6 +17,9 @@ public class Site extends DataObject {
     private String secretKey;
     private StringMap hostIPv4AddressMap = new StringMap();
     private StringMap hostIPv6AddressMap = new StringMap();
+    private String softwareVersion;
+    private String dbSchemaVersion;
+    private boolean freshInstallation;
 
     @Name("uuid")
     public String getUuid() {
@@ -78,27 +81,56 @@ public class Site extends DataObject {
         this.hostIPv6AddressMap = hostIPv6AddressMap;
         setChanged("hostIPv6AddressMap");
     }
+    
+    @Name("softwareVersion")
+    public String getSoftwareVersion() {
+        return softwareVersion;
+    }
+
+    public void setSoftwareVersion(String softwareVersion) {
+        this.softwareVersion = softwareVersion;
+    }
+    
+    @Name("dbSchemaVersion")
+    public String getDbSchemaVersion() {
+        return dbSchemaVersion;
+    }
+
+    public void setDbSchemaVersion(String dbSchemaVersion) {
+        this.dbSchemaVersion = dbSchemaVersion;
+    }
+    
+    @Name("freshInstallation")
+    public boolean isFreshInstallation() {
+        return freshInstallation;
+    }
+
+    public void setFreshInstallation(boolean freshInstallation) {
+        this.freshInstallation = freshInstallation;
+    }
 
     @Override
     public String toString() {
-        StringBuilder builder = new StringBuilder(this.getClass().getName());
-
-        builder.append("\n\tuuid:");
+        StringBuilder builder = new StringBuilder();
+        builder.append("Site [uuid=");
         builder.append(uuid);
-
-        builder.append("\n\tname:");
+        builder.append(", name=");
         builder.append(name);
-
-        builder.append("\n\tvip:");
+        builder.append(", vip=");
         builder.append(vip);
-
-        builder.append("\n\tIPv4AddressesMap:");
+        builder.append(", secretKey=");
+        builder.append(secretKey);
+        builder.append(", hostIPv4AddressMap=");
         builder.append(hostIPv4AddressMap);
-
-        builder.append("\n\tIPv6AddressesMap:");
+        builder.append(", hostIPv6AddressMap=");
         builder.append(hostIPv6AddressMap);
-        builder.append("\n");
-
+        builder.append(", softwareVersion=");
+        builder.append(softwareVersion);
+        builder.append(", dbSchemaVersion=");
+        builder.append(dbSchemaVersion);
+        builder.append(", freshInstallation=");
+        builder.append(freshInstallation);
+        builder.append("]");
         return builder.toString();
     }
 }

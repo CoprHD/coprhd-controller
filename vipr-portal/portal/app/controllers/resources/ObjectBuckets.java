@@ -91,7 +91,6 @@ public class ObjectBuckets extends ResourceController {
         render(bucket);
     }
 
-
     @FlashException(referrer = { "bucket" })
     public static void deleteBucket(String bucketId) {
         if (StringUtils.isNotBlank(bucketId)) {
@@ -131,5 +130,5 @@ public class ObjectBuckets extends ResourceController {
     private static boolean isBucketId(String id) {
         return ResourceType.isType(BUCKET, id);
     }
-   
+
 }

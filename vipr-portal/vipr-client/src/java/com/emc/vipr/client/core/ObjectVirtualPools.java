@@ -9,7 +9,6 @@ import static com.emc.vipr.client.core.impl.PathConstants.VARRAY_URL;
 import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.List;
 
 import javax.ws.rs.core.UriBuilder;
@@ -23,8 +22,6 @@ import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.quota.QuotaInfo;
 import com.emc.storageos.model.quota.QuotaUpdateParam;
 import com.emc.storageos.model.vpool.CapacityResponse;
-import com.emc.storageos.model.vpool.FileVirtualPoolBulkRep;
-import com.emc.storageos.model.vpool.FileVirtualPoolRestRep;
 import com.emc.storageos.model.vpool.NamedRelatedVirtualPoolRep;
 import com.emc.storageos.model.vpool.ObjectVirtualPoolBulkRep;
 import com.emc.storageos.model.vpool.ObjectVirtualPoolParam;
@@ -64,7 +61,7 @@ public class ObjectVirtualPools extends AbstractCoreBulkResources<ObjectVirtualP
 
     @Override
     protected List<ObjectVirtualPoolRestRep> getBulkResources(BulkIdParam input) {
-    	ObjectVirtualPoolBulkRep response = client.post(ObjectVirtualPoolBulkRep.class, input, getBulkUrl());
+        ObjectVirtualPoolBulkRep response = client.post(ObjectVirtualPoolBulkRep.class, input, getBulkUrl());
         return defaultList(response.getVirtualPools());
     }
 
@@ -343,5 +340,4 @@ public class ObjectVirtualPools extends AbstractCoreBulkResources<ObjectVirtualP
         return client.put(ObjectVirtualPoolRestRep.class, input, getIdUrl() + "/assign-matched-pools", id);
     }
 
-	
 }

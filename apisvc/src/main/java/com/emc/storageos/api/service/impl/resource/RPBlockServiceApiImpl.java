@@ -304,9 +304,9 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             try {
                 prepareRpJournals(rpProtectionRec, project, consistencyGroup, vpool, originalVpool, param, numberOfVolumesInRequest, 
                                     newVolumeLabel, isChangeVpoolForProtectedVolume, capabilities, protectionSystemURI, taskList, task, 
-                                    metroPointEnabled, descriptors, volumeURIs, volumeInfoBuffer, 
-                                    (metroPointEnabled ? activeSourceCopyName : srcCopyName), 
-                                    standbySourceCopyName, sourceJournals, targetJournals);
+                                    descriptors, volumeURIs, volumeInfoBuffer, (metroPointEnabled ? activeSourceCopyName : srcCopyName), 
+                                    standbySourceCopyName, 
+                                    sourceJournals, targetJournals);
             } catch (Exception e) {
                 _log.error("Error trying to perpare RP Journal volumes", e);
                 throw APIException.badRequests.rpBlockApiImplPrepareVolumeException(newVolumeLabel);
@@ -566,7 +566,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param protectionSystemURI - Protection System being used
      * @param taskList - Task List
      * @param task - Task
-     * @param metroPointEnabled - Flag for MP
      * @param descriptors - List of all descriptors to be added
      * @param volumeURIs - List to store all the volume URIs
      * @param volumeInfoBuffer - Buffer for volume info to be printed
@@ -584,11 +583,11 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                                     String newVolumeLabel,
                                     boolean isChangeVpoolForProtectedVolume, VirtualPoolCapabilityValuesWrapper capabilities, 
                                     URI protectionSystemURI, 
-                                    TaskList taskList, String task, boolean metroPointEnabled, 
-                                    List<VolumeDescriptor> descriptors, List<URI> volumeURIs, 
-                                    StringBuffer volumeInfoBuffer,
-                                    String sourceCopyName, String standbySourceCopyName,
-                                    List<Volume> sourceJournals, Map<URI, Volume> targetJournals) throws Exception {
+                                    TaskList taskList, String task, List<VolumeDescriptor> descriptors, 
+                                    List<URI> volumeURIs, StringBuffer volumeInfoBuffer, 
+                                    String sourceCopyName,
+                                    String standbySourceCopyName, List<Volume> sourceJournals,
+                                    Map<URI, Volume> targetJournals) throws Exception {
         
         Volume sourceJournal = null;
         Volume standbyJournal = null;
@@ -663,9 +662,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         }
                             
         ///////// STANDBY SOURCE JOURNAL ///////////
-        if (metroPointEnabled 
-                && (standbyJournal == null)
-                && rpProtectionRec.getStandbyJournalRecommendation() != null) {  
+        if (standbyJournal == null && rpProtectionRec.getStandbyJournalRecommendation() != null) {  
             _log.info("Create Standby Source Journal...");
             // Initial journal name
             String journalName = new StringBuilder(newVolumeLabel).append(SECONDARY_SRC_JOURNAL_SUFFIX).toString();            

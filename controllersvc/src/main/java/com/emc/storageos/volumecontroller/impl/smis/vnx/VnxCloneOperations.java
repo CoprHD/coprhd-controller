@@ -5,6 +5,7 @@
 package com.emc.storageos.volumecontroller.impl.smis.vnx;
 
 import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefreshIfRequired;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_LIST_REPLICA;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.JOB;
 import static java.text.MessageFormat.format;
 
@@ -19,10 +20,8 @@ import javax.cim.CIMObjectPath;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -36,8 +35,6 @@ import com.emc.storageos.volumecontroller.impl.smis.AbstractCloneOperations;
 import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisVnxCreateCGCloneJob;
-
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_LIST_REPLICA;
 
 /**
  * For VNX, clone would be smi-s mirror (Snapview clone)
@@ -237,17 +234,7 @@ public class VnxCloneOperations extends AbstractCloneOperations {
             modifyGroupClones(storage, clones, completer, SmisConstants.DETACH_VALUE);
             List<Volume> cloneVols = _dbClient.queryObject(Volume.class, clones);
             for (Volume clone : cloneVols) {
-                URI sourceURI = clone.getAssociatedSourceVolume();
-                if ((!NullColumnValueGetter.isNullURI(sourceURI)) &&
-                    (URIUtil.isType(sourceURI, Volume.class))) {
-                    Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceURI);
-                    StringSet fullCopies = sourceVolume.getFullCopies();
-                    String cloneId = clone.getId().toString();
-                    if ((fullCopies != null) && (fullCopies.contains(cloneId))) {
-                        fullCopies.remove(cloneId);
-                        _dbClient.persistObject(sourceVolume);
-                    }
-                }
+                ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(clone, _dbClient);
                 clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
                 clone.setReplicaState(ReplicationState.DETACHED.name());
             }

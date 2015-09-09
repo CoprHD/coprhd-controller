@@ -17,11 +17,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -32,6 +30,7 @@ import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.CloneOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -89,16 +88,7 @@ public class ScaleIOCloneOperations implements CloneOperations {
         log.info("START detachSingleClone operation");
         // no operation, set to ready
         Volume clone = dbClient.queryObject(Volume.class, cloneVolume);
-        URI sourceURI = clone.getAssociatedSourceVolume();
-        if ((!NullColumnValueGetter.isNullURI(sourceURI)) &&
-            (URIUtil.isType(sourceURI, Volume.class))) {
-            Volume sourceVolume = dbClient.queryObject(Volume.class, sourceURI);
-            StringSet fullCopies = sourceVolume.getFullCopies();
-            if ((fullCopies != null) && (fullCopies.contains(cloneVolume.toString()))) {
-                fullCopies.remove(cloneVolume.toString());
-                dbClient.persistObject(sourceVolume);
-            }
-        }
+        ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(clone, dbClient);
         clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
         clone.setReplicaState(ReplicationState.DETACHED.name());
         dbClient.persistObject(clone);

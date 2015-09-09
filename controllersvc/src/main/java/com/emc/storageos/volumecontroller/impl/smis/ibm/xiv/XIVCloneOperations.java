@@ -14,13 +14,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
@@ -31,6 +29,7 @@ import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.volumecontroller.CloneOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneCreateCompleter;
+import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import com.emc.storageos.volumecontroller.impl.smis.ibm.IBMCIMObjectPathFactory;
@@ -150,16 +149,7 @@ public class XIVCloneOperations implements CloneOperations {
         _log.info("START detachSingleClone operation");
         // no operation, set to ready
         Volume clone = _dbClient.queryObject(Volume.class, cloneVolume);
-        URI sourceURI = clone.getAssociatedSourceVolume();
-        if ((!NullColumnValueGetter.isNullURI(sourceURI)) &&
-            (URIUtil.isType(sourceURI, Volume.class))) {
-            Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceURI);
-            StringSet fullCopies = sourceVolume.getFullCopies();
-            if ((fullCopies != null) && (fullCopies.contains(cloneVolume.toString()))) {
-                fullCopies.remove(cloneVolume.toString());
-                _dbClient.persistObject(sourceVolume);
-            }
-        }
+        ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(clone, _dbClient);
         clone.setReplicaState(ReplicationState.DETACHED.name());
         clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
         _dbClient.persistObject(clone);

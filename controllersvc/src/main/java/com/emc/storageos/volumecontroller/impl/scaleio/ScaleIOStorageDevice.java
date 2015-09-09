@@ -19,19 +19,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.scaleio.ScaleIOException;
-import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
-import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
-import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
-import com.google.common.collect.ArrayListMultimap;
-import com.google.common.collect.Multimap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -45,12 +37,17 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.scaleio.ScaleIOException;
+import com.emc.storageos.scaleio.api.restapi.ScaleIORestClient;
+import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.CloneOperations;
+import com.emc.storageos.volumecontroller.DefaultBlockStorageDevice;
 import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
@@ -58,9 +55,12 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CleanupMetaVo
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeCreateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeExpandCompleter;
 import com.emc.storageos.volumecontroller.impl.smis.MetaVolumeRecommendation;
+import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
 
 public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
     private static final Logger log = LoggerFactory.getLogger(ScaleIOStorageDevice.class);
@@ -250,16 +250,16 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
             throws DeviceControllerException {
         Long volumeSize = size / ScaleIOHelper.BYTES_IN_GB;
         Long expandSize = volumeSize;
-        //ScaleIO volume size has to be granularity of 8
+        // ScaleIO volume size has to be granularity of 8
         long remainder = volumeSize % 8;
         if (remainder != 0) {
-            expandSize += (8-remainder);
+            expandSize += (8 - remainder);
             log.info("The requested size is {} GB, increase it to {} GB, so that it is granularity of 8", volumeSize, expandSize);
         }
-        
+
         try {
             ScaleIORestClient scaleIOHandle = scaleIOHandleFactory.using(dbClient).getClientHandle(storage);
-            
+
             ScaleIOVolume result = scaleIOHandle.modifyVolumeCapacity(volume.getNativeId(), expandSize.toString());
             long newSize = Long.parseLong(result.getSizeInKb()) * 1024L;
             volume.setProvisionedCapacity(newSize);
@@ -408,11 +408,11 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
             List<BlockSnapshot> snapshots = dbClient.queryObject(BlockSnapshot.class, snapshotList);
             if (inReplicationGroup(dbClient, snapshots)) {
                 snapshotOperations.createGroupSnapshots(storage, snapshotList, createInactive,
-                		readOnly, taskCompleter);
+                        readOnly, taskCompleter);
             } else {
                 URI snapshot = snapshots.get(0).getId();
                 snapshotOperations.createSingleVolumeSnapshot(storage, snapshot, createInactive,
-                		readOnly, taskCompleter);
+                        readOnly, taskCompleter);
             }
         } catch (DatabaseException e) {
             String message = String.format("IO exception when trying to create snapshot(s) on array %s",
@@ -506,16 +506,7 @@ public class ScaleIOStorageDevice extends DefaultBlockStorageDevice {
         log.info("Nothing to do here.  ScaleIO full copies do not require detaching.");
         // no operation, set to ready
         Volume clone = dbClient.queryObject(Volume.class, cloneVolume);
-        URI sourceURI = clone.getAssociatedSourceVolume();
-        if ((!NullColumnValueGetter.isNullURI(sourceURI)) &&
-            (URIUtil.isType(sourceURI, Volume.class))) {
-            Volume sourceVolume = dbClient.queryObject(Volume.class, sourceURI);
-            StringSet fullCopies = sourceVolume.getFullCopies();
-            if ((fullCopies != null) && (fullCopies.contains(cloneVolume.toString()))) {
-                fullCopies.remove(cloneVolume.toString());
-                dbClient.persistObject(sourceVolume);
-            }
-        }
+        ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(clone, dbClient);
         clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
         clone.setReplicaState(ReplicationState.DETACHED.name());
         dbClient.persistObject(clone);

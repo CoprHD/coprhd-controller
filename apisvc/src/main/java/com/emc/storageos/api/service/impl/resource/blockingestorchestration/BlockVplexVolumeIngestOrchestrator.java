@@ -217,7 +217,7 @@ public class BlockVplexVolumeIngestOrchestrator extends BlockVolumeIngestOrchest
 
         _logger.info("checking if we have found enough backend volumes for ingestion");
         boolean isLocal = context.isLocal();
-        if ((isLocal && (unManagedBackendVolumes.size() < 1))
+        if ((isLocal && (unManagedBackendVolumes.isEmpty()))
                 || !isLocal && (unManagedBackendVolumes.size() < 2)) {
             String supportingDevice = PropertySetterUtil.extractValueFromStringSet(
                     SupportedVolumeInformation.VPLEX_SUPPORTING_DEVICE_NAME.toString(),

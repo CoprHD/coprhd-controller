@@ -863,7 +863,7 @@ public class PlacementTests extends DbsvcTestBase {
             
             RPProtectionRecommendation rec = (RPProtectionRecommendation) recommendations.get(0);
             assertNotNull(rec.getSourceRecommendations());
-            assertNotNull(rec.getSourceRecommendations().size() > 0);
+            assertNotNull(!rec.getSourceRecommendations().isEmpty());
             assertNotNull(rec.getProtectionDevice());
             assertNotNull(rec.getPlacementStepsCompleted().name());
             assertTrue("rp1".equals(rec.getProtectionDevice().toString()));
@@ -877,7 +877,7 @@ public class PlacementTests extends DbsvcTestBase {
                 assertTrue(("pool2".equals(rpRec.getSourceStoragePool().toString())) || ("pool1".equals(rpRec.getSourceStoragePool().toString())));              
                 
                 assertNotNull(rpRec.getTargetRecommendations());
-                assertTrue(rpRec.getTargetRecommendations().size() > 0);
+                assertTrue(!rpRec.getTargetRecommendations().isEmpty());
                 for(RPRecommendation targetRec : rpRec.getTargetRecommendations()) {
                 	assertNotNull(targetRec.getSourceStoragePool());
                 	assertTrue("vmax2".equals(targetRec.getSourceStorageSystem().toString())); 
@@ -894,7 +894,7 @@ public class PlacementTests extends DbsvcTestBase {
             
             //target journal
             assertNotNull(rec.getTargetJournalRecommendations());
-            assertNotNull(rec.getTargetJournalRecommendations().size() > 0);
+            assertNotNull(!rec.getTargetJournalRecommendations().isEmpty());
             for (RPRecommendation targetJournalRec : rec.getTargetJournalRecommendations()) {
             	assertNotNull(targetJournalRec.getSourceStoragePool());
             	assertTrue("pool5".equals(targetJournalRec.getSourceStoragePool().toString()) || "pool4".equals(targetJournalRec.getSourceStoragePool().toString()));
@@ -1104,7 +1104,7 @@ public class PlacementTests extends DbsvcTestBase {
             
             RPProtectionRecommendation rec = (RPProtectionRecommendation) recommendations.get(0);
             assertNotNull(rec.getSourceRecommendations());
-            assertNotNull(rec.getSourceRecommendations().size() > 0);
+            assertNotNull(!rec.getSourceRecommendations().isEmpty());
             assertNotNull(rec.getProtectionDevice());
             assertNotNull(rec.getPlacementStepsCompleted().name());
             assertTrue("rp1".equals(rec.getProtectionDevice().toString()));
@@ -1118,7 +1118,7 @@ public class PlacementTests extends DbsvcTestBase {
                 assertTrue(("pool2".equals(rpRec.getSourceStoragePool().toString())) || ("pool1".equals(rpRec.getSourceStoragePool().toString())));              
                 
                 assertNotNull(rpRec.getTargetRecommendations());
-                assertTrue(rpRec.getTargetRecommendations().size() > 0);
+                assertTrue(!rpRec.getTargetRecommendations().isEmpty());
                 for(RPRecommendation targetRec : rpRec.getTargetRecommendations()) {
                 	assertNotNull(targetRec.getSourceStoragePool());
                 	assertTrue("vmax2".equals(targetRec.getSourceStorageSystem().toString())); 
@@ -1135,7 +1135,7 @@ public class PlacementTests extends DbsvcTestBase {
             
             //target journal
             assertNotNull(rec.getTargetJournalRecommendations());
-            assertNotNull(rec.getTargetJournalRecommendations().size() > 0);
+            assertNotNull(!rec.getTargetJournalRecommendations().isEmpty());
             for (RPRecommendation targetJournalRec : rec.getTargetJournalRecommendations()) {
             	assertNotNull(targetJournalRec.getSourceStoragePool());
             	assertTrue("pool5".equals(targetJournalRec.getSourceStoragePool().toString()) || "pool4".equals(targetJournalRec.getSourceStoragePool().toString()));
@@ -1406,12 +1406,12 @@ public class PlacementTests extends DbsvcTestBase {
             List recommendations = PlacementTestUtils.invokePlacement(_dbClient, _coordinator, varray1, project, rpVpool, capabilities);
             
                 assertNotNull(recommendations);
-                assertTrue(recommendations.size() > 0);
+                assertTrue(!recommendations.isEmpty());
                 assertNotNull(recommendations.get(0));
                 
                 RPProtectionRecommendation rec = (RPProtectionRecommendation) recommendations.get(0);
                 assertNotNull(rec.getSourceRecommendations());
-                assertNotNull(rec.getSourceRecommendations().size() > 0);
+                assertNotNull(!rec.getSourceRecommendations().isEmpty());
                 assertNotNull(rec.getProtectionDevice());
                 assertNotNull(rec.getPlacementStepsCompleted().name());
                 assertTrue("rp1".equals(rec.getProtectionDevice().toString()));
@@ -1427,7 +1427,7 @@ public class PlacementTests extends DbsvcTestBase {
                     assertTrue(("pool2".equals(sourceRec.getSourceStoragePool().toString())) || ("pool1".equals(sourceRec.getSourceStoragePool().toString())));
                     
                     assertNotNull(sourceRec.getTargetRecommendations());
-                    assertTrue(sourceRec.getTargetRecommendations().size() > 0);
+                    assertTrue(!sourceRec.getTargetRecommendations().isEmpty());
                     for(RPRecommendation targetRec : sourceRec.getTargetRecommendations()) {
                     	assertNotNull(targetRec.getSourceStoragePool());
                     	assertTrue("xtremio4".equals(targetRec.getSourceStorageSystem().toString())); 
@@ -1444,7 +1444,7 @@ public class PlacementTests extends DbsvcTestBase {
                 
                 //target journal
                 assertNotNull(rec.getTargetJournalRecommendations());
-                assertNotNull(rec.getTargetJournalRecommendations().size() > 0);
+                assertNotNull(!rec.getTargetJournalRecommendations().isEmpty());
                 for (RPRecommendation targetJournalRec : rec.getTargetJournalRecommendations()) {
                 	assertNotNull(targetJournalRec.getSourceStoragePool());
                 	assertTrue(targetJournalRec.getVirtualArray().toString().equals("varray2"));
@@ -1777,7 +1777,7 @@ public class PlacementTests extends DbsvcTestBase {
             	assertNotNull(rpVplexRec.getSourceStorageSystem());
             	assertNotNull(rpVplexRec.getHaRecommendation());
             	assertNotNull(rpVplexRec.getTargetRecommendations());
-            	assertNotNull(rpVplexRec.getTargetRecommendations().size() > 0);            	
+            	assertNotNull(!rpVplexRec.getTargetRecommendations().isEmpty());            	
             	assertNotNull(rpVplexRec.getInternalSiteName());
             	assertTrue("site1".equals(rpVplexRec.getInternalSiteName()));
             	assertTrue("vmax2".equals(rpVplexRec.getSourceStorageSystem().toString()));
@@ -1813,7 +1813,7 @@ public class PlacementTests extends DbsvcTestBase {
             assertTrue(("pool5".equals(rec.getSourceJournalRecommendation().getSourceStoragePool().toString())) || ("pool4".equals(rec.getSourceJournalRecommendation().getSourceStoragePool().toString())));
                         
             assertNotNull(rec.getTargetJournalRecommendations());
-            assertNotNull(rec.getTargetJournalRecommendations().size() > 0);
+            assertNotNull(!rec.getTargetJournalRecommendations().isEmpty());
             for (RPRecommendation targetJournalRec : rec.getTargetJournalRecommendations()) {
             	assertNotNull(targetJournalRec.getVirtualArray());
             	assertNotNull(targetJournalRec.getInternalSiteName());
@@ -2146,7 +2146,7 @@ public class PlacementTests extends DbsvcTestBase {
 	        List recommendations = PlacementTestUtils.invokePlacement(_dbClient, _coordinator, varray2, project, rpVplexVpool, capabilities);
 	
 	        assertNotNull(recommendations);
-	        assertTrue(recommendations.size() > 0);
+	        assertTrue(!recommendations.isEmpty());
 	        assertNotNull(recommendations.get(0));	        
 	        RPProtectionRecommendation rec = (RPProtectionRecommendation) recommendations.get(0);
 	   
@@ -2172,7 +2172,7 @@ public class PlacementTests extends DbsvcTestBase {
 		        
 	        
 		        assertNotNull(rpRec.getTargetRecommendations());
-		        assertNotNull(rpRec.getTargetRecommendations().size() > 0);
+		        assertNotNull(!rpRec.getTargetRecommendations().isEmpty());
 		        for (RPRecommendation targetRec : rpRec.getTargetRecommendations()) {
 		        	assertNotNull(targetRec.getInternalSiteName());
 		        	assertNotNull(targetRec.getVirtualArray());
@@ -2200,7 +2200,7 @@ public class PlacementTests extends DbsvcTestBase {
 	        
 	        //TargetJournal
 	        assertNotNull(rec.getTargetJournalRecommendations());
-	        assertNotNull(rec.getTargetJournalRecommendations().size() > 0);
+	        assertNotNull(!rec.getTargetJournalRecommendations().isEmpty());
 	        for (RPRecommendation targetJournalRec : rec.getTargetJournalRecommendations()) {
 	        	assertNotNull(targetJournalRec);
 	        	assertNotNull(targetJournalRec.getInternalSiteName());
@@ -2719,7 +2719,7 @@ public class PlacementTests extends DbsvcTestBase {
 		        			|| (haPool6.getId().toString().equals(rpRec.getHaRecommendation().getSourceStoragePool().toString())));	       
 		        	        
 		        assertNotNull(rpRec.getTargetRecommendations());
-		        assertNotNull(rpRec.getTargetRecommendations().size() > 0);
+		        assertNotNull(!rpRec.getTargetRecommendations().isEmpty());
 		        for (RPRecommendation targetRec : rpRec.getTargetRecommendations()) {
 		        	assertNotNull(targetRec.getInternalSiteName());
 		        	assertNotNull(targetRec.getVirtualArray());
@@ -2775,7 +2775,7 @@ public class PlacementTests extends DbsvcTestBase {
 	        
 	        //TargetJournal
 	        assertNotNull(rec.getTargetJournalRecommendations());
-	        assertNotNull(rec.getTargetJournalRecommendations().size() > 0);
+	        assertNotNull(!rec.getTargetJournalRecommendations().isEmpty());
 	        for (RPRecommendation targetJournalRec : rec.getTargetJournalRecommendations()) {
 	        	assertNotNull(targetJournalRec);
 	        	assertNotNull(targetJournalRec.getInternalSiteName());
@@ -3303,7 +3303,7 @@ public class PlacementTests extends DbsvcTestBase {
 	        List recommendations = PlacementTestUtils.invokePlacement(_dbClient, _coordinator, srcVarray, project, mpSrcVpool, capabilities);
 	
 	        assertNotNull(recommendations);
-	        assertTrue(recommendations.size() > 0);
+	        assertTrue(!recommendations.isEmpty());
 	        assertNotNull(recommendations.get(0));	        
 	        RPProtectionRecommendation rec = (RPProtectionRecommendation) recommendations.get(0);
 	   
@@ -3336,7 +3336,7 @@ public class PlacementTests extends DbsvcTestBase {
 		        				(haPool6.getId().toString().equals(rpRec.getHaRecommendation().getSourceStoragePool().toString())));	       
 		        	        
 		        assertNotNull(rpRec.getTargetRecommendations());
-		        assertNotNull(rpRec.getTargetRecommendations().size() > 0);
+		        assertNotNull(!rpRec.getTargetRecommendations().isEmpty());
 		        for (RPRecommendation targetRec : rpRec.getTargetRecommendations()) {
 		        	assertNotNull(targetRec.getInternalSiteName());
 		        	assertNotNull(targetRec.getVirtualArray());
@@ -3408,7 +3408,7 @@ public class PlacementTests extends DbsvcTestBase {
 	        
 	        //TargetJournal
 	        assertNotNull(rec.getTargetJournalRecommendations());
-	        assertNotNull(rec.getTargetJournalRecommendations().size() > 0);
+	        assertNotNull(!rec.getTargetJournalRecommendations().isEmpty());
 	        for (RPRecommendation targetJournalRec : rec.getTargetJournalRecommendations()) {
 	        	assertNotNull(targetJournalRec);
 	        	assertNotNull(targetJournalRec.getInternalSiteName());
@@ -3766,7 +3766,7 @@ public class PlacementTests extends DbsvcTestBase {
 	        assertNotNull(recommendations.get(0));
 	        RPProtectionRecommendation rec = (RPProtectionRecommendation) recommendations.get(0);	              
 	        assertNotNull(rec.getSourceRecommendations());
-	        assertNotNull(rec.getSourceRecommendations().size() > 0);   
+	        assertNotNull(!rec.getSourceRecommendations().isEmpty());   
 	        assertNotNull(rec.getProtectionDevice());
 	        assertTrue("rp1".equals(rec.getProtectionDevice().toString()));
 	        
@@ -3777,7 +3777,7 @@ public class PlacementTests extends DbsvcTestBase {
 	        	assertNotNull(sourceRec.getVirtualVolumeRecommendation());
 	        	assertNotNull(sourceRec.getHaRecommendation());
 	        	assertNotNull(sourceRec.getTargetRecommendations());
-	        	assertNotNull(sourceRec.getTargetRecommendations().size() > 0);
+	        	assertNotNull(!sourceRec.getTargetRecommendations().isEmpty());
 	        	
 	        	assertTrue("site1".equals(sourceRec.getInternalSiteName()));
 	        	assertTrue("vmax2".equals(sourceRec.getSourceStorageSystem().toString()));
@@ -3794,7 +3794,7 @@ public class PlacementTests extends DbsvcTestBase {
 		        assertTrue(("pool2".equals(sourceRec.getHaRecommendation().getSourceStoragePool().toString())) || ("pool1".equals(sourceRec.getHaRecommendation().getSourceStoragePool().toString())));
 	        	
 	        	assertNotNull(sourceRec.getTargetRecommendations());
-	        	assertNotNull(sourceRec.getTargetRecommendations().size() > 0);
+	        	assertNotNull(!sourceRec.getTargetRecommendations().isEmpty());
 	        	for(RPRecommendation targetRec : sourceRec.getTargetRecommendations()) {
 	        		assertNotNull(targetRec.getInternalSiteName());
 	        		assertNotNull(targetRec.getVirtualArray());
@@ -3822,7 +3822,7 @@ public class PlacementTests extends DbsvcTestBase {
 	        
 	        //target journals
 	        assertNotNull(rec.getTargetJournalRecommendations());
-	        assertNotNull(rec.getTargetJournalRecommendations().size() > 0);
+	        assertNotNull(!rec.getTargetJournalRecommendations().isEmpty());
 	        for(RPRecommendation targetJournalRec : rec.getTargetJournalRecommendations()) {
 	        	assertNotNull(targetJournalRec.getInternalSiteName());
 	        	assertNotNull(targetJournalRec.getVirtualArray());
@@ -4153,7 +4153,7 @@ public class PlacementTests extends DbsvcTestBase {
 	        assertNotNull(recommendations.get(0));
 	        RPProtectionRecommendation rec = (RPProtectionRecommendation) recommendations.get(0);	              
 	        assertNotNull(rec.getSourceRecommendations());
-	        assertNotNull(rec.getSourceRecommendations().size() > 0);   
+	        assertNotNull(!rec.getSourceRecommendations().isEmpty());   
 	        assertNotNull(rec.getProtectionDevice());
 	        assertTrue("rp1".equals(rec.getProtectionDevice().toString()));
 	        
@@ -4164,7 +4164,7 @@ public class PlacementTests extends DbsvcTestBase {
 	        	assertNotNull(sourceRec.getVirtualVolumeRecommendation());
 	        	assertNotNull(sourceRec.getHaRecommendation());
 	        	assertNotNull(sourceRec.getTargetRecommendations());
-	        	assertNotNull(sourceRec.getTargetRecommendations().size() > 0);
+	        	assertNotNull(!sourceRec.getTargetRecommendations().isEmpty());
 	        	
 	        	assertTrue("site1".equals(sourceRec.getInternalSiteName()));
 	        	assertTrue("vmax1".equals(sourceRec.getSourceStorageSystem().toString()));
@@ -4179,7 +4179,7 @@ public class PlacementTests extends DbsvcTestBase {
 		        assertTrue(("pool4".equals(sourceRec.getHaRecommendation().getSourceStoragePool().toString())) || ("pool5".equals(sourceRec.getHaRecommendation().getSourceStoragePool().toString())));
 	        	
 	        	assertNotNull(sourceRec.getTargetRecommendations());
-	        	assertNotNull(sourceRec.getTargetRecommendations().size() > 0);
+	        	assertNotNull(!sourceRec.getTargetRecommendations().isEmpty());
 	        	for(RPRecommendation targetRec : sourceRec.getTargetRecommendations()) {
 	        		assertNotNull(targetRec.getInternalSiteName());
 	        		assertNotNull(targetRec.getVirtualArray());
@@ -4207,7 +4207,7 @@ public class PlacementTests extends DbsvcTestBase {
 	        
 	        //target journals
 	        assertNotNull(rec.getTargetJournalRecommendations());
-	        assertNotNull(rec.getTargetJournalRecommendations().size() > 0);
+	        assertNotNull(!rec.getTargetJournalRecommendations().isEmpty());
 	        for(RPRecommendation targetJournalRec : rec.getTargetJournalRecommendations()) {
 	        	assertNotNull(targetJournalRec.getInternalSiteName());
 	        	assertNotNull(targetJournalRec.getVirtualArray());

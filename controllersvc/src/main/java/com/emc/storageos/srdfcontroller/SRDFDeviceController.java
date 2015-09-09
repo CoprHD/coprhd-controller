@@ -357,8 +357,8 @@ public class SRDFDeviceController implements SRDFController, BlockOrchestrationI
          * 1. If there are no volumes in RDFGroup on Array & volumes in RDFGroup in ViPR DB.
          * 2. If there are volumes in RDFGroup on Array & no volumes in RDFGroup in ViPR DB.
          */
-        if ((group.getVolumes().isEmpty() && volumes.size() > 0)
-                || (group.getVolumes().size() > 0 && volumes.isEmpty())) {
+        if ((group.getVolumes().isEmpty() && !volumes.isEmpty())
+                || (!group.getVolumes().isEmpty() && volumes.isEmpty())) {
             // throw Exception rediscover source and target arrays.
             log.warn("RDF Group {} out of sync with Array", group.getNativeGuid());
             List<URI> sourceURIs = VolumeDescriptor.getVolumeURIs(sourceDescriptors);

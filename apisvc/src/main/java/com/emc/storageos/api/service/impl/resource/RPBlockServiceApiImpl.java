@@ -284,7 +284,13 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             
             String srcCopyName = varray.getLabel() + SRC_COPY_SUFFIX;
             String activeSourceCopyName = "";
-            String standbySourceCopyName = "";
+            String standbySourceCopyName = "";                       
+            
+            if (capabilities.getAddJournalCapacity()) {
+            	if (rpProtectionRec.getStandbyJournalRecommendation() != null) {
+            		standbySourceCopyName = varray.getLabel() + MP_STANDBY_COPY_SUFFIX;
+            	}
+            }
             
             if (metroPointEnabled) {
                 // Grab HA varray so we can set the standby copy name correctly

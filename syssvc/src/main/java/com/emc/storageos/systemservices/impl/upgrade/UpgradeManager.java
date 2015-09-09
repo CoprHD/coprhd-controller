@@ -18,6 +18,7 @@ import javax.ws.rs.core.MediaType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.management.jmx.recovery.DbManagerOps;
 import com.emc.storageos.coordinator.client.model.Constants;
@@ -27,6 +28,7 @@ import com.emc.storageos.coordinator.client.model.PropertyInfoExt;
 import com.emc.storageos.coordinator.client.model.DownloadingInfo;
 import static com.emc.storageos.coordinator.client.model.Constants.*;
 import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.model.property.PropertyInfoRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -36,7 +38,6 @@ import com.emc.storageos.systemservices.impl.property.PropertyManager;
 import com.emc.storageos.systemservices.impl.util.AbstractManager;
 import com.emc.vipr.model.sys.ClusterInfo.NodeState;
 import com.emc.vipr.model.sys.NodeProgress.DownloadStatus;
-import org.springframework.beans.factory.annotation.Autowired;
 
 public class UpgradeManager extends AbstractManager {
     private static final Logger log = LoggerFactory.getLogger(UpgradeManager.class);
@@ -77,6 +78,49 @@ public class UpgradeManager extends AbstractManager {
         return SysClientFactory.URI_WAKEUP_UPGRADE_MANAGER;
     }
 
+    /**
+     * Register repository info listener to monitor repository version changes
+     */
+    private void addRepositoryInfoListener() {
+        try {
+            coordinator.getCoordinatorClient().addNodeListener(new RepositoryInfoListener());
+        } catch (Exception e) {
+            log.error("Fail to add node listener for repository info target znode", e);
+            throw APIException.internalServerErrors.addListenerFailed();
+        }
+        log.info("Successfully added node listener for repository info target znode");
+    }
+
+    /**
+     * the listener class to listen the repository target node change.
+     */
+    class RepositoryInfoListener implements NodeListener {
+        public String getPath() {
+            return String.format("/config/%s/%s", RepositoryInfo.CONFIG_KIND, RepositoryInfo.CONFIG_ID);
+        }
+
+        /**
+         * called when user update the target version
+         */
+        @Override
+        public void nodeChanged() {
+            log.info("Repository info changed. Waking up the upgrade manager...");
+            wakeup();
+        }
+
+        /**
+         * called when connection state changed.
+         */
+        @Override
+        public void connectionStateChanged(State state) {
+            log.info("Repository info connection state changed to {}", state);
+            if (state.equals(State.CONNECTED)) {
+                log.info("Curator (re)connected. Waking up the upgrade manager...");
+                wakeup();
+            }
+        }
+    }
+
     @Override
     protected void innerRun() {
         final String svcId = coordinator.getMySvcId();
@@ -84,6 +128,8 @@ public class UpgradeManager extends AbstractManager {
         boolean dbCurrentVersionEncrypted = false;
         boolean isDBMigrationDone = false;
         isValidRepo = localRepository.isValidRepository();
+
+        addRepositoryInfoListener();
 
         while (doRun) {
             log.debug("Main loop: Start");

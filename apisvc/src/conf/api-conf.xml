@@ -710,5 +710,6 @@
   <bean id="windowsHostConnectionValidator" class="com.emc.storageos.api.service.impl.resource.utils.WindowsHostConnectionValidator">
   	<property name="dbClient" ref="dbclient"/>
   </bean>
+  
 </beans>
 

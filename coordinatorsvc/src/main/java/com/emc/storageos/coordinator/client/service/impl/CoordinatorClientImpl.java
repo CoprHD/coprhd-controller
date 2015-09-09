@@ -186,6 +186,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
             log.error("Failed to persist {} to {}", siteId, primarySitePointer);
             throw e;
         }
+
+
     }
 
     /**

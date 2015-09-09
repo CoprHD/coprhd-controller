@@ -39,7 +39,6 @@ public class GeoSeedProviderImpl implements SeedProvider {
 
     private static final String SEEDS = "seeds";
     private static final String COORDINATORS = "coordinators";
-    private static final String SITE_ID= "siteid";
 
     private CoordinatorClient coordinator;
     private List<String> seeds = new ArrayList<>();
@@ -97,7 +96,7 @@ public class GeoSeedProviderImpl implements SeedProvider {
         ZkConnection connection = new ZkConnection();
         connection.setServer(uri);
         connection.build();
-        String siteId= args.get(SITE_ID);
+        String siteId= args.get(Constants.SITE_ID);
         connection.setSiteId(siteId);
         log.info("siteId={}", siteId);
 

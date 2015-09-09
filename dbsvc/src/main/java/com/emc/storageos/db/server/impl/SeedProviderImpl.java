@@ -33,7 +33,6 @@ public class SeedProviderImpl implements SeedProvider {
 
     private static final String ID = "id";
     private static final String COORDINATORS = "coordinators";
-    private static final String SITE_ID= "siteid";
 
     private String _id;
     private CoordinatorClientImpl _client;
@@ -77,7 +76,7 @@ public class SeedProviderImpl implements SeedProvider {
         connection.setServer(uri);
         connection.build();
 
-        String siteId= args.get(SITE_ID);
+        String siteId= args.get(Constants.SITE_ID);
         connection.setSiteId(siteId);
         _logger.info("siteId={}", siteId);
 

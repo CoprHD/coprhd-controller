@@ -32,7 +32,7 @@ public class ObjectStorageUtils {
         addAffectedResource(task);
         URI bucketId = task.getResourceId();
         addRollback(new DeactivateBucket(bucketId));
-        logInfo("file.storage.filesystem.task", bucketId, task.getOpId());
+        logInfo("object.bucket.task", bucketId, task.getOpId());
         return bucketId;
     }
 

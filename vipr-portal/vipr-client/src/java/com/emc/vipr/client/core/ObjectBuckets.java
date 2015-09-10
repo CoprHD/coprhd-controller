@@ -51,7 +51,7 @@ public class ObjectBuckets extends ProjectResources<BucketRestRep> implements Ta
     }
 
     /**
-     * Begins deactivating the given file system by ID.
+     * Begins deactivating the given bucket by ID.
      * <p>
      * API Call: <tt>POST /object/buckets/{id}/deactivate</tt>
      * 

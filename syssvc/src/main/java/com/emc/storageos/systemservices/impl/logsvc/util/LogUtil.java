@@ -244,6 +244,18 @@ public class LogUtil {
         return bytes;
     }
 
+    private static Map<String, byte[]> nodeNameByteMap = new HashMap<>();
+
+    public static byte[] nodeNameToBytes(String nodeName) {
+        byte[] bytes = nodeNameByteMap.get(nodeName);
+        if (bytes == null) {
+            bytes = nodeName.getBytes();
+            nodeNameByteMap.put(nodeName, bytes);
+            logger.info("Added "+nodeName+" to bytemap :"+nodeIdByteMap.keySet().toString());
+        }
+        return bytes;
+    }
+
     private static Map<String, byte[]> serviceByteMap = new HashMap<>();
 
     public static byte[] serviceToBytes(String service) {

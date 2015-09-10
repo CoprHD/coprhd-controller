@@ -13,25 +13,30 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import org.apache.http.conn.util.InetAddressUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.HostInterface.Protocol;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Initiator;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
@@ -43,9 +48,11 @@ import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.google.common.collect.Collections2;
+import com.google.common.base.Joiner;
 import com.google.common.collect.TreeMultimap;
 
 public class ExportUtils {
@@ -618,7 +625,6 @@ public class ExportUtils {
      * @param exportMask The reference to exportMask
      * @param assignments New assignments Map of initiator to storagePorts that will be updated in the zoning map
      * @param exportMasksToUpdateOnDeviceWithStoragePorts OUT param -- Map of ExportMask to new Storage ports
-     * 
      * @return returns an updated exportMask
      */
     public static ExportMask updateZoningMap(DbClient dbClient, ExportMask exportMask, Map<URI, List<URI>> assignments,
@@ -1111,5 +1117,238 @@ public class ExportUtils {
         }
 
         dbClient.updateAndReindexObject(updatedObjects);
+    }
+
+    /**
+     * Find all the ports in a storage system that can be assigned in a given virtual array. These are
+     * registered ports that are assigned to the virtual array, in good discovery and operational status.
+     * 
+     * @param dbClient an instance of {@link DbClient}
+     * @param storageSystemURI the URI of the storage system
+     * @param varrayURI the virtual array
+     * @return a list of storage ports that are in good operational status and assigned to the virtual array
+     */
+    public static List<StoragePort> getStorageSystemAssignablePorts(DbClient dbClient, URI storageSystemURI, URI varrayURI) {
+        URIQueryResultList sports = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.
+                getStorageDeviceStoragePortConstraint(storageSystemURI), sports);
+        Iterator<URI> it = sports.iterator();
+        List<StoragePort> spList = new ArrayList<StoragePort>();
+        List<String> notRegisteredOrOk = new ArrayList<String>();
+        List<String> notInVarray = new ArrayList<String>();
+        while (it.hasNext()) {
+            StoragePort sp = dbClient.queryObject(StoragePort.class, it.next());
+            if (sp.getInactive() || sp.getNetwork() == null
+                    || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name().equals(sp.getCompatibilityStatus())
+                    || !DiscoveryStatus.VISIBLE.name().equals(sp.getDiscoveryStatus())
+                    || !sp.getRegistrationStatus().equals(StoragePort.RegistrationStatus.REGISTERED.name())
+                    || StoragePort.OperationalStatus.NOT_OK.equals(StoragePort.OperationalStatus.valueOf(sp.getOperationalStatus()))
+                    || StoragePort.PortType.valueOf(sp.getPortType()) != StoragePort.PortType.frontend) {
+                _log.debug(
+                        "Storage port {} is not selected because it is inactive, is not compatible, is not visible, has no network assignment, "
+                                +
+                                "is not registered, has a status other than OK, or is not a frontend port", sp.getLabel());
+                notRegisteredOrOk.add(sp.qualifiedPortName());
+            } else if (sp.getTaggedVirtualArrays() == null || !sp.getTaggedVirtualArrays().contains(varrayURI.toString())) {
+                _log.debug("Storage port {} not selected because it is not connected " +
+                        "or assigned to requested virtual array {}", sp.getNativeGuid(), varrayURI);
+                notInVarray.add(sp.qualifiedPortName());
+            } else {
+                spList.add(sp);
+            }
+        }
+        if (!notRegisteredOrOk.isEmpty()) {
+            _log.info("Ports not selected because they are inactive, have no network assignment, " +
+                    "are not registered, bad operational status, or not type front-end: "
+                    + Joiner.on(" ").join(notRegisteredOrOk));
+        }
+        if (!notInVarray.isEmpty()) {
+            _log.info("Ports not selected because they are not assigned to the requested virtual array: "
+                    + varrayURI + " " + Joiner.on(" ").join(notInVarray));
+        }
+        return spList;
+    }
+
+    /**
+     * Given a list of storage ports and networks, map the ports to the networks. If the port network
+     * is in the networks collection, the port is mapped to it. If the port network is not in the
+     * networks collection but can is routed to it, then the port is mapped to the routed network.
+     * 
+     * @param ports the ports to be mapped to their networks
+     * @param networks the networks
+     * @param _dbClient and instance of DbClient
+     * @return a map of networks and ports that can be used by initiators in the network.
+     */
+    public static Map<NetworkLite, List<StoragePort>> mapStoragePortsToNetworks(Collection<StoragePort> ports,
+            Collection<NetworkLite> networks, DbClient _dbClient) {
+        Map<NetworkLite, List<StoragePort>> localPorts = new HashMap<NetworkLite, List<StoragePort>>();
+        Map<NetworkLite, List<StoragePort>> remotePorts = new HashMap<NetworkLite, List<StoragePort>>();
+        for (NetworkLite network : networks) {
+            for (StoragePort port : ports) {
+                if (port.getNetwork().equals(network.getId())) {
+                    StringMapUtil.addToListMap(localPorts, network, port);
+                } else if (network.hasRoutedNetworks(port.getNetwork())) {
+                    StringMapUtil.addToListMap(remotePorts, network, port);
+                }
+            }
+        }
+        // consolidate local and remote ports
+        for (NetworkLite network : networks) {
+            if (localPorts.get(network) == null && remotePorts.get(network) != null) {
+                localPorts.put(network, remotePorts.get(network));
+            }
+        }
+        return localPorts;
+    }
+
+    /**
+     * Consolidate the assignments made from pre-zoned ports with those made by ordinary port assignment.
+     * existingAndPrezonedZoningMap contains all pre-existing assignments plus those made from pre-zoned
+     * ports. exportMask.zoningMap contains all pre-existing assignments, and 'assignments' has all ports
+     * made by ordinary assignment.
+     * 
+     * The function consolidate the targets to be added to the masking view by adding those taken from
+     * pre-zoned ports to those taken from the other set of ports. The way ports taken from pre-zoned
+     * ports are identified is by comparing existingAndPrezonedZoningMap to exportMask.zoningMap, these
+     * are ports assigned to initiators found in existingAndPrezonedZoningMap but not in exportMask.zoningMap.
+     * This is because the port assignment never adds new ports to already used initiators.
+     * 
+     * @param exportMaskZoningMap -- the export mask zoningMap before any assignments are made
+     * @param assignments -- assignments made from all ports not based on what is pre-zoned.
+     * @param existingAndPrezonedZoningMap -- assignments made from pre-zoned ports plus all pre-existing assignments.
+     */
+    public static void addPrezonedAssignments(StringSetMap exportMaskZoningMap, Map<URI, List<URI>> assignments,
+            StringSetMap existingAndPrezonedZoningMap) {
+        for (String iniUriStr : existingAndPrezonedZoningMap.keySet()) {
+            StringSet iniPorts = new StringSet(existingAndPrezonedZoningMap.get(iniUriStr));
+            if (exportMaskZoningMap != null) {
+                if (exportMaskZoningMap.containsKey(iniUriStr)) {
+                    iniPorts.removeAll(exportMaskZoningMap.get(iniUriStr));
+                }
+            }
+            if (!iniPorts.isEmpty()) {
+                URI iniUri = URI.create(iniUriStr);
+                if (!assignments.containsKey(iniUri)) {
+                    assignments.put(iniUri, new ArrayList<URI>());
+                }
+                assignments.get(iniUri).addAll(StringSetUtil.stringSetToUriList(iniPorts));
+            }
+        }
+    }
+
+    /**
+     * Gets the ExportGroup to be used for VPlex when reusing an ExportMask.
+     * Will find the ExportGroup containing the mask, or it will create a new one if necessary.
+     *
+     * @param vplex - VPlex StorageSystem
+     * @param array - Backend StorageSystem
+     * @param virtualArrayURI - VirtualArray to which the VPlex and backend StorageSystem apply
+     * @param mask - ExportMask that is being reused
+     * @param initiators - Collection<Initiator> VPLEX initiators to array
+     * @param tenantURI - Tenant URI
+     * @param projectURI - Project URI
+     * @return ExportGroup that is applicable for the Vplex and backend array
+     */
+    public static ExportGroup getVPlexExportGroup(DbClient dbClient, StorageSystem vplex, StorageSystem array, URI virtualArrayURI,
+            ExportMask mask, Collection<Initiator> initiators, URI tenantURI, URI projectURI) {
+        // Determine all the possible existing Export Groups
+        Map<String, ExportGroup> possibleExportGroups = new HashMap<String, ExportGroup>();
+        for (Initiator initiator : initiators) {
+            List<ExportGroup> groups = ExportUtils.getInitiatorExportGroups(initiator, dbClient);
+            for (ExportGroup group : groups) {
+                if (!possibleExportGroups.containsKey(group.getId().toString())) {
+                    possibleExportGroups.put(group.getId().toString(), group);
+                }
+            }
+        }
+
+        // If there are possible Export Groups, look for one with this mask.
+        for (ExportGroup group : possibleExportGroups.values()) {
+            if (group.hasMask(mask.getId())) {
+                _log.info(String.format("Returning ExportGroup %s", group.getLabel()));
+                return group;
+            }
+        }
+
+        return createVplexExportGroup(dbClient, vplex, array, initiators, virtualArrayURI, projectURI, tenantURI, 0, mask);
+    }
+
+    /**
+     * Create an ExportGroup.
+     *
+     * @param vplex -- VPLEX StorageSystem
+     * @param array -- Array StorageSystem
+     * @param initiators -- Collection<Initiator> representing VPLEX back-end ports.
+     * @param virtualArrayURI
+     * @param projectURI
+     * @param tenantURI
+     * @param numPaths Value of maxPaths to be put in ExportGroup
+     * @param exportMask IFF non-null, will add the exportMask to the Export Group.
+     * @return newly created ExportGroup persisted in DB.
+     */
+    public static ExportGroup createVplexExportGroup(DbClient dbClient, StorageSystem vplex, StorageSystem array,
+            Collection<Initiator> initiators, URI virtualArrayURI, URI projectURI, URI tenantURI, int numPaths, ExportMask exportMask) {
+        String groupName = getExportGroupName(vplex, array)
+                + "_" + UUID.randomUUID().toString().substring(28);
+        if (exportMask != null) {
+            String arrayName = array.getSystemType().replace("block", "")
+                    + array.getSerialNumber().substring(array.getSerialNumber().length() - 4);
+            groupName = exportMask.getMaskName() + "_" + arrayName;
+        }
+
+        // No existing group has the mask, let's create one.
+        ExportGroup exportGroup = new ExportGroup();
+        exportGroup.setId(URIUtil.createId(ExportGroup.class));
+        exportGroup.setLabel(groupName);
+        exportGroup.setProject(new NamedURI(projectURI, exportGroup.getLabel()));
+        exportGroup.setVirtualArray(vplex.getVirtualArray());
+        exportGroup.setTenant(new NamedURI(tenantURI, exportGroup.getLabel()));
+        exportGroup.setGeneratedName(groupName);
+        exportGroup.setVolumes(new StringMap());
+        exportGroup.setOpStatus(new OpStatusMap());
+        exportGroup.setVirtualArray(virtualArrayURI);
+        exportGroup.setNumPaths(numPaths);
+
+        // Add the initiators into the ExportGroup.
+        for (Initiator initiator : initiators) {
+            exportGroup.addInitiator(initiator);
+        }
+
+        // If we have an Export Mask, add it into the Export Group.
+        if (exportMask != null) {
+            exportGroup.addExportMask(exportMask.getId());
+        }
+
+        // Persist the ExportGroup
+        dbClient.createObject(exportGroup);
+        _log.info(String.format("Returning new ExportGroup %s", exportGroup.getLabel()));
+        return exportGroup;
+    }
+
+    /**
+     * Returns the ExportGroup name to be used between a particular VPlex and underlying Storage Array.
+     * It is based on the serial numbers of the Vplex and Array. Therefore the same ExportGroup name
+     * will always be used, and it always starts with "VPlex".
+     *
+     * @param vplex [IN] - VPlex StorageArray
+     * @param array [IN] - Backend StorageArray
+     * @return String that represents the unique combination of Vplex-to-backend array
+     */
+    public static String getExportGroupName(StorageSystem vplex, StorageSystem array) {
+        // Unfortunately, using the full VPlex serial number with the Array serial number
+        // proves to be quite lengthy! We can run into issues on SMIS where
+        // max length (represented as STOR_DEV_GROUP_MAX_LEN) is 64 characters.
+        // Not to mention, other steps append to this name too.
+        // So lets chop everything but the last 4 digits from both serial numbers.
+        // This should be unique enough.
+        int endIndex = vplex.getSerialNumber().length();
+        int beginIndex = endIndex - 4;
+        String modfiedVPlexSerialNumber = vplex.getSerialNumber().substring(beginIndex, endIndex);
+
+        endIndex = array.getSerialNumber().length();
+        beginIndex = endIndex - 4;
+        String modfiedArraySerialNumber = array.getSerialNumber().substring(beginIndex, endIndex);
+
+        return String.format("VPlex_%s_%s", modfiedVPlexSerialNumber, modfiedArraySerialNumber);
     }
 }

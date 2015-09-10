@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.emc.vipr.client.exceptions.ServiceErrorException;
 import models.deadbolt.Role;
 import models.security.UserInfo;
 
@@ -28,6 +29,10 @@ import com.emc.vipr.model.catalog.OrderLogRestRep;
 import com.google.common.collect.Lists;
 
 import controllers.security.Security;
+import util.TenantUtils;
+
+import static com.emc.vipr.client.core.util.ResourceUtils.uri;
+import static util.BourneUtil.getViprClient;
 
 /**
  * Utility controller for handling many model-type queries.
@@ -77,7 +82,7 @@ public class Models extends Controller {
     public static String currentAdminTenant() {
         String sessionTenant = session.get(TENANT_ID);
         if (sessionTenant != null && canSelectTenant(sessionTenant)) {
-            return sessionTenant;
+            return validateSessionTenant(sessionTenant);
         } else {
             session.remove(TENANT_ID);
             UserInfo info = Security.getUserInfo();
@@ -185,4 +190,69 @@ public class Models extends Controller {
         return role != null && role.getRoleName().equalsIgnoreCase(value);
     }
 
+    @Util
+    public static boolean canSelectTenantForVcenters(String tenantId) {
+        UserInfo info = Security.getUserInfo();
+        if ((info.getTenant().equals(tenantId) && isAdministrator()) ||
+                Security.isSecurityAdmin() || Security.isSystemAdmin()) {
+            return true;
+        }
+        return info.hasSubTenantRole(tenantId, Security.TENANT_ADMIN);
+    }
+
+    @Util
+    public static String currentAdminTenantForVcenter() {
+        String sessionTenant = session.get(TENANT_ID);
+        if (sessionTenant != null && canSelectTenantForVcenters(sessionTenant)) {
+            return validateSessionTenantForVcenter(sessionTenant);
+        } else {
+            session.remove(TENANT_ID);
+            UserInfo info = Security.getUserInfo();
+            if (Security.isTenantAdmin() && !Security.isHomeTenantAdmin()) {
+                for (URI tenant : info.getSubTenants()) {
+                    String tenantId = tenant.toString();
+                    if (info.hasSubTenantRole(tenantId, Security.TENANT_ADMIN)) {
+                        return tenantId;
+                    }
+                }
+            }
+            // fallback to the home tenant if nothing else matches
+            return info.getTenant();
+        }
+    }
+
+    private static String validateSessionTenantForVcenter(String sessionTenant) {
+        try{
+            if (!(TenantUtils.NO_TENANT_SELECTOR.equalsIgnoreCase(sessionTenant) ||
+                    TenantUtils.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(sessionTenant)) &&
+                    getViprClient().tenants().get(uri(sessionTenant)).getInactive()) {
+                Models.resetAdminTenantId();
+                sessionTenant = Models.currentAdminTenantForVcenter();
+            }
+        } catch (ServiceErrorException tenantNotFound) {
+            Models.resetAdminTenantId();
+            sessionTenant = Models.currentAdminTenantForVcenter();
+        }
+        return sessionTenant;
+    }
+
+    private static String validateSessionTenant(String sessionTenant) {
+        if (TenantUtils.NO_TENANT_SELECTOR.equalsIgnoreCase(sessionTenant) ||
+                TenantUtils.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(sessionTenant) ||
+                getViprClient().tenants().get(uri(sessionTenant)).getInactive()) {
+            Models.resetAdminTenantId();
+            sessionTenant = Models.currentAdminTenantForVcenter();
+        }
+        return sessionTenant;
+    }
+
+    @Util
+    public static void setVcenterAdminTenantId(String tenantId) {
+        if (Models.canSelectTenantForVcenters(tenantId)) {
+            session.put(TENANT_ID, tenantId);
+        } else {
+            Logger.error("ACCESS-DENIED: User %s attempt to switch to tenant %s", Security.getUserInfo()
+                    .getCommonName(), tenantId);
+        }
+    }
 }

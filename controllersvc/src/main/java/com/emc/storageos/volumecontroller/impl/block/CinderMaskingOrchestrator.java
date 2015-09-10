@@ -240,13 +240,4 @@ public class CinderMaskingOrchestrator extends AbstractMaskingFirstOrchestrator
             }
         }
     }
-
-    @Override
-    public String checkForSnapshotsToCopyToTarget(Workflow workflow,
-            StorageSystem storage, String previousStep,
-            Map<URI, Integer> volumeMap, Collection<Map<URI, Integer>> values)
-    {
-        // TODO Auto-generated method stub
-        return null;
-    }
 }

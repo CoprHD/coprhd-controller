@@ -212,7 +212,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         }
 
         String total = String.format("%2.6f",
-                ((double) (System.nanoTime() - start) / 1000000000.0));
+                ((System.nanoTime() - start) / 1000000000.0));
         StringBuilder outputInfoBuffer = new StringBuilder();
         outputInfoBuffer.append("\nSMI-S Provider: ")
                 .append(connection.getHost())
@@ -346,7 +346,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
     /**
      * This method is a wrapper for the getInstance. If the object is not found,
      * it returns a null value instead of throwing an exception.
-     * 
+     *
      * @param storage
      *            [required] - StorageSystem object to which an SMI-S connection
      *            would be made
@@ -389,7 +389,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
 
     /**
      * Executes query
-     * 
+     *
      * @param storageSystem
      * @param query
      * @param queryLanguage
@@ -580,7 +580,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
     /**
      * Returns a CloseableIterator for SCSIProtocolController
      * CIMInstance objects.
-     * 
+     *
      * @param storage
      *            [in] - StorageSystem object. Used to look up SMIS connection.
      * @return CloseableIterator of CIMInstance objects
@@ -606,7 +606,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
     /**
      * Returns a map of the volume WWNs to their HLU values for a masking
      * container on the array.
-     * 
+     *
      * @param storage
      *            [in] - StorageSystem that the masking belongs to
      * @param controllerPath
@@ -666,7 +666,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
 
     /**
      * Returns a map of normalized port name to port path for the masking.
-     * 
+     *
      * @param storage
      *            [in] - StorageSystem that the masking belongs to
      * @param controllerPath
@@ -702,7 +702,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
     /**
      * Given a CIMInstance of a IBMTSDS_SCSIProtocolController return a list of storage ports that
      * it references.
-     * 
+     *
      * @param storage
      *            [in] - StorageSystem that the masking belongs to
      * @param controllerPath
@@ -759,7 +759,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
     /**
      * Wrapper for the getInstance. If the object is not found, it returns a null
      * value instead of throwing an exception.
-     * 
+     *
      * @param storage
      *            [required] - StorageSystem object to which an SMI-S connection would be made
      * @param objectPath
@@ -801,7 +801,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
 
     /**
      * Wrapper for the WBEMClient enumerateInstances method.
-     * 
+     *
      * @param storage
      *            - StorageArray reference, will be used to lookup SMI-S connection
      * @param namespace
@@ -933,7 +933,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
     /**
      * Loop through the URI list and return a list of nativeIds for each of the
      * BlockObject objects to which the URI applies.
-     * 
+     *
      * @param uris
      *            - Collection of URIs
      * @return Returns a list of nativeId String values
@@ -951,7 +951,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
     /**
      * This method will take a URI and return alternateName for the BlockObject object to which the
      * URI applies.
-     * 
+     *
      * @param uri
      *            - URI
      * @return Returns a nativeId String value
@@ -1040,7 +1040,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         String groupName = null;
 
         if (group != null && storageSystem != null) {
-            groupName = group.fetchArrayCgName(storageSystem.getId());
+            groupName = group.getCgNameOnStorageSystem(storageSystem.getId());
         }
 
         return groupName;
@@ -1092,7 +1092,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
 
     /**
      * Convenience method that wraps SMI-S replication service operation
-     * 
+     *
      * @param storage
      *            [required] - StorageSystem object representing array
      * @param methodName
@@ -1113,7 +1113,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
     /**
      * Convenience method that wraps SMI-S ModifyReplicatSynchronization
      * operation
-     * 
+     *
      * @param storage
      *            [required] - StorageSystem object representing array
      * @param inArgs
@@ -1131,7 +1131,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
     /**
      * This method will loop through the URI list and return a list of nativeIds
      * for each of the BlockObject objects to which the URI applies.
-     * 
+     *
      * @param uris
      *            - Collection of URIs
      * @return Returns a list of nativeId String values
@@ -1214,7 +1214,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
 
     /**
      * Wrapper for WBEM.associatorNames routine
-     * 
+     *
      * @param storageDevice
      *            [required]
      * @param path
@@ -1279,7 +1279,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
 
     /**
      * Convenience method that wraps SMI-S AddMembers operation
-     * 
+     *
      * @param storage
      *            [required] - StorageSystem object representing array
      * @param blockObjects
@@ -1332,7 +1332,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
 
     /*
      * Get snapshot group members. Note the members may not be available.
-     * 
+     *
      * Called from IBMSmisSynchSubTaskJob
      */
     public List<CIMObjectPath> getSGMembers(StorageSystem storageDevice,

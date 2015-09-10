@@ -49,7 +49,14 @@ cat << EOF
 EOF
 
 for index in ${_GENCONFIG_node_indexes}; do
-    echo "Host vipr${index}"
+    local name="_GENCONFIG_node_${index}_name"
+    local useShortNodeName="_GENCONFIG_use_short_node_name"
+    if [ "${!useShortNodeName}" = "false" ]
+    then
+        echo "Host vipr${index} ${!name}"
+    else
+        echo "Host vipr${index} ${!name} ${!name/.*/}"
+    fi
     local var="_GENCONFIG_network_${index}_ipaddr_effective"
     echo -e "    Hostname\t${!var}"
     cat << EOF

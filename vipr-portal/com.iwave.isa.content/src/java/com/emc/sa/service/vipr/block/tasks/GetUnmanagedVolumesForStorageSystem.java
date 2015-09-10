@@ -8,9 +8,9 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
-import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.NamedRelatedResourceRep;
 
-public class GetUnmanagedVolumesForStorageSystem extends ViPRExecutionTask<List<RelatedResourceRep>> {
+public class GetUnmanagedVolumesForStorageSystem extends ViPRExecutionTask<List<NamedRelatedResourceRep>> {
     private URI storageSystem;
 
     public GetUnmanagedVolumesForStorageSystem(String storageSystem) {
@@ -23,7 +23,7 @@ public class GetUnmanagedVolumesForStorageSystem extends ViPRExecutionTask<List<
     }
 
     @Override
-    public List<RelatedResourceRep> executeTask() throws Exception {
+    public List<NamedRelatedResourceRep> executeTask() throws Exception {
         return getClient().unmanagedVolumes().listByStorageSystem(storageSystem);
     }
 }

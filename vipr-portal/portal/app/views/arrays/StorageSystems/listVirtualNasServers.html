@@ -1,0 +1,94 @@
+#{extends 'main.html'/}
+
+#{set navSelected: ['nav.assets', 'nav.storageArrays']/}
+#{set 'title'}&{'StorageSystems.vnas.title'}#{/set}
+
+#{breadcrumb.container}
+  #{breadcrumb.item @arrays.StorageSystems.list()}&{'StorageSystems.list.title'}#{/breadcrumb.item}
+  #{breadcrumb.item @arrays.StorageSystems.edit(storageSystem.id)}${storageSystem.name}#{/breadcrumb.item}
+  #{breadcrumb.dropdown currentPage:'StorageSystems.vnas.title'}
+    #{breadcrumb.item @arrays.StorageSystems.pools(storageSystem.id)}&{'StorageSystems.pools.title'}#{/breadcrumb.item}
+    #{breadcrumb.item @arrays.StorageSystems.ports(storageSystem.id)}&{'StorageSystems.listPorts.title'}#{/breadcrumb.item}
+  #{/breadcrumb.dropdown}
+#{/breadcrumb.container}
+
+#{DataTable.header titleKey:'StorageSystems.vnas.title'/}
+
+#{DataTable.table id:'vNasServers', 
+                  dataTable:dataTable,
+                  source:@virtualNasServersJson(storageSystem.id),
+                  expandable:true,selectable:true}
+
+#{deadbolt.restrict roles:[['PROJECT_ADMIN'], ['TENANT_ADMIN']]}
+  #{DataTable.buttonBar}
+   
+    #{Form.button name:'button.associate', class:'info', icon:'plus', action:'showDialogClick()', data:['enabled':'selected', 'property':'project', 'value':'']/}
+    #{Form.button name:'button.dissociate', class:'warning', icon:'trash', submit:'dissociateProject', data:['enabled':'selected', 'property':'project', 'not-value':'']/}
+   
+  #{/DataTable.buttonBar}
+#{/deadbolt.restrict}
+#{/DataTable.table}
+#{DataTable.expandHtml @vNasMoreDetails(':id'), table:'vNasServers'/}
+%{ formFields = ['storageId': storageId] }%
+#{DataTable.formAction @dissociateProject(), id:'dissociateProject', table:'vNasServers', fields:formFields,
+                       confirm:messages.get('vNasServers.dissociate.Confirm', name)/}
+
+#{Modal.dialog id:'associateToProject'}
+  #{Modal.header}
+    <h4 class="modal-title">&{'vNasServers.associateToProject'}</h4>
+  #{/Modal.header}
+  #{Modal.body}
+    <div ng-controller="AssociateProjectCtrl" id="associateForm">
+       <div class="container-fluid" >
+       <div class="row">
+                <control-group v-field='tenant' labelWidth="1" required >
+                    <select-one options="projectTenantOptions" ng-change="getProjects(this.field.value)"></select-one>
+                </control-group>
+           </div>
+           <div class="row">
+                <control-group v-field='project' labelWidth="1" required >
+                    <select-one options="projectOptions" ></select-one>
+                </control-group>
+           </div>
+           
+           <br>
+           #{form @associateProject(), id:'associateForm',  class:'form form-horizontal', autocomplete:"off"}
+             <input type="hidden" name="projectId" ng-value="project" />
+             <input type="hidden" name="projectsFromTenant" ng-value="tenant" />
+             <input type="hidden" name="nasIds" ng-value="nasIds"/>
+             <input type="hidden" name="storageId" value="${storageId}"/>
+             <div class="row">
+               #{Modal.buttonBar}
+                 <button type="submit" style="margin-left:45px;" class="btn btn-primary"><i v-icon=ok-sign></i> &{'button.save'}</button>
+               #{/Modal.buttonBar}
+             </div>
+           #{/form}
+       </div>
+    </div>
+  #{/Modal.body}
+#{/Modal.dialog}
+
+<script type="text/javascript">
+function renderLink(o, val) {
+    
+    return "";
+}
+
+function showDialogClick() {
+       var checkboxes = document.getElementsByName('selected');
+      var nasIds = "";
+      for (var i=0, n=checkboxes.length;i<n;i++) {
+        if (checkboxes[i].checked) 
+        {
+           nasIds += ","+checkboxes[i].value;
+        }
+      }
+      if (nasIds) {
+    	  nasIds = nasIds.substring(1);
+      }
+      var scope = angular.element($('#associateForm')).scope();
+	  scope.populateModal(nasIds);
+	  $('#associateToProject').modal('show');
+}
+
+</script>

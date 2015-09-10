@@ -4,21 +4,27 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis;
 
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.BlockConsistencyGroup;
-import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.exceptions.DeviceControllerException;
-import com.emc.storageos.volumecontroller.TaskCompleter;
-import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.*;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVmaxCGTargetVolumesJob;
-import com.emc.storageos.volumecontroller.impl.smis.job.SmisDeleteVmaxCGTargetVolumesJob;
-import com.google.common.base.Joiner;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_REPLICATION_GROUP;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_GROUP;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_NEW_TARGET_VALUE;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DEFAULT_INSTANCE;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DELETE_GROUP;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DESIRED_COPY_METHODOLOGY;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.EMC_RETURN_TO_STORAGE_POOL;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.GET_DEFAULT_REPLICATION_SETTING_DATA;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.MIRROR_REPLICATION_TYPE;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.RETURN_ELEMENTS_TO_STORAGE_POOL;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SNAPSHOT_REPLICATION_TYPE;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.TARGET_ELEMENT_SUPPLIER;
+import static java.text.MessageFormat.format;
+import static javax.cim.CIMDataType.UINT16_T;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import javax.cim.CIMArgument;
 import javax.cim.CIMDataType;
@@ -27,15 +33,24 @@ import javax.cim.CIMObjectPath;
 import javax.cim.CIMProperty;
 import javax.cim.UnsignedInteger16;
 import javax.wbem.WBEMException;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.*;
-import static java.text.MessageFormat.format;
-import static javax.cim.CIMDataType.UINT16_T;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockMirror;
+import com.emc.storageos.db.client.model.BlockObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
+import com.emc.storageos.db.client.model.StoragePool;
+import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.exceptions.DeviceControllerException;
+import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SYNC_TYPE;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisCreateVmaxCGTargetVolumesJob;
+import com.emc.storageos.volumecontroller.impl.smis.job.SmisDeleteVmaxCGTargetVolumesJob;
+import com.google.common.base.Joiner;
 
 /**
  * Class to contain common utilities for Replication related operations
@@ -44,21 +59,28 @@ public class ReplicationUtils {
     private static final Logger _log = LoggerFactory.getLogger(ReplicationUtils.class);
 
     public static class ReplicationSettingBuilder {
-        private StorageSystem storage;
-        private SmisCommandHelper helper;
-        private CIMObjectPathFactory cimPath;
+        private final StorageSystem storage;
+        private final SmisCommandHelper helper;
+        private final CIMObjectPathFactory cimPath;
 
-        private Set<CIMProperty> properties = new HashSet<>();
+        private int replicationType;
+
+        private final Set<CIMProperty> properties = new HashSet<>();
 
         public ReplicationSettingBuilder(StorageSystem storage, SmisCommandHelper helper, CIMObjectPathFactory cimPath) {
+            this(storage, helper, cimPath, SNAPSHOT_REPLICATION_TYPE);
+        }
+
+        public ReplicationSettingBuilder(StorageSystem storage, SmisCommandHelper helper, CIMObjectPathFactory cimPath, int replicationType) {
             this.storage = storage;
             this.helper = helper;
             this.cimPath = cimPath;
+            this.replicationType = replicationType;
         }
 
         public CIMInstance build() throws WBEMException {
             CIMObjectPath repCapabilities = cimPath.getReplicationServiceCapabilitiesPath(storage);
-            CIMArgument[] repSettingInArgs = helper.getReplicationSettingDataInstance();
+            CIMArgument[] repSettingInArgs = helper.getReplicationSettingDataInstance(replicationType);
             CIMArgument[] repSettingOutArgs = new CIMArgument[5];
 
             helper.invokeMethod(storage, repCapabilities, GET_DEFAULT_REPLICATION_SETTING_DATA, repSettingInArgs,
@@ -71,7 +93,7 @@ public class ReplicationUtils {
 
         public ReplicationSettingBuilder addVPSnap() {
             return addProperty(new CIMProperty<Object>(DESIRED_COPY_METHODOLOGY, UINT16_T,
-                    new UnsignedInteger16(VP_SNAP_VALUE)));
+                    new UnsignedInteger16(2/* VP_SNAP_VALUE */)));
         }
 
         public ReplicationSettingBuilder addCreateNewTarget() {
@@ -105,7 +127,7 @@ public class ReplicationUtils {
      * (storage) method to update the SMI-S database. The routine will check if any of
      * the passed in BlockObjects referenced by the URI list have their
      * emcRefreshRequired flag set. If so, the call will be made.
-     * 
+     *
      * @param dbClient - DbClient for accessing the ViPR db
      * @param helper - SmisCommandHelper reference
      * @param storage - StorageSystem object that this refresh would be called against
@@ -146,7 +168,7 @@ public class ReplicationUtils {
 
     /**
      * Refresh the given storagesystem.
-     * 
+     *
      * @param dbClient
      * @param helper
      * @param storage
@@ -163,7 +185,7 @@ public class ReplicationUtils {
     /**
      * Gets the default ReplicationSettingData object from the system and updates
      * the ConsistentPointInTime property to true.
-     * 
+     *
      * @param storage
      * @param thinProvisioning
      * @return CIMInstance - the instance of ReplicaSettingData
@@ -183,7 +205,7 @@ public class ReplicationUtils {
             builder.addCreateNewTarget();
         }
 
-        if (thinProvisioning) {
+        if (thinProvisioning) { // this should only apply to VMAX2
             builder.addVPSnap();
         }
 
@@ -193,7 +215,7 @@ public class ReplicationUtils {
     /**
      * Gets the default ReplicationSettingData object from the system and updates
      * the ConsistentPointInTime property to true in addition to clone-specific settings.
-     * 
+     *
      * @param storage
      * @return CIMInstance - the instance of ReplicaSettingData
      * @throws WBEMException
@@ -213,8 +235,25 @@ public class ReplicationUtils {
     }
 
     /**
+     * Gets the default ReplicationSettingData object from the system and updates
+     * the ConsistentPointInTime property to true.
+     *
+     * @param storage
+     * @param helper
+     * @param cimPath
+     * @return CIMInstance - the instance of ReplicaSettingData
+     * @throws WBEMException
+     */
+    public static CIMInstance getReplicationSettingForGroupMirrors(StorageSystem storage, SmisCommandHelper helper,
+            CIMObjectPathFactory cimPath) throws WBEMException {
+        ReplicationSettingBuilder builder = new ReplicationSettingBuilder(storage, helper, cimPath, MIRROR_REPLICATION_TYPE);
+        builder.addConsistentPointInTime();
+        return builder.build();
+    }
+
+    /**
      * Enables VPSnaps by modifying the default ReplicationSettingData instance.
-     * 
+     *
      * @param storage The StorageSystem.
      * @return A modified ReplicationSettingData instance.
      * @throws WBEMException
@@ -228,7 +267,7 @@ public class ReplicationUtils {
     /**
      * Checks that the replication group is accessible from this storage system, using its currently active
      * storage provider.
-     * 
+     *
      * @param storage StorageSystem
      * @param replica BlockObject
      * @throws com.emc.storageos.exceptions.DeviceControllerException When the replication group isn't found.
@@ -237,7 +276,7 @@ public class ReplicationUtils {
             DbClient dbClient, SmisCommandHelper helper, CIMObjectPathFactory cimPath) throws Exception {
         BlockConsistencyGroup blockConsistencyGroup = dbClient.queryObject(
                 BlockConsistencyGroup.class, replica.getConsistencyGroup());
-        String deviceName = blockConsistencyGroup.fetchArrayCgName(storage.getId());
+        String deviceName = blockConsistencyGroup.getCgNameOnStorageSystem(storage.getId());
         String label = blockConsistencyGroup.getLabel();
         CIMObjectPath path = cimPath.getReplicationGroupPath(storage, deviceName);
         CIMInstance instance = helper.checkExists(storage, path, false, false);
@@ -263,10 +302,10 @@ public class ReplicationUtils {
 
     /**
      * Deletes a target group represented by the given target group path
-     * 
+     *
      * @param storage - StorageSystem where the target group is
      * @param targetGroupPath - Path representing target group to be deleted
-     * 
+     *
      * @throws DeviceControllerException
      */
     public static void deleteTargetDeviceGroup(final StorageSystem storage, final CIMObjectPath targetGroupPath,
@@ -289,7 +328,7 @@ public class ReplicationUtils {
 
     /**
      * Method will invoke the SMI-S operation to create the target volumes
-     * 
+     *
      * @param storageSystem - StorageSystem where the pool and snapshot exist
      * @param sourceGroupName - Name of source group
      * @param label - Name to be applied to each snapshot volume
@@ -302,9 +341,9 @@ public class ReplicationUtils {
      * @param dbClient
      * @param helper - smisCommandHelper
      * @param cimPath - CIMObjectPathFactory
-     * 
+     *
      * @throws DeviceControllerException
-     * 
+     *
      * @returns - List of native Ids
      */
     public static List<String> createTargetDevices(StorageSystem storageSystem, String sourceGroupName,
@@ -348,14 +387,14 @@ public class ReplicationUtils {
 
     /**
      * Creates a target group that will contain the devices in 'deviceIds'.
-     * 
+     *
      * @param storage - StorageSystem where target device will be created
      * @param sourceGroupName - The name of the source volumes group
      * @param deviceIds - Device native IDs of the target VDEVs
      * @param taskCompleter - Completer object used for task status update
      * @return CIMObjectPath - null => Error. Otherwise, it represents the
      *         TargetDeviceGroup object created
-     * 
+     *
      * @throws DeviceControllerException
      */
     public static CIMObjectPath createTargetDeviceGroup(StorageSystem storage,
@@ -416,11 +455,11 @@ public class ReplicationUtils {
 
     /**
      * Method will invoke the SMI-S operation to return the Volumes represented by the native ids to the storage pool
-     * 
+     *
      * @param storageSystem - StorageSystem where the pool and volume exist
      * @param deviceIds - List of native Ids representing the elements to be returned to the pool
      * @param taskCompleter - Completer object used for task status update
-     * 
+     *
      * @throws DeviceControllerException
      */
     public static void deleteTargetDevices(final StorageSystem storageSystem, final String[] deviceIds, final TaskCompleter taskCompleter,
@@ -443,7 +482,8 @@ public class ReplicationUtils {
             if (storageSystem.deviceIsType(Type.vmax)) {
 
                 final CIMObjectPath[] theElements = cimPath.getVolumePaths(storageSystem, deviceIds);
-                inArgs = helper.getReturnElementsToStoragePoolArguments(storageSystem, theElements, 2);
+                inArgs = helper.getReturnElementsToStoragePoolArguments(storageSystem, theElements,
+                        SmisConstants.CONTINUE_ON_NONEXISTENT_ELEMENT);
                 method = RETURN_ELEMENTS_TO_STORAGE_POOL;
             } else {
                 inArgs = helper.getDeleteVolumesInputArguments(storageSystem, deviceIds);
@@ -458,6 +498,42 @@ public class ReplicationUtils {
             _log.error(
                     format("An error occurred when removing target devices {0} from storage system {1}", deviceIds, storageSystem.getId()),
                     e);
+        }
+    }
+
+    public static CIMObjectPath getMirrorGroupSynchronizedPath(StorageSystem storage, URI mirrorUri,
+            DbClient dbClient, SmisCommandHelper helper, CIMObjectPathFactory cimPath) {
+        BlockMirror mirror = dbClient.queryObject(BlockMirror.class, mirrorUri);
+        Volume sourceVol = dbClient.queryObject(Volume.class, mirror.getSource());
+        String consistencyGroupName = helper.getConsistencyGroupName(sourceVol, storage);
+        String replicationGroupName = mirror.getReplicationGroupInstance();
+        return cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, replicationGroupName);
+    }
+
+    /**
+     * Deletes a replication group
+     *
+     * @param storage StorageSystem
+     * @param groupName replication group to be deleted
+     * @param dbCLient
+     * @param helper
+     * @param cimPath
+     *
+     * @throws DeviceControllerException
+     */
+    public static void deleteReplicationGroup(final StorageSystem storage, final String groupName,
+            final DbClient dbClient, final SmisCommandHelper helper, final CIMObjectPathFactory cimPath) {
+        try {
+            CIMObjectPath cgPath = cimPath.getReplicationGroupPath(storage, groupName);
+            CIMObjectPath replicationSvc = cimPath.getControllerReplicationSvcPath(storage);
+            CIMInstance cgPathInstance = helper.checkExists(storage, cgPath, false, false);
+            if (cgPathInstance != null) {
+                // Invoke the deletion of the consistency group
+                CIMArgument[] inArgs = helper.getDeleteReplicationGroupInputArguments(storage, groupName);
+                helper.invokeMethod(storage, replicationSvc, SmisConstants.DELETE_GROUP, inArgs, new CIMArgument[5]);
+            }
+        } catch (Exception e) {
+            _log.error("Failed to delete replication group: ", e);
         }
     }
 

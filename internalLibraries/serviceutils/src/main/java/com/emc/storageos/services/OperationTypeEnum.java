@@ -46,8 +46,10 @@ public enum OperationTypeEnum {
     ASSIGN_VOLUME_TAG("ASSIGN VOLUME TAG", "", "operation to tag a volume"),
     DELETE_VOLUME_SNAPSHOT("VolumeSnapshotDeleted", "VolumeSnapshotDeleteFailed", "VolumeSnapshot Delete"),
     RESTORE_VOLUME_SNAPSHOT("VolumeSnapshotRestored", "VolumeSnapshotRestoreFailed", "VolumeSnapshot Restore"),
+    RESYNCHRONIZE_VOLUME_SNAPSHOT("VolumeSnapshotResynchronized", "VolumeSnapshotResynchronizeFailed", "VolumeSnapshot Resynchronize"),
     ACTIVATE_VOLUME_SNAPSHOT("VolumeSnapshotActivated", "VolumeSnapshotActivateFailed", "VolumeSnapshot Activate"),
     DEACTIVATE_VOLUME_SNAPSHOT("VolumeSnapshotDeactivated", "VolumeSnapshotDeactivateFailed", "VolumeSnapshot Deactivate"),
+    ESTABLISH_VOLUME_SNAPSHOT("VolumeSnapshotGroupEstablished", "VolumeSnapshotGroupEstablishFailed", "VolumeSnapshot GroupEstablish"),
     CHANGE_VOLUME_VPOOL("VolumeVPoolChanged", "VolumeVPoolChangeFailed", "Volume VirtualPool Change"),
     CHANGE_VOLUME_AUTO_TIERING_POLICY("VolumeAutoTieringPolicyChanged", "VolumeAutoTieringPolicyChangeFailed",
             "Volume Auto-tiering Policy Change"),
@@ -62,6 +64,7 @@ public enum OperationTypeEnum {
     SYNC_SRDF_LINK("SRDFLinkSynced", "SRDFLinkSyncFailed", "SRDF Link Sync"),
     SWAP_SRDF_VOLUME("SRDFVolumeSwapped", "SRDFVolumeSwapFailed", "SRDF Volume Swap"),
     STOP_SRDF_LINK("SRDFLinkStopped", "SRDFLinkStopFailed", "SRDF Link Stop"),
+    CHANGE_SRDF_COPYMODE("SRDFCopyModeChanged", "SRDFCopyModeChangeFailed", "SRDF Copy Mode Change"),
 
     START_RP_LINK("RPLinkStarted", "RPLinkStartFailed", "RP Link Create"),
     STOP_RP_LINK("RPLinkStopped", "RPLinkStopFailed", "RP Link Stop"),
@@ -80,11 +83,13 @@ public enum OperationTypeEnum {
     DETACH_VOLUME_MIRROR("VolumeMirrorDetached", "VolumeMirrorDetachFailed", "VolumeMirror detach"),
     FRACTURE_VOLUME_MIRROR("VolumeMirrorFractured", "VolumeMirrorFractureFailed", "VolumeMirror fracture"),
     RESUME_VOLUME_MIRROR("VolumeMirrorResumed", "VolumeMirrorResumeFailed", "VolumeMirror resume"),
+    ESTABLISH_VOLUME_MIRROR("VolumeMirrorGroupEstablished", "VolumeMirrorGroupEstablishFailed", "VolumeMirror GroupEstablish"),
     CREATE_VOLUME_FULL_COPY("VolumeFullCopyCreated", "VolumeFullCopyCreateFailed", "VolumeFullCopy Created"),
     DETACH_VOLUME_FULL_COPY("VolumeFullCopyDetached", "VolumeFullCopyDetachFailed", "VolumeFullCopy Detached"),
     ACTIVATE_VOLUME_FULL_COPY("VolumeFullCopyActivated", "VolumeFullCopyActivateFailed", "VolumeFullCopy Activated"),
     RESTORE_VOLUME_FULL_COPY("VolumeFullCopyRestored", "VolumeFullCopyRestoredFailed", "VolumeFullCopy Restored"),
     RESYNCHRONIZE_VOLUME_FULL_COPY("VolumeFullCopyResynchronized", "VolumeFullCopyResynchronizeFailed", "VolumeFullCopy Resynchronized"),
+    ESTABLISH_VOLUME_FULL_COPY("VolumeFullCopyGroupEstablished", "VolumeFullCopyGroupEstablishFailed", "VolumeFullCopy GroupEstablish"),
 
     CREATE_CONSISTENCY_GROUP_SNAPSHOT("ConsistencyGroupSnapshotCreated", "ConsistencyGroupSnapshotCreateFailed",
             "ConsistencyGroupSnapshot Create"),
@@ -384,7 +389,11 @@ public enum OperationTypeEnum {
     CREATE_USERGROUP("CREATE USER GROUP", "", "operation to create a user group."),
     UPDATE_USERGROUP("UPDATE USER GROUP", "", "operation to update a user group."),
     DELETE_USERGROUP("DELETE USER GROUP", "", "operation to delete a user group."),
-    ArrayGeneric("", "", "");
+    ADD_JOURNAL_VOLUME("ADD JOURNAL VOLUME", "", "operation to add a journal volume"),
+    ArrayGeneric("", "", ""),
+    IMAGESERVER_VERIFY_IMPORT_IMAGES("IMAGESERVER_VERIFY_IMPORT_IMAGES", "", "operation to verify a compute image server and import images."),
+    UPDATE_VERIFY_COMPUTE_IMAGESERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER", "", "operation to update and verify a compute image server."),
+    DELETE_COMPUTE_IMAGESERVER("DELETE COMPUTE IMAGE SERVER", "", "operation to delete a compute image server."),;
 
     private final String _evType;
     private final String _fail_evType;

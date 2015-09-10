@@ -12,6 +12,7 @@ import org.codehaus.jackson.annotate.JsonProperty;
 import com.emc.storageos.model.valid.Length;
 import com.emc.storageos.model.valid.Range;
 
+import java.net.URI;
 @XmlRootElement(name = "compute_system_update")
 public class ComputeSystemUpdate {
 
@@ -22,6 +23,7 @@ public class ComputeSystemUpdate {
     private String password;
     private String osInstallNetwork;
     private Boolean useSSL;
+    private URI computeImageServer;
 
     public ComputeSystemUpdate() {
     }
@@ -56,8 +58,19 @@ public class ComputeSystemUpdate {
     public void setPortNumber(Integer portNumber) {
         this.portNumber = portNumber;
     }
+    
+    
+    @XmlElement(name = "compute_image_server")
+    @JsonProperty("compute_image_server")
+    public URI getComputeImageServer() {
+		return computeImageServer;
+	}
 
-    /**
+	public void setComputeImageServer(URI computeImageServer) {
+		this.computeImageServer = computeImageServer;
+	}
+
+	/**
      * Specifies whether to use SSL (Secure Sockets Layer)
      * as the authentication method.
      * 

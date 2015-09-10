@@ -136,7 +136,23 @@ class Project(object):
         project_uri = self.project_query(name)
         project_detail = self.project_show_by_uri(project_uri, xml)
         return project_detail
-
+    
+    
+    #Routine for project resource 
+    def project_resource_show(self, fullname ,xml=False):
+        
+        print "cool"
+        project_uri = self.project_query(fullname)
+        
+        (s, h) = common.service_json_request(self.__ipAddr, self.__port, "GET",
+                        Project.URI_PROJECT_RESOURCES.format(project_uri), None)
+        o = common.json_decode(s)
+        print "resource complete"
+        print o
+        return o
+    
+    
+    
     def project_query(self, name):
         '''
         Retrieves UUID of project based on its name
@@ -382,6 +398,47 @@ def project_show(args):
             return common.format_json_object(res)
     except SOSError as e:
         raise e
+    
+
+
+#SHOW resource parser
+
+def show_resource_parser(subcommand_parsers, common_parser):
+    show_resource_parser = subcommand_parsers.add_parser('show-resource',
+                        description='ViPR Project Show CLI usage.',
+                                                parents=[common_parser],
+                                                conflict_handler='resolve',
+                                                help='Show project details')
+    show_resource_parser.add_argument('-xml',
+                             dest='xml',
+                             action='store_true',
+                             help='XML response')
+    mandatory_args = show_resource_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-n', '-name',
+                                metavar='<name>',
+                                dest='name',
+                                help='Name of project',
+                                required=True)
+    show_resource_parser.add_argument('-tn', '-tenant',
+                             metavar='tenant',
+                             dest='tenant',
+                             help='Name of tenant')
+    show_resource_parser.set_defaults(func=project_resource_show)
+
+
+def project_resource_show(args):
+    obj = Project(args.ip, args.port)
+    try:
+        if(not args.tenant):
+            args.tenant = ""
+        res = obj.project_resource_show(args.tenant + "/" + args.name, args.xml)
+        if(res):
+            if (args.xml == True):
+                return common.format_xml(res)
+            return common.format_json_object(res)
+    except SOSError as e:
+        raise e
+
 
 # list command parser
 
@@ -664,3 +721,5 @@ def project_parser(parent_subparser, common_parser):
 
     # project tag parser
     tag_project_parser(subcommand_parsers, common_parser)
+    
+    show_resource_parser(subcommand_parsers, common_parser)

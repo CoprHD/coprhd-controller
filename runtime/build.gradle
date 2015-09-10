@@ -53,7 +53,25 @@ task copyBinaryFiles(type: Copy) {
 }
 copyConfs.finalizedBy(copyBinaryFiles)
 
-task generateConfigDefaults(dependsOn: copyConfs) << {
+task generateMetadata(type:Exec) {
+    ext.metadata = new File("${projectDir}/working/conf/sys-metadata-var.xml")
+
+    workingDir "${rootProject.projectDir}/packaging"
+
+    //run genprops
+    commandLine 'python','genprops.py','--metadata-var','storageos-properties-iterable.def','storageos-properties-ovfenv.def','storageos-properties-config.def'
+
+    //store the output instead of printing to the console:
+    standardOutput = new ByteArrayOutputStream()
+
+    if ( !ext.metadata.exists() ) {
+        doLast {
+            metadata.text = standardOutput.toString()
+        }
+    }
+}
+
+task generateConfigDefaults(dependsOn: [copyConfs, generateMetadata]) << {
     def properties = new Properties()
     def metadata = new XmlSlurper().parse(file("${workingDir}/conf/sys-metadata-var.xml"))
     metadata.children().each { bean->

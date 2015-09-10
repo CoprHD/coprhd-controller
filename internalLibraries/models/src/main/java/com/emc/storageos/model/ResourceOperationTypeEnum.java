@@ -64,6 +64,7 @@ public enum ResourceOperationTypeEnum {
     RESYNCHRONIZE_VOLUME_SNAPSHOT("RESYNCHRONIZE VOLUME SNAPSHOT", "resynchronize volume snapshot"),
     ACTIVATE_VOLUME_SNAPSHOT("ACTIVATE VOLUME SNAPSHOT", "activate volume snapshot"),
     DEACTIVATE_VOLUME_SNAPSHOT("DEACTIVATE VOLUME SNAPSHOT", "deactivate volume snapshot"),
+    ESTABLISH_VOLUME_SNAPSHOT("ESTABLISH VOLUME SNAPSHOT GROUP", "establish group relation between volume group and snapshot group"),
     ASSIGN_VOLUME_SNAPSHOT_TAG("TAG VOLUME SNAPSHOT", "tag a volume snapshot"),
     CREATE_EXPORT_GROUP("CREATE EXPORT GROUP", "create export group operation"),
     DELETE_EXPORT_GROUP("DELETE EXPORT GROUP", "delete export group operation"),
@@ -277,6 +278,7 @@ public enum ResourceOperationTypeEnum {
     UPLOAD_BACKUP("UPLOAD BACKUP", "upload ViPR backup to external location"),
     CREATE_VCENTER_CLUSTER("CREATE VCENTER CLUSTER", "create a cluster in vCenter server"),
     UPDATE_VCENTER_CLUSTER("UPDATE VCENTER CLUSTER", "update a cluster in vCenter server"),
+    ADD_JOURNAL_VOLUME("ADD JOURNAL VOLUME", "add journal volume to consistency group"),
     SYS_EVENT("SYSTEM EVENT", "System Event");
 
     private final String name;

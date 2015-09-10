@@ -1703,7 +1703,7 @@
         reconfigRequired : false,
         rebootRequired : false,
         controlNodeOnly : true,
-        value : "true", 
+        value : "false", 
     },   
     {
         key : "controller_ns_brocade_discovery_by_fabric_association",

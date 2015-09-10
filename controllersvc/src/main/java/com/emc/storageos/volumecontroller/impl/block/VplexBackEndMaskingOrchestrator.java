@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.workflow.Workflow;
 
 public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
@@ -90,11 +91,12 @@ public interface VplexBackEndMaskingOrchestrator extends MaskingOrchestrator {
      * @param portGroup -- Map of Network URI to List of StoragePort objects.
      * @param initiatorGroup -- Map of VPlex director name to Map of Network URI to Set of Initiator objects.
      * @param networkMap -- map of Network URI to NetworkLite structures.
+     * @param assigner an instance of StoragePortsAssigner
      * @return StringSetMap -- the zoningMap entry that should be used for the ExportMask.
      */
             StringSetMap configureZoning(Map<URI, List<StoragePort>> portGroup,
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup,
-            Map<URI, NetworkLite> networkMap);
+            Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner);
 
     /**
      * Return a Workflow method for createOrAddVolumesToExportMask.

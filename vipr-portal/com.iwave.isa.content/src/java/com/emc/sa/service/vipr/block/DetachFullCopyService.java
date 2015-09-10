@@ -5,6 +5,7 @@
 package com.emc.sa.service.vipr.block;
 
 import static com.emc.sa.service.ServiceParams.COPIES;
+import static com.emc.sa.service.ServiceParams.STORAGE_TYPE;
 import static com.emc.sa.service.ServiceParams.VOLUME;
 
 import java.net.URI;
@@ -17,6 +18,9 @@ import com.emc.sa.service.vipr.ViPRService;
 @Service("DetachFullCopy")
 public class DetachFullCopyService extends ViPRService {
 
+    @Param(value = STORAGE_TYPE, required = false)
+    protected String storageType;
+
     @Param(VOLUME)
     protected URI consistencyGroupId;
 
@@ -25,12 +29,12 @@ public class DetachFullCopyService extends ViPRService {
 
     @Override
     public void execute() throws Exception {
-        if (consistencyGroupId != null && !"NONE".equals(consistencyGroupId.toString())) {
+        if (ConsistencyUtils.isVolumeStorageType(storageType)) {
+            BlockStorageUtils.detachFullCopies(uris(copyIds));
+        } else {
             for (URI copyId : uris(copyIds)) {
                 ConsistencyUtils.detachFullCopy(consistencyGroupId, copyId);
             }
-        } else {
-            BlockStorageUtils.detachFullCopies(uris(copyIds));
         }
     }
 

@@ -71,7 +71,7 @@ public class ObjectProvider extends BaseAssetOptionsProvider {
     private static String getBucketObjectLabel(ViPRCoreClient client, DataObjectRestRep bucketObject, Map<URI, BucketRestRep> volumeNames) {
         if (bucketObject instanceof BucketRestRep) {
             BucketRestRep bucket = (BucketRestRep) bucketObject;
-            return getMessage("block.volume", bucket.getName());
+            return bucket.getName();
         }
         return bucketObject.getName();
     }

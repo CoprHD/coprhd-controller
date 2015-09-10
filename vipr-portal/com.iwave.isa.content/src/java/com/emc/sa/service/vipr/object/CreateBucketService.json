@@ -44,8 +44,7 @@
         type:"number",
         validation:{
             min:1
-        },
-        required:"false"
+        }
     },
     
     owner:{
@@ -53,8 +52,7 @@
         validation:{
             min:2,
             max:128
-        },
-        required:"false"
+        }
     }
   }
 }

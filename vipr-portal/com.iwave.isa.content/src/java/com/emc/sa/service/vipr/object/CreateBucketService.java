@@ -40,10 +40,10 @@ public class CreateBucketService extends ViPRService {
     @Param(value = HARD_QUOTA)
     protected String hardQuota;
 
-    @Param(value = RETENTION, required = false)
+    @Param(value = RETENTION)
     protected String retention;
 
-    @Param(value = OWNER, required = false)
+    @Param(value = OWNER)
     protected String owner;
 
     @Override

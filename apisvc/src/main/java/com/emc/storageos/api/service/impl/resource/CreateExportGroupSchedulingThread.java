@@ -33,6 +33,7 @@ class CreateExportGroupSchedulingThread implements Runnable {
     private VirtualArray virtualArray;
     private Project project;
     private ExportGroup exportGroup;
+    // Map of <storagesystem-id, Map<volume-id, HLU>>
     private Map<URI, Map<URI, Integer>> storageMap;
     private List<URI> hosts;
     private List<URI> clusters;
@@ -71,7 +72,7 @@ class CreateExportGroupSchedulingThread implements Runnable {
                     volumeMap.keySet());
             _log.info("Initiators {} will be used.", affectedInitiators);
 
-            // If initiators list is empty and storage map is empty, there's no work to do (yet).
+            // If initiators list is empty or storage map is empty, there's no work to do (yet).
             if (storageMap.isEmpty() || affectedInitiators.isEmpty()) {
                 this.exportGroupService._dbClient.ready(ExportGroup.class, taskRes.getResource().getId(), taskRes.getOpId());
                 return;
@@ -92,9 +93,8 @@ class CreateExportGroupSchedulingThread implements Runnable {
             }
             _log.error(ex.getMessage(), ex);
             taskRes.setMessage(ex.getMessage());
-            // Set the export group to inactive
-            exportGroup.setInactive(true);
-            this.exportGroupService._dbClient.updateAndReindexObject(exportGroup);
+            // Mark the export group to be deleted
+            this.exportGroupService._dbClient.markForDeletion(exportGroup);
         }
         _log.info("Ending export group create scheduling thread...");
     }

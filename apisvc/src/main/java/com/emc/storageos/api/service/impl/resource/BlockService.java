@@ -567,7 +567,8 @@ public class BlockService extends TaskResourceService {
      * @param fullCopyId Full copy URI
      *
      * @brief Activate full copy
-     * @brief Activate full copy. This method is deprecated. Use /block/full-copies/{id}/activate instead with {id} representing full copy URI id
+     * @brief Activate full copy. This method is deprecated. Use /block/full-copies/{id}/activate instead with {id} representing full copy
+     *        URI id
      * 
      * @return TaskResourceRep
      */
@@ -1196,8 +1197,7 @@ public class BlockService extends TaskResourceService {
                             "expandVolume --- Zero capacity expansion: allowed as a recovery to cleanup dangling members from previous expand failure.\n"
                                     +
                                     "VolumeId id: %s, Current size: %d, New size: %d, Dangling volumes: %s ",
-                            id,
-                            volume.getCapacity(), newSize, volume.getMetaVolumeMembers()));
+                            id, volume.getCapacity(), newSize, volume.getMetaVolumeMembers()));
         } else if (newSize <= volume.getCapacity()) {
             _log.info(String.format(
                     "expandVolume: VolumeId id: %s, Current size: %d, New size: %d ", id, volume.getCapacity(), newSize));

@@ -18,7 +18,9 @@ import com.emc.storageos.services.util.NamedThreadPoolExecutor;
  */
 public class AsyncTaskExecutorService {
 
+    // Number of threads in the controller bound thread pool. Fed from api-conf.xml
     private int _asyncTaskThreads;
+    // Cache of threads in the pool
     public ExecutorService _workerThreads;
 
     final private Logger _logger = LoggerFactory.getLogger(AsyncTaskExecutorService.class);

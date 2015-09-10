@@ -1307,9 +1307,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         // Get the full copy source.
         Volume fullCopyVolume = (Volume) BlockFullCopyUtils.queryFullCopyResource(
-                fullCopyURI, uriInfo, true, _dbClient);
+                fullCopyURI, uriInfo, false, _dbClient);
         URI fcSourceURI = fullCopyVolume.getAssociatedSourceVolume();
-
+        if (!NullColumnValueGetter.isNullURI(fcSourceURI)) {
+            verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
+        }
         // Detach the full copy. Note that it will take into account the
         // fact that the volume is in a CG.
         return getFullCopyManager().detachFullCopy(fcSourceURI, fullCopyURI);

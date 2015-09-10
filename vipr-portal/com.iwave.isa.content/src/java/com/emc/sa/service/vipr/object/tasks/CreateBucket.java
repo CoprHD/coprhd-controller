@@ -34,7 +34,7 @@ public class CreateBucket extends WaitForTask<BucketRestRep> {
         this.hardQuota = hardQuota;
         this.retention = retention;
         this.owner = ownerId;
-        // provideDetailArgs(name, size, vpoolId, varrayId, projectId);
+        provideDetailArgs(name, vpoolId, projectId);
     }
 
     @Override

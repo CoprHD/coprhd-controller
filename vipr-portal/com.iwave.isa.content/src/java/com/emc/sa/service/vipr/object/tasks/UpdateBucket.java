@@ -28,7 +28,7 @@ public class UpdateBucket extends WaitForTask<BucketRestRep> {
         this.hardQuota = hardQuota;
         this.retention = retention;
 
-        //provideDetailArgs(name, size, vpoolId, varrayId, projectId);
+        provideDetailArgs(bucketId);
     }
 
     @Override

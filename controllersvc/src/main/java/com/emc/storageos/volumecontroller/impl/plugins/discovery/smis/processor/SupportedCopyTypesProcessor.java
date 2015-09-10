@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) $today_year. EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor;
 
@@ -44,7 +34,7 @@ public class SupportedCopyTypesProcessor extends PoolProcessor {
             throws BaseCollectionException {
         try {
             _dbClient = (DbClient) keyMap.get(Constants.dbClient);
-            
+
             AccessProfile profile = (AccessProfile) keyMap.get(Constants.ACCESSPROFILE);
             Map<URI, StoragePool> poolsToMatchWithVpool = (Map<URI, StoragePool>) keyMap
                     .get(Constants.MODIFIED_STORAGEPOOLS);
@@ -55,7 +45,7 @@ public class SupportedCopyTypesProcessor extends PoolProcessor {
                 CIMInstance instance = iterator.next();
                 String instanceID = getCIMPropertyValue(instance, Constants.INSTANCEID);
                 String thinProvisionedPreAllocateSupported = Boolean.FALSE.toString();
-                if (!isVmax3){
+                if (!isVmax3) {
                     thinProvisionedPreAllocateSupported = instance.getPropertyValue(
                             Constants.THIN_PROVISIONED_CLIENT_SETTABLE_RESERVE).toString();
                 } else {
@@ -63,7 +53,7 @@ public class SupportedCopyTypesProcessor extends PoolProcessor {
                 }
                 UnsignedInteger16[] copyTypes =
                         (UnsignedInteger16[]) instance.getPropertyValue(Constants.SUPPORTED_COPY_TYPES);
-                
+
                 String nativeID = getNativeIDFromInstance(instanceID);
                 StoragePool storagePool = checkStoragePoolExistsInDB(nativeID, _dbClient, device);
 
@@ -84,14 +74,18 @@ public class SupportedCopyTypesProcessor extends PoolProcessor {
         StringSet set = new StringSet();
 
         for (UnsignedInteger16 n : copyTypes) {
-            switch(n.intValue()) {
-                case Constants.ASYNC_COPY_TYPE: set.add(StoragePool.CopyTypes.ASYNC.name());
+            switch (n.intValue()) {
+                case Constants.ASYNC_COPY_TYPE:
+                    set.add(StoragePool.CopyTypes.ASYNC.name());
                     break;
-                case Constants.SYNC_COPY_TYPE: set.add(StoragePool.CopyTypes.SYNC.name());
+                case Constants.SYNC_COPY_TYPE:
+                    set.add(StoragePool.CopyTypes.SYNC.name());
                     break;
-                case Constants.UNSYNC_ASSOC_COPY_TYPE: set.add(StoragePool.CopyTypes.UNSYNC_ASSOC.name());
+                case Constants.UNSYNC_ASSOC_COPY_TYPE:
+                    set.add(StoragePool.CopyTypes.UNSYNC_ASSOC.name());
                     break;
-                case Constants.UNSYNC_UNASSOC_COPY_TYPE: set.add(StoragePool.CopyTypes.UNSYNC_UNASSOC.name());
+                case Constants.UNSYNC_UNASSOC_COPY_TYPE:
+                    set.add(StoragePool.CopyTypes.UNSYNC_UNASSOC.name());
                     break;
                 default:
                     _log.warn("Encountered unknown copy type {} for pool {}", n.intValue(), storagePool.getId());
@@ -100,7 +94,7 @@ public class SupportedCopyTypesProcessor extends PoolProcessor {
         storagePool.setThinVolumePreAllocationSupported(Boolean.valueOf(thinProvisionedPreAllocateSupported));
         // add to modified pools list if pool's property which is required for vPool matcher, has changed.
         // If the modified list already has this pool, skip the check.
-        if (!poolsToMatchWithVpool.containsKey(storagePool.getId()) && 
+        if (!poolsToMatchWithVpool.containsKey(storagePool.getId()) &&
                 ImplicitPoolMatcher.checkPoolPropertiesChanged(storagePool.getSupportedCopyTypes(), set)) {
             poolsToMatchWithVpool.put(storagePool.getId(), storagePool);
         }

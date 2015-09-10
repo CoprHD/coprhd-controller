@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.impl;
@@ -49,7 +39,7 @@ public class DbClientContext {
     private static final long DEFAULT_CONNECTION_POOL_MONITOR_INTERVAL = 1000;
     private static final int MAX_QUERY_RETRY = 5;
     private static final int QUERY_RETRY_SLEEP_SECONDS = 1000;
-    
+
     public static final String LOCAL_CLUSTER_NAME = "StorageOS";
     public static final String LOCAL_KEYSPACE_NAME = "StorageOS";
     public static final String GEO_CLUSTER_NAME = "GeoStorageOS";
@@ -62,7 +52,7 @@ public class DbClientContext {
     private RetryPolicy retryPolicy = new QueryRetryPolicy(MAX_QUERY_RETRY, QUERY_RETRY_SLEEP_SECONDS);
     private String keyspaceName = LOCAL_KEYSPACE_NAME;
     private String clusterName = LOCAL_CLUSTER_NAME;
-    
+
     private AstyanaxContext<Keyspace> context;
     private Keyspace keyspace;
 
@@ -106,14 +96,14 @@ public class DbClientContext {
         }
         context.getConnectionPool().setHosts(hosts);
     }
-    
+
     public int getPort() {
         return context.getConnectionPoolConfiguration().getPort();
     }
 
     /**
      * Cluster name
-     *
+     * 
      * @param clusterName
      */
     public void setClusterName(String clusterName) {
@@ -121,7 +111,7 @@ public class DbClientContext {
     }
 
     public void setMaxConnections(int maxConnections) {
-        this. maxConnections = maxConnections;
+        this.maxConnections = maxConnections;
     }
 
     public void setMaxConnectionsPerHost(int maxConnectionsPerHost) {
@@ -138,6 +128,7 @@ public class DbClientContext {
 
     /**
      * Sets the monitoring interval for client connection pool stats
+     * 
      * @param monitorIntervalSecs
      */
     public void setMonitorIntervalSecs(long monitorIntervalSecs) {
@@ -145,7 +136,7 @@ public class DbClientContext {
     }
 
     public boolean isInitDone() {
-    	return initDone;
+        return initDone;
     }
 
     public void setTrustStoreFile(String trustStoreFile) {
@@ -174,19 +165,19 @@ public class DbClientContext {
 
     public void init(HostSupplierImpl hostSupplier) {
         String svcName = hostSupplier.getDbSvcName();
-        _log.info ("Initializing hosts for {}", svcName );
+        _log.info("Initializing hosts for {}", svcName);
         List<Host> hosts = hostSupplier.get();
-        if((hosts != null) && (hosts.isEmpty())) {
+        if ((hosts != null) && (hosts.isEmpty())) {
             throw new IllegalStateException(String.format("DbClientContext.init() : host list in hostsupplier for %s is empty", svcName));
         } else {
-        	int hostCount = hosts==null? 0 : hosts.size();
+            int hostCount = hosts == null ? 0 : hosts.size();
             _log.info(String.format("number of hosts in the hostsupplier for %s is %d", svcName, hostCount));
         }
         Partitioner murmur3partitioner = Murmur3Partitioner.get();
         Map<String, Partitioner> partitioners = new HashMap<String, Partitioner>();
         partitioners.put("org.apache.cassandra.dht.Murmur3Partitioner.class.getCanonicalName()",
                 murmur3partitioner);
-        
+
         ConsistencyLevel readCL = ConsistencyLevel.CL_QUORUM;
         ConsistencyLevel writeCL = ConsistencyLevel.CL_QUORUM;
 

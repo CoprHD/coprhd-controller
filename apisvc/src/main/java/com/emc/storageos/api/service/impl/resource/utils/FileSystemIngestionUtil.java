@@ -1,19 +1,8 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.utils;
-
 
 import java.math.BigInteger;
 import java.net.URI;
@@ -37,11 +26,10 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.google.common.base.Joiner;
 
 public class FileSystemIngestionUtil {
-	private static Logger _logger = LoggerFactory.getLogger(FileSystemIngestionUtil.class);
+    private static Logger _logger = LoggerFactory.getLogger(FileSystemIngestionUtil.class);
     public static final String UNMANAGEDFILESYSTEM = "UNMANAGEDFILESYSTEM";
     public static final String FILESYSTEM = "FILESYSTEM";
 
-   
     /**
      * Validation Steps
      * 1. validate PreExistingFileSystem uri.
@@ -53,55 +41,58 @@ public class FileSystemIngestionUtil {
      * @throws Exception
      */
     public static void isIngestionRequestValidForUnManagedFileSystems(
-            List<URI> UnManagedFileSystems, VirtualPool cos,DbClient dbClient)
+            List<URI> UnManagedFileSystems, VirtualPool cos, DbClient dbClient)
             throws DatabaseException {
         for (URI unManagedFileSystemUri : UnManagedFileSystems) {
-	    ArgValidator.checkUri(unManagedFileSystemUri);
+            ArgValidator.checkUri(unManagedFileSystemUri);
             UnManagedFileSystem unManagedFileSystem = dbClient.queryObject(UnManagedFileSystem.class,
                     unManagedFileSystemUri);
             ArgValidator.checkEntityNotNull(unManagedFileSystem, unManagedFileSystemUri, false);
-            
+
             if (null == unManagedFileSystem.getFileSystemCharacterstics() || null == unManagedFileSystem.getFileSystemInformation()) {
-            	continue;
+                continue;
             }
             StringSetMap unManagedFileSystemInformation = unManagedFileSystem
                     .getFileSystemInformation();
-            
+
             String fileSystemNativeGuid = unManagedFileSystem.getNativeGuid().replace(
                     UNMANAGEDFILESYSTEM, FILESYSTEM);
-            
+
             if (VirtualPoolUtil.checkIfFileSystemExistsInDB(fileSystemNativeGuid, dbClient)) {
-            	throw APIException.internalServerErrors.objectAlreadyManaged("FileSystem", fileSystemNativeGuid);
+                throw APIException.internalServerErrors.objectAlreadyManaged("FileSystem", fileSystemNativeGuid);
             }
-            
+
             checkStoragePoolValidForUnManagedFileSystemUri(unManagedFileSystemInformation,
                     dbClient, unManagedFileSystemUri);
-            
+
             checkVirtualPoolValidForGivenUnManagedFileSystemUris(unManagedFileSystemInformation, unManagedFileSystemUri,
-                cos.getId());
-            //TODO: Today, We bring in all the volumes that are exported.We need to add support to bring in all the related FS exports
-            //checkUnManagedFileSystemAlreadyExported(unManagedFileSystem);
+                    cos.getId());
+            // TODO: Today, We bring in all the volumes that are exported.We need to add support to bring in all the related FS exports
+            // checkUnManagedFileSystemAlreadyExported(unManagedFileSystem);
         }
     }
-    
+
     /**
      * check if unManagedFileSystem is already exported to Host
+     * 
      * @param unManagedFileSystem
      * @throws Exception
      */
     private static void checkUnManagedFileSystemAlreadyExported(
             UnManagedFileSystem unManagedFileSystem) throws Exception {
         StringMap unManagedFileSystemCharacteristics = unManagedFileSystem
-        
+
                 .getFileSystemCharacterstics();
         String isFileSystemExported = unManagedFileSystemCharacteristics
                 .get(SupportedFileSystemCharacterstics.IS_FILESYSTEM_EXPORTED.toString());
         if (null != isFileSystemExported && Boolean.parseBoolean(isFileSystemExported)) {
-        	throw APIException.internalServerErrors.objectAlreadyExported("FileSystem", unManagedFileSystem.getId());            
+            throw APIException.internalServerErrors.objectAlreadyExported("FileSystem", unManagedFileSystem.getId());
         }
     }
+
     /**
      * Check if valid storage Pool is associated with UnManaged FileSystem Uri is valid.
+     * 
      * @param unManagedFileSystemInformation
      * @param dbClient
      * @param unManagedFileSystemUri
@@ -113,11 +104,11 @@ public class FileSystemIngestionUtil {
         String pool = PropertySetterUtil.extractValueFromStringSet(FileSystemObjectProperties.STORAGE_POOL.toString(),
                 unManagedFileSystemInformation);
         if (null == pool) {
-        	throw APIException.internalServerErrors.storagePoolError("", "FileSystem", unManagedFileSystemUri);          
+            throw APIException.internalServerErrors.storagePoolError("", "FileSystem", unManagedFileSystemUri);
         }
         StoragePool poolObj = dbClient.queryObject(StoragePool.class, URI.create(pool));
         if (null == poolObj) {
-        	throw APIException.internalServerErrors.noStoragePool(pool, "FileSystem", unManagedFileSystemUri);           
+            throw APIException.internalServerErrors.noStoragePool(pool, "FileSystem", unManagedFileSystemUri);
         }
     }
 
@@ -129,18 +120,19 @@ public class FileSystemIngestionUtil {
      * @param cosUri
      */
     private static void checkVirtualPoolValidForGivenUnManagedFileSystemUris(
-        StringSetMap preExistFileSystemInformation, URI unManagedFileSystemUri, URI cosUri) {
-        //TODO: Currently the assumption is that CoS already exists prior to discovey of unmanaged fileystems.
+            StringSetMap preExistFileSystemInformation, URI unManagedFileSystemUri, URI cosUri) {
+        // TODO: Currently the assumption is that CoS already exists prior to discovey of unmanaged fileystems.
         StringSet supportedCosUris = preExistFileSystemInformation
                 .get(UnManagedFileSystem.SupportedFileSystemInformation.SUPPORTED_VPOOL_LIST
                         .toString());
-        
+
         if (null == supportedCosUris) {
-        	throw APIException.internalServerErrors.storagePoolNotMatchingVirtualPool("FileSystem", unManagedFileSystemUri);            
+            throw APIException.internalServerErrors.storagePoolNotMatchingVirtualPool("FileSystem", unManagedFileSystemUri);
         }
-       
+
         if (!supportedCosUris.contains(cosUri.toString())) {
-        	throw APIException.internalServerErrors.virtualPoolNotMatchingStoragePool(cosUri, "FileSystem", unManagedFileSystemUri, Joiner.on("\t").join(supportedCosUris));           
+            throw APIException.internalServerErrors.virtualPoolNotMatchingStoragePool(cosUri, "FileSystem", unManagedFileSystemUri, Joiner
+                    .on("\t").join(supportedCosUris));
         }
     }
 
@@ -159,12 +151,13 @@ public class FileSystemIngestionUtil {
         ArgValidator.checkUri(cosUri);
         VirtualPool cos = dbClient.queryObject(VirtualPool.class, cosUri);
         ArgValidator.checkEntity(cos, cosUri, false);
-        
-        if (!VirtualPool.Type.file.name().equals(cos.getType()))
-                throw APIException.badRequests.virtualPoolNotForFileBlockStorage(VirtualPool.Type.file.name());
-     
+
+        if (!VirtualPool.Type.file.name().equals(cos.getType())) {
+            throw APIException.badRequests.virtualPoolNotForFileBlockStorage(VirtualPool.Type.file.name());
+        }
+
         permissionsHelper.checkTenantHasAccessToVirtualPool(project.getTenantOrg().getURI(), cos);
-             
+
         return cos;
     }
 
@@ -174,7 +167,7 @@ public class FileSystemIngestionUtil {
      * 
      * @param project
      *            A reference to the project.
-     * @param neighborhoodUri 
+     * @param neighborhoodUri
      *            The Varray URI.
      * 
      * @return A reference to the varray.
@@ -187,37 +180,36 @@ public class FileSystemIngestionUtil {
                 neighborhoodUri);
         ArgValidator.checkEntity(neighborhood, neighborhoodUri, false);
         permissionsHelper.checkTenantHasAccessToVirtualArray(project.getTenantOrg().getURI(), neighborhood);
-        
-    
+
         return neighborhood;
     }
-    
+
     public static long getTotalUnManagedFileSystemCapacity(DbClient dbClient,
-			List<URI> unManagedFileSystemUris) {
-		BigInteger totalUnManagedFileSystemCapacity = new BigInteger("0");
-		try {
-			Iterator<UnManagedFileSystem> unManagedFileSystems = dbClient.queryIterativeObjects(UnManagedFileSystem.class,
-							unManagedFileSystemUris);
+            List<URI> unManagedFileSystemUris) {
+        BigInteger totalUnManagedFileSystemCapacity = new BigInteger("0");
+        try {
+            Iterator<UnManagedFileSystem> unManagedFileSystems = dbClient.queryIterativeObjects(UnManagedFileSystem.class,
+                    unManagedFileSystemUris);
 
-			while (unManagedFileSystems.hasNext()) {
-				UnManagedFileSystem unManagedFileSystem = unManagedFileSystems.next();
-				StringSetMap unManagedFileSystemInfo = unManagedFileSystem
-						.getFileSystemInformation();
-				if (null == unManagedFileSystemInfo) {
-					continue;
-				}
-				String unManagedFileSystemCapacity = PropertySetterUtil
-						.extractValueFromStringSet(SupportedFileSystemInformation.ALLOCATED_CAPACITY
-										.toString(), unManagedFileSystemInfo);
-				if (null != unManagedFileSystemCapacity && !unManagedFileSystemCapacity.isEmpty()) {
-					totalUnManagedFileSystemCapacity = totalUnManagedFileSystemCapacity
-							.add(new BigInteger(unManagedFileSystemCapacity));
-				}
+            while (unManagedFileSystems.hasNext()) {
+                UnManagedFileSystem unManagedFileSystem = unManagedFileSystems.next();
+                StringSetMap unManagedFileSystemInfo = unManagedFileSystem
+                        .getFileSystemInformation();
+                if (null == unManagedFileSystemInfo) {
+                    continue;
+                }
+                String unManagedFileSystemCapacity = PropertySetterUtil
+                        .extractValueFromStringSet(SupportedFileSystemInformation.ALLOCATED_CAPACITY
+                                .toString(), unManagedFileSystemInfo);
+                if (null != unManagedFileSystemCapacity && !unManagedFileSystemCapacity.isEmpty()) {
+                    totalUnManagedFileSystemCapacity = totalUnManagedFileSystemCapacity
+                            .add(new BigInteger(unManagedFileSystemCapacity));
+                }
 
-			}
-		} catch (Exception e) {
-			throw APIException.internalServerErrors.capacityComputationFailed();
-		}
-		return totalUnManagedFileSystemCapacity.longValue();
-	}
+            }
+        } catch (Exception e) {
+            throw APIException.internalServerErrors.capacityComputationFailed();
+        }
+        return totalUnManagedFileSystemCapacity.longValue();
+    }
 }

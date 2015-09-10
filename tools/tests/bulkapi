@@ -1,0 +1,1104 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+import json
+import time
+from bourne import Bourne
+
+#
+# bulk api sanity test configuration
+# bulk api sanity test domain config.
+#
+BT_TENANT_DOMAIN="viprsanity.com"
+
+#
+# the users involved bulk api tests
+#
+BT_USER0_SA="bulkapiadmin@" + BT_TENANT_DOMAIN
+BT_USER1_TA="bulkapitenantadmin@" + BT_TENANT_DOMAIN
+BT_USER2_PA="bulkapiprojectadmin1@" + BT_TENANT_DOMAIN
+BT_USER3_PA="bulkapiprojectadmin2@" + BT_TENANT_DOMAIN
+
+#
+# the tenant user mapping attributes and values
+#
+BT_TENANT_ATTRIBUTE_VALUE="BulkAPIUsers"
+
+# the subtenant
+BT_SUBTENANT="bulktest-subtenant"
+
+# the 2 projects under the subtenant
+BT_PROJ1="bulktest-project1"
+BT_PROJ2="bulktest-project2"
+
+# files used to pass data between calls from different users
+BULK_SUBTENANT_ID_FILE="bulk_subtenant_id.txt"
+BULK_PROJECT1_ID_FILE="bulk_project1_id.txt"
+BULK_PROJECT2_ID_FILE="bulk_project2_id.txt"
+
+def bulkapi_volumes(args):
+    global bourne_ip 
+    global sysuser
+    global syspasswd
+
+    bourne_ip = args.ip
+    sysuser = args.sysuser
+    syspasswd = args.syspasswd
+    userpasswd = args.userpasswd
+
+    cos = args.cos
+    nh = args.nh
+    vol_size = args.volumesize
+
+    vol1 = 'bulkapi-vol1'
+    vol2 = 'bulkapi-vol2'
+
+    tenantid = bulkapi_tenant_setup()
+    bulkapi_nh_cos_setup(tenantid, nh, cos, 'block')
+
+    bulkapi_login(BT_USER2_PA, userpasswd)
+    project1_id = bulkapi_create_project(tenantid, BT_PROJ1)
+    bulkapi_create_volume(project1_id, vol1, nh, cos, vol_size)
+
+    bulkapi_login(BT_USER3_PA, userpasswd)
+    project2_id = bulkapi_create_project(tenantid, BT_PROJ2)
+    bulkapi_create_volume(project2_id, vol2, nh, cos, vol_size)
+
+    # privileged user to retreive all the volume ids (this can only be done by a system monitor).
+    bulkapi_login(sysuser, syspasswd)
+    vids = bulkapi_volume_getids()
+
+    # test bulk POST api by the 3 users:
+    print "Starting volume bulkget test from non-privileged users..."
+    
+    bulkapi_login(BT_USER1_TA, userpasswd)
+    bulkapi_volume_post_test(vids, BT_USER1_TA, 2)
+
+    bulkapi_login(BT_USER2_PA, userpasswd)
+    bulkapi_volume_post_test(vids, BT_USER2_PA, 1)
+
+    bulkapi_login(BT_USER3_PA, userpasswd)
+    bulkapi_volume_post_test(vids, BT_USER3_PA, 1)
+    
+    print "Completed volume bulkget test from non-privileged users"
+    
+    # login as the tenant admin and delete volumes used in this test:
+    bulkapi_login(BT_USER1_TA, userpasswd)
+    bulkapi_delete_volume(project1_id, vol1)
+    bulkapi_delete_volume(project2_id, vol2)
+
+    #restore login user to system user
+    bulkapi_login(sysuser, syspasswd)
+
+def bulkapi_fileshares(args):
+    global bourne_ip 
+    global sysuser
+    global syspasswd
+    global userpasswd
+
+    bourne_ip = args.ip
+    sysuser = args.sysuser
+    syspasswd = args.syspasswd
+    userpasswd = args.userpasswd
+
+    nh = args.nh
+    cos = args.cos
+    fs_size = args.filesharesize
+
+    fs1 = 'bulkapi-fs1'
+    fs2 = 'bulkapi-fs2'
+
+    tenantid = bulkapi_tenant_setup()
+    bulkapi_nh_cos_setup(tenantid, nh, cos, 'file')
+    
+    bulkapi_login(BT_USER2_PA, userpasswd)
+    project1_id = bulkapi_create_project(tenantid, BT_PROJ1)
+    bulkapi_create_fileshare(project1_id, fs1, nh, cos, fs_size)
+
+    bulkapi_login(BT_USER3_PA, userpasswd)
+    project2_id = bulkapi_create_project(tenantid, BT_PROJ2)
+    bulkapi_create_fileshare(project2_id, fs2, nh, cos, fs_size)
+
+    # privileged user to retreive all the fileshare ids (this can only be done by a system monitor).
+    bulkapi_login(sysuser, syspasswd)
+    fids = bulkapi_fileshare_getids()
+
+    # test bulk POST api by the 3 users:
+    print "Starting fileshare bulkget test from non-privileged users..."
+    
+    bulkapi_login(BT_USER1_TA, userpasswd)
+    bulkapi_fileshare_post_test(fids, BT_USER1_TA, 2)
+    
+    bulkapi_login(BT_USER2_PA, userpasswd)
+    bulkapi_fileshare_post_test(fids, BT_USER2_PA, 1)
+
+    bulkapi_login(BT_USER3_PA, userpasswd)
+    bulkapi_fileshare_post_test(fids, BT_USER3_PA, 1)
+
+    print "Completed fileshare bulkget test from non-privileged users"
+
+    # login as the tenant admin and delete fileshares used in this test:
+    bulkapi_login(BT_USER1_TA, userpasswd)
+    bulkapi_delete_fileshare(project1_id, fs1)
+    bulkapi_delete_fileshare(project2_id, fs2)
+
+    #restore login user to system user
+    bulkapi_login(sysuser, syspasswd)
+
+def bulkapi_volume_getids():
+    return bourne.volume_bulkgetids()
+
+def bulkapi_fileshare_getids():
+    return bourne.fileshare_bulkgetids()
+
+def bulkapi_volume_bulkpost(ids):
+    return bourne.volume_bulkpost(ids)
+
+def bulkapi_fileshare_bulkpost(ids):
+    return bourne.fileshare_bulkpost(ids)
+
+def bulkapi_tenant_setup():
+    bulkapi_login(sysuser, syspasswd)
+   
+    tenant_attr = dict(title=BT_TENANT_ATTRIBUTE_VALUE)
+    tenantid = bulkapi_create_tenant(BT_SUBTENANT, BT_TENANT_DOMAIN, tenant_attr)
+    
+    bulkapi_add_tenant_role(tenantid, 'subject_id', BT_USER1_TA, 'TENANT_ADMIN')
+    bulkapi_add_zone_role('subject_id', BT_USER0_SA, 'SYSTEM_ADMIN')
+    bulkapi_add_tenant_role(tenantid, 'subject_id', BT_USER2_PA, 'PROJECT_ADMIN')
+    bulkapi_add_tenant_role(tenantid, 'subject_id', BT_USER3_PA, 'PROJECT_ADMIN')
+    
+    return tenantid
+
+def bulkapi_nh_cos_setup(tenantid, nh, cos, storagetype):
+    bulkapi_neighborhood_allow(nh, tenantid)
+    bulkapi_cos_allow(cos, storagetype, tenantid)
+
+def bulkapi_login(user, passwd):
+    bourne.connect(bourne_ip)
+    bourne.security_logout()
+    bourne.login(user, passwd)
+    print "logged in as user " + user
+
+def bulkapi_create_tenant(tenant_name, domain, attr):
+    bourne.connect(bourne_ip)
+    subtenant_id = bourne.tenant_query(tenant_name)
+    if (not subtenant_id):
+        print "bulk test subtenant not exist, create it ..."
+        subtenant = bourne.tenant_create(tenant_name, domain, attr.keys()[0], attr[attr.keys()[0]])
+        subtenant_id = subtenant['id']
+        print "bulkapi tenant created: ", subtenant_id
+    else:
+        print "bulkapi tenant already exists: ", subtenant_id
+    return subtenant_id
+
+def bulkapi_neighborhood_allow(nh, tenant_id):
+    bourne.connect(bourne_ip)
+    uri = bourne.neighborhood_query(nh)
+    res = bourne.neighborhood_add_acl(uri, tenant_id)
+
+def bulkapi_cos_allow(cos, type, tenant_id):
+    bourne.connect(bourne_ip)
+    uri = bourne.cos_query(type, cos)
+    res = bourne.cos_add_tenant_acl(uri, type, tenant_id)
+
+def bulkapi_add_tenant_role(tenant_id, type, uid, role):
+    bourne.connect(bourne_ip)
+    bourne.security_add_tenant_id_role(tenant_id, type, uid, role)
+
+def bulkapi_add_zone_role(type, uid, role):
+    bourne.connect(bourne_ip)
+    bourne.security_add_zone_role(type, uid, role)
+
+def bulkapi_create_project(tenant_id, label):
+    project_id = bourne.tenant_project_query(tenant_id, label)
+    if (not project_id):
+        print "bulkapi project ", label, "not exist, create it..."
+        project = bourne.project_create_with_tenant_id(label, tenant_id)
+        project_id = project['id']
+    else:
+        print "bulkapi project", label, "already exists: ", project_id
+    return project_id
+
+def bulkapi_create_volume(project_id, vol_label, nh, cos, size):
+    bourne.connect(bourne_ip)
+    nh_uri = bourne.neighborhood_query(nh)
+    cos_uri = bourne.cos_query('block', cos)
+    start = time.time()
+    tr_list = bourne.volume_create(vol_label, project_id, nh_uri, cos_uri, size, 'true', 1,
+                                                    None, None, None, None, None)
+    total = time.time() - start
+    print "Volume create took", "{0:.2f}".format(total), "seconds to complete"
+    for tr in tr_list:
+        if (tr['state'] == 'ready'):
+            print 'Volume created with id ' + tr['resource']['id']
+        else:
+            print 'Volume create failed.'
+
+def bulkapi_create_fileshare(project_id, fs_label, nh, cos, size):
+    bourne.connect(bourne_ip)
+    nh_uri = bourne.neighborhood_query(nh)
+    cos_uri = bourne.cos_query('file', cos)
+    s = bourne.fileshare_create(fs_label, project_id, nh_uri, cos_uri, size, None, None)
+    if (s['state'] == 'ready'):
+        print 'Fileshare created with id ' + s['resource']['id']
+    else:
+        print 'Fileshare create failed.'
+
+def bulkapi_delete_volume(project_id, vol_label):
+    bourne.connect(bourne_ip)
+    searched = bourne.volume_search(None, project_id, None, None);
+    resources = searched['resource']
+    for vol in resources:
+        if (vol['match'] == vol_label):
+            bulkvolid = vol['id']
+            break
+    if (not bulkvolid):
+        raise Exception('bad volume name ' + vol_label)
+    start = time.time()
+    (o, s, m) = bourne.volume_delete(bulkvolid, True)
+    total = time.time() - start
+    print "Volume delete took", "{0:.2f}".format(total), "seconds to complete"
+    print "Volume delete ended with status " + s + ". " + m
+
+def bulkapi_delete_fileshare(project_id, fs_label):
+    bourne.connect(bourne_ip)
+    searched = bourne.fileshare_search(None, project_id, None);
+    resources = searched['resource']
+    for fs in resources:
+        if (fs['match'] == fs_label):
+            bulkfsid = fs['id']
+            break
+    if (not bulkfsid):
+        raise Exception('bad fileshare name ' + fs_label)
+    res = bourne.fileshare_delete(bulkfsid,'false')
+    print res
+
+def bulkapi_volume_post_test(vids, username, expected):
+    vols = bulkapi_volume_bulkpost(vids)
+    vols = vols['volume']
+    vol_display_hdr()
+    for vol in vols:
+        vol_display(vol)
+        search("volume", None, vol['name'], None, None)
+    assert_equal(len(vols), expected, "volume count incorrect from user "+username)
+
+def bulkapi_fileshare_post_test(fids, username, expected):
+    fss = bulkapi_fileshare_bulkpost(fids)
+    fss = fss['filesystem']
+    fs_display_hdr()
+    for fs in fss:
+        fs_display(fs)
+        search("fileshare", None, fs['name'], None, None)
+    assert_equal(len(fss), expected, "fileshare count incorrect from user "+username)
+
+#
+# display fileshare/volume
+#
+vol_display_fmt = '{0:16s} {1:8s} {2:s}'
+fs_display_fmt = '{0:16s} {1:8s} {2:s}'
+
+def fs_display_hdr():
+    print fs_display_fmt.format('name', 'active', 'id')
+    print fs_display_fmt.format('----', '------', '--')
+
+def vol_display_hdr():
+    print vol_display_fmt.format('name', 'active', 'id')
+    print vol_display_fmt.format('----', '------', '--')
+
+def fs_display(fs):
+    print fs_display_fmt.format(
+              fs['name'],
+              'NO' if fs['inactive'] else 'YES',
+              fs['id'])
+
+def vol_display(vol):
+    print vol_display_fmt.format(
+              vol['name'],
+              'NO' if vol['inactive'] else 'YES',
+              vol['id'])
+
+def assert_equal(actual, expected, msg):
+    if (actual != expected):
+        raise Exception('Assert fail - ' + msg + ': expected: '+str(expected)+', actual: '+str(actual))
+
+def bulkapi_tenants(args):
+    global bourne_ip 
+    global sysuser
+    global syspasswd
+    global userpasswd
+
+    bourne_ip = args.ip
+    sysuser = args.sysuser
+    syspasswd = args.syspasswd
+    userpasswd = args.userpasswd
+
+    bulkapi_tenant_setup()
+
+    # retreive all the tenant ids (only by a system monitor):
+    bulkapi_login(sysuser, syspasswd)
+    print "Starting tenant bulkapi test"
+    tids = bourne.tenant_bulkgetids()
+
+    # test bulk POST api as sys user:
+    res = bourne.tenant_bulkpost(tids)
+    tenants = res['tenant']
+    for tenant in tenants:
+        print tenant['id'], tenant['name']
+        search("tenant", None, tenant['name'], None, None)
+
+    # test bulk POST api as tenant user:
+    bulkapi_login(BT_USER1_TA, userpasswd)
+    res = bourne.tenant_bulkpost(tids)
+    tenants = res['tenant']
+    for tenant in tenants:
+        print tenant['id'], tenant['name']
+        search("tenant", None, tenant['name'], None, None)
+
+    assert_equal(len(tenants), 1, "tenant count incorrect from user "+BT_USER1_TA)
+
+    #restore login user to system user
+    bulkapi_login(sysuser, syspasswd)
+
+    print "Completed tenant bulkget test"
+
+def bulkapi_projects(args):
+    global bourne_ip 
+    global sysuser
+    global syspasswd
+    global userpasswd
+
+    bourne_ip = args.ip
+    sysuser = args.sysuser
+    syspasswd = args.syspasswd
+    userpasswd = args.userpasswd
+
+    tenantid = bulkapi_tenant_setup()
+
+    bulkapi_login(BT_USER2_PA, userpasswd)
+    project1_id = bulkapi_create_project(tenantid, BT_PROJ1)
+
+    bulkapi_login(BT_USER3_PA, userpasswd)
+    project2_id = bulkapi_create_project(tenantid, BT_PROJ2)
+
+    # retreive all the projects ids (only by a system monitor):
+    bulkapi_login(sysuser, syspasswd)
+    print "Starting project bulkapi test"
+    projids = bourne.project_bulkgetids()
+
+    # test bulk POST api:
+    res = bourne.project_bulkpost(projids)
+    projects = res['project']
+    for project in projects:
+        print project['id'], project['name']
+        search("project", None, project['name'], None, None)
+
+    bulkapi_login(BT_USER1_TA, userpasswd)
+    res = bourne.project_bulkpost(projids)
+    projects = res['project']
+    for project in projects:
+        print project['id'], project['name']
+        search("project", None, project['name'], None, None)
+    assert_equal(len(projects), 2, "project count incorrect from user "+BT_USER1_TA)
+
+    bulkapi_login(BT_USER2_PA, userpasswd)
+    res = bourne.project_bulkpost(projids)
+    projects = res['project']
+    for project in projects:
+        print project['id'], project['name']
+        search("project", None, project['name'], None, None)
+    assert_equal(len(projects), 1, "project count incorrect from user "+BT_USER2_PA)
+
+    bulkapi_login(BT_USER3_PA, userpasswd)
+    res = bourne.project_bulkpost(projids)
+    projects = res['project']
+    for project in projects:
+        print project['id'], project['name']
+        search("project", None, project['name'], None, None)
+    assert_equal(len(projects), 1, "project count incorrect from user "+BT_USER3_PA)
+
+    #restore login user to system user
+    bulkapi_login(sysuser, syspasswd)
+
+    print "Completed project bulkget test"
+
+def bulkapi_neighborhoods(args):
+    global bourne_ip 
+    global sysuser
+    global syspasswd
+    global userpasswd
+
+    bourne_ip = args.ip
+    sysuser = args.sysuser
+    syspasswd = args.syspasswd
+    userpasswd = args.userpasswd
+
+    # retreive all the neighborhoods ids:
+    bulkapi_login(sysuser, syspasswd)
+    print "Starting neighborhood bulkapi test"
+    nhids = bourne.neighborhood_bulkgetids()
+
+    print "As system admin"
+    bulkapi_login(BT_USER0_SA, userpasswd)
+    __bulkapi_neighborhoods(nhids)
+
+    #restore login user to system user
+    print "As system monitor"
+    bulkapi_login(sysuser, syspasswd)
+    __bulkapi_neighborhoods(nhids)
+
+    print "Completed neighborhoods bulkget test"
+
+def __bulkapi_neighborhoods(ids):
+    # test bulk POST api:
+    res = bourne.neighborhood_bulkpost(ids)
+    nhs = res['varray']
+    for nh in nhs:
+        print nh['id'], nh['name']
+
+def bulkapi_storagesystems(args):
+    global bourne_ip 
+    global sysuser
+    global syspasswd
+    global userpasswd
+
+    bourne_ip = args.ip
+    sysuser = args.sysuser
+    syspasswd = args.syspasswd
+    userpasswd = args.userpasswd
+
+    # retreive all the storagesystems ids:
+    bulkapi_login(sysuser, syspasswd)
+    print "Starting storagesystems bulkapi test"
+    ssysids = bourne.storagesystem_bulkgetids()
+
+    print "As system admin"
+    bulkapi_login(BT_USER0_SA, userpasswd)
+    __bulkapi_storagesystems(ssysids)
+
+    print "As system monitor"
+    bulkapi_login(sysuser, syspasswd)
+    __bulkapi_storagesystems(ssysids)
+
+def __bulkapi_storagesystems(ids):
+    # test bulk POST api:
+    res = bourne.storagesystem_bulkpost(ids)
+    ssyss = res['storage_system']
+    for ssys in ssyss:
+        try:
+            print ssys['id'], ssys['name']
+        except KeyError:
+            print ssys['id'], 'N/A'
+
+    print "Completed storagesystems bulkget test"
+
+def bulkapi_storageports(args):
+    global bourne_ip 
+    global sysuser
+    global syspasswd
+    global userpasswd
+
+    bourne_ip = args.ip
+    sysuser = args.sysuser
+    syspasswd = args.syspasswd
+    userpasswd = args.userpasswd
+
+    # retreive all the storageports ids:
+    bulkapi_login(sysuser, syspasswd)
+    print "Starting storageports bulkapi test"
+    sportids = bourne.storageport_bulkgetids()
+
+    print "As system admin"
+    bulkapi_login(BT_USER0_SA, userpasswd)
+    __bulkapi_storageports(sportids)
+
+    print "As system monitor"
+    bulkapi_login(sysuser, syspasswd)
+    __bulkapi_storageports(sportids)
+
+    print "Completed storageports bulkget test"
+
+def __bulkapi_storageports(ids):
+    # test bulk POST api:
+    res = bourne.storageport_bulkpost(ids)
+    sports = res['storage_port']
+    for sport in sports:
+        print sport['id'], sport['name']
+
+def bulkapi_storagepools(args):
+    global bourne_ip 
+    global sysuser
+    global syspasswd
+    global userpasswd
+
+    bourne_ip = args.ip
+    sysuser = args.sysuser
+    syspasswd = args.syspasswd
+    userpasswd = args.userpasswd
+
+    # retreive all the storagepools ids:
+    bulkapi_login(sysuser, syspasswd)
+    print "Starting storagepools bulkapi test"
+    ids = bourne.storagepool_bulkgetids()
+
+    print "As system admin"
+    bulkapi_login(BT_USER0_SA, userpasswd)
+    __bulkapi_storagepools(ids)
+
+    print "As system monitor"
+    bulkapi_login(sysuser, syspasswd)
+    __bulkapi_storagepools(ids)
+
+    print "Completed storagepools bulkget test"
+
+def __bulkapi_storagepools(ids):
+    # test bulk POST api:
+    res = bourne.storagepool_bulkpost(ids)
+    spools = res['storage_pool']
+    for spool in spools:
+        print spool['id'], spool['name']
+
+def bulkapi_transportzones(args):
+    global bourne_ip 
+    global sysuser
+    global syspasswd
+    global userpasswd
+
+    bourne_ip = args.ip
+    sysuser = args.sysuser
+    syspasswd = args.syspasswd
+    userpasswd = args.userpasswd
+
+    # retreive all the transportzones ids:
+    bulkapi_login(sysuser, syspasswd)
+    print "Starting transportzones bulkapi test"
+    ids = bourne.transportzone_bulkgetids()
+    
+    print "As system admin"
+    bulkapi_login(BT_USER0_SA, userpasswd)
+    __bulkapi_transportzones(ids)
+
+    print "As system monitor"
+    bulkapi_login(sysuser, syspasswd)
+    __bulkapi_transportzones(ids)
+
+    print "Completed transportzones bulkget test"
+
+def __bulkapi_transportzones(ids):
+    # test bulk POST api:
+    res = bourne.transportzone_bulkpost(ids)
+    tzs = res['network']
+    for tz in tzs:
+        print tz['id'], tz['name']
+
+def bulkapi_blockcos(args):
+    global bourne_ip 
+    global sysuser
+    global syspasswd
+    global userpasswd
+
+    bourne_ip = args.ip
+    sysuser = args.sysuser
+    syspasswd = args.syspasswd
+    userpasswd = args.userpasswd
+    
+    # retreive all block cos ids:
+    bulkapi_login(sysuser, syspasswd)
+    print "Starting Block CoS bulkapi test"
+    ids = bourne.blockcos_bulkgetids()
+    
+    print "As system admin"
+    bulkapi_login(BT_USER0_SA, userpasswd)
+    __bulkapi_blockcos(ids)
+
+    print "As tenent admin"
+    bulkapi_login(BT_USER1_TA, userpasswd)
+    __bulkapi_blockcos(ids)
+
+    print "As system monitor"
+    bulkapi_login(sysuser, syspasswd)
+    __bulkapi_blockcos(ids)
+
+    print "Completed Block CoS bulkget test"
+
+def __bulkapi_blockcos(ids):
+    # test bulk POST api:
+    res = bourne.blockcos_bulkpost(ids)
+    cos = res['block_vpool']
+    for c in cos:
+        print c['id'], c['name']
+        search("block_vpool", None, c['name'], None, None)
+
+def bulkapi_filecos(args):
+    global bourne_ip 
+    global sysuser
+    global syspasswd
+    global userpasswd
+
+    bourne_ip = args.ip
+    sysuser = args.sysuser
+    syspasswd = args.syspasswd
+    userpasswd = args.userpasswd
+    
+    # retreive all file cos ids:
+    bulkapi_login(sysuser, syspasswd)
+    print "Starting File CoS bulkapi test"
+    ids = bourne.filecos_bulkgetids()
+    
+    print "As system admin"
+    bulkapi_login(BT_USER0_SA, userpasswd)
+    __bulkapi_filecos(ids)
+
+    print "As tenent admin"
+    bulkapi_login(BT_USER1_TA, userpasswd)
+    __bulkapi_filecos(ids)
+
+    print "As system monitor"
+    bulkapi_login(sysuser, syspasswd)
+    __bulkapi_filecos(ids)
+
+    print "Completed File CoS bulkget test"
+
+def __bulkapi_filecos(ids):
+    # test bulk POST api:
+    res = bourne.filecos_bulkpost(ids)
+    bourne.pretty_print_json(res);
+    cos = res['file_vpool']
+    for c in cos:
+        print c['id'], c['name']
+        search("file_vpool", None, c['name'], None, None)
+
+def bulkapi_smisprovider(args):
+    global bourne_ip 
+    global sysuser
+    global syspasswd
+    global userpasswd
+
+    bourne_ip = args.ip
+    sysuser = args.sysuser
+    syspasswd = args.syspasswd
+    userpasswd = args.userpasswd
+    
+    # retreive all smis providers ids:
+    bulkapi_login(sysuser, syspasswd)
+    print "Starting SMIS provider bulkapi test"
+    ids = bourne.smisprovider_bulkgetids()
+    
+    print "As system admin"
+    bulkapi_login(BT_USER0_SA, userpasswd)
+    __bulkapi_smisprovider(ids)
+
+    print "As system monitor"
+    bulkapi_login(sysuser, syspasswd)
+    __bulkapi_smisprovider(ids)
+
+    print "Completed SMIS provider bulkget test"
+
+def __bulkapi_smisprovider(ids):
+    # test bulk POST api:
+    res = bourne.smisprovider_bulkpost(ids)
+    reps = res['smis_provider']
+    for rep in reps:
+        print rep['id'], rep['name']
+
+def bulkapi_blocksnapshot(args):
+    global bourne_ip 
+    global sysuser
+    global syspasswd
+    global userpasswd
+
+    bourne_ip = args.ip
+    sysuser = args.sysuser
+    syspasswd = args.syspasswd
+    userpasswd = args.userpasswd
+    
+    # retreive all block snapshot ids:
+    bulkapi_login(sysuser, syspasswd)
+    print "Starting block snapshot bulkapi test"
+    ids = bourne.blocksnapshot_bulkgetids()
+    
+    __bulkapi_blocksnapshot(ids)
+
+    print "Completed block snapshot bulkget test"
+
+def __bulkapi_blocksnapshot(ids):
+    # test bulk POST api:
+    res = bourne.blocksnapshot_bulkpost(ids)
+    reps = res['block_snapshot']
+    for rep in reps:
+        print rep['id'], rep['name']
+
+def bulkapi_exportgroup(args):
+    global bourne_ip 
+    global sysuser
+    global syspasswd
+    global userpasswd
+
+    bourne_ip = args.ip
+    sysuser = args.sysuser
+    syspasswd = args.syspasswd
+    userpasswd = args.userpasswd
+    
+    # retreive all export group ids:
+    bulkapi_login(sysuser, syspasswd)
+    print "Starting export group bulkapi test"
+    ids = bourne.exportgroup_bulkgetids()
+    
+    __bulkapi_exportgroup(ids)
+
+    print "Completed export group bulkget test"
+
+def __bulkapi_exportgroup(ids):
+    # test bulk POST api:
+    res = bourne.exportgroup_bulkpost(ids)
+    reps = res['exportgroup']
+    for rep in reps:
+        print rep['id'], rep['name']
+        search("block_export", None, rep['name'], None, None)
+
+def bulkapi_filesnapshot(args):
+    global bourne_ip 
+    global sysuser
+    global syspasswd
+    global userpasswd
+
+    bourne_ip = args.ip
+    sysuser = args.sysuser
+    syspasswd = args.syspasswd
+    userpasswd = args.userpasswd
+    
+    # retreive all file snapshot ids:
+    bulkapi_login(sysuser, syspasswd)
+    print "Starting file snapshot bulkapi test"
+    ids = bourne.filesnapshot_bulkgetids()
+    
+    __bulkapi_filesnapshot(ids)
+
+    print "Completed file snapshot bulkget test"
+
+def __bulkapi_filesnapshot(ids):
+    # test bulk POST api:
+    res = bourne.filesnapshot_bulkpost(ids)
+    reps = res['file_snapshot']
+    for rep in reps:
+        print rep['id'], rep['name']
+        search("snapshot", None, rep['name'], None, None)
+
+def bulkapi_hosts(args):
+    global bourne_ip
+    global sysuser
+    global syspasswd
+    global userpasswd
+
+    bourne_ip = args.ip
+    sysuser = args.sysuser
+    syspasswd = args.syspasswd
+    userpasswd = args.userpasswd
+
+    # retreive all the hosts ids:
+    bulkapi_login(sysuser, syspasswd)
+    print "Starting hosts bulkapi test"
+    hostids = bourne.host_bulkgetids()
+
+    print "As system admin"
+    bulkapi_login(BT_USER0_SA, userpasswd)
+    __bulkapi_hosts(hostids)
+
+    #restore login user to system user
+    print "As system monitor"
+    bulkapi_login(sysuser, syspasswd)
+    __bulkapi_hosts(hostids)
+
+    print "Completed hosts bulkget test"
+
+def __bulkapi_hosts(ids):
+    # test bulk POST api:
+    res = bourne.host_bulkpost(ids)
+    nhs = res['hosts']
+    for nh in nhs:
+        print nh['id'], nh['name']
+
+def bulkapi_clusters(args):
+    global bourne_ip
+    global sysuser
+    global syspasswd
+    global userpasswd
+
+    bourne_ip = args.ip
+    sysuser = args.sysuser
+    syspasswd = args.syspasswd
+    userpasswd = args.userpasswd
+
+    # retreive all the clusters ids:
+    bulkapi_login(sysuser, syspasswd)
+    print "Starting clusters bulkapi test"
+    ids = bourne.cluster_bulkgetids()
+
+    print "As system admin"
+    bulkapi_login(BT_USER0_SA, userpasswd)
+    __bulkapi_clusters(ids)
+
+    #restore login user to system user
+    print "As system monitor"
+    bulkapi_login(sysuser, syspasswd)
+    __bulkapi_clusters(ids)
+
+    print "Completed clusters bulkget test"
+
+def __bulkapi_clusters(ids):
+    # test bulk POST api:
+    res = bourne.cluster_bulkpost(ids)
+    nhs = res['clusters']
+    for nh in nhs:
+        print nh['id'], nh['name']
+
+def bulkapi_vcenters(args):
+    global bourne_ip
+    global sysuser
+    global syspasswd
+    global userpasswd
+
+    bourne_ip = args.ip
+    sysuser = args.sysuser
+    syspasswd = args.syspasswd
+    userpasswd = args.userpasswd
+
+    # retreive all the vcenters ids:
+    bulkapi_login(sysuser, syspasswd)
+    print "Starting vcenters bulkapi test"
+    ids = bourne.vcenter_bulkgetids()
+
+    print "As system admin"
+    bulkapi_login(BT_USER0_SA, userpasswd)
+    __bulkapi_vcenters(ids)
+
+    #restore login user to system user
+    print "As system monitor"
+    bulkapi_login(sysuser, syspasswd)
+    __bulkapi_vcenters(ids)
+
+    print "Completed vcenters bulkget test"
+
+def __bulkapi_vcenters(ids):
+    # test bulk POST api:
+    res = bourne.vcenter_bulkpost(ids)
+    nhs = res['vcenters']
+    for nh in nhs:
+        print nh['id'], nh['name']
+
+def search(resource_type, scope, prefix, project, tag):
+    array = bourne.search(resource_type, scope, prefix, project, tag)
+    print 'Searching ' + resource_type + ' with ' + prefix
+    if (len(array) == 0):
+        raise Exception('Failed to search with ' + prefix)
+    else:
+            print 'Result: ', array
+
+#----------------------------------------------------------------------
+# command-line parsing
+#
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# volume <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne BulkAPI cli usage.')
+parser.add_argument('cmd', help = 'cmd = (volumes|fileshares)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# run volumes sysuser syspasswd userpasswd nh cos size
+volumes = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+volumes.add_argument('sysuser',		help = 'system user to setup bulk test')
+volumes.add_argument('syspasswd',		help = 'password of system user')
+volumes.add_argument('userpasswd',		help = 'password of testing users')
+volumes.add_argument('nh',		help = 'neighborhood to run bulk test')
+volumes.add_argument('cos',		help = 'cos to use when create resources in bulk test')
+volumes.add_argument('volumesize',		help = 'size of volumes to be created in bulk test')
+
+# run fileshares sysuser syspasswd userpasswd nh cos size
+fileshares = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+fileshares.add_argument('sysuser',		help = 'system user to setup bulk test')
+fileshares.add_argument('syspasswd',		help = 'password of system user')
+fileshares.add_argument('userpasswd',		help = 'password of testing users')
+fileshares.add_argument('nh',		help = 'neighborhood to run bulk test')
+fileshares.add_argument('cos',		help = 'cos to use when create resources in bulk test')
+fileshares.add_argument('filesharesize',		help = 'size of fileshares to be created in bulk test')
+
+# run tenants sysuser syspasswd userpasswd
+tenants = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+tenants.add_argument('sysuser',		help = 'system user to setup bulk test')
+tenants.add_argument('syspasswd',		help = 'password of system user')
+tenants.add_argument('userpasswd',		help = 'password of testing users')
+
+# run projects sysuser syspasswd userpasswd
+projects = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+projects.add_argument('sysuser',		help = 'system user to setup bulk test')
+projects.add_argument('syspasswd',		help = 'password of system user')
+projects.add_argument('userpasswd',		help = 'password of testing users')
+
+# run neighborhoods sysuser syspasswd userpasswd
+neighborhoods = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+neighborhoods.add_argument('sysuser',		help = 'system user to setup bulk test')
+neighborhoods.add_argument('syspasswd',		help = 'password of system user')
+neighborhoods.add_argument('userpasswd',		help = 'password of testing users')
+
+# run storagesystems sysuser syspasswd userpasswd
+storagesystems = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+storagesystems.add_argument('sysuser',		help = 'system user to setup bulk test')
+storagesystems.add_argument('syspasswd',		help = 'password of system user')
+storagesystems.add_argument('userpasswd',		help = 'password of testing users')
+
+# run storageports sysuser syspasswd userpasswd
+storageports = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+storageports.add_argument('sysuser',		help = 'system user to setup bulk test')
+storageports.add_argument('syspasswd',		help = 'password of system user')
+storageports.add_argument('userpasswd',		help = 'password of testing users')
+
+# run storagepools sysuser syspasswd userpasswd
+storagepools = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+storagepools.add_argument('sysuser',		help = 'system user to setup bulk test')
+storagepools.add_argument('syspasswd',		help = 'password of system user')
+storagepools.add_argument('userpasswd',		help = 'password of testing users')
+
+# run transportzones sysuser syspasswd userpasswd
+transportzones = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+transportzones.add_argument('sysuser',		help = 'system user to setup bulk test')
+transportzones.add_argument('syspasswd',		help = 'password of system user')
+transportzones.add_argument('userpasswd',		help = 'password of testing users')
+
+# run blockcos sysuser syspasswd userpasswd
+blockcos = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+blockcos.add_argument('sysuser',		help = 'system user to setup bulk test')
+blockcos.add_argument('syspasswd',		help = 'password of system user')
+blockcos.add_argument('userpasswd',		help = 'password of testing users')
+
+# run filecos sysuser syspasswd userpasswd
+filecos = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+filecos.add_argument('sysuser',		help = 'system user to setup bulk test')
+filecos.add_argument('syspasswd',		help = 'password of system user')
+filecos.add_argument('userpasswd',		help = 'password of testing users')
+
+# run smisproviders sysuser syspasswd userpasswd
+smisproviders = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+smisproviders.add_argument('sysuser',		help = 'system user to setup bulk test')
+smisproviders.add_argument('syspasswd',		help = 'password of system user')
+smisproviders.add_argument('userpasswd',		help = 'password of testing users')
+
+# run blocksnapshots sysuser syspasswd userpasswd
+blocksnapshots = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+blocksnapshots.add_argument('sysuser',		help = 'system user to setup bulk test')
+blocksnapshots.add_argument('syspasswd',		help = 'password of system user')
+blocksnapshots.add_argument('userpasswd',		help = 'password of testing users')
+
+# run exportgroups sysuser syspasswd userpasswd
+exportgroups = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+exportgroups.add_argument('sysuser',		help = 'system user to setup bulk test')
+exportgroups.add_argument('syspasswd',		help = 'password of system user')
+exportgroups.add_argument('userpasswd',		help = 'password of testing users')
+
+# run filesnapshots sysuser syspasswd userpasswd
+filesnapshots = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+filesnapshots.add_argument('sysuser',		help = 'system user to setup bulk test')
+filesnapshots.add_argument('syspasswd',		help = 'password of system user')
+filesnapshots.add_argument('userpasswd',	help = 'password of testing users')
+
+# run hosts sysuser syspasswd userpasswd
+hosts = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+hosts.add_argument('sysuser',       help = 'system user to setup bulk test')
+hosts.add_argument('syspasswd',     help = 'password of system user')
+hosts.add_argument('userpasswd',    help = 'password of testing users')
+
+# run clusters sysuser syspasswd userpasswd
+clusters = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+clusters.add_argument('sysuser',       help = 'system user to setup bulk test')
+clusters.add_argument('syspasswd',     help = 'password of system user')
+clusters.add_argument('userpasswd',    help = 'password of testing users')
+
+# run vcenters sysuser syspasswd userpasswd
+vcenters = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+vcenters.add_argument('sysuser',       help = 'system user to setup bulk test')
+vcenters.add_argument('syspasswd',     help = 'password of system user')
+vcenters.add_argument('userpasswd',    help = 'password of testing users')
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if (cmd == "volumes"):
+        args = volumes.parse_args()
+        bulkapi_volumes(args)
+    elif (cmd == "fileshares"):
+        args = fileshares.parse_args()
+        bulkapi_fileshares(args)
+    elif (cmd == "tenants"):
+        args = tenants.parse_args()
+        bulkapi_tenants(args)
+    elif (cmd == "projects"):
+        args = projects.parse_args()
+        bulkapi_projects(args)
+    elif (cmd == "neighborhoods"):
+        args = neighborhoods.parse_args()
+        bulkapi_neighborhoods(args)
+    elif (cmd == "storage-systems"):
+        args = storagesystems.parse_args()
+        bulkapi_storagesystems(args)
+    elif (cmd == "storage-ports"):
+        args = storageports.parse_args()
+        bulkapi_storageports(args)
+    elif (cmd == "storage-pools"):
+        args = storagepools.parse_args()
+        bulkapi_storagepools(args)
+    elif (cmd == "transport-zones"):
+        args = transportzones.parse_args()
+        bulkapi_transportzones(args)
+    elif (cmd == "blockcos"):
+        args = blockcos.parse_args()
+        bulkapi_blockcos(args)
+    elif (cmd == "filecos"):
+        args = filecos.parse_args()
+        bulkapi_filecos(args)
+    elif (cmd == "smis-providers"):
+        args = smisproviders.parse_args()
+        bulkapi_smisprovider(args)
+    elif (cmd == "blocksnapshots"):
+        args = blocksnapshots.parse_args()
+        bulkapi_blocksnapshot(args)
+    elif (cmd == "exportgroups"):
+        args = exportgroups.parse_args()
+        bulkapi_exportgroup(args)
+    elif (cmd == "filesnapshots"):
+        args = filesnapshots.parse_args()
+        bulkapi_filesnapshot(args)
+    elif (cmd == "hosts"):
+        args = hosts.parse_args()
+        bulkapi_hosts(args)
+    elif (cmd == "clusters"):
+        args = clusters.parse_args()
+        bulkapi_clusters(args)
+    elif (cmd == "vcenters"):
+        args = vcenters.parse_args()
+        bulkapi_vcenters(args)
+    else:
+        parser.print_help()
+
+except:
+    raise
+

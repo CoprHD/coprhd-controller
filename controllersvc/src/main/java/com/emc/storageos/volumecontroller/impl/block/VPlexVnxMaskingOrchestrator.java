@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.block;
@@ -18,7 +18,6 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
@@ -31,14 +30,13 @@ import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
-import com.emc.storageos.volumecontroller.ControllerLockingService;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
-import com.emc.storageos.locking.DistributedOwnerLockService;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportMaskCreateCompleter;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowService;
@@ -60,15 +58,15 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
     private boolean simulation = false;
     BlockDeviceController _blockController = null;
     WorkflowService _workflowService = null;
-    
+
     public void setBlockDeviceController(BlockDeviceController blockController) {
         this._blockController = blockController;
     }
-    
+
     public VPlexVnxMaskingOrchestrator() {
-        
+
     }
-    
+
     public VPlexVnxMaskingOrchestrator(DbClient dbClient, BlockDeviceController controller) {
         this._dbClient = dbClient;
         this._blockController = controller;
@@ -82,9 +80,16 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
     }
 
     @Override
-    public ExportMask refreshExportMask(StorageSystem storage, 
+    public ExportMask refreshExportMask(StorageSystem storage,
             BlockStorageDevice device, ExportMask mask) {
         return super.refreshExportMask(storage, device, mask);
+    }
+
+    @Override
+    public void suggestExportMasksForPlacement(
+            StorageSystem storage, BlockStorageDevice device, List<Initiator> initiators,
+            ExportMaskPlacementDescriptor placementDescriptor) {
+        super.suggestExportMasksForPlacement(storage, device, initiators, placementDescriptor);
     }
 
     /**
@@ -92,8 +97,9 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
      * Each port group is a map of Network to a list of Storage Ports in that Network.
      * Since at most we can construct two InitiatorGroups, we try to construct
      * two PortGroups.
+     * 
      * @return Sets of PortGroups, where each Port Group is a map of Network URI
-     * to a List of Storage Ports.
+     *         to a List of Storage Ports.
      */
     @Override
     public Set<Map<URI, List<StoragePort>>> getPortGroups(
@@ -101,7 +107,7 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
             Map<URI, NetworkLite> networkMap, URI varrayURI,
             int nInitiatorGroups) {
         Set<Map<URI, List<StoragePort>>> portGroups = new HashSet<Map<URI, List<StoragePort>>>();
-        
+
         // Determine the network with the fewest ports. It will determine how many
         // port groups can be made.
         int minPorts = Integer.MAX_VALUE;
@@ -111,7 +117,7 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
                 minPorts = numPorts;
             }
         }
-        
+
         // Figure out the number of ports in each network per port group (PG).
         // Then figure out the number of port groups to be generated,
         // which will always be one or two.
@@ -124,27 +130,29 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
             return portGroups;
         }
         _log.info(String.format("Number Port Groups %d", numPG));
-        
+
         // Make a map per Network of number of ports to allocate.
         Map<URI, Integer> portsAllocatedPerNetwork = new HashMap<URI, Integer>();
         for (URI netURI : allocatablePorts.keySet()) {
             // Calculate the number of ports to be allocated for this net. It is:
             // the number of allocatable ports / numPG.
             Integer nports = allocatablePorts.get(netURI).size() / numPG;
-            portsAllocatedPerNetwork.put(netURI,  nports);
+            portsAllocatedPerNetwork.put(netURI, nports);
         }
-        
+
         StoragePortsAllocator allocator = new StoragePortsAllocator();
-        for (int i=0; i < numPG; i++) {
+        for (int i = 0; i < numPG; i++) {
             Map<URI, List<StoragePort>> portGroup = new HashMap<URI, List<StoragePort>>();
             StringSet portNames = new StringSet();
             for (URI netURI : allocatablePorts.keySet()) {
                 NetworkLite net = networkMap.get(netURI);
-                List<StoragePort> allocatedPorts = allocatePorts(allocator, allocatablePorts.get(netURI), 
+                List<StoragePort> allocatedPorts = allocatePorts(allocator, allocatablePorts.get(netURI),
                         portsAllocatedPerNetwork.get(netURI), net, varrayURI);
                 portGroup.put(netURI, allocatedPorts);
                 allocatablePorts.get(netURI).removeAll(allocatedPorts);
-                for (StoragePort port : allocatedPorts) { portNames.add(port.getPortName()); }
+                for (StoragePort port : allocatedPorts) {
+                    portNames.add(port.getPortName());
+                }
             }
             portGroups.add(portGroup);
             _log.info(String.format("Port Group %d: %s", i, portNames.toString()));
@@ -153,17 +161,18 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
         }
         return portGroups;
     }
-    
+
     /**
      * Allocates StoragePorts (in either the simulated or production modes).
+     * 
      * @param candidatePorts -- List of ports from which to choose
      * @param portsRequested -- Integer number of ports requested
      * @param net -- NetworkLite network
      * @param varrayURI -- URI of VirtualArray
      * @return
      */
-    private List<StoragePort> allocatePorts(StoragePortsAllocator allocator, 
-            List<StoragePort> candidatePorts, int portsRequested, 
+    private List<StoragePort> allocatePorts(StoragePortsAllocator allocator,
+            List<StoragePort> candidatePorts, int portsRequested,
             NetworkLite net, URI varrayURI) {
         Collections.shuffle(candidatePorts);
         if (simulation) {
@@ -172,13 +181,13 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
             for (StoragePort port : candidatePorts) {
                 context.addPort(port, null, null, null, null);
             }
-            List<StoragePort> portsAllocated = 
+            List<StoragePort> portsAllocated =
                     allocator.allocatePortsForNetwork(portsRequested, context, false, null, false);
             allocator.setContext(context);
             return portsAllocated;
         } else {
             Map<StoragePort, Long> sportMap = _blockScheduler.computeStoragePortUsage(candidatePorts);
-            List<StoragePort> portsAllocated = allocator.selectStoragePorts(_dbClient, 
+            List<StoragePort> portsAllocated = allocator.selectStoragePorts(_dbClient,
                     sportMap, net, varrayURI, portsRequested, null, false);
             return portsAllocated;
         }
@@ -187,43 +196,43 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
     @Override
     public StringSetMap configureZoning(Map<URI, List<StoragePort>> portGroup,
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup,
-            Map<URI, NetworkLite> networkMap) {
+            Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner) {
         StringSetMap zoningMap = new StringSetMap();
-        // Set up indexes for each of the Networks for SP-A ports and
-        // a separate index for SP-B ports.
-        Map<URI, Integer> networkAIndexes = new HashMap<URI, Integer>();
-        Map<URI, Integer> networkBIndexes = new HashMap<URI, Integer>();
-        for (URI networkURI : portGroup.keySet()) {
-            networkAIndexes.put(networkURI, new Integer(0));
-            networkBIndexes.put(networkURI, new Integer(0));
-        }
-        
+
+        // Set up a map to track port usage so that we can use all ports more or less equally.
+        Map<StoragePort, Integer> portAUsage = new HashMap<StoragePort, Integer>();
+        Map<StoragePort, Integer> portBUsage = new HashMap<StoragePort, Integer>();
+
         // Iterate through each of the directors, matching each of its initiators
-        // with one port. 
+        // with one port.
         for (String director : initiatorGroup.keySet()) {
             for (URI networkURI : initiatorGroup.get(director).keySet()) {
                 NetworkLite net = networkMap.get(networkURI);
                 for (Initiator initiator : initiatorGroup.get(director).get(networkURI)) {
                     // If there are no ports on the initiators network, too bad...
                     if (portGroup.get(networkURI) == null) {
-                        _log.info(String.format("%s -> no ports in network", 
+                        _log.info(String.format("%s -> no ports in network",
                                 initiator.getInitiatorPort()));
                         continue;
                     }
                     StringSet ports = new StringSet();
                     // Get an A Port
                     String aPortName = " ", bPortName = " ";
-                    StoragePort portA = getAPort(portGroup, networkAIndexes, networkURI, false);
-                    if (portA != null) { aPortName = portA.getPortName(); 
-                        ports.add(portA.getId().toString()); 
+                    StoragePort portA = VPlexBackEndOrchestratorUtil.assignPortToInitiator(
+                            assigner, portGroup.get(networkURI), net, initiator, portAUsage, "SP_A");
+                    if (portA != null) {
+                        aPortName = portA.getPortName();
+                        ports.add(portA.getId().toString());
                     }
                     // Get a B Port
-                    StoragePort portB = getAPort(portGroup, networkBIndexes, networkURI, true);
-                    if (portB != null) { bPortName = portB.getPortName(); 
-                        ports.add(portB.getId().toString()); 
+                    StoragePort portB = VPlexBackEndOrchestratorUtil.assignPortToInitiator(
+                            assigner, portGroup.get(networkURI), net, initiator, portBUsage, "SP_B");
+                    if (portB != null) {
+                        bPortName = portB.getPortName();
+                        ports.add(portB.getId().toString());
                     }
-                    _log.info(String.format("%s %s   %s -> %s  %s", 
-                            director, net.getLabel(), initiator.getInitiatorPort(), 
+                    _log.info(String.format("%s %s   %s -> %s  %s",
+                            director, net.getLabel(), initiator.getInitiatorPort(),
                             aPortName, bPortName));
                     zoningMap.put(initiator.getId().toString(), ports);
                 }
@@ -231,44 +240,16 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
         }
         return zoningMap;
     }
-    
-    /**
-     * Returns an SP-A or SP-B port as desired.
-     * @param portGroup
-     * @param networkIndexes
-     * @param networkURI
-     * @param spb
-     * @return
-     */
-    private StoragePort getAPort(
-            Map<URI, List<StoragePort>> portGroup, Map<URI, Integer> networkIndexes, 
-            URI networkURI, boolean spb) {
-        StoragePort storagePort = null;
-        int size = portGroup.get(networkURI).size();
-        String groupId = spb ? "SP_B" : "SP_A";
-        for (int i=0; i < size; i++) {
-            Integer index = networkIndexes.get(networkURI);
-            storagePort = portGroup.get(networkURI).get(index);
-            if (++index >= size) {
-                index = 0;
-            }
-            networkIndexes.put(networkURI, index);
-            if (storagePort.getPortGroup().equals(groupId)) {
-                return storagePort;
-            }
-        }
-        return null;
-    }
 
     @Override
-    public Workflow.Method createOrAddVolumesToExportMaskMethod(URI arrayURI, 
+    public Workflow.Method createOrAddVolumesToExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
             Map<URI, Integer> volumeMap, TaskCompleter completer)
     {
         return new Workflow.Method("createOrAddVolumesToExportMask",
                 arrayURI, exportGroupURI, exportMaskURI, volumeMap, completer);
     }
-    
+
     @Override
     public void createOrAddVolumesToExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
             Map<URI, Integer> volumeMap, TaskCompleter completer, String stepId) {
@@ -276,7 +257,7 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
             StorageSystem array = _dbClient.queryObject(StorageSystem.class, arrayURI);
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
             WorkflowStepCompleter.stepExecuting(stepId);
-            
+
             // If the exportMask isn't found, or has been deleted, fail, ask user to retry.
             if (exportMask == null || exportMask.getInactive()) {
                 _log.info(String.format("ExportMask %s deleted or inactive, failing", exportMaskURI));
@@ -285,12 +266,12 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
                 WorkflowStepCompleter.stepFailed(stepId, svcerr);
                 return;
             }
-            
+
             // Protect concurrent operations by locking {host, array} dupple.
             // Lock will be released when workflow step completes.
             List<String> lockKeys = ControllerLockingUtil.getHostStorageLockKeys(
-            		_dbClient, ExportGroupType.Host, 
-            		StringSetUtil.stringSetToUriList(exportMask.getInitiators()), arrayURI);
+                    _dbClient, ExportGroupType.Host,
+                    StringSetUtil.stringSetToUriList(exportMask.getInitiators()), arrayURI);
             getWorkflowService().acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.VPLEX_BACKEND_EXPORT));
 
             // We do not refresh here, as the VNXExportOperations code will throw an exception
@@ -304,17 +285,17 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
                 List<Initiator> initiators = new ArrayList<Initiator>();
                 for (String initiatorId : exportMask.getInitiators()) {
                     Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorId));
-                    if (initiator != null) { 
+                    if (initiator != null) {
                         initiators.add(initiator);
                         initiatorURIs.add(initiator.getId());
-                    } 
+                    }
                 }
                 // Fetch the targets
                 List<URI> targets = new ArrayList<URI>();
                 for (String targetId : exportMask.getStoragePorts()) {
                     targets.add(URI.create(targetId));
                 }
-                
+
                 // Clear the export_mask nativeId; otherwise the VnxExportOps will attempt to look it
                 // up and fail. An empty String will suffice as having no nativeId.
                 if (exportMask.getNativeId() != null) {
@@ -322,28 +303,28 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
                     _dbClient.updateAndReindexObject(exportMask);
                 }
                 // The default completer passed in is for add volume, create correct one
-                completer = new ExportMaskCreateCompleter(exportGroupURI, exportMaskURI, 
-                                    initiatorURIs, volumeMap, stepId);
+                completer = new ExportMaskCreateCompleter(exportGroupURI, exportMaskURI,
+                        initiatorURIs, volumeMap, stepId);
                 device.doExportGroupCreate(array, exportMask, volumeMap,
                         initiators, targets, completer);
             } else {
                 device.doExportAddVolumes(array, exportMask, volumeMap, completer);
             }
         } catch (Exception ex) {
-        	_log.error("Failed to create or add volumes to export mask for vnx: ", ex);
+            _log.error("Failed to create or add volumes to export mask for vnx: ", ex);
             VPlexApiException vplexex = DeviceControllerExceptions.vplex.addStepsForCreateVolumesFailed(ex);
             WorkflowStepCompleter.stepFailed(stepId, vplexex);
         }
     }
-    
+
     @Override
-    public Workflow.Method deleteOrRemoveVolumesFromExportMaskMethod(URI arrayURI, 
+    public Workflow.Method deleteOrRemoveVolumesFromExportMaskMethod(URI arrayURI,
             URI exportGroupURI, URI exportMaskURI,
             List<URI> volumes, TaskCompleter completer) {
-        return new Workflow.Method("deleteOrRemoveVolumesFromExportMask", arrayURI, 
+        return new Workflow.Method("deleteOrRemoveVolumesFromExportMask", arrayURI,
                 exportGroupURI, exportMaskURI, volumes, completer);
     }
-    
+
     @Override
     public void deleteOrRemoveVolumesFromExportMask(URI arrayURI, URI exportGroupURI, URI exportMaskURI,
             List<URI> volumes, TaskCompleter completer, String stepId) {
@@ -352,28 +333,28 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
             BlockStorageDevice device = _blockController.getDevice(array.getSystemType());
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
             WorkflowStepCompleter.stepExecuting(stepId);
-            
+
             // If the exportMask isn't found, or has been deleted, nothing to do.
             if (exportMask == null || exportMask.getInactive()) {
                 _log.info(String.format("ExportMask %s inactive, returning success", exportMaskURI));
                 WorkflowStepCompleter.stepSucceded(stepId);
                 return;
             }
-            
+
             // Protect concurrent operations by locking {host, array} dupple.
             // Lock will be released when workflow step completes.
             List<String> lockKeys = ControllerLockingUtil.getHostStorageLockKeys(
-            		_dbClient, ExportGroupType.Host, 
-            		StringSetUtil.stringSetToUriList(exportMask.getInitiators()), arrayURI);
+                    _dbClient, ExportGroupType.Host,
+                    StringSetUtil.stringSetToUriList(exportMask.getInitiators()), arrayURI);
             getWorkflowService().acquireWorkflowStepLocks(stepId, lockKeys, LockTimeoutValue.get(LockType.VPLEX_BACKEND_EXPORT));
-            
+
             // Make sure the completer will complete the workflow. This happens on rollback case.
             if (!completer.getOpId().equals(stepId)) {
                 completer.setOpId(stepId);
             }
-            
+
             // Refresh the ExportMask
-            exportMask = refreshExportMask(array, device , exportMask);
+            exportMask = refreshExportMask(array, device, exportMask);
 
             // Determine if we're deleting the last volume.
             Set<String> remainingVolumes = new HashSet<String>();
@@ -384,14 +365,14 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
                 remainingVolumes.remove(volume.toString());
             }
             // If so, delete the ExportMask.
-            if (remainingVolumes.isEmpty() 
-                    && (exportMask.getExistingVolumes() == null || exportMask.getExistingVolumes().isEmpty()) ) {
+            if (remainingVolumes.isEmpty()
+                    && (exportMask.getExistingVolumes() == null || exportMask.getExistingVolumes().isEmpty())) {
                 device.doExportGroupDelete(array, exportMask, completer);
             } else {
                 device.doExportRemoveVolumes(array, exportMask, volumes, completer);
             }
         } catch (Exception ex) {
-        	_log.error("Failed to delete or remove volumes to export mask for vnx: ", ex);
+            _log.error("Failed to delete or remove volumes to export mask for vnx: ", ex);
             VPlexApiException vplexex = DeviceControllerExceptions.vplex.addStepsForCreateVolumesFailed(ex);
             WorkflowStepCompleter.stepFailed(stepId, vplexex);
         }
@@ -405,11 +386,11 @@ public class VPlexVnxMaskingOrchestrator extends VnxMaskingOrchestrator implemen
         this.simulation = simulation;
     }
 
-	public WorkflowService getWorkflowService() {
-		return _workflowService;
-	}
+    public WorkflowService getWorkflowService() {
+        return _workflowService;
+    }
 
-	public void setWorkflowService(WorkflowService _workflowService) {
-		this._workflowService = _workflowService;
-	}
+    public void setWorkflowService(WorkflowService _workflowService) {
+        this._workflowService = _workflowService;
+    }
 }

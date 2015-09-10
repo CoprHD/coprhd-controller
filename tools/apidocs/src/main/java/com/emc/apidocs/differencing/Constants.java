@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2013 EMC Corporation 
- * All Rights Reserved 
- *
- * This software contains the intellectual property of EMC Corporation 
- * or is licensed to EMC Corporation from third parties.  Use of this 
- * software and the intellectual property contained therein is expressly 
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.apidocs.differencing;
@@ -20,7 +10,8 @@ package com.emc.apidocs.differencing;
  */
 public class Constants {
 
-    private Constants() {}
+    private Constants() {
+    }
 
     // Root element node of rest api xml document
     public static final String ROOT_NODE = "api-docs";
@@ -57,7 +48,7 @@ public class Constants {
     public static final String URL_PATH_SEPARATOR = "/";
 
     public static final String NAME_STRING_SEPARATOR = "-";
-    //XML file suffix
+    // XML file suffix
     public static final String XML_FILE_SUFFIX = "xml";
 
     // internal apis

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.metering;
 
@@ -29,10 +19,10 @@ import com.emc.storageos.db.client.model.TimeSeriesSerializer;
 import com.emc.storageos.plugins.common.Constants;
 
 public abstract class XMLStatsDumpGenerator {
-    
-    protected Logger              _logger = LoggerFactory
+
+    protected Logger _logger = LoggerFactory
             .getLogger(XMLStatsDumpGenerator.class);
-    
+
     /**
      * Dump Metering Records as XML to disk
      * 
@@ -70,6 +60,7 @@ public abstract class XMLStatsDumpGenerator {
     /**
      * Verify whether directory already exists or not.
      * if it is not there create one.
+     * 
      * @param directoryName
      */
     private void checkAndCreateDirectory(final String directoryName) {
@@ -98,16 +89,16 @@ public abstract class XMLStatsDumpGenerator {
      */
     protected abstract void delegatetailer(PrintWriter writer);
 
-
     /**
      * Generate Unique key, delegate to subclass of CassandraInsertion.
      * This uniqueKey is to identify the XML Stats dump file name uniquely.
+     * 
      * @param keyMap
      * @return
      */
     protected abstract String generateUniqueKey(Map<String, Object> keyMap);
 
-   /**
+    /**
      * Construct an unique fileName for Stats XML Dump
      * 
      * @return

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.engine.bind;
@@ -53,7 +53,7 @@ public class BindingUtils {
      * Gets all declared fields on the given type and its super classes.
      * 
      * @param type
-     *        the type.
+     *            the type.
      * @return the list of declared fields.
      */
     private static List<Field> getAllDeclaredFields(Class<?> type) {
@@ -70,11 +70,11 @@ public class BindingUtils {
      * Binds a parameter to the field if applicable.
      * 
      * @param target
-     *        the target object.
+     *            the target object.
      * @param field
-     *        the field to bind.
+     *            the field to bind.
      * @param parameters
-     *        the available parameters.
+     *            the available parameters.
      */
     private static void bindField(Object target, Field field, ParameterAccess parameters) {
         if (field.isAnnotationPresent(Param.class)) {
@@ -98,13 +98,13 @@ public class BindingUtils {
      * Binds a given parameters onto the target object.
      * 
      * @param param
-     *        the paramter annotation.
+     *            the paramter annotation.
      * @param target
-     *        the target object.
+     *            the target object.
      * @param field
-     *        the target field of the parameter.
+     *            the target field of the parameter.
      * @param parameters
-     *        the available parameters.
+     *            the available parameters.
      */
     private static void bindParam(Param param, Object target, Field field, ParameterAccess parameters) {
         String fieldName = field.getName();
@@ -127,8 +127,7 @@ public class BindingUtils {
             try {
                 field.setAccessible(true);
                 field.set(target, convert(value, fieldType));
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 String message = String.format("Error binding parameter '%s' to field '%s'", paramName, fieldName);
                 throw new BindingException(message, e);
             }
@@ -140,9 +139,9 @@ public class BindingUtils {
      * new instance is created and set as the field value.
      * 
      * @param target
-     *        the target object.
+     *            the target object.
      * @param field
-     *        the bind field.
+     *            the bind field.
      * @return the bind target.
      */
     private static Object getBindTarget(Object target, Field field) {
@@ -154,8 +153,7 @@ public class BindingUtils {
                 field.set(target, fieldValue);
             }
             return fieldValue;
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             String message = String.format("Error getting bind target for field '%s'", field.getName());
             throw new BindingException(message, e);
         }
@@ -164,7 +162,7 @@ public class BindingUtils {
     @SuppressWarnings({ "unchecked", "rawtypes" })
     private static Object convert(Object value, Class type) {
         if (value instanceof String && !(type.isArray() || type.isAssignableFrom(List.class))) {
-            List<String> parsedValue = TextUtils.parseCSV((String)value);
+            List<String> parsedValue = TextUtils.parseCSV((String) value);
             if (parsedValue.isEmpty()) {
                 value = "";
             }
@@ -189,13 +187,13 @@ public class BindingUtils {
      * Binds a list value into the given field.
      * 
      * @param itemType
-     *        the item type of the list.
+     *            the item type of the list.
      * @param target
-     *        the target object.
+     *            the target object.
      * @param field
-     *        the target field.
+     *            the target field.
      * @param parameters
-     *        the input parameters.
+     *            the input parameters.
      */
     private static void bindList(Class<?> itemType, Object target, Field field, ParameterAccess parameters) {
         String fieldName = field.getName();
@@ -212,8 +210,7 @@ public class BindingUtils {
         try {
             field.setAccessible(true);
             field.set(target, targetValue);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             String message = String.format("Error binding list to field '%s'", fieldName);
             throw new BindingException(message, e);
         }
@@ -223,11 +220,11 @@ public class BindingUtils {
      * Converts the array to the appropriate type for binding.
      * 
      * @param array
-     *        the array to convert.
+     *            the array to convert.
      * @param fieldType
-     *        the type of the target field.
+     *            the type of the target field.
      * @param itemType
-     *        the item type of the array.
+     *            the item type of the array.
      * @return
      */
     @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -263,9 +260,9 @@ public class BindingUtils {
      * Creates and binds the parameters to a new item.
      * 
      * @param parameters
-     *        the parameters.
+     *            the parameters.
      * @param itemType
-     *        the item type.
+     *            the item type.
      * @return the new item.
      */
     private static Object createAndBindItem(ParameterAccess parameters, Class<?> itemType) {
@@ -273,8 +270,7 @@ public class BindingUtils {
             Object value = itemType.newInstance();
             bind(value, parameters);
             return value;
-        }
-        catch (InstantiationException | IllegalAccessException e) {
+        } catch (InstantiationException | IllegalAccessException e) {
             throw new BindingException("Failed to instantiate new instance of " + itemType, e);
         }
     }
@@ -285,10 +281,10 @@ public class BindingUtils {
      * into matching rows for each item in the list.
      * 
      * @param itemType
-     *        the type of each item, the {@link Param}s of the type determine
-     *        what parameters are used to convert into items.
+     *            the type of each item, the {@link Param}s of the type determine
+     *            what parameters are used to convert into items.
      * @param parameters
-     *        the input parameters.
+     *            the input parameters.
      * @return the list of item parameters.
      */
     private static List<ParameterAccess> createItemParameters(Class<?> itemType, ParameterAccess parameters) {
@@ -313,7 +309,7 @@ public class BindingUtils {
      * Gets the names of the parameters in a given type.
      * 
      * @param type
-     *        the type.
+     *            the type.
      * @return the set of parameter names.
      */
     private static Set<String> getParameterNames(Class<?> type) {

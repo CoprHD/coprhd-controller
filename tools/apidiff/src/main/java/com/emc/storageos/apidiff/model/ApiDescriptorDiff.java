@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2013 EMC Corporation 
- * All Rights Reserved 
- *
- * This software contains the intellectual property of EMC Corporation 
- * or is licensed to EMC Corporation from third parties.  Use of this 
- * software and the intellectual property contained therein is expressly 
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.apidiff.model;
@@ -19,7 +9,7 @@ import com.emc.storageos.apidiff.util.Pair;
 
 /**
  * This class records differences of two API, including request parameter, body and response body.
- *
+ * 
  */
 public class ApiDescriptorDiff {
 
@@ -27,11 +17,12 @@ public class ApiDescriptorDiff {
     private Pair<String, String> requestElementDiff;
     private Pair<String, String> responseElementDiff;
 
-    public ApiDescriptorDiff() {}
+    public ApiDescriptorDiff() {
+    }
 
     public ApiDescriptorDiff(Pair<String, String> paramDiff,
-                             Pair<String, String> requestElementDiff,
-                             Pair<String, String> responseElementDiff) {
+            Pair<String, String> requestElementDiff,
+            Pair<String, String> responseElementDiff) {
         this.paramDiff = paramDiff;
         this.requestElementDiff = requestElementDiff;
         this.responseElementDiff = responseElementDiff;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.smis;
@@ -35,7 +35,7 @@ public interface CIMObjectPathFactory extends SmisConstants {
     CIMObjectPath getElementCompositionSvcPath(StorageSystem storageDevice);
 
     CIMObjectPath getConfigSvcPath(StorageSystem storageDevice);
-    
+
     CIMObjectPath getStorageSynchronized(StorageSystem sourceSystem, BlockObject source, StorageSystem targetSystem, BlockObject target);
 
     CIMObjectPath getGroupSynchronized(CIMObjectPath sourceGroup, CIMObjectPath targetGroup);
@@ -71,7 +71,7 @@ public interface CIMObjectPathFactory extends SmisConstants {
     CIMObjectPath getMaskingViewPath(StorageSystem storageDevice, String groupName);
 
     CIMObjectPath getLunMaskingProtocolControllerPath(StorageSystem storage,
-                                                      ExportMask exportMask);
+            ExportMask exportMask);
 
     CIMObjectPath getBlockObjectPath(StorageSystem storage, StorageSystem source, BlockObject blockObject);
 
@@ -83,9 +83,9 @@ public interface CIMObjectPathFactory extends SmisConstants {
 
     /**
      * Gets the replication group path.
-     *
+     * 
      * @param activeProviderStorageProxy can be a proxy StorageSystem that is used only to reference an active StorageProvider
-     *        to lookup a replication group for the array referenced by serialNumber.
+     *            to lookup a replication group for the array referenced by serialNumber.
      * @param serialNumber the serial number of the storage system which has this group
      * @param groupName the Replication group name
      * @return the replication group path
@@ -130,7 +130,7 @@ public interface CIMObjectPathFactory extends SmisConstants {
     CIMInstance getStoragePoolVdevSettings(CIMObjectPath setting);
 
     CIMObjectPath getRemoteReplicationCollection(StorageSystem system,
-                                                 RemoteDirectorGroup group);
+            RemoteDirectorGroup group);
 
     CIMObjectPath getReplicationSettingObjectPathFromDefault(CIMInstance settingInstance);
 }

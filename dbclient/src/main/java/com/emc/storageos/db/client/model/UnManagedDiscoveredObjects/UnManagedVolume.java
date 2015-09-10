@@ -1,14 +1,14 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model.UnManagedDiscoveredObjects;
-
 
 import java.net.URI;
 import java.util.Map;
 
 import com.emc.storageos.db.client.model.AlternateId;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.Cf;
 import com.emc.storageos.db.client.model.IndexByKey;
 import com.emc.storageos.db.client.model.Name;
@@ -20,66 +20,66 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObject;
 
-
 @Cf("UnManagedVolume")
-public class UnManagedVolume extends UnManagedDiscoveredObject{
-    
-    
+public class UnManagedVolume extends UnManagedDiscoveredObject {
+
     private StringSetMap _volumeInformation;
-    
+
     private StringMap _volumeCharacterstics;
-    
+
     private URI _storageSystemUri;
-    
+
     private URI storagePoolUri;
-    
+
     private StringSet _unmanagedExportMasks;
-    
+
     private StringSet _initiatorUris;
-    
+
     private StringSet _initiatorNetworkIds;
-    
+
     private StringSet storagePortUris;
-    
+
+    private String _wwn;
+
     public enum SupportedVolumeCharacterstics {
-        
+
         IS_MAPPED("EMCSVIsMapped", "EMCIsMapped"),
         IS_RECOVERPOINT_ENABLED("EMCSVRecoverPointEnabled", "EMCRecoverPointEnabled"),
         IS_METAVOLUME("EMCSVIsComposite", "EMCIsComposite"),
         IS_AUTO_TIERING_ENABLED("PolicyRuleName", "PolicyRuleName"),
         IS_FULL_COPY("FullCopy", "FullCopy"),
         IS_LOCAL_MIRROR("LocalMirror", "LocalMirror"),
+        IS_VPLEX_NATIVE_MIRROR("VplexNativeMirror", "VplexNativeMirror"),
         IS_SNAP_SHOT("Snapshot", "Snapshot"),
         IS_THINLY_PROVISIONED("EMCSVThinlyProvisioned", "ThinlyProvisioned"),
         IS_BOUND("EMCSVIsBound", "EMCIsBound"),
-        IS_VOLUME_EXPORTED("isVolumeExported", "isVolumeExported"), 
+        IS_VOLUME_EXPORTED("isVolumeExported", "isVolumeExported"),
         HAS_REPLICAS("hasReplicas", "hasReplicas"),
-        IS_VOLUME_ADDED_TO_CONSISTENCYGROUP("isVolumeAddedToCG", "isVolumeAddedToCG"), 
-        IS_INGESTABLE("IsIngestable", "IsIngestable"), 
+        IS_VOLUME_ADDED_TO_CONSISTENCYGROUP("isVolumeAddedToCG", "isVolumeAddedToCG"),
+        IS_INGESTABLE("IsIngestable", "IsIngestable"),
         REMOTE_MIRRORING("remoteMirror", "remoteMirror"),
         IS_VPLEX_VOLUME("isVplexVolume", "isVplexVolume"),
-		IS_VPLEX_BACKEND_VOLUME("isVplexBackendVolume", "isVplexBackendVolume"),
+        IS_VPLEX_BACKEND_VOLUME("isVplexBackendVolume", "isVplexBackendVolume"),
         EXPORTGROUP_TYPE("exportGroupType", "exportGroupType");
-        
-        
-        private String _charactersticsKey;
-        private String _charactersticAlternateKey;
-        
+
+        private final String _charactersticsKey;
+        private final String _charactersticAlternateKey;
+
         SupportedVolumeCharacterstics(String charactersticsKey, String charactersticAlternateKey) {
             _charactersticsKey = charactersticsKey;
             _charactersticAlternateKey = charactersticAlternateKey;
         }
-        
+
         public String getCharacterstic() {
             return _charactersticsKey;
         }
-        
+
         public String getAlterCharacterstic() {
             return _charactersticAlternateKey;
         }
-        
+
         public static String getVolumeCharacterstic(String charactersticsKey) {
-            for(SupportedVolumeCharacterstics characterstic : values()) {
+            for (SupportedVolumeCharacterstics characterstic : values()) {
                 if (characterstic.getCharacterstic().equalsIgnoreCase(charactersticsKey)
                         || characterstic.getAlterCharacterstic().equalsIgnoreCase(charactersticsKey)) {
                     return characterstic.toString();
@@ -88,7 +88,7 @@ public class UnManagedVolume extends UnManagedDiscoveredObject{
             return null;
         }
     }
-    
+
     public enum SupportedVolumeInformation {
         ALLOCATED_CAPACITY("AFSPSpaceConsumed", "EMCSpaceConsumed"),
         PROVISIONED_CAPACITY("ProvisionedCapacity", "ProvisionedCapacity"),
@@ -97,7 +97,6 @@ public class UnManagedVolume extends UnManagedDiscoveredObject{
         SYSTEM_TYPE("SystemType", "SystemType"),
         RAID_LEVEL("SSElementName", "EMCRaidLevel"),
         STORAGE_POOL("PoolUri", "PoolUri"),
-        WWN("EMCSVWWN", "EMCWWN"),
         NATIVE_GUID("NativeGuid", "NativeGuid"),
         AUTO_TIERING_POLICIES("PolicyRuleName", "PolicyRuleName"),
         IS_THINLY_PROVISIONED("EMCSVThinlyProvisioned", "ThinlyProvisioned"),
@@ -105,8 +104,8 @@ public class UnManagedVolume extends UnManagedDiscoveredObject{
         SUPPORTED_VPOOL_LIST("vpoolUriList", "vpoolUriList"),
         DATA_FORMAT("EMCSVDataFormat", "EMCDataFormat"),
         DEVICE_LABEL("SVElementName", "ElementName"),
-        NAME("SVName", "Name"), REMOTE_COPY_MODE("remoteCopyMode", "remoteCopyMode"), REMOTE_MIRRORS("remoteMirrors", "remoteMirrors"), 
-        REMOTE_MIRROR_SOURCE_VOLUME("sourceVolume", "sourceVolume"), REMOTE_MIRROR_RDF_GROUP("remoteRAGroup", "remoteRAGroup"), 
+        NAME("SVName", "Name"), REMOTE_COPY_MODE("remoteCopyMode", "remoteCopyMode"), REMOTE_MIRRORS("remoteMirrors", "remoteMirrors"),
+        REMOTE_MIRROR_SOURCE_VOLUME("sourceVolume", "sourceVolume"), REMOTE_MIRROR_RDF_GROUP("remoteRAGroup", "remoteRAGroup"),
         REMOTE_VOLUME_TYPE("volumeType", "volumeType"),
         ACCESS("Access", "Access"),
         STATUS_DESCRIPTIONS("StatusDescriptions", "StatusDescriptions"),
@@ -114,6 +113,16 @@ public class UnManagedVolume extends UnManagedDiscoveredObject{
         VPLEX_SUPPORTING_DEVICE_NAME("vplexSupportingDeviceName", "vplexSupportingDeviceName"),
         VPLEX_CONSISTENCY_GROUP_NAME("vplexConsistencyGroup", "vplexConsistencyGroup"),
         VPLEX_CLUSTER_IDS("vplexClusters", "vplexClusters"),
+        // unmanaged volume native GUIDs for the vplex backend volumes
+        VPLEX_BACKEND_VOLUMES("vplexBackendVolumes", "vplexBackendVolumes"),
+        // native GUID of the VPLEX virtual volume containing this volume
+        VPLEX_PARENT_VOLUME("vplexParentVolume", "vplexParentVolume"),
+        // map of backend clone volume GUID to virtual volume GUID 
+        VPLEX_FULL_CLONE_MAP("vplexFullCloneMap", "vplexFullCloneMap"),
+        // map of unmanaged volume GUID mirror to vplex device info context path
+        VPLEX_MIRROR_MAP("vplexMirrorMap", "vplexMirrorMap"),
+        VPLEX_NATIVE_MIRROR_TARGET_VOLUME("vplexNativeMirrorTargetVolume", "vplexNativeMirrorTargetVolume"),
+        VPLEX_NATIVE_MIRROR_SOURCE_VOLUME("vplexNativeMirrorSourceVolume", "vplexNativeMirrorSourceVolume"),
         META_MEMBER_SIZE("metaMemberSize", "metaMemberSize"),
         META_MEMBER_COUNT("metaMemberCount", "metaMemberCount"),
         META_VOLUME_TYPE("compositeType", "compositeType"),
@@ -135,26 +144,27 @@ public class UnManagedVolume extends UnManagedDiscoveredObject{
         SNAPSHOTS("snapshots", "snapshots"), // snapshots of a source volume, for internal ingestion use only
         NEEDS_COPY_TO_TARGET("needsCopyToTarget", "needsCopyToTarget"),
         TECHNOLOGY_TYPE("technologyType", "technologyType"),
-        SETTINGS_INSTANCE("settingsInstance", "settingsInstance");
+        SETTINGS_INSTANCE("settingsInstance", "settingsInstance"),
+        IS_READ_ONLY("isReadOnly", "isReadOnly");
 
-        private String _infoKey;
-        private String _alternateKey;
-        
+        private final String _infoKey;
+        private final String _alternateKey;
+
         SupportedVolumeInformation(String infoKey, String alterateKey) {
             _infoKey = infoKey;
             _alternateKey = alterateKey;
         }
-        
+
         public String getInfoKey() {
             return _infoKey;
         }
-        
+
         public String getAlternateKey() {
             return _alternateKey;
         }
-        
+
         public static String getVolumeInformation(String infoKey) {
-            for(SupportedVolumeInformation info : values()) {
+            for (SupportedVolumeInformation info : values()) {
                 if (info.getInfoKey().equalsIgnoreCase(infoKey)
                         || info.getAlternateKey().equalsIgnoreCase(infoKey)) {
                     return info.toString();
@@ -163,31 +173,33 @@ public class UnManagedVolume extends UnManagedDiscoveredObject{
             return null;
         }
     }
- 
+
     // Replaces key entry in the volumeInformation map with the new set.
     public void putVolumeInfo(String key, StringSet values) {
         if (null == _volumeInformation) {
             setVolumeInformation(new StringSetMap());
         }
 
-        StringSet oldValues  = _volumeInformation.get(key);
+        StringSet oldValues = _volumeInformation.get(key);
         if (oldValues != null) {
             oldValues.replace(values);
         } else {
             _volumeInformation.put(key, values);
         }
     }
-    
-    public void addVolumeInformation(Map<String,StringSet> volumeInfo) {
-        if (null == _volumeInformation)
+
+    public void addVolumeInformation(Map<String, StringSet> volumeInfo) {
+        if (null == _volumeInformation) {
             setVolumeInformation(new StringSetMap());
-        else
+        } else {
             _volumeInformation.clear();
-        
-        if(volumeInfo.size() > 0)
+        }
+
+        if (volumeInfo.size() > 0) {
             _volumeInformation.putAll(volumeInfo);
+        }
     }
-    
+
     public void setVolumeInformation(StringSetMap volumeInfo) {
         _volumeInformation = volumeInfo;
     }
@@ -197,20 +209,18 @@ public class UnManagedVolume extends UnManagedDiscoveredObject{
         return _volumeInformation;
     }
 
- 
-    
     public void putVolumeCharacterstics(String key, String value) {
-        if (null == _volumeCharacterstics)
+        if (null == _volumeCharacterstics) {
             setVolumeCharacterstics(new StringMap());
-        else
+        } else {
             _volumeCharacterstics.put(key, value);
+        }
     }
-    
-    
+
     public void setVolumeCharacterstics(StringMap volumeCharacterstics) {
         _volumeCharacterstics = volumeCharacterstics;
     }
-    
+
     @Name("volumeCharacterstics")
     public StringMap getVolumeCharacterstics() {
         return _volumeCharacterstics;
@@ -220,12 +230,13 @@ public class UnManagedVolume extends UnManagedDiscoveredObject{
         _storageSystemUri = storageSystemUri;
         setChanged("storageDevice");
     }
-    
+
     @RelationIndex(cf = "UnManagedVolumeRelationIndex", type = StorageSystem.class)
     @Name("storageDevice")
     public URI getStorageSystemUri() {
         return _storageSystemUri;
     }
+
     @RelationIndex(cf = "UnManagedVolumeRelationIndex", type = StoragePool.class)
     @Name("storagePool")
     public URI getStoragePoolUri() {
@@ -270,13 +281,13 @@ public class UnManagedVolume extends UnManagedDiscoveredObject{
         }
         return _initiatorNetworkIds;
     }
-    
+
     public void setInitiatorNetworkIds(StringSet initiatorNetworkIds) {
         this._initiatorNetworkIds = initiatorNetworkIds;
     }
-    
+
     @Name("storagePortUris")
-	public StringSet getStoragePortUris() {
+    public StringSet getStoragePortUris() {
         if (storagePortUris == null) {
             setStoragePortUris(new StringSet());
         }
@@ -287,8 +298,36 @@ public class UnManagedVolume extends UnManagedDiscoveredObject{
         this.storagePortUris = storagePortUris;
     }
 
-    public enum Types{
-		SOURCE,
-		TARGET
-	}
+    @AlternateId("UnManagedVolumeWwnIndex")
+    @Name("wwn")
+    public String getWwn() {
+        return _wwn;
+    }
+
+    public void setWwn(String wwn) {
+        _wwn = BlockObject.normalizeWWN(wwn);
+        setChanged("wwn");
+    }
+
+    public enum Types {
+        SOURCE,
+        TARGET,
+        REGULAR;
+
+        public static boolean isSourceVolume(Types types) {
+            return SOURCE == types;
+        }
+
+        public static boolean isTargetVolume(Types types) {
+            return TARGET == types;
+        }
+
+        public static boolean isRegularVolume(Types types) {
+            return REGULAR == types;
+        }
+    }
+    
+    public String toString() {
+        return this.getLabel() + " (" + this.getId() + ")";
+    }
 }

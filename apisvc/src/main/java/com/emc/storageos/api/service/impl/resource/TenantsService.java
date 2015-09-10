@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -82,8 +72,8 @@ import static com.emc.storageos.api.mapper.HostMapper.map;
  */
 
 @Path("/tenants")
-@DefaultPermissions( read_roles = {Role.TENANT_ADMIN, Role.SYSTEM_MONITOR},
-write_roles = {Role.TENANT_ADMIN})
+@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR },
+        writeRoles = { Role.TENANT_ADMIN })
 public class TenantsService extends TaggedResource {
     private static final String EVENT_SERVICE_TYPE = "tenant";
     private static final String EVENT_SERVICE_SOURCE = "TenantManager";
@@ -93,6 +83,7 @@ public class TenantsService extends TaggedResource {
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
     }
+
     @Autowired
     private RecordableEventManager _evtMgr;
 
@@ -107,15 +98,16 @@ public class TenantsService extends TaggedResource {
 
     /**
      * Get info for tenant or subtenant
+     * 
      * @param id the URN of a ViPR Tenant/Subtenant
      * @prereq none
      * @brief Show tenant or subtenant
-     * @return Tenant details     
+     * @return Tenant details
      */
     @GET
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = {Role.SYSTEM_MONITOR, Role.TENANT_ADMIN, Role.SECURITY_ADMIN})
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN, Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN})
     public TenantOrgRestRep getTenant(@PathParam("id") URI id) {
         return map(getTenantById(id, false));
     }
@@ -136,7 +128,7 @@ public class TenantsService extends TaggedResource {
     private class TenantRoleInputFilter extends PermissionsHelper.RoleInputFilter {
         protected List<String> _tenantAdminUsers;
 
-        public TenantRoleInputFilter (TenantOrg tenant) {
+        public TenantRoleInputFilter(TenantOrg tenant) {
             super(tenant);
         }
 
@@ -203,14 +195,12 @@ public class TenantsService extends TaggedResource {
                 boolean validate) {
             StringSetMap returnedStringSetMap = convertFromRoleAssignments(add);
 
-
             if (!CollectionUtils.isEmpty(_rootRoleAssignments)
                     && !VdcUtil.isLocalVdcSingleSite()) {
                 throw APIException.badRequests
                         .invalidRoleAssignments("Tenant Roles can't be assigned to root in GEO scenario.");
 
             }
-
 
             if (!CollectionUtils.isEmpty(_rootRoleAssignments)
                     && _rootRoleAssignments.size() == 1
@@ -221,8 +211,8 @@ public class TenantsService extends TaggedResource {
 
             if (!CollectionUtils.isEmpty(_localUsers)) {
                 throw APIException.badRequests
-                .invalidEntryForRoleAssignmentSubjectIdsCannotBeALocalUsers(StringUtils
-                        .join(_localUsers, ", "));
+                        .invalidEntryForRoleAssignmentSubjectIdsCannotBeALocalUsers(StringUtils
+                                .join(_localUsers, ", "));
             }
 
             if (validate) {
@@ -234,18 +224,19 @@ public class TenantsService extends TaggedResource {
 
     /**
      * Update info for tenant or subtenant
+     * 
      * @param param Tenant update parameter
      * @param id the URN of a ViPR Tenant/Subtenant
      * @prereq If modifying user mappings, an authentication provider needs to support the domain used in the mappings
      * @brief Update tenant or subtenant
-     * @return the updated Tenant/Subtenant instance     
+     * @return the updated Tenant/Subtenant instance
      */
     @PUT
     @Path("/{id}")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = {Role.TENANT_ADMIN, Role.SECURITY_ADMIN})
+    @CheckPermission(roles = { Role.TENANT_ADMIN, Role.SECURITY_ADMIN })
     public TenantOrgRestRep setTenant(@PathParam("id") URI id, TenantUpdateParam param) {
-        TenantOrg tenant =  getTenantById(id, true);
+        TenantOrg tenant = getTenantById(id, true);
         if (param.getLabel() != null && !param.getLabel().isEmpty()) {
             if (!tenant.getLabel().equalsIgnoreCase(param.getLabel())) {
                 checkForDuplicateName(param.getLabel(), TenantOrg.class, tenant.getParentTenant()
@@ -253,7 +244,7 @@ public class TenantsService extends TaggedResource {
             }
             tenant.setLabel(param.getLabel());
             NamedURI parent = tenant.getParentTenant();
-            if (parent != null ){
+            if (parent != null) {
                 parent.setName(param.getLabel());
                 tenant.setParentTenant(parent);
             }
@@ -263,15 +254,16 @@ public class TenantsService extends TaggedResource {
             tenant.setDescription(param.getDescription());
         }
 
-        if( !isUserMappingEmpty(param) ) {
+        if (!isUserMappingEmpty(param)) {
             // only SecurityAdmin can modify user-mapping
             if (!_permissionsHelper.userHasGivenRole(
-                    (StorageOSUser)sc.getUserPrincipal(),
+                    (StorageOSUser) sc.getUserPrincipal(),
                     null, Role.SECURITY_ADMIN)) {
                 throw ForbiddenException.forbidden.onlySecurityAdminsCanModifyUserMapping();
             }
 
-            if( null != param.getUserMappingChanges().getRemove() && !param.getUserMappingChanges().getRemove().isEmpty() && null != tenant.getUserMappings()) {
+            if (null != param.getUserMappingChanges().getRemove() && !param.getUserMappingChanges().getRemove().isEmpty()
+                    && null != tenant.getUserMappings()) {
                 checkUserMappingAttribute(param.getUserMappingChanges().getRemove());
                 List<UserMapping> remove = UserMapping.fromParamList(param.getUserMappingChanges().getRemove());
                 StringSetMap mappingsToRemove = new StringSetMap();
@@ -298,7 +290,7 @@ public class TenantsService extends TaggedResource {
                 }
             }
 
-            if( null != param.getUserMappingChanges().getAdd() && !param.getUserMappingChanges().getAdd().isEmpty() ) {
+            if (null != param.getUserMappingChanges().getAdd() && !param.getUserMappingChanges().getAdd().isEmpty()) {
                 checkUserMappingAttribute(param.getUserMappingChanges().getAdd());
                 addUserMappings(tenant, param.getUserMappingChanges().getAdd(), getUserFromContext());
             }
@@ -330,11 +322,12 @@ public class TenantsService extends TaggedResource {
 
     /**
      * Create subtenant
+     * 
      * @param param Subtenant create parameter
      * @param id the URN of a ViPR Tenant
      * @prereq An authentication provider needs to support the domain used in the mappings
      * @brief Create subtenant
-     * @return Subtenant details     
+     * @return Subtenant details
      */
     @POST
     @Path("/{id}/subtenants")
@@ -345,7 +338,7 @@ public class TenantsService extends TaggedResource {
             TenantCreateParam param) {
         TenantOrg parent = getTenantById(id, true);
         if (!TenantOrg.isRootTenant(parent)) {
-        	throw APIException.badRequests.parentTenantIsNotRoot();
+            throw APIException.badRequests.parentTenantIsNotRoot();
         }
 
         ArgValidator.checkFieldNotEmpty(param.getLabel(), "name");
@@ -358,11 +351,11 @@ public class TenantsService extends TaggedResource {
 
         if (null == param.getUserMappings() || param.getUserMappings().isEmpty()) {
             throw APIException.badRequests
-            .requiredParameterMissingOrEmpty("user_mappings");
+                    .requiredParameterMissingOrEmpty("user_mappings");
         } else {
             checkUserMappingAttribute(param.getUserMappings());
             addUserMappings(subtenant, param.getUserMappings(), getUserFromContext());
-            }
+        }
         // add creator as tenant admin
         subtenant.addRole(new PermissionsKey(PermissionsKey.Type.SID,
                 getUserFromContext().getName()).toString(), Role.TENANT_ADMIN.toString());
@@ -379,8 +372,9 @@ public class TenantsService extends TaggedResource {
 
     /**
      * List subtenants
+     * 
      * @param id the URN of a ViPR Tenant
-     * @prereq none     
+     * @prereq none
      * @brief List subtenants
      * @return List of subtenants
      */
@@ -397,7 +391,7 @@ public class TenantsService extends TaggedResource {
         }
         NamedElementQueryResultList subtenants = new NamedElementQueryResultList();
         if (_permissionsHelper.userHasGivenRole(user, tenant.getId(),
-                Role.SYSTEM_MONITOR, Role.TENANT_ADMIN, Role.SECURITY_ADMIN)) {
+                Role.SYSTEM_MONITOR, Role.TENANT_ADMIN, Role.SECURITY_ADMIN, Role.SYSTEM_ADMIN)) {
             _dbClient.queryByConstraint(ContainmentConstraint.Factory
                     .getTenantOrgSubTenantConstraint(tenant.getId()), subtenants);
         } else {
@@ -439,11 +433,11 @@ public class TenantsService extends TaggedResource {
      * Once in this state, new projects may no longer be created in the subtenant.
      * The subtenant will be permanently deleted once all Projects and UserSecretKeys
      * referencing this tenant are deleted.
-     *
+     * 
      * @param id the URN of a ViPR Tenant/Subtenant
      * @prereq none
      * @brief Delete subtenant
-     * @return No data returned in response body     
+     * @return No data returned in response body
      */
     @POST
     @Path("/{id}/deactivate")
@@ -452,7 +446,7 @@ public class TenantsService extends TaggedResource {
         TenantOrg tenant = getTenantById(id, true);
         if (TenantOrg.isRootTenant(tenant)) {
             // root can not be deleted
-        	throw APIException.badRequests.resourceCannotBeDeleted("Root tenant");
+            throw APIException.badRequests.resourceCannotBeDeleted("Root tenant");
         }
 
         if (tenant.getNamespace() != null && !tenant.getNamespace().isEmpty()) {
@@ -466,7 +460,7 @@ public class TenantsService extends TaggedResource {
 
         recordOperation(OperationTypeEnum.DELETE_TENANT, tenant.getParentTenant()
                 .getURI(), tenant);
-        
+
         // clear references to this deleted sub-tenant from the USE ACL lists of vpools and varrays
         clearTenantACLs(VirtualPool.class, tenant.getId(), VirtualPool.Type.block.toString());
         clearTenantACLs(VirtualPool.class, tenant.getId(), VirtualPool.Type.file.toString());
@@ -477,10 +471,11 @@ public class TenantsService extends TaggedResource {
 
     /**
      * Get tenant or subtenant role assignments
+     * 
      * @param id the URN of a ViPR Tenant/Subtenant
      * @prereq none
      * @brief List tenant or subtenant role assignments
-     * @return Role assignment details     
+     * @return Role assignment details
      */
     @GET
     @Path("/{id}/role-assignments")
@@ -493,17 +488,18 @@ public class TenantsService extends TaggedResource {
 
     /**
      * Add or remove individual role assignments
+     * 
      * @param changes Role Assignment changes
      * @param id the URN of a ViPR Tenant/Subtenant
      * @prereq none
      * @brief Add or remove role assignments
-     * @return No data returned in response body     
+     * @return No data returned in response body
      */
     @PUT
     @Path("/{id}/role-assignments")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.TENANT_ADMIN },
-    block_proxies = true)
+            blockProxies = true)
     public RoleAssignments updateRoleAssignments(@PathParam("id") URI id,
             RoleAssignmentChanges changes) {
         TenantOrg tenant = getTenantById(id, true);
@@ -520,11 +516,12 @@ public class TenantsService extends TaggedResource {
 
     /**
      * Create a project
+     * 
      * @param param Project parameters
      * @param id the URN of a ViPR Tenant/Subtenant
      * @prereq none
      * @brief Create project
-     * @return Project details     
+     * @return Project details
      */
     @POST
     @Path("/{id}/projects")
@@ -560,10 +557,11 @@ public class TenantsService extends TaggedResource {
 
     /**
      * List projects the user is authorized to see
+     * 
      * @param id the URN of a ViPR Tenant/Subtenant
      * @prereq none
      * @brief List projects
-     * @return List of projects     
+     * @return List of projects
      */
     @GET
     @Path("/{id}/projects")
@@ -619,8 +617,8 @@ public class TenantsService extends TaggedResource {
      *            POST data containing the id list.
      * @prereq none
      * @brief List data of tenant resources
-     * @return list of representations.     
-     * @throws DatabaseException When an error occurs querying the database.     
+     * @return list of representations.
+     * @throws DatabaseException When an error occurs querying the database.
      */
     @POST
     @Path("/bulk")
@@ -640,7 +638,7 @@ public class TenantsService extends TaggedResource {
      */
     private void addUserMappings(TenantOrg tenant,
             List<UserMappingParam> userMappingParams, StorageOSUser user) {
-    	List<UserMapping> userMappings = UserMapping.fromParamList(userMappingParams);
+        List<UserMapping> userMappings = UserMapping.fromParamList(userMappingParams);
         Map<String, Map<URI, List<UserMapping>>> domainUserMappingMap =
                 new HashMap<String, Map<URI, List<UserMapping>>>();
 
@@ -667,20 +665,20 @@ public class TenantsService extends TaggedResource {
                             URI dupTenantURI = existingMappingEntry.getKey();
                             throw _permissionsHelper.userHasGivenRole(user, dupTenantURI,
                                     Role.TENANT_ADMIN) ? APIException.badRequests
-                                            .userMappingDuplicatedInAnotherTenantExtended(
-                                                    userMapping.toString(),
-                                                    dupTenantURI.toString())
-                                                    : APIException.badRequests
-                                                    .userMappingDuplicatedInAnotherTenant(userMapping
-                                                            .toString());
+                                    .userMappingDuplicatedInAnotherTenantExtended(
+                                            userMapping.toString(),
+                                            dupTenantURI.toString())
+                                    : APIException.badRequests
+                                            .userMappingDuplicatedInAnotherTenant(userMapping
+                                                    .toString());
                         }
                     }
                 }
             }
 
-            //Now validate the user mapping. Now the user mapping is done
-            //from the tenants service itself in order to differenticate
-            //user group and groups in authentication provider.
+            // Now validate the user mapping. Now the user mapping is done
+            // from the tenants service itself in order to differenticate
+            // user group and groups in authentication provider.
             if (!isValidMapping(userMapping)) {
                 throw APIException.badRequests.invalidParameter("user_mapping",
                         userMapping.toString());
@@ -694,7 +692,7 @@ public class TenantsService extends TaggedResource {
      *            object for the tenant containing the domain, group and attribute
      *            information The method will trim spaces at the beginning and at the end
      *            of the domain and groups in the provided UserMapping object.
-     *
+     * 
      *            the method also trim domain name from groups, if it matches domain.
      */
     private void trimGroupAndDomainNames(UserMapping userMapping) {
@@ -710,9 +708,9 @@ public class TenantsService extends TaggedResource {
                 // if not match, then keep it, as it is part of the group name.
                 String[] groupItems = igroup.split("@");
                 if (groupItems.length > 1) {
-                    String inputDomain = groupItems[groupItems.length-1];
+                    String inputDomain = groupItems[groupItems.length - 1];
                     if (inputDomain.equalsIgnoreCase(userMapping.getDomain())) {
-                         groupName = groupName.substring(0,groupName.lastIndexOf("@"));
+                        groupName = groupName.substring(0, groupName.lastIndexOf("@"));
                     }
                 }
 
@@ -728,6 +726,7 @@ public class TenantsService extends TaggedResource {
 
     /**
      * Get tenant object from id
+     * 
      * @param id the URN of a ViPR tenant
      * @return
      */
@@ -764,7 +763,7 @@ public class TenantsService extends TaggedResource {
         while (it.hasNext()) {
             URI providerURI = it.next();
             AuthnProvider provider = _dbClient.queryObject(AuthnProvider.class, providerURI);
-            if (provider != null && provider.getDisable()==false) {
+            if (provider != null && provider.getDisable() == false) {
                 bExist = true;
                 break;
             }
@@ -775,7 +774,7 @@ public class TenantsService extends TaggedResource {
 
     /**
      * Record Bourne Event for the completed operations
-     *
+     * 
      * @param tenantId
      * @param targetId
      */
@@ -785,7 +784,7 @@ public class TenantsService extends TaggedResource {
         String description = opType.getDescription();
 
         RecordableBourneEvent event = new RecordableBourneEvent(
-               /* String */type,
+                /* String */type,
                 /* tenant id */tenantId,
                 /* user id ?? */URI.create("ViPR-User"),
                 /* project ID */null,
@@ -822,6 +821,8 @@ public class TenantsService extends TaggedResource {
     /**
      * Creates a new host for the tenant organization. Discovery is initiated
      * after the host is created.
+     * <p>
+     * This method is deprecated. Use /compute/hosts instead
      * 
      * @param tid
      *            the tenant organization id
@@ -830,7 +831,7 @@ public class TenantsService extends TaggedResource {
      * @prereq none
      * @deprecated use {@link HostService#createHost(HostCreateParam,Boolean)}
      * @brief Create tenant host
-     * @return the host discovery async task representation. 
+     * @return the host discovery async task representation.
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -839,7 +840,7 @@ public class TenantsService extends TaggedResource {
     @Path("/{id}/hosts")
     @Deprecated
     public TaskResourceRep createHost(@PathParam("id") URI tid,
-            HostCreateParam createParam, 
+            HostCreateParam createParam,
             @QueryParam("validate_connection") @DefaultValue("false") final Boolean validateConnection) {
 
         // This is mostly to validate the tenant
@@ -857,12 +858,15 @@ public class TenantsService extends TaggedResource {
 
     /**
      * Lists the id and name for all the hosts that belong to the given tenant organization.
+     * <p>
+     * This method is deprecated. Use /compute/hosts instead
+     * 
      * @param id the URN of a ViPR tenant organization
      * @prereq none
      * @deprecated use {@link HostService#listHosts()}
      * @brief List tenant hosts
-     * @return a list of hosts that belong to the tenant organization.     
-     * @throws DatabaseException when a DB error occurs     
+     * @return a list of hosts that belong to the tenant organization.
+     * @throws DatabaseException when a DB error occurs
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -890,7 +894,7 @@ public class TenantsService extends TaggedResource {
      *            the parameter that has the attributes of the vCenter to be created.
      * @prereq none
      * @brief Create tenant vCenter
-     * @return the vCenter discovery async task. 
+     * @return the vCenter discovery async task.
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -912,18 +916,17 @@ public class TenantsService extends TaggedResource {
         _dbClient.createObject(vcenter);
         recordTenantResourceOperation(OperationTypeEnum.CREATE_VCENTER, tid, vcenter);
 
-        
         return service.doDiscoverVcenter(vcenter);
     }
 
-
     /**
      * Lists the id and name for all the vCenters that belong to the given tenant organization.
+     * 
      * @param id the URN of a ViPR tenant organization
      * @prereq none
      * @brief List tenant vCenters
-     * @return a list of hosts that belong to the tenant organization.     
-     * @throws DatabaseException when a DB error occurs     
+     * @return a list of hosts that belong to the tenant organization.
+     * @throws DatabaseException when a DB error occurs
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -935,8 +938,9 @@ public class TenantsService extends TaggedResource {
         verifyAuthorizedInTenantOrg(id, getUserFromContext());
         // get all children vcenters
         VcenterList list = new VcenterList();
-        list.setVcenters(map(ResourceTypeEnum.VCENTER,
-                listChildren(id, Vcenter.class, "label", "tenant")));
+
+        list.setVcenters(map(ResourceTypeEnum.VCENTER, listChildrenWithAcls(id, Vcenter.class, "label")));
+
         return list;
     }
 
@@ -949,7 +953,7 @@ public class TenantsService extends TaggedResource {
      *            the parameter that has the type and attribute of the host to be created.
      * @prereq none
      * @brief Create host cluster for tenant
-     * @return the host discovery async task representation. 
+     * @return the host discovery async task representation.
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -970,15 +974,15 @@ public class TenantsService extends TaggedResource {
         return map(cluster);
     }
 
-
     /**
      * Lists the id and name for all the clusters that belong to the
      * tenant organization.
+     * 
      * @param id the URN of a ViPR tenant organization
      * @prereq none
      * @brief List tenant clusters
-     * @return a list of hosts that belong to the tenant organization.     
-     * @throws DatabaseException when a DB error occurs     
+     * @return a list of hosts that belong to the tenant organization.
+     * @throws DatabaseException when a DB error occurs
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -997,10 +1001,11 @@ public class TenantsService extends TaggedResource {
 
     /**
      * Show quota and available capacity before quota is exhausted
-     * @param id   the URN of a ViPR Tenant.
+     * 
+     * @param id the URN of a ViPR Tenant.
      * @prereq none
      * @brief Show quota and available capacity
-     * @return QuotaInfo Quota metrics.     
+     * @return QuotaInfo Quota metrics.
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -1013,12 +1018,12 @@ public class TenantsService extends TaggedResource {
 
     /**
      * Updates quota and available capacity before quota is exhausted
-     *
-     * @param id   the URN of a ViPR Tenant.
-     * @param param   new values for the quota
+     * 
+     * @param id the URN of a ViPR Tenant.
+     * @param param new values for the quota
      * @prereq none
      * @brief Updates quota and available capacity
-     * @return QuotaInfo Quota metrics.     
+     * @return QuotaInfo Quota metrics.
      */
     @PUT
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -1035,43 +1040,43 @@ public class TenantsService extends TaggedResource {
             long quota_gb =
                     (param.getQuotaInGb() != null) ? param.getQuotaInGb() : tenant
                             .getQuota();
-                    ArgValidator.checkFieldMinimum(quota_gb, 0, "quota_gb", "GB");
+            ArgValidator.checkFieldMinimum(quota_gb, 0, "quota_gb", "GB");
 
-                    // Verify that the quota of this "sub-tenant" does exceed the new quota for
-                    // its parent;
-                    if (!TenantOrg.isRootTenant(tenant)) {
-                        TenantOrg parent =
-                                _dbClient.queryObject(TenantOrg.class, tenant.getParentTenant()
-                                        .getURI());
-                        if (parent.getQuotaEnabled()) {
-                            long totalSubtenants =
-                                    CapacityUtils.totalSubtenantQuota(_dbClient, parent.getId());
-                            totalSubtenants = totalSubtenants - tenant.getQuota() + quota_gb;
-                            if (totalSubtenants > parent.getQuota()) {
-                                throw APIException.badRequests
+            // Verify that the quota of this "sub-tenant" does exceed the new quota for
+            // its parent;
+            if (!TenantOrg.isRootTenant(tenant)) {
+                TenantOrg parent =
+                        _dbClient.queryObject(TenantOrg.class, tenant.getParentTenant()
+                                .getURI());
+                if (parent.getQuotaEnabled()) {
+                    long totalSubtenants =
+                            CapacityUtils.totalSubtenantQuota(_dbClient, parent.getId());
+                    totalSubtenants = totalSubtenants - tenant.getQuota() + quota_gb;
+                    if (totalSubtenants > parent.getQuota()) {
+                        throw APIException.badRequests
                                 .invalidParameterTenantsQuotaInvalidatesParent(parent
                                         .getQuota());
-                            }
-                        }
                     }
+                }
+            }
 
-                    // Verify that the quota is consistent with quotas for subtenants.
-                    long totalSubtenants = CapacityUtils.totalSubtenantQuota(_dbClient, id);
-                    if (totalSubtenants > quota_gb) {
-                        throw APIException.badRequests
+            // Verify that the quota is consistent with quotas for subtenants.
+            long totalSubtenants = CapacityUtils.totalSubtenantQuota(_dbClient, id);
+            if (totalSubtenants > quota_gb) {
+                throw APIException.badRequests
                         .invalidParameterTenantsQuotaExceedsSubtenants(quota_gb,
                                 totalSubtenants);
-                    }
+            }
 
-                    // verify that the quota is consistentn with quotas for all projects.
-                    long totalProjects = CapacityUtils.totalProjectQuota(_dbClient, id);
-                    if (totalProjects > quota_gb) {
-                        throw APIException.badRequests
+            // verify that the quota is consistentn with quotas for all projects.
+            long totalProjects = CapacityUtils.totalProjectQuota(_dbClient, id);
+            if (totalProjects > quota_gb) {
+                throw APIException.badRequests
                         .invalidParameterTenantsQuotaExceedsProject(quota_gb,
                                 totalProjects);
-                    }
+            }
 
-                    tenant.setQuota(quota_gb);
+            tenant.setQuota(quota_gb);
         }
         _dbClient.persistObject(tenant);
 
@@ -1131,7 +1136,7 @@ public class TenantsService extends TaggedResource {
     public TenantOrgBulkRep queryBulkResourceReps(List<URI> ids) {
 
         Iterator<TenantOrg> _dbIterator =
-            _dbClient.queryIterativeObjects(getResourceClass(), ids);
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new TenantOrgBulkRep(BulkList.wrapping(_dbIterator,
                 MapTenant.getInstance()));
     }
@@ -1140,7 +1145,7 @@ public class TenantsService extends TaggedResource {
     protected TenantOrgBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
 
         Iterator<TenantOrg> _dbIterator =
-            _dbClient.queryIterativeObjects(getResourceClass(), ids);
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
         BulkList.ResourceFilter filter =
                 new BulkList.TenantFilter(getUserFromContext(), _permissionsHelper);
         return new TenantOrgBulkRep(BulkList.wrapping(_dbIterator,
@@ -1161,7 +1166,7 @@ public class TenantsService extends TaggedResource {
     }
 
     public static class TenantResRepFilter<E extends RelatedResourceRep> extends
-    ResRepFilter<E> {
+            ResRepFilter<E> {
         public TenantResRepFilter(StorageOSUser user, PermissionsHelper permissionsHelper) {
             super(user, permissionsHelper);
         }
@@ -1194,7 +1199,7 @@ public class TenantsService extends TaggedResource {
         roleAssignmentsResponse.setSelfLink(getCurrentSelfLink());
         return roleAssignmentsResponse;
     }
-    
+
     /**
      * Clear any tenant USE ACLs associated with the provided tenant id from the indicated CF
      * 
@@ -1203,12 +1208,12 @@ public class TenantsService extends TaggedResource {
      * @param specifier optional specifier (e.g. block or file for VirtualPools)
      */
     private void clearTenantACLs(Class<? extends DataObjectWithACLs> clazz, URI tenantId, String specifier) {
-        PermissionsKey permissionKey;  
+        PermissionsKey permissionKey;
         if (StringUtils.isNotBlank(specifier)) {
             permissionKey = new PermissionsKey(PermissionsKey.Type.TENANT, tenantId.toString(), specifier);
         } else {
             permissionKey = new PermissionsKey(PermissionsKey.Type.TENANT, tenantId.toString());
-        }                
+        }
         URIQueryResultList resultURIs = new URIQueryResultList();
         Constraint aclConstraint = ContainmentPermissionsConstraint.Factory.getObjsWithPermissionsConstraint(
                 permissionKey.toString(), clazz);
@@ -1223,38 +1228,41 @@ public class TenantsService extends TaggedResource {
             while (objectIter.hasNext()) {
                 objectList.add(objectIter.next());
             }
-            for (DataObjectWithACLs object: objectList) {
+            for (DataObjectWithACLs object : objectList) {
                 _log.info("Removing USE ACL for deleted subtenant {} from object {}", tenantId, object.getId());
                 object.removeAcl(permissionKey.toString(), ACL.USE.toString());
             }
             _dbClient.updateAndReindexObject(objectList);
-        }            
+        }
     }
 
     /**
      * check if UserMapping is empty.
-     *
+     * 
      * @param param
      * @return
      */
     private boolean isUserMappingEmpty(TenantUpdateParam param) {
-        if (param == null || param.getUserMappingChanges() == null)
+        if (param == null || param.getUserMappingChanges() == null) {
             return true;
+        }
 
         List<UserMappingParam> list = param.getUserMappingChanges().getAdd();
-        if (list != null && !list.isEmpty())
+        if (list != null && !list.isEmpty()) {
             return false;
+        }
 
         list = param.getUserMappingChanges().getRemove();
-        if (list != null && !list.isEmpty())
+        if (list != null && !list.isEmpty()) {
             return false;
+        }
 
         return true;
     }
 
     /**
      * Validate an attribute string
-     *
+     * 
      * @param userMapping
      *            attribute string to validate
      * @return True if the attribute string is valid
@@ -1264,7 +1272,7 @@ public class TenantsService extends TaggedResource {
             return true;
         }
 
-        for( String group : userMapping.getGroups() ) {
+        for (String group : userMapping.getGroups()) {
             if (StringUtils.isBlank(group)) {
                 _log.warn("Invalid group in the user mapping groups list");
                 continue;
@@ -1273,17 +1281,17 @@ public class TenantsService extends TaggedResource {
             StorageOSPrincipal groupPrincipal = new StorageOSPrincipal();
             groupPrincipal.setType(StorageOSPrincipal.Type.Group);
 
-            //First add the group with "@domain" suffix and after that
-            //if we find that the group is a userGroup reset the
-            //name to just the group name without "@domain" suffix.
+            // First add the group with "@domain" suffix and after that
+            // if we find that the group is a userGroup reset the
+            // name to just the group name without "@domain" suffix.
             groupPrincipal.setName(group + "@" + userMapping.getDomain());
 
             List<UserGroup> userGroupList = _permissionsHelper.getAllUserGroupByLabel(group);
             if (!CollectionUtils.isEmpty(userGroupList)) {
                 for (UserGroup userGroup : userGroupList) {
-                    //If the returned userGroup's domain matches the userMapping
-                    //domain, reset the groupPrincipal name to just group (without domain) name
-                    //in order to treat the group as UserGroup.
+                    // If the returned userGroup's domain matches the userMapping
+                    // domain, reset the groupPrincipal name to just group (without domain) name
+                    // in order to treat the group as UserGroup.
                     if (userGroup != null &&
                             userGroup.getDomain().equalsIgnoreCase(userMapping.getDomain())) {
                         _log.debug("Group {} is considered as user group", group);
@@ -1302,12 +1310,13 @@ public class TenantsService extends TaggedResource {
 
     /**
      * make sure user-mapping's attributes are valid. all keys and values are not empty.
-     *
+     * 
      * @param params
      */
     private void checkUserMappingAttribute(List<UserMappingParam> params) {
-        if (params == null)
+        if (params == null) {
             return;
+        }
 
         for (UserMappingParam param : params) {
             List<UserMappingAttributeParam> attrs = param.getAttributes();
@@ -1329,17 +1338,17 @@ public class TenantsService extends TaggedResource {
 
     /**
      * SecurityAdmin has permission to create subtenant, or change a tenant's user mapping.
-     *
+     * 
      * before persisting user-mapping change to database, this check makes sure current user, if he is SecurityAdmin,
      * will not be mapped out of Provider Tenant, and lose its security admin role.
-     *
+     * 
      * @param tenant tenant, which is about to be created or modified
      */
     private void mapOutProviderTenantCheck(TenantOrg tenant) {
 
         // if the user don't have SecurityAdmin role, skip further check
         if (!_permissionsHelper.userHasGivenRole(
-                (StorageOSUser)sc.getUserPrincipal(),
+                (StorageOSUser) sc.getUserPrincipal(),
                 null, Role.SECURITY_ADMIN)) {
             return;
         }
@@ -1347,15 +1356,15 @@ public class TenantsService extends TaggedResource {
         String user = getUserFromContext().getName();
         UserInfoPage.UserTenantList userAndTenants = Validator.getUserTenants(user, tenant);
 
-        if( null != userAndTenants ) {
+        if (null != userAndTenants) {
             List<UserInfoPage.UserTenant> userTenants = userAndTenants._userTenantList;
 
             if (CollectionUtils.isEmpty(userTenants)) {
                 _log.error("User {} will not match any tenant after this user mapping change", user);
-                throw APIException.badRequests.UserMappingNotAllowed(user);
+                throw APIException.badRequests.userMappingNotAllowed(user);
             } else if (userTenants.size() > 1) {
                 _log.error("User {} will map to multiple tenants {} after this user mapping change", user, userTenants.toArray());
-                throw APIException.badRequests.UserMappingNotAllowed(user);
+                throw APIException.badRequests.userMappingNotAllowed(user);
             } else {
                 String tenantUri = userTenants.get(0)._id.toString();
                 String providerTenantId = _permissionsHelper.getRootTenant().getId().toString();
@@ -1364,7 +1373,7 @@ public class TenantsService extends TaggedResource {
 
                 if (!providerTenantId.equalsIgnoreCase(tenantUri)) {
                     _log.error("User {} will map to tenant {}, which is not provider tenant", user, tenant.getLabel());
-                    throw APIException.badRequests.UserMappingNotAllowed(user);
+                    throw APIException.badRequests.userMappingNotAllowed(user);
                 }
             }
 

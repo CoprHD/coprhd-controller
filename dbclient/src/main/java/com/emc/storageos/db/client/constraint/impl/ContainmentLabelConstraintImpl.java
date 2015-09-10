@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.client.constraint.impl;
 
@@ -29,7 +19,7 @@ import com.emc.storageos.db.client.impl.IndexColumnName;
 import com.emc.storageos.db.client.model.DataObject;
 
 /**
- *  default implementation for full name matcher
+ * default implementation for full name matcher
  */
 public class ContainmentLabelConstraintImpl extends ConstraintImpl implements ContainmentPrefixConstraint {
     private static final Logger log = LoggerFactory.getLogger(ContainmentLabelConstraintImpl.class);
@@ -39,7 +29,7 @@ public class ContainmentLabelConstraintImpl extends ConstraintImpl implements Co
     private Keyspace _keyspace;
     private ColumnField _field;
 
-    public ContainmentLabelConstraintImpl (URI indexKey, String prefix, ColumnField field) {
+    public ContainmentLabelConstraintImpl(URI indexKey, String prefix, ColumnField field) {
         super(indexKey, prefix, field);
 
         _indexKey = indexKey;

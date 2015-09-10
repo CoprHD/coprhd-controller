@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block;
@@ -17,8 +17,9 @@ import java.util.List;
 public class MigrationList {
     private List<NamedRelatedResourceRep> migrations;
 
-    public MigrationList() {}
-    
+    public MigrationList() {
+    }
+
     public MigrationList(List<NamedRelatedResourceRep> migrations) {
         this.migrations = migrations;
     }

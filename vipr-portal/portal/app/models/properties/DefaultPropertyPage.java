@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.properties;
@@ -139,7 +139,7 @@ public class DefaultPropertyPage implements PropertyPage {
     @Override
     public boolean isRebootRequired(Collection<String> keys) {
         boolean rebootRequired = false;
-        for (String key: keys) {
+        for (String key : keys) {
             Property property = getProperty(key);
             if (property != null) {
                 rebootRequired |= property.isRebootRequired();

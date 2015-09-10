@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.monitoring;
 
@@ -18,7 +8,6 @@ import java.net.URI;
 import java.util.UUID;
 
 import com.emc.storageos.db.client.model.Event;
-import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.Severity;
 
 /**
  * RecordableSystemEvent is used to record a Bourne system event in the
@@ -37,7 +26,7 @@ public class RecordableBourneEvent implements RecordableEvent {
     // Constant defines the event extension for host clients for fileshare
     // export/unexport events.
     public static final String FS_CLIENT_EXTENSION_NAME = "Hosts";
-    
+
     // Constant defines the event extension for ACLS of a share
     public static final String FS_ACL_EXTENSION_NAME = "Acls";
 
@@ -165,10 +154,11 @@ public class RecordableBourneEvent implements RecordableEvent {
      * {@inheritDoc}
      */
     public String getType() {
-        if (_type != null)
+        if (_type != null) {
             return _type;
-        else
+        } else {
             return null;
+        }
     }
 
     /**

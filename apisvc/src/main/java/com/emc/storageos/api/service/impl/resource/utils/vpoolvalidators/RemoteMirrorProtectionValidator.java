@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.service.impl.resource.utils.vpoolvalidators;
@@ -10,7 +10,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -36,12 +35,12 @@ public class RemoteMirrorProtectionValidator extends
     private static final Logger _logger = LoggerFactory
             .getLogger(RemoteMirrorProtectionValidator.class);
     private static final String SYMMETRIX = "SYMMETRIX";
-    
+
     @Override
     public void setNextValidator(@SuppressWarnings("rawtypes") final VirtualPoolValidator validator) {
         _nextValidator = validator;
     }
-    
+
     private void checkSystemIsVMAX(final VirtualPool cos,
             final BlockVirtualPoolUpdateParam updateParam) {
         StringSetMap arrayInfo = cos.getArrayInfo();
@@ -57,7 +56,7 @@ public class RemoteMirrorProtectionValidator extends
                     updateParam.getSystemType())) {
                 throw APIException.badRequests
                         .parameterOnlySupportedForVmax("SRDF Remote Protection");
-            } 
+            }
         } else if (null != arrayInfo
                 && null != arrayInfo.get(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE)) {
             StringSet deviceTypes = arrayInfo
@@ -68,11 +67,11 @@ public class RemoteMirrorProtectionValidator extends
             }
         }
     }
-    
- // Only vmax arrays allowed as srdf targets
-    private void validateSRDFTargetAsVMAX(URI virtualPool,DbClient dbClient) {
+
+    // Only vmax arrays allowed as srdf targets
+    private void validateSRDFTargetAsVMAX(URI virtualPool, DbClient dbClient) {
         if (null != virtualPool) {
-            VirtualPool targetVPool = dbClient.queryObject(VirtualPool.class,virtualPool);
+            VirtualPool targetVPool = dbClient.queryObject(VirtualPool.class, virtualPool);
             List<StoragePool> targetPools = VirtualPool.getValidStoragePools(targetVPool, dbClient, true);
             for (StoragePool targetPool : targetPools) {
                 if (!targetPool.getNativeGuid().toUpperCase().contains(SYMMETRIX)) {
@@ -81,31 +80,29 @@ public class RemoteMirrorProtectionValidator extends
             }
         }
     }
-    
-    
-    
+
     @Override
     protected void validateVirtualPoolUpdateAttributeValue(final VirtualPool vpool,
             final BlockVirtualPoolUpdateParam updateParam, final DbClient dbClient) {
-		if (!VirtualPool.vPoolSpecifiesSRDF(vpool)) {
-			// this code is not added under updateAttributeOn, as SRDF CopyModes
-			// can be updated without altering Add or remove
-			_logger.info("Not SRDF Specified");
-			return;
-		}
+        if (!VirtualPool.vPoolSpecifiesSRDF(vpool)) {
+            // this code is not added under updateAttributeOn, as SRDF CopyModes
+            // can be updated without altering Add or remove
+            _logger.info("Not SRDF Specified");
+            return;
+        }
         checkSystemIsVMAX(vpool, updateParam);
         Map<URI, VpoolRemoteCopyProtectionSettings> remoteSettingsMap =
-                VirtualPool.getRemoteProtectionSettings(vpool,dbClient);
-         if (remoteSettingsMap != null && !remoteSettingsMap.isEmpty()) {
-             for (VpoolRemoteCopyProtectionSettings remoteSettings : remoteSettingsMap.values()) {
-                  validateSRDFTargetAsVMAX(remoteSettings.getVirtualPool(), dbClient);
-             }
-         }
+                VirtualPool.getRemoteProtectionSettings(vpool, dbClient);
+        if (remoteSettingsMap != null && !remoteSettingsMap.isEmpty()) {
+            for (VpoolRemoteCopyProtectionSettings remoteSettings : remoteSettingsMap.values()) {
+                validateSRDFTargetAsVMAX(remoteSettings.getVirtualPool(), dbClient);
+            }
+        }
         Map<String, List<String>> mapping = VirtualPool
                 .groupRemoteCopyModesByVPool(vpool, dbClient);
         List<String> availableCopyModes = new ArrayList<String>();
         _logger.info("Multi Volume Consistency {} :", vpool.getMultivolumeConsistency());
-        if ( mapping != null) {
+        if (mapping != null) {
             for (Collection<String> copyModes : mapping.values()) {
                 availableCopyModes.addAll(copyModes);
             }
@@ -114,20 +111,21 @@ public class RemoteMirrorProtectionValidator extends
         if (frequency > 1) {
             throw APIException.badRequests.unsupportedConfigurationWithMultipleAsyncModes();
         }
-        
+
     }
-    
+
     @Override
     protected boolean isCreateAttributeOn(final BlockVirtualPoolParam createParam) {
         _logger.info("Entered Remote Protection Validator");
         if (null == createParam.getProtection()
                 || null == createParam.getProtection().getRemoteCopies()
                 || null == createParam.getProtection().getRemoteCopies().getRemoteCopySettings()
-                || createParam.getProtection().getRemoteCopies().getRemoteCopySettings().isEmpty())
+                || createParam.getProtection().getRemoteCopies().getRemoteCopySettings().isEmpty()) {
             return false;
+        }
         return true;
     }
-    
+
     /**
      * check VMAX system in VPool
      * 
@@ -142,7 +140,7 @@ public class RemoteMirrorProtectionValidator extends
             throw APIException.badRequests.parameterOnlySupportedForVmax("SRDF Remote Protection");
         }
     }
-    
+
     /**
      * check RP or VPlex enabled in VPool
      * 
@@ -164,7 +162,7 @@ public class RemoteMirrorProtectionValidator extends
             throw APIException.badRequests.parameterVPLEXNotSupportedWithSRDF();
         }
     }
-    
+
     @Override
     protected void validateVirtualPoolCreateAttributeValue(final BlockVirtualPoolParam createParam,
             final DbClient dbClient) {
@@ -185,7 +183,7 @@ public class RemoteMirrorProtectionValidator extends
                     .getProtection().getRemoteCopies().getRemoteCopySettings()) {
                 VirtualPool vPool = null;
                 if (remoteSettings.getVpool() != null) {
-                    validateSRDFTargetAsVMAX(remoteSettings.getVpool() , dbClient);
+                    validateSRDFTargetAsVMAX(remoteSettings.getVpool(), dbClient);
                     vPool = dbClient.queryObject(VirtualPool.class, remoteSettings.getVpool());
                 }
                 checkVArrayIsValidForVPool(remoteSettings, vPool, createParam);
@@ -197,14 +195,14 @@ public class RemoteMirrorProtectionValidator extends
                     throw APIException.badRequests.invalidCopyMode(remoteSettings.getRemoteCopyMode());
                 }
             }
-            
+
             int frequency = Collections.frequency(availableCopyModes, Mode.ASYNCHRONOUS.toString());
             if (frequency > 1) {
                 throw APIException.badRequests.unsupportedConfigurationWithMultipleAsyncModes();
             }
         }
     }
-    
+
     /**
      * For each remote setting, check given VArray is part of attached VArrays of given remote VPool
      * 
@@ -218,21 +216,21 @@ public class RemoteMirrorProtectionValidator extends
         if (null != vPool) {
             if (null != vPool.getVirtualArrays()
                     && !vPool.getVirtualArrays().contains(remoteSettings.getVarray().toString())) {
-                throw APIException.badRequests.VArrayUnSupportedForGivenVPool(vPool.getId(),
+                throw APIException.badRequests.vArrayUnSupportedForGivenVPool(vPool.getId(),
                         remoteSettings.getVarray());
             }
         } else {
             Set<String> vArrays = createParam.getVarrays();
             if (null != vArrays && !vArrays.contains(remoteSettings.getVarray().toString())) {
-                throw APIException.badRequests.VArrayUnSupportedForGivenVPool(remoteSettings.getVarray(),
+                throw APIException.badRequests.vArrayUnSupportedForGivenVPool(remoteSettings.getVarray(),
                         remoteSettings.getVarray());
             }
         }
     }
-    
+
     @Override
     protected boolean isUpdateAttributeOn(final BlockVirtualPoolUpdateParam updateParam) {
-        //Add and Remove Sizes will be 0, if only copyMode is changed.
+        // Add and Remove Sizes will be 0, if only copyMode is changed.
         if (null == updateParam.getProtection()
                 || null == updateParam.getProtection().getRemoteCopies()
                 || null == updateParam.getProtection().getRemoteCopies().getAdd()

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -26,8 +26,10 @@ import static com.emc.vipr.client.core.util.ResourceUtils.defaultList;
  * <p>
  * Base URL: <tt>/vdc</tt>
  */
-public class VirtualDataCenters extends AbstractCoreResources<VirtualDataCenterRestRep> implements TopLevelResources<VirtualDataCenterRestRep> {
+public class VirtualDataCenters extends AbstractCoreResources<VirtualDataCenterRestRep> implements
+        TopLevelResources<VirtualDataCenterRestRep> {
     private static final String EXPECTED_VERSION_QUERY_PARAM = "expect_version";
+
     public VirtualDataCenters(ViPRCoreClient parent, RestClient client) {
         super(parent, client, VirtualDataCenterRestRep.class, PathConstants.VDC_URL);
     }
@@ -38,9 +40,9 @@ public class VirtualDataCenters extends AbstractCoreResources<VirtualDataCenterR
     }
 
     public List<NamedRelatedResourceRep> list() {
-    	VirtualDataCenterList response = 
-    			client.get(VirtualDataCenterList.class, PathConstants.VDC_URL);
-    	return defaultList(response.getVirtualDataCenters());
+        VirtualDataCenterList response =
+                client.get(VirtualDataCenterList.class, PathConstants.VDC_URL);
+        return defaultList(response.getVirtualDataCenters());
     }
 
     /**
@@ -49,26 +51,26 @@ public class VirtualDataCenters extends AbstractCoreResources<VirtualDataCenterR
      * API Call: <tt>POST /vdc/</tt>
      * 
      * @param input
-     *        the vdc configuration.
+     *            the vdc configuration.
      * @return Task<VirtualDataCenterRestRep> the task to create the vdc.
      */
     public Task<VirtualDataCenterRestRep> create(VirtualDataCenterAddParam input) {
-    	return postTask(input, PathConstants.VDC_URL);
+        return postTask(input, PathConstants.VDC_URL);
     }
-    
+
     /**
      * Updates a vdc.
      * <p>
      * API Call: <tt>PUT /vdc/{id}</tt>
-     *
+     * 
      * @param id
-     *        the ID of the vdc to update.
+     *            the ID of the vdc to update.
      * @param input
-     *        the vdc configuration.
+     *            the vdc configuration.
      * @return Task<VirtualDataCenterRestRep> the task to update the vdc.
      */
-    public Task<VirtualDataCenterRestRep>  update(URI id, VirtualDataCenterModifyParam input) {
-    	return putTask(input, getIdUrl(), id);
+    public Task<VirtualDataCenterRestRep> update(URI id, VirtualDataCenterModifyParam input) {
+        return putTask(input, getIdUrl(), id);
     }
 
     /**
@@ -77,53 +79,53 @@ public class VirtualDataCenters extends AbstractCoreResources<VirtualDataCenterR
      * API Call: <tt>DELETE /vdc/{id}</tt>
      * 
      * @param id
-     *        the ID of the vdc to delete.
+     *            the ID of the vdc to delete.
      * @return Task<VirtualDataCenterRestRep> the task to delete the vdc.
      */
-    public Task<VirtualDataCenterRestRep>  delete(URI id) {
+    public Task<VirtualDataCenterRestRep> delete(URI id) {
         TaskResourceRep task = client.delete(TaskResourceRep.class, getIdUrl(), id);
         return new Task<VirtualDataCenterRestRep>(client, task, resourceClass);
     }
-    
+
     /**
      * Reconnects the given vdc by ID.
      * <p>
      * API Call: <tt>POST /vdc/{id}/reconnect</tt>
      * 
      * @param id
-     *        the ID of the vdc to reconnect.
+     *            the ID of the vdc to reconnect.
      * @return Task<VirtualDataCenterRestRep> the task to reconnect the vdc.
      */
     public Task<VirtualDataCenterRestRep> reconnect(URI id) {
-    	return postTask(getReconnectUrl(), id);
+        return postTask(getReconnectUrl(), id);
     }
-    
+
     /**
      * Disconnects the given vdc by ID.
      * <p>
      * API Call: <tt>POST /vdc/{id}/disconnect</tt>
      * 
      * @param id
-     *        the ID of the vdc to disconnect.
+     *            the ID of the vdc to disconnect.
      * @return Task<VirtualDataCenterRestRep> the task to disconnect the vdc.
      */
     public Task<VirtualDataCenterRestRep> disconnect(URI id) {
-    	return postTask(getDisconnectUrl(), id);
+        return postTask(getDisconnectUrl(), id);
     }
-    
+
     /**
      * gets the secret key.
      * <p>
      * API Call: <tt>POST /vdc/secret-key</tt>
      * 
      * @return VirtualDataCenterSecretKeyRestRep the vdc secret
-     * 				key response.
+     *         key response.
      */
     public VirtualDataCenterSecretKeyRestRep getSecretKey() {
-        return client.get(VirtualDataCenterSecretKeyRestRep.class, 
-        		PathConstants.VDC_SECRET_KEY_URL);
+        return client.get(VirtualDataCenterSecretKeyRestRep.class,
+                PathConstants.VDC_SECRET_KEY_URL);
     }
-    
+
     /**
      * Gets the URL for disconnecting a vdc.
      * 
@@ -132,7 +134,7 @@ public class VirtualDataCenters extends AbstractCoreResources<VirtualDataCenterR
     protected String getDisconnectUrl() {
         return String.format(PathConstants.DISCONNECT_URL_FORMAT, baseUrl);
     }
-    
+
     /**
      * Gets the URL for reconnecting a vdc.
      * 
@@ -151,7 +153,7 @@ public class VirtualDataCenters extends AbstractCoreResources<VirtualDataCenterR
     public List<VirtualDataCenterRestRep> getAll(ResourceFilter<VirtualDataCenterRestRep> filter) {
         return getByRefs(list(), filter);
     }
-    
+
     public Tasks<VirtualDataCenterRestRep> getTasks(URI id) {
         return doGetTasks(id);
     }
@@ -162,30 +164,30 @@ public class VirtualDataCenters extends AbstractCoreResources<VirtualDataCenterR
      * view of a feature.
      * *
      * API Call: <tt>GET /vdc/check-compatibility?expect_version={expectedVersion}
-     *
+     * 
      * @param expectedVersion minimum expected version of all the VDCs in the federation.
-     *
+     * 
      * @return true if the all the VDCs are in equal or higher version of the expectedVersion
-     * otherwise false.
+     *         otherwise false.
      */
-    public boolean isCompatibleVDCVersion (String expectedVersion) {
+    public boolean isCompatibleVDCVersion(String expectedVersion) {
         Properties queryParams = new Properties();
         queryParams.put(EXPECTED_VERSION_QUERY_PARAM, expectedVersion);
 
         ClientResponse resp = client.get(ClientResponse.class, PathConstants.CHECK_COMPATIBLE_VDC_URL, queryParams);
         return Boolean.parseBoolean(resp.getEntity(String.class));
     }
-    
+
     /**
      * A check to see if the setup is geo-distributed multi-vdc setup.
      * This can be used in the UI to restrict a view of a feature.
      * *
      * API Call: <tt>GET /vdc/check-geo-distributed
-     *
+     * 
      * @return true if the setup is geo-distributed/multi-vdc setup
-     * otherwise false.
+     *         otherwise false.
      */
-    public boolean isGeoSetup () {
+    public boolean isGeoSetup() {
         ClientResponse resp = client.get(ClientResponse.class, PathConstants.CHECK_IS_GEO_DISTRIBUTED_VDC_URL);
         return Boolean.parseBoolean(resp.getEntity(String.class));
     }

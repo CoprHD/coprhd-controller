@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -15,15 +15,15 @@ import com.google.gson.GsonBuilder;
 
 public class Json {
 
-	/**
-	 * Serializes the given object to JSON, ignoring any fields marked with {@link JsonIgnore}
-	 */
-	public static String toSafeJson(Object object) {
-		Gson gson = new GsonBuilder().addSerializationExclusionStrategy(new IgnoreExclusionStrategy())
-				 .create();
+    /**
+     * Serializes the given object to JSON, ignoring any fields marked with {@link JsonIgnore}
+     */
+    public static String toSafeJson(Object object) {
+        Gson gson = new GsonBuilder().addSerializationExclusionStrategy(new IgnoreExclusionStrategy())
+                .create();
 
-    	return gson.toJson(object);
-	}
+        return gson.toJson(object);
+    }
 
     /**
      * Renders a Controller response as JSON, ignoring any fields marked with {@link JsonIgnore}
@@ -44,24 +44,23 @@ public class Json {
         throw new RenderJson(toPrettyJson(object));
     }
 
-
     /**
-	 * Signifies that the specified field should NOT be included during Json Serialization 
-	 */
-	@Retention(RetentionPolicy.RUNTIME)
-	@java.lang.annotation.Target(java.lang.annotation.ElementType.FIELD)
-	public @interface JsonIgnore {
-	}
-	
-    private static class IgnoreExclusionStrategy implements ExclusionStrategy {
-		@Override
-		public boolean shouldSkipClass(Class<?> classAttrs) {
-			return false;
-		}
+     * Signifies that the specified field should NOT be included during Json Serialization
+     */
+    @Retention(RetentionPolicy.RUNTIME)
+    @java.lang.annotation.Target(java.lang.annotation.ElementType.FIELD)
+    public @interface JsonIgnore {
+    }
 
-		@Override
-		public boolean shouldSkipField(FieldAttributes fieldAttrs) {
-			return fieldAttrs.getAnnotation(JsonIgnore.class) != null;
-		}
+    private static class IgnoreExclusionStrategy implements ExclusionStrategy {
+        @Override
+        public boolean shouldSkipClass(Class<?> classAttrs) {
+            return false;
+        }
+
+        @Override
+        public boolean shouldSkipField(FieldAttributes fieldAttrs) {
+            return fieldAttrs.getAnnotation(JsonIgnore.class) != null;
+        }
     }
 }

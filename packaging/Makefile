@@ -48,7 +48,8 @@ include ../Makefile.common
                                     --define "product_brand $(PRODUCT_BRAND)" \
                                     --define "product_version $(PRODUCT_VERSION).$(PRODUCT_RELEASE)" \
                                     --define "product_release $(RPM_REVISION)"
-            RPMBUILD_CONTENT_MD5_FILE  = $(OBJDIR)/rpmcontent.md5
+       RPMBUILD_CONTENT_MD5_FILE  = $(OBJDIR)/rpmcontent.md5
+                 DOCKER_BUILDDIR  = $(OBJDIR)/dockerbuild
 
  OVFBUILD_CONTROLLER_L_VCPU_CNT := 4
 OVFBUILD_CONTROLLER_L_MEMORY_MB := 16384
@@ -111,7 +112,7 @@ OVFBUILD_CONTROLLER_S_MEMORY_MB := 8192
 
                     LICENSE_FILE = $(SOURCE_BASE)/packaging/storageos-license.txt
        OVFBUILD_CONFIG_FILE_SIZE = 4096
-             OVFBUILD_DISK4_SIZE = 1069547
+             OVFBUILD_DISK4_SIZE = 2097152
              OVFBUILD_HYPERV_ZIP = $(OVFBUILD_OVAS_DIR)/$(PRODUCT)-controller-hyperv.zip
 
             OVFBUILD_HYPERV_DIR  = $(OBJDIR)/$(PRODUCT)-controller-hyperv
@@ -169,14 +170,14 @@ OVFBUILD_VSPHERE_BASH_LICENSE_FILE = $(OVFBUILD_VSPHERE_DIR)/storageos-license-s
 
               OVFBUILD_UI_FILES  = $(OVFBUILD_HYPERV_UI_FILE) $(OVFBUILD_VSPHERE_UI_FILE)
 
-          OVFBUILD_BASE_RELEASE := 28
-          OVFBUILD_BASE_URL      = http://lglaf020.lss.emc.com/images/vipr/ViPRBase/2.3.0.0/$(OVFBUILD_BASE_RELEASE)/
-            OVFBUILD_BASE_NAME  = base-2.3.0.0.$(OVFBUILD_BASE_RELEASE)
+          OVFBUILD_BASE_RELEASE := 3
+          OVFBUILD_BASE_URL      = http://lglaf020.lss.emc.com/images/vipr/ViPRBase/2.4.0.0/$(OVFBUILD_BASE_RELEASE)/
+            OVFBUILD_BASE_NAME  = base-2.4.0.0.$(OVFBUILD_BASE_RELEASE)
               OVFBUILD_BASE_DIR  = $(OBJDIR)/$(OVFBUILD_BASE_NAME)
-              OVFBUILD_BASE_OVF  = $(OVFBUILD_BASE_DIR)/ViPRBase.x86_64-2.3.0.0.$(OVFBUILD_BASE_RELEASE).ovf
-             OVFBUILD_BASE_DISK  = $(OVFBUILD_BASE_DIR)/ViPRBase.x86_64-2.3.0.0.$(OVFBUILD_BASE_RELEASE)-disk1.vmdk
+              OVFBUILD_BASE_OVF  = $(OVFBUILD_BASE_DIR)/ViPRBase.x86_64-2.4.0.0.$(OVFBUILD_BASE_RELEASE).ovf
+             OVFBUILD_BASE_DISK  = $(OVFBUILD_BASE_DIR)/ViPRBase.x86_64-2.4.0.0.$(OVFBUILD_BASE_RELEASE)-disk1.vmdk
 
-        OVFBUILD_BASE_FLAT_NAME  = base-flat-2.3.0.0.$(OVFBUILD_BASE_RELEASE)
+        OVFBUILD_BASE_FLAT_NAME  = base-flat-2.4.0.0.$(OVFBUILD_BASE_RELEASE)
          OVFBUILD_BASE_FLAT_DIR  = $(OBJDIR)/$(OVFBUILD_BASE_FLAT_NAME)
          OVFBUILD_BASE_FLAT_VMX  = $(OVFBUILD_BASE_FLAT_DIR)/$(OVFBUILD_BASE_FLAT_NAME).vmx
         OVFBUILD_BASE_FLAT_DISK  = $(OVFBUILD_BASE_FLAT_DIR)/$(OVFBUILD_BASE_FLAT_NAME)-disk1-flat.vmdk
@@ -209,11 +210,13 @@ OVFBUILD_VSPHERE_BASH_LICENSE_FILE = $(OVFBUILD_VSPHERE_DIR)/storageos-license-s
                                    $(OVFBUILD_OVF_BUILDDIR)/storageos-license.txt \
                                    $(OVFBUILD_OVF_PROPERTY_INCLUDES)
 CONTROLLER_OVF_DEFINITIONS       := storageos-properties-ovfenv.def
-CONTROLLER_PROPERTY_DEFINITIONS  := $(CONTROLLER_OVF_DEFINITIONS) storageos-properties-config.def
+               ITER_DEFINITIONS  := storageos-properties-iterable.def
+CONTROLLER_PROPERTY_DEFINITIONS  := $(ITER_DEFINITIONS) $(CONTROLLER_OVF_DEFINITIONS) storageos-properties-config.def
     OVF_PROPERTY_METADATA_BEANS   = $(SOURCE_BASE)/syssvc/src/conf/sys-metadata-var.xml \
                                     $(SOURCE_BASE)/syssvc/src/conf/sys-metadata-var-template.xml
                  CONFIG_DEFAULTS  = $(BUILD_BASE)/etc/config.defaults
           OVF_CONTROLLER_DEFAULTS = $(BUILD_BASE)/etc/.ovfenv.properties
+                    ITER_DEFAULTS = $(BUILD_BASE)/etc/.iterable.properties
                          GENTMPL  = $(SOURCE_BASE)/etc/gentmpl
                       SED_SCRIPT  = $(SED) \
                                    -e 's,@product_brand@,$(PRODUCT_BRAND),g'   \
@@ -589,6 +592,22 @@ $(OVFBUILD_NATIVE_IMG):
 	$(ATECHO) native
 	$(ATSIGN)$(SUDO) ./mkiso.sh $(@) $(OVFBUILD_ROOTIMG_FILE) $(TEEOUT) $(@D)/mkiso.log
 
+# Docker image that has the rpm installed
+#
+.PHONY: docker clean-docker
+
+docker: Dockerfile $(RPMBUILD_RPM_FILE)
+ifeq ($(BUILD_TYPE),emc)
+	$(ATECHO) Cannot generate docker image in emc mode, specify BUILD_TYPE=oss instead
+else
+	$(ATSIGN)$(MKDIR) $(DOCKER_BUILDDIR)
+	$(ATSIGN)$(CP) Dockerfile $(DOCKER_BUILDDIR)
+	$(ATSIGN)$(CP) $(RPMBUILD_RPM_FILE) $(DOCKER_BUILDDIR)
+	$(ATSIGN)docker build -t coprhd-devkit $(DOCKER_BUILDDIR)
+endif
+
+clean-docker:
+	$(ATSIGN)$(RM) -r $(DOCKER_BUILDDIR)
 
 # Stream-optimized bootfs VMDK
 #
@@ -800,7 +819,14 @@ $(OVF_CONTROLLER_DEFAULTS): ./genprops.py $(CONTROLLER_PROPERTY_DEFINITIONS)
 	$(ATSIGN)$(RM) $(@) $(@).temp
 	$(ATSIGN)$(MKDIR) $(@D)
 	$(ATECHO) genprops.py $(@F)
-	$(ATSIGN)./genprops.py --ovf-controller-defaults $(CONTROLLER_OVF_DEFINITIONS) - node_count='1' >$(@).temp
+	$(ATSIGN)./genprops.py --ovf-controller-defaults - $(CONTROLLER_OVF_DEFINITIONS) - node_count='1' >$(@).temp
+	$(ATSIGN)$(MV) $(@).temp $(@)
+
+$(ITER_DEFAULTS): ./genprops.py $(CONTROLLER_PROPERTY_DEFINITIONS)
+	$(ATSIGN)$(RM) $(@) $(@).temp
+	$(ATSIGN)$(MKDIR) $(@D)
+	$(ATECHO) genprops.py $(@F)
+	$(ATSIGN)./genprops.py --iter-defaults $(CONTROLLER_PROPERTY_DEFINITIONS) node_count='1' >$(@).temp
 	$(ATSIGN)$(MV) $(@).temp $(@)
 
 # Rule for $(OVFBUILD_OVF_PROPERTY_INCLUDES)
@@ -813,10 +839,10 @@ $(OBJDIR)/ovfbuild/storageos-%-properties.xml: ./genprops.py $(CONTROLLER_PROPER
 
 all:: properties
 
-properties: $(OVF_PROPERTY_METADATA_BEANS) $(CONFIG_DEFAULTS) $(OVF_CONTROLLER_DEFAULTS) $(OVFBUILD_OVF_PROPERTY_INCLUDES)
+properties: $(OVF_PROPERTY_METADATA_BEANS) $(CONFIG_DEFAULTS) $(OVF_CONTROLLER_DEFAULTS) $(ITER_DEFAULTS) $(OVFBUILD_OVF_PROPERTY_INCLUDES)
 
 clean-properties:
-	$(ATSIGN)$(RM) $(OVFBUILD_OVF_PROPERTY_INCLUDES) $(CONFIG_DEFAULTS) $(OVF_CONTROLLER_DEFAULTS)
+	$(ATSIGN)$(RM) $(OVFBUILD_OVF_PROPERTY_INCLUDES) $(CONFIG_DEFAULTS) $(OVF_CONTROLLER_DEFAULTS) $(ITER_DEFAULTS)
 
 clobber-properties:
 	$(ATSIGN)$(RM) $(OVF_PROPERTY_METADATA_BEANS)
@@ -893,6 +919,8 @@ endif
 	$(ATSIGN)$(ECHO) "$(OVFBUILD_BASE_NAME)"                                 >$(INSTALL_PREFIX)/opt/storageos/etc/productbase
 	$(ATSIGN)$(CHMOD) 444 $(INSTALL_PREFIX)/opt/storageos/etc/{gitrevision,gitrepo,gitbranch,product,productbase}
 	$(ATSIGN)$(CHMOD) 770 $(INSTALL_PREFIX)/opt/storageos/play/play
+	$(ATSIGN)$(CHMOD) 750 $(INSTALL_PREFIX)/data/db
+	$(ATSIGN)$(CHMOD) 750 $(INSTALL_PREFIX)/data/geodb
 
 _uninstall:
 	@echo "Uninstalling $(INSTALL_PREFIX)$(PRODUCT_PREFIX)"
@@ -916,7 +944,7 @@ clobber::
 #
 .PHONY: clean-most
 
-clean-most: clean-ovfs clean-bootfs clean-bootfs-flat clean-rootimg clean-rpm clean-native
+clean-most: clean-ovfs clean-bootfs clean-bootfs-flat clean-rootimg clean-rpm clean-native clean-docker
 
 
 # On clober remove Makefile.svnversion

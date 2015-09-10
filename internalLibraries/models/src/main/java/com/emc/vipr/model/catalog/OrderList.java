@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -16,15 +16,17 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 public class OrderList {
 
     private List<NamedRelatedResourceRep> orders;
-    
-    public OrderList() {}
-    
+
+    public OrderList() {
+    }
+
     public OrderList(List<NamedRelatedResourceRep> orders) {
         this.orders = orders;
     }
 
     /**
      * List of orders
+     * 
      * @valid none
      */
     @XmlElement(name = "order")
@@ -37,6 +39,6 @@ public class OrderList {
 
     public void setOrders(List<NamedRelatedResourceRep> orders) {
         this.orders = orders;
-    }        
-    
+    }
+
 }

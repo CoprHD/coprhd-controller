@@ -1,16 +1,42 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.mapper;
 
-import com.emc.storageos.api.service.impl.response.*;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.api.service.impl.response.ResourceTypeMapping;
+import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
-import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
+import com.emc.storageos.db.client.model.CustomConfig;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredSystemObject;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.TenantResource;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
-import com.emc.storageos.model.*;
+import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.DiscoveredDataObjectRestRep;
+import com.emc.storageos.model.DiscoveredSystemObjectRestRep;
+import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.RestLinkRep;
+import com.emc.storageos.model.TypedRelatedResourceRep;
 import com.emc.storageos.model.customconfig.CustomConfigRestRep;
 import com.emc.storageos.model.customconfig.RelatedConfigTypeRep;
 import com.emc.storageos.model.customconfig.ScopeParam;
@@ -19,14 +45,6 @@ import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.google.common.collect.Lists;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.List;
-import java.util.Map;
-
 
 public class DbObjectMapper {
     private static final Logger _log = LoggerFactory.getLogger(DbObjectMapper.class);
@@ -37,8 +55,8 @@ public class DbObjectMapper {
 
         try {
             resourceType = ResourceTypeMapping.getResourceType(URIUtil.getModelClass(resource.getURI()));
-        } catch(Exception e) {
-            _log.error("Resource Type not found for "+resource.getURI(), e);
+        } catch (Exception e) {
+            _log.error("Resource Type not found for " + resource.getURI(), e);
         }
 
         return new NamedRelatedResourceRep(resource.getURI(), toLink(resourceType, resource.getURI()), resource.getName());
@@ -64,7 +82,7 @@ public class DbObjectMapper {
 
     public static TypedRelatedResourceRep toTypedRelatedResource(DataObject resource) {
         return new TypedRelatedResourceRep(resource.getId(), toLink(resource),
-            resource.getLabel(), ResourceTypeMapping.getResourceType(resource));
+                resource.getLabel(), ResourceTypeMapping.getResourceType(resource));
     }
 
     // Links
@@ -99,15 +117,16 @@ public class DbObjectMapper {
 
     public static List<NamedRelatedResourceRep> map(ResourceTypeEnum type, List<NamedElementQueryResultList.NamedElement> from) {
         List<NamedRelatedResourceRep> to = Lists.newArrayList();
-        for(NamedElementQueryResultList.NamedElement el : from){
+        for (NamedElementQueryResultList.NamedElement el : from) {
             to.add(new NamedRelatedResourceRep(el.getId(), toLink(type, el.getId()), el.getName()));
         }
         return to;
     }
 
-    public static List<NamedRelatedResourceRep> map(ResourceTypeEnum type, URI parentId, List<NamedElementQueryResultList.NamedElement> from) {
+    public static List<NamedRelatedResourceRep>
+            map(ResourceTypeEnum type, URI parentId, List<NamedElementQueryResultList.NamedElement> from) {
         List<NamedRelatedResourceRep> to = Lists.newArrayList();
-        for(NamedElementQueryResultList.NamedElement el : from){
+        for (NamedElementQueryResultList.NamedElement el : from) {
             to.add(new NamedRelatedResourceRep(el.getId(), toLink(type, el.getId(), parentId), el.getName()));
         }
         return to;
@@ -126,7 +145,7 @@ public class DbObjectMapper {
         to.setGlobal(from.isGlobal());
         to.setRemote(to.getGlobal() ? null : VdcUtil.isRemoteObject(from));
         if (from.getTag() != null) {
-            for (ScopedLabel tag: from.getTag()) {
+            for (ScopedLabel tag : from.getTag()) {
                 to.getTags().add(tag.getLabel());
             }
         }
@@ -170,6 +189,10 @@ public class DbObjectMapper {
             to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenantOrg().getURI()));
         }
         to.setOwner(from.getOwner());
+        if (from.getAssignedVNasServers() != null && !from.getAssignedVNasServers().isEmpty()) {
+            to.setAssignedVNasServers(from.getAssignedVNasServers());
+        }
+
         return to;
     }
 
@@ -185,15 +208,15 @@ public class DbObjectMapper {
             }
         }
         to.setDescription(from.getDescription());
-        if(from.getUserMappings() != null) {
-            for(AbstractChangeTrackingSet<String> userMappingSet: from.getUserMappings().values()) {
-                for(String existingMapping : userMappingSet ) {
+        if (from.getUserMappings() != null) {
+            for (AbstractChangeTrackingSet<String> userMappingSet : from.getUserMappings().values()) {
+                for (String existingMapping : userMappingSet) {
                     to.getUserMappings().add(BasePermissionsHelper.UserMapping.toParam(
-                    		BasePermissionsHelper.UserMapping.fromString(existingMapping)));
+                            BasePermissionsHelper.UserMapping.fromString(existingMapping)));
                 }
             }
         }
-        if(from.getNamespace() != null) {
+        if (from.getNamespace() != null) {
             to.setNamespace(from.getNamespace());
         }
         return to;
@@ -203,15 +226,15 @@ public class DbObjectMapper {
         mapDataObjectFields(from.findDataObject(), to);
         to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant()));
     }
-    
+
     public static CustomConfigRestRep map(CustomConfig from) {
         if (from == null) {
             return null;
         }
         CustomConfigRestRep to = new CustomConfigRestRep();
-        
+
         to.setLink(new RestLinkRep("self", RestLinkFactory.newLink(from)));
-        //build the config type Link
+        // build the config type Link
         String service = ResourceTypeEnum.CONFIG_TYPE.getService();
         StringBuilder build = (new StringBuilder(service)).
                 append('/').append(from.getConfigType());
@@ -221,7 +244,7 @@ public class DbObjectMapper {
             type.setSelfLink(new RestLinkRep("self", new URI(build.toString())));
             to.setConfigType(type);
         } catch (URISyntaxException e) {
-            //it should not happen
+            // it should not happen
         }
         to.setId(from.getId());
         to.setName(from.getLabel());
@@ -237,5 +260,5 @@ public class DbObjectMapper {
         to.setSystemDefault(from.getSystemDefault());
         return to;
     }
-    
+
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.gc;
 
@@ -18,8 +8,6 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.*;
-import java.io.File;
-
 import org.junit.Assert;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -43,9 +31,9 @@ public class GlobalGarbageCollectorTests extends DbsvcGeoTestBase {
     private GarbageCollectionExecutor _globalGCExecutor;
     private DbClient _dbClient = getDbClient();
     private DataObjectScanner _scanner;
-        
-    public GlobalGarbageCollectorTests(){
-       
+
+    public GlobalGarbageCollectorTests() {
+
     }
 
     private void initGCExecutor() throws IOException, URISyntaxException {
@@ -128,9 +116,9 @@ public class GlobalGarbageCollectorTests extends DbsvcGeoTestBase {
         Assert.assertNotNull(checker.checkDependencies(vpool.getId(), VirtualPool.class, true));
         for (int i = 0; i < num_projects; i++) {
             if (activeFileSystems.containsKey(activeProjects.get(i))) {
-                Assert.assertNotNull(checker.checkDependencies(activeProjects.get(i),Project.class, true));
+                Assert.assertNotNull(checker.checkDependencies(activeProjects.get(i), Project.class, true));
             } else {
-                Assert.assertNull(checker.checkDependencies(activeProjects.get(i),Project.class, true));
+                Assert.assertNull(checker.checkDependencies(activeProjects.get(i), Project.class, true));
             }
         }
 
@@ -190,8 +178,8 @@ public class GlobalGarbageCollectorTests extends DbsvcGeoTestBase {
         Assert.assertNull(checker.checkDependencies(vpool.getId(), VirtualPool.class, true));
         Assert.assertNotNull(checker.checkDependencies(tenant.getId(), TenantOrg.class, true));
         for (int i = 0; i < num_projects; i++) {
-            Assert.assertNull(checker.checkDependencies(activeProjects.get(i),Project.class, true));
-            Assert.assertNotNull(checker.checkDependencies(activeProjects.get(i),Project.class, false));
+            Assert.assertNull(checker.checkDependencies(activeProjects.get(i), Project.class, true));
+            Assert.assertNotNull(checker.checkDependencies(activeProjects.get(i), Project.class, false));
             Project p = new Project();
             p.setId(activeProjects.get(i));
             p.setInactive(true);

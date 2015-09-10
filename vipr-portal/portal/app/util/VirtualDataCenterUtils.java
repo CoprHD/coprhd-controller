@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -23,35 +23,34 @@ public class VirtualDataCenterUtils {
     public static VirtualDataCenterRestRep get(String id) {
         try {
             return getViprClient().vdcs().get(uri(id));
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }
             throw e;
         }
     }
-    
+
     public static List<VirtualDataCenterRestRep> listByIds(List<URI> ids) {
         return getViprClient().vdcs().getByIds(ids);
     }
-    
+
     public static List<NamedRelatedResourceRep> list() {
         return getViprClient().vdcs().list();
     }
-    
+
     public static Task<VirtualDataCenterRestRep> delete(URI id) {
         return getViprClient().vdcs().delete(id);
     }
-    
+
     public static Task<VirtualDataCenterRestRep> update(URI id, VirtualDataCenterModifyParam input) {
         return getViprClient().vdcs().update(id, input);
     }
-    
+
     public static Task<VirtualDataCenterRestRep> disconnect(URI id) {
         return getViprClient().vdcs().disconnect(id);
     }
-    
+
     public static Task<VirtualDataCenterRestRep> reconnect(URI id) {
         return getViprClient().vdcs().reconnect(id);
     }
@@ -59,7 +58,7 @@ public class VirtualDataCenterUtils {
     public static Task<VirtualDataCenterRestRep> create(VirtualDataCenterAddParam input) {
         return getViprClient().vdcs().create(input);
     }
-    
+
     public static VirtualDataCenterSecretKeyRestRep getSecretKey() {
         return getViprClient().vdcs().getSecretKey();
     }
@@ -67,7 +66,7 @@ public class VirtualDataCenterUtils {
     public static List<VirtualDataCenterRestRep> getAllVDCs() {
         return getViprClient().vdcs().getAll();
     }
-    
+
     public static Tasks<VirtualDataCenterRestRep> getTasks(URI id) {
         return getViprClient().vdcs().getTasks(id);
     }

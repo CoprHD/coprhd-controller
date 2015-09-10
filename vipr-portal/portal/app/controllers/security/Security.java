@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.security;
@@ -59,7 +59,7 @@ public class Security extends Controller {
         }
         return user;
     }
-    
+
     @Util
     public static void clearUserInfo() {
         Cache.delete(getUserInfoCacheKey());
@@ -69,7 +69,7 @@ public class Security extends Controller {
     private static String getUserInfoCacheKey() {
         return "userInfo." + getAuthToken();
     }
-    
+
     @Util
     public static boolean isApiRequest() {
         return request != null && ("json".equalsIgnoreCase(request.format) || "xml".equalsIgnoreCase(request.format));
@@ -154,16 +154,16 @@ public class Security extends Controller {
     public static boolean isSecurityAdmin() {
         return hasRoles(SECURITY_ADMIN);
     }
-    
+
     @Util
     public static boolean isRestrictedSecurityAdmin() {
         return hasRoles(RESTRICTED_SECURITY_ADMIN);
-    }    
-    
+    }
+
     @Util
     public static boolean isRestrictedSystemAdmin() {
         return hasRoles(RESTRICTED_SYSTEM_ADMIN);
-    }    
+    }
 
     @Util
     public static boolean isSecurityAdminOrRestrictedSecurityAdmin() {
@@ -174,12 +174,12 @@ public class Security extends Controller {
     public static boolean isLocalUser() {
         return !getUserInfo().getCommonName().contains("@");
     }
-    
+
     @Util
     public static boolean isSystemAdminOrRestrictedSystemAdmin() {
         return isSystemAdmin() || isRestrictedSystemAdmin();
-    }        
-    
+    }
+
     @Util
     public static void clearAuthToken() {
         clearUserInfo();
@@ -187,7 +187,8 @@ public class Security extends Controller {
         removeResponseCookie(AUTH_TOKEN_KEY);
     }
 
-    @Util static void clearSession() {
+    @Util
+    static void clearSession() {
         session.clear();
     }
 
@@ -214,7 +215,7 @@ public class Security extends Controller {
      * Returns true if the user has any of the roles specified.
      * 
      * @param roles
-     *        the roles to check.
+     *            the roles to check.
      * @return true if the user has any of the roles.
      */
     public static boolean hasAnyRole(String... roles) {
@@ -231,7 +232,8 @@ public class Security extends Controller {
             return Deadbolt.hasRoles(roles);
         }
         // I'm not sure why deadbolt throws this
-        catch (Throwable t) { //NOSONAR ("Suppressing Sonar violation Catch Exception instead of Throwable as the above method throws Throwable ")
+        catch (Throwable t) { // NOSONAR
+                              // ("Suppressing Sonar violation Catch Exception instead of Throwable as the above method throws Throwable ")
             throw new RuntimeException(t);
         }
     }
@@ -247,8 +249,7 @@ public class Security extends Controller {
     public static void logout() {
         try {
             getViprClient().auth().logout();
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.warn(e, "Error logging out");
         }
         clearAuthToken();
@@ -266,16 +267,14 @@ public class Security extends Controller {
         try {
             UserInfo user = getUserInfo();
             renderJSON(user != null);
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             Logger.error(e, "HTTP Error: %s %s", e.getHttpCode(), e.getMessage());
             if (e.getHttpCode() == HttpStatus.SC_UNAUTHORIZED) {
                 renderJSON(false);
             }
             // Propogate other errors (502, 503 most importantly)
             error(e.getHttpCode(), e.getMessage());
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.error(e, "Error getting user info");
             renderJSON("error");
         }
@@ -284,8 +283,8 @@ public class Security extends Controller {
     @Util
     public static void redirectToAuthPage() {
         if (Security.isApiRequest()) {
-            //Redirecting to the apisvc login page will fail in most browsers due to the same origin policy.
-            //Return a 401 and let the client handle it.
+            // Redirecting to the apisvc login page will fail in most browsers due to the same origin policy.
+            // Return a 401 and let the client handle it.
             error(401, "Unauthorized");
         }
         else {
@@ -297,8 +296,7 @@ public class Security extends Controller {
                 String url = String.format("https://%s:%s/formlogin?service=%s&src=portal", request.domain, authSvcPort, service);
                 Logger.debug("No cookie detected. Redirecting to login page %s", url);
                 redirect(url);
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 throw new RuntimeException(e);
             }
         }
@@ -312,7 +310,7 @@ public class Security extends Controller {
      * Http.Response.removeCookie() sets the HttpOnly and secure
      * attributes of the cookie to false and that could lead to
      * XSS.
-     *
+     * 
      * @param name of the cookie to be removed from the response.
      */
     @Util

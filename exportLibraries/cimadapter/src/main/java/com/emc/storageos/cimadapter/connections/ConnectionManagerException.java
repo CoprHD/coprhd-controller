@@ -1,13 +1,7 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
  */
-// Copyright 2012 by EMC Corporation ("EMC").
-//
-// UNPUBLISHED  CONFIDENTIAL  AND  PROPRIETARY  PROPERTY OF EMC. The copyright
-// notice above does not evidence any actual  or  intended publication of this
-// software. Disclosure and dissemination are pursuant to separate agreements.
-// Unauthorized use, distribution or dissemination are strictly prohibited.
 
 package com.emc.storageos.cimadapter.connections;
 
@@ -22,14 +16,15 @@ public class ConnectionManagerException extends CIMAdapterException {
     // For serializable classes.
     private static final long serialVersionUID = 1L;
 
-    protected ConnectionManagerException(final boolean retryable, final ServiceCode code, final Throwable cause, final String detailBase, final String detailKey,
+    protected ConnectionManagerException(final boolean retryable, final ServiceCode code, final Throwable cause, final String detailBase,
+            final String detailKey,
             final Object[] detailParams) {
         super(retryable, code, cause, detailBase, detailKey, detailParams);
     }
 
     /**
      * Constructor.
-     *
+     * 
      * @param msg Exception message.
      */
     @Deprecated
@@ -39,7 +34,7 @@ public class ConnectionManagerException extends CIMAdapterException {
 
     /**
      * Constructor.
-     *
+     * 
      * @param msg Exception message.
      * @param t Source throwable.
      */
@@ -50,7 +45,7 @@ public class ConnectionManagerException extends CIMAdapterException {
 
     /**
      * Constructor.
-     *
+     * 
      * @param t Source throwable.
      */
     @Deprecated

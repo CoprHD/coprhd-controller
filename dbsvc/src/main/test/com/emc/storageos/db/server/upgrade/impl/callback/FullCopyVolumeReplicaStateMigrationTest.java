@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.server.upgrade.impl.callback;
@@ -24,10 +24,9 @@ import com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase;
 
 public class FullCopyVolumeReplicaStateMigrationTest extends DbSimpleMigrationTestBase {
     private static final Logger log = LoggerFactory.getLogger(FullCopyVolumeReplicaStateMigrationTest.class);
-    
 
     private static List<URI> cloneURIs = new ArrayList<URI>();
-    
+
     private final int INSTANCES_TO_CREATE = 3;
 
     @BeforeClass
@@ -53,7 +52,7 @@ public class FullCopyVolumeReplicaStateMigrationTest extends DbSimpleMigrationTe
     }
 
     @Override
-    protected void prepareData() throws Exception { 
+    protected void prepareData() throws Exception {
         prepareVolumeData();
     }
 
@@ -61,7 +60,7 @@ public class FullCopyVolumeReplicaStateMigrationTest extends DbSimpleMigrationTe
     protected void verifyResults() throws Exception {
         verifyVolumeResults();
     }
-    
+
     /**
      * Prepares the data for RP volume tests.
      * 
@@ -84,16 +83,16 @@ public class FullCopyVolumeReplicaStateMigrationTest extends DbSimpleMigrationTe
      * Verifies the results for migrating volumes
      * 
      * @throws Exception When an error occurs verifying the Volume
-     *         migration results.
+     *             migration results.
      */
     private void verifyVolumeResults() throws Exception {
         log.info("Verifying updated full copy Volume sresults for FullCopyVolumeReplicaStateMigration.");
         for (URI cloneURI : cloneURIs) {
             Volume clone = _dbClient.queryObject(Volume.class, cloneURI);
-            
+
             Assert.assertNotNull("replicaState shouldn't be null", clone.getReplicaState());
             Assert.assertEquals("replica state should be DETACHED", ReplicationState.DETACHED.name(),
-                                    clone.getReplicaState());
+                    clone.getReplicaState());
         }
     }
 

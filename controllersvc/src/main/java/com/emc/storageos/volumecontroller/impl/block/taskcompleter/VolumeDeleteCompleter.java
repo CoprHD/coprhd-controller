@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.block.taskcompleter;
 
@@ -35,29 +25,30 @@ public class VolumeDeleteCompleter extends VolumeTaskCompleter {
     private static final Logger _log = LoggerFactory
             .getLogger(VolumeDeleteCompleter.class);
 
-    public VolumeDeleteCompleter ( URI volUri, String task ) {
+    public VolumeDeleteCompleter(URI volUri, String task) {
         super(Volume.class, volUri, task);
     }
 
-    public VolumeDeleteCompleter (List<URI> volUris, String task) {
+    public VolumeDeleteCompleter(List<URI> volUris, String task) {
         super(Volume.class, volUris, task);
     }
-    
+
     /**
      * Remove reference of deleted volume from associated source volume
+     * 
      * @param dbClient
      * @param deletedVolume
      */
     private void removeDeletedVolumeReference(DbClient dbClient, Volume deletedVolume) {
-        if ( deletedVolume != null && deletedVolume.getAssociatedSourceVolume() != null) {
+        if (deletedVolume != null && deletedVolume.getAssociatedSourceVolume() != null) {
             Volume srcVolume = dbClient.queryObject(Volume.class, deletedVolume.getAssociatedSourceVolume());
-            
+
             // remove reference of deleted volume from fullCopies
-            if ( srcVolume != null) {
+            if (srcVolume != null) {
                 srcVolume.getFullCopies().remove(deletedVolume.getId().toString());
                 dbClient.persistObject(srcVolume);
             }
-        }        
+        }
     }
 
     @Override
@@ -66,11 +57,11 @@ public class VolumeDeleteCompleter extends VolumeTaskCompleter {
             super.complete(dbClient, status, coded);
             for (URI id : getIds()) {
                 switch (status) {
-                case error:
-                    dbClient.error(Volume.class, id, getOpId(), coded);
-                    break;
-                default:
-                    dbClient.ready(Volume.class, id, getOpId());
+                    case error:
+                        dbClient.error(Volume.class, id, getOpId(), coded);
+                        break;
+                    default:
+                        dbClient.ready(Volume.class, id, getOpId());
                 }
 
                 _log.info(String.format("Done VolumeDelete - Id: %s, OpId: %s, status: %s",
@@ -80,14 +71,14 @@ public class VolumeDeleteCompleter extends VolumeTaskCompleter {
                     Volume volume = dbClient.queryObject(Volume.class, id);
                     if (null != volume) {
                         generateZeroStatisticsRecord(dbClient, volume);
-                        
+
                         removeDeletedVolumeReference(dbClient, volume);
                     }
                 }
-                
+
                 recordBlockVolumeOperation(dbClient, OperationTypeEnum.DELETE_BLOCK_VOLUME, status, id.toString());
             }
-            
+
         } catch (Exception e) {
             _log.error(String.format(
                     "Failed updating status for VolumeDelete - Id: %s, OpId: %s", getIds()
@@ -97,7 +88,7 @@ public class VolumeDeleteCompleter extends VolumeTaskCompleter {
 
     /**
      * Generate Zero Statistics Record for successfully deleted Volumes
-     *
+     * 
      * @param dbClient
      * @param volume
      * @throws IOException

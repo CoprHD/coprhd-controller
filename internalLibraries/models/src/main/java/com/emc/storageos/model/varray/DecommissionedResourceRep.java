@@ -1,12 +1,11 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.varray;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
-
 
 @XmlRootElement(name = "decommissioned_resource")
 public class DecommissionedResourceRep {
@@ -15,7 +14,7 @@ public class DecommissionedResourceRep {
     private String nativeGuid;
     private String decommissionedId;
 
-    public  DecommissionedResourceRep(){
+    public DecommissionedResourceRep() {
     }
 
     /**
@@ -29,6 +28,7 @@ public class DecommissionedResourceRep {
     public String getUser() {
         return user;
     }
+
     public void setUser(String user) {
         this.user = user;
     }
@@ -44,6 +44,7 @@ public class DecommissionedResourceRep {
     public String getType() {
         return type;
     }
+
     public void setType(String type) {
         this.type = type;
     }
@@ -59,6 +60,7 @@ public class DecommissionedResourceRep {
     public String getNativeGuid() {
         return nativeGuid;
     }
+
     public void setNativeGuid(String nativeGuid) {
         this.nativeGuid = nativeGuid;
     }
@@ -74,6 +76,7 @@ public class DecommissionedResourceRep {
     public String getDecommissionedId() {
         return decommissionedId;
     }
+
     public void setDecommissionedId(String disposedId) {
         this.decommissionedId = disposedId;
     }

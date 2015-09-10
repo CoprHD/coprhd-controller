@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
@@ -7,6 +7,7 @@ package com.emc.storageos.db.client.model;
 /**
  * This is the Cassandra logging form of a Workflow.
  * Workflows contain WorkflowSteps.
+ * 
  * @author Watson
  */
 @Cf("Workflow")
@@ -23,7 +24,7 @@ public class Workflow extends DataObject {
     private String _completionState;
     /** A message indicating success or failure. */
     private String _completionMessage;
-	
+
     @Name("orchControllerName")
     public String getOrchControllerName() {
         return _orchControllerName;
@@ -44,7 +45,7 @@ public class Workflow extends DataObject {
         setChanged("orchMethod");
     }
 
-    @Name("orchTaskId") 
+    @Name("orchTaskId")
     @AlternateId("AltIdIndex")
     public String getOrchTaskId() {
         return _orchTaskId;

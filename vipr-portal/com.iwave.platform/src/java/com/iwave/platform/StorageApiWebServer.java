@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.platform;
@@ -7,6 +7,7 @@ package com.iwave.platform;
 import com.emc.sa.util.SystemProperties;
 import com.emc.storageos.coordinator.common.Service;
 import com.google.common.collect.Lists;
+
 import org.apache.log4j.Logger;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ssl.SslSelectChannelConnector;
@@ -17,12 +18,13 @@ import org.springframework.beans.factory.annotation.Required;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.net.ssl.SSLContext;
+
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
 /**
  * Wraps the Jetty Server so that we can set it up from Spring
- *
+ * 
  * @author dmaddison
  */
 public class StorageApiWebServer {
@@ -42,15 +44,14 @@ public class StorageApiWebServer {
             if (server == null) {
                 initServer();
                 server.start();
-                LOG.info("Started StorageAPI Server on "+serviceInfo.getEndpoint().getHost()+":"+serviceInfo.getEndpoint().getPort());
+                LOG.info("Started StorageAPI Server on " + serviceInfo.getEndpoint().getHost() + ":" + serviceInfo.getEndpoint().getPort());
             }
             else {
                 LOG.info("StorageAPI Server already created, ignoring start");
             }
-        }
-        catch (Exception e) {
-            LOG.error("Error starting StorageAPI WebServer",e);
-            throw new RuntimeException("Error starting StorageAPI WebServer",e);
+        } catch (Exception e) {
+            LOG.error("Error starting StorageAPI WebServer", e);
+            throw new RuntimeException("Error starting StorageAPI WebServer", e);
         }
     }
 
@@ -61,10 +62,9 @@ public class StorageApiWebServer {
                 server.stop();
             }
             LOG.info("Stopped StorageAPI Server");
-        }
-        catch (Exception e) {
-            LOG.error("Error stopping StorageAPI WebServer",e);
-            throw new RuntimeException("Error stopping StorageAPI WebServer",e);
+        } catch (Exception e) {
+            LOG.error("Error stopping StorageAPI WebServer", e);
+            throw new RuntimeException("Error stopping StorageAPI WebServer", e);
         }
     }
 
@@ -74,8 +74,9 @@ public class StorageApiWebServer {
     }
 
     @Required
+    @SuppressWarnings("pmd:ArrayIsStoredDirectly")
     public void setCiphers(String[] ciphers) {
-        this.ciphers = ciphers;
+        this.ciphers = ciphers; //NOSONAR ("Suppressing sonar violation on user-supplied array is stored directly")
     }
 
     @Required
@@ -92,12 +93,11 @@ public class StorageApiWebServer {
 
             for (String chosenCipher : ciphers) {
                 if (!supportedCipherSuites.contains(chosenCipher)) {
-                    LOG.warn("Cipher Suite Not Supported:"+chosenCipher);
+                    LOG.warn("Cipher Suite Not Supported:" + chosenCipher);
                 }
             }
-        }
-        catch (NoSuchAlgorithmException e) {
-            LOG.error("Error checking Cipher Suites",e);
+        } catch (NoSuchAlgorithmException e) {
+            LOG.error("Error checking Cipher Suites", e);
         }
 
         SslContextFactory sslFac = new SslContextFactory();
@@ -118,4 +118,3 @@ public class StorageApiWebServer {
         server.setHandler(context);
     }
 }
-

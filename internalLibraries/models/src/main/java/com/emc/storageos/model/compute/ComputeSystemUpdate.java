@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.compute;
@@ -15,7 +15,7 @@ import com.emc.storageos.model.valid.Range;
 @XmlRootElement(name = "compute_system_update")
 public class ComputeSystemUpdate {
 
-	private String name;
+    private String name;
     private String ipAddress;
     private Integer portNumber;
     private String userName;
@@ -23,40 +23,46 @@ public class ComputeSystemUpdate {
     private String osInstallNetwork;
     private Boolean useSSL;
 
-    public ComputeSystemUpdate() {}
-    
-	@Length(min = 2, max = 128)
-	@XmlElement
+    public ComputeSystemUpdate() {
+    }
+
+    @Length(min = 2, max = 128)
+    @XmlElement
     public String getName() {
-		return name;
-	}
-	public void setName(String name) {
-		this.name = name;
-	}
-	
-	@XmlElement(name = "ip_address")
-	@JsonProperty("ip_address")
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @XmlElement(name = "ip_address")
+    @JsonProperty("ip_address")
     public String getIpAddress() {
-		return ipAddress;
-	}
-	public void setIpAddress(String ipAddress) {
-		this.ipAddress = ipAddress;
-	}
-	
-	@XmlElement(name = "port_number")
-	@Range(min=1,max=65535)
-	@JsonProperty("port_number")
+        return ipAddress;
+    }
+
+    public void setIpAddress(String ipAddress) {
+        this.ipAddress = ipAddress;
+    }
+
+    @XmlElement(name = "port_number")
+    @Range(min = 1, max = 65535)
+    @JsonProperty("port_number")
     public Integer getPortNumber() {
-		return portNumber;
-	}
-	public void setPortNumber(Integer portNumber) {
-		this.portNumber = portNumber;
-	}
+        return portNumber;
+    }
+
+    public void setPortNumber(Integer portNumber) {
+        this.portNumber = portNumber;
+    }
+
     /**
-     * Specifies whether to use SSL (Secure Sockets Layer) 
+     * Specifies whether to use SSL (Secure Sockets Layer)
      * as the authentication method.
-     * @valid none 
-     */     
+     * 
+     * @valid none
+     */
     @XmlElement(name = "use_ssl")
     public Boolean getUseSSL() {
         return useSSL;
@@ -64,31 +70,34 @@ public class ComputeSystemUpdate {
 
     public void setUseSSL(Boolean useSSL) {
         this.useSSL = useSSL;
-    }	
-	@XmlElement(name = "user_name")
-	@JsonProperty("user_name")
+    }
+
+    @XmlElement(name = "user_name")
+    @JsonProperty("user_name")
     public String getUserName() {
-		return userName;
-	}
-	public void setUserName(String userName) {
-		this.userName = userName;
-	}
-	
-	@XmlElement()
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    @XmlElement()
     public String getPassword() {
-		return password;
-	}
-	public void setPassword(String password) {
-		this.password = password;
-	}
+        return password;
+    }
 
-	@XmlElement(name = "os_install_network",nillable=true)
-	@JsonProperty("os_install_network")
-	public String getOsInstallNetwork() {
-		return osInstallNetwork;
-	}
+    public void setPassword(String password) {
+        this.password = password;
+    }
 
-	public void setOsInstallNetwork(String osInstallNetwork) {
-		this.osInstallNetwork = osInstallNetwork;
-	}	
+    @XmlElement(name = "os_install_network", nillable = true)
+    @JsonProperty("os_install_network")
+    public String getOsInstallNetwork() {
+        return osInstallNetwork;
+    }
+
+    public void setOsInstallNetwork(String osInstallNetwork) {
+        this.osInstallNetwork = osInstallNetwork;
+    }
 }

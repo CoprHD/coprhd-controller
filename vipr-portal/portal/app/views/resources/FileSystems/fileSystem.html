@@ -15,9 +15,16 @@
   
     #{Resources.header resource:fileSystem, typeKey: 'resources.filesystem'/}
     #{Resources.actions hide:fileSystem?.inactive }
-      <a href="@{deleteFileSystem(fileSystem.id)}"
-        onclick="return confirm('&{'resources.filesystem.deleteConfirm'}');"
-      >&{'resources.filesystem.deleteLink'}</a><br/>      
+    <div class="btn-group">
+          <button type="button" class="btn btn-danger dropdown-toggle" name="button.delete" data-toggle="dropdown">
+            <span class="glyphicon glyphicon-trash"></span>
+            &{'resources.filesystem.deleteLink'} <span class="caret"></span>
+          </button>
+          <ul class="dropdown-menu" role="menu">
+            <li><a href="@{deleteFileSystem(fileSystem.id, 'FULL')}" onclick="return confirm('&{'resources.filesystem.deleteConfirm.FULL'}');">&{'resources.filesystem.deleteLink.FULL'}</a></li>
+            <li><a href="@{deleteFileSystem(fileSystem.id, 'VIPR_ONLY')}" onclick="return confirm('&{'resources.filesystem.deleteConfirm.VIPR_ONLY'}');">&{'resources.filesystem.deleteLink.VIPR_ONLY'}</a></li>
+          </ul>
+    </div>
     #{/Resources.actions}
     
     <dl class="dl-horizontal pull-left">      

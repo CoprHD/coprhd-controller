@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.catalog;
@@ -18,34 +18,34 @@ import com.emc.sa.model.dao.ModelClient;
 public class CatalogImageManagerImpl implements CatalogImageManager {
 
     private static final Logger log = Logger.getLogger(CatalogImageManagerImpl.class);
-    
+
     @Autowired
     private ModelClient client;
-    
+
     public CatalogImage getCatalogImageById(URI id) {
         if (id == null) {
             return null;
         }
 
         CatalogImage catalogImage = client.catalogImages().findById(id);
-        
+
         return catalogImage;
-    }        
-    
+    }
+
     public void createCatalogImage(CatalogImage catalogImage) {
         client.save(catalogImage);
     }
-    
+
     public void updateCatalogImage(CatalogImage catalogImage) {
         client.save(catalogImage);
     }
-    
+
     public void deleteCatalogImage(CatalogImage catalogImage) {
         client.delete(catalogImage);
-    }    
-    
+    }
+
     public List<CatalogImage> getCatalogImages(URI tenantId) {
         return client.catalogImages().findAll(tenantId.toString());
     }
-    
+
 }

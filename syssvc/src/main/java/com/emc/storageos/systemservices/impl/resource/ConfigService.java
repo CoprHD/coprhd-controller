@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.systemservices.impl.resource;
@@ -25,19 +15,15 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.TreeMap;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DefaultValue;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 
+import com.emc.storageos.security.password.InvalidLoginManager;
+import com.emc.storageos.model.auth.LoginFailedIPList;
+import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,9 +58,10 @@ import static com.emc.storageos.systemservices.mapper.ClusterInfoMapper.toCluste
 
 @Path("/config/")
 public class ConfigService {
-    //keys used in returning properties
-    public static final String VERSION="-clusterversion";
-    public static final Map<String, String> propertyToParameters = new HashMap() {{
+    // keys used in returning properties
+    public static final String VERSION = "-clusterversion";
+    public static final Map<String, String> propertyToParameters = new HashMap() {
+        {
             put("node_count", "-nodecount");
 
             put("network_vip", "-vip");
@@ -94,10 +81,11 @@ public class ConfigService {
             put("network_5_ipaddr6", "-ipaddr6_5");
             put("network_gateway6", "-gateway6");
             put("network_prefix_length", "-ipv6prefixlength");
-        }};
+        }
+    };
 
-    public static final String MODE="mode";
-    public static final String NODE_ID="node_id";
+    public static final String MODE = "mode";
+    public static final String NODE_ID = "node_id";
 
     @Autowired
     private AuditLogManager _auditMgr;
@@ -107,6 +95,9 @@ public class ConfigService {
 
     @Autowired
     private PropertyManager propertyManager;
+
+    @Autowired
+    protected InvalidLoginManager _invLoginManager;
 
     public static final String CERTIFICATE_VERSION = "certificate_version";
     private static final Logger _log = LoggerFactory.getLogger(ConfigService.class);
@@ -123,7 +114,7 @@ public class ConfigService {
 
     /**
      * Get StorageOSUser from the security context
-     *
+     * 
      * @return
      */
     protected StorageOSUser getUserFromContext() {
@@ -135,7 +126,7 @@ public class ConfigService {
 
     /**
      * Determine if the security context has a valid StorageOSUser object
-     *
+     * 
      * @return true if the StorageOSUser is present
      */
     protected boolean hasValidUserInContext() {
@@ -158,7 +149,7 @@ public class ConfigService {
             propertiesConfigurationValidator) {
         _propertiesConfigurationValidator = propertiesConfigurationValidator;
     }
-    
+
     public void setDefaultProperties(Properties defaults) {
         defaultProperties = defaults;
     }
@@ -166,115 +157,123 @@ public class ConfigService {
     public void setPropertyHandlers(PropertyHandlers propertyHandlers) {
         _propertyHandlers = propertyHandlers;
     }
-    
+
     /**
      * Get properties defaults
-     * @return  map containing key, value pair
+     * 
+     * @return map containing key, value pair
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public Map<String, String> getPropertiesDefaults() {
-        return (Map)defaultProperties;
+        return (Map) defaultProperties;
     }
 
     public void setOvfProperties(Properties ovfProps) {
         ovfProperties = ovfProps;
     }
-    
+
     /**
      * Get ovf properties
-     * @return  map containing key, value pair
+     * 
+     * @return map containing key, value pair
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
     // this can't be named after the default getter, since the return type is different with
     // the argument type of the setter
-    public Map<String, String> getPropertiesOvf() {
-        return (Map)ovfProperties;
+            public
+            Map<String, String> getPropertiesOvf() {
+        return (Map) ovfProperties;
     }
-    
+
     /**
      * Get config properties
-     * @return  map containing key, value pair
+     * 
+     * @return map containing key, value pair
      */
     public Map<String, String> getConfigProperties() {
-        Map<String,String> mergedProps = mergeProps(getPropertiesDefaults(), getMutatedProps());
+        Map<String, String> mergedProps = mergeProps(getPropertiesDefaults(), getMutatedProps());
         return mergedProps;
     }
 
     /**
      * Get obsolete properties
-     * @return  map containing key, value pair
+     * 
+     * @return map containing key, value pair
      */
     public Map<String, String> getObsoleteProperties() {
         Map<String, String> obsoletes = new HashMap<String, String>();
-    	Map<String, String> overrides = new HashMap<String, String>();
-		overrides = getMutatedProps();
+        Map<String, String> overrides = new HashMap<String, String>();
+        overrides = getMutatedProps();
         Set<String> obsoleteKeys = overrides.keySet();
         obsoleteKeys.removeAll(defaultProperties.keySet());
-    	for(String obsoleteKey : obsoleteKeys) {
-    	    obsoletes.put(obsoleteKey, overrides.get(obsoleteKey));
-    	}
-    	
-    	return obsoletes;
+        for (String obsoleteKey : obsoleteKeys) {
+            obsoletes.put(obsoleteKey, overrides.get(obsoleteKey));
+        }
+
+        return obsoletes;
     }
-    
+
     /**
      * Get system configuration properties
+     * 
      * @brief Get system properties
      * @prereq none
      * @param category - type of properties to return: all, config, ovf, mutated, secrets (require SecurityAdmin role)
-     *                 or obsolete
+     *            or obsolete
      * @return Properties Information if success. Error response, if error./**
      */
     @GET
     @Path("properties/")
-    @CheckPermission(roles = {Role.SECURITY_ADMIN, Role.SYSTEM_MONITOR})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public PropertyInfoRestRep getProperties(@DefaultValue("all") @QueryParam("category") String category) throws Exception {	
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_MONITOR })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public PropertyInfoRestRep getProperties(@DefaultValue("all") @QueryParam("category") String category) throws Exception {
         switch (PropCategory.valueOf(category.toUpperCase())) {
-	    case ALL:
-            return getTargetPropsCommon();
-	    case CONFIG:
-	        return new PropertyInfoRestRep(getConfigProperties());    
-        case OVF:
-        	return new PropertyInfoRestRep(getPropertiesOvf());
-        case REDEPLOY:
-            Map<String, String> props = getPropertiesOvf();
+            case ALL:
+                return getTargetPropsCommon();
+            case CONFIG:
+                return new PropertyInfoRestRep(getConfigProperties());
+            case OVF:
+                return new PropertyInfoRestRep(getPropertiesOvf());
+            case REDEPLOY:
+                Map<String, String> props = getPropertiesOvf();
 
-            props.remove(MODE);
-            props.remove(NODE_ID);
+                props.remove(MODE);
+                props.remove(NODE_ID);
 
-            Map<String, String> clusterInfo = new HashMap();
-            Set<Map.Entry<String, String>> ovfProps = props.entrySet();
-            for (Map.Entry<String, String> ovfProp : ovfProps) {
-                String parameter = propertyToParameters.get(ovfProp.getKey());
-                if (parameter == null) {
-                    continue;
+                Map<String, String> clusterInfo = new HashMap();
+                Set<Map.Entry<String, String>> ovfProps = props.entrySet();
+                for (Map.Entry<String, String> ovfProp : ovfProps) {
+                    String parameter = propertyToParameters.get(ovfProp.getKey());
+                    if (parameter == null) {
+                        continue;
+                    }
+                    clusterInfo.put(parameter, ovfProp.getValue());
                 }
-                clusterInfo.put(parameter, ovfProp.getValue());
-            }
 
-            //Add version info
-            RepositoryInfo info = _coordinator.getTargetInfo(RepositoryInfo.class);
-            clusterInfo.put(VERSION, info.getCurrentVersion().toString());
+                // Add version info
+                RepositoryInfo info = _coordinator.getTargetInfo(RepositoryInfo.class);
+                clusterInfo.put(VERSION, info.getCurrentVersion().toString());
 
-            _log.info("clusterInfo={}", clusterInfo);
-            return new PropertyInfoRestRep(clusterInfo);
-	    case MUTATED:
-	    	return new PropertyInfoRestRep(getMutatedProps());
-        case SECRETS:
-            StorageOSUser user = getUserFromContext();
-            if (! user.getRoles().contains(Role.SECURITY_ADMIN.toString()))
-                throw APIException.forbidden.onlySecurityAdminsCanGetSecrets();
-            return getTargetPropsCommon(false);
-        case OBSOLETE:
-            return new PropertyInfoRestRep(getObsoleteProperties());
-	    default:
-            throw APIException.badRequests.invalidParameter("category", category);
-    	}  
+                _log.info("clusterInfo={}", clusterInfo);
+                return new PropertyInfoRestRep(clusterInfo);
+            case MUTATED:
+                return new PropertyInfoRestRep(getMutatedProps());
+            case SECRETS:
+                StorageOSUser user = getUserFromContext();
+                if (!user.getRoles().contains(Role.SECURITY_ADMIN.toString())) {
+                    throw APIException.forbidden.onlySecurityAdminsCanGetSecrets();
+                }
+                return getTargetPropsCommon(false);
+            case OBSOLETE:
+                return new PropertyInfoRestRep(getObsoleteProperties());
+            default:
+                throw APIException.badRequests.invalidParameter("category", category);
+        }
     }
 
     /**
      * Update system configuration properties
+     * 
      * @brief Update system properties
      * @param setProperty Property's key value pair.
      * @prereq Cluster state should be STABLE
@@ -282,9 +281,9 @@ public class ConfigService {
      */
     @PUT
     @Path("properties/")
-    @CheckPermission(roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN })
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response setProperties(PropertyInfoUpdate setProperty)
             throws Exception {
         PropertyInfoRestRep targetPropInfo = getTargetPropsCommon();
@@ -323,7 +322,8 @@ public class ConfigService {
     }
 
     /**
-     * Internal api to get system configuration properties. The api could be by data node. 
+     * Internal api to get system configuration properties. The api could be by data node.
+     * 
      * @brief Get system properties
      * @prereq none
      * @param category - type properties to return: config, ovf, or obsolete
@@ -331,21 +331,22 @@ public class ConfigService {
      */
     @POST
     @Path("internal/properties/")
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public PropertyInfoRestRep getInternalProperties(String category) throws Exception {   
-    	return getProperties(category);
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    public PropertyInfoRestRep getInternalProperties(String category) throws Exception {
+        return getProperties(category);
     }
-    
+
     /**
      * Show metadata of system configuration properties
+     * 
      * @brief Show properties metadata
      * @prereq none
      * @return Properties Metadata if success. Error response, if error.
      */
     @GET
     @Path("properties/metadata/")
-    @CheckPermission(roles = {Role.SECURITY_ADMIN, Role.SYSTEM_MONITOR})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.SYSTEM_MONITOR })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public PropertiesMetadata getPropMetadata() throws Exception {
         if (_propsMetadata == null) {
             throw APIException.internalServerErrors.targetIsNullOrEmpty("Property metadata");
@@ -355,15 +356,16 @@ public class ConfigService {
 
     /**
      * Configure ConnectEMC FTPS transport related properties
+     * 
      * @brief Configure ConnectEMC FTPS properties
      * @prereq Cluster state should be STABLE
-     * @return
+     * @return ConnectEMC FTPS related properties
      */
     @POST
     @Path("connectemc/ftps/")
-    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response configureConnectEmcFtpsParams(ConnectEmcFtps ftpsParams)
             throws Exception {
         PropertyInfoUpdate ext = ConfigService.ConfigureConnectEmc.configureFtps(ftpsParams);
@@ -374,15 +376,16 @@ public class ConfigService {
 
     /**
      * Configure ConnectEMC SMTP/Email transport related properties
+     * 
      * @brief Configure ConnectEMC SMTP/Email properties
      * @prereq Cluster state should be STABLE
-     * @return
+     * @return Properties related to ConnectEMC Email
      */
     @POST
     @Path("connectemc/email/")
-    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response configureConnectEmcEmailParams(ConnectEmcEmail emailParams)
             throws Exception {
         PropertyInfoRestRep targetPropInfo = getTargetPropsCommon();
@@ -394,6 +397,7 @@ public class ConfigService {
     /**
      * Reset configuration properties to their default values. Properties with
      * no default values will remain unchanged
+     * 
      * @brief Reset system properties
      * @param propertyList property list
      * @prereq Cluster state should be STABLE
@@ -401,9 +405,9 @@ public class ConfigService {
      */
     @POST
     @Path("properties/reset/")
-    @CheckPermission(roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN })
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public Response resetProps(PropertyList propertyList, @QueryParam("removeObsolete") String forceRemove)
             throws Exception {
         // get metadata
@@ -420,8 +424,8 @@ public class ConfigService {
 
     // Keep this library for now.
     private Response getVisiblePropertiesISOCommon() throws Exception {
-	_log.info("getVisiblePropertiesISO(): going to fetch ISO information");
-        PropertyInfoRestRep propertyInfo = new PropertyInfoRestRep(getTargetPropsCommon().getProperties());       
+        _log.info("getVisiblePropertiesISO(): going to fetch ISO information");
+        PropertyInfoRestRep propertyInfo = new PropertyInfoRestRep(getTargetPropsCommon().getProperties());
 
         if (propertyInfo.getAllProperties() == null || propertyInfo.getAllProperties().size() == 0) {
             _log.error("getVisiblePropertiesISO(): No properties found");
@@ -429,14 +433,14 @@ public class ConfigService {
         }
 
         InputStream isoStream = new ByteArrayInputStream(CreateISO.getBytes
-                (getPropertiesOvf(),getMutatedProps()));
+                (getPropertiesOvf(), getMutatedProps()));
 
-        return Response.ok(isoStream).header("content-disposition","attachment; filename = config.iso").build();
+        return Response.ok(isoStream).header("content-disposition", "attachment; filename = config.iso").build();
     }
 
     /**
      * Get target properties
-     *
+     * 
      * @return target properties
      */
     private PropertyInfoRestRep getTargetPropsCommon() {
@@ -445,6 +449,7 @@ public class ConfigService {
 
     /**
      * Get target properties
+     * 
      * @param maskSecretsProperties whether secrets properties should be masked out
      * @return target properties
      */
@@ -461,19 +466,21 @@ public class ConfigService {
     }
 
     /*
-    * Get mutated props
-    *
-    * @return mutated properties from coordinator
-    */
+     * Get mutated props
+     * 
+     * @return mutated properties from coordinator
+     */
     private Map<String, String> getMutatedProps() {
         return getMutatedProps(true);
     }
 
     /*
-    * Get mutated props
-    * @param maskSecretsProperties whether secrets properties should be masked out
-    * @return mutated properties from coordinator
-    */
+     * Get mutated props
+     * 
+     * @param maskSecretsProperties whether secrets properties should be masked out
+     * 
+     * @return mutated properties from coordinator
+     */
     private Map<String, String> getMutatedProps(boolean maskSecretsProperties) {
         Map<String, String> overrides;
         try {
@@ -483,23 +490,26 @@ public class ConfigService {
             return new TreeMap<>();
         }
 
-        if (!maskSecretsProperties)
+        if (!maskSecretsProperties) {
             return overrides;
+        }
 
         // Mask out the secrets properties
         Map<String, String> ret = new TreeMap<>();
         for (Map.Entry<String, String> entry : overrides.entrySet()) {
-            if (PropertyInfoExt.isSecretProperty(entry.getKey()))
+            if (PropertyInfoExt.isSecretProperty(entry.getKey())) {
                 ret.put(entry.getKey(), HIDDEN_TEXT_MASK);
-            else
+            } else {
                 ret.put(entry.getKey(), entry.getValue());
+            }
         }
 
         return ret;
     }
-    
+
     /**
      * Merge properties
+     * 
      * @param defaultProps
      * @param overrideProps
      * @return map containing key, value pair
@@ -507,7 +517,7 @@ public class ConfigService {
     public static Map<String, String> mergeProps(Map<String, String> defaultProps, Map<String, String> overrideProps) {
         Map<String, String> mergedProps = new HashMap<String, String>(defaultProps);
         for (Map.Entry<String, String> entry : overrideProps.entrySet()) {
-                mergedProps.put(entry.getKey(), entry.getValue());
+            mergedProps.put(entry.getKey(), entry.getValue());
         }
         return mergedProps;
     }
@@ -517,9 +527,9 @@ public class ConfigService {
      * Callers should prepare valid updateProps and deleteProps,
      * by verifying against validateAndUpdateProperties
      * before call this method
-     *
+     * 
      * @param updateProps update properties' keys and values
-     * @param deleteKeys  delete properties' keys
+     * @param deleteKeys delete properties' keys
      * @throws Exception
      * @throws CoordinatorClientException
      */
@@ -530,7 +540,7 @@ public class ConfigService {
             throw APIException.serviceUnavailable.clusterStateNotStable();
         }
 
-        StringBuilder propChanges = new StringBuilder(); 
+        StringBuilder propChanges = new StringBuilder();
 
         // get current property set
         PropertyInfoRestRep currentProps = _coordinator.getTargetInfo(PropertyInfoExt.class);
@@ -556,7 +566,7 @@ public class ConfigService {
             currentProps.addProperties(updateProps.getAllProperties());
             String configVersion = System.currentTimeMillis() + "";
             currentProps.addProperty(PropertyInfoRestRep.CONFIG_VERSION, configVersion);
-            if(propChanges.length() > 0) {
+            if (propChanges.length() > 0) {
                 propChanges.append(",");
             }
             propChanges.append(PropertyInfoRestRep.CONFIG_VERSION);
@@ -573,13 +583,13 @@ public class ConfigService {
             _coordinator.setTargetInfo(targetProps = new PropertyInfoExt(currentProps.getAllProperties()));
             _log.info("target properties changed successfully. target properties {}", targetProps.toString());
 
-            for(Map.Entry<String, String> entry : updateProps.getAllProperties().entrySet()) {
-                if(propChanges.length() > 0) {
+            for (Map.Entry<String, String> entry : updateProps.getAllProperties().entrySet()) {
+                if (propChanges.length() > 0) {
                     propChanges.append(",");
                 }
                 propChanges.append(entry.getKey());
                 propChanges.append("=");
-                // Hide encrypted string in audit log 
+                // Hide encrypted string in audit log
                 if (PropertyInfoExt.isEncryptedProperty(entry.getKey())) {
                     propChanges.append(HIDDEN_TEXT_MASK);
                 } else {
@@ -603,18 +613,19 @@ public class ConfigService {
         try {
             return toClusterResponse(clusterInfo);
         } finally {
-            if (doSetTarget)
+            if (doSetTarget) {
                 propertyManager.wakeup();
+            }
         }
     }
 
     /**
      * Validate the properties being submitted.
-     *
+     * 
      * @param propsMap properties to be validated
-     * @param bReset   indicate the property change request is called from resetting path or updating path.
-     *                 the value validation difference between resetting path and updating path is:
-     *                     resetting path takes null and empty string as valid.
+     * @param bReset indicate the property change request is called from resetting path or updating path.
+     *            the value validation difference between resetting path and updating path is:
+     *            resetting path takes null and empty string as valid.
      */
     private void validateAndUpdateProperties(Map<String, String> propsMap, boolean bReset) {
 
@@ -636,28 +647,28 @@ public class ConfigService {
 
     /**
      * Get update property set, which values are different from target
-     *
+     * 
      * @param propsToUpdate property set to update in request
-     * @param targetProps   target properties
+     * @param targetProps target properties
      * @return update property set
      */
     private PropertyInfoRestRep getUpdateProps(final PropertyInfoUpdate propsToUpdate,
             final Map<String, String> targetProps) {
         // validate the changed property against it's metadata to ensure property
         // integrity.
-        validateAndUpdateProperties(propsToUpdate.getAllProperties(),false);
+        validateAndUpdateProperties(propsToUpdate.getAllProperties(), false);
 
         PropertyInfoRestRep updateProps = new PropertyInfoRestRep();
 
         for (Map.Entry<String, String> entry : propsToUpdate.getAllProperties().entrySet()) {
             final String key = entry.getKey();
             final String value = entry.getValue();
-            
+
             if (targetProps.containsKey(key) && !targetProps.get(key).equals(value)) {
                 updateProps.addProperty(key, value);
-            } //else if (!targetProps.containsKey(key)) {
-            	//updateProps.addProperty(key, value);
-           // }
+            } else if (!targetProps.containsKey(key)) {
+            	updateProps.addProperty(key, value);
+            }
         }
 
         return updateProps;
@@ -671,10 +682,10 @@ public class ConfigService {
      * either it is contained keysToReset if not null or keysToReset is null (meaning,
      * reset all)
      * compare its value with default, if different, put it in resetProps
-     *
+     * 
      * @param keysToReset property set to delete in request
      * @param targetProps target properties
-     * @param metadata    metadata
+     * @param metadata metadata
      * @return reset property set with value set as defaults
      */
     private PropertyInfoRestRep getResetProps(final PropertyList keysToReset,
@@ -719,9 +730,9 @@ public class ConfigService {
      * Get obsolete property list
      * This method compares each property in target with metadata, if not found,
      * add into obsolete property list.
-     *
+     * 
      * @param targetProps current target property
-     * @param metadata    metadata
+     * @param metadata metadata
      * @return obsolete property list
      */
     private List<String> getObsoleteProps(final Map<String, String> targetProps,
@@ -752,7 +763,7 @@ public class ConfigService {
 
         /**
          * Build the FTPS Transport Configuration section
-         *
+         * 
          * @param ftps
          * @return
          */
@@ -791,7 +802,7 @@ public class ConfigService {
 
         /**
          * Build the Primary Email Transport Configuration section
-         *
+         * 
          * @param email
          * @throws APIException Username and Password required when Auth Type is set
          * @return
@@ -800,7 +811,7 @@ public class ConfigService {
 
             PropertyInfoUpdate propInfo = new PropertyInfoUpdate();
 
-            // This property will cause genconfig to generate the email ConnectEMC_config.xml file. 
+            // This property will cause genconfig to generate the email ConnectEMC_config.xml file.
             propInfo.addProperty("system_connectemc_transport", SMTP_TRANSPORT);
 
             // Do not set any properties to NULL value as this causes exceptions in property update processing.
@@ -839,7 +850,7 @@ public class ConfigService {
             // If auth type set, we need username and password.
             if (!isEmpty(email.getSmtpAuthType())) {
                 if (!isEmpty(email.getUserName()) && !isEmpty(email.getPassword())) {
-                    // required fields for auth type. 
+                    // required fields for auth type.
                     propInfo.addProperty("system_connectemc_smtp_username", email.getUserName());
                     propInfo.addProperty("system_connectemc_smtp_password", email.getPassword());
                     propInfo.addProperty("system_connectemc_smtp_enabletlscert", email.getEnableTlsCert());
@@ -854,7 +865,7 @@ public class ConfigService {
         /**
          * Convenience method for determining that a field has no data (i.e. null or
          * spaces))
-         *
+         * 
          * @param field
          * @return
          */
@@ -869,11 +880,11 @@ public class ConfigService {
 
     /**
      * Record audit log for config service
-     *
-     * @param auditType         Type of AuditLog
+     * 
+     * @param auditType Type of AuditLog
      * @param operationalStatus Status of operation
-     * @param description       Description for the AuditLog
-     * @param descparams        Description paramters
+     * @param description Description for the AuditLog
+     * @param descparams Description paramters
      */
     public void auditConfig(OperationTypeEnum auditType,
             String operationalStatus,
@@ -887,5 +898,41 @@ public class ConfigService {
                 operationalStatus,
                 description,
                 descparams);
+    }
+
+
+    /**
+     * remove specified IP from login-failed-ip list.
+     *
+     * @param ip
+     * @return
+     */
+    @DELETE
+    @Path("/login-failed-ips/{ip}")
+    @CheckPermission( roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
+    public Response removeLoginFailedIP(@PathParam("ip") String ip) {
+        if (StringUtils.isEmpty(ip)) {
+            throw APIException.badRequests.propertyIsNullOrEmpty();
+        }
+
+        _invLoginManager.removeInvalidRecord(ip);
+
+        return Response.ok().build();
+    }
+
+    /**
+     * list client IPs which have failed login attempts recently.
+     *
+     * @return
+     */
+    @GET
+    @Path("/login-failed-ips")
+    @CheckPermission( roles = {Role.SECURITY_ADMIN, Role.RESTRICTED_SECURITY_ADMIN})
+    public LoginFailedIPList getLoginFailedIPs() {
+        LoginFailedIPList response = new LoginFailedIPList();
+        response.setLockoutTimeInMinutes(_invLoginManager.getMaxAuthnLoginAttemtsLifeTimeInMins());
+        response.setMaxLoginAttempts(_invLoginManager.getMaxAuthnLoginAttemtsCount());
+        response.setInvalidLoginsList(_invLoginManager.listBlockedIPs());
+        return response;
     }
 }

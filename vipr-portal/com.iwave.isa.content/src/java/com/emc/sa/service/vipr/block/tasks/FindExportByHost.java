@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block.tasks;
@@ -22,7 +22,7 @@ public class FindExportByHost extends ViPRExecutionTask<ExportGroupRestRep> {
     }
 
     public FindExportByHost(URI host, URI project, URI varray, URI volume) {
-        this.host =  host;
+        this.host = host;
         this.project = project;
         this.varray = varray;
         this.volume = volume;

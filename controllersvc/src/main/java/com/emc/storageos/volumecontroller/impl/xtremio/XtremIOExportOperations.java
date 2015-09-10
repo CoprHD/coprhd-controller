@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.xtremio;
@@ -28,13 +18,9 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.emc.storageos.customconfigcontroller.CustomConfigConstants;
 import com.emc.storageos.customconfigcontroller.DataSource;
-import com.emc.storageos.customconfigcontroller.DataSourceFactory;
-import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
-import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -52,34 +38,18 @@ import com.emc.storageos.volumecontroller.impl.VolumeURIHLU;
 import com.emc.storageos.volumecontroller.impl.smis.ExportMaskOperations;
 import com.emc.storageos.volumecontroller.impl.xtremio.prov.utils.XtremIOProvUtils;
 import com.emc.storageos.xtremio.restapi.XtremIOClient;
-import com.emc.storageos.xtremio.restapi.XtremIOClientFactory;
 import com.emc.storageos.xtremio.restapi.XtremIOConstants;
-import com.emc.storageos.xtremio.restapi.model.response.XtremIOIGFolder;
+import com.emc.storageos.xtremio.restapi.XtremIOConstants.XTREMIO_ENTITY_TYPE;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiator;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOInitiatorGroup;
+import com.emc.storageos.xtremio.restapi.model.response.XtremIOTag;
 import com.emc.storageos.xtremio.restapi.model.response.XtremIOVolume;
 import com.google.common.base.Joiner;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Collections2;
 
-public class XtremIOExportOperations implements ExportMaskOperations {
+public class XtremIOExportOperations extends XtremIOOperations implements ExportMaskOperations {
     private static final Logger _log = LoggerFactory.getLogger(XtremIOExportOperations.class);
-	
-    XtremIOClientFactory xtremioRestClientFactory;
-    DbClient dbClient;
-    
-    @Autowired
-    private DataSourceFactory dataSourceFactory;
-    @Autowired
-    private CustomConfigHandler customConfigHandler;
-
-    public void setXtremioRestClientFactory(XtremIOClientFactory xtremioRestClientFactory) {
-        this.xtremioRestClientFactory = xtremioRestClientFactory;
-    }
-
-    public void setDbClient(DbClient dbClient) {
-        this.dbClient = dbClient;
-    }
 
     @Override
     public void createExportMask(StorageSystem storage, URI exportMaskURI,
@@ -188,20 +158,22 @@ public class XtremIOExportOperations implements ExportMaskOperations {
             String hostName = null;
             String clusterName = null;
             client = getXtremIOClient(storage);
+            String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+
             Iterator<Initiator> iniItr = initiators.iterator();
-            while(iniItr.hasNext()) {
-            Initiator initiator = iniItr.next();
+            while (iniItr.hasNext()) {
+                Initiator initiator = iniItr.next();
                 String igName = null;
                 if (null != initiator.getHostName()) {
                     // initiators already grouped by Host
                     hostName = initiator.getHostName();
                     clusterName = initiator.getClusterName();
                 }
-                igName = getIGNameForInitiator(initiator, client);
+                igName = getIGNameForInitiator(initiator, client, xioClusterName);
                 if (igName != null && !igName.isEmpty()) {
                     groupInitiatorsByIG.put(igName, initiator);
                 } else {
-                    //initiator not found in Array, remove from DB
+                    // initiator not found in Array, remove from DB
                     exportMask.removeFromExistingInitiators(initiator);
                     exportMask.removeFromUserCreatedInitiators(initiator);
                     iniItr.remove();
@@ -215,7 +187,7 @@ public class XtremIOExportOperations implements ExportMaskOperations {
             // lun map
             for (Initiator initiator : initiators) {
                 try {
-                    client.deleteInitiator(initiator.getLabel());
+                    client.deleteInitiator(initiator.getLabel(), xioClusterName);
                     exportMask.removeFromExistingInitiators(initiator);
                     exportMask.removeFromUserCreatedInitiators(initiator);
                 } catch (Exception e) {
@@ -223,7 +195,7 @@ public class XtremIOExportOperations implements ExportMaskOperations {
                 }
             }
             dbClient.updateAndReindexObject(exportMask);
-           
+
             if (!failedIGs.isEmpty()) {
                 String errMsg = "Export Operations failed deleting these initiators: ".concat(Joiner.on(", ").join(
                         failedIGs));
@@ -234,9 +206,9 @@ public class XtremIOExportOperations implements ExportMaskOperations {
 
             // Clean IGs if empty
 
-            deleteInitiatorGroup(groupInitiatorsByIG, client);
+            deleteInitiatorGroup(groupInitiatorsByIG, client, xioClusterName);
             // delete IG Folder as well if IGs are empty
-            deleteInitiatorGroupFolder(client, clusterName, hostName, storage);
+            deleteInitiatorGroupFolder(client, xioClusterName, clusterName, hostName, storage);
 
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
@@ -246,7 +218,6 @@ public class XtremIOExportOperations implements ExportMaskOperations {
             taskCompleter.error(dbClient, serviceError);
             return;
         }
-        
 
     }
 
@@ -259,7 +230,7 @@ public class XtremIOExportOperations implements ExportMaskOperations {
 
     @Override
     public ExportMask refreshExportMask(StorageSystem storage, ExportMask mask) {
-        // TODO Auto-generated method stub
+        // CTRL-13080 fix - refresh mask will not be used by XtremIo exports, hence returning null is not an issue.
         return null;
     }
 
@@ -280,6 +251,8 @@ public class XtremIOExportOperations implements ExportMaskOperations {
             String hostName = null;
             String clusterName = null;
             client = getXtremIOClient(storage);
+            String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+
             for (Initiator initiator : initiators) {
                 String igName = null;
                 if (null != initiator.getHostName()) {
@@ -287,7 +260,7 @@ public class XtremIOExportOperations implements ExportMaskOperations {
                     hostName = initiator.getHostName();
                     clusterName = initiator.getClusterName();
                 }
-                igName = getIGNameForInitiator(initiator, client);
+                igName = getIGNameForInitiator(initiator, client, xioClusterName);
                 if (igName != null && !igName.isEmpty()) {
                     groupInitiatorsByIG.put(igName, initiator);
                     igNames.add(igName);
@@ -297,7 +270,6 @@ public class XtremIOExportOperations implements ExportMaskOperations {
             _log.info("List of reusable IGs found {} with size : {}",
                     Joiner.on(",").join(groupInitiatorsByIG.asMap().entrySet()),
                     groupInitiatorsByIG.size());
-            
 
             List<URI> failedVolumes = new ArrayList<URI>();
             for (URI volumeUri : volumes) {
@@ -306,10 +278,10 @@ public class XtremIOExportOperations implements ExportMaskOperations {
                 XtremIOVolume xtremIOVolume = null;
                 if (URIUtil.isType(volumeUri, Volume.class)) {
                     xtremIOVolume = XtremIOProvUtils.isVolumeAvailableInArray(client,
-                            blockObj.getLabel());
+                            blockObj.getLabel(), xioClusterName);
                 } else {
                     xtremIOVolume = XtremIOProvUtils.isSnapAvailableInArray(client,
-                            blockObj.getLabel());
+                            blockObj.getLabel(), xioClusterName);
                 }
 
                 if (null != xtremIOVolume) {
@@ -323,7 +295,8 @@ public class XtremIOExportOperations implements ExportMaskOperations {
 
                     if (xtremIOVolume.getLunMaps().isEmpty()) {
                         // handle scenarios where volumes gets unexported already
-                        _log.info("Volume  {} doesn't have any existing export available on Array, unexported already.",xtremIOVolume.toString());
+                        _log.info("Volume  {} doesn't have any existing export available on Array, unexported already.",
+                                xtremIOVolume.toString());
                         exportMask.removeFromUserCreatedVolumes(blockObj);
                         exportMask.removeVolume(blockObj.getId());
                         continue;
@@ -363,7 +336,7 @@ public class XtremIOExportOperations implements ExportMaskOperations {
                     // there will be only one lun map always
                     for (String lunMap : lunMaps) {
                         try {
-                            client.deleteLunMap(lunMap);
+                            client.deleteLunMap(lunMap, xioClusterName);
                         } catch (Exception e) {
                             failedVolumes.add(volumeUri);
                             _log.warn("Deletion of Lun Map {} failed}", lunMap, e);
@@ -389,9 +362,9 @@ public class XtremIOExportOperations implements ExportMaskOperations {
 
             // Clean IGs if empty
 
-            deleteInitiatorGroup(groupInitiatorsByIG, client);
-            // delete IG Folder as well if IGs are empty            
-            deleteInitiatorGroupFolder(client, clusterName, hostName, storage);
+            deleteInitiatorGroup(groupInitiatorsByIG, client, xioClusterName);
+            // delete IG Folder as well if IGs are empty
+            deleteInitiatorGroupFolder(client, xioClusterName, clusterName, hostName, storage);
 
             taskCompleter.ready(dbClient);
         } catch (Exception e) {
@@ -403,12 +376,12 @@ public class XtremIOExportOperations implements ExportMaskOperations {
 
     }
 
-    private String getIGNameForInitiator(Initiator initiator, XtremIOClient client) throws Exception {
+    private String getIGNameForInitiator(Initiator initiator, XtremIOClient client, String xioClusterName) throws Exception {
         String igName = null;
         try {
             if (null != initiator.getLabel()) {
                 // Get initiator by Name and find IG Group
-                XtremIOInitiator initiatorObj = client.getInitiator(initiator.getLabel());
+                XtremIOInitiator initiatorObj = client.getInitiator(initiator.getLabel(), xioClusterName);
                 if (null != initiatorObj) {
                     igName = initiatorObj.getInitiatorGroup().get(1);
                 }
@@ -419,11 +392,11 @@ public class XtremIOExportOperations implements ExportMaskOperations {
 
         return igName;
     }
-    
+
     private String getInitiatorGroupFolderName(String clusterName, String hostName, StorageSystem storage) {
         String igFolderName = "";
-        if(clusterName != null && !clusterName.isEmpty()) {
-            //cluster
+        if (clusterName != null && !clusterName.isEmpty()) {
+            // cluster
             DataSource dataSource = dataSourceFactory.createXtremIOClusterInitiatorGroupFolderNameDataSource(
                     clusterName, storage);
             igFolderName = customConfigHandler.getComputedCustomConfigValue(
@@ -433,39 +406,35 @@ public class XtremIOExportOperations implements ExportMaskOperations {
                     hostName, storage);
             igFolderName = customConfigHandler.getComputedCustomConfigValue(
                     CustomConfigConstants.XTREMIO_HOST_INITIATOR_GROUP_FOLDER_NAME, storage.getSystemType(), dataSource);
-        }        
-        
+        }
+
         return igFolderName;
     }
 
-   
-
-    private void addInitiatorToInitiatorGroup(XtremIOClient client, String clusterName,
-            String hostName, List<Initiator> initiatorsToBeCreated, Set<String> igNames,
-            ExportMask exportMask, StorageSystem storage)
+    private void addInitiatorToInitiatorGroup(XtremIOClient client, String xioClusterName,
+            String clusterName, String hostName, List<Initiator> initiatorsToBeCreated,
+            Set<String> igNames, ExportMask exportMask, StorageSystem storage)
             throws Exception {
         XtremIOInitiatorGroup igGroup = null;
-        //create initiator group folder and initiator group
+        // create initiator group folder and initiator group
         String igFolderName = getInitiatorGroupFolderName(clusterName, hostName, storage);
-        
-        if (null == client.getInitiatorGroupFolder(XtremIOConstants.ROOT_FOLDER
-                .concat(igFolderName))) {
+
+        if (null == client.getTagDetails(igFolderName, XTREMIO_ENTITY_TYPE.InitiatorGroup.name(), xioClusterName)) {
             _log.info("Creating IG Folder with name {}", igFolderName);
-            client.createInitiatorGroupFolder(igFolderName);
+            client.createTag(igFolderName, null, XtremIOConstants.XTREMIO_ENTITY_TYPE.InitiatorGroup.name(), xioClusterName);
         }
-            
+
         DataSource dataSource = dataSourceFactory.createXtremIOInitiatorGroupNameDataSource(
                 hostName, storage);
         String igName = customConfigHandler.getComputedCustomConfigValue(
                 CustomConfigConstants.XTREMIO_INITIATOR_GROUP_NAME, storage.getSystemType(), dataSource);
-        igGroup = client.getInitiatorGroup(igName);
+        igGroup = client.getInitiatorGroup(igName, xioClusterName);
         if (null == igGroup) {
             // create a new IG
             _log.info("Creating Initiator Group with name {}", igName);
 
-            client.createInitiatorGroup(igName,
-                    XtremIOConstants.ROOT_FOLDER.concat(igFolderName));
-            igGroup = client.getInitiatorGroup(igName);
+            client.createInitiatorGroup(igName, igFolderName, xioClusterName);
+            igGroup = client.getInitiatorGroup(igName, xioClusterName);
             if (null == igGroup) {
                 _log.info("Neither IG is already present nor able to create on Array {}", hostName);
             } else {
@@ -477,7 +446,7 @@ public class XtremIOExportOperations implements ExportMaskOperations {
             igNames.add(igGroup.getName());
             _log.info("Found Initiator Group {} with # initiators {}", igGroup.getName(),
                     igGroup.getNumberOfInitiators());
-          
+
         }
 
         // add all the left out initiators to this folder
@@ -491,17 +460,19 @@ public class XtremIOExportOperations implements ExportMaskOperations {
             try {
                 // create initiator
                 client.createInitiator(initiatorName, igGroup.getName(),
-                        remainingInitiator.getInitiatorPort());
+                        remainingInitiator.getInitiatorPort(), xioClusterName);
                 remainingInitiator.setLabel(initiatorName);
                 dbClient.persistObject(remainingInitiator);
 
             } catch (Exception e) {
                 // assume initiator already part of another group look for
                 // port_address_not_unique
-            	//CTRL-5956 - Few Initiators cannot be registered on XtremIO Array, throw exception even if one initiator registration fails.
-                _log.warn("Initiator {} already available or not able to register the same on Array. Rediscover the Array and try again.", remainingInitiator.getInitiatorPort());
-            	throw e;
-                
+                // CTRL-5956 - Few Initiators cannot be registered on XtremIO Array, throw exception even if one initiator registration
+                // fails.
+                _log.warn("Initiator {} already available or not able to register the same on Array. Rediscover the Array and try again.",
+                        remainingInitiator.getInitiatorPort());
+                throw e;
+
             }
         }
     }
@@ -521,6 +492,8 @@ public class XtremIOExportOperations implements ExportMaskOperations {
             String hostName = null;
             String clusterName = null;
             client = getXtremIOClient(storage);
+            String xioClusterName = client.getClusterDetails(storage.getSerialNumber()).getName();
+
             _log.info("Finding re-usable IGs available on Array {}", storage.getNativeGuid());
 
             for (Initiator initiator : initiators) {
@@ -531,7 +504,7 @@ public class XtremIOExportOperations implements ExportMaskOperations {
                     clusterName = initiator.getClusterName();
                 }
 
-                igName = getIGNameForInitiator(initiator, client);
+                igName = getIGNameForInitiator(initiator, client, xioClusterName);
                 if (igName == null || igName.isEmpty()) {
                     _log.info("initiator {} - no IG found. Adding to create list",
                             initiator.getLabel(), igName);
@@ -556,12 +529,12 @@ public class XtremIOExportOperations implements ExportMaskOperations {
             igNames.addAll(groupInitiatorsByIG.keySet());
             if (!initiatorsToBeCreated.isEmpty()) {
                 // create new initiator and add to IG; add IG to IG folder
-                addInitiatorToInitiatorGroup(client, clusterName, hostName, initiatorsToBeCreated,
-                        igNames, exportMask, storage);
+                addInitiatorToInitiatorGroup(client, xioClusterName, clusterName, hostName,
+                        initiatorsToBeCreated, igNames, exportMask, storage);
             }
-            
+
             if (igNames.isEmpty()) {
-            	ServiceError serviceError = DeviceControllerException.errors.xtremioInitiatorGroupsNotDetected(storage.getNativeGuid());
+                ServiceError serviceError = DeviceControllerException.errors.xtremioInitiatorGroupsNotDetected(storage.getNativeGuid());
                 taskCompleter.error(dbClient, serviceError);
                 return;
             }
@@ -576,7 +549,7 @@ public class XtremIOExportOperations implements ExportMaskOperations {
                     // Create lun map
                     _log.info("Creating Lun Map for  Volume {} using IG {}", blockObj.getLabel(),
                             igName);
-                    client.createLunMap(blockObj.getLabel(), igName, hluValue);
+                    client.createLunMap(blockObj.getLabel(), igName, hluValue, xioClusterName);
                 }
             }
 
@@ -587,7 +560,7 @@ public class XtremIOExportOperations implements ExportMaskOperations {
 
                 // get volume details again and populate wwn and hlu
                 XtremIOVolume xtremIOVolume = XtremIOProvUtils.isVolumeAvailableInArray(client,
-                        blockObj.getLabel());
+                        blockObj.getLabel(), xioClusterName);
 
                 _log.info("Volume lunMap details Found {}", xtremIOVolume.getLunMaps().toString());
                 if (!xtremIOVolume.getWwn().isEmpty()) {
@@ -599,10 +572,10 @@ public class XtremIOExportOperations implements ExportMaskOperations {
                 for (String igName : igNames) {
                     for (List<Object> lunMapEntries : xtremIOVolume.getLunMaps()) {
                         @SuppressWarnings("unchecked")
-                        //This can't be null
+                        // This can't be null
                         List<Object> igDetails = (List<Object>) lunMapEntries.get(0);
-                        if (null == igDetails.get(1) || null == lunMapEntries.get(2)){
-                            _log.warn("IG Name is null in returned lun map response for volume {}",xtremIOVolume.toString());
+                        if (null == igDetails.get(1) || null == lunMapEntries.get(2)) {
+                            _log.warn("IG Name is null in returned lun map response for volume {}", xtremIOVolume.toString());
                             continue;
                         }
                         String igNameToProcess = (String) igDetails.get(1);
@@ -640,23 +613,15 @@ public class XtremIOExportOperations implements ExportMaskOperations {
         }
     }
 
-    private XtremIOClient getXtremIOClient(StorageSystem system) {
-        XtremIOClient client = (XtremIOClient) xtremioRestClientFactory.getRESTClient(
-                URI.create(XtremIOConstants.getXIOBaseURI(system.getIpAddress(),
-                        system.getPortNumber())), system.getUsername(), system.getPassword(), true);
-        return client;
-    }
-
-    private void deleteInitiatorGroupFolder(XtremIOClient client, String clusterName, String hostName, StorageSystem system)
-            throws Exception {
+    private void deleteInitiatorGroupFolder(XtremIOClient client, String xioClusterName, String clusterName, String hostName,
+            StorageSystem system) throws Exception {
         String tempIGFolderName = getInitiatorGroupFolderName(clusterName, hostName, system);
-        XtremIOIGFolder igFolder = client.getInitiatorGroupFolder(XtremIOConstants.ROOT_FOLDER
-                .concat(tempIGFolderName));
+        XtremIOTag igFolder = client.getTagDetails(tempIGFolderName, XTREMIO_ENTITY_TYPE.InitiatorGroup.name(), xioClusterName);
 
         if (null != igFolder && "0".equalsIgnoreCase(igFolder.getNumberOfIGs())) {
             try {
-                _log.info("# of IGs  {} in Folder {}",igFolder.getNumberOfIGs(),clusterName);
-                client.deleteInitiatorGroupFolder(XtremIOConstants.ROOT_FOLDER.concat(tempIGFolderName));
+                _log.info("# of IGs  {} in Folder {}", igFolder.getNumberOfIGs(), clusterName);
+                client.deleteTag(tempIGFolderName, XtremIOConstants.XTREMIO_ENTITY_TYPE.InitiatorGroup.name(), xioClusterName);
             } catch (Exception e) {
                 _log.warn("Deleting Initatiator Group Folder{} fails", clusterName, e);
             }
@@ -664,20 +629,23 @@ public class XtremIOExportOperations implements ExportMaskOperations {
     }
 
     private void deleteInitiatorGroup(ArrayListMultimap<String, Initiator> groupInitiatorsByIG,
-            XtremIOClient client) {
+            XtremIOClient client, String xioClusterName) {
         for (Entry<String, Collection<Initiator>> entry : groupInitiatorsByIG.asMap().entrySet()) {
             String igName = entry.getKey();
             try {
                 // find # initiators for this IG
-                int numberOfVolumes = client.getNumberOfVolumesInInitiatorGroup(igName);
-                _log.info("Initiator Group {} left with Volume size {}", igName, numberOfVolumes);
-                if (numberOfVolumes == 0) {
-                    // delete Initiator Group
-                    client.deleteInitiatorGroup(igName);
-                    // remove export mask from export groip
+                XtremIOInitiatorGroup ig = client.getInitiatorGroup(igName, xioClusterName);
+                if (ig != null) {
+                    int numberOfVolumes = Integer.parseInt(ig.getNumberOfVolumes());
+                    _log.info("Initiator Group {} left with Volume size {}", igName, numberOfVolumes);
+                    if (numberOfVolumes == 0) {
+                        // delete Initiator Group
+                        client.deleteInitiatorGroup(igName, xioClusterName);
+                        // remove export mask from export groip
 
-                } else {
-                    _log.info("Skipping IG Group {} deletion", igName);
+                    } else {
+                        _log.info("Skipping IG Group {} deletion", igName);
+                    }
                 }
             } catch (Exception e) {
                 _log.warn("Deleting Initatiator Group {} fails", igName, e);
@@ -691,6 +659,6 @@ public class XtremIOExportOperations implements ExportMaskOperations {
             List<URI> volumeURIs, VirtualPool newVirtualPool, boolean rollback,
             TaskCompleter taskCompleter) throws Exception {
         // TODO Auto-generated method stub
-        
+
     }
 }

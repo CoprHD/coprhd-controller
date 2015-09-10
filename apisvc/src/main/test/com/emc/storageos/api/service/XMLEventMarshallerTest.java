@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.service;
@@ -77,7 +77,7 @@ public class XMLEventMarshallerTest {
         deleteIfExists(XmlTestOutputFile);
         XMLEventMarshaller jm = new XMLEventMarshaller();
         Event evt = null;
-        
+
         OutputStream output = new OutputStream() {
             private StringBuilder string = new StringBuilder();
 
@@ -104,20 +104,17 @@ public class XMLEventMarshallerTest {
         unmarshaller = context.createUnmarshaller();
 
         File f = new File(XmlTestOutputFile);
-        try{
+        try {
             @SuppressWarnings("unused")
             Event event = (Event) unmarshaller.unmarshal(f);
-        }
-        catch (Exception e){
+        } catch (Exception e) {
             Assert.assertTrue(e.toString().contains("java.io.FileNotFoundException"));
         }
-       
+
         deleteIfExists(XmlTestOutputFile);
 
     }
-    
-    
-    
+
     @Test
     public void testXmlEventMarshallingForIOExceptions() throws URISyntaxException, IOException,
             MarshallingExcetion {
@@ -139,40 +136,37 @@ public class XMLEventMarshallerTest {
                 return this.string.toString();
             }
         };
-       
-        try{
+
+        try {
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
                     output));
             writer.close();
-            jm.header(writer);           
-        } catch(MarshallingExcetion e){
+            jm.header(writer);
+        } catch (MarshallingExcetion e) {
             Assert.assertTrue(e.toString().contains("XML head Streaming failed"));
         }
 
-        try{
+        try {
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
                     output));
             writer.close();
-            jm.marshal(evt, writer);           
-        } catch(MarshallingExcetion e){
+            jm.marshal(evt, writer);
+        } catch (MarshallingExcetion e) {
             Assert.assertTrue(e.toString().contains("XML Streaming Error"));
         }
-        
-        try{
+
+        try {
             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(
                     output));
             writer.close();
-            jm.tailer(writer);           
-        } catch(MarshallingExcetion e){
+            jm.tailer(writer);
+        } catch (MarshallingExcetion e) {
             Assert.assertTrue(e.toString().contains("XML tail Streaming failed"));
         }
         deleteIfExists(XmlTestOutputFile);
 
     }
-    
-    
-    
-    
+
     private void deleteIfExists(String fname) {
         File f = new File(fname);
 

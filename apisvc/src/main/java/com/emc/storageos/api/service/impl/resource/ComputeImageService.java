@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.service.impl.resource;
@@ -58,114 +58,113 @@ import com.google.common.base.Function;
  * Compute image service handles create, update, and remove of compute images.
  */
 @Path("/compute/images")
-@DefaultPermissions( read_roles = {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR},
-                     read_acls = {ACL.USE},
-                     write_roles = {Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+@DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },
+        readAcls = { ACL.USE },
+        writeRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
 public class ComputeImageService extends TaskResourceService {
-	
-	private static final Logger log = LoggerFactory.getLogger(ComputeImageService.class);
-	
-	private static final String EVENT_SERVICE_TYPE = "ComputeImage";
 
-	/**
-	 * Show compute image attribute.
-	 * 
-	 * @param id
-	 *            the URN of compute image
-	 * @brief Show compute image
-	 * @return Compute image details
-	 */
+    private static final Logger log = LoggerFactory.getLogger(ComputeImageService.class);
+
+    private static final String EVENT_SERVICE_TYPE = "ComputeImage";
+
+    /**
+     * Show compute image attribute.
+     * 
+     * @param id
+     *            the URN of compute image
+     * @brief Show compute image
+     * @return Compute image details
+     */
     @GET
     @Path("/{id}")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public ComputeImageRestRep getComputeImage(@PathParam("id") URI id) {
-    	ArgValidator.checkFieldUriType(id, ComputeImage.class, "id");
-    	ComputeImage ci = queryResource(id);
-    	return ComputeMapper.map(ci);
+        ArgValidator.checkFieldUriType(id, ComputeImage.class, "id");
+        ComputeImage ci = queryResource(id);
+        return ComputeMapper.map(ci);
     }
 
-	/**
-	 * Returns a list of all compute images.
-	 * 
-	 * @brief Show compute images
-	 * @return List of all compute images.
-	 */
+    /**
+     * Returns a list of all compute images.
+     * 
+     * @brief Show compute images
+     * @return List of all compute images.
+     */
     @GET
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR})
-	public ComputeImageList getComputeImages(@QueryParam("imageType") String imageType) {
-		log.info("getComputeImages, imageType: {}", imageType);
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
+    public ComputeImageList getComputeImages(@QueryParam("imageType") String imageType) {
+        log.info("getComputeImages, imageType: {}", imageType);
 
-		// validate query param
-		if (imageType != null) {
-			ArgValidator.checkFieldValueFromEnum(imageType, "imageType",
-					ComputeImage.ImageType.class);
-		}
+        // validate query param
+        if (imageType != null) {
+            ArgValidator.checkFieldValueFromEnum(imageType, "imageType",
+                    ComputeImage.ImageType.class);
+        }
 
-		List<URI> ids = _dbClient.queryByType(ComputeImage.class, true);
-		ComputeImageList list = new ComputeImageList();
-		Iterator<ComputeImage> iter = _dbClient.queryIterativeObjects(ComputeImage.class, ids);
-		while (iter.hasNext()) {
-			ComputeImage img = iter.next();
-			if (imageType == null || imageType.equals(img.getImageType())) {
-				list.getComputeImages().add(DbObjectMapper.toNamedRelatedResource(img));
-			}
-		}
-		return list;
-	}
+        List<URI> ids = _dbClient.queryByType(ComputeImage.class, true);
+        ComputeImageList list = new ComputeImageList();
+        Iterator<ComputeImage> iter = _dbClient.queryIterativeObjects(ComputeImage.class, ids);
+        while (iter.hasNext()) {
+            ComputeImage img = iter.next();
+            if (imageType == null || imageType.equals(img.getImageType())) {
+                list.getComputeImages().add(DbObjectMapper.toNamedRelatedResource(img));
+            }
+        }
+        return list;
+    }
 
-	/**
-	 * Create compute image from image URL or existing installable image URN.
-	 * 
-	 * @param param
-	 *            The ComputeImageCreate object contains all the parameters for
-	 *            creation.
-	 * @brief Create compute image
-	 * @return Creation task REST representation.
-	 */
+    /**
+     * Create compute image from image URL or existing installable image URN.
+     * 
+     * @param param
+     *            The ComputeImageCreate object contains all the parameters for
+     *            creation.
+     * @brief Create compute image
+     * @return Creation task REST representation.
+     */
     @POST
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
-	public TaskResourceRep createComputeImage(ComputeImageCreate param) {
-		log.info("createComputeImage");
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep createComputeImage(ComputeImageCreate param) {
+        log.info("createComputeImage");
 
-		// unique name required
-		ArgValidator.checkFieldNotEmpty(param.getName(), "name");
-		checkDuplicateLabel(ComputeImage.class, param.getName(), param.getName());
+        // unique name required
+        ArgValidator.checkFieldNotEmpty(param.getName(), "name");
+        checkDuplicateLabel(ComputeImage.class, param.getName(), param.getName());
 
-		ArgValidator.checkFieldNotEmpty(param.getImageUrl(), "image_url");
-		ArgValidator.checkUrl(param.getImageUrl(), "image_url");
+        ArgValidator.checkFieldNotEmpty(param.getImageUrl(), "image_url");
+        ArgValidator.checkUrl(param.getImageUrl(), "image_url");
 
-		ComputeImage ci = new ComputeImage();
-		ci.setId(URIUtil.createId(ComputeImage.class));
+        ComputeImage ci = new ComputeImage();
+        ci.setId(URIUtil.createId(ComputeImage.class));
 
-		// IN_PROGRESS until successfully loaded by image server controller
-		ci.setComputeImageStatus(ComputeImageStatus.IN_PROGRESS.name());
+        // IN_PROGRESS until successfully loaded by image server controller
+        ci.setComputeImageStatus(ComputeImageStatus.IN_PROGRESS.name());
 
-		ci.setLabel(param.getName());
-		ci.setImageUrl(param.getImageUrl());
+        ci.setLabel(param.getName());
+        ci.setImageUrl(param.getImageUrl());
 
-		_dbClient.createObject(ci);
+        _dbClient.createObject(ci);
 
-		auditOp(OperationTypeEnum.CREATE_COMPUTE_IMAGE, true, AuditLogManager.AUDITOP_BEGIN, ci.getId().toString(),
-				ci.getImageUrl(), ci.getComputeImageStatus());
-		try {
-		    return doImportImage(ci);
-		}
-		catch (Exception e) {
-		    ci.setComputeImageStatus(ComputeImageStatus.NOT_AVAILABLE.name());
-		    _dbClient.persistObject(ci);
-		    throw e;
-		}
-	}
-    
+        auditOp(OperationTypeEnum.CREATE_COMPUTE_IMAGE, true, AuditLogManager.AUDITOP_BEGIN, ci.getId().toString(),
+                ci.getImageUrl(), ci.getComputeImageStatus());
+        try {
+            return doImportImage(ci);
+        } catch (Exception e) {
+            ci.setComputeImageStatus(ComputeImageStatus.NOT_AVAILABLE.name());
+            _dbClient.persistObject(ci);
+            throw e;
+        }
+    }
+
     /*
      * Returns task in ready state.
      */
     private TaskResourceRep getReadyOp(ComputeImage ci, ResourceOperationTypeEnum opType) {
-    	log.info("doImportImageDone");
-    	String taskId = UUID.randomUUID().toString();
+        log.info("doImportImageDone");
+        String taskId = UUID.randomUUID().toString();
         AsyncTask task = new AsyncTask(ComputeImage.class, ci.getId(), taskId);
         Operation readyOp = new Operation();
         readyOp.ready();
@@ -179,8 +178,8 @@ public class ComputeImageService extends TaskResourceService {
      * Schedules the import task.
      */
     private TaskResourceRep doImportImage(ComputeImage ci) {
-    	log.info("doImportImage");
-    	ImageServerController controller = getController(ImageServerController.class, null);
+        log.info("doImportImage");
+        ImageServerController controller = getController(ImageServerController.class, null);
         AsyncTask task = new AsyncTask(ComputeImage.class, ci.getId(), UUID.randomUUID().toString());
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.IMPORT_IMAGE);
@@ -188,131 +187,130 @@ public class ComputeImageService extends TaskResourceService {
         controller.importImage(task);
         return TaskMapper.toTask(ci, task._opId, op);
     }
-    
-	/**
-	 * Updates an already present compute image.
-	 * 
-	 * @param id
-	 *            compute image URN.
-	 * @param param
-	 *            The ComputeImageUpdate object with attributes to be updated.
-	 * @brief Update compute image details
-	 * @return Update task REST representation.
-	 */
+
+    /**
+     * Updates an already present compute image.
+     * 
+     * @param id
+     *            compute image URN.
+     * @param param
+     *            The ComputeImageUpdate object with attributes to be updated.
+     * @brief Update compute image details
+     * @return Update task REST representation.
+     */
     @PUT
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep updateComputeImage(@PathParam("id") URI id, ComputeImageUpdate param) {
-    	log.info("updateComputeImage: {}, new name: {}", id, param.getName());
-    	ArgValidator.checkFieldUriType(id, ComputeImage.class, "id");
-    	ArgValidator.checkFieldNotEmpty(param.getName(), "name");
-    	
-    	//Adding URL validation CTRL-9518
-    	ArgValidator.checkUrl(param.getImageUrl(), "image_url");
-    	
+        log.info("updateComputeImage: {}, new name: {}", id, param.getName());
+        ArgValidator.checkFieldUriType(id, ComputeImage.class, "id");
+        ArgValidator.checkFieldNotEmpty(param.getName(), "name");
+
+        // Adding URL validation CTRL-9518
+        ArgValidator.checkUrl(param.getImageUrl(), "image_url");
+
         ComputeImage ci = _dbClient.queryObject(ComputeImage.class, id);
         ArgValidator.checkEntity(ci, id, isIdEmbeddedInURL(id));
-        
-		if (!ci.getLabel().equals(param.getName())) {
-			checkDuplicateLabel(ComputeImage.class, param.getName(), param.getName());
-			ci.setLabel(param.getName());
-		}
-    	
-    	boolean reImport = false;
-    	
-    	// see if image URL needs updating
-		if (!StringUtils.isBlank(param.getImageUrl()) && !param.getImageUrl().equals(ci.getImageUrl())) {
-			// URL can only be update if image not successfully loaded
-			if (ci.getComputeImageStatus().equals(ComputeImageStatus.NOT_AVAILABLE.name())) {
-    			ci.setImageUrl(param.getImageUrl());
-    			ci.setComputeImageStatus(ComputeImageStatus.IN_PROGRESS.name());
-    			reImport = true;
-    		} else {
-    			throw APIException.badRequests.invalidParameterCannotUpdateComputeImageUrl();
-    		}
-    	}
-    	
-    	_dbClient.persistObject(ci);
 
-    	auditOp(OperationTypeEnum.UPDATE_COMPUTE_IMAGE, true, null, 
-        		ci.getId().toString(), ci.getImageUrl());
-    	
+        if (!ci.getLabel().equals(param.getName())) {
+            checkDuplicateLabel(ComputeImage.class, param.getName(), param.getName());
+            ci.setLabel(param.getName());
+        }
+
+        boolean reImport = false;
+
+        // see if image URL needs updating
+        if (!StringUtils.isBlank(param.getImageUrl()) && !param.getImageUrl().equals(ci.getImageUrl())) {
+            // URL can only be update if image not successfully loaded
+            if (ci.getComputeImageStatus().equals(ComputeImageStatus.NOT_AVAILABLE.name())) {
+                ci.setImageUrl(param.getImageUrl());
+                ci.setComputeImageStatus(ComputeImageStatus.IN_PROGRESS.name());
+                reImport = true;
+            } else {
+                throw APIException.badRequests.invalidParameterCannotUpdateComputeImageUrl();
+            }
+        }
+
+        _dbClient.persistObject(ci);
+
+        auditOp(OperationTypeEnum.UPDATE_COMPUTE_IMAGE, true, null,
+                ci.getId().toString(), ci.getImageUrl());
+
         if (!reImport) {
             return getReadyOp(ci, ResourceOperationTypeEnum.UPDATE_IMAGE);
         }
 
         try {
             return doImportImage(ci);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             ci.setComputeImageStatus(ComputeImageStatus.NOT_AVAILABLE.name());
             _dbClient.persistObject(ci);
             throw e;
         }
     }
 
-	/**
-	 * Delete existing compute image.
-	 * 
-	 * @param id
-	 *            compute image URN.
-	 * @brief Delete compute image
-	 * @return No data returned in response body
-	 */
-	@POST
-	@Path("/{id}/deactivate")
-	@Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-	@Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-	@CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
-	public TaskResourceRep deleteComputeImage(@PathParam("id") URI id, @QueryParam("force") String force) {
-		log.info("deleteComputeImage: {}", id);
-		ComputeImage ci = queryObject(ComputeImage.class, id, true);
-		ArgValidator.checkEntity(ci, id, isIdEmbeddedInURL(id));
+    /**
+     * Delete existing compute image.
+     * 
+     * @param id
+     *            compute image URN.
+     * @brief Delete compute image
+     * @return No data returned in response body
+     */
+    @POST
+    @Path("/{id}/deactivate")
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    public TaskResourceRep deleteComputeImage(@PathParam("id") URI id, @QueryParam("force") String force) {
+        log.info("deleteComputeImage: {}", id);
+        ComputeImage ci = queryObject(ComputeImage.class, id, true);
+        ArgValidator.checkEntity(ci, id, isIdEmbeddedInURL(id));
 
-		if (ComputeImage.ComputeImageStatus.AVAILABLE.name().equals(ci.getComputeImageStatus())) {
-			
-			if (force == null || !force.equals("true")) {
-				// make sure there are no active jobs associated with this image
-				URIQueryResultList ceUriList = new URIQueryResultList();
-				_dbClient.queryByConstraint(ContainmentConstraint.Factory.getComputeImageJobsByComputeImageConstraint(ci.getId()),
-						ceUriList);
-				Iterator<URI> iterator = ceUriList.iterator();
-				while (iterator.hasNext()) {
-					ComputeImageJob job = _dbClient.queryObject(ComputeImageJob.class, iterator.next());
-					if (job.getJobStatus().equals(ComputeImageJob.JobStatus.CREATED.name())) {
-						throw APIException.badRequests.cannotDeleteComputeWhileInUse();
-					}
-				}
-			}
+        if (ComputeImage.ComputeImageStatus.AVAILABLE.name().equals(ci.getComputeImageStatus())) {
 
-	        auditOp(OperationTypeEnum.DELETE_COMPUTE_IMAGE, true, AuditLogManager.AUDITOP_BEGIN, ci.getId().toString(),
-					ci.getImageUrl());
-			return doRemoveImage(ci);
-		} else if (ComputeImage.ComputeImageStatus.IN_PROGRESS.name().equals(ci.getComputeImageStatus())) {
-			if (force == null || !force.equals("true")) {
-				throw APIException.badRequests.resourceCannotBeDeleted(ci.getLabel());
-			}
-			else { // delete is forced
-				_dbClient.markForDeletion(ci);
-				auditOp(OperationTypeEnum.DELETE_COMPUTE_IMAGE, true, null, ci.getId().toString(), ci.getImageUrl());
-				return getReadyOp(ci, ResourceOperationTypeEnum.REMOVE_IMAGE);
-			}
-		} else { // NOT_AVAILABLE
-			_dbClient.markForDeletion(ci);
-			auditOp(OperationTypeEnum.DELETE_COMPUTE_IMAGE, true, null, ci.getId().toString(), ci.getImageUrl());
-			return getReadyOp(ci, ResourceOperationTypeEnum.REMOVE_IMAGE);
-		}
-	}
-	
+            if (force == null || !force.equals("true")) {
+                // make sure there are no active jobs associated with this image
+                URIQueryResultList ceUriList = new URIQueryResultList();
+                _dbClient.queryByConstraint(ContainmentConstraint.Factory.getComputeImageJobsByComputeImageConstraint(ci.getId()),
+                        ceUriList);
+                Iterator<URI> iterator = ceUriList.iterator();
+                while (iterator.hasNext()) {
+                    ComputeImageJob job = _dbClient.queryObject(ComputeImageJob.class, iterator.next());
+                    if (job.getJobStatus().equals(ComputeImageJob.JobStatus.CREATED.name())) {
+                        throw APIException.badRequests.cannotDeleteComputeWhileInUse();
+                    }
+                }
+            }
+
+            auditOp(OperationTypeEnum.DELETE_COMPUTE_IMAGE, true, AuditLogManager.AUDITOP_BEGIN, ci.getId().toString(),
+                    ci.getImageUrl());
+            return doRemoveImage(ci);
+        } else if (ComputeImage.ComputeImageStatus.IN_PROGRESS.name().equals(ci.getComputeImageStatus())) {
+            if (force == null || !force.equals("true")) {
+                throw APIException.badRequests.resourceCannotBeDeleted(ci.getLabel());
+            }
+            else { // delete is forced
+                _dbClient.markForDeletion(ci);
+                auditOp(OperationTypeEnum.DELETE_COMPUTE_IMAGE, true, null, ci.getId().toString(), ci.getImageUrl());
+                return getReadyOp(ci, ResourceOperationTypeEnum.REMOVE_IMAGE);
+            }
+        } else { // NOT_AVAILABLE
+            _dbClient.markForDeletion(ci);
+            auditOp(OperationTypeEnum.DELETE_COMPUTE_IMAGE, true, null, ci.getId().toString(), ci.getImageUrl());
+            return getReadyOp(ci, ResourceOperationTypeEnum.REMOVE_IMAGE);
+        }
+    }
+
     /*
      * Schedules the remove task.
      */
     private TaskResourceRep doRemoveImage(ComputeImage ci) {
-    	log.info("doRemoveImage");
-    	ImageServerController controller = getController(ImageServerController.class, null);
-		AsyncTask task = new AsyncTask(ComputeImage.class, ci.getId(), UUID.randomUUID().toString());
+        log.info("doRemoveImage");
+        ImageServerController controller = getController(ImageServerController.class, null);
+        AsyncTask task = new AsyncTask(ComputeImage.class, ci.getId(), UUID.randomUUID().toString());
         Operation op = new Operation();
         op.setResourceType(ResourceOperationTypeEnum.REMOVE_IMAGE);
         _dbClient.createTaskOpStatus(ComputeImage.class, ci.getId(), task._opId, op);
@@ -320,19 +318,19 @@ public class ComputeImageService extends TaskResourceService {
         return TaskMapper.toTask(ci, task._opId, op);
     }
 
-	/**
-	 * List data of compute images based on input ids.
-	 * 
-	 * @param param
-	 *            POST data containing the id list.
-	 * @prereq none
-	 * @brief List data of compute images
-	 * @return List of representations.
-	 */
+    /**
+     * List data of compute images based on input ids.
+     * 
+     * @param param
+     *            POST data containing the id list.
+     * @prereq none
+     * @brief List data of compute images
+     * @return List of representations.
+     */
     @POST
     @Path("/bulk")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public ComputeImageBulkRep getBulkResources(BulkIdParam param) {
         return (ComputeImageBulkRep) super.getBulkResources(param);
@@ -342,15 +340,16 @@ public class ComputeImageService extends TaskResourceService {
     public ComputeImageBulkRep queryBulkResourceReps(List<URI> ids) {
 
         Iterator<ComputeImage> _dbIterator =
-            _dbClient.queryIterativeObjects(getResourceClass(), ids);
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new ComputeImageBulkRep(BulkList.wrapping(_dbIterator, COMPUTE_IMAGE_MAPPER));
     }
-    
+
     private final ComputeImageMapper COMPUTE_IMAGE_MAPPER = new ComputeImageMapper();
-    private class ComputeImageMapper implements Function<ComputeImage,ComputeImageRestRep> {
+
+    private class ComputeImageMapper implements Function<ComputeImage, ComputeImageRestRep> {
         @Override
         public ComputeImageRestRep apply(final ComputeImage ci) {
-        	return ComputeMapper.map(ci);
+            return ComputeMapper.map(ci);
         }
     }
 
@@ -360,28 +359,28 @@ public class ComputeImageService extends TaskResourceService {
     }
 
     @Override
-	protected URI getTenantOwner(URI id) {
-		return null;
-	}
+    protected URI getTenantOwner(URI id) {
+        return null;
+    }
 
-	@Override
-	protected ResourceTypeEnum getResourceType() {
-		return ResourceTypeEnum.COMPUTE_IMAGE;
-	}
+    @Override
+    protected ResourceTypeEnum getResourceType() {
+        return ResourceTypeEnum.COMPUTE_IMAGE;
+    }
 
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
     }
-    
+
     @SuppressWarnings("unchecked")
     @Override
     public Class<ComputeImage> getResourceClass() {
         return ComputeImage.class;
     }
-    
-	@Override
-	protected ComputeImage queryResource(URI id) {
-		return queryObject(ComputeImage.class, id, false);
-	}
+
+    @Override
+    protected ComputeImage queryResource(URI id) {
+        return queryObject(ComputeImage.class, id, false);
+    }
 }

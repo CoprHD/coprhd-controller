@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.smis;
@@ -19,8 +19,9 @@ public class SMISProviderCreateParam {
     private String password;
     private Boolean useSSL;
 
-    public SMISProviderCreateParam() {}
-    
+    public SMISProviderCreateParam() {
+    }
+
     public SMISProviderCreateParam(String name, String ipAddress,
             Integer portNumber, String userName, String password, Boolean useSSL) {
         this.name = name;
@@ -32,8 +33,8 @@ public class SMISProviderCreateParam {
     }
 
     /**
-     * Name of the SMIS Provider 
-     */     
+     * Name of the SMIS Provider
+     */
     @XmlElement(required = true)
     @Length(min = 2, max = 128)
     public String getName() {
@@ -45,9 +46,10 @@ public class SMISProviderCreateParam {
     }
 
     /**
-     * IP address of the SMIS provider. 
+     * IP address of the SMIS provider.
+     * 
      * @valid example: 10.247.99.87
-     */     
+     */
     @XmlElement(required = true, name = "ip_address")
     public String getIpAddress() {
         return ipAddress;
@@ -58,9 +60,10 @@ public class SMISProviderCreateParam {
     }
 
     /**
-     * The port number of the SMIS provider  
-     * @valid example: 5989 
-     */     
+     * The port number of the SMIS provider
+     * 
+     * @valid example: 5989
+     */
     @XmlElement(required = true, name = "port_number")
     public Integer getPortNumber() {
         return portNumber;
@@ -71,9 +74,10 @@ public class SMISProviderCreateParam {
     }
 
     /**
-     * User name of the SMIS provider  
-     * @valid example: none 
-     */     
+     * User name of the SMIS provider
+     * 
+     * @valid example: none
+     */
     @XmlElement(required = true, name = "user_name")
     public String getUserName() {
         return userName;
@@ -84,9 +88,10 @@ public class SMISProviderCreateParam {
     }
 
     /**
-     * Password of the SMIS provider  
-     * @valid example: none 
-     */     
+     * Password of the SMIS provider
+     * 
+     * @valid example: none
+     */
     @XmlElement(required = true)
     public String getPassword() {
         return password;
@@ -97,10 +102,11 @@ public class SMISProviderCreateParam {
     }
 
     /**
-     * Specifies whether to use SSL (Secure Sockets Layer) 
+     * Specifies whether to use SSL (Secure Sockets Layer)
      * as the authentication method.
-     * @valid none 
-     */     
+     * 
+     * @valid none
+     */
     @XmlElement(required = true, name = "use_ssl")
     public Boolean getUseSSL() {
         return useSSL;
@@ -109,5 +115,5 @@ public class SMISProviderCreateParam {
     public void setUseSSL(Boolean useSSL) {
         this.useSSL = useSSL;
     }
-    
+
 }

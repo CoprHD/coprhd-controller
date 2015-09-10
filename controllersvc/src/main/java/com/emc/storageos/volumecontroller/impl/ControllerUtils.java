@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl;
 
@@ -38,6 +28,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
@@ -79,13 +70,15 @@ public class ControllerUtils {
 
     // Constant that represents BLOCK_EVENT_SOURCE
     public static final String BLOCK_EVENT_SOURCE = "Block Controller";
-   
+
     // Constant that represents BLOCK_EVENT_SERVICE
     public static final String BLOCK_EVENT_SERVICE = "block";
-    
+
     private static final String KILOBYTECONVERTERVALUE = "1024";
-    
+
     private static final VolumeURIHLU[] EMPTY_VOLUME_URI_HLU_ARRAY = new VolumeURIHLU[0];
+
+    private static final String LABEL_DELIMITER = "-";
 
     /**
      * Gets the URI of the tenant organization for the project with the passed
@@ -154,233 +147,235 @@ public class ControllerUtils {
     }
 
     /**
-      * This function looks first at the logical pools and updates them with physical
-      * capacity information, then updates the physical pools.
-      * If physical pools are removed from the storage system it marks them inactive.
-      * @param storage
-      * @param physicalHardware
-      * @return
-      *
-     public static
-     boolean reconcilePhysicalHardware(URI storage,
-                                       List<Object> physicalHardware,
-                                       DbClient dbClient) {
-         Logger log = LoggerFactory.getLogger(ControllerUtils.class);
-         try {
-             
-             // First update the logical pools represented by the physical pool
-              
-             List<URI> poolURIs = dbClient.queryByConstraint
-                     (ContainmentConstraint.Factory
-                             .getStorageDeviceStoragePoolConstraint(storage));
-             List<StoragePool> pools = dbClient.queryObject(StoragePool
-                     .class, poolURIs);
-             boolean poolFound;
-             for(StoragePool pool : pools){
-                 poolFound = false;
-                 for(Object obj : physicalHardware){
-                     if (obj instanceof PhysicalStoragePool) {
-                         // the type and ID must match
-                         PhysicalStoragePool psp = (PhysicalStoragePool) obj;
-                         if (pool.getControllerParams().get(StoragePool.ControllerParam.NativeId.name()).equals(psp.getNativeId())&&
-                             pool.getControllerParams().get(StoragePool.ControllerParam.PoolType.name()).equals(psp.getType())) {
-                             pool.setFreeCapacity(psp.getFreeCapacity());
-                             pool.setTotalCapacity(psp.getTotalCapacity());
-                             pool.setLargestContiguousBlock(psp
-                                     .getLargestContiguousBlock());
-                             pool.setSubscribedCapacity(psp.getSubscribedCapacity());
-                             log.info(String.format("Logical pool %1$s updated by " +
-                                     "physical storage pool %2$s/%3$s",
-                                     pool.getId().toString(),
-                                     psp.getType(), psp.getNativeId()));
-                             dbClient.persistObject(pool);
-                             poolFound = true;
-                             break;
-                         }
-                     }
-                 }
-                 if(poolFound == false){
-                     // probably a good indication this pool is not valid
-                     //pool.setInactive(true);
-                     //dbClient.persistObject(pool);
-                     log.warn(String.format("Logical pool %1$s not found on storage system",
-                                              pool.getId().toString()));
-                 }
-             }
-             
-             // Now update the physical pools obtained from controller
-              
-             poolURIs = dbClient.queryByConstraint(ContainmentConstraint.Factory
-                                     .getStorageDevicePhysicalPoolConstraint(storage));
-             List<PhysicalStoragePool> physicalPools = dbClient.queryObject(PhysicalStoragePool.class, poolURIs);
-             Map<URI,PhysicalStoragePool> newPools = new HashMap<URI,PhysicalStoragePool>();
-             // save the set of physical pools so we can tell if there are new ones
-             for (Object obj : physicalHardware) {
-                 if (obj instanceof PhysicalStoragePool) {
-                     PhysicalStoragePool psp = (PhysicalStoragePool) obj;
-                     psp.setId(URIUtil.createId(PhysicalStoragePool.class));
-                     psp.setInactive(false);
-                     psp.setStorageDevice(storage);
-                     newPools.put(psp.getId(),psp);
-                 }
-             }
-             for (PhysicalStoragePool pool : physicalPools) {
-                 poolFound = false;
-                 for (Object obj : physicalHardware) {
-                     if (obj instanceof PhysicalStoragePool) {
-                         PhysicalStoragePool psp = (PhysicalStoragePool) obj;
-                         // native ID and type must match
-                         if (pool.getNativeId().equals(psp.getNativeId()) &&
-                                 pool.getType().equals(psp.getType())) {
-                             newPools.remove(psp.getId());
-                             psp.setId(pool.getId());
-                             log.info(String.format("Updated physical storage pool %1$s/%2$s:%3$s %4$s",
-                                                      psp.getType(), psp.getNativeId(),
-                                                      pool.getId().toString(),
-                                                      pool.getLabel()));
-                             dbClient.persistObject(psp);
-                             poolFound = true;
-                             break;
-                         }
-                     }
-                 }
-                 if(poolFound==false){
-                     // this pool is no longer on array
-                     log.info(String.format("Inactivated Pool %1$s", pool.getId()));
-                     dbClient.markForDeletion(pool);
-                 }
-             }
-
-             // add new pools
-             Iterator<Map.Entry<URI,PhysicalStoragePool>> itr = newPools.entrySet().iterator();
-             while(itr.hasNext()){
-                 Map.Entry<URI, PhysicalStoragePool> entry = itr.next();
-                 PhysicalStoragePool psp = entry.getValue();
-                 log.info(String.format("New physical storage pool %1$s/%2$s:%3$s %4$s",
-                                         psp.getType(),psp.getNativeId(),
-                                         psp.getId().toString(),
-                                         psp.getLabel()));
-                 dbClient.persistObject(psp);
-             }
-             return true;
-         } catch (IOException e) {
-             log.error("Exception while trying to handle results from " +
-                     "getPhysicalInventory", e);
-         }
-         return false;
-     }*/
+     * This function looks first at the logical pools and updates them with physical
+     * capacity information, then updates the physical pools.
+     * If physical pools are removed from the storage system it marks them inactive.
+     * 
+     * @param storage
+     * @param physicalHardware
+     * @return
+     * 
+     *         public static
+     *         boolean reconcilePhysicalHardware(URI storage,
+     *         List<Object> physicalHardware,
+     *         DbClient dbClient) {
+     *         Logger log = LoggerFactory.getLogger(ControllerUtils.class);
+     *         try {
+     * 
+     *         // First update the logical pools represented by the physical pool
+     * 
+     *         List<URI> poolURIs = dbClient.queryByConstraint
+     *         (ContainmentConstraint.Factory
+     *         .getStorageDeviceStoragePoolConstraint(storage));
+     *         List<StoragePool> pools = dbClient.queryObject(StoragePool
+     *         .class, poolURIs);
+     *         boolean poolFound;
+     *         for(StoragePool pool : pools){
+     *         poolFound = false;
+     *         for(Object obj : physicalHardware){
+     *         if (obj instanceof PhysicalStoragePool) {
+     *         // the type and ID must match
+     *         PhysicalStoragePool psp = (PhysicalStoragePool) obj;
+     *         if (pool.getControllerParams().get(StoragePool.ControllerParam.NativeId.name()).equals(psp.getNativeId())&&
+     *         pool.getControllerParams().get(StoragePool.ControllerParam.PoolType.name()).equals(psp.getType())) {
+     *         pool.setFreeCapacity(psp.getFreeCapacity());
+     *         pool.setTotalCapacity(psp.getTotalCapacity());
+     *         pool.setLargestContiguousBlock(psp
+     *         .getLargestContiguousBlock());
+     *         pool.setSubscribedCapacity(psp.getSubscribedCapacity());
+     *         log.info(String.format("Logical pool %1$s updated by " +
+     *         "physical storage pool %2$s/%3$s",
+     *         pool.getId().toString(),
+     *         psp.getType(), psp.getNativeId()));
+     *         dbClient.persistObject(pool);
+     *         poolFound = true;
+     *         break;
+     *         }
+     *         }
+     *         }
+     *         if(poolFound == false){
+     *         // probably a good indication this pool is not valid
+     *         //pool.setInactive(true);
+     *         //dbClient.persistObject(pool);
+     *         log.warn(String.format("Logical pool %1$s not found on storage system",
+     *         pool.getId().toString()));
+     *         }
+     *         }
+     * 
+     *         // Now update the physical pools obtained from controller
+     * 
+     *         poolURIs = dbClient.queryByConstraint(ContainmentConstraint.Factory
+     *         .getStorageDevicePhysicalPoolConstraint(storage));
+     *         List<PhysicalStoragePool> physicalPools = dbClient.queryObject(PhysicalStoragePool.class, poolURIs);
+     *         Map<URI,PhysicalStoragePool> newPools = new HashMap<URI,PhysicalStoragePool>();
+     *         // save the set of physical pools so we can tell if there are new ones
+     *         for (Object obj : physicalHardware) {
+     *         if (obj instanceof PhysicalStoragePool) {
+     *         PhysicalStoragePool psp = (PhysicalStoragePool) obj;
+     *         psp.setId(URIUtil.createId(PhysicalStoragePool.class));
+     *         psp.setInactive(false);
+     *         psp.setStorageDevice(storage);
+     *         newPools.put(psp.getId(),psp);
+     *         }
+     *         }
+     *         for (PhysicalStoragePool pool : physicalPools) {
+     *         poolFound = false;
+     *         for (Object obj : physicalHardware) {
+     *         if (obj instanceof PhysicalStoragePool) {
+     *         PhysicalStoragePool psp = (PhysicalStoragePool) obj;
+     *         // native ID and type must match
+     *         if (pool.getNativeId().equals(psp.getNativeId()) &&
+     *         pool.getType().equals(psp.getType())) {
+     *         newPools.remove(psp.getId());
+     *         psp.setId(pool.getId());
+     *         log.info(String.format("Updated physical storage pool %1$s/%2$s:%3$s %4$s",
+     *         psp.getType(), psp.getNativeId(),
+     *         pool.getId().toString(),
+     *         pool.getLabel()));
+     *         dbClient.persistObject(psp);
+     *         poolFound = true;
+     *         break;
+     *         }
+     *         }
+     *         }
+     *         if(poolFound==false){
+     *         // this pool is no longer on array
+     *         log.info(String.format("Inactivated Pool %1$s", pool.getId()));
+     *         dbClient.markForDeletion(pool);
+     *         }
+     *         }
+     * 
+     *         // add new pools
+     *         Iterator<Map.Entry<URI,PhysicalStoragePool>> itr = newPools.entrySet().iterator();
+     *         while(itr.hasNext()){
+     *         Map.Entry<URI, PhysicalStoragePool> entry = itr.next();
+     *         PhysicalStoragePool psp = entry.getValue();
+     *         log.info(String.format("New physical storage pool %1$s/%2$s:%3$s %4$s",
+     *         psp.getType(),psp.getNativeId(),
+     *         psp.getId().toString(),
+     *         psp.getLabel()));
+     *         dbClient.persistObject(psp);
+     *         }
+     *         return true;
+     *         } catch (IOException e) {
+     *         log.error("Exception while trying to handle results from " +
+     *         "getPhysicalInventory", e);
+     *         }
+     *         return false;
+     *         }
+     */
 
     /**
      * returns if operation (besides opId) is pending
-     * @param id  id of resource
+     * 
+     * @param id id of resource
      * @param opId operation id for current operation
      * @param resource instance of resource
      * @return
      */
-    public static
-    boolean isOperationInProgress(URI id, String opId, DataObject resource) {
+    public static boolean isOperationInProgress(URI id, String opId, DataObject resource) {
         OpStatusMap ops = resource.getOpStatus();
-        Set<Map.Entry<String,Operation>> opSet = ops.entrySet();
-        Iterator<Map.Entry<String,Operation>> opItr = opSet.iterator();
+        Set<Map.Entry<String, Operation>> opSet = ops.entrySet();
+        Iterator<Map.Entry<String, Operation>> opItr = opSet.iterator();
 
         while (opItr.hasNext()) {
-            Map.Entry <String, Operation> entry = opItr.next();
-            if(entry.getValue().getStatus().equals(Operation.Status.pending.toString())){
+            Map.Entry<String, Operation> entry = opItr.next();
+            if (entry.getValue().getStatus().equals(Operation.Status.pending.toString())) {
                 if (entry.getKey().equals(opId)) {
                     // our operation, pass
                     continue;
                 }
                 //
-                //Logger log = LoggerFactory.getLogger(ControllerUtils.class);
-                //log.debug("operation in progress");
+                // Logger log = LoggerFactory.getLogger(ControllerUtils.class);
+                // log.debug("operation in progress");
                 //
                 return true;
             }
         }
         return false;
     }
-    
-	/**
-	 * Converts a RecordableEvent to an Event Model
-	 * 
-	 * @param event
-	 * @return
-	 */
-	public static Event convertToEvent(RecordableEvent event) {
 
-		Event dbEvent = new Event();
+    /**
+     * Converts a RecordableEvent to an Event Model
+     * 
+     * @param event
+     * @return
+     */
+    public static Event convertToEvent(RecordableEvent event) {
 
-		dbEvent.setTimeInMillis(event.getTimestamp());
-		dbEvent.setEventType(event.getType());
-		dbEvent.setTenantId(event.getTenantId());
-		dbEvent.setProjectId(event.getProjectId());
-		dbEvent.setUserId(event.getUserId());
-		dbEvent.setVirtualPool(event.getVirtualPool());
-		dbEvent.setService(event.getService());
-		dbEvent.setResourceId(event.getResourceId());
-		dbEvent.setSeverity(event.getSeverity());
-		dbEvent.setDescription(event.getDescription());
-		dbEvent.setExtensions(event.getExtensions());
-		dbEvent.setEventId(event.getEventId());
-		dbEvent.setAlertType(event.getAlertType());
-		dbEvent.setRecordType(event.getRecordType());
-		dbEvent.setNativeGuid(event.getNativeGuid());
-		dbEvent.setOperationalStatusCodes(event.getOperationalStatusCodes());
-		dbEvent.setOperationalStatusDescriptions(event.getOperationalStatusDescriptions());
-		dbEvent.setEventSource(event.getSource());
+        Event dbEvent = new Event();
 
-		return dbEvent;
+        dbEvent.setTimeInMillis(event.getTimestamp());
+        dbEvent.setEventType(event.getType());
+        dbEvent.setTenantId(event.getTenantId());
+        dbEvent.setProjectId(event.getProjectId());
+        dbEvent.setUserId(event.getUserId());
+        dbEvent.setVirtualPool(event.getVirtualPool());
+        dbEvent.setService(event.getService());
+        dbEvent.setResourceId(event.getResourceId());
+        dbEvent.setSeverity(event.getSeverity());
+        dbEvent.setDescription(event.getDescription());
+        dbEvent.setExtensions(event.getExtensions());
+        dbEvent.setEventId(event.getEventId());
+        dbEvent.setAlertType(event.getAlertType());
+        dbEvent.setRecordType(event.getRecordType());
+        dbEvent.setNativeGuid(event.getNativeGuid());
+        dbEvent.setOperationalStatusCodes(event.getOperationalStatusCodes());
+        dbEvent.setOperationalStatusDescriptions(event.getOperationalStatusDescriptions());
+        dbEvent.setEventSource(event.getSource());
 
-	}
+        return dbEvent;
 
-	/**
-	 * Create a new instance of RecordableBourneEvent with the given resource
-	 * and properties.
-	 * 
-	 * @param resource
-	 *            - Type of Resource - File or Volume
-	 * @param type
-	 *            - Event Type Enum
-	 * @param description
-	 *            - Description of event if available
-	 * @param extensions
-	 *            - Extensions mapped with Event Model Extensions
-	 * @param eventServiceSource
-	 *            - URI of the Project
-	 * @param dbClient
-	 *            - DBClient reference
-	 * @param evtServiceType
-	 *            - Service Type
-	 * @param recordType
-	 *            - Type of Indication
-	 * @return RecordableBourneEvent
-	 */
-	public static RecordableBourneEvent convertToRecordableBourneEvent(
-			DataObject resource, String type,
-			String description, String extensions, DbClient dbClient,
-			String evtServiceType, String recordType, String eventServiceSource) {
+    }
 
-		URI cos = null;
-		URI id = null;
-		String nativeGuid = null;
-		URI projectURI = null;
+    /**
+     * Create a new instance of RecordableBourneEvent with the given resource
+     * and properties.
+     * 
+     * @param resource
+     *            - Type of Resource - File or Volume
+     * @param type
+     *            - Event Type Enum
+     * @param description
+     *            - Description of event if available
+     * @param extensions
+     *            - Extensions mapped with Event Model Extensions
+     * @param eventServiceSource
+     *            - URI of the Project
+     * @param dbClient
+     *            - DBClient reference
+     * @param evtServiceType
+     *            - Service Type
+     * @param recordType
+     *            - Type of Indication
+     * @return RecordableBourneEvent
+     */
+    public static RecordableBourneEvent convertToRecordableBourneEvent(
+            DataObject resource, String type,
+            String description, String extensions, DbClient dbClient,
+            String evtServiceType, String recordType, String eventServiceSource) {
+
+        URI cos = null;
+        URI id = null;
+        String nativeGuid = null;
+        URI projectURI = null;
         URI tenantURI = null;
-		RecordableBourneEvent event = null;
+        RecordableBourneEvent event = null;
 
-		if (resource != null) {
-			if (resource instanceof Volume) {
-				Volume volume = (Volume) resource;
-				cos = volume.getVirtualPool();
-				id = volume.getId();
-				nativeGuid = volume.getNativeGuid();
-				projectURI = volume.getProject().getURI();
+        if (resource != null) {
+            if (resource instanceof Volume) {
+                Volume volume = (Volume) resource;
+                cos = volume.getVirtualPool();
+                id = volume.getId();
+                nativeGuid = volume.getNativeGuid();
+                projectURI = volume.getProject().getURI();
                 tenantURI = volume.getTenant().getURI();
-			} else if (resource instanceof FileShare) {
-				FileShare fs = (FileShare) resource;
-				cos = fs.getVirtualPool();
-				id = fs.getId();
-				nativeGuid = fs.getNativeGuid();
-				projectURI = (fs.getProject() != null) ? fs.getProject().getURI() : null;
+            } else if (resource instanceof FileShare) {
+                FileShare fs = (FileShare) resource;
+                cos = fs.getVirtualPool();
+                id = fs.getId();
+                nativeGuid = fs.getNativeGuid();
+                projectURI = (fs.getProject() != null) ? fs.getProject().getURI() : null;
                 tenantURI = (fs.getTenant() != null) ? fs.getTenant().getURI() : null;
             } else if (resource instanceof VplexMirror) {
                 VplexMirror vplexMirror = (VplexMirror) resource;
@@ -388,7 +383,7 @@ public class ControllerUtils {
                 id = vplexMirror.getId();
                 projectURI = vplexMirror.getProject().getURI();
                 tenantURI = vplexMirror.getTenant().getURI();
-            }else if (resource instanceof BlockSnapshot) {
+            } else if (resource instanceof BlockSnapshot) {
                 BlockSnapshot snapshot = (BlockSnapshot) resource;
                 try {
                     if (!NullColumnValueGetter.isNullNamedURI(snapshot.getParent())) {
@@ -423,41 +418,41 @@ public class ControllerUtils {
                 id = tz.getId();
                 nativeGuid = tz.getNativeGuid();
             } else if (resource instanceof BlockConsistencyGroup) {
-				BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) resource;
-				try {
-					id = consistencyGroup.getId();
-					projectURI = consistencyGroup.getProject().getURI();
-					tenantURI = (consistencyGroup.getTenant() != null) ? consistencyGroup.getTenant()
-					        .getURI() : null;
-				} catch (Exception e) {
-					s_logger.error("Exception caught", e);
-				}
+                BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) resource;
+                try {
+                    id = consistencyGroup.getId();
+                    projectURI = consistencyGroup.getProject().getURI();
+                    tenantURI = (consistencyGroup.getTenant() != null) ? consistencyGroup.getTenant()
+                            .getURI() : null;
+                } catch (Exception e) {
+                    s_logger.error("Exception caught", e);
+                }
             } else if (resource instanceof StoragePool) {
                 StoragePool sp = (StoragePool) resource;
                 id = sp.getId();
                 nativeGuid = sp.getNativeGuid();
             } else {
-				s_logger.info(
-						"Error getting vpool,id,NativeGuid for event. Unexpected resource type {}.",
-						resource.getClass().getName());
-			}
-			// TODO fix the bogus tenant, user ID once we have AuthZ working
+                s_logger.info(
+                        "Error getting vpool,id,NativeGuid for event. Unexpected resource type {}.",
+                        resource.getClass().getName());
+            }
+            // TODO fix the bogus tenant, user ID once we have AuthZ working
             if (tenantURI == null && projectURI != null) {
                 tenantURI = ControllerUtils.getProjectTenantOrgURI(dbClient, projectURI);
             }
-			event = new RecordableBourneEvent(
-					type,
-					tenantURI,
-					URI.create("ViPR-User"), // user ID TODO when AAA
-													// fixed
-					projectURI, cos, evtServiceType, id, description,
-					System.currentTimeMillis(), extensions, nativeGuid,
-					recordType, eventServiceSource, "", "");
-		}
+            event = new RecordableBourneEvent(
+                    type,
+                    tenantURI,
+                    URI.create("ViPR-User"), // user ID TODO when AAA
+                                             // fixed
+                    projectURI, cos, evtServiceType, id, description,
+                    System.currentTimeMillis(), extensions, nativeGuid,
+                    recordType, eventServiceSource, "", "");
+        }
 
-		return event;
-	}
-	
+        return event;
+    }
+
     /**
      * convert Bytes to KiloBytes
      * 
@@ -465,71 +460,78 @@ public class ControllerUtils {
      * @return
      */
     public static Long convertBytesToKBytes(String value) {
-        if (null == value) return 0L;
+        if (null == value) {
+            return 0L;
+        }
         BigDecimal val = new BigDecimal(value);
         BigDecimal kbconverter = new BigDecimal(KILOBYTECONVERTERVALUE);
         BigDecimal result = val.divide(kbconverter, RoundingMode.CEILING);
         // if the passed in Value from Provider is less than 1024 bytes, then by
         // default make it to 1 KB.
-        if (result.longValue() == 0)
+        if (result.longValue() == 0) {
             return 1L;
+        }
         return result.longValue();
     }
-    
+
     /**
      * If the returned value from Provider cannot be accommodated within Long, then make it to 0.
      * as this is not a valid stat.The only possibility to get a high number is ,Provider initializes
      * all stat property values with a default value of uint64. (18444......)
-     * Once stats collected, values will then accommodated within Long. 
+     * Once stats collected, values will then accommodated within Long.
+     * 
      * @param value
      * @return
      */
     public static Long getLongValue(String value) {
         try {
             return Long.parseLong(value);
-        }catch(Exception e) {
+        } catch (Exception e) {
             s_logger.warn("Not parse String to get Long value");
         }
         return 0L;
     }
-    
+
     static final BigInteger modValue = BigInteger.valueOf(Long.MAX_VALUE).add(BigInteger.ONE);
+
     /**
-     * Get a modulo long value from a potentially bigger number by creating a BigInteger and 
+     * Get a modulo long value from a potentially bigger number by creating a BigInteger and
      * MODing by Long.MAX_VALUE + 1
+     * 
      * @param value - String value of arbitrarily large integer
      * @return Long value computed by BigInteger MOD (Long.MAX_VALUE+1), 0 in case of Exception
      */
     public static Long getModLongValue(String value) {
         try {
-        	BigInteger bigValue = new BigInteger(value);
-        	bigValue = bigValue.mod(modValue);
+            BigInteger bigValue = new BigInteger(value);
+            bigValue = bigValue.mod(modValue);
             return bigValue.longValue();
         } catch (Exception e) {
             s_logger.warn("Not parse String to get Long value");
         }
         return 0L;
     }
-    
+
     /**
      * Returen a double vaule. Returns 0.0 if mal-formatted.
+     * 
      * @param value -- String
      * @return Double value
      */
     public static Double getDoubleValue(String value) {
-    	try {
-    	    return Double.parseDouble(value);
-    	} catch (Exception e) {
-    	    s_logger.warn("Not parse String to get Double value");
-    	}
-    	return 0.0;
+        try {
+            return Double.parseDouble(value);
+        } catch (Exception e) {
+            s_logger.warn("Not parse String to get Double value");
+        }
+        return 0.0;
     }
 
     public static VolumeURIHLU[] getVolumeURIHLUArray(String storageType,
-                                                      Map<URI, Integer> volumeMap,
-                                                      DbClient dbClient) {
+            Map<URI, Integer> volumeMap,
+            DbClient dbClient) {
         VolumeURIHLU[] volURIsHlus = EMPTY_VOLUME_URI_HLU_ARRAY; // Have a non-null default value
-        if(volumeMap != null && !volumeMap.keySet().isEmpty()) {
+        if (volumeMap != null && !volumeMap.keySet().isEmpty()) {
             boolean convertFromHex = storageType.equals(DiscoveredDataObject.Type.vmax.name());
             int entryCount = volumeMap.keySet().size();
             volURIsHlus = new VolumeURIHLU[entryCount];
@@ -543,7 +545,7 @@ public class ControllerUtils {
                 if (convertFromHex) {
                     nativeId = Integer.parseInt(blockObject.getNativeId(), 16);
                     nativeIdString = String.format("%04d", nativeId);
-                } else if (!storageType.equals(DiscoveredDataObject.Type.vnxe.name()) && 
+                } else if (!storageType.equals(DiscoveredDataObject.Type.vnxe.name()) &&
                         blockObject.getNativeId().matches("\\d+")) {
                     nativeId = Integer.parseInt(blockObject.getNativeId());
                     nativeIdString = String.format("%04d", nativeId);
@@ -558,21 +560,22 @@ public class ControllerUtils {
                 String hluString = (entryHLU != null) ? Integer.toHexString(entryHLU) :
                         ExportGroup.LUN_UNASSIGNED_STR;
                 String volLabel = blockURIToLabelMap.get(uri);
-                if ( storageType.equals(DiscoveredDataObject.Type.hds.name()) || storageType.equals(DiscoveredDataObject.Type.xtremio.name())) {
-                    //@TODO setting the policy name as null for now. We should handle when we support tiering.
+                if (storageType.equals(DiscoveredDataObject.Type.hds.name())
+                        || storageType.equals(DiscoveredDataObject.Type.xtremio.name())) {
+                    // @TODO setting the policy name as null for now. We should handle when we support tiering.
                     volURIsHlus[index++] = new VolumeURIHLU(uri, String.valueOf(entryHLU), null, volLabel);
                 } else {
-                    String policyName = getAutoTieringPolicyName(uri,dbClient);
+                    String policyName = getAutoTieringPolicyName(uri, dbClient);
                     VolumeURIHLU volumeURLHLU = new VolumeURIHLU(uri, hluString, policyName, volLabel);
-                    if ( storageType.equals(DiscoveredDataObject.Type.vmax.name()) ) {                    
+                    if (storageType.equals(DiscoveredDataObject.Type.vmax.name())) {
                         BlockObject blockObject = BlockObject.fetch(dbClient, uri);
                         if (blockObject instanceof Volume) {
-                            Volume volume = (Volume)blockObject;
+                            Volume volume = (Volume) blockObject;
                             VirtualPool virtualPool = dbClient.queryObject(VirtualPool.class, volume.getVirtualPool());
-                            volumeURLHLU = new VolumeURIHLU(uri, hluString, policyName, volLabel, 
-                                                                        virtualPool.getHostIOLimitBandwidth(),
-                                                                        virtualPool.getHostIOLimitIOPs());
-                        } 
+                            volumeURLHLU = new VolumeURIHLU(uri, hluString, policyName, volLabel,
+                                    virtualPool.getHostIOLimitBandwidth(),
+                                    virtualPool.getHostIOLimitIOPs());
+                        }
                     }
                     volURIsHlus[index++] = volumeURLHLU;
                 }
@@ -582,16 +585,16 @@ public class ControllerUtils {
         }
         return volURIsHlus;
     }
-    
+
     public static String getAutoTieringPolicyName(URI uri, DbClient dbClient) {
         String policyName = Constants.NONE;
         if (URIUtil.isType(uri, Volume.class)) {
             Volume volume = dbClient.queryObject(Volume.class, uri);
             URI policyURI = volume.getAutoTieringPolicyUri();
             if (!NullColumnValueGetter.isNullURI(policyURI)) {
-              AutoTieringPolicy policy =  dbClient.queryObject(AutoTieringPolicy.class, policyURI); 
-              policyName = policy.getPolicyName();
-            } 
+                AutoTieringPolicy policy = dbClient.queryObject(AutoTieringPolicy.class, policyURI);
+                policyName = policy.getPolicyName();
+            }
         }
         else if (URIUtil.isType(uri, BlockSnapshot.class)) {
             BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, uri);
@@ -600,7 +603,7 @@ public class ControllerUtils {
                 Volume volume = dbClient.queryObject(Volume.class, snapshot.getParent());
                 URI policyURI = volume.getAutoTieringPolicyUri();
                 if (!NullColumnValueGetter.isNullURI(policyURI)) {
-                    AutoTieringPolicy policy =  dbClient.queryObject(AutoTieringPolicy.class, policyURI); 
+                    AutoTieringPolicy policy = dbClient.queryObject(AutoTieringPolicy.class, policyURI);
                     policyName = policy.getPolicyName();
                 }
             }
@@ -611,7 +614,7 @@ public class ControllerUtils {
 
     /**
      * Gets the URI of auto tiering policy associated with from virtual pool.
-     *
+     * 
      * @param vPool the virtual pool
      * @param storage the storage system
      * @param dbClient the db client
@@ -624,7 +627,7 @@ public class ControllerUtils {
          * if unique tiering policy is enabled on Virtual Pool, it has policy's
          * name. else it has policy's nativeGuid.
          * 
-         * for VNX: 
+         * for VNX:
          * Unique tiering policy field is not available.
          * So, it always has the policy's name.
          */
@@ -654,13 +657,14 @@ public class ControllerUtils {
                 if (policy.getStorageSystem().equals(storage.getId())) {
                     return policyURI;
                 }
-            }            
+            }
         }
         return null;
     }
 
     /**
      * grouping volumes based on fast Policy
+     * 
      * @param volumeMap
      * @param dbClient
      * @return
@@ -668,10 +672,10 @@ public class ControllerUtils {
     public static Map<String, Map<URI, Integer>> groupVolumeBasedOnPolicy(
             Map<URI, Integer> volumeMap, DbClient dbClient) {
         Map<String, Map<URI, Integer>> volumeGroup = new HashMap<String, Map<URI, Integer>>();
-        
+
         if (volumeMap != null && !volumeMap.keySet().isEmpty()) {
             for (Map.Entry<URI, Integer> entry : volumeMap.entrySet()) {
-                String policyName = getAutoTieringPolicyName(entry.getKey(),dbClient);
+                String policyName = getAutoTieringPolicyName(entry.getKey(), dbClient);
                 Map<URI, Integer> volumeUris = volumeGroup.get(policyName);
                 if (null == volumeUris) {
                     volumeUris = new HashMap<URI, Integer>();
@@ -682,9 +686,10 @@ public class ControllerUtils {
         }
         return volumeGroup;
     }
-    
+
     /**
      * get Volume NativeGuids from volume Map
+     * 
      * @param volumeMap
      * @param dbClient
      * @return
@@ -698,22 +703,22 @@ public class ControllerUtils {
             nativeGuidToVolumeUriHLU.put(blockObject.getNativeGuid(), volumeURIHLU);
         }
         return nativeGuidToVolumeUriHLU;
-    }    
-     
+    }
+
     public static VolumeURIHLU[] constructVolumeUriHLUs(Set<String> diff, ListMultimap<String, VolumeURIHLU> nativeGuidToVolumeHluMap) {
-       List<VolumeURIHLU> volumeUriHLUs = new ArrayList<VolumeURIHLU>();
-       for (String nativeGuid : diff) {
-          Collection<VolumeURIHLU> volumeUriHLU = nativeGuidToVolumeHluMap.asMap().get(nativeGuid);
-          volumeUriHLUs.addAll(volumeUriHLU);
-          
-       }
-       VolumeURIHLU[] volumeURIHLUArr = new VolumeURIHLU[volumeUriHLUs.size()];
-       return volumeUriHLUs.toArray(volumeURIHLUArr);
+        List<VolumeURIHLU> volumeUriHLUs = new ArrayList<VolumeURIHLU>();
+        for (String nativeGuid : diff) {
+            Collection<VolumeURIHLU> volumeUriHLU = nativeGuidToVolumeHluMap.asMap().get(nativeGuid);
+            volumeUriHLUs.addAll(volumeUriHLU);
+
+        }
+        VolumeURIHLU[] volumeURIHLUArr = new VolumeURIHLU[volumeUriHLUs.size()];
+        return volumeUriHLUs.toArray(volumeURIHLUArr);
     }
 
     /**
      * Gets the property value from coordinator.
-     *
+     * 
      * @param coordinator
      * @param key
      * @return the property value
@@ -721,9 +726,10 @@ public class ControllerUtils {
     public static String getPropertyValueFromCoordinator(CoordinatorClient coordinator, String key) {
         return coordinator.getPropertyInfo().getProperty(key);
     }
-    
+
     /**
      * Query database to get storage ports of given storage systems
+     * 
      * @param dbClient
      * @param systemURI
      * @return list of storage system's storage ports
@@ -745,9 +751,10 @@ public class ControllerUtils {
         }
         return systemPorts;
     }
-    
+
     /**
      * Convenient method to get policy name from a virtual pool
+     * 
      * @param _dbClient
      * @param storage
      * @param vpool
@@ -761,12 +768,13 @@ public class ControllerUtils {
             policyName = policy.getPolicyName();
         }
         return policyName;
-        
+
     }
-    
+
     /**
-     * Utility method which will filter the snapshots from getBlockSnapshotsBySnapsetLabel query by the 
+     * Utility method which will filter the snapshots from getBlockSnapshotsBySnapsetLabel query by the
      * snapshot's project
+     * 
      * @param snapshot
      * @param dbClient
      * @return
@@ -779,10 +787,218 @@ public class ControllerUtils {
         List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
         while (resultsIt.hasNext()) {
             BlockSnapshot snap = resultsIt.next();
-            if(snapshot.getProject() != null && snapshot.getProject().getURI().equals(snap.getProject().getURI())) {
+            if (snapshot.getProject() != null && snapshot.getProject().getURI().equals(snap.getProject().getURI())) {
                 snapshots.add(snap);
             }
         }
         return snapshots;
+    }
+
+    /**
+     * Determines if the passed volume is a full copy.
+     * 
+     * @param volume A reference to a volume.
+     * @param dbClient A reference to database client.
+     * 
+     * @return true if the volume is a full copy, false otherwise.
+     */
+    public static boolean isVolumeFullCopy(Volume volume, DbClient dbClient) {
+        boolean isFullCopy = false;
+        URI fcSourceObjURI = volume.getAssociatedSourceVolume();
+        if (!NullColumnValueGetter.isNullURI(fcSourceObjURI)) {
+            BlockObject fcSourceObj = BlockObject.fetch(dbClient, fcSourceObjURI);
+            if ((fcSourceObj != null) && (!fcSourceObj.getInactive())) {
+                // The volume has a valid source object, so it
+                // is a full copy volume. We check the source,
+                // because the full copy mat have been detached
+                // from the source and the source may have been
+                // deleted.
+                isFullCopy = true;
+            }
+        }
+        return isFullCopy;
+    }
+
+    /**
+     * Gets the volumes part of a given consistency group.
+     *
+     */
+    public static List<Volume> getVolumesPartOfCG(URI cgURI, DbClient dbClient) {
+        List<Volume> volumes = new ArrayList<Volume>();
+        final URIQueryResultList uriQueryResultList = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getBlockObjectsByConsistencyGroup(cgURI.toString()),
+                uriQueryResultList);
+        Iterator<Volume> volumeIterator = dbClient.queryIterativeObjects(Volume.class,
+                uriQueryResultList);
+        while (volumeIterator.hasNext()) {
+            Volume volume = volumeIterator.next();
+            if (volume != null && !volume.getInactive()) {
+                volumes.add(volume);
+            }
+        }
+        return volumes;
+    }
+
+    /**
+     * Gets the mirrors part of a given replication group.
+     */
+    public static List<BlockMirror> getMirrorsPartOfReplicationGroup(
+            String replicationGroupInstance, DbClient dbClient) {
+        List<BlockMirror> mirrors = new ArrayList<BlockMirror>();
+        URIQueryResultList uriQueryResultList = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getMirrorReplicationGroupInstanceConstraint(replicationGroupInstance),
+                uriQueryResultList);
+        Iterator<BlockMirror> mirrorIterator = dbClient.queryIterativeObjects(BlockMirror.class,
+                uriQueryResultList);
+        while (mirrorIterator.hasNext()) {
+            BlockMirror mirror = mirrorIterator.next();
+            if (mirror != null && !mirror.getInactive()) {
+                mirrors.add(mirror);
+            }
+        }
+        return mirrors;
+    }
+
+    /**
+     * Gets the full copies part of a given replication group.
+     */
+    public static List<Volume> getFullCopiesPartOfReplicationGroup(
+            String replicationGroupInstance, DbClient dbClient) {
+        List<Volume> fullCopies = new ArrayList<Volume>();
+        URIQueryResultList uriQueryResultList = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getCloneReplicationGroupInstanceConstraint(replicationGroupInstance),
+                uriQueryResultList);
+        Iterator<Volume> itr = dbClient.queryIterativeObjects(Volume.class,
+                uriQueryResultList);
+        while (itr.hasNext()) {
+            Volume fullCopy = itr.next();
+            if (fullCopy != null && !fullCopy.getInactive()) {
+                fullCopies.add(fullCopy);
+            }
+        }
+        return fullCopies;
+    }
+
+    /**
+     * Gets the snapshots part of a given replication group.
+     */
+    public static List<BlockSnapshot> getSnapshotsPartOfReplicationGroup(
+            String replicationGroupInstance, DbClient dbClient) {
+        List<BlockSnapshot> snapshots = new ArrayList<BlockSnapshot>();
+        URIQueryResultList uriQueryResultList = new URIQueryResultList();
+        dbClient.queryByConstraint(AlternateIdConstraint.Factory
+            .getSnapshotReplicationGroupInstanceConstraint(replicationGroupInstance),
+            uriQueryResultList);
+        Iterator<BlockSnapshot> snapIterator = dbClient.queryIterativeObjects(BlockSnapshot.class,
+                uriQueryResultList);
+        while (snapIterator.hasNext()) {
+        	BlockSnapshot snapshot = snapIterator.next();
+            if (snapshot != null && !snapshot.getInactive()) {
+            	snapshots.add(snapshot);
+            }
+        }
+        return snapshots;
+    }
+
+    /**
+     * Gets the replication group name from replicas of all volumes in CG.
+     */
+    public static String getGroupNameFromReplicas(List<URI> replicas,
+            BlockConsistencyGroup consistencyGroup, DbClient dbClient) {
+        URI replicaURI = replicas.iterator().next();
+        // get volumes part of this CG
+        List<Volume> volumes = ControllerUtils.
+                getVolumesPartOfCG(consistencyGroup.getId(), dbClient);
+
+        // check if replica of any of these volumes have replicationGroupInstance set
+        for (Volume volume : volumes) {
+            if (URIUtil.isType(replicaURI, BlockSnapshot.class)) {
+                URIQueryResultList list = new URIQueryResultList();
+                dbClient.queryByConstraint(ContainmentConstraint.Factory
+                        .getVolumeSnapshotConstraint(volume.getId()), list);
+                Iterator<URI> it = list.iterator();
+                while (it.hasNext()) {
+                    URI snapshotID = it.next();
+                    BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotID);
+                    if (snapshot != null && !snapshot.getInactive()
+                            && NullColumnValueGetter.isNotNullValue(snapshot.getReplicationGroupInstance())) {
+                        return snapshot.getReplicationGroupInstance();
+                    }
+                }
+            } else if (URIUtil.isType(replicaURI, Volume.class)) {
+                URIQueryResultList cloneList = new URIQueryResultList();
+                dbClient.queryByConstraint(ContainmentConstraint.Factory
+                        .getAssociatedSourceVolumeConstraint(volume.getId()), cloneList);
+                Iterator<URI> iter = cloneList.iterator();
+                while (iter.hasNext()) {
+                    URI cloneID = iter.next();
+                    Volume clone = dbClient.queryObject(Volume.class, cloneID);
+                    if (clone != null && !clone.getInactive()
+                            && NullColumnValueGetter.isNotNullValue(clone.getReplicationGroupInstance())) {
+                        return clone.getReplicationGroupInstance();
+                    }
+                }
+            } else if (URIUtil.isType(replicaURI, BlockMirror.class)) {
+                URIQueryResultList mirrorList = new URIQueryResultList();
+                dbClient.queryByConstraint(ContainmentConstraint.Factory
+                        .getVolumeBlockMirrorConstraint(volume.getId()), mirrorList);
+                Iterator<URI> itr = mirrorList.iterator();
+                while (itr.hasNext()) {
+                    URI mirrorID = itr.next();
+                    BlockMirror mirror = dbClient.queryObject(BlockMirror.class, mirrorID);
+                    if (mirror != null && !mirror.getInactive()
+                            && NullColumnValueGetter.isNotNullValue(mirror.getReplicationGroupInstance())) {
+                        return mirror.getReplicationGroupInstance();
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    public static String getMirrorLabel(String sourceLabel, String mirrorLabel) {
+        return sourceLabel + LABEL_DELIMITER + mirrorLabel;
+    }
+
+    public static String getMirrorLabel(String mirrorLabel, int counter) {
+        return mirrorLabel + LABEL_DELIMITER + counter;
+    }
+
+    public static String generateLabel(String sourceLabel, String mirrorLabel) {
+        if (mirrorLabel.startsWith(sourceLabel + LABEL_DELIMITER) && mirrorLabel.length() > sourceLabel.length() + 1) {
+            return mirrorLabel.substring(sourceLabel.length() + 1);
+        } else {
+            return mirrorLabel;
+        }
+    }
+
+    /**
+     * Given a list of BlockSnapshot objects, determine if they were created as part of a
+     * consistency group.
+     *
+     * @param snapshotList
+     *            [required] - List of BlockSnapshot objects
+     * @return true if the BlockSnapshots were created as part of volume consistency group.
+     * */
+    public static boolean inReplicationGroup(final List<BlockSnapshot> snapshotList, DbClient dbClient) {
+        boolean isCgCreate = false;
+        if (snapshotList.size() == 1) {
+            // snapshots will only have a single block consistency group
+            BlockSnapshot snapshot = snapshotList.get(0);
+            if (!NullColumnValueGetter.isNullURI(snapshot.getConsistencyGroup())) {
+                final URI cgId = snapshot.getConsistencyGroup();
+                if (cgId != null) {
+                    final BlockConsistencyGroup group = dbClient.queryObject(
+                            BlockConsistencyGroup.class, cgId);
+                    isCgCreate = group != null;
+                }
+            }
+        } else if (snapshotList.size() > 1) {
+            isCgCreate = true;
+        }
+        return isCgCreate;
     }
 }

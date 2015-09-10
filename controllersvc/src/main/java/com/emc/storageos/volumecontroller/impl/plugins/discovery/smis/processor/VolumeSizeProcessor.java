@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor;
 
@@ -64,8 +54,9 @@ public class VolumeSizeProcessor extends PoolProcessor {
             if (resultObj instanceof CIMArgument<?>[]) {
                 CIMArgument<?>[] outputArguments = (CIMArgument<?>[]) resultObj;
                 for (CIMArgument<?> outArg : outputArguments) {
-                    if (null == outArg)
+                    if (null == outArg) {
                         continue;
+                    }
                     if (outArg.getName().equalsIgnoreCase(MINIMUM_VOLUME_SIZE)) {
                         minVolSize = outArg.getValue().toString();
                     } else if (outArg.getName().equalsIgnoreCase(MAXIMUM_VOLUME_SIZE)) {
@@ -75,7 +66,7 @@ public class VolumeSizeProcessor extends PoolProcessor {
                 // we are setting at compile time, hence value will be there always.
                 CIMObjectPath poolObjectPath = getObjectPathfromCIMArgument();
                 String instanceID = poolObjectPath.getKey(Constants.INSTANCEID).getValue().toString();
-                
+
                 StoragePool pool = checkStoragePoolExistsInDB(
                         getNativeIDFromInstance(instanceID), _dbClient, device);
                 if (null != pool) {
@@ -85,15 +76,15 @@ public class VolumeSizeProcessor extends PoolProcessor {
                         String supportedResourceType = pool.getSupportedResourceTypes();
                         if (SupportedResourceTypes.THIN_ONLY.name().equals(supportedResourceType)) {
                             pool.setMaximumThinVolumeSize(maxVolumeSize);
-                            pool.setMinimumThinVolumeSize(minVolumeSize); 
+                            pool.setMinimumThinVolumeSize(minVolumeSize);
                         }
                         else if (SupportedResourceTypes.THICK_ONLY.name().equals(supportedResourceType)) {
                             pool.setMaximumThickVolumeSize(maxVolumeSize);
-                            pool.setMinimumThickVolumeSize(minVolumeSize);    
+                            pool.setMinimumThickVolumeSize(minVolumeSize);
                         }
                     }
                     else { // TODO - could this be changed to use the same logic as for IBM pool?
-                        // if the result is obtained from calling on Thick, use thick volume size else thin
+                           // if the result is obtained from calling on Thick, use thick volume size else thin
                         String elementType = determineCallType();
                         if (elementType.equalsIgnoreCase(FIVE)) {
                             pool.setMaximumThinVolumeSize(maxVolumeSize);
@@ -103,9 +94,10 @@ public class VolumeSizeProcessor extends PoolProcessor {
                             pool.setMinimumThickVolumeSize(minVolumeSize);
                         }
                     }
-                    
-                    _logger.info(String.format("Maximum limits for volume capacity in storage pool: %s  %n   max thin volume capacity: %s, max thick volume capacity: %s ",
-                            pool.getId(), pool.getMaximumThinVolumeSize(), pool.getMaximumThickVolumeSize()));
+
+                    _logger.info(String
+                            .format("Maximum limits for volume capacity in storage pool: %s  %n   max thin volume capacity: %s, max thick volume capacity: %s ",
+                                    pool.getId(), pool.getMaximumThinVolumeSize(), pool.getMaximumThickVolumeSize()));
 
                     _dbClient.persistObject(pool);
                 }

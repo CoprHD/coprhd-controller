@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -14,17 +14,19 @@ import com.emc.storageos.model.NamedRelatedResourceRep;
 
 @XmlRootElement(name = "approvals")
 public class ApprovalList {
-    
+
     private List<NamedRelatedResourceRep> approvals;
-    
-    public ApprovalList() {}
-    
+
+    public ApprovalList() {
+    }
+
     public ApprovalList(List<NamedRelatedResourceRep> approvals) {
         this.approvals = approvals;
     }
 
     /**
      * List of approvals
+     * 
      * @valid none
      */
     @XmlElement(name = "approval")
@@ -37,5 +39,5 @@ public class ApprovalList {
 
     public void setApprovals(List<NamedRelatedResourceRep> approvals) {
         this.approvals = approvals;
-    }    
+    }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.smis.job;
@@ -15,8 +15,8 @@ import java.net.URI;
 public class SmisDeleteMaskingViewJob extends SmisJob
 {
     public SmisDeleteMaskingViewJob(CIMObjectPath cimJob,
-                                    URI storageSystem,
-                                    TaskCompleter taskCompleter) {
+            URI storageSystem,
+            TaskCompleter taskCompleter) {
         super(cimJob, storageSystem, taskCompleter, "DeleteMaskingView");
     }
 }

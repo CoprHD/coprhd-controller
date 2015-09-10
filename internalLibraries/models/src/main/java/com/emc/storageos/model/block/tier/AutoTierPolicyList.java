@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block.tier;
@@ -14,9 +14,10 @@ import java.util.List;
 @XmlRootElement(name = "auto_tier_policies")
 public class AutoTierPolicyList {
     private List<NamedRelatedResourceRep> autoTierPolicies;
-    
-    public AutoTierPolicyList() {}
-    
+
+    public AutoTierPolicyList() {
+    }
+
     public AutoTierPolicyList(List<NamedRelatedResourceRep> autoTierPolicies) {
         this.autoTierPolicies = autoTierPolicies;
     }

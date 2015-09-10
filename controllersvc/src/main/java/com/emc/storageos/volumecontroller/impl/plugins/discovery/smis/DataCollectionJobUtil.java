@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 
@@ -55,7 +45,6 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 
-
 public class DataCollectionJobUtil {
     private DbClient _dbClient;
     private RecordableEventManager _eventManager;
@@ -66,10 +55,10 @@ public class DataCollectionJobUtil {
 
     /**
      * Create AccessProfile from DiscoveryJob
-     *
+     * 
      * TODO create subClasses for Accessprofile based on deviceType and Profile.
      * i.e. Metering-isilon accessProfile - a subclass under AccessProfile
-     *
+     * 
      * @param clazz
      * @param objectID
      * @param jobProfile
@@ -77,50 +66,54 @@ public class DataCollectionJobUtil {
      * @throws IOException
      */
     public AccessProfile getAccessProfile(Class<? extends DataObject> clazz,
-                                          URI objectID,
-                                          String jobProfile, String nameSpace) throws DatabaseException, DeviceControllerException {
-        DataObject taskObject =  _dbClient.queryObject(clazz, objectID);
+            URI objectID,
+            String jobProfile, String nameSpace) throws DatabaseException, DeviceControllerException {
+        DataObject taskObject = _dbClient.queryObject(clazz, objectID);
         AccessProfile profile = new AccessProfile();
         profile.setProfileName(jobProfile);
         profile.setRecordableEventManager(_eventManager);
-        if (clazz == StorageProvider.class && 
-        		StorageProvider.InterfaceType.smis.name().equalsIgnoreCase(
-        				((StorageProvider)taskObject).getInterfaceType()))  {
+        if (clazz == StorageProvider.class &&
+                StorageProvider.InterfaceType.smis.name().equalsIgnoreCase(
+                        ((StorageProvider) taskObject).getInterfaceType())) {
             populateSMISAccessProfile(profile, (StorageProvider) taskObject);
-        } else if (clazz == StorageProvider.class && 
-        		StorageProvider.InterfaceType.hicommand.name().equalsIgnoreCase(
-        				((StorageProvider)taskObject).getInterfaceType()))  {
+        } else if (clazz == StorageProvider.class &&
+                StorageProvider.InterfaceType.hicommand.name().equalsIgnoreCase(
+                        ((StorageProvider) taskObject).getInterfaceType())) {
             populateHDSAccessProfile(profile, (StorageProvider) taskObject);
-        } else if (clazz == StorageProvider.class && 
-        		StorageProvider.InterfaceType.cinder.name().equalsIgnoreCase(
-        				((StorageProvider)taskObject).getInterfaceType()))  {
+        } else if (clazz == StorageProvider.class &&
+                StorageProvider.InterfaceType.cinder.name().equalsIgnoreCase(
+                        ((StorageProvider) taskObject).getInterfaceType())) {
             populateCinderAccessProfile(profile, (StorageProvider) taskObject);
         } else if ((clazz == StorageProvider.class && StorageProvider.InterfaceType.vplex
-            .name().equalsIgnoreCase(((StorageProvider) taskObject).getInterfaceType()))
-            || (clazz == StorageSystem.class && DiscoveredDataObject.Type.vplex.name()
-                .equalsIgnoreCase(((StorageSystem) taskObject).getSystemType()))) {
+                .name().equalsIgnoreCase(((StorageProvider) taskObject).getInterfaceType()))
+                || (clazz == StorageSystem.class && DiscoveredDataObject.Type.vplex.name()
+                        .equalsIgnoreCase(((StorageSystem) taskObject).getSystemType()))) {
             populateVPLEXAccessProfile(profile, taskObject, nameSpace);
         } else if (clazz == StorageProvider.class &&
-                StorageProvider.InterfaceType.scaleio.name().equalsIgnoreCase(
-                        ((StorageProvider)taskObject).getInterfaceType()))  {
+                StorageProvider.InterfaceType.scaleioapi.name().equalsIgnoreCase(
+                        ((StorageProvider) taskObject).getInterfaceType())) {
             populateScaleIOAccessProfile(profile, (StorageProvider) taskObject);
         } else if (clazz == StorageProvider.class &&
-                    StorageProvider.InterfaceType.ddmc.name().equalsIgnoreCase(
-                            ((StorageProvider)taskObject).getInterfaceType()))  {
-                populateDataDomainAccessProfile(profile, (StorageProvider) taskObject);
-        } else if (clazz == StorageProvider.class && 
+                StorageProvider.InterfaceType.ddmc.name().equalsIgnoreCase(
+                        ((StorageProvider) taskObject).getInterfaceType())) {
+            populateDataDomainAccessProfile(profile, (StorageProvider) taskObject);
+        } else if (clazz == StorageProvider.class &&
                 StorageProvider.InterfaceType.ibmxiv.name().equalsIgnoreCase(
-                        ((StorageProvider)taskObject).getInterfaceType())) {
+                        ((StorageProvider) taskObject).getInterfaceType())) {
             populateSMISAccessProfile(profile, (StorageProvider) taskObject);
             profile.setnamespace(Constants.IBM_NAMESPACE);
-        } else if (clazz == StorageSystem.class)  {
+        } else if (clazz == StorageProvider.class &&
+                StorageProvider.InterfaceType.xtremio.name().equalsIgnoreCase(
+                        ((StorageProvider) taskObject).getInterfaceType())) {
+            populateXtremIOAccessProfile(profile, (StorageProvider) taskObject);
+        } else if (clazz == StorageSystem.class) {
             populateAccessProfile(profile, (StorageSystem) taskObject, nameSpace);
-        } else if (clazz == ProtectionSystem.class)  {
+        } else if (clazz == ProtectionSystem.class) {
             populateAccessProfile(profile, (ProtectionSystem) taskObject);
-        }  else if (clazz == ComputeSystem.class)  {
+        } else if (clazz == ComputeSystem.class) {
             populateAccessProfile(profile, (ComputeSystem) taskObject);
         }
-        else if (clazz == NetworkSystem.class)  {
+        else if (clazz == NetworkSystem.class) {
             populateAccessProfile(profile, (NetworkSystem) taskObject);
         } else if (clazz == Host.class) {
             populateAccessProfile(profile, (Host) taskObject);
@@ -128,7 +121,7 @@ public class DataCollectionJobUtil {
             populateAccessProfile(profile, (Vcenter) taskObject);
         } else {
             throw new RuntimeException("getAccessProfile: profile is unknown for objects of type : "
-                       + taskObject.getClass());
+                    + taskObject.getClass());
         }
 
         return profile;
@@ -164,7 +157,6 @@ public class DataCollectionJobUtil {
         }
     }
 
-
     private void populateAccessProfile(AccessProfile profile, ComputeSystem system) {
         profile.setSystemId(system.getId());
         profile.setSystemClazz(system.getClass());
@@ -176,15 +168,14 @@ public class DataCollectionJobUtil {
         profile.setSslEnable("false");
     }
 
-
     private void populateAccessProfile(AccessProfile profile, Host host) {
-    	profile.setSystemId(host.getId());
-    	profile.setSystemClazz(host.getClass());
-    	profile.setSystemType(Type.host.toString());
-    	profile.setUserName(host.getUsername());
-    	profile.setPassword(host.getPassword());
+        profile.setSystemId(host.getId());
+        profile.setSystemClazz(host.getClass());
+        profile.setSystemType(Type.host.toString());
+        profile.setUserName(host.getUsername());
+        profile.setPassword(host.getPassword());
     }
-    
+
     private void populateAccessProfile(AccessProfile profile, Vcenter vcenter) {
         profile.setSystemId(vcenter.getId());
         profile.setSystemClazz(vcenter.getClass());
@@ -192,7 +183,6 @@ public class DataCollectionJobUtil {
         profile.setUserName(vcenter.getUsername());
         profile.setPassword(vcenter.getPassword());
     }
-
 
     private void populateAccessProfile(AccessProfile profile, ProtectionSystem system) {
         profile.setSystemId(system.getId());
@@ -210,7 +200,7 @@ public class DataCollectionJobUtil {
 
     /**
      * inject details needed for Scanning
-     *
+     * 
      * @param accessProfile
      * @param providerInfo
      */
@@ -225,16 +215,16 @@ public class DataCollectionJobUtil {
         accessProfile.setInteropNamespace(Constants.INTEROP);
         accessProfile.setSslEnable(String.valueOf(providerInfo.getUseSSL()));
     }
-    
-    private String getSystemType(StorageProvider provider){
-        if(StorageProvider.InterfaceType.smis.name().equals(provider.getInterfaceType())){
+
+    private String getSystemType(StorageProvider provider) {
+        if (StorageProvider.InterfaceType.smis.name().equals(provider.getInterfaceType())) {
             return Constants._Block;
         }
         else {
             return provider.getInterfaceType();
         }
     }
-    
+
     /**
      * inject details needed for Scanning
      * 
@@ -242,11 +232,11 @@ public class DataCollectionJobUtil {
      * @param providerInfo
      */
     private void populateVPLEXAccessProfile(AccessProfile accessProfile,
-        DataObject vplexDataObject, String nameSpace) {
-        
+            DataObject vplexDataObject, String nameSpace) {
+
         if (vplexDataObject instanceof StorageProvider) {
             // Access profile for provider scanning
-            StorageProvider vplexProvider = (StorageProvider)vplexDataObject;
+            StorageProvider vplexProvider = (StorageProvider) vplexDataObject;
             accessProfile.setSystemId(vplexProvider.getId());
             accessProfile.setSystemClazz(vplexProvider.getClass());
             accessProfile.setIpAddress(vplexProvider.getIPAddress());
@@ -256,23 +246,23 @@ public class DataCollectionJobUtil {
             accessProfile.setPortNumber(vplexProvider.getPortNumber());
         } else {
             // Access profile for storage system discovery.
-            StorageSystem vplexSystem = (StorageSystem)vplexDataObject;
-            
+            StorageSystem vplexSystem = (StorageSystem) vplexDataObject;
+
             // Get the active VPLEX management server for the VPLEX system.
             StorageProvider activeProvider = null;
             URI activeProviderURI = vplexSystem.getActiveProviderURI();
             if (!NullColumnValueGetter.isNullURI(activeProviderURI)) {
                 activeProvider = _dbClient.queryObject(StorageProvider.class,
-                    activeProviderURI);
+                        activeProviderURI);
             }
-            
+
             // If there is no active provider, we can't discover.
             if (activeProvider == null) {
                 vplexSystem.setLastDiscoveryStatusMessage("Discovery failed because we could not find an active management server");
                 _dbClient.persistObject(vplexSystem);
                 throw DeviceControllerException.exceptions.cannotFindActiveProviderForStorageSystem();
             }
-            
+
             accessProfile.setSystemId(vplexSystem.getId());
             accessProfile.setSystemClazz(vplexSystem.getClass());
             accessProfile.setSystemType(vplexSystem.getSystemType());
@@ -281,16 +271,16 @@ public class DataCollectionJobUtil {
             accessProfile.setUserName(activeProvider.getUserName());
             accessProfile.setPassword(activeProvider.getPassword());
             accessProfile.setPortNumber(activeProvider.getPortNumber());
-            //accessProfile.setLastSampleTime(0L); 
+            // accessProfile.setLastSampleTime(0L);
             if (null != nameSpace) {
                 accessProfile.setnamespace(nameSpace);
             }
         }
     }
-    
+
     /**
      * inject details needed for Scanning
-     *
+     * 
      * @param accessProfile
      * @param providerInfo
      */
@@ -307,7 +297,7 @@ public class DataCollectionJobUtil {
 
     /**
      * inject details needed for Scanning
-     *
+     * 
      * @param accessProfile
      * @param providerInfo
      */
@@ -323,7 +313,7 @@ public class DataCollectionJobUtil {
 
     /**
      * inject details needed for Scanning
-     *
+     * 
      * @param accessProfile
      * @param providerInfo
      */
@@ -337,73 +327,91 @@ public class DataCollectionJobUtil {
         accessProfile.setPortNumber(providerInfo.getPortNumber());
         accessProfile.setSslEnable(String.valueOf(providerInfo.getUseSSL()));
     }
+    
+    /**
+     * inject details needed for Scanning
+     * 
+     * @param accessProfile
+     * @param providerInfo
+     */
+    private void populateXtremIOAccessProfile(AccessProfile accessProfile, StorageProvider providerInfo) {
+        accessProfile.setSystemId(providerInfo.getId());
+        accessProfile.setSystemClazz(providerInfo.getClass());
+        accessProfile.setIpAddress(providerInfo.getIPAddress());
+        accessProfile.setUserName(providerInfo.getUserName());
+        accessProfile.setPassword(providerInfo.getPassword());
+        accessProfile.setSystemType(DiscoveredDataObject.Type.xtremio.name());
+        accessProfile.setPortNumber(providerInfo.getPortNumber());
+        accessProfile.setSslEnable(String.valueOf(providerInfo.getUseSSL()));
+    }
 
     /**
      * inject Details needed for Discovery
-     *
+     * 
      * @param accessProfile
      * @param system
      * @throws IOException
      */
-	private void injectDiscoveryProfile(AccessProfile accessProfile,
-			StorageSystem system) throws DatabaseException,
-			DeviceControllerException {
+    private void injectDiscoveryProfile(AccessProfile accessProfile,
+            StorageSystem system) throws DatabaseException,
+            DeviceControllerException {
 
-		StorageProvider provider = getActiveProviderForStorageSystem(system,
-				accessProfile);
+        StorageProvider provider = getActiveProviderForStorageSystem(system,
+                accessProfile);
 
-		populateSMISAccessProfile(accessProfile, provider);
-		accessProfile.setSystemId(system.getId());
-		accessProfile.setSystemClazz(system.getClass());
-		accessProfile.setserialID(system.getSerialNumber());
-		accessProfile.setSystemType(system.getSystemType());
-        	String namespace = Constants.EMC_NAMESPACE;
-        	if (Type.ibmxiv.name().equals(system.getSystemType())) {
-            		namespace = Constants.IBM_NAMESPACE;	
-        	}
+        populateSMISAccessProfile(accessProfile, provider);
+        accessProfile.setSystemId(system.getId());
+        accessProfile.setSystemClazz(system.getClass());
+        accessProfile.setserialID(system.getSerialNumber());
+        accessProfile.setSystemType(system.getSystemType());
+        String namespace = Constants.EMC_NAMESPACE;
+        if (Type.ibmxiv.name().equals(system.getSystemType())) {
+            namespace = Constants.IBM_NAMESPACE;
+        }
 
-		// To-Do: get Namespace field in SMISProvider
-		accessProfile.setInteropNamespace(namespace);
-	}
+        // To-Do: get Namespace field in SMISProvider
+        accessProfile.setInteropNamespace(namespace);
+    }
 
     /**
      * Return the active StorageProvider for a given storage system.
+     * 
      * @param system
      * @param accessProfile
      * @return
      */
-	private StorageProvider getActiveProviderForStorageSystem(
-			StorageSystem system, AccessProfile accessProfile) {
-		URI activeProviderURI = system.getActiveProviderURI();
-		if (NullColumnValueGetter.isNullURI(activeProviderURI)) {
-			// Set the error message only when the job type is discovery.
-			if (ControllerServiceImpl.isDiscoveryJobTypeSupported(accessProfile
-					.getProfileName())) {
-				system.setLastDiscoveryStatusMessage("Discovery failed "
-						+ "since it does not have an active Provider");
-				_dbClient.persistObject(system);
-			}
-			throw DeviceControllerException.exceptions
-					.cannotFindActiveProviderForStorageSystem();
-		}
-		StorageProvider provider = _dbClient.queryObject(StorageProvider.class,
-				activeProviderURI);
-		if (provider == null) {
-			if (ControllerServiceImpl.DISCOVERY.equalsIgnoreCase(accessProfile
-					.getProfileName())) {
-				system.setLastDiscoveryStatusMessage("Discovery failed "
-						+ "since it does not have a valid active Provider");
-				_dbClient.persistObject(system);
-			}
-			throw DeviceControllerException.exceptions
-					.cannotFindValidActiveProviderForStorageSystem();
-		}
-		return provider;
-	}
+    private StorageProvider getActiveProviderForStorageSystem(
+            StorageSystem system, AccessProfile accessProfile) {
+        URI activeProviderURI = system.getActiveProviderURI();
+        if (NullColumnValueGetter.isNullURI(activeProviderURI)) {
+            // Set the error message only when the job type is discovery.
+            if (ControllerServiceImpl.isDiscoveryJobTypeSupported(accessProfile
+                    .getProfileName())) {
+                system.setLastDiscoveryStatusMessage("Discovery failed "
+                        + "since it does not have an active Provider");
+                _dbClient.persistObject(system);
+            }
+            throw DeviceControllerException.exceptions
+                    .cannotFindActiveProviderForStorageSystem();
+        }
+        StorageProvider provider = _dbClient.queryObject(StorageProvider.class,
+                activeProviderURI);
+        if (provider == null) {
+            if (ControllerServiceImpl.DISCOVERY.equalsIgnoreCase(accessProfile
+                    .getProfileName())) {
+                system.setLastDiscoveryStatusMessage("Discovery failed "
+                        + "since it does not have a valid active Provider");
+                _dbClient.persistObject(system);
+            }
+            throw DeviceControllerException.exceptions
+                    .cannotFindValidActiveProviderForStorageSystem();
+        }
+        return provider;
+    }
 
-	/**
+    /**
      * Populate accessProfile values from storageDevice.
-     *
+     * 
      * @param accessProfile
      * @param storageDevice
      * @throws IOException
@@ -432,7 +440,7 @@ public class DataCollectionJobUtil {
                 accessProfile.setnamespace(nameSpace);
             }
         } else if (storageDevice.getSystemType().equals(
-            Type.isilon.toString())) {
+                Type.isilon.toString())) {
             accessProfile.setSystemType(storageDevice.getSystemType());
             accessProfile.setIpAddress(storageDevice.getIpAddress());
             accessProfile.setUserName(storageDevice.getUsername());
@@ -444,7 +452,7 @@ public class DataCollectionJobUtil {
                 accessProfile.setnamespace(nameSpace);
             }
         } else if (storageDevice.getSystemType().equals(
-            Type.vplex.toString())) {
+                Type.vplex.toString())) {
             accessProfile.setSystemType(storageDevice.getSystemType());
             accessProfile.setIpAddress(storageDevice.getIpAddress());
             accessProfile.setUserName(storageDevice.getUsername());
@@ -455,8 +463,8 @@ public class DataCollectionJobUtil {
             if (null != nameSpace) {
                 accessProfile.setnamespace(nameSpace);
             }
-        } else if (storageDevice.getSystemType().equals(Type.netapp.toString()) 
-        		|| storageDevice.getSystemType().equals(Type.netappc.toString())
+        } else if (storageDevice.getSystemType().equals(Type.netapp.toString())
+                || storageDevice.getSystemType().equals(Type.netappc.toString())
                 || Type.vnxe.toString().equalsIgnoreCase(storageDevice.getSystemType())) {
             accessProfile.setSystemType(storageDevice.getSystemType());
             accessProfile.setIpAddress(storageDevice.getIpAddress());
@@ -469,7 +477,7 @@ public class DataCollectionJobUtil {
                 accessProfile.setnamespace(nameSpace);
             }
         } else if (storageDevice.getSystemType().equals(
-            Type.rp.toString())) {
+                Type.rp.toString())) {
             accessProfile.setSystemType(storageDevice.getSystemType());
             accessProfile.setIpAddress(storageDevice.getIpAddress());
             accessProfile.setUserName(storageDevice.getUsername());
@@ -508,35 +516,35 @@ public class DataCollectionJobUtil {
         } else if (storageDevice.getSystemType().equals(
                 Type.xtremio.toString())) {
             accessProfile.setSystemType(storageDevice.getSystemType());
-            accessProfile.setIpAddress(storageDevice.getIpAddress());
-            accessProfile.setUserName(storageDevice.getUsername());
-           
-            accessProfile.setPassword(storageDevice.getPassword());
-            accessProfile.setPortNumber(storageDevice.getPortNumber());
+            accessProfile.setIpAddress(storageDevice.getSmisProviderIP());
+            accessProfile.setUserName(storageDevice.getSmisUserName());
+
+            accessProfile.setPassword(storageDevice.getSmisPassword());
+            accessProfile.setPortNumber(storageDevice.getSmisPortNumber());
             accessProfile.setLastSampleTime(0L);
             if (null != nameSpace) {
                 accessProfile.setnamespace(nameSpace);
             }
         } else if (storageDevice.getSystemType().equals(Type.hds.toString())) {
-        	populateHDSAccessProfile(accessProfile, storageDevice, nameSpace);
+            populateHDSAccessProfile(accessProfile, storageDevice, nameSpace);
         } else {
             throw new RuntimeException("populateAccessProfile: Device type unknown : "
-                + storageDevice.getSystemType());
+                    + storageDevice.getSystemType());
         }
     }
-   
 
     /**
      * Get the AccessProfile details based on the profile Name.
      * For Hitachi, metering is handled thru SMI-S.
-     * Hitachi supports two types of providers 
+     * Hitachi supports two types of providers
      * 1. Embedded SMI-S running SVP -> supports only HUS VM, VSP, VSP G1000.
-     * 2. HiCommand Suite Provider   -> supports only AMS series
+     * 2. HiCommand Suite Provider -> supports only AMS series
+     * 
      * @TODO need to look at HUS series model.
      * @TODO User should create a new user using storage navigator to do metering.
      * 
-     * Prerequisites for Embedded SMI-S Provider.
-     * User should enable certificate to activate SMI-S and enable performance monitor using storage navigator. 
+     *       Prerequisites for Embedded SMI-S Provider.
+     *       User should enable certificate to activate SMI-S and enable performance monitor using storage navigator.
      * 
      * @TODO should we document above prerequisites?
      * 
@@ -544,63 +552,65 @@ public class DataCollectionJobUtil {
      * @param storageDevice
      * @param nameSpace
      */
-	private void populateHDSAccessProfile(AccessProfile accessProfile,
-			StorageSystem storageDevice, String nameSpace) {
+    private void populateHDSAccessProfile(AccessProfile accessProfile,
+            StorageSystem storageDevice, String nameSpace) {
 
-		accessProfile.setSystemType(storageDevice.getSystemType());
-		accessProfile.setserialID(storageDevice.getSerialNumber());
-		accessProfile.setLastSampleTime(0L);
+        accessProfile.setSystemType(storageDevice.getSystemType());
+        accessProfile.setserialID(storageDevice.getSerialNumber());
+        accessProfile.setLastSampleTime(0L);
 
-		if (null != nameSpace) {
-			accessProfile.setnamespace(nameSpace);
-		}
+        if (null != nameSpace) {
+            accessProfile.setnamespace(nameSpace);
+        }
 
-		if (accessProfile.getProfileName().equalsIgnoreCase(
-				ControllerServiceImpl.METERING)) {
-			accessProfile
-					.setIpAddress(getHDSSMISIPAddressBasedOnModel(storageDevice));
-			accessProfile.setInteropNamespace(HDSConstants.HITACHI_NAMESPACE);
-			// Currently API is not supporting hence hardcoded to make them
-			// work.
-			// @TODO remove once API is fixed.
-			accessProfile.setPortNumber(getHDSSMISPortBasedOnModel(storageDevice));
-			accessProfile.setSslEnable(Boolean.TRUE.toString());
-			accessProfile.setUserName(storageDevice.getSmisUserName());
-			accessProfile.setPassword(storageDevice.getSmisPassword());
-		} else {
-			StorageProvider activeProvider = getActiveProviderForStorageSystem(
-					storageDevice, accessProfile);
-			// For discovery use the active provider credentials directly.
-			accessProfile.setIpAddress(activeProvider.getIPAddress());
-			accessProfile.setPortNumber(activeProvider.getPortNumber());
-			accessProfile.setUserName(activeProvider.getUserName());
-			accessProfile.setPassword(activeProvider.getPassword());
-			accessProfile.setSslEnable(String.valueOf(activeProvider
-					.getUseSSL()));
-		}
+        if (accessProfile.getProfileName().equalsIgnoreCase(
+                ControllerServiceImpl.METERING)) {
+            accessProfile
+                    .setIpAddress(getHDSSMISIPAddressBasedOnModel(storageDevice));
+            accessProfile.setInteropNamespace(HDSConstants.HITACHI_NAMESPACE);
+            // Currently API is not supporting hence hardcoded to make them
+            // work.
+            // @TODO remove once API is fixed.
+            accessProfile.setPortNumber(getHDSSMISPortBasedOnModel(storageDevice));
+            accessProfile.setSslEnable(Boolean.TRUE.toString());
+            accessProfile.setUserName(storageDevice.getSmisUserName());
+            accessProfile.setPassword(storageDevice.getSmisPassword());
+        } else {
+            StorageProvider activeProvider = getActiveProviderForStorageSystem(
+                    storageDevice, accessProfile);
+            // For discovery use the active provider credentials directly.
+            accessProfile.setIpAddress(activeProvider.getIPAddress());
+            accessProfile.setPortNumber(activeProvider.getPortNumber());
+            accessProfile.setUserName(activeProvider.getUserName());
+            accessProfile.setPassword(activeProvider.getPassword());
+            accessProfile.setSslEnable(String.valueOf(activeProvider
+                    .getUseSSL()));
+        }
 
-	}
+    }
 
     /**
      * If storageDevice is not AMS, use embedded provider else HCS ipAddress.
+     * 
      * @param storageDevice
      * @return
      */
-	private String getHDSSMISIPAddressBasedOnModel(StorageSystem storageDevice) {
-		return (!HDSUtils.checkForAMSSeries(storageDevice) ? storageDevice
-				.getIpAddress() : storageDevice.getSmisProviderIP());
-	}
-	
-	/**
-	 * Return the default ports based on the model.
-	 * @param storageDevice
-	 * @return
-	 */
-	private int getHDSSMISPortBasedOnModel(StorageSystem storageDevice) {
-		return (!HDSUtils.checkForAMSSeries(storageDevice) ? 5989 : 5988);
-	}
+    private String getHDSSMISIPAddressBasedOnModel(StorageSystem storageDevice) {
+        return (!HDSUtils.checkForAMSSeries(storageDevice) ? storageDevice
+                .getIpAddress() : storageDevice.getSmisProviderIP());
+    }
 
-	public void setDbClient(DbClient dbClient) {
+    /**
+     * Return the default ports based on the model.
+     * 
+     * @param storageDevice
+     * @return
+     */
+    private int getHDSSMISPortBasedOnModel(StorageSystem storageDevice) {
+        return (!HDSUtils.checkForAMSSeries(storageDevice) ? 5989 : 5988);
+    }
+
+    public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
     }
 
@@ -617,7 +627,7 @@ public class DataCollectionJobUtil {
      * 2. For each serialId, find a storageSystem.
      * 3. If it is null, then create a new StorageSystem and update the details.
      * 4. If it is not null, then update active providers & registered status.
-     *
+     * 
      * @param scannedSystemsNativeGuidsMap
      *            : scanner result cache.
      */
@@ -636,9 +646,9 @@ public class DataCollectionJobUtil {
 
         for (String scannedSystemNativeGuid : scannedSystemNativeGuidKeySet) {
             try {
-                List<StorageSystem> systems = 
+                List<StorageSystem> systems =
                         CustomQueryUtility.getActiveStorageSystemByNativeGuid(_dbClient, scannedSystemNativeGuid);
-                if ( DecommissionedResource.checkDecommissioned(_dbClient, scannedSystemNativeGuid,
+                if (DecommissionedResource.checkDecommissioned(_dbClient, scannedSystemNativeGuid,
                         StorageSystem.class)) {
                     scannedSystemsNativeGuidsMap.remove(scannedSystemNativeGuid);
                     _logger.info("Storage system {} was decommissioned and cannot be added to Vipr", scannedSystemNativeGuid);
@@ -652,7 +662,7 @@ public class DataCollectionJobUtil {
                     systemsToCreate.add(storageSystem);
                 }
             } catch (Exception e) {
-            	_logger.error(e.getMessage(),e);
+                _logger.error(e.getMessage(), e);
                 _logger.error(
                         "Exception while creating new system: {} due to {}",
                         storageSystem != null ? storageSystem.getId() : "N/A", e.getCause());
@@ -668,15 +678,15 @@ public class DataCollectionJobUtil {
         // If a provider is not managing an array and it is moved to some other array,
         // then this will update the active provider in the storage system.
         updateActiveProviderDetailsInDbSystem(scannedSystemsNativeGuidsMap,
-                    systemsToPersist, scannedProviderList, providersToUpdate);
+                systemsToPersist, scannedProviderList, providersToUpdate);
         // Persist all storage systems & providers
         persistAllSystemsAndProviders(systemsToPersist,
                 getSMISProvidersWithUpdatedSystems(providersToUpdate));
     }
-    
-    
+
     /**
      * Update all the SMISProviders with their actively managed storage systems information.
+     * 
      * @param providersToUpdate : dataStructure holds the provider => list of managed systems.
      */
     private List<StorageProvider> getSMISProvidersWithUpdatedSystems(Map<URI, List<String>> providersToUpdate) {
@@ -691,7 +701,7 @@ public class DataCollectionJobUtil {
                     List<String> storageSystemList = providersToUpdate
                             .get(providerIdKey);
                     StorageProvider provider = _dbClient.queryObject(
-                    		StorageProvider.class, providerIdKey);
+                            StorageProvider.class, providerIdKey);
                     if (null != provider.getStorageSystems()) {
                         provider.getStorageSystems().clear();
                         provider.getStorageSystems().addAll(storageSystemList);
@@ -710,11 +720,10 @@ public class DataCollectionJobUtil {
         }
         return providerList;
     }
-    
-    
+
     /**
      * Creates a new StorageSystem if there is a new system managed by provider.
-     *
+     * 
      * @param storageSystemViewObject
      *            : system details to persist.
      * @param scannedStorageSystemNativeGuid
@@ -727,7 +736,7 @@ public class DataCollectionJobUtil {
             StorageSystemViewObject storageSystemViewObject, String scannedStorageSystemNativeGuid,
             Map<URI, List<String>> providersToUpdate)
             throws IOException {
-        
+
         Set<String> providerSet = storageSystemViewObject.getProviders();
         StorageSystem newStorageSystem = null;
         Iterator<String> iterator = providerSet.iterator();
@@ -741,20 +750,20 @@ public class DataCollectionJobUtil {
             newStorageSystem.setSystemType(storageSystemViewObject.getDeviceType());
 
             String model = storageSystemViewObject.getProperty(storageSystemViewObject.MODEL);
-            if(StringUtils.isNotBlank(model)){
+            if (StringUtils.isNotBlank(model)) {
                 newStorageSystem.setModel(model);
             }
             String serialNo = storageSystemViewObject.getProperty(storageSystemViewObject.SERIAL_NUMBER);
-            if(StringUtils.isNotBlank(serialNo)){
+            if (StringUtils.isNotBlank(serialNo)) {
                 newStorageSystem.setSerialNumber(serialNo);
             }
             String version = storageSystemViewObject.getProperty(storageSystemViewObject.VERSION);
-            if(StringUtils.isNotBlank(version)){
+            if (StringUtils.isNotBlank(version)) {
                 newStorageSystem.setFirmwareVersion(version);
             }
 
             String name = storageSystemViewObject.getProperty(storageSystemViewObject.STORAGE_NAME);
-            if(StringUtils.isNotBlank(name)){
+            if (StringUtils.isNotBlank(name)) {
                 newStorageSystem.setLabel(name);
             }
 
@@ -767,16 +776,16 @@ public class DataCollectionJobUtil {
         return newStorageSystem;
     }
 
-
     /**
      * Update the Provider => systems managed.
+     * 
      * @param provider : SMISProvider
      * @param providersToUpdate : dataStructure holds the provider -> list of managed systems.
      * @param storageSystemInDB : StorageDevice
      */
     private void updateStorageSystemsInProvider(StorageProvider provider,
             Map<URI, List<String>> providersToUpdate, StorageSystem storageSystemInDB) {
-		_logger.debug("Entering {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+        _logger.debug("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
         List<String> storageSystems = null;
         if (providersToUpdate.containsKey(provider.getId())) {
             storageSystems = providersToUpdate.get(provider.getId());
@@ -785,12 +794,12 @@ public class DataCollectionJobUtil {
         }
         storageSystems.add(storageSystemInDB.getId().toString());
         providersToUpdate.put(provider.getId(), storageSystems);
-		_logger.debug("Exiting {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+        _logger.debug("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
     }
 
     /**
      * Set the ActiveProvider details in StorageSystem.
-     *
+     * 
      * @param provider
      *            : current Active Provider.
      * @param system
@@ -798,23 +807,23 @@ public class DataCollectionJobUtil {
      */
     private void setActiveProviderDetailsInSystem(StorageProvider provider,
             StorageSystem system, Map<URI, List<String>> providersToUpdate) {
-		_logger.debug("Entering {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+        _logger.debug("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
         // set the active provider details in the StorageSystem.
         system.setReachableStatus(true);
         system.setActiveProviderURI(provider.getId());
-        //TODO needs to create Modify/add new columns. As of now we will use the same smis related attributes
+        // TODO needs to create Modify/add new columns. As of now we will use the same smis related attributes
         system.setSmisPassword(provider.getPassword());
         system.setSmisPortNumber(provider.getPortNumber());
         system.setSmisProviderIP(provider.getIPAddress());
         system.setSmisUserName(provider.getUserName());
         system.setSmisUseSSL(provider.getUseSSL());
         updateStorageSystemsInProvider(provider, providersToUpdate, system);
-		_logger.debug("Exiting {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+        _logger.debug("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
     }
 
     /**
      * Finds & update the storage systems in the following scenarios.
-     *
+     * 
      * 1. Query all systems from db.
      * 2. If the system is not vnxblock or vmaxblock, then continue.
      * 3. Verify each system whether it is in the scanned list or not.
@@ -827,8 +836,8 @@ public class DataCollectionJobUtil {
      * If it is registered, then set the reachableStatus to false
      * else delete all its components.
      * 8. If NO, then don't disturb.
-     *
-     *
+     * 
+     * 
      * @param scannedSystemsNativeGuidsMap
      *            : List of scanned Systems NativeGuids.
      * @param systemsToPersist : List of systems to persist.
@@ -842,14 +851,14 @@ public class DataCollectionJobUtil {
         Iterator<URI> storageSystemUrisInDb;
         StorageSystem storageSystemInDb = null;
         try {
-            storageSystemUrisInDb = _dbClient.queryByType(StorageSystem.class,true).iterator();
+            storageSystemUrisInDb = _dbClient.queryByType(StorageSystem.class, true).iterator();
         } catch (DatabaseException e) {
             _logger.error(
                     "Exception occurred while querying db to get StorageSystems due to ",
                     e);
             return;
         }
-        while( storageSystemUrisInDb.hasNext()) {
+        while (storageSystemUrisInDb.hasNext()) {
             URI dbSystemUri = storageSystemUrisInDb.next();
             try {
                 storageSystemInDb = _dbClient.queryObject(StorageSystem.class,
@@ -870,7 +879,7 @@ public class DataCollectionJobUtil {
                             providersToUpdate);
                 } else {
                     if (initialScanList.contains(storageSystemInDb
-                                    .getActiveProviderURI())) {
+                            .getActiveProviderURI())) {
                         // Case 3: registered but not managed by provider mark
                         // it
                         // Invisible.
@@ -884,7 +893,7 @@ public class DataCollectionJobUtil {
                             // Case 4: not registered and not managed by
                             // provider,
                             // delete it.
-                            //deleteUnregisteredStorageSystems(storageSystemInDb);
+                            // deleteUnregisteredStorageSystems(storageSystemInDb);
                         }
                     }
                 }
@@ -896,10 +905,10 @@ public class DataCollectionJobUtil {
             systemsToPersist.add(storageSystemInDb);
         }
     }
-    
+
     /**
      * Updates the active/passive provider details in the StorageSystem object.
-     *
+     * 
      * @param scannedStorageSystemViewObj
      *            : scannedProvider details of this system.
      * @param storageSystemInDb
@@ -922,7 +931,7 @@ public class DataCollectionJobUtil {
                 injectReachableStatusInSystem(storageSystemInDb, allProviders,
                         URI.create(newProviderURI), true);
                 StorageProvider newProvider = _dbClient.queryObject(
-                		StorageProvider.class, URI.create(newProviderURI));
+                        StorageProvider.class, URI.create(newProviderURI));
                 setActiveProviderDetailsInSystem(newProvider,
                         storageSystemInDb, providersToUpdate);
             } else {
@@ -940,9 +949,9 @@ public class DataCollectionJobUtil {
             }
             // Even if the current provider is active, we should update the storage systems in SMISProvider.
             for (String providerStr : allProviders) {
-            	StorageProvider provider = _dbClient.queryObject(StorageProvider.class, URI.create(providerStr));
+                StorageProvider provider = _dbClient.queryObject(StorageProvider.class, URI.create(providerStr));
                 updateStorageSystemsInProvider(provider, providersToUpdate, storageSystemInDb);
-                
+
                 // even if the current provider is already active, we need to update the provider details
                 // in storage system object, so that any change in provider object will take effect.
                 if (provider.getId().equals(storageSystemInDb.getActiveProviderURI())) {
@@ -955,15 +964,15 @@ public class DataCollectionJobUtil {
             }
         }
     }
-    
-    
+
     /**
      * Update the reachable status, ActiveProviderURI & allProviders in system.
      * This method is written to avoid duplicate code.
+     * 
      * @param storageSystemInDb : StorageSystem object.
-     * @param allProviders      : allProviders managing this system
+     * @param allProviders : allProviders managing this system
      * @param newActiveProviderURI : If provider is down, then new provider to update.
-     * @param reachable         : reachable status.
+     * @param reachable : reachable status.
      */
     private void injectReachableStatusInSystem(StorageSystem storageSystemInDb,
             Set<String> allProviders, URI newActiveProviderURI,
@@ -984,7 +993,7 @@ public class DataCollectionJobUtil {
         if (null != newActiveProviderURI) {
             storageSystemInDb.setActiveProviderURI(newActiveProviderURI);
         }
-        if( !reachable ) {
+        if (!reachable) {
             storageSystemInDb.setSmisPassword("");
             storageSystemInDb.setSmisPortNumber(0);
             storageSystemInDb.setSmisProviderIP("");
@@ -996,7 +1005,7 @@ public class DataCollectionJobUtil {
      * Persist all storageSystems with the active/passive.
      * Persists all smisprovider with currently managed systems.
      * provider information in DB.
-     *
+     * 
      * @param systemsToPersist
      *            : Updated list of Storage systems to commit to DB.
      * @param providerToPersist : Update list of providers with its managed systems list.
@@ -1014,7 +1023,6 @@ public class DataCollectionJobUtil {
         }
     }
 
-   
     public void setConfigInfo(Map<String, String> configInfo) {
         _configInfo = configInfo;
     }

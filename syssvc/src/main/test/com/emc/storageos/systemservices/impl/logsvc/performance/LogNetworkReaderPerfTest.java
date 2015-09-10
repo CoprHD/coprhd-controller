@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.logsvc.performance;
 
@@ -53,18 +43,20 @@ public class LogNetworkReaderPerfTest {
 
     @Test
     public void testPerformance() throws Exception {
-        List<String> svcs = new ArrayList<String>() {{
-            add("controllersvc");
-            add("coordinatorsvc");
-            add("apisvc");
-        }};
+        List<String> svcs = new ArrayList<String>() {
+            {
+                add("controllersvc");
+                add("coordinatorsvc");
+                add("apisvc");
+            }
+        };
         int bufSize = 1024 * 64;
         LogRequest req = new LogRequest.Builder().baseNames(svcs).build();
         final LogNetworkWriter writer = new LogNetworkWriter(req, propertiesLoader);
         try (final PipedOutputStream out = new PipedOutputStream();
              final BufferedOutputStream outputStream = new BufferedOutputStream(out, bufSize);
              final PipedInputStream inputStream = new PipedInputStream(out)) {
-            LogNetworkReader reader = new LogNetworkReader("vipr1", inputStream,
+            LogNetworkReader reader = new LogNetworkReader("vipr1","vipr1", inputStream,
                     new LogStatusInfo());
 
             long totalSize = 0;
@@ -75,11 +67,11 @@ public class LogNetworkReaderPerfTest {
                             try {
                                 writer.write(outputStream);
                             } catch (Exception e) {
-                                e.printStackTrace(); //NOSONAR ("squid:S1148 suppress sonar warning on printStackTrace. It's a test case and exceptions are meant to be printed to stdout/stderr")
+                                e.printStackTrace(); // NOSONAR
+                                                     // ("squid:S1148 suppress sonar warning on printStackTrace. It's a test case and exceptions are meant to be printed to stdout/stderr")
                             }
                         }
-                    }
-            ).start();
+                    }).start();
             LogMessage log = null;
             while ((log = reader.readNextLogMessage()) != null) {
                 totalSize += log.toStringOriginalFormat().getBytes().length;

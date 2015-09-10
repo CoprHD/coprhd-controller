@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- * Copyright (c) 2014 EMC Corporation 
- * All Rights Reserved 
- *
- * This software contains the intellectual property of EMC Corporation 
- * or is licensed to EMC Corporation from third parties.  Use of this 
- * software and the intellectual property contained therein is expressly 
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.management.backup;
@@ -70,18 +60,18 @@ public class BackupCmd {
 
     static {
         Option createOption = OptionBuilder.hasOptionalArg()
-                                        .withArgName("[backup]")
-                                        .withDescription(CommandType.create.getDescription())
-                                        .withLongOpt(CommandType.create.name())
-                                        .create("c");
+                .withArgName("[backup]")
+                .withDescription(CommandType.create.getDescription())
+                .withLongOpt(CommandType.create.name())
+                .create("c");
         options.addOption(createOption);
         options.addOption("l", CommandType.list.name(), false, CommandType.list.getDescription());
         options.addOption("d", CommandType.delete.name(), true, CommandType.delete.getDescription());
         Option restoreOption = OptionBuilder.hasArgs()
-                                         .withArgName("args")
-                                         .withDescription(CommandType.restore.getDescription())
-                                         .withLongOpt(CommandType.restore.name())
-                                         .create("r");
+                .withArgName("args")
+                .withDescription(CommandType.restore.getDescription())
+                .withLongOpt(CommandType.restore.name())
+                .create("r");
         options.addOption(restoreOption);
         options.addOption("q", CommandType.quota.name(), false, CommandType.quota.getDescription());
         options.addOption("f", CommandType.force.name(), false, CommandType.force.getDescription());
@@ -104,14 +94,16 @@ public class BackupCmd {
         CommandLineParser parser = new PosixParser();
         HelpFormatter formatter = new HelpFormatter();
         try {
-            if (args == null || args.length == 0)
+            if (args == null || args.length == 0) {
                 throw new IllegalArgumentException("");
+            }
             cli = parser.parse(options, args);
-            if (cli.getOptions().length == 0)
+            if (cli.getOptions().length == 0) {
                 throw new IllegalArgumentException(
                         String.format("Invalid argument: %s%n", Arrays.toString(args)));
+            }
             String[] invalidArgs = cli.getArgs();
-            if (invalidArgs != null && invalidArgs.length != 0){
+            if (invalidArgs != null && invalidArgs.length != 0) {
                 throw new IllegalArgumentException(
                         String.format("Invalid argument: %s%n", Arrays.toString(invalidArgs)));
             }
@@ -123,8 +115,8 @@ public class BackupCmd {
         }
     }
 
-    public static void main(String[] args) {    	
-    	init(args);
+    public static void main(String[] args) {
+        init(args);
 
         try {
             createBackup();
@@ -142,9 +134,12 @@ public class BackupCmd {
     }
 
     private static void init(String[] args) {
-    	initCommandLine(args);
+        initCommandLine(args);
         initRestoreManager();
-        initBackupOps();
+
+        if (!cli.hasOption(CommandType.restore.name()) && !cli.hasOption(CommandType.purge.name())) {        
+            initBackupOps();
+        }
     }
 
     private static void initBackupOps() {
@@ -155,14 +150,16 @@ public class BackupCmd {
     }
 
     private static void createBackup() {
-        if (!cli.hasOption(CommandType.create.name()))
+        if (!cli.hasOption(CommandType.create.name())) {
             return;
+        }
         String backupName = cli.getOptionValue(CommandType.create.name());
-        if (backupName == null || backupName.isEmpty())
+        if (backupName == null || backupName.isEmpty()) {
             backupName = BackupOps.createBackupName();
+        }
 
         boolean force = false;
-        if (cli.hasOption(CommandType.force.name())) { 
+        if (cli.hasOption(CommandType.force.name())) {
             force = true;
         }
 
@@ -173,18 +170,21 @@ public class BackupCmd {
     }
 
     private static void listBackup() {
-        if (!cli.hasOption(CommandType.list.name()))
+        if (!cli.hasOption(CommandType.list.name())) {
             return;
+        }
         System.out.println("Start to list backup...");
         List<BackupSetInfo> backupList = backupOps.listBackup();
         System.out.println(
                 String.format("Backups are listed successfully, total: %d", backupList.size()));
-        if (backupList.isEmpty())
+        if (backupList.isEmpty()) {
             return;
+        }
         int maxLength = Integer.MIN_VALUE;
         for (BackupSetInfo backupSetInfo : backupList) {
-            if (backupSetInfo.getName().length() > maxLength)
+            if (backupSetInfo.getName().length() > maxLength) {
                 maxLength = backupSetInfo.getName().length();
+            }
         }
         maxLength = maxLength < 18 ? 20 : maxLength + 2;
         String titleFormat = String.format(BackupConstants.LIST_BACKUP_TITLE, maxLength);
@@ -204,8 +204,9 @@ public class BackupCmd {
     }
 
     private static void deleteBackup() {
-        if (!cli.hasOption(CommandType.delete.name()))
+        if (!cli.hasOption(CommandType.delete.name())) {
             return;
+        }
         System.out.println("Start to delete backup...");
         String backupName = cli.getOptionValue(CommandType.delete.name());
         backupOps.deleteBackup(backupName);
@@ -214,24 +215,27 @@ public class BackupCmd {
     }
 
     private static void purgeViprData() {
-        if (!cli.hasOption(CommandType.purge.name()))
+        if (!cli.hasOption(CommandType.purge.name())) {
             return;
+        }
         String multiVdcStr = cli.getOptionValue(CommandType.purge.name());
         System.out.println("Start to purge ViPR data...");
-        if (multiVdcStr == null || "no".equalsIgnoreCase(multiVdcStr.trim()))
+        if (multiVdcStr == null || "no".equalsIgnoreCase(multiVdcStr.trim())) {
             restoreManager.purge(false);
-        else if ("yes".equalsIgnoreCase(multiVdcStr.trim()))
+        } else if ("yes".equalsIgnoreCase(multiVdcStr.trim())) {
             restoreManager.purge(true);
-        else
+        } else {
             throw new IllegalArgumentException("Invalid argument, must be yes or no(default)");
+        }
         System.out.println("ViPR data has been purged successfully!");
     }
 
     private static void restoreBackup() {
-        if (!cli.hasOption(CommandType.restore.name()))
+        if (!cli.hasOption(CommandType.restore.name())) {
             return;
+        }
         String[] restoreArgs = cli.getOptionValues(CommandType.restore.name());
-        if(restoreArgs.length != 2){
+        if (restoreArgs.length != 2) {
             System.out.println("Invalid number of restore args.");
             new HelpFormatter().printHelp(TOOL_NAME, options);
             System.exit(-1);

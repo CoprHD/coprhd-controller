@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.aix.tasks;
@@ -35,7 +35,7 @@ public class VerifyMountPoint extends AixExecutionTask<Void> {
     @Override
     public void execute() throws Exception {
         if (!StringUtils.startsWith(mountPoint, "/")) {
-            throw new IllegalStateException( getMessage("VerifyMountPoint.log.notAbsolutePath", mountPoint) );
+            throw new IllegalStateException(getMessage("VerifyMountPoint.log.notAbsolutePath", mountPoint));
         }
         checkAllowedPath();
         checkExistingMountPoints();
@@ -43,7 +43,7 @@ public class VerifyMountPoint extends AixExecutionTask<Void> {
 
     protected void checkAllowedPath() {
         if ((disallowedPaths != null) && disallowedPaths.contains(mountPoint)) {
-            throw new IllegalStateException( getMessage("VerifyMountPoint.log.notAllowed", mountPoint) );
+            throw new IllegalStateException(getMessage("VerifyMountPoint.log.notAllowed", mountPoint));
         }
     }
 
@@ -51,7 +51,7 @@ public class VerifyMountPoint extends AixExecutionTask<Void> {
         Map<String, MountPoint> mountPoints = executeCommand(new ListMountPointsCommand(), SHORT_TIMEOUT);
         for (MountPoint mp : mountPoints.values()) {
             if (StringUtils.equals(mp.getPath(), mountPoint)) {
-                throw new IllegalStateException( getMessage("VerifyMountPoint.log.exists", mountPoint) );
+                throw new IllegalStateException(getMessage("VerifyMountPoint.log.exists", mountPoint));
             }
         }
     }

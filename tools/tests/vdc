@@ -1,0 +1,184 @@
+#!/usr/bin/python
+#
+# Copyright (c) 2015 EMC Corporation
+# All Rights Reserved
+#
+
+import argparse
+import sys
+import os
+from bourne import Bourne
+import sysmgr as SysMgr
+
+#----------------------------------------------------------------------
+# vdc cli functions
+#----------------------------------------------------------------------
+
+def vdc_add(args):
+    bourne.connect(args.ip)
+    bourne.vdc_add(args.name, args.endpoint, args.key, args.certchain, args.dataIp, args.cmdIp)
+
+def vdc_get_secret_key(args):
+    bourne.connect(args.ip)
+    print bourne.vdc_get_secret_key()
+
+def vdc_get_certchain(args):
+    bourne.connect(args.ip)
+    print bourne.vdc_get_certchain()
+
+def vdc_list(args):
+    bourne.connect(args.ip)
+    print "list: ", bourne.vdc_list()
+
+def vdc_get_id(args):
+    bourne.connect(args.ip)
+    print bourne.vdc_get_id(args.name)
+
+def vdc_update(args):
+    bourne.connect(args.ip)
+    bourne.vdc_update(args.id, args.name, args.dataIp, args.cmdIp)
+
+def vdc_delete(args):
+    bourne.connect(args.ip)
+    bourne.vdc_del(args.id)
+
+def vdc_disconnect(args):
+    bourne.connect(args.ip)
+    bourne.vdc_disconnect(args.id)
+
+def vdc_reconnect(args):
+    bourne.connect(args.ip)
+    bourne.vdc_reconnect(args.id)
+
+def vdc_show(args):
+    bourne.connect(args.ip)
+    print bourne.vdc_show(args.id) 
+
+# helper method to get the vdc marked as local
+def vdc_get_local(args):
+    bourne.connect(args.ip)
+    print bourne.vdc_get_local() 
+
+def vdc_wait_for_stable_state(args):
+    SysMgr.wait_for_stable_state(args)
+
+#----------------------------------------------------------------------
+# command-line parsing
+#----------------------------------------------------------------------
+
+try:
+    bourne_ip = os.environ['BOURNE_IPADDR']
+except:
+    bourne_ip = 'localhost'
+
+# vdc <cmd> <cmd_args>  [--ip ipaddr]
+parser = argparse.ArgumentParser(description = 'Bourne tenant cli usage.')
+parser.add_argument('cmd', help = 'cmd = (add | get_key)')
+parser.add_argument('--ip',	metavar = 'ipaddr',	help = 'IP address of bourne', default=bourne_ip)
+
+# add vdc
+vdcadd = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+vdcadd.add_argument('name',	help = 'name of vdc')
+vdcadd.add_argument('endpoint', help = 'the vip of vdc to be added')
+vdcadd.add_argument('key',      help = 'the secure key of the vdc to be added')
+vdcadd.add_argument('certchain',      help = 'the certificate chain of the vdc to be added')
+vdcadd.add_argument('--dataIp', help = 'ip for geo data', default=None)
+vdcadd.add_argument('--cmdIp', help = 'ip for geo commands', default=None)
+
+# update vdc
+vdcupdate = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+vdcupdate.add_argument('id', help = 'id of vdc')
+vdcupdate.add_argument('name', help = 'name of vdc')
+vdcupdate.add_argument('--dataIp', help = 'ip for geo data', default=None)
+vdcupdate.add_argument('--cmdIp', help = 'ip for geo commands', default=None)
+
+# disconnect vdc
+vdcdisconnect = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+vdcdisconnect.add_argument('id', help = 'id of vdc')
+
+# reconnect vdc
+vdcreconnect = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+vdcreconnect.add_argument('id', help = 'id of vdc')
+
+# list vdc
+vdclist = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# get vdc id
+vdcid = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+vdcid.add_argument('name', help = 'name of vdc')
+
+# show vdc
+vdcshow = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+vdcshow.add_argument('id', help = 'id of vdc')
+
+# get local vdc
+vdclocal = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# del vdc
+vdcdel = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+vdcdel.add_argument('id', help = 'id of vdc')
+
+# vdc secretkey
+vdcsecretkey= argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# vdc certchain
+vdccertchain= argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+
+# vdc wait for stable state
+# (for now update/remove vdc task couldn't keep state in 'pending' util start up sometimes)
+vdcwaitforstablestate = argparse.ArgumentParser(parents = [parser], conflict_handler='resolve')
+vdcwaitforstablestate.add_argument('sleep', help = 'sleep of waiting time', type=float)
+vdcwaitforstablestate.add_argument('length', help = 'the whole waiting time', type=float)
+
+#----------------------------------------------------------------------
+# Main script
+#----------------------------------------------------------------------
+
+try:
+    if (len(sys.argv) > 1):
+        cmd = sys.argv[1]
+    else:
+        cmd = None
+
+    bourne = Bourne()
+
+    if   (cmd == "add"):
+        args = vdcadd.parse_args()
+        vdc_add(args)
+    elif (cmd == "get_key"):
+        args = vdcsecretkey.parse_args()
+        vdc_get_secret_key(args)
+    elif (cmd == "get_certchain"):
+        args = vdccertchain.parse_args()
+        vdc_get_certchain(args)
+    elif (cmd == "list"):
+        args = vdclist.parse_args()
+        vdc_list(args)
+    elif (cmd == "get_id"):
+        args = vdcid.parse_args()
+        vdc_get_id(args)
+    elif (cmd == "update"):
+        args = vdcupdate.parse_args()
+        vdc_update(args)
+    elif (cmd == "del"):
+        args = vdcdel.parse_args()
+        vdc_delete(args)
+    elif (cmd == "disconnect"):
+        args = vdcdisconnect.parse_args()
+        vdc_disconnect(args)
+    elif (cmd == "reconnect"):
+        args = vdcreconnect.parse_args()
+        vdc_reconnect(args)
+    elif (cmd == "show"):
+        args = vdcshow.parse_args()
+        vdc_show(args)  
+    elif (cmd == "local"):
+        args = vdclocal.parse_args()
+        vdc_get_local(args)                  
+    elif (cmd == "waitforstablestate"):
+        args = vdcwaitforstablestate.parse_args()
+        vdc_wait_for_stable_state(args)
+    else:
+        parser.print_help()
+except:
+    raise

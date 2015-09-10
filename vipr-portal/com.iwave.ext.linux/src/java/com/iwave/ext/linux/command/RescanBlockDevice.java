@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.linux.command;
@@ -30,7 +30,7 @@ public class RescanBlockDevice extends LinuxCommand {
         }
         setVariableValue(DEVICES, sb.toString());
     }
-    
+
     @Override
     protected void validateCommandLine() throws CommandException {
         requireVariableValues(DEVICES);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.apidocs;
@@ -23,21 +23,19 @@ public class Utils {
     private static String XML_END = "&gt;";
     private static String NEW_LINE = "\n";
 
-
-
     public static String splitCamelCase(String s) {
         return s.replaceAll(
                 String.format("%s|%s|%s",
                         "(?<=[A-Z])(?=[A-Z][a-z])",
                         "(?<=[^A-Z])(?=[A-Z])",
                         "(?<=[A-Za-z])(?=[^A-Za-z])"
-                ),
+                        ),
                 " "
-        );
+                );
     }
 
     public static String upperCaseFirstChar(String string) {
-        if (string == null || string.equals("")){
+        if (string == null || string.equals("")) {
             return string;
         }
 
@@ -46,7 +44,7 @@ public class Utils {
     }
 
     public static String lowerCaseFirstChar(String string) {
-        if (string == null || string.equals("")){
+        if (string == null || string.equals("")) {
             return string;
         }
 
@@ -68,7 +66,7 @@ public class Utils {
                 return part1 + part2;
             }
             else {
-                return part1 + (part2.equals("")?"":"/") +part2;
+                return part1 + (part2.equals("") ? "" : "/") + part2;
             }
         }
 
@@ -78,7 +76,7 @@ public class Utils {
         Set<String> deduped = Sets.newHashSet(input.split(" "));
         StringBuffer output = new StringBuffer();
         for (String word : deduped) {
-            output.append(word+" ");
+            output.append(word + " ");
         }
 
         return output.toString();
@@ -86,7 +84,7 @@ public class Utils {
 
     public static StringBuffer addSpaces(int number, StringBuffer buffer) {
         String response = "";
-        for (int i=0;i<number;i++) {
+        for (int i = 0; i < number; i++) {
             buffer.append(" ");
         }
 
@@ -95,7 +93,7 @@ public class Utils {
 
     public static String repeatSpace(int number) {
         String response = "";
-        for (int i=0;i<number;i++) {
+        for (int i = 0; i < number; i++) {
             response = response + "   ";
         }
         return response;
@@ -111,9 +109,8 @@ public class Utils {
             JsonParser parser = new JsonParser();
             JsonElement el = parser.parse(buffer.toString());
             return g.toJson(el);
-        }
-        catch(Exception e) {
-            throw new RuntimeException(buffer.toString(),e);
+        } catch (Exception e) {
+            throw new RuntimeException(buffer.toString(), e);
         }
     }
 
@@ -121,10 +118,10 @@ public class Utils {
         buffer.append("{\n");
         int counter = 0;
         for (ApiField field : element.fields) {
-            generateJSON(field,buffer);
+            generateJSON(field, buffer);
             counter++;
 
-            if (counter<element.fields.size()) {
+            if (counter < element.fields.size()) {
                 buffer.append(",\n");
             }
 
@@ -134,10 +131,9 @@ public class Utils {
         return buffer.toString();
     }
 
-
     public static void generateJSON(ApiField field, StringBuffer buffer) {
-         buffer.append("\"")
-              .append((!field.wrapperName.equals("")?field.wrapperName:field.name));
+        buffer.append("\"")
+                .append((!field.wrapperName.equals("") ? field.wrapperName : field.name));
         buffer.append("\": ");
 
         if (field.collection) {
@@ -162,7 +158,7 @@ public class Utils {
      * Returns an XML Payload format for the given Api Class
      */
     public static String generateXml(ApiClass element) {
-        StringBuffer buffer = new StringBuffer(XML_START+element.name+XML_END+"\n");
+        StringBuffer buffer = new StringBuffer(XML_START + element.name + XML_END + "\n");
         for (ApiField field : element.fields) {
             generateXml(field, 1, buffer);
         }
@@ -176,7 +172,7 @@ public class Utils {
         if (!element.wrapperName.equals("")) {  // Output <WRAPPER>
             response.append(repeatSpace(level));
             response.append(XML_START).append(element.wrapperName).append(XML_END).append(NEW_LINE);
-            level = level+1;
+            level = level + 1;
         }
 
         if (!element.hasChildElements()) {  // Output as <name></name>
@@ -192,7 +188,7 @@ public class Utils {
             addAttributes(element.type, response);
 
             for (ApiField field : element.type.fields) {
-                generateXml(field, level+1,response);
+                generateXml(field, level + 1, response);
             }
 
             response.append(repeatSpace(level));
@@ -200,7 +196,7 @@ public class Utils {
         }
 
         if (!element.wrapperName.equals("")) {  // OUTPUT </WRAPPER>
-            level = level -1;
+            level = level - 1;
             response.append(repeatSpace(level));
             response.append(XML_START).append("/").append(element.wrapperName).append(XML_END).append(NEW_LINE);
         }
@@ -212,49 +208,49 @@ public class Utils {
 
         }
         for (ApiField attribute : element.attributes) {
-            response.append(" "+attribute.name+"=\"\"");
+            response.append(" " + attribute.name + "=\"\"");
         }
     }
 
     public static void dump(ApiMethod apiMethod) {
         System.out.println("=================================");
-        System.out.println(apiMethod.httpMethod+" "+apiMethod.path);
-        System.out.println("JavaMethod:"+apiMethod.javaMethodName);
-        System.out.println("Brief: "+apiMethod.brief);
-        System.out.println("Description:" +apiMethod.description);
+        System.out.println(apiMethod.httpMethod + " " + apiMethod.path);
+        System.out.println("JavaMethod:" + apiMethod.javaMethodName);
+        System.out.println("Brief: " + apiMethod.brief);
+        System.out.println("Description:" + apiMethod.description);
         System.out.println("\nPATH PARAMETERS:");
         for (ApiField param : apiMethod.pathParameters) {
-            System.out.println("- ["+param.name+"] "+param.description);
+            System.out.println("- [" + param.name + "] " + param.description);
         }
         System.out.println("\nQUERY PARAMETERS");
         for (ApiField param : apiMethod.queryParameters) {
-            System.out.println("- ["+param.name+"] "+param.description);
+            System.out.println("- [" + param.name + "] " + param.description);
         }
         System.out.println("\nROLES:");
         for (String role : apiMethod.roles) {
-            System.out.println("- "+role);
+            System.out.println("- " + role);
         }
         System.out.println("\nACLS:");
         for (String acl : apiMethod.acls) {
-            System.out.println("- "+acl);
+            System.out.println("- " + acl);
         }
 
         if (apiMethod.input != null) {
-            System.out.println("INPUT: "+apiMethod.input.name);
+            System.out.println("INPUT: " + apiMethod.input.name);
         }
 
         if (apiMethod.output != null) {
-            System.out.println("OUTPUT: "+apiMethod.output.name);
+            System.out.println("OUTPUT: " + apiMethod.output.name);
             dumpAsXml(apiMethod.output, 0);
         }
     }
 
     public static void dumpAsXml(ApiClass apiClass, int level) {
         printTabs(level);
-        System.out.print("<"+apiClass.name);
+        System.out.print("<" + apiClass.name);
 
         for (ApiField attribute : apiClass.attributes) {
-            System.out.print(" "+attribute.name+"=\"\"");
+            System.out.print(" " + attribute.name + "=\"\"");
         }
 
         if (apiClass.fields.isEmpty()) {
@@ -266,27 +262,27 @@ public class Utils {
 
         for (ApiField element : apiClass.fields) {
             if (element.isPrimitive()) {
-                printTabs(level+1);
+                printTabs(level + 1);
 
-                System.out.println("<"+element.name+"/>       "+element.primitiveType+"  ["+ element.description+"]");
+                System.out.println("<" + element.name + "/>       " + element.primitiveType + "  [" + element.description + "]");
             }
             else {
-                printTabs(level+1);
-                System.out.println("<" + element.name + ">      " + element.description + (element.collection?"MANY":""));
+                printTabs(level + 1);
+                System.out.println("<" + element.name + ">      " + element.description + (element.collection ? "MANY" : ""));
                 dumpAsXml(element.type, level + 2);
-                printTabs(level+1);
-                System.out.println("</"+element.name+">");
+                printTabs(level + 1);
+                System.out.println("</" + element.name + ">");
             }
         }
 
         if (!apiClass.fields.isEmpty()) {
             printTabs(level);
-            System.out.println("</"+apiClass.name+">");
+            System.out.println("</" + apiClass.name + ">");
         }
     }
 
     public static void printTabs(int times) {
-        for (int i=0;i<times;i++) {
+        for (int i = 0; i < times; i++) {
             System.out.print("\t");
         }
     }

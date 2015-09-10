@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util.datatable;
@@ -34,7 +34,7 @@ public class DataTableParams {
             return Collections.emptyList();
         }
     }
-    
+
     public String getSortColumn() {
         return sortColumn;
     }

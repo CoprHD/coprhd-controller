@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor;
 
@@ -45,7 +35,7 @@ import java.util.regex.Pattern;
 public class FirmwareProcessor extends Processor {
     private Logger _logger = LoggerFactory.getLogger(FirmwareProcessor.class);
     private static final String VERSION = "VersionString";
-    private static final String INSTANCEID ="InstanceID";
+    private static final String INSTANCEID = "InstanceID";
     private DbClient _dbClient;
     private CoordinatorClient coordinator;
 
@@ -67,13 +57,13 @@ public class FirmwareProcessor extends Processor {
             if (Type.ibmxiv.name().equals(profile.getSystemType())) {
                 delimiter = Pattern.quote(Constants.COLON);
             }
-               
+
             if (it.hasNext()) {
                 CIMInstance firmwareInstance = it.next(); // e.g., IBM XIV InstanceID, IBMTSDS:IBM.2810-7825363
-               	serialNumber = firmwareInstance.getPropertyValue(INSTANCEID)
-               	        .toString().split(delimiter)[1];
-                       
-                String nativeGuid =  NativeGUIDGenerator.generateNativeGuid(profile.getSystemType(),serialNumber);
+                serialNumber = firmwareInstance.getPropertyValue(INSTANCEID)
+                        .toString().split(delimiter)[1];
+
+                String nativeGuid = NativeGUIDGenerator.generateNativeGuid(profile.getSystemType(), serialNumber);
                 List<StorageSystem> systems = CustomQueryUtility.getActiveStorageSystemByNativeGuid(_dbClient, nativeGuid);
                 if (!systems.isEmpty()) {
                     StorageSystem system = systems.get(0);
@@ -92,13 +82,13 @@ public class FirmwareProcessor extends Processor {
     }
 
     /**
-	 * Firmware check.
-	 *
-	 * @param firmwareInstance
-	 * @param system
-	 * @throws SMIPluginException
-	 */
-	private void checkFirmwareVersion(CIMInstance firmwareInstance, StorageSystem system)
+     * Firmware check.
+     * 
+     * @param firmwareInstance
+     * @param system
+     * @throws SMIPluginException
+     */
+    private void checkFirmwareVersion(CIMInstance firmwareInstance, StorageSystem system)
             throws SMIPluginException {
         String instanceVersion = getCIMPropertyValue(firmwareInstance, VERSION);
         system.setFirmwareVersion(instanceVersion);
@@ -116,7 +106,7 @@ public class FirmwareProcessor extends Processor {
             throw new SMIPluginException(msg, SMIPluginException.ERRORCODE_FIRMWARE_NOT_SUPPORTED);
         } else {
             system.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.toString());
-            _dbClient.persistObject(system);            
+            _dbClient.persistObject(system);
         }
     }
 }

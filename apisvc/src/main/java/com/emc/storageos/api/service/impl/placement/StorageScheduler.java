@@ -1,20 +1,9 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.api.service.impl.placement;
-
 
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
@@ -69,21 +58,21 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.AttributeMatcher;
 import com.emc.storageos.volumecontroller.AttributeMatcher.Attributes;
 import com.emc.storageos.volumecontroller.Recommendation;
+import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.PortMetricsProcessor;
 import com.emc.storageos.volumecontroller.impl.utils.AttributeMapBuilder;
 import com.emc.storageos.volumecontroller.impl.utils.AttributeMatcherFramework;
+import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 import com.emc.storageos.volumecontroller.impl.utils.ProvisioningAttributeMapBuilder;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatcher;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.MaxResourcesMatcher;
-import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
-
 
 /**
  * Basic storage scheduling functions of block and file storage. StorageScheduler is done based on desired
  * virtual pool parameters for the provisioned storage.
  */
-public class StorageScheduler implements Scheduler{
+public class StorageScheduler implements Scheduler {
     public static final Logger _log = LoggerFactory.getLogger(StorageScheduler.class);
     private DbClient _dbClient;
 
@@ -103,11 +92,10 @@ public class StorageScheduler implements Scheduler{
     }
 
     public void setPortMetricsProcessor(PortMetricsProcessor portMetricsProcessor) {
-        if ( _portMetricsProcessor == null) {
+        if (_portMetricsProcessor == null) {
             _portMetricsProcessor = portMetricsProcessor;
         }
-    } 
-    
+    }
 
     public AttributeMatcherFramework getMatcherFramework() {
         return _matcherFramework;
@@ -121,30 +109,30 @@ public class StorageScheduler implements Scheduler{
         return _coordinator;
     }
 
-
     /**
      * Returns list of recommendations for block volumes.
-     *
+     * 
      * Select and return one or more storage pools where the volume(s)/fileshare(s)
      * should be created. The placement logic is based on:
-     *      - VirtualArray, only storage devices in the given varray are candidates
-     *      - VirtualPool, specifies must-meet & best-meet service specifications
-     *        - access-protocols: storage pools must support all protocols specified in VirtualPool
-     *        - snapshots: if yes, only select storage pools with this capability
-     *        - snapshot-consistency: if yes, only select storage pools with this capability
-     *        - performance: best-match, select storage pools which meets desired performance
-     *        - provision-mode: thick/thin
-     *        - numPaths: select storage pools with required number of paths to the volume
-     *      - size: Place the resources in the minimum number of storage pools that can
-     *              accommodate the size and number of resource requested.
-     *
+     * - VirtualArray, only storage devices in the given varray are candidates
+     * - VirtualPool, specifies must-meet & best-meet service specifications
+     * - access-protocols: storage pools must support all protocols specified in VirtualPool
+     * - snapshots: if yes, only select storage pools with this capability
+     * - snapshot-consistency: if yes, only select storage pools with this capability
+     * - performance: best-match, select storage pools which meets desired performance
+     * - provision-mode: thick/thin
+     * - numPaths: select storage pools with required number of paths to the volume
+     * - size: Place the resources in the minimum number of storage pools that can
+     * accommodate the size and number of resource requested.
+     * 
      * @param neighborhood
      * @param cos
      * @param capabilities
-     * @return  list of VolumeRecommendation instances
+     * @return list of VolumeRecommendation instances
      */
+    @Override
     public List<VolumeRecommendation> getRecommendationsForResources(VirtualArray neighborhood, Project project, VirtualPool cos,
-                                                                   VirtualPoolCapabilityValuesWrapper capabilities) {
+            VirtualPoolCapabilityValuesWrapper capabilities) {
 
         _log.debug("Schedule storage for {} resource(s) of size {}.", capabilities.getResourceCount(), capabilities.getSize());
 
@@ -164,7 +152,7 @@ public class StorageScheduler implements Scheduler{
         // We need to place all the resources. If we can't then
         // log an error and clear the list of recommendations.
         if (recommendations.isEmpty()) {
-            //TODO reevaluate
+            // TODO reevaluate
             _log.error(
                     "Could not find matching pools for VArray {} & VPool {}",
                     neighborhood.getId(), cos.getId());
@@ -177,21 +165,21 @@ public class StorageScheduler implements Scheduler{
             while (count > 0) {
                 VolumeRecommendation volumeRecommendation = new VolumeRecommendation(VolumeRecommendation.VolumeType.BLOCK_VOLUME,
                         capabilities.getSize(), cos, neighborhood.getId());
-                volumeRecommendation.addStoragePool(recommendation.getSourcePool());
-                volumeRecommendation.addStorageSystem(recommendation.getSourceDevice());
+                volumeRecommendation.addStoragePool(recommendation.getSourceStoragePool());
+                volumeRecommendation.addStorageSystem(recommendation.getSourceStorageSystem());
                 volumeRecommendations.add(volumeRecommendation);
                 if (capabilities.getBlockConsistencyGroup() != null) {
                     volumeRecommendation.setParameter(VolumeRecommendation.ARRAY_CG, capabilities.getBlockConsistencyGroup());
                 }
-                count --;
+                count--;
             }
         }
 
         return volumeRecommendations;
     }
 
-    public void getRecommendationsForMirrors(VirtualArray neighborhood, VirtualPool cos,
-                                             VirtualPoolCapabilityValuesWrapper capabilities, List<Recommendation> volumeRecommendations) {
+    public void getRecommendationsForMirrors(VirtualArray vArray, VirtualPool vPool,
+            VirtualPoolCapabilityValuesWrapper capabilities, List<Recommendation> volumeRecommendations) {
 
         List<VolumeRecommendation> mirrorRecommendations = new ArrayList<VolumeRecommendation>();
         // separate volumes by different devices
@@ -204,17 +192,17 @@ public class StorageScheduler implements Scheduler{
             Set<String> storageSystemSet = new HashSet<String>();
             storageSystemSet.add(storageSystem.toString());
             attributeMap.put(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
-            
+
             Set<String> virtualArraySet = new HashSet<String>();
-            virtualArraySet.add(neighborhood.getId().toString());            
+            virtualArraySet.add(vArray.getId().toString());
             attributeMap.put(AttributeMatcher.Attributes.varrays.name(), virtualArraySet);
 
             _log.info("Matching pools for storage system {} ", storageSystem);
-            List<StoragePool> matchedPools = getMatchingPools(neighborhood, cos, capabilities, attributeMap);
+            List<StoragePool> matchedPools = getMatchingPools(vArray, vPool, capabilities, attributeMap);
             if (matchedPools == null || matchedPools.isEmpty()) {
                 // TODO fix message and throw service code exception
-                _log.warn("VArray {} does not have storage pools which match VPool {}.", neighborhood.getId(), cos.getId());
-                throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(cos.getId(),neighborhood.getId());
+                _log.warn("VArray {} does not have storage pools which match VPool {}.", vArray.getId(), vPool.getId());
+                throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vPool.getId(), vArray.getId());
             }
 
             // place all mirrors for this storage system in the matched pools
@@ -223,7 +211,7 @@ public class StorageScheduler implements Scheduler{
                 StoragePool poolForMirror = placeLocalMirror(matchedPools, sourceRecommendation);
                 // create mirror volume recommendation
                 VolumeRecommendation mirrorRecommendation = new VolumeRecommendation(VolumeRecommendation.VolumeType.BLOCK_LOCAL_MIRROR,
-                        capabilities.getSize(), cos, neighborhood.getId());
+                        capabilities.getSize(), vPool, vArray.getId());
                 mirrorRecommendation.addStoragePool(poolForMirror.getId());
                 mirrorRecommendation.addStorageSystem(poolForMirror.getStorageDevice());
                 mirrorRecommendation.setParameter(VolumeRecommendation.BLOCK_VOLUME, sourceRecommendation);
@@ -254,9 +242,8 @@ public class StorageScheduler implements Scheduler{
         return poolForMirror;
     }
 
-
     public List<VolumeRecommendation> getRecommendationsForVolumeClones(VirtualArray vArray, VirtualPool vPool,
-                                                                        BlockObject blockObject, VirtualPoolCapabilityValuesWrapper capabilities) {
+            BlockObject blockObject, VirtualPoolCapabilityValuesWrapper capabilities) {
 
         _log.debug("Schedule storage for {} block volume copies {} of size {}.", capabilities.getResourceCount(), capabilities.getSize());
 
@@ -283,8 +270,10 @@ public class StorageScheduler implements Scheduler{
         // StorageSystem that the source volume was created against.
         List<StoragePool> matchedPools = getMatchingPools(vArray, vPool, capabilities, attributeMap);
         if (matchedPools == null || matchedPools.isEmpty()) {
-            _log.warn("VArray {} does not have storage pools which match VPool {} to clone volume {}.", new Object[] {vArray.getId(), vPool.getId(), blockObject.getId()});
-            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarrayForClones(vPool.getId(),vArray.getId(), blockObject.getId());                
+            _log.warn("VArray {} does not have storage pools which match VPool {} to clone volume {}.", new Object[] { vArray.getId(),
+                    vPool.getId(), blockObject.getId() });
+            throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarrayForClones(vPool.getId(), vArray.getId(),
+                    blockObject.getId());
         }
 
         _log.info(String.format("Found %s candidate pools for placement of %s clone(s) of volume %s .",
@@ -308,13 +297,13 @@ public class StorageScheduler implements Scheduler{
             while (count > 0) {
                 VolumeRecommendation volumeRecommendation = new VolumeRecommendation(VolumeRecommendation.VolumeType.BLOCK_COPY,
                         capabilities.getSize(), vPool, vArray.getId());
-                volumeRecommendation.addStoragePool(recommendation.getSourcePool());
-                volumeRecommendation.addStorageSystem(recommendation.getSourceDevice());
+                volumeRecommendation.addStoragePool(recommendation.getSourceStoragePool());
+                volumeRecommendation.addStorageSystem(recommendation.getSourceStorageSystem());
                 volumeRecommendations.add(volumeRecommendation);
                 if (capabilities.getBlockConsistencyGroup() != null) {
                     volumeRecommendation.setParameter(VolumeRecommendation.ARRAY_CG, capabilities.getBlockConsistencyGroup());
                 }
-                count --;
+                count--;
             }
         }
 
@@ -322,17 +311,18 @@ public class StorageScheduler implements Scheduler{
     }
 
     /**
-     * Sort list of storage pools based on its storage system's average usage port metrics usage.  Its
+     * Sort list of storage pools based on its storage system's average usage port metrics usage. Its
      * secondary sorting components are free and subscribed capacity
+     * 
      * @param storagePools
      */
     public void sortPools(List<StoragePool> storagePools) {
         // compute and set storage pools'average port usage metrics before sorting.
         _portMetricsProcessor.computeStoragePoolsAvgPortMetrics(storagePools);
-        
+
         /**
-         * Sort all pools in ascending order of its storage system's average port usage metrics (first order), 
-         * descending  order by free capacity (second order) and  in ascending order by ratio
+         * Sort all pools in ascending order of its storage system's average port usage metrics (first order),
+         * descending order by free capacity (second order) and in ascending order by ratio
          * of pool's subscribed capacity to total capacity(suborder).
          * This order is kept through the selection procedure.
          */
@@ -343,11 +333,11 @@ public class StorageScheduler implements Scheduler{
      * Select candidate storage pools for placement. Wrapper for the
      * 4 parameter version (below), which uses an optional parameter
      * for passing in attributes.
-     *
+     * 
      * @param varray The VirtualArray for matching storage pools.
      * @param vpool The virtualPool that must be satisfied by the storage pool.
      * @param capabilities The VirtualPool params that must be satisfied.
-     *
+     * 
      * @return A list of matching storage pools.
      */
     protected List<StoragePool> getMatchingPools(VirtualArray varray, VirtualPool vpool,
@@ -357,7 +347,7 @@ public class StorageScheduler implements Scheduler{
 
     /**
      * Select candidate storage pools for placement.
-     *
+     * 
      * @param varray The VirtualArray for matching storage pools.
      * @param vpool The virtualPool that must be satisfied by the storage pool.
      * @param capabilities The VirtualPool params that must be satisfied.
@@ -369,9 +359,10 @@ public class StorageScheduler implements Scheduler{
             VirtualPoolCapabilityValuesWrapper capabilities, Map<String, Object> optionalAttributes) {
 
         capabilities.put(VirtualPoolCapabilityValuesWrapper.VARRAYS, varray.getId().toString());
-        if (null != vpool.getAutoTierPolicyName())
+        if (null != vpool.getAutoTierPolicyName()) {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.AUTO_TIER__POLICY_NAME,
                     vpool.getAutoTierPolicyName());
+        }
 
         List<StoragePool> storagePools = new ArrayList<StoragePool>();
         String varrayId = varray.getId().toString();
@@ -387,45 +378,45 @@ public class StorageScheduler implements Scheduler{
         List<StoragePool> matchedPoolsForCos = VirtualPool.getValidStoragePools(vpool, _dbClient, true);
 
         AttributeMapBuilder provMapBuilder = new ProvisioningAttributeMapBuilder(capabilities.getSize(),
-            varrayId, capabilities.getThinVolumePreAllocateSize());
+                varrayId, capabilities.getThinVolumePreAllocateSize());
         provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.provisioning_type.toString(),
                 vpool.getSupportedProvisioningType());
 
-
         // Set CG related attributes for placement
         final BlockConsistencyGroup consistencyGroup = capabilities.getBlockConsistencyGroup() == null ? null : _dbClient
-                        .queryObject(BlockConsistencyGroup.class, capabilities.getBlockConsistencyGroup());
-        if(consistencyGroup != null) {
-            
+                .queryObject(BlockConsistencyGroup.class, capabilities.getBlockConsistencyGroup());
+        if (consistencyGroup != null) {
+
             URI cgStorageSystemURI = consistencyGroup.getStorageController();
             if (cgStorageSystemURI != null && !NullColumnValueGetter.getNullURI().equals(cgStorageSystemURI)) {
                 StorageSystem cgStorageSystem = _dbClient.queryObject(StorageSystem.class, cgStorageSystemURI);
-                
+
                 Set<String> storageSystemSet = new HashSet<String>();
                 // if srdf, then select Storage System based on whether the matching Pools runs on source or target.
-                // this logic is added, as we don't want to add any relationships between source and target CGs explicitly in ViPR. 
+                // this logic is added, as we don't want to add any relationships between source and target CGs explicitly in ViPR.
                 if (VirtualPoolCapabilityValuesWrapper.SRDF_TARGET.equalsIgnoreCase(capabilities.getPersonality())) {
-                    //then update storage system corresponding to target CG
-                    // source Label is set as alternate name for target Cgs, so that the same name can be used to create targte CGs in Array.
+                    // then update storage system corresponding to target CG
+                    // source Label is set as alternate name for target Cgs, so that the same name can be used to create targte CGs in
+                    // Array.
                     List<URI> cgUris = _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                             .getBlockConsistencyGroupByAlternateNameConstraint(consistencyGroup.getLabel()));
                     if (!cgUris.isEmpty()) {
                         BlockConsistencyGroup targetCgGroup = _dbClient.queryObject(BlockConsistencyGroup.class, cgUris.get(0));
                         if (null != targetCgGroup && !targetCgGroup.getInactive() && null != targetCgGroup.getStorageController() &&
-                        		!NullColumnValueGetter.getNullURI().equals(targetCgGroup.getStorageController())) {
-                          storageSystemSet.add(targetCgGroup.getStorageController().toString());
-                          provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
-                          provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.multi_volume_consistency.name(), true);
+                                !NullColumnValueGetter.getNullURI().equals(targetCgGroup.getStorageController())) {
+                            storageSystemSet.add(targetCgGroup.getStorageController().toString());
+                            provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
+                            provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.multi_volume_consistency.name(), true);
                         }
                     }
-                   
+
                 } else if (!DiscoveredDataObject.Type.vplex.name().equals(cgStorageSystem.getSystemType())) {
                     // If this is not a VPLEX CG, add the ConsistencyGroup's StorageSystem
                     // so that the matching pools are in the same system
                     storageSystemSet.add(cgStorageSystemURI.toString());
                     provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.storage_system.name(), storageSystemSet);
                     provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.multi_volume_consistency.name(), true);
-                    
+
                     // IBM XIV requires all volumes of a CG in the same StoragePool
                     if (DiscoveredDataObject.Type.ibmxiv.name().equals(cgStorageSystem.getSystemType())) {
                         List<Volume> activeCGVolumes = CustomQueryUtility
@@ -465,8 +456,8 @@ public class StorageScheduler implements Scheduler{
                 provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.multi_volume_consistency.name(), true);
             }
         }
-         
-        //populate DriveType,and Raid level and Policy Name for FAST Initial Placement Selection
+
+        // populate DriveType,and Raid level and Policy Name for FAST Initial Placement Selection
         provMapBuilder.putAttributeInMap(Attributes.auto_tiering_policy_name.toString(), vpool.getAutoTierPolicyName());
         provMapBuilder.putAttributeInMap(Attributes.unique_policy_names.toString(), vpool.getUniquePolicyNames());
         provMapBuilder.putAttributeInMap(AttributeMatcher.PLACEMENT_MATCHERS, true);
@@ -477,13 +468,13 @@ public class StorageScheduler implements Scheduler{
             if (null != raidLevels && !raidLevels.isEmpty()) {
                 provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.raid_levels.name(), raidLevels);
             }
-            
+
             Set<String> systemTypes = arrayInfo.get(AttributeMatcher.Attributes.system_type.name());
             if (null != systemTypes && !systemTypes.isEmpty()) {
                 provMapBuilder.putAttributeInMap(AttributeMatcher.Attributes.system_type.name(), systemTypes);
             }
         }
-     
+
         Map<String, Object> attributeMap = provMapBuilder.buildMap();
         if (optionalAttributes != null) {
             attributeMap.putAll(optionalAttributes);
@@ -520,23 +511,23 @@ public class StorageScheduler implements Scheduler{
      * Returns first storage pool from the passed list of candidate storage
      * pools that has at least the passed free capacity.
      * Note: do not change order of candidate pools.
-     *
+     * 
      * @param capacity The desired free capacity.
      * @param resourceSize The desired resource size
      * @param newResourceCount The desired number of resources
      * @param candidatePools The list of candidate storage pools.
      * @param isThinlyProvisioned Indication if this is thin provisioning (thin volume).
-     *
+     * 
      * @return A storage pool that have the passed free capacity.
      */
-    protected StoragePool getPoolMatchingCapacity(long capacity, long resourceSize, 
+    protected StoragePool getPoolMatchingCapacity(long capacity, long resourceSize,
             Integer newResourceCount, List<StoragePool> candidatePools,
             boolean isThinlyProvisioned, Long thinVolumePreAllocationResourceSize) {
         StoragePool poolWithCapacity = null;
         CapacityMatcher capacityMatcher = new CapacityMatcher();
         capacityMatcher.setCoordinatorClient(_coordinator);
-        capacityMatcher.setObjectCache(new ObjectLocalCache(_dbClient,false));
-        
+        capacityMatcher.setObjectCache(new ObjectLocalCache(_dbClient, false));
+
         Iterator<StoragePool> storagePoolsIter = candidatePools.iterator();
         while (storagePoolsIter.hasNext()) {
             StoragePool candidatePool = storagePoolsIter.next();
@@ -544,7 +535,7 @@ public class StorageScheduler implements Scheduler{
             if (MaxResourcesMatcher.checkPoolMaximumResourcesApproached(candidatePool, _dbClient, newResourceCount)) {
                 continue;
             }
-            
+
             // TODO Used to force placement to VNX Concrete pools.
             // if
             // (candidatePool.getPoolClassName().equalsIgnoreCase(StoragePool.PoolClassNames.Clar_UnifiedStoragePool.toString()))
@@ -557,34 +548,34 @@ public class StorageScheduler implements Scheduler{
         }
         return poolWithCapacity;
     }
-    
+
     /**
      * Returns all storage pools from the passed list of candidate storage
      * pools that have at least the passed free capacity.
      * Note: do not change order of candidate pools.
-     *
+     * 
      * @param capacity The desired free capacity.
      * @param resourceSize The desired resource size
      * @param newResourceCount The desired number of resources
      * @param candidatePools The list of candidate storage pools.
      * @param isThinlyProvisioned Indication if this is thin provisioning (thin volume).
-     *
+     * 
      * @return All storage pools that have the passed free capacity.
      */
-    protected List<StoragePool> getPoolsMatchingCapacity(long capacity, long resourceSize, 
+    protected List<StoragePool> getPoolsMatchingCapacity(long capacity, long resourceSize,
             Integer newResourceCount, List<StoragePool> candidatePools,
             boolean isThinlyProvisioned, Long thinVolumePreAllocationResourceSize) {
         List<StoragePool> poolsWithCapacity = new ArrayList<StoragePool>();
         CapacityMatcher capacityMatcher = new CapacityMatcher();
         capacityMatcher.setCoordinatorClient(_coordinator);
-        capacityMatcher.setObjectCache(new ObjectLocalCache(_dbClient,false));
-        
+        capacityMatcher.setObjectCache(new ObjectLocalCache(_dbClient, false));
+
         for (StoragePool candidatePool : candidatePools) {
             // First check if max Resources limit is violated for the pool
             if (MaxResourcesMatcher.checkPoolMaximumResourcesApproached(candidatePool, _dbClient, newResourceCount)) {
                 continue;
             }
-            
+
             // TODO Used to force placement to VNX Concrete pools.
             // if
             // (candidatePool.getPoolClassName().equalsIgnoreCase(StoragePool.PoolClassNames.Clar_UnifiedStoragePool.toString()))
@@ -594,27 +585,30 @@ public class StorageScheduler implements Scheduler{
                 poolsWithCapacity.add(candidatePool);
             }
         }
-        
+
         return poolsWithCapacity;
     }
 
     /**
      * Select one storage pool out a list of candidates. Use static and dynamic loads, capacity etc
      * criteria to narrow the selection.
+     * 
      * @param poolList - List of StoragePools that meet the placement criteria for the
-     *                 volume.
+     *            volume.
      * @return - A StoragePool that can be used to allocate the volume,
-     * which meets the VirtualPool and capacity requirements.
+     *         which meets the VirtualPool and capacity requirements.
      */
     public StoragePool selectPool(List<StoragePool> poolList) {
-        if (poolList == null || poolList.isEmpty()) return null;
-        
+        if (poolList == null || poolList.isEmpty()) {
+            return null;
+        }
+
         // compute and set storage pools' average port usage metrics before sorting.
         _portMetricsProcessor.computeStoragePoolsAvgPortMetrics(poolList);
-        
+
         // Select the from the pool the one that has the largest free capacity with least usage port metric
         Collections.sort(poolList, _storagePoolComparator);
-        
+
         return poolList.get(0);
     }
 
@@ -631,13 +625,13 @@ public class StorageScheduler implements Scheduler{
      */
     protected List<Recommendation> getRecommendationsForPools(String varrayId, List<StoragePool> candidatePools,
             VirtualPoolCapabilityValuesWrapper capabilities) {
-        // If the capabilities specify a CG and the CG has yet to actually be 
-        // created on a physical device, we need to make sure that the call 
-        // returns recommended storage pools that are all on the same storage 
-        // system. If the CG is created, the passed list of candidate pools 
+        // If the capabilities specify a CG and the CG has yet to actually be
+        // created on a physical device, we need to make sure that the call
+        // returns recommended storage pools that are all on the same storage
+        // system. If the CG is created, the passed list of candidate pools
         // will already filtered to that storage system. However, when it is
         // not created, the candidate pools are all pools on all systems that
-        /// satisfy the placement criteria. Also, if only one volume is being
+        // / satisfy the placement criteria. Also, if only one volume is being
         // provisioned, it becomes irrelevant as only one storage pool will
         // be recommended.
         URI cgURI = capabilities.getBlockConsistencyGroup();
@@ -647,16 +641,16 @@ public class StorageScheduler implements Scheduler{
             if (cg == null) {
                 throw APIException.internalServerErrors.invalidObject(cgURI.toString());
             }
-            
+
             if (!cg.created()) {
                 // Sorting the pools here ensures they are in the desired order
                 // and will be in the desired order for each storage system.
                 sortPools(candidatePools);
-                
-                // Organize the candidate pools by storage system. We use a 
+
+                // Organize the candidate pools by storage system. We use a
                 // linked map to ensure that when we iterate over the key set
                 // the order will be the order the entries were inserted to
-                // the map. Because we sorted the candidate pools first, this 
+                // the map. Because we sorted the candidate pools first, this
                 // ensures the first system in the map has the most desirable
                 // pool according to the sorting algorithm.
                 Map<URI, List<StoragePool>> systemPoolMap = new LinkedHashMap<URI, List<StoragePool>>();
@@ -671,27 +665,27 @@ public class StorageScheduler implements Scheduler{
                     }
                     systemPools.add(candidatePool);
                 }
-                
-                // Now attempt to find a recommendation from the set of 
-                // storage pools for a storage system until we find a 
+
+                // Now attempt to find a recommendation from the set of
+                // storage pools for a storage system until we find a
                 // a recommendation or run out of systems.
                 Iterator<URI> systemIter = systemPoolMap.keySet().iterator();
                 while (systemIter.hasNext()) {
                     URI systemURI = systemIter.next();
                     List<StoragePool> systemCandidatePools = systemPoolMap.get(systemURI);
                     List<Recommendation> recommendations = getRecommendedPools(varrayId,
-                        systemCandidatePools, capabilities, false);
+                            systemCandidatePools, capabilities, false);
                     if (!recommendations.isEmpty()) {
                         return recommendations;
                     }
                 }
-                
+
                 // No recommendations found on any storage system.
                 return new ArrayList<Recommendation>();
             }
         }
 
-        return getRecommendedPools(varrayId, candidatePools, capabilities, true);        
+        return getRecommendedPools(varrayId, candidatePools, capabilities, true);
     }
 
     /**
@@ -703,20 +697,20 @@ public class StorageScheduler implements Scheduler{
      * @param candidatePools The list of candidate storage pools.
      * @param capabilities The characteristics of the recommendation request.
      * @param orderPools true if candidate pools should be ordered before
-     *        determining the recommendation, false otherwise
+     *            determining the recommendation, false otherwise
      * 
      * @return The list of Recommendation instances reflecting the recommended
      *         pools.
      */
     protected List<Recommendation> getRecommendedPools(String varrayId, List<StoragePool> candidatePools,
-        VirtualPoolCapabilityValuesWrapper capabilities, boolean orderPools) {
+            VirtualPoolCapabilityValuesWrapper capabilities, boolean orderPools) {
 
         List<Recommendation> recommendations = new ArrayList<Recommendation>();
         long thinVolumePreAllocateSize = capabilities.getThinVolumePreAllocateSize();
 
         if (orderPools) {
             if (capabilities.getResourceCount() == 1) {
-                // For single resource request, select storage pool randomly from 
+                // For single resource request, select storage pool randomly from
                 // all candidate pools (to minimize collisions).
                 Collections.shuffle(candidatePools);
             } else {
@@ -727,17 +721,17 @@ public class StorageScheduler implements Scheduler{
                 sortPools(candidatePools);
             }
         }
-        
+
         // We need to create recommendations for one or more pools
         // that can accommodate the number of requested resources.
-        // We start by trying to place all resources in a single 
-        // pool if one exists that can accommodate all requested 
+        // We start by trying to place all resources in a single
+        // pool if one exists that can accommodate all requested
         // resources and work our way down as necessary trying to
         // minimize the number of pools used to satisfy the request.
         int recommendedCount = 0;
         int currentCount = capabilities.getResourceCount();
         while ((!candidatePools.isEmpty())
-            && (recommendedCount < capabilities.getResourceCount()) && (currentCount > 0)) {
+                && (recommendedCount < capabilities.getResourceCount()) && (currentCount > 0)) {
             long requiredPoolCapacity = capabilities.getSize() * currentCount;
             long reqThinVolumePreAllocateSize = thinVolumePreAllocateSize * currentCount;
             StoragePool poolWithRequiredCapacity = getPoolMatchingCapacity(requiredPoolCapacity,
@@ -748,7 +742,7 @@ public class StorageScheduler implements Scheduler{
                 candidatePools.remove(recommendedPool);
 
                 // IBM XIV needs all volumes in the same pool in order to add to a CG
-                if (recommendedPool.getPoolClassName() != null 
+                if (recommendedPool.getPoolClassName() != null
                         && recommendedPool.getPoolClassName().equals(PoolClassNames.IBMTSDS_VirtualPool.name())
                         && capabilities.getBlockConsistencyGroup() != null
                         && currentCount != capabilities.getResourceCount()) {
@@ -760,9 +754,9 @@ public class StorageScheduler implements Scheduler{
                 _log.debug("Recommending storage pool {} for {} resources.",
                         recommendedPool.getId(), currentCount);
                 Recommendation recommendation = new Recommendation();
-                recommendation.setSourcePool(recommendedPool.getId());
+                recommendation.setSourceStoragePool(recommendedPool.getId());
                 recommendation.setResourceCount(currentCount);
-                recommendation.setSourceDevice(recommendedPool.getStorageDevice());
+                recommendation.setSourceStorageSystem(recommendedPool.getStorageDevice());
                 recommendations.add(recommendation);
 
                 // Update the count of resources for which we have created
@@ -778,7 +772,7 @@ public class StorageScheduler implements Scheduler{
                 // can hold 90,89,88,...11 resources. We just want to
                 // see if there is another pool that can hold 10 resources,
                 // then 9,8, and so on.
-                currentCount = (capabilities.getResourceCount() - recommendedCount < currentCount ? 
+                currentCount = (capabilities.getResourceCount() - recommendedCount < currentCount ?
                         capabilities.getResourceCount() - recommendedCount : currentCount);
             } else {
                 // If we can't find a pool that can hold the current
@@ -793,7 +787,7 @@ public class StorageScheduler implements Scheduler{
         if (recommendedCount != capabilities.getResourceCount()) {
             recommendations.clear();
         }
-        
+
         return recommendations;
     }
 
@@ -804,13 +798,15 @@ public class StorageScheduler implements Scheduler{
         @Override
         public int compare(StoragePool rhs, StoragePool lhs) {
             int result;
-            
+
             // if avg port metrics was not computable, consider its usage is max out for sorting purpose
-            double rhsAvgPortMetrics = rhs.getAvgStorageDevicePortMetrics() == null ? Double.MAX_VALUE : rhs.getAvgStorageDevicePortMetrics();
-            double lhsAvgPortMetrics = lhs.getAvgStorageDevicePortMetrics() == null ? Double.MAX_VALUE : lhs.getAvgStorageDevicePortMetrics();
-                        
-            if ( rhs.getFreeCapacity() > 0 && rhsAvgPortMetrics < lhsAvgPortMetrics ) {
-                result = -1;            
+            double rhsAvgPortMetrics = rhs.getAvgStorageDevicePortMetrics() == null ? Double.MAX_VALUE : rhs
+                    .getAvgStorageDevicePortMetrics();
+            double lhsAvgPortMetrics = lhs.getAvgStorageDevicePortMetrics() == null ? Double.MAX_VALUE : lhs
+                    .getAvgStorageDevicePortMetrics();
+
+            if (rhs.getFreeCapacity() > 0 && rhsAvgPortMetrics < lhsAvgPortMetrics) {
+                result = -1;
             } else if (rhs.getFreeCapacity() < lhs.getFreeCapacity()) {
                 result = -1;
             } else if (rhs.getFreeCapacity() > lhs.getFreeCapacity()) {
@@ -823,33 +819,36 @@ public class StorageScheduler implements Scheduler{
     }
 
     /**
-     * Sort all pools in ascending order of its storage system's average port usage metrics (first order), 
-     * descending  order by free capacity (second order) and  in ascending order by ratio
+     * Sort all pools in ascending order of its storage system's average port usage metrics (first order),
+     * descending order by free capacity (second order) and in ascending order by ratio
      * of pool's subscribed capacity to total capacity(suborder).
      */
     private class StoragePoolDefaultComparator implements Comparator<StoragePool> {
         @Override
         public int compare(StoragePool sp1, StoragePool sp2) {
             int result;
-            
+
             // if avg port metrics was not computable, consider its usage is max out for sorting purpose
-            double sp1AvgPortMetrics = sp1.getAvgStorageDevicePortMetrics() == null || sp1.getAvgStorageDevicePortMetrics() <= 0.0 ? 
-                                                   Double.MAX_VALUE : sp1.getAvgStorageDevicePortMetrics();
-            double sp2AvgPortMetrics = sp2.getAvgStorageDevicePortMetrics() == null || sp2.getAvgStorageDevicePortMetrics() <= 0.0 ? 
-                                                   Double.MAX_VALUE : sp2.getAvgStorageDevicePortMetrics();
-            
-            
-            if ( sp1.getFreeCapacity() > 0 && sp1AvgPortMetrics < sp2AvgPortMetrics ) {
+            double sp1AvgPortMetrics = sp1.getAvgStorageDevicePortMetrics() == null || sp1.getAvgStorageDevicePortMetrics() <= 0.0 ?
+                    Double.MAX_VALUE : sp1.getAvgStorageDevicePortMetrics();
+            double sp2AvgPortMetrics = sp2.getAvgStorageDevicePortMetrics() == null || sp2.getAvgStorageDevicePortMetrics() <= 0.0 ?
+                    Double.MAX_VALUE : sp2.getAvgStorageDevicePortMetrics();
+
+            if (sp1.getFreeCapacity() > 0 && sp1AvgPortMetrics < sp2AvgPortMetrics) {
                 result = -1;
             } else if (sp1.getFreeCapacity() > sp2.getFreeCapacity()) {
                 result = -1;
             } else if (sp1.getFreeCapacity() < sp2.getFreeCapacity()) {
                 result = 1;  // swap
-            } else if (sp1.getSubscribedCapacity().doubleValue()/sp1.getTotalCapacity() < sp2.getSubscribedCapacity().doubleValue()/sp2.getTotalCapacity()) {
+            } else if (sp1.getSubscribedCapacity().doubleValue() / sp1.getTotalCapacity() < sp2.getSubscribedCapacity().doubleValue()
+                    / sp2.getTotalCapacity()) {
                 result = -1;
-            }  else if (sp1.getSubscribedCapacity().doubleValue()/sp1.getTotalCapacity() > sp2.getSubscribedCapacity().doubleValue()/sp2.getTotalCapacity()) {
-                result = 1;  //swap
-            }  else result = 0;
+            } else if (sp1.getSubscribedCapacity().doubleValue() / sp1.getTotalCapacity() > sp2.getSubscribedCapacity().doubleValue()
+                    / sp2.getTotalCapacity()) {
+                result = 1;  // swap
+            } else {
+                result = 0;
+            }
 
             return result;
         }
@@ -863,7 +862,7 @@ public class StorageScheduler implements Scheduler{
      * @param taskList task list
      * @param project project
      * @param neighborhood virtual array
-     * @param vPool virtual pool 
+     * @param vPool virtual pool
      * @param volumeCount number of volumes to create
      * @param recommendations recommendation structures
      * @param consistencyGroup consistency group to use
@@ -880,9 +879,11 @@ public class StorageScheduler implements Scheduler{
             Boolean createInactive) {
         Iterator<Recommendation> recommendationsIter = recommendations.iterator();
         while (recommendationsIter.hasNext()) {
-            VolumeRecommendation recommendation = (VolumeRecommendation)recommendationsIter.next();
+            VolumeRecommendation recommendation = (VolumeRecommendation) recommendationsIter.next();
             // if id is already set in recommendation, do not prepare the volume (volume already exists)
-            if (recommendation.getId() != null)  continue;
+            if (recommendation.getId() != null) {
+                continue;
+            }
             // prepare block volume
             if (recommendation.getType().toString().equals(VolumeRecommendation.VolumeType.BLOCK_VOLUME.toString())) {
                 StringBuilder volumeLabelBuilder = new StringBuilder(volumeLabel);
@@ -891,10 +892,10 @@ public class StorageScheduler implements Scheduler{
                     volumeLabelBuilder.append(volumeCounter++);
                 }
                 long size = SizeUtil.translateSize(param.getSize());
-                long  thinVolumePreAllocationSize = 0;
+                long thinVolumePreAllocationSize = 0;
                 if (null != vPool.getThinVolumePreAllocationPercentage()) {
                     thinVolumePreAllocationSize = VirtualPoolUtil.getThinVolumePreAllocationSize(
-                             vPool.getThinVolumePreAllocationPercentage(), size);
+                            vPool.getThinVolumePreAllocationPercentage(), size);
                 }
 
                 Volume volume = prepareVolume(_dbClient, size, thinVolumePreAllocationSize, project, neighborhood,
@@ -904,26 +905,30 @@ public class StorageScheduler implements Scheduler{
                 // add volume to reserved capacity map of storage pool
                 addVolumeCapacityToReservedCapacityMap(_dbClient, volume);
 
-                Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(), 
-                									task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
-                volume.getOpStatus().put(task,op);
+                Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(),
+                        task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
+                volume.getOpStatus().put(task, op);
 
                 preparedVolumes.add(volume);
                 TaskResourceRep volumeTask = toTask(volume, task, op);
                 taskList.getTaskList().add(volumeTask);
             } else if (recommendation.getType().toString().equals(VolumeRecommendation.VolumeType.BLOCK_LOCAL_MIRROR.toString())) {
                 // prepare local mirror based on source volume and storage pool recommendation
-                VolumeRecommendation volumeRecommendation = (VolumeRecommendation)recommendation.getParameter(VolumeRecommendation.BLOCK_VOLUME);
+                VolumeRecommendation volumeRecommendation = (VolumeRecommendation) recommendation
+                        .getParameter(VolumeRecommendation.BLOCK_VOLUME);
                 URI volumeId = volumeRecommendation.getId();
                 Volume volume = _dbClient.queryObject(Volume.class, volumeId);
 
-                StringBuilder mirrorLabelBuilder = new StringBuilder(volumeLabel);
+                String mirrorLabel = volumeLabel;
+                if (volume.isInCG()) {
+                    mirrorLabel = ControllerUtils.getMirrorLabel(volume.getLabel(), volumeLabel);
+                }
                 if (volumeCount > 1) {
-                    mirrorLabelBuilder.append('-').append(volumeCounter++);
+                    mirrorLabel = ControllerUtils.getMirrorLabel(mirrorLabel, volumeCounter++);
                 }
                 // Prepare a single mirror based on source volume and storage pool recommendation
                 BlockMirror mirror = initializeMirror(volume, vPool, recommendation.getCandidatePools().get(0),
-                        mirrorLabelBuilder.toString(), _dbClient);
+                        mirrorLabel, _dbClient);
 
                 // set mirror id in recommendation
                 recommendation.setId(mirror.getId());
@@ -936,32 +941,34 @@ public class StorageScheduler implements Scheduler{
     }
 
     public static Volume prepareFullCopyVolume(DbClient dbClient, String name, BlockObject sourceVolume,
-                                               VolumeRecommendation recommendation, int volumeCounter,
-                                               VirtualPoolCapabilityValuesWrapper capabilities) {
+            VolumeRecommendation recommendation, int volumeCounter,
+            VirtualPoolCapabilityValuesWrapper capabilities) {
         return prepareFullCopyVolume(dbClient, name, sourceVolume, recommendation, volumeCounter, capabilities, false);
     }
-    
+
     public static Volume prepareFullCopyVolume(DbClient dbClient, String name, BlockObject sourceVolume,
-                                               VolumeRecommendation recommendation, int volumeCounter,
-                                               VirtualPoolCapabilityValuesWrapper capabilities,
-                                               Boolean createInactive) {
-    	
-    	if(sourceVolume instanceof BlockSnapshot) 	{
-    		
-    		return prepareFullCopyVolumeFromSnapshot(dbClient, name, ((BlockSnapshot)sourceVolume), recommendation, volumeCounter, capabilities, createInactive);
-    	}
-    	else {
-    		
-    		return prepareFullCopyVolumeFromVolume(dbClient, name, ((Volume)sourceVolume), recommendation, volumeCounter, capabilities, createInactive);
-    	}
+            VolumeRecommendation recommendation, int volumeCounter,
+            VirtualPoolCapabilityValuesWrapper capabilities,
+            Boolean createInactive) {
+
+        if (sourceVolume instanceof BlockSnapshot) {
+
+            return prepareFullCopyVolumeFromSnapshot(dbClient, name, ((BlockSnapshot) sourceVolume), recommendation, volumeCounter,
+                    capabilities, createInactive);
+        }
+        else {
+
+            return prepareFullCopyVolumeFromVolume(dbClient, name, ((Volume) sourceVolume), recommendation, volumeCounter, capabilities,
+                    createInactive);
+        }
 
     }
-    
+
     private static Volume prepareFullCopyVolumeFromVolume(DbClient dbClient, String name, Volume sourceVolume,
-            											  VolumeRecommendation recommendation, int volumeCounter,
-            											  VirtualPoolCapabilityValuesWrapper capabilities,
-            											  Boolean createInactive){
-    	
+            VolumeRecommendation recommendation, int volumeCounter,
+            VirtualPoolCapabilityValuesWrapper capabilities,
+            Boolean createInactive) {
+
         long size = sourceVolume.getCapacity();
         long preAllocateSize = 0;
         if (null != sourceVolume.getThinVolumePreAllocationSize()) {
@@ -994,23 +1001,23 @@ public class StorageScheduler implements Scheduler{
 
         addVolumeCapacityToReservedCapacityMap(dbClient, volume);
         return volume;
-    	
+
     }
-    
+
     private static Volume prepareFullCopyVolumeFromSnapshot(DbClient dbClient, String name, BlockSnapshot sourceSnapshot,
-            												VolumeRecommendation recommendation, int volumeCounter,
-            												VirtualPoolCapabilityValuesWrapper capabilities,
-            												Boolean createInactive){
-    	
-    	//Get the parent of the snapshot, to know vpool
-    	NamedURI parentVolUri = sourceSnapshot.getParent();
+            VolumeRecommendation recommendation, int volumeCounter,
+            VirtualPoolCapabilityValuesWrapper capabilities,
+            Boolean createInactive) {
+
+        // Get the parent of the snapshot, to know vpool
+        NamedURI parentVolUri = sourceSnapshot.getParent();
         Volume parentVolume = dbClient.queryObject(Volume.class, parentVolUri);
         URI vPoolUri = parentVolume.getVirtualPool();
-        
+
         URI projectUri = sourceSnapshot.getProject().getURI();
         long size = sourceSnapshot.getProvisionedCapacity();
         long preAllocateSize = sourceSnapshot.getAllocatedCapacity();
-        
+
         Project project = dbClient.queryObject(Project.class, projectUri);
 
         URI vArrayUri = sourceSnapshot.getVirtualArray();
@@ -1030,21 +1037,21 @@ public class StorageScheduler implements Scheduler{
 
         addVolumeCapacityToReservedCapacityMap(dbClient, volume);
         return volume;
-    	
+
     }
 
     public static Volume prepareVolume(DbClient dbClient, long size, long thinVolumePreAllocationSize, Project project,
-                                       VirtualArray neighborhood, VirtualPool vpool, VolumeRecommendation placement,
-                                       String label, BlockConsistencyGroup consistencyGroup,
-                                       VirtualPoolCapabilityValuesWrapper capabilities) {
+            VirtualArray neighborhood, VirtualPool vpool, VolumeRecommendation placement,
+            String label, BlockConsistencyGroup consistencyGroup,
+            VirtualPoolCapabilityValuesWrapper capabilities) {
         return prepareVolume(dbClient, size, thinVolumePreAllocationSize, project, neighborhood, vpool, placement,
                 label, consistencyGroup, capabilities, false);
     }
 
     /**
      * Prepare Volume for an unprotected traditional block volume.
-     *
-     *
+     * 
+     * 
      * @param size volume size
      * @param project project requested
      * @param neighborhood varray requested
@@ -1056,13 +1063,13 @@ public class StorageScheduler implements Scheduler{
      * @return a persisted volume
      */
     public static Volume prepareVolume(DbClient dbClient, long size, long thinVolumePreAllocationSize, Project project,
-                                       VirtualArray neighborhood, VirtualPool vpool, VolumeRecommendation placement,
-                                       String label, BlockConsistencyGroup consistencyGroup,
-                                       VirtualPoolCapabilityValuesWrapper cosCapabilities, Boolean createInactive) {
-    	
+            VirtualArray neighborhood, VirtualPool vpool, VolumeRecommendation placement,
+            String label, BlockConsistencyGroup consistencyGroup,
+            VirtualPoolCapabilityValuesWrapper cosCapabilities, Boolean createInactive) {
+
         List<Volume> volumeList = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, Volume.class,
                 ContainmentPrefixConstraint.Factory.getFullMatchConstraint(Volume.class, "project",
-                project.getId(), label));
+                        project.getId(), label));
         if (!volumeList.isEmpty()) {
             throw APIException.badRequests.duplicateLabel(label);
         }
@@ -1109,9 +1116,10 @@ public class StorageScheduler implements Scheduler{
         dbClient.createObject(volume);
         return volume;
     }
-    
+
     /**
      * Get the AutoTierPolicy URI for a given StoragePool and auto tier policy name.
+     * 
      * @param pool -- Storage Pool URI
      * @param policyName -- Policy name
      * @param dbClient
@@ -1127,13 +1135,15 @@ public class StorageScheduler implements Scheduler{
         while (iterator.hasNext()) {
             AutoTieringPolicy policy = dbClient.queryObject(AutoTieringPolicy.class,
                     iterator.next());
-            if (null == policy.getStorageSystem()) continue;
+            if (null == policy.getStorageSystem()) {
+                continue;
+            }
             // pool's storage system
             // Note that the pool can be null when the function is called while
             // preparing a VPLEX volume, which does not have a storage pool.
             StoragePool poolObj = dbClient.queryObject(StoragePool.class, pool);
-            if ((poolObj != null) && 
-                (policy.getStorageSystem().toString().equalsIgnoreCase(poolObj.getStorageDevice().toString()))) {
+            if ((poolObj != null) &&
+                    (policy.getStorageSystem().toString().equalsIgnoreCase(poolObj.getStorageDevice().toString()))) {
                 return policy.getId();
             }
         }
@@ -1143,17 +1153,23 @@ public class StorageScheduler implements Scheduler{
     /**
      * Adds a BlockMirror structure for a Volume. It also calls addMirrorToVolume to
      * link the mirror into the volume's mirror set.
-     *
+     * 
      * @param volume Volume
      * @param vPool
-     * @param recommendedPoolURI -- Pool that should be used to create the mirror  @return BlockMirror (persisted)
+     * @param recommendedPoolURI Pool that should be used to create the mirror
      * @param volumeLabel
+     * @param dbClient
+     * @return BlockMirror (persisted)
      */
     public static BlockMirror initializeMirror(Volume volume, VirtualPool vPool, URI recommendedPoolURI,
-                                               String volumeLabel, DbClient dbClient) {
+            String volumeLabel, DbClient dbClient) {
         BlockMirror createdMirror = new BlockMirror();
         createdMirror.setSource(new NamedURI(volume.getId(), volume.getLabel()));
         createdMirror.setId(URIUtil.createId(BlockMirror.class));
+        URI cgUri = volume.getConsistencyGroup();
+        if (!NullColumnValueGetter.isNullURI(cgUri)) {
+            createdMirror.setConsistencyGroup(cgUri);
+        }
         createdMirror.setLabel(volumeLabel);
         createdMirror.setStorageController(volume.getStorageController());
         createdMirror.setVirtualArray(volume.getVirtualArray());
@@ -1173,16 +1189,17 @@ public class StorageScheduler implements Scheduler{
     }
 
     public static BlockMirror initializeMirror(Volume volume, VirtualPool vPool, URI recommendedPoolURI,
-                                               DbClient dbClient) {
+            DbClient dbClient) {
         return initializeMirror(volume, vPool, recommendedPoolURI, volume.getLabel(), dbClient);
     }
 
     /**
      * Adds a Mirror structure to a Volume's mirror set.
+     * 
      * @param volume
      * @param mirror
      */
-    private static  void addMirrorToVolume(Volume volume, BlockMirror mirror, DbClient dbClient) {
+    private static void addMirrorToVolume(Volume volume, BlockMirror mirror, DbClient dbClient) {
         StringSet mirrors = volume.getMirrors();
         if (mirrors == null) {
             mirrors = new StringSet();
@@ -1207,7 +1224,7 @@ public class StorageScheduler implements Scheduler{
         StringMap reservationMap = pool.getReservedCapacityMap();
         reservationMap.put(volume.getId().toString(), String.valueOf(reservedCapacity));
         _dbClient.persistObject(pool);
-    	
+
     }
 
     public static void addVolumeExpansionSizeToReservedCapacityMap(DbClient _dbClient, Volume volume, long expandCapacity) {

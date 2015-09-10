@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core.search;
@@ -17,13 +17,13 @@ import static com.emc.vipr.client.core.impl.SearchConstants.*;
 
 /**
  * A builder for search queries.
- *
+ * 
  * @param <T> Resource type returned by this search builder.
  */
 public class SearchBuilder<T extends DataObjectRestRep> {
     private AbstractResources<T> resources;
     private ResourceFilter<T> filter = null;
-    private Map<String,Object> parameters = new HashMap<String, Object>();
+    private Map<String, Object> parameters = new HashMap<String, Object>();
 
     public SearchBuilder(AbstractResources<T> resources) {
         this.resources = resources;
@@ -31,11 +31,11 @@ public class SearchBuilder<T extends DataObjectRestRep> {
 
     /**
      * Adds a single parameter to search by.
-     *
+     * 
      * @param name
-     *        the parameter name.
+     *            the parameter name.
      * @param value
-     *        the parameter value.
+     *            the parameter value.
      * @return This SearchBuilder.
      */
     public SearchBuilder<T> by(String name, Object value) {
@@ -45,11 +45,11 @@ public class SearchBuilder<T extends DataObjectRestRep> {
 
     /**
      * Adds multiple search parameters to search by.
-     *
+     * 
      * @param parameters Map containing name value pairs
      * @return This SearchBuilder.
      */
-    public SearchBuilder<T> byAll(Map<String,Object> parameters) {
+    public SearchBuilder<T> byAll(Map<String, Object> parameters) {
         this.parameters.putAll(parameters);
         return this;
     }
@@ -57,7 +57,7 @@ public class SearchBuilder<T extends DataObjectRestRep> {
     /**
      * Filters the results returned by the search query. Multiple filters
      * can be added.
-     *
+     * 
      * @param addFilter Filter to use for filtering the search results.
      * @return This SearchBuilder.
      */
@@ -73,7 +73,7 @@ public class SearchBuilder<T extends DataObjectRestRep> {
 
     /**
      * Shortcut to search by name.
-     *
+     * 
      * @param name Name of the resource.
      * @return This SearchBuilder.
      */
@@ -84,7 +84,7 @@ public class SearchBuilder<T extends DataObjectRestRep> {
     /**
      * Shortcut to search by exact name. This both searches by name and
      * adds a filter to ensure the exact name string is matched.
-     *
+     * 
      * @param name Name of the resource.
      * @return This SearchBuilder.
      */
@@ -94,7 +94,7 @@ public class SearchBuilder<T extends DataObjectRestRep> {
 
     /**
      * Shortcut to search by tag.
-     *
+     * 
      * @param tag Tag on the resource.
      * @return This SearchBuilder.
      */
@@ -105,7 +105,7 @@ public class SearchBuilder<T extends DataObjectRestRep> {
     /**
      * Runs a search based on the criteria built with this SearchBuilder. Only
      * the first search result is returned.
-     *
+     * 
      * @return The first search result.
      */
     public T first() {
@@ -130,7 +130,7 @@ public class SearchBuilder<T extends DataObjectRestRep> {
     /**
      * Runs a search based on the criteria built with this SearchBuilder. All
      * search results are queried and returned.
-     *
+     * 
      * @return All search results.
      */
     public List<T> run() {

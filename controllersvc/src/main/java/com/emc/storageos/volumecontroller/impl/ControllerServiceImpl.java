@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl;
 
@@ -20,6 +10,9 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import com.emc.storageos.coordinator.client.service.*;
+import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueItemNameGenerator;
+import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueScheduler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -28,10 +21,6 @@ import org.springframework.context.ApplicationContext;
 
 import com.emc.storageos.cinder.api.CinderApiFactory;
 import com.emc.storageos.coordinator.client.beacon.ServiceBeacon;
-import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
-import com.emc.storageos.coordinator.client.service.CoordinatorClient;
-import com.emc.storageos.coordinator.client.service.DistributedQueue;
-import com.emc.storageos.coordinator.client.service.LeaderSelectorListenerForPeriodicTask;
 import com.emc.storageos.coordinator.client.service.impl.LeaderSelectorListenerImpl;
 import com.emc.storageos.customconfigcontroller.impl.CustomConfigHandler;
 import com.emc.storageos.db.client.DbClient;
@@ -69,8 +58,6 @@ import com.emc.storageos.workflow.WorkflowService;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 
-
-
 /**
  * Default controller service implementation
  */
@@ -104,10 +91,9 @@ public class ControllerServiceImpl implements ControllerService {
     public static final String CUSTOM_CONFIG_PATH = "customconfigleader";
     public static final long DEFAULT_CAPACITY_COMPUTE_DELAY = 5;
     public static final long DEFAULT_CAPACITY_COMPUTE_INTERVAL = 3600;
-    
-    // list of support discovery job type
-    private static final String[] DISCOVERY_JOB_TYPES = new String[] {DISCOVERY, NS_DISCOVERY, CS_DISCOVERY , COMPUTE_DISCOVERY};
 
+    // list of support discovery job type
+    private static final String[] DISCOVERY_JOB_TYPES = new String[] { DISCOVERY, NS_DISCOVERY, CS_DISCOVERY, COMPUTE_DISCOVERY };
 
     private static final Logger _log = LoggerFactory.getLogger(ControllerServiceImpl.class);
     private Dispatcher _dispatcher;
@@ -142,9 +128,11 @@ public class ControllerServiceImpl implements ControllerService {
     private MonitoringJobConsumer _monitoringJobConsumer;
     private ConnectionStateListener zkConnectionStateListenerForMonitoring;
     private DataObjectScanner _doScanner;
-    
+    private DistributedLockQueueManager _lockQueueManager;
+    private ControlRequestTaskConsumer _controlRequestTaskConsumer;
+
     ManagedCapacityImpl _capacityCompute;
-    LeaderSelector      _capacityService;
+    LeaderSelector _capacityService;
 
     public static enum Lock {
         SCAN_COLLECTION_LOCK("lock-scancollectionjob-"),
@@ -158,35 +146,39 @@ public class ControllerServiceImpl implements ControllerService {
 
         private final String _lockName;
         private InterProcessLock _processLock;
-        private final long  _timeout;
+        private final long _timeout;
 
-        Lock(String lockName){
+        Lock(String lockName) {
             _lockName = lockName;
             _processLock = null;
-            if( _lockName.equals("lock-scancollectionjob-"))
+            if (_lockName.equals("lock-scancollectionjob-")) {
                 _timeout = Constants.SCAN_LOCK_ACQUIRE_TIME;
-            else if (_lockName.equals("lock-discovercollectionjob-") || _lockName.equals("lock-discoverreconciletz-"))
+            } else if (_lockName.equals("lock-discovercollectionjob-") || _lockName.equals("lock-discoverreconciletz-")) {
                 _timeout = Constants.DISCOVER_LOCK_ACQUIRE_TIME;
-            else if (_lockName.equals("lock-meteringcollectionjob-"))
+            } else if (_lockName.equals("lock-meteringcollectionjob-")) {
                 _timeout = Constants.METERING_LOCK_ACQUIRE_TIME;
-            else if (_lockName.equals("lock-ns-datacollectionjob-"))
+            } else if (_lockName.equals("lock-ns-datacollectionjob-")) {
                 _timeout = Constants.DISCOVER_LOCK_ACQUIRE_TIME;
-            else if (_lockName.equals("lock-compute-datacollectionjob-"))
+            } else if (_lockName.equals("lock-compute-datacollectionjob-")) {
                 _timeout = Constants.DISCOVER_LOCK_ACQUIRE_TIME;
-            else if (_lockName.equals("lock-cs-datacollectionjob-"))
-            	_timeout = Constants.DISCOVER_LOCK_ACQUIRE_TIME;
-            else if (_lockName.equals("lock-implicitpoolmatcherjob-"))
+            } else if (_lockName.equals("lock-cs-datacollectionjob-")) {
+                _timeout = Constants.DISCOVER_LOCK_ACQUIRE_TIME;
+            } else if (_lockName.equals("lock-implicitpoolmatcherjob-")) {
                 _timeout = Constants.DEFAULT_LOCK_ACQUIRE_TIME;
-            else
+            } else {
                 _timeout = 0;
+            }
         }
+
         public String toString() {
             return _lockName;
         }
-        private void setLock(InterProcessLock processLock ) {
+
+        private void setLock(InterProcessLock processLock) {
             _processLock = processLock;
         }
-        private InterProcessLock getLock(){
+
+        private InterProcessLock getLock() {
             return _processLock;
         }
 
@@ -196,7 +188,7 @@ public class ControllerServiceImpl implements ControllerService {
 
         /**
          * Release lock
-         *
+         * 
          * @throws Exception
          */
         public void release() throws Exception {
@@ -205,7 +197,7 @@ public class ControllerServiceImpl implements ControllerService {
 
         /**
          * Verify, whether this process holds the lock
-         *
+         * 
          * @return boolean
          */
         public boolean isAcquired() {
@@ -214,45 +206,47 @@ public class ControllerServiceImpl implements ControllerService {
 
         /**
          * Blocking lock acquisition
-         *
+         * 
          * @throws Exception
          */
         public void acquire() throws Exception {
             _processLock.acquire();
         };
 
-
         /**
          * acquire lock - wait at most "time second" for the lock to become available
+         * 
          * @param time : number of seconds to wait in the blocking mode untill the lock becomes available.
-         * if not able to get lock
-         *
+         *            if not able to get lock
+         * 
          * @return boolean
          * @throws Exception
          */
-        public boolean acquire(long time ) throws Exception {
+        public boolean acquire(long time) throws Exception {
             return _processLock.acquire(time, TimeUnit.SECONDS);
         }
 
         public static Lock getLock(String type) {
-            if (type.equals(DISCOVERY))
-                return  DISCOVER_COLLECTION_LOCK;
-            else if (type.equals(SCANNER))
+            if (type.equals(DISCOVERY)) {
+                return DISCOVER_COLLECTION_LOCK;
+            } else if (type.equals(SCANNER)) {
                 return SCAN_COLLECTION_LOCK;
-            else if (type.equals(NS_DISCOVERY))
-                return  NS_DATA_COLLECTION_LOCK;
-            else if (type.equals(COMPUTE_DISCOVERY))
-                return  COMPUTE_DATA_COLLECTION_LOCK;
-            else if (type.equals(CS_DISCOVERY))
-            	return CS_DATA_COLLECTION_LOCK;
-            else if (type.equals(METERING) )
+            } else if (type.equals(NS_DISCOVERY)) {
+                return NS_DATA_COLLECTION_LOCK;
+            } else if (type.equals(COMPUTE_DISCOVERY)) {
+                return COMPUTE_DATA_COLLECTION_LOCK;
+            } else if (type.equals(CS_DISCOVERY)) {
+                return CS_DATA_COLLECTION_LOCK;
+            } else if (type.equals(METERING)) {
                 return METERING_COLLECTION_LOCK;
-            else if (type.equals(POOL_MATCHER))
+            } else if (type.equals(POOL_MATCHER)) {
                 return POOL_MATCHER_LOCK;
-            else if (type.equals(DISCOVERY_RECONCILE_TZ))
-                return DISCOVER_RECONCILE_TZ_LOCK;            
-            else // impossible
+            } else if (type.equals(DISCOVERY_RECONCILE_TZ)) {
+                return DISCOVER_RECONCILE_TZ_LOCK;
+            } else {
+                // impossible
                 return null;
+            }
         }
     }
 
@@ -305,7 +299,7 @@ public class ControllerServiceImpl implements ControllerService {
     public void setCimConnectionFactory(CIMConnectionFactory cimConnectionFactory) {
         _cimConnectionFactory = cimConnectionFactory;
     }
-    
+
     /**
      * 
      * inject the VPlex API Factory instance.
@@ -316,14 +310,14 @@ public class ControllerServiceImpl implements ControllerService {
     public void setVplexApiFactory(VPlexApiFactory vplexApiFactory) {
         _vplexApiFactory = vplexApiFactory;
     }
-    
+
     /**
      * @param hdsApiFactory the hdsApiFactory to set
      */
     public void setHdsApiFactory(HDSApiFactory hdsApiFactory) {
         this.hdsApiFactory = hdsApiFactory;
     }
-    
+
     /**
      * 
      * inject the VNXe API Factory instance.
@@ -348,12 +342,12 @@ public class ControllerServiceImpl implements ControllerService {
      * @param helper the smis command helper
      */
     public void setSmisCommandHelper(SmisCommandHelper helper) {
-    	_helper = helper;
+        _helper = helper;
     }
-    
+
     /**
      * Inject the XIV SMIS command helper instance.
-     *
+     * 
      * @param helper the XIV smis command helper
      */
     public void setXivSmisCommandHelper(XIVSmisCommandHelper xivSmisCommandHelper) {
@@ -371,16 +365,16 @@ public class ControllerServiceImpl implements ControllerService {
 
     /**
      * Set Scan Consumer
-     *
+     * 
      * @param dataCollectionJobConsumer
      */
     public void setDiscoverJobConsumer(DataCollectionJobConsumer discoverJobConsumer) {
         _discoverJobConsumer = discoverJobConsumer;
     }
-    
+
     /**
      * Set Compute Discover Consumer
-     *
+     * 
      * @param dataCollectionJobConsumer
      */
     public void setComputeDiscoverJobConsumer(DataCollectionJobConsumer computeDiscoverJobConsumer) {
@@ -393,13 +387,12 @@ public class ControllerServiceImpl implements ControllerService {
 
     /**
      * Set Job Scheduler
-     *
+     * 
      * @param DataCollectionJobScheduler
      */
     public void setJobScheduler(DataCollectionJobScheduler jobScheduler) {
         _jobScheduler = jobScheduler;
     }
-
 
     public void setConfigInfo(Map<String, String> configInfo) {
         _configInfo = configInfo;
@@ -413,9 +406,9 @@ public class ControllerServiceImpl implements ControllerService {
         _capacityCompute = capacityCompute;
     }
 
-
     /**
      * Set DataObjectScanner
+     * 
      * @param scanner
      */
     public void setDataObjectScanner(DataObjectScanner scanner) {
@@ -438,29 +431,28 @@ public class ControllerServiceImpl implements ControllerService {
         _log.info("Waiting done");
         _dispatcher.start();
 
-
         _jobTracker.setJobContext(new JobContext(_dbClient, _cimConnectionFactory,
-            _vplexApiFactory, hdsApiFactory, cinderApiFactory, _vnxeApiClientFactory, _helper, _xivSmisCommandHelper));
+                _vplexApiFactory, hdsApiFactory, cinderApiFactory, _vnxeApiClientFactory, _helper, _xivSmisCommandHelper));
         _jobTracker.start();
         _jobQueue = _coordinator.getQueue(JOB_QUEUE_NAME, _jobTracker,
                 new QueueJobSerializer(), DEFAULT_MAX_THREADS);
         _workflowService.start();
         _distributedOwnerLockService.start();
-        
+
         /**
          * Lock used in making Scanning/Discovery mutually exclusive.
          */
 
-        for(Lock lock : Lock.values()) {
+        for (Lock lock : Lock.values()) {
             lock.setLock(_coordinator.getLock(lock.toString()));
         }
-        
+
         /**
-        * Discovery Queue, an instance of DistributedQueueImpl in
-        * CoordinatorService,which holds Discovery Jobs. On starting
-        * discoveryConsumer, a new ScheduledExecutorService is instantiated,
-        * which schedules Loading Devices from DB every X minutes.
-        */
+         * Discovery Queue, an instance of DistributedQueueImpl in
+         * CoordinatorService,which holds Discovery Jobs. On starting
+         * discoveryConsumer, a new ScheduledExecutorService is instantiated,
+         * which schedules Loading Devices from DB every X minutes.
+         */
 
         _discoverJobConsumer.start();
         _computeDiscoverJobConsumer.start();
@@ -471,7 +463,7 @@ public class ControllerServiceImpl implements ControllerService {
         _computeDiscoverJobQueue = _coordinator.getQueue(COMPUTE_DISCOVER_JOB_QUEUE_NAME, _computeDiscoverJobConsumer,
                 new DataCollectionJobSerializer(), Integer.parseInt(_configInfo.get(COMPUTE_DISCOVERY_COREPOOLSIZE)), 50000);
         _meteringJobQueue = _coordinator.getQueue(METERING_JOB_QUEUE_NAME, _meteringJobConsumer,
-                        new DataCollectionJobSerializer(), Integer.parseInt(_configInfo.get(METERING_COREPOOLSIZE)), 200);
+                new DataCollectionJobSerializer(), Integer.parseInt(_configInfo.get(METERING_COREPOOLSIZE)), 200);
         _scanJobQueue = _coordinator.getQueue(SCAN_JOB_QUEUE_NAME, _scanJobConsumer,
                 new DataCollectionJobSerializer(), 1, 50);
         /**
@@ -479,7 +471,7 @@ public class ControllerServiceImpl implements ControllerService {
          */
         _monitoringJobQueue = _coordinator.getQueue(MONITORING_JOB_QUEUE_NAME, _monitoringJobConsumer,
                 new DataCollectionJobSerializer(), DEFAULT_MAX_THREADS);
-        
+
         /**
          * Adds listener class for zk connection state change.
          * This listener will release local CACHE while zk connection RECONNECT.
@@ -493,7 +485,8 @@ public class ControllerServiceImpl implements ControllerService {
         _jobScheduler.start();
 
         _svcBeacon.start();
-        
+
+        startLockQueueService();
 
         startCapacityService();
         loadCustomConfigDefaults();
@@ -502,6 +495,8 @@ public class ControllerServiceImpl implements ControllerService {
     @Override
     public void stop() throws Exception {
         _log.info("Stopping controller service");
+        _controlRequestTaskConsumer.stop();
+        _lockQueueManager.stop();
         _jobScheduler.stop();
         _discoverJobQueue.stop(120000);
         _computeDiscoverJobQueue.stop(120000);
@@ -518,16 +513,16 @@ public class ControllerServiceImpl implements ControllerService {
         /**
          * Extra condition to make sure, the lock is released, at conditions where stop is invoked.
          */
-         for( Lock lock : Lock.values()) {
+        for (Lock lock : Lock.values()) {
             try {
-                if (lock.isAcquired() ) {
+                if (lock.isAcquired()) {
                     lock.release();
                 }
             } catch (Exception e) {
                 _log.error("Failed to release data collection lock: " + lock.toString());
             }
 
-         }
+        }
 
         _capacityService.close();
     }
@@ -535,35 +530,67 @@ public class ControllerServiceImpl implements ControllerService {
     private void startCapacityService() {
         long delay = DEFAULT_CAPACITY_COMPUTE_DELAY;
         String delay_str = _configInfo.get(CAPACITY_COMPUTE_DELAY);
-        if( delay_str != null) {
+        if (delay_str != null) {
             delay = Long.parseLong(delay_str);
         }
         long interval = DEFAULT_CAPACITY_COMPUTE_INTERVAL;
         String interval_str = _configInfo.get(CAPACITY_COMPUTE_INTERVAL);
-        if( interval_str != null ) {
-            interval =Long.parseLong(interval_str);
+        if (interval_str != null) {
+            interval = Long.parseLong(interval_str);
         }
-        LeaderSelectorListenerForPeriodicTask executor = new LeaderSelectorListenerForPeriodicTask(_capacityCompute,delay,interval);
+        LeaderSelectorListenerForPeriodicTask executor = new LeaderSelectorListenerForPeriodicTask(_capacityCompute, delay, interval);
 
         _capacityService = _coordinator.getLeaderSelector(CAPACITY_LEADER_PATH,
-                                                          executor);
+                executor);
         _capacityService.autoRequeue();
         _capacityService.start();
     }
 
+    private void startLockQueueService() {
+        // Configure coordinator with the owner lock around-hook.
+        DistributedAroundHook aroundHook = _distributedOwnerLockService.getDistributedOwnerLockAroundHook();
+        _coordinator.setDistributedOwnerLockAroundHook(aroundHook);
+
+        // Start lock queue task consumer, for sending queued requests back to the Dispatcher
+        _controlRequestTaskConsumer.start();
+        // Gets a started lock queue manager
+        _lockQueueManager = _coordinator.getLockQueue(_controlRequestTaskConsumer);
+
+        // Set lock queue manager where appropriate
+        _dispatcher.setLockQueueManager(_lockQueueManager);
+        _distributedOwnerLockService.setLockQueueManager(_lockQueueManager);
+
+        // Configure how lock queue manager should generate item names.
+        _lockQueueManager.setNameGenerator(new ControlRequestLockQueueItemName());
+
+        // Configure lock queue scheduler
+        DistributedLockQueueScheduler dlqScheduler = new DistributedLockQueueScheduler();
+        dlqScheduler.setCoordinator(_coordinator);
+        dlqScheduler.setLockQueue(_lockQueueManager);
+        dlqScheduler.setValidator(new OwnerLockValidator(_distributedOwnerLockService));
+        dlqScheduler.start();
+
+        // Configure lock queue listeners
+        ControlRequestLockQueueListener controlRequestLockQueueListener = new ControlRequestLockQueueListener();
+        controlRequestLockQueueListener.setDbClient(_dbClient);
+        controlRequestLockQueueListener.setWorkflowService(_workflowService);
+        _lockQueueManager.getListeners().add(controlRequestLockQueueListener);
+    }
+
     private void loadCustomConfigDefaults() {
-        LeaderSelectorListenerImpl executor = new LeaderSelectorListenerImpl(){
+        LeaderSelectorListenerImpl executor = new LeaderSelectorListenerImpl() {
             @Override
             protected void startLeadership() throws Exception {
                 customConfigHandler.loadSystemCustomConfigs();
             }
+
             @Override
             protected void stopLeadership() {
             }
         };
 
         LeaderSelector service = _coordinator.getLeaderSelector(CUSTOM_CONFIG_PATH,
-                                                          executor);
+                executor);
         service.autoRequeue();
         service.start();
     }
@@ -581,10 +608,10 @@ public class ControllerServiceImpl implements ControllerService {
         _jobScheduler.scheduleMultipleJobs(jobs, lock);
     }
 
-    private static ArrayList<DataCollectionJob> createDiscoverJobsForTasks(AsyncTask[] tasks,String jobType)  {
+    private static ArrayList<DataCollectionJob> createDiscoverJobsForTasks(AsyncTask[] tasks, String jobType) {
         ArrayList<DataCollectionJob> jobs = new ArrayList<DataCollectionJob>();
         for (AsyncTask task : tasks) {
-            DiscoverTaskCompleter completer = new DiscoverTaskCompleter( task, jobType );
+            DiscoverTaskCompleter completer = new DiscoverTaskCompleter(task, jobType);
             if (null == task._namespace) {
                 task._namespace = Discovery_Namespaces.ALL.toString();
             }
@@ -593,7 +620,7 @@ public class ControllerServiceImpl implements ControllerService {
         }
         return jobs;
     }
-    
+
     /**
      * Queueing Discovery Job into Discovery Queue
      * 
@@ -602,24 +629,24 @@ public class ControllerServiceImpl implements ControllerService {
      */
     public static void enqueueDataCollectionJob(DataCollectionJob job) throws Exception {
         String jobType = job.getType();
-        if(jobType.equals(CS_DISCOVERY)) {
+        if (jobType.equals(CS_DISCOVERY)) {
             _computeDiscoverJobQueue.put(job);
         }
-        else if(isDiscoveryJobTypeSupported(jobType)) {
+        else if (isDiscoveryJobTypeSupported(jobType)) {
             _discoverJobQueue.put(job);
-    }
-        else if ( jobType.equals(SCANNER)) {
+        }
+        else if (jobType.equals(SCANNER)) {
             _scanJobQueue.put(job);
         }
-        else if ( jobType.equals(MONITORING)) {
+        else if (jobType.equals(MONITORING)) {
             _monitoringJobQueue.put(job);
         } else if (jobType.equals(METERING)) {
             _meteringJobQueue.put(job);
         }
-        _log.info("Queued " + jobType + " job for " + job.systemString() );
+        _log.info("Queued " + jobType + " job for " + job.systemString());
 
     }
-    
+
     /**
      * Queueing MonitoringJob instance into Monitoring Queue
      * 
@@ -633,6 +660,7 @@ public class ControllerServiceImpl implements ControllerService {
 
     /**
      * Sets workflowService wiring up.
+     * 
      * @param workflowService
      */
     public void setWorkflowService(WorkflowService workflowService) {
@@ -647,14 +675,16 @@ public class ControllerServiceImpl implements ControllerService {
 
     /**
      * Sets monitoringJobConsumer
+     * 
      * @param monitoringJobConsumer {@link MonitoringJobConsumer}
      */
-    public void setMonitoringJobConsumer(MonitoringJobConsumer monitoringJobConsumer){
+    public void setMonitoringJobConsumer(MonitoringJobConsumer monitoringJobConsumer) {
         _monitoringJobConsumer = monitoringJobConsumer;
     }
-    
+
     /**
      * Sets zkConnectionStateListenerForMonitoring
+     * 
      * @param zkConnectionStateListenerForMonitoring
      */
     public void setZkConnectionStateListenerForMonitoring(
@@ -662,16 +692,16 @@ public class ControllerServiceImpl implements ControllerService {
         this.zkConnectionStateListenerForMonitoring = zkConnectionStateListenerForMonitoring;
     }
 
-
-    public static void performScan( URI provider,
-                             ScanTaskCompleter scanCompleter,
-                             Map<String, StorageSystemViewObject> storageCache)
-                                      throws DatabaseException, BaseCollectionException, DeviceControllerException {
+    public static void performScan(URI provider,
+            ScanTaskCompleter scanCompleter,
+            Map<String, StorageSystemViewObject> storageCache)
+            throws DatabaseException, BaseCollectionException, DeviceControllerException {
         _scanJobConsumer.performScan(provider, scanCompleter, storageCache);
     }
-    
+
     /**
      * Check whether the given jobType is one of supported discovery job type.
+     * 
      * @param jobType
      * @return
      */
@@ -679,13 +709,17 @@ public class ControllerServiceImpl implements ControllerService {
         return jobType != null && Arrays.asList(DISCOVERY_JOB_TYPES).contains(jobType);
     }
 
-	public DistributedOwnerLockServiceImpl getDistributedOwnerLockService() {
-		return _distributedOwnerLockService;
-	}
+    public DistributedOwnerLockServiceImpl getDistributedOwnerLockService() {
+        return _distributedOwnerLockService;
+    }
 
-	public void setDistributedOwnerLockService(
-			DistributedOwnerLockServiceImpl _distributedOwnerLockService) {
-		this._distributedOwnerLockService = _distributedOwnerLockService;
-	}
-    
+    public void setDistributedOwnerLockService(
+            DistributedOwnerLockServiceImpl _distributedOwnerLockService) {
+        this._distributedOwnerLockService = _distributedOwnerLockService;
+    }
+
+    public void setControlRequestTaskConsumer(ControlRequestTaskConsumer consumer) {
+        _controlRequestTaskConsumer = consumer;
+    }
+
 }

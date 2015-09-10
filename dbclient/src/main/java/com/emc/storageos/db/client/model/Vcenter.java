@@ -4,21 +4,20 @@
  */
 package com.emc.storageos.db.client.model;
 
-import java.net.URI;
-
 /**
  * A server that runs a vcenter instance that manages ESX clusters and hosts. 
  * @author elalih
  *
  */
 @Cf("Vcenter")
-public class Vcenter extends AbstractComputeSystem {
+public class Vcenter extends DiscoveredComputeSystemWithAcls {
     private String _userName;
     private String _password;
     private String _ipAddress;
     private Integer _portNumber;
     private String _osVersion;
     private Boolean _useSsl;
+    private Boolean _tenantCreated;
 
     /**
      * Gets the login account name
@@ -141,11 +140,29 @@ public class Vcenter extends AbstractComputeSystem {
         setChanged("useSSL");
     }
 
+    /**
+     * Get whether the vCenter to be shared with multiple tenants or not.
+     *
+     * @return whether the vCenter to be shared with multiple tenants or not.
+     */
+    @Name("tenantCreated")
+    public Boolean getTenantCreated() {
+        return _tenantCreated;
+    }
+
+    /**
+     * Sets the flag that indicates if the vCenter can be shared
+     * with multiple tenants or not
+     * @param tenantCreated true or false to indicate if vCenter can be shared or not.
+     */
+    public void setTenantCreated(Boolean tenantCreated) {
+        this._tenantCreated = tenantCreated;
+        setChanged("tenantCreated");
+    }
+
     @Override
     public Object[] auditParameters() {
         return new Object[] {getLabel(), getIpAddress(),
                 getPortNumber(), getOsVersion(), getTenant(), getId()};
     }
-    
-    
 }

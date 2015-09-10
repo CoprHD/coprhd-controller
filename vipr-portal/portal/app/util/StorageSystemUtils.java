@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -59,8 +59,7 @@ public class StorageSystemUtils {
     public static StorageSystemRestRep getStorageSystem(URI id) {
         try {
             return getViprClient().storageSystems().get(id);
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }
@@ -144,7 +143,7 @@ public class StorageSystemUtils {
         }
         return connectivityMap;
     }
-    
+
     public static StorageProviderRestRep getStorageProvider(StorageSystemRestRep storageSystem) {
         if (isSMISManaged(storageSystem)) {
             return getViprClient().storageProviders().get(storageSystem.getActiveProvider());

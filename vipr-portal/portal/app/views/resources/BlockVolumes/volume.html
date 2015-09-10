@@ -27,11 +27,11 @@
     
     #{Resources.actions hide:volume?.inactive }
       #{if isBlockContinuousCopy}
-        #{if volume.syncState == FRACTURED}
+        #{if volume.syncState != FRACTURED}
           <a href="@{pauseContinuousCopy(params.volumeId, volume.id)}"
           >&{'resources.continuouscopy.pauseLink'}</a><br/>
         #{/if}
-        #{if volume.syncState != FRACTURED}
+        #{if volume.syncState == FRACTURED}
           <a href="@{resumeContinuousCopy(params.volumeId, volume.id)}"
           >&{'resources.continuouscopy.resumeLink'}</a><br/>              
         #{/if}
@@ -110,7 +110,10 @@
       
       <dt class="moreDetails">&{'resources.volume.nativeid'}:</dt>
       <dd class="moreDetails">#{spaceForNull volume.nativeId/}</dd>
-      
+      #{if !isAccessStateEmpty}
+      <dt class="moreDetails">&{'resources.volume.accessstate'}:</dt>
+      <dd class="moreDetails">#{spaceForNull volume.accessState/}</dd>
+      #{/if}
       #{Resources.commonAttributes resource:volume /}
     </dl>
   

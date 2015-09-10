@@ -1,31 +1,9 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.compute;
 
-import com.emc.storageos.api.service.impl.response.BulkList.ResourceFilter;
-import com.emc.storageos.model.host.HostRestRep;
-import com.emc.storageos.model.host.HostUpdateParam;
-import com.emc.storageos.model.host.cluster.ClusterCreateParam;
-import com.emc.storageos.model.host.cluster.ClusterRestRep;
-import com.emc.storageos.model.host.cluster.ClusterUpdateParam;
-import com.emc.storageos.model.host.vcenter.VcenterDataCenterRestRep;
-import com.emc.storageos.model.host.vcenter.VcenterRestRep;
-import com.emc.storageos.model.project.ProjectRestRep;
-import com.emc.vipr.client.core.filters.DefaultResourceFilter;
-import com.emc.vipr.client.core.filters.FilterChain;
-import com.emc.vipr.client.core.filters.HostTypeFilter;
-import com.emc.vipr.client.core.util.ResourceUtils;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Sets;
-
-import controllers.Common;
-import controllers.deadbolt.Restrict;
-import controllers.deadbolt.Restrictions;
-import controllers.tenant.TenantSelector;
-import controllers.util.FlashException;
-import controllers.util.Models;
 import static com.emc.vipr.client.core.util.ResourceUtils.uri;
 import static util.BourneUtil.getViprClient;
 
@@ -52,11 +30,31 @@ import util.ProjectUtils;
 import util.VCenterUtils;
 import util.datatable.DataTablesSupport;
 
+import com.emc.storageos.model.host.HostRestRep;
+import com.emc.storageos.model.host.HostUpdateParam;
+import com.emc.storageos.model.host.cluster.ClusterCreateParam;
+import com.emc.storageos.model.host.cluster.ClusterRestRep;
+import com.emc.storageos.model.host.cluster.ClusterUpdateParam;
+import com.emc.storageos.model.host.vcenter.VcenterDataCenterRestRep;
+import com.emc.storageos.model.host.vcenter.VcenterRestRep;
+import com.emc.storageos.model.project.ProjectRestRep;
+import com.emc.vipr.client.core.filters.DefaultResourceFilter;
+import com.emc.vipr.client.core.filters.FilterChain;
+import com.emc.vipr.client.core.filters.HostTypeFilter;
+import com.emc.vipr.client.core.util.ResourceUtils;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Sets;
+
+import controllers.Common;
+import controllers.deadbolt.Restrict;
+import controllers.deadbolt.Restrictions;
+import controllers.tenant.TenantSelector;
+import controllers.util.FlashException;
+import controllers.util.Models;
 
 @With(Common.class)
 @Restrictions({ @Restrict("TENANT_ADMIN") })
 public class HostClusters extends Controller {
-
     protected static final String SAVED = "HostClusters.saved";
     protected static final String DELETED = "HostClusters.deleted";
     protected static final String REMOVED_HOSTS = "HostClusters.removedHosts";
@@ -115,14 +113,14 @@ public class HostClusters extends Controller {
         }
     }
 
-    @FlashException(keep=true, referrer={"create","edit"})
+    @FlashException(keep = true, referrer = { "create", "edit" })
     public static void save(HostClusterForm hostCluster) {
         hostCluster.validate("hostCluster");
         if (Validation.hasErrors()) {
             Common.handleError();
         }
 
-        String id = hostCluster.save();
+        String id = hostCluster.save(hostCluster);
         flash.success(MessagesUtils.get(SAVED, hostCluster.name));
         list();
     }
@@ -135,7 +133,7 @@ public class HostClusters extends Controller {
         flash.success(MessagesUtils.get(DELETED));
         list();
     }
-    
+
     @FlashException("list")
     public static void detachStorage(@As(",") String[] ids) {
         for (URI id : ResourceUtils.uris(ids)) {
@@ -174,21 +172,21 @@ public class HostClusters extends Controller {
                 return hostRestRep.getCluster() == null || !hostRestRep.getCluster().getId().equals(clusterId);
             }
         };
-        
+
         // If we have existing hosts in the cluster, limit to that host type
         List<HostRestRep> existingHosts = ClusterUtils.getHosts(uri(id));
         if (!existingHosts.isEmpty()) {
-        	FilterChain<HostRestRep> hostTypeFilter = new FilterChain<HostRestRep>(new HostTypeFilter(existingHosts.get(0).getType()));
-      
-	        hosts = getViprClient().hosts().getByTenant(cluster.getTenant().getId(), hostTypeFilter.and(defaultHostResourceFilter));
+            FilterChain<HostRestRep> hostTypeFilter = new FilterChain<HostRestRep>(new HostTypeFilter(existingHosts.get(0).getType()));
+
+            hosts = getViprClient().hosts().getByTenant(cluster.getTenant().getId(), hostTypeFilter.and(defaultHostResourceFilter));
         } else {
-        	 hosts = getViprClient().hosts().getByTenant(cluster.getTenant().getId(), defaultHostResourceFilter);
+            hosts = getViprClient().hosts().getByTenant(cluster.getTenant().getId(), defaultHostResourceFilter);
         }
-        
+
         renderJSON(DataTablesSupport.createJSON(hosts, params));
     }
 
-    @FlashException(referrer={"editHosts"})
+    @FlashException(referrer = { "editHosts" })
     public static void removeHosts(String clusterId, @As(",") String[] ids) {
         if (ids != null && ids.length > 0) {
             for (String hostId : ids) {
@@ -201,7 +199,7 @@ public class HostClusters extends Controller {
         editHosts(clusterId);
     }
 
-    @FlashException(referrer={"editHosts"})
+    @FlashException(referrer = { "editHosts" })
     public static void addHosts(String clusterId, @As(",") String[] ids) {
         if (ids != null && ids.length > 0) {
             for (String hostId : ids) {
@@ -217,6 +215,7 @@ public class HostClusters extends Controller {
     public static class HostClusterForm {
         public String id;
         public String tenantId;
+        public Boolean autoExportEnabled;
 
         @Required
         @MaxSize(128)
@@ -224,6 +223,8 @@ public class HostClusters extends Controller {
         public String name;
 
         public HostClusterForm() {
+            // Make autoexports default true
+            this.autoExportEnabled = Boolean.TRUE;
         }
 
         public HostClusterForm(ClusterRestRep clusterResponse) {
@@ -235,6 +236,7 @@ public class HostClusters extends Controller {
             this.id = clusterResponse.getId().toString();
             this.tenantId = clusterResponse.getTenant().getId().toString();
             this.name = clusterResponse.getName();
+            this.autoExportEnabled = clusterResponse.getAutoExportEnabled();
         }
 
         protected void doWriteTo(ClusterUpdateParam clusterUpdateParam) {
@@ -249,9 +251,9 @@ public class HostClusters extends Controller {
          * Clears all other validation error, except for the specified fields.
          * 
          * @param formName
-         *        the form name.
+         *            the form name.
          * @param fieldsToKeep
-         *        the fields to keep.
+         *            the fields to keep.
          */
         protected void clearOtherErrors(String formName, String... fieldsToKeep) {
             Set<play.data.validation.Error> errors = Sets.newHashSet();
@@ -279,13 +281,35 @@ public class HostClusters extends Controller {
             return hostId;
         }
 
+        public String save(HostClusterForm hostCluster) {
+            String hostId = null;
+            if (isNew()) {
+                hostId = createCluster();
+            }
+            else {
+                hostId = updateCluster(hostCluster);
+            }
+
+            return hostId;
+        }
+
         protected String createCluster() {
             ClusterCreateParam clusterCreateParam = new ClusterCreateParam(name);
+            clusterCreateParam.setAutoExportEnabled(autoExportEnabled);
+
             return ClusterUtils.createCluster(tenantId, clusterCreateParam).toString();
         }
 
         protected String updateCluster() {
             ClusterUpdateParam hostUpdateParam = new ClusterUpdateParam();
+            doWriteTo(hostUpdateParam);
+            return ClusterUtils.updateHost(uri(this.id), hostUpdateParam).toString();
+        }
+
+        protected String updateCluster(HostClusterForm hostCluster) {
+            ClusterUpdateParam hostUpdateParam = new ClusterUpdateParam();
+            hostUpdateParam.setAutoExportEnabled(hostCluster.autoExportEnabled);
+
             doWriteTo(hostUpdateParam);
             return ClusterUtils.updateHost(uri(this.id), hostUpdateParam).toString();
         }

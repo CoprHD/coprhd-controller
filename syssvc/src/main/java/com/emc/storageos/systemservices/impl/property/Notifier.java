@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.systemservices.impl.property;
@@ -41,21 +31,27 @@ public abstract class Notifier {
     private static final String SSL_NOTIFIER = "ssl";
     private static final String DNS_NOTIFIER = "dns";
     private static final String SSH_AUTH_KEY_NOTIFIER = "ssh_auth_key";
-    private static final String PASSWORD_NOTIFIER = "password"; //NOSONAR ("squid:S2068 Suppressing sonar violation of hard-coded password")
+    private static final String PASSWORD_NOTIFIER = "password"; // NOSONAR
+                                                                // ("squid:S2068 Suppressing sonar violation of hard-coded password")
     private static final String BACKUPSCHEDULER_NOTIFIER = "backupscheduler";
     private static final String UPGRADE_NOTIFIER = "upgrade";
+
+    // storageos services
+    private static final String AUTHSVC_NOTIFIER = "authsvc";
 
     public abstract void doNotify() throws Exception;
 
     public static Notifier getInstance(String notifierType) {
-        if (notifierType == null)
+        if (notifierType == null) {
             return null;
+        }
 
-        if (notifierMap.containsKey(notifierType))
+        if (notifierMap.containsKey(notifierType)) {
             return notifierMap.get(notifierType);
+        }
 
         Notifier notifier = null;
-        switch(notifierType) {
+        switch (notifierType) {
             case CONNECTEMC_NOTIFIER:
             case NTP_NOTIFIER:
             case SSH_NOTIFIER:
@@ -69,6 +65,9 @@ public abstract class Notifier {
                 break;
             case BACKUPSCHEDULER_NOTIFIER:
                 notifier = BackupScheduler.getSingletonInstance();
+                break;
+            case AUTHSVC_NOTIFIER:
+                notifier = new StorageosSvcNotifier(notifierType);
                 break;
             case UPGRADE_NOTIFIER:
                 notifier = new UpgradeNotifier();
@@ -118,4 +117,25 @@ public abstract class Notifier {
             repository.reload(svcName);
         }
     }
+
+    /**
+     * This class notifies a storageos service to re-start, so it could load the new config after
+     * system properties change.
+     *
+     * Need to leverage systool in this case.
+     */
+    public static class StorageosSvcNotifier extends Notifier {
+        private final String svcName;
+
+        StorageosSvcNotifier(final String svcName) {
+            this.svcName = svcName;
+        }
+
+        @Override
+        public void doNotify() throws Exception {
+            repository.restart(svcName);
+        }
+    }
+
+
 }

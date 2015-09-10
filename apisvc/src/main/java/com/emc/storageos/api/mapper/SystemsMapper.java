@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.mapper;
@@ -11,33 +11,40 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.model.DecommissionedResource;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.adapters.StringMapAdapter;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
+import com.emc.storageos.model.rdfgroup.RDFGroupRestRep;
 import com.emc.storageos.model.smis.SMISProviderRestRep;
 import com.emc.storageos.model.smis.StorageProviderRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.varray.DecommissionedResourceRep;
+import com.emc.storageos.model.vnas.VirtualNASRestRep;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatcher;
 
 public class SystemsMapper {
-	 private static final String MINUS_ONE_LONG = "-1";
-	 
-	@Deprecated
+    private static final String MINUS_ONE_LONG = "-1";
+
+    @Deprecated
     public static SMISProviderRestRep mapStorageProviderToSMISRep(StorageProvider from) {
         if (from == null) {
             return null;
@@ -46,14 +53,14 @@ public class SystemsMapper {
         mapDataObjectFields(from, to);
         // Workaround to generate /vdc/smis-providers uri for self link instead of type base URI generation.
         try {
-			to.setLink(new RestLinkRep("self", RestLinkFactory.simpleServiceLink(ResourceTypeEnum.SMIS_PROVIDER, from.getId())));
-		} catch (URISyntaxException e) {
-			//impossible to get exception here.
-		}
+            to.setLink(new RestLinkRep("self", RestLinkFactory.simpleServiceLink(ResourceTypeEnum.SMIS_PROVIDER, from.getId())));
+        } catch (URISyntaxException e) {
+            // impossible to get exception here.
+        }
         to.setIPAddress(from.getIPAddress());
         to.setPortNumber(from.getPortNumber());
         if (from.getStorageSystems() != null) {
-            for (String system: from.getStorageSystems()) {
+            for (String system : from.getStorageSystems()) {
                 to.getStorageSystems().add(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, URI.create(system)));
             }
         }
@@ -83,7 +90,7 @@ public class SystemsMapper {
         to.setIPAddress(from.getIPAddress());
         to.setPortNumber(from.getPortNumber());
         if (from.getStorageSystems() != null) {
-            for (String system: from.getStorageSystems()) {
+            for (String system : from.getStorageSystems()) {
                 to.getStorageSystems().add(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, URI.create(system)));
             }
         }
@@ -107,6 +114,99 @@ public class SystemsMapper {
         return to;
     }
 
+    public static RDFGroupRestRep map(RemoteDirectorGroup from, List<URI> volumeURIList) {
+        if (from == null) {
+            return null;
+        }
+        RDFGroupRestRep to = new RDFGroupRestRep();
+        mapDiscoveredDataObjectFields(from, to);
+        to.setActive(from.getActive());
+        to.setConnectivityStatus(from.getConnectivityStatus());
+        to.setSupportedCopyMode(from.getSupportedCopyMode());
+        to.setCopyState(from.getCopyState());
+        to.setRemoteGroupId(from.getRemoteGroupId());
+        to.setRemotePort(from.getRemotePort());
+        to.setSourceGroupId(from.getSourceGroupId());
+        to.setSourcePort(from.getSourcePort());
+        to.setSourceReplicationGroupName(from.getSourceReplicationGroupName());
+        to.setSupported(from.getSupported());
+        to.setTargetReplicationGroupName(from.getTargetReplicationGroupName());
+        to.setSourceStorageSystemUri(from.getSourceStorageSystemUri());
+        to.setRemoteStorageSystemUri(from.getRemoteStorageSystemUri());
+        to.setVolumes(volumeURIList);
+        return to;
+    }
+
+    public static VirtualNASRestRep map(VirtualNAS from) {
+        if (from == null) {
+            return null;
+        }
+
+        VirtualNASRestRep to = new VirtualNASRestRep();
+        mapDiscoveredDataObjectFields(from, to);
+        to.setAssignedVirtualArrays(from.getAssignedVirtualArrays());
+        to.setBaseDirPath(from.getBaseDirPath());
+        to.setCompatibilityStatus(from.getCompatibilityStatus());
+        to.setConnectedVirtualArrays(from.getConnectedVirtualArrays());
+        to.setDiscoveryStatus(from.getDiscoveryStatus());
+        to.setNasName(from.getNasName());
+        to.setName(from.getNasName());
+        to.setNasState(from.getNasState());
+        to.setNasTag(from.getNAStag());
+
+        if (from.getParentNasUri() != null) {
+            to.setParentNASURI(from.getParentNasUri().toString());
+        }
+
+        to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject()));
+
+        to.setProtocols(from.getProtocols());
+        to.setRegistrationStatus(from.getRegistrationStatus());
+
+        Set<String> cifsServers = new HashSet<String>();
+        if (from.getCifsServersMap() != null && !from.getCifsServersMap().isEmpty()) {
+            for (String serverName : from.getCifsServersMap().keySet()) {
+                String serverDomain = serverName;
+                if (from.getCifsServersMap().get(serverName).getDomain() != null) {
+                    serverDomain = serverDomain + "=" + from.getCifsServersMap().get(serverName).getDomain();
+                }
+
+                cifsServers.add(serverDomain);
+            }
+            if (cifsServers != null && !cifsServers.isEmpty()) {
+                to.setCifsServers(cifsServers);
+            }
+        }
+
+        for (String port : from.getStoragePorts()) {
+            to.getStoragePorts().add(toRelatedResource(
+                    ResourceTypeEnum.STORAGE_PORT, URI.create(port)));
+        }
+
+        to.setTaggedVirtualArrays(from.getTaggedVirtualArrays());
+
+        to.setStorageDeviceURI(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageDeviceURI()));
+
+        // Set the metrics!!!
+        to.setMaxStorageCapacity(MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, from.getMetrics()).toString());
+        to.setMaxStorageObjects(MetricsKeys.getLong(MetricsKeys.maxStorageObjects, from.getMetrics()).toString());
+
+        to.setStorageObjects(MetricsKeys.getLong(MetricsKeys.storageObjects, from.getMetrics()).toString());
+        to.setStorageCapacity(MetricsKeys.getLong(MetricsKeys.usedStorageCapacity, from.getMetrics()).toString());
+        to.setIsOverloaded(MetricsKeys.getBoolean(MetricsKeys.overLoaded, from.getMetrics()));
+
+        Double percentBusy = MetricsKeys.getDoubleOrNull(MetricsKeys.emaPercentBusy, from.getMetrics());
+        if (percentBusy != null) {
+            to.setAvgEmaPercentagebusy(percentBusy.toString());
+        }
+        percentBusy = MetricsKeys.getDoubleOrNull(MetricsKeys.avgPortPercentBusy, from.getMetrics());
+        if (percentBusy != null) {
+            to.setAvgPercentagebusy(percentBusy.toString());
+        }
+
+        return to;
+    }
+
     public static StoragePoolRestRep map(StoragePool from, Map<String, Long> capacityMetrics,
             boolean isBlockStoragePool, CoordinatorClient coordinatorClient) {
         if (from == null) {
@@ -120,18 +220,18 @@ public class SystemsMapper {
         to.setTotalCapacity(capacityMetrics.get(CapacityUtils.StorageMetrics.USABLE.toString()));
         to.setFreeCapacity(capacityMetrics.get(CapacityUtils.StorageMetrics.FREE.toString()));
         to.setUsedCapacity(capacityMetrics.get(CapacityUtils.StorageMetrics.USED.toString()));
-		to.setPercentUsed(capacityMetrics
-				.get(CapacityUtils.StorageMetrics.PERCENT_USED.toString()));
-		if ((null != capacityMetrics
-				.get(CapacityUtils.StorageMetrics.SUBSCRIBED.toString()) && 
-				!(capacityMetrics.get(CapacityUtils.StorageMetrics.SUBSCRIBED.toString()).toString().equals(MINUS_ONE_LONG)))) {
+        to.setPercentUsed(capacityMetrics
+                .get(CapacityUtils.StorageMetrics.PERCENT_USED.toString()));
+        if ((null != capacityMetrics
+                .get(CapacityUtils.StorageMetrics.SUBSCRIBED.toString()) && !(capacityMetrics.get(
+                CapacityUtils.StorageMetrics.SUBSCRIBED.toString()).toString().equals(MINUS_ONE_LONG)))) {
 
-			to.setSubscribedCapacity(capacityMetrics
-					.get(CapacityUtils.StorageMetrics.SUBSCRIBED.toString()));
-			to.setPercentSubscribed(capacityMetrics
-					.get(CapacityUtils.StorageMetrics.PERCENT_SUBSCRIBED
-							.toString()));
-		}
+            to.setSubscribedCapacity(capacityMetrics
+                    .get(CapacityUtils.StorageMetrics.SUBSCRIBED.toString()));
+            to.setPercentSubscribed(capacityMetrics
+                    .get(CapacityUtils.StorageMetrics.PERCENT_SUBSCRIBED
+                            .toString()));
+        }
         to.setMaximumThinVolumeSize(CapacityUtils.convertKBToGB(from.getMaximumThinVolumeSize()));
         to.setMinimumThinVolumeSize(CapacityUtils.convertKBToGB(from.getMinimumThinVolumeSize()));
         to.setMaximumThickVolumeSize(CapacityUtils.convertKBToGB(from.getMaximumThickVolumeSize()));
@@ -156,14 +256,14 @@ public class SystemsMapper {
         to.setDiscoveryStatus(from.getDiscoveryStatus());
         to.setMaxPoolUtilizationPercentage((from.getMaxPoolUtilizationPercentage() != null) ? from
                 .getMaxPoolUtilizationPercentage() : Integer.valueOf(ControllerUtils.
-                        getPropertyValueFromCoordinator(coordinatorClient, CapacityMatcher.MAX_POOL_UTILIZATION_PERCENTAGE)));
-        
-        if (null != from.getSupportedResourceTypes() && 
+                getPropertyValueFromCoordinator(coordinatorClient, CapacityMatcher.MAX_POOL_UTILIZATION_PERCENTAGE)));
+
+        if (null != from.getSupportedResourceTypes() &&
                 !from.getSupportedResourceTypes().equals(StoragePool.SupportedResourceTypes.THICK_ONLY.name())) {
-            
+
             to.setMaxThinPoolSubscriptionPercentage((from.getMaxThinPoolSubscriptionPercentage() != null) ? from
                     .getMaxThinPoolSubscriptionPercentage() : Integer.valueOf(ControllerUtils.
-                            getPropertyValueFromCoordinator(coordinatorClient, CapacityMatcher.MAX_THIN_POOL_SUBSCRIPTION_PERCENTAGE)));
+                    getPropertyValueFromCoordinator(coordinatorClient, CapacityMatcher.MAX_THIN_POOL_SUBSCRIPTION_PERCENTAGE)));
         }
         return to;
     }
@@ -194,7 +294,7 @@ public class SystemsMapper {
         to.setConnectedVirtualArrays(from.getConnectedVirtualArrays());
         to.setTaggedVirtualArrays(from.getTaggedVirtualArrays());
         to.setDiscoveryStatus(from.getDiscoveryStatus());
-        
+
         // Port metrics.
         Double percentBusy = MetricsKeys.getDoubleOrNull(MetricsKeys.avgPortPercentBusy, from.getMetrics());
         if (percentBusy != null) {
@@ -205,13 +305,14 @@ public class SystemsMapper {
             to.setCpuPercentBusy(percentBusy);
         }
         to.setAllocationMetric(MetricsKeys.getDouble(MetricsKeys.portMetric, from.getMetrics()));
-        
+
         to.setVolumeLoad(MetricsKeys.getLong(MetricsKeys.volumeCount, from.getMetrics()));
         to.setInitiatorLoad(MetricsKeys.getLong(MetricsKeys.initiatorCount, from.getMetrics()));
-        
+
         to.setAllocationDisqualified(MetricsKeys.getBoolean(MetricsKeys.allocationDisqualified, from.getMetrics()));
         return to;
     }
+
     public static StorageSystemRestRep map(StorageSystem from) {
         if (from == null) {
             return null;
@@ -234,7 +335,7 @@ public class SystemsMapper {
         to.setFirmwareVersion(from.getFirmwareVersion());
         to.setActiveProvider(toRelatedResource(ResourceTypeEnum.SMIS_PROVIDER, from.getActiveProviderURI()));
         if (from.getProviders() != null) {
-            for (String provider: from.getProviders()) {
+            for (String provider : from.getProviders()) {
                 to.getProviders().add(toRelatedResource(ResourceTypeEnum.SMIS_PROVIDER, URI.create(provider)));
             }
         }
@@ -246,7 +347,7 @@ public class SystemsMapper {
         to.setRemotelyConnectedTo(from.getRemotelyConnectedTo());
         to.setSupportedReplicationTypes(from.getSupportedReplicationTypes());
         to.setAveragePortMetrics(from.getAveragePortMetrics());
-       
+
         return to;
     }
 

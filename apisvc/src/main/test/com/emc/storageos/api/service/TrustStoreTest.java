@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service;
 
@@ -107,7 +97,6 @@ public class TrustStoreTest extends ApiTestBase {
             + "RKVg94/3k7lboynwu9Ec6TNQAzTaY1MClwvm/rM=\r\n"
             + "-----END CERTIFICATE-----";
 
-
     List<RestLinkRep> resourcesToRemove;
     int nExistedCert = 0;
     private static String LDAP_SERVER1_IP = EnvConfig.get("sanity", "ldap1.ip");
@@ -135,7 +124,7 @@ public class TrustStoreTest extends ApiTestBase {
         // change truststore setting to acceptAllCerts = false
         changeTruststoreSettingsTest(false);
 
-        // now try again to add the same resources, it should fail this time. 
+        // now try again to add the same resources, it should fail this time.
         addResourcesShouldFail();
 
         // do general update truststore tests (with good/bad inputs)...
@@ -185,7 +174,7 @@ public class TrustStoreTest extends ApiTestBase {
         Assert.assertEquals(200, response.getStatus());
         TrustedCertificates certs = response.getEntity(TrustedCertificates.class);
         // Assert.assertEquals(changes.getAdd().size(), certs.getTrustedCertificates()
-        //        .size());
+        // .size());
 
         waitForClusterToBeStable();
     }
@@ -311,7 +300,7 @@ public class TrustStoreTest extends ApiTestBase {
                 rSys.path("/vdc/truststore").put(ClientResponse.class, changes);
         Assert.assertEquals(200, response.getStatus());
         certs = response.getEntity(TrustedCertificates.class);
-        Assert.assertEquals(nExistedCert+1, certs.getTrustedCertificates().size());
+        Assert.assertEquals(nExistedCert + 1, certs.getTrustedCertificates().size());
         Assert.assertEquals(removeNewLines(CERTIFICATE), removeNewLines(certs
                 .getTrustedCertificates().get(0).getCertString()));
 
@@ -323,7 +312,7 @@ public class TrustStoreTest extends ApiTestBase {
                 rSys.path("/vdc/truststore").put(ClientResponse.class, changes);
         Assert.assertEquals(200, response.getStatus());
         certs = response.getEntity(TrustedCertificates.class);
-        Assert.assertEquals(nExistedCert+1, certs.getTrustedCertificates().size());
+        Assert.assertEquals(nExistedCert + 1, certs.getTrustedCertificates().size());
         Assert.assertEquals(removeNewLines(CERTIFICATE), removeNewLines(certs
                 .getTrustedCertificates().get(0).getCertString()));
 
@@ -343,9 +332,9 @@ public class TrustStoreTest extends ApiTestBase {
                 rSys.path("/vdc/truststore").put(ClientResponse.class, changes);
         Assert.assertEquals(200, response.getStatus());
         certs = response.getEntity(TrustedCertificates.class);
-        Assert.assertEquals(nExistedCert+1, certs.getTrustedCertificates().size());
+        Assert.assertEquals(nExistedCert + 1, certs.getTrustedCertificates().size());
         // Assert.assertEquals(removeNewLines(TRUSTED_CERTIFICATE), removeNewLines(certs
-        //        .getTrustedCertificates().get(0).getCertString()));
+        // .getTrustedCertificates().get(0).getCertString()));
 
         // test just remove- should succeed
         remove = new ArrayList<String>();
@@ -418,7 +407,7 @@ public class TrustStoreTest extends ApiTestBase {
         param.setSearchBase("OU=People,DC=root,DC=com");
         param.setSearchFilter("mail=%u");
         param.setServerUrls(new HashSet<String>());
-        param.getServerUrls().add("ldaps:\\"+LDAP_SERVER1_IP);
+        param.getServerUrls().add("ldaps:\\" + LDAP_SERVER1_IP);
         param.setMode("ldap");
         return rSys.path("/vdc/admin/authnproviders").post(ClientResponse.class,
                 param);

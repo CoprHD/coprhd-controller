@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.impl;
@@ -31,13 +21,14 @@ import com.emc.storageos.db.client.model.ScopedLabel;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.netflix.astyanax.ColumnListMutation;
 import com.netflix.astyanax.model.Column;
+
 /**
  * Utility class for de/serializing an individual column
  */
 public class ColumnValue {
     /**
      * Decrypts and sets data object field value
-     *
+     * 
      * @param column encrypted column value
      * @param pd property
      * @param obj wrapper object
@@ -50,9 +41,9 @@ public class ColumnValue {
         try {
             pd.getWriteMethod().invoke(obj, val);
         } catch (final InvocationTargetException e) {
-        	throw DatabaseException.fatals.deserializationFailedEncryptedProperty(pd.getName(),e);
+            throw DatabaseException.fatals.deserializationFailedEncryptedProperty(pd.getName(), e);
         } catch (final IllegalAccessException e) {
-        	throw DatabaseException.fatals.deserializationFailedEncryptedProperty(pd.getName(),e);
+            throw DatabaseException.fatals.deserializationFailedEncryptedProperty(pd.getName(), e);
         }
     }
 
@@ -66,7 +57,7 @@ public class ColumnValue {
                 if (objValue == null) {
                     objValue = type.newInstance();
                 }
-                AbstractChangeTrackingSetMap<?> trackingMap = (AbstractChangeTrackingSetMap<?>)objValue;
+                AbstractChangeTrackingSetMap<?> trackingMap = (AbstractChangeTrackingSetMap<?>) objValue;
                 String entryValue = column.getStringValue();
                 if (entryValue == null || entryValue.isEmpty()) {
                     trackingMap.removeNoTrack(column.getName().getTwo(), column.getName().getThree());
@@ -78,7 +69,7 @@ public class ColumnValue {
                 if (objValue == null) {
                     objValue = type.newInstance();
                 }
-                AbstractChangeTrackingMap<?> trackingMap = (AbstractChangeTrackingMap<?>)objValue;
+                AbstractChangeTrackingMap<?> trackingMap = (AbstractChangeTrackingMap<?>) objValue;
                 byte[] entryValue = column.getByteArrayValue();
                 if (entryValue == null || entryValue.length == 0) {
                     trackingMap.removeNoTrack(column.getName().getTwo());
@@ -90,7 +81,7 @@ public class ColumnValue {
                 if (objValue == null) {
                     objValue = type.newInstance();
                 }
-                AbstractChangeTrackingSet trackingSet = (AbstractChangeTrackingSet)objValue;
+                AbstractChangeTrackingSet trackingSet = (AbstractChangeTrackingSet) objValue;
                 String entryValue = column.getStringValue();
                 if (entryValue == null || entryValue.isEmpty()) {
                     trackingSet.removeNoTrack(column.getName().getTwo());
@@ -98,7 +89,7 @@ public class ColumnValue {
                     trackingSet.addNoTrack(entryValue);
                 }
             } else {
-                objValue = getPrimitiveColumnValue(column,pd);
+                objValue = getPrimitiveColumnValue(column, pd);
             }
             pd.getWriteMethod().invoke(obj, objValue);
         } catch (IllegalAccessException e) {
@@ -111,30 +102,30 @@ public class ColumnValue {
         }
     }
 
-    public static <T> Object getPrimitiveColumnValue(Column<T> column, PropertyDescriptor pd){
+    public static <T> Object getPrimitiveColumnValue(Column<T> column, PropertyDescriptor pd) {
         Object objValue = null;
         try {
             Class type = pd.getPropertyType();
             if (AbstractSerializableNestedObject.class.isAssignableFrom(type)) {
                 objValue = type.newInstance();
-                AbstractSerializableNestedObject value = (AbstractSerializableNestedObject)objValue;
+                AbstractSerializableNestedObject value = (AbstractSerializableNestedObject) objValue;
                 value.loadBytes(column.getByteArrayValue());
             } else if (type == String.class) {
                 objValue = column.getStringValue();
             } else if (type == URI.class) {
                 objValue = URI.create(column.getStringValue());
             } else if (type == Byte.class) {
-                objValue = (byte)(column.getIntegerValue() & 0xff);
+                objValue = (byte) (column.getIntegerValue() & 0xff);
             } else if (type == Boolean.class) {
                 objValue = column.getBooleanValue();
             } else if (type == Short.class) {
-                objValue = (short)(column.getShortValue());
+                objValue = (short) (column.getShortValue());
             } else if (type == Integer.class) {
                 objValue = column.getIntegerValue();
             } else if (type == Long.class) {
                 objValue = column.getLongValue();
             } else if (type == Float.class) {
-                objValue = (float)column.getDoubleValue();
+                objValue = (float) column.getDoubleValue();
             } else if (type == Double.class) {
                 objValue = column.getDoubleValue();
             } else if (type == Date.class) {
@@ -156,16 +147,16 @@ public class ColumnValue {
             }
         } catch (IllegalAccessException e) {
             // should never get here
-        	throw DatabaseException.fatals.deserializationFailedProperty(pd.getName(), e);
+            throw DatabaseException.fatals.deserializationFailedProperty(pd.getName(), e);
         } catch (InstantiationException e) {
-        	throw DatabaseException.fatals.deserializationFailedProperty(pd.getName(), e);
+            throw DatabaseException.fatals.deserializationFailedProperty(pd.getName(), e);
         }
         return objValue;
     }
 
     /**
      * Serialize field into db query
-     *
+     * 
      * @param columns batch query
      * @param name composite column name
      * @param val column value
@@ -176,43 +167,43 @@ public class ColumnValue {
         if (val == null) {
             columns.putEmptyColumn(name, ttl);
         } else if (val.getClass() == byte[].class) {
-            columns.putColumn(name, (byte[])val, ttl);
+            columns.putColumn(name, (byte[]) val, ttl);
         } else if (val.getClass() == String.class) {
-            columns.putColumn(name, (String)val, ttl);
+            columns.putColumn(name, (String) val, ttl);
         } else if (val.getClass() == URI.class) {
             columns.putColumn(name, val.toString(), ttl);
         } else if (val.getClass() == Byte.class) {
-            columns.putColumn(name, (Byte)val & 0xff, ttl);
+            columns.putColumn(name, (Byte) val & 0xff, ttl);
         } else if (val.getClass() == Boolean.class) {
-            columns.putColumn(name, (Boolean)val, ttl);
+            columns.putColumn(name, (Boolean) val, ttl);
         } else if (val.getClass() == Short.class) {
-            columns.putColumn(name, (Short)val, ttl);
+            columns.putColumn(name, (Short) val, ttl);
         } else if (val.getClass() == Integer.class) {
-            columns.putColumn(name, (Integer)val, ttl);
+            columns.putColumn(name, (Integer) val, ttl);
         } else if (val.getClass() == Long.class) {
-            columns.putColumn(name, (Long)val, ttl);
+            columns.putColumn(name, (Long) val, ttl);
         } else if (val.getClass() == Float.class) {
-            columns.putColumn(name, (Float)val, ttl);
+            columns.putColumn(name, (Float) val, ttl);
         } else if (val.getClass() == Double.class) {
-            columns.putColumn(name, (Double)val, ttl);
+            columns.putColumn(name, (Double) val, ttl);
         } else if (val.getClass() == Date.class) {
-            columns.putColumn(name, (Date)val, ttl);
+            columns.putColumn(name, (Date) val, ttl);
         } else if (val.getClass() == NamedURI.class) {
             columns.putColumn(name, val.toString(), ttl);
         } else if (val.getClass() == ScopedLabel.class) {
             columns.putColumn(name, val.toString(), ttl);
         } else if (val instanceof Calendar) {
-            columns.putColumn(name, ((Calendar)val).getTimeInMillis(), ttl);
-        } else if (val.getClass().isEnum()){
-            columns.putColumn(name, ((Enum<?>)val).name(), ttl);
+            columns.putColumn(name, ((Calendar) val).getTimeInMillis(), ttl);
+        } else if (val.getClass().isEnum()) {
+            columns.putColumn(name, ((Enum<?>) val).name(), ttl);
         } else {
-        	throw DatabaseException.fatals.serializationFailedUnsupportedType(name);
+            throw DatabaseException.fatals.serializationFailedUnsupportedType(name);
         }
     }
 
     /**
      * Serialize field into db query
-     *
+     * 
      * @param columns batch query
      * @param name composite column name
      * @param val column value

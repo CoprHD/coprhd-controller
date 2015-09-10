@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.linux.model;
@@ -10,63 +10,63 @@ import org.apache.commons.lang.StringUtils;
 
 public class PowerPathDevice implements Serializable {
 
-	private static final long serialVersionUID = 4154324321167352733L;
-	
-	private String device;
-	private String vendor;
-	private String product;
-	private String wwn;
-	
-	public String getDevice() {
-		return device;
-	}
+    private static final long serialVersionUID = 4154324321167352733L;
 
-	public void setDevice(String device) {
-		this.device = device;
-	}
+    private String device;
+    private String vendor;
+    private String product;
+    private String wwn;
 
-	public String getVendor() {
-		return vendor;
-	}
+    public String getDevice() {
+        return device;
+    }
 
-	public void setVendor(String vendor) {
-		this.vendor = vendor;
-	}
+    public void setDevice(String device) {
+        this.device = device;
+    }
 
-	public String getProduct() {
-		return product;
-	}
+    public String getVendor() {
+        return vendor;
+    }
 
-	public void setProduct(String product) {
-		this.product = product;
-	}
+    public void setVendor(String vendor) {
+        this.vendor = vendor;
+    }
 
-	public String getWwn() {
-		return wwn;
-	}
+    public String getProduct() {
+        return product;
+    }
 
-	public void setWwn(String wwn) {
-		this.wwn = wwn;
-	}
-	
+    public void setProduct(String product) {
+        this.product = product;
+    }
+
+    public String getWwn() {
+        return wwn;
+    }
+
+    public void setWwn(String wwn) {
+        this.wwn = wwn;
+    }
+
     public String toString() {
         String paddedDevice = StringUtils.rightPad(device, 17);
-		String paddedVendor = StringUtils.rightPad(vendor, 8);
-		String paddedProduct = StringUtils.rightPad(product, 16);
-		return String.format("%s:%s:%s:%s", paddedDevice, paddedVendor, paddedProduct, wwn);
-    }
-    
-    public String dump() {
-    	StringBuilder sb = new StringBuilder("\nPowerPath Device:\n");
-    	sb.append("\tDevice:\t").append(device);
-    	sb.append("\tVendor:\t").append(vendor);
-    	sb.append("\tProduct:\t").append(product);
-    	sb.append("\tWWN:\t").append(wwn);
-    	return sb.toString();
+        String paddedVendor = StringUtils.rightPad(vendor, 8);
+        String paddedProduct = StringUtils.rightPad(product, 16);
+        return String.format("%s:%s:%s:%s", paddedDevice, paddedVendor, paddedProduct, wwn);
     }
 
-	public Object getDeviceName() {
-		return StringUtils.substringAfterLast(getDevice(), "/");
-	}
+    public String dump() {
+        StringBuilder sb = new StringBuilder("\nPowerPath Device:\n");
+        sb.append("\tDevice:\t").append(device);
+        sb.append("\tVendor:\t").append(vendor);
+        sb.append("\tProduct:\t").append(product);
+        sb.append("\tWWN:\t").append(wwn);
+        return sb.toString();
+    }
+
+    public Object getDeviceName() {
+        return StringUtils.substringAfterLast(getDevice(), "/");
+    }
 
 }

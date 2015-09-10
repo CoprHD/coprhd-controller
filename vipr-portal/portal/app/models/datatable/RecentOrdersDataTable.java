@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.datatable;
@@ -84,7 +84,7 @@ public class RecentOrdersDataTable extends OrderDataTable {
      * Filters out orders that are not associated with the selected tenant.
      * 
      * @param orders
-     *        the orders.
+     *            the orders.
      */
     protected void filterByTenant(List<OrderRestRep> orders) {
         Iterator<OrderRestRep> iter = orders.iterator();
@@ -99,7 +99,7 @@ public class RecentOrdersDataTable extends OrderDataTable {
      * Filters out orders that are not submitted by the selected user (if applicable).
      * 
      * @param orders
-     *        the orders.
+     *            the orders.
      */
     protected void filterByUserId(List<OrderRestRep> orders) {
         if (userInfo != null) {
@@ -119,11 +119,11 @@ public class RecentOrdersDataTable extends OrderDataTable {
             return ObjectUtils.compare(b.getCreationTime(), a.getCreationTime());
         }
     };
-    
+
     protected static Comparator<OrderInfo> RECENT_ORDER_INFO_COMPARATOR = new Comparator<OrderInfo>() {
         @Override
         public int compare(OrderInfo a, OrderInfo b) {
             return ObjectUtils.compare(b.createdDate, a.createdDate);
         }
-    };    
+    };
 }

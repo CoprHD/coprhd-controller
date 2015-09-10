@@ -1,21 +1,11 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
 
 import java.io.IOException;
-
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +33,6 @@ import com.emc.storageos.volumecontroller.impl.plugins.metering.CassandraInserti
 import com.emc.storageos.volumecontroller.impl.plugins.metering.ZeroRecordGenerator;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.VNXFileProcessor;
 
-
 /**
  * FileshareUsageProcessor responsible to process the response received from the
  * XMLAPI server and parse the stream and populates the java objects.
@@ -57,10 +46,8 @@ public class VNXFileSystemUsageProcessor extends VNXFileProcessor {
             .getLogger(VNXFileSystemUsageProcessor.class);
 
     private ZeroRecordGenerator _zeroRecordGenerator;
-    
+
     private CassandraInsertion _statsColumnInjector;
-    
-    
 
     @SuppressWarnings("unchecked")
     @Override
@@ -127,6 +114,9 @@ public class VNXFileSystemUsageProcessor extends VNXFileProcessor {
         final String serialId = keyMap.get(Constants._serialID).toString();
         Iterator iterator = fsUsageList.iterator();
         keyMap.put(Constants._TimeCollected, System.currentTimeMillis());
+        
+        Map<String, Long> fsCapacityMap = new HashMap<String, Long>();        
+        
         while (iterator.hasNext()) {
             FileSystemSetUsageStats fsSetUsageStats = (FileSystemSetUsageStats) iterator.next();
             List<Item> fsUsageItems = fsSetUsageStats.getItem();
@@ -151,7 +141,7 @@ public class VNXFileSystemUsageProcessor extends VNXFileProcessor {
                     DbClient client = (DbClient) keyMap.get(Constants.dbClient);
                     if (client != null) {
                         FileShare fileSystem = client.queryObject(FileShare.class, stat.getResourceId());
-                        if(fileSystem != null){
+                        if (fileSystem != null) {
                             if (!fileSystem.getInactive() && fileSystem.getUsedCapacity() != stat.getAllocatedCapacity()) {
                                 fileSystem.setUsedCapacity(stat.getAllocatedCapacity());
                                 client.persistObject(fileSystem);
@@ -159,13 +149,22 @@ public class VNXFileSystemUsageProcessor extends VNXFileProcessor {
                         }
                     }
                 }
+               // filesystem and total capacity in Map
+                long totalSpace =item.getSpaceTotal();
+                String fsNativeId = item.getFileSystem();
+                fsCapacityMap.put(fsNativeId, Long.valueOf(totalSpace));
+                _logger.info("processFileShareInfo - FileSystem native id  {}  and file system total size{}", 
+                        fsNativeId, String.valueOf(totalSpace));
             }
+            _logger.info("Filesystems found - {} ", fsCapacityMap.size());
+            keyMap.put(VNXFileConstants.FILE_CAPACITY_MAP, fsCapacityMap);
         }
         _logger.info("No. of stat objects: {}", statList.size());
     }
 
     /**
      * injects the ProvisionedCapacity from provisioning capacity.
+     * 
      * @param stat
      * @param keyMap
      */
@@ -178,17 +177,15 @@ public class VNXFileSystemUsageProcessor extends VNXFileProcessor {
         } catch (final Exception e) {
             _logger.error("No FileShare found using resource {}", stat.getResourceId());
         }
-        
+
     }
 
-     // @Override
+    // @Override
     protected void setPrerequisiteObjects(List<Object> inputArgs)
             throws VNXFilePluginException {
     }
-    
 
-
-	/**
+    /**
      * set the cachesyncher.
      * 
      * @param cachesync
@@ -200,7 +197,7 @@ public class VNXFileSystemUsageProcessor extends VNXFileProcessor {
     public void setStatsColumnInjector(CassandraInsertion statsColumnInjector) {
         _statsColumnInjector = statsColumnInjector;
     }
-    
+
     public CassandraInsertion getStatsColumnInjector() {
         return _statsColumnInjector;
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.tasks;
@@ -13,7 +13,8 @@ public class TaskStatsRestRep {
     int ready;
     int error;
 
-    public TaskStatsRestRep(){};
+    public TaskStatsRestRep() {
+    };
 
     public TaskStatsRestRep(int pending, int ready, int error) {
         this.pending = pending;

@@ -1,73 +1,69 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.hds.model;
 
 import com.emc.storageos.hds.HDSConstants;
 
 public class LDEV {
-    
+
     private String objectID;
     private int path;
     private int composite;
     private int tierLevel;
-    
+
     private ObjectLabel label;
-    
-    public LDEV(){}
-    
+
+    public LDEV() {
+    }
+
     public LDEV(String objectID) {
         this.objectID = objectID;
     }
-    
+
     /**
      * @return the objectID
      */
     public String getObjectID() {
         return objectID;
     }
+
     /**
      * @param objectID the objectID to set
      */
     public void setObjectID(String objectID) {
         this.objectID = objectID;
     }
+
     /**
      * @return the path
      */
     public int getPath() {
         return path;
     }
+
     /**
      * @param path the path to set
      */
     public void setPath(int path) {
         this.path = path;
     }
+
     /**
      * @return the composite
      */
     public int getComposite() {
         return composite;
     }
+
     /**
      * @param composite the composite to set
      */
     public void setComposite(int composite) {
         this.composite = composite;
     }
-    
+
     /**
      * @return the tierLevel
      */
@@ -81,7 +77,7 @@ public class LDEV {
     public void setTierLevel(int tierLevel) {
         this.tierLevel = tierLevel;
     }
-    
+
     public ObjectLabel getLabel() {
         return label;
     }

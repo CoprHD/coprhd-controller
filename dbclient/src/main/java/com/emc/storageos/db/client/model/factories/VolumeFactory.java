@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model.factories;
@@ -39,7 +39,6 @@ public class VolumeFactory {
         to.setDeviceLabel(from.getDeviceLabel());
         to.setAlternateName(from.getAlternateName());
         to.setRefreshRequired(from.getRefreshRequired());
-
 
         to.setProject(from.getProject());
         to.setCapacity(from.getCapacity());

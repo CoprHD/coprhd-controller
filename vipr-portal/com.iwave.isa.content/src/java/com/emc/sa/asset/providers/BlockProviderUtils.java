@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.asset.providers;
@@ -25,21 +25,20 @@ import com.emc.storageos.model.block.VolumeRestRep.RecoverPointRestRep;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.host.HostRestRep;
-import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.systems.StorageSystemConnectivityRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.vpool.BlockVirtualPoolRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
-import com.emc.vipr.client.core.filters.ExportHostOrClusterFilter;
 import com.emc.vipr.client.core.util.VirtualPoolUtils;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
 public class BlockProviderUtils {
-    
+
     public static final String VPLEX_DISTRIBUTED = "VPLEX_DISTRIBUTED";
 
-    public static List<? extends BlockObjectRestRep> getBlockResources(ViPRCoreClient viprClient, URI tenantId, URI hostOrClusterId, boolean onlyMounted) {
+    public static List<? extends BlockObjectRestRep> getBlockResources(ViPRCoreClient viprClient, URI tenantId, URI hostOrClusterId,
+            boolean onlyMounted) {
         List<URI> hostIds = buildHostIdsList(viprClient, hostOrClusterId, onlyMounted);
 
         List<BlockObjectRestRep> volumes = Lists.newArrayList();
@@ -89,15 +88,15 @@ public class BlockProviderUtils {
                 hostIds.add(clusterId);
             }
         }
-        
+
         return hostIds;
     }
 
     protected static URI getClusterId(ViPRCoreClient viprClient, URI hostOrClusterId) {
         if (BlockStorageUtils.isCluster(hostOrClusterId)) {
             // if the id is a cluster id we can just add it
-           return hostOrClusterId;
-        } 
+            return hostOrClusterId;
+        }
         else {
             // if the id is not a cluster id we need to get the cluster id from the host and add that
             HostRestRep host = viprClient.hosts().get(hostOrClusterId);
@@ -118,7 +117,7 @@ public class BlockProviderUtils {
         resources.addAll(client.blockSnapshots().getByIds(snapshotIds));
         return resources;
     }
-    
+
     public static List<VolumeRestRep> getExportedBlockVolumes(ViPRCoreClient client, URI tenantId, URI hostOrClusterId) {
         List<ExportGroupRestRep> exports = getExportsForHostOrCluster(client, tenantId, hostOrClusterId);
         Set<URI> volumeIds = getExportedResourceIds(exports, ResourceType.VOLUME);
@@ -166,61 +165,60 @@ public class BlockProviderUtils {
 
         return StringUtils.isNotBlank(datastore);
     }
-    
+
     public static boolean isLocalMirrorSupported(BlockVirtualPoolRestRep virtualPool) {
-    	boolean supported = (virtualPool.getProtection() != null) && 
-    			(virtualPool.getProtection().getContinuousCopies() != null) &&
-    			(virtualPool.getProtection().getContinuousCopies().getMaxMirrors() > 0);
-    	
-    	if(virtualPool.getHighAvailability() != null && 
-    	   VirtualPoolUtils.isVplexDistributed(virtualPool.getHighAvailability().getType())&&
-    	   virtualPool.getProtection() != null &&
-    	   virtualPool.getProtection().getContinuousCopies() != null){
+        boolean supported = (virtualPool.getProtection() != null) &&
+                (virtualPool.getProtection().getContinuousCopies() != null) &&
+                (virtualPool.getProtection().getContinuousCopies().getMaxMirrors() > 0);
 
-    		supported = ((virtualPool.getProtection().getContinuousCopies().getMaxMirrors() > 0 &&
-    				virtualPool.getProtection().getContinuousCopies().getVpool() != null) ||
-    				(virtualPool.getProtection().getContinuousCopies().getHaMaxMirrors() != null && 
-    				virtualPool.getProtection().getContinuousCopies().getHaMaxMirrors() > 0 &&
-    				virtualPool.getProtection().getContinuousCopies().getHaVpool() != null));
+        if (virtualPool.getHighAvailability() != null &&
+                VirtualPoolUtils.isVplexDistributed(virtualPool.getHighAvailability().getType()) &&
+                virtualPool.getProtection() != null &&
+                virtualPool.getProtection().getContinuousCopies() != null) {
 
-    	}
-    	return supported;
+            supported = ((virtualPool.getProtection().getContinuousCopies().getMaxMirrors() > 0 &&
+                    virtualPool.getProtection().getContinuousCopies().getVpool() != null) ||
+                    (virtualPool.getProtection().getContinuousCopies().getHaMaxMirrors() != null &&
+                            virtualPool.getProtection().getContinuousCopies().getHaMaxMirrors() > 0 &&
+                    virtualPool.getProtection().getContinuousCopies().getHaVpool() != null));
+
+        }
+        return supported;
     }
-    
+
     public static boolean isLocalSnapshotSupported(BlockVirtualPoolRestRep virtualPool) {
-        return (virtualPool.getProtection() != null) && 
+        return (virtualPool.getProtection() != null) &&
                 (virtualPool.getProtection().getSnapshots() != null) &&
                 (virtualPool.getProtection().getSnapshots().getMaxSnapshots() > 0);
     }
-    
+
     public static boolean isRemoteSnapshotSupported(VolumeRestRep volume) {
         return getVolumeRPRep(volume) != null;
     }
-    
+
     public static boolean isMetadataVolume(VolumeRestRep volume) {
-         PersonalityTypes personality = getVolumePersonality(volume);
-         return personality != null && PersonalityTypes.METADATA.equals(personality);
+        PersonalityTypes personality = getVolumePersonality(volume);
+        return personality != null && PersonalityTypes.METADATA.equals(personality);
     }
-    
+
     public static boolean isRPSourceVolume(VolumeRestRep volume) {
         PersonalityTypes personality = getVolumePersonality(volume);
         return personality != null && PersonalityTypes.SOURCE.equals(personality);
     }
-   
+
     public static boolean isRPTargetVolume(VolumeRestRep volume) {
         PersonalityTypes personality = getVolumePersonality(volume);
         return personality != null && PersonalityTypes.TARGET.equals(personality);
     }
-   
-    
+
     public static RecoverPointRestRep getVolumeRPRep(VolumeRestRep volume) {
-        if (volume.getProtection() != null && 
+        if (volume.getProtection() != null &&
                 volume.getProtection().getRpRep() != null) {
             return volume.getProtection().getRpRep();
         }
         return null;
     }
-    
+
     public static PersonalityTypes getVolumePersonality(VolumeRestRep volume) {
         RecoverPointRestRep rp = getVolumeRPRep(volume);
         if (rp != null && rp.getPersonality() != null) {
@@ -228,44 +226,44 @@ public class BlockProviderUtils {
         }
         return null;
     }
-    
+
     public static boolean isVpoolProtectedByVarray(BlockVirtualPoolRestRep vpool, URI targetVArray) {
         return targetVArray != null && isVplexDistributedVPool(vpool) && targetVArray.equals(getHAVarrayId(vpool));
     }
-    
+
     public static boolean isVplexDistributedVPool(BlockVirtualPoolRestRep vpool) {
         return vpool != null && VPLEX_DISTRIBUTED.equalsIgnoreCase(getHAType(vpool));
     }
 
     public static boolean isSRDFTargetVolume(BlockObjectRestRep blockObj) {
         if (blockObj instanceof VolumeRestRep) {
-            VolumeRestRep volume = (VolumeRestRep)blockObj; 
+            VolumeRestRep volume = (VolumeRestRep) blockObj;
             return volume.getProtection() != null &&
-                   volume.getProtection().getSrdfRep() != null &&
-                   volume.getProtection().getSrdfRep().getPersonality().equals(PersonalityTypes.TARGET.toString());
+                    volume.getProtection().getSrdfRep() != null &&
+                    volume.getProtection().getSrdfRep().getPersonality().equals(PersonalityTypes.TARGET.toString());
         }
         return false;
     }
 
     public static URI getHAVarrayId(BlockVirtualPoolRestRep volumeVpool) {
         if (volumeVpool != null &&
-                volumeVpool.getHighAvailability() != null && 
-                volumeVpool.getHighAvailability().getHaVirtualArrayVirtualPool() != null && 
-                volumeVpool.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualArray() != null ) {
+                volumeVpool.getHighAvailability() != null &&
+                volumeVpool.getHighAvailability().getHaVirtualArrayVirtualPool() != null &&
+                volumeVpool.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualArray() != null) {
             return volumeVpool.getHighAvailability().getHaVirtualArrayVirtualPool().getVirtualArray();
         }
         return null;
     }
 
     public static String getHAType(BlockVirtualPoolRestRep volumeVpool) {
-        if (volumeVpool != null && 
-                volumeVpool.getHighAvailability() != null && 
+        if (volumeVpool != null &&
+                volumeVpool.getHighAvailability() != null &&
                 volumeVpool.getHighAvailability().getType() != null) {
             return volumeVpool.getHighAvailability().getType();
         }
         return StringUtils.EMPTY;
     }
-    
+
     public static boolean isVplex(StorageSystemRestRep storageSystem) {
         return StringUtils.equals(storageSystem.getSystemType(), "vplex");
     }
@@ -290,13 +288,17 @@ public class BlockProviderUtils {
     public static boolean isRegistered(DiscoveredSystemObjectRestRep system) {
         return (system != null) && "REGISTERED".equals(system.getRegistrationStatus());
     }
-    
+
     public static Map<URI, String> volumeNameMap(List<VolumeRestRep> volumes) {
-        Map<URI,String> volumeNameMap = Maps.newHashMap();
+        Map<URI, String> volumeNameMap = Maps.newHashMap();
         for (VolumeRestRep volume : volumes) {
             volumeNameMap.put(volume.getId(), volume.getName());
         }
         return volumeNameMap;
     }
-    
+
+    public static boolean isSupportedVPool(BlockVirtualPoolRestRep vpool) {
+        return vpool != null && vpool.getMultiVolumeConsistent() != null && vpool.getMultiVolumeConsistent();
+    }
+
 }

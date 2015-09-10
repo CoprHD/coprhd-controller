@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.ibm.xiv;
 
@@ -59,17 +49,17 @@ public class XIVSupportedAsynchronousActionsProcessor extends StorageProcessor {
                 if (supportedAsyncActions != null) {
                     for (UnsignedInteger16 actionValue : supportedAsyncActions) {
                         switch (actionValue.intValue()) {
-                        case Constants.CREATE_ELEMENT_REPLICA_ASYNC_ACTION:
-                            supportedAsyncActionsSet
-                                    .add(StorageSystem.AsyncActions.CreateElementReplica
-                                            .name());
-                            break;
-                        case Constants.CREATE_GROUP_REPLICA_ASYNC_ACTION:
-                            supportedAsyncActionsSet
-                                    .add(StorageSystem.AsyncActions.CreateGroupReplica
-                                            .name());
-                            break;
-                        default:
+                            case Constants.CREATE_ELEMENT_REPLICA_ASYNC_ACTION:
+                                supportedAsyncActionsSet
+                                        .add(StorageSystem.AsyncActions.CreateElementReplica
+                                                .name());
+                                break;
+                            case Constants.CREATE_GROUP_REPLICA_ASYNC_ACTION:
+                                supportedAsyncActionsSet
+                                        .add(StorageSystem.AsyncActions.CreateGroupReplica
+                                                .name());
+                                break;
+                            default:
                         }
                     }
                 }

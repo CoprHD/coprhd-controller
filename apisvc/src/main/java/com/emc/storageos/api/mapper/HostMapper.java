@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.mapper;
@@ -10,24 +10,16 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.mapTenantResource;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
 import java.net.URI;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.NavigableMap;
-import java.util.TreeMap;
-
 import com.emc.storageos.db.client.model.Cluster;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.HostInterface;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.IpInterface;
-import com.emc.storageos.db.client.model.OpStatusMap;
-import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.model.VcenterDataCenter;
-import com.emc.storageos.db.client.model.Host.ProvisioningJobStatus;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
@@ -73,15 +65,15 @@ public class HostMapper {
         return to;
     }
 
-    public static ExportGroupRestRep map(ExportGroup from, List<Initiator> initiators, 
-            Map<String,Integer> volumes, List<Host> hosts, List<Cluster> clusters) {
+    public static ExportGroupRestRep map(ExportGroup from, List<Initiator> initiators,
+            Map<String, Integer> volumes, List<Host> hosts, List<Cluster> clusters) {
         if (from == null) {
             return null;
         }
         ExportGroupRestRep to = new ExportGroupRestRep();
         mapDataObjectFields(from, to);
         if (initiators != null) {
-            for (Initiator initiator: initiators) {
+            for (Initiator initiator : initiators) {
                 to.getInitiators().add(map(initiator));
             }
         }
@@ -97,14 +89,14 @@ public class HostMapper {
             }
         }
         if (hosts != null) {
-            for (Host host: hosts) {
+            for (Host host : hosts) {
                 to.getHosts().add(map(host));
             }
         }
         if (clusters != null) {
-            for (Cluster cluster: clusters) {
+            for (Cluster cluster : clusters) {
                 to.getClusters().add(map(cluster));
-                
+
             }
         }
         if (from.getProject() != null) {
@@ -145,7 +137,7 @@ public class HostMapper {
         }
         return to;
     }
-    
+
     public static ClusterRestRep map(Cluster from) {
         if (from == null) {
             return null;
@@ -154,6 +146,7 @@ public class HostMapper {
         mapTenantResource(from, to);
         to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject()));
         to.setVcenterDataCenter(toRelatedResource(ResourceTypeEnum.VCENTERDATACENTER, from.getVcenterDataCenter()));
+        to.setAutoExportEnabled(from.getAutoExportEnabled());
         return to;
     }
 
@@ -177,7 +170,7 @@ public class HostMapper {
         to.setPortNumber(from.getPortNumber());
         to.setIpAddress(from.getIpAddress());
         to.setUseSsl(from.getUseSSL());
-        to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenant()));
+        to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.findVcenterTenant()));
         to.setOsVersion(from.getOsVersion());
         return to;
     }

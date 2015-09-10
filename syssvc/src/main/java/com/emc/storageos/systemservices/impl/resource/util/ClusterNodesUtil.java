@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.resource.util;
 
@@ -41,7 +31,7 @@ public class ClusterNodesUtil {
     private static volatile Service _service;
 
     private static volatile CoordinatorClientExt _coordinatorExt;
-    
+
     public void setCoordinator(CoordinatorClient coordinator) {
         _coordinator = coordinator;
     }
@@ -56,21 +46,21 @@ public class ClusterNodesUtil {
 
     /**
      * Gets a reference to the node connection info for the nodes requested.
-     *
-     * @param nodeNames List of node names whose information is returned
+     * 
+     * @param nodeIds List of node ids whose information is returned
      * @return A list containing the connection info for all nodes in the Bourne
      *         cluster.
      * @throws IllegalStateException When an exception occurs trying to get the
-     *                               cluster nodes.
+     *             cluster nodes.
      */
-    public static List<NodeInfo> getClusterNodeInfo(List<String> nodeNames) {
+    public static List<NodeInfo> getClusterNodeInfo(List<String> nodeIds) {
         List<NodeInfo> nodeInfoList = new ArrayList<NodeInfo>();
         List<String> validNodeIds = new ArrayList<String>();
         try {
-            if( nodeNames != null && !nodeNames.isEmpty() ){
-                _log.info("Getting cluster node info for ids: {}", nodeNames);
+            if (nodeIds != null && !nodeIds.isEmpty()) {
+                _log.info("Getting cluster node info for ids: {}", nodeIds);
             }
-            else{
+            else {
                 _log.info("Getting cluster node info for all nodes");
             }
 
@@ -80,18 +70,18 @@ public class ClusterNodesUtil {
             List<Service> svcList = _coordinator.locateAllServices(_service.getName()
                     , _service.getVersion(), null, null);
             for (Service svc : svcList) {
-                _log.debug("Got service with node id " + svc.getNodeName());
+                _log.debug("Got service with node id " + svc.getNodeId());
                 // if there are node ids requested
-                if (nodeNames != null && !nodeNames.isEmpty() &&
-                        !nodeNames.contains(svc.getNodeName())) {
+                if (nodeIds != null && !nodeIds.isEmpty() &&
+                        !nodeIds.contains(svc.getNodeId())) {
                     continue;
                 }
                 // The service identifier specifies the connection information
                 // for the node on which the service executes.
                 URI nodeEndPoint = svc.getEndpoint(null);
                 if (nodeEndPoint != null) {
-                    nodeInfoList.add(new NodeInfo(svc.getNodeName(), nodeEndPoint));
-                    validNodeIds.add(svc.getNodeName());
+                    nodeInfoList.add(new NodeInfo(svc.getNodeId(),svc.getNodeName(), nodeEndPoint));
+                    validNodeIds.add(svc.getNodeId());
                 }
             }
             _log.debug("Valid node ids: {}", validNodeIds);
@@ -99,11 +89,11 @@ public class ClusterNodesUtil {
             throw APIException.internalServerErrors.getObjectFromError("cluster nodes info", "coordinator", e);
         }
 
-        //validate if all requested node ids information is retrieved
-        if(nodeNames != null && !nodeNames.isEmpty() &&
-                !validNodeIds.containsAll(nodeNames)){
-            nodeNames.removeAll(validNodeIds);
-            throw APIException.badRequests.parameterIsNotValid("node id(s): "+nodeNames);
+        // validate if all requested node ids information is retrieved
+        if (nodeIds != null && !nodeIds.isEmpty() &&
+                !validNodeIds.containsAll(nodeIds)) {
+            nodeIds.removeAll(validNodeIds);
+            throw APIException.badRequests.parameterIsNotValid("node id(s): " + nodeIds);
         }
         return nodeInfoList;
     }
@@ -115,8 +105,8 @@ public class ClusterNodesUtil {
     public static List<NodeInfo> getClusterNodeInfo() {
         return getClusterNodeInfo(null);
     }
-    
+
     public static ArrayList<String> getUnavailableControllerNodes() {
-    	return _coordinatorExt.getUnavailableControllerNodes();
+        return _coordinatorExt.getUnavailableControllerNodes();
     }
- }
+}

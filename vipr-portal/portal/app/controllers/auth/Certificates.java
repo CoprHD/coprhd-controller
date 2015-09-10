@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.auth;
@@ -45,21 +45,21 @@ import java.util.List;
 import static controllers.Common.angularRenderArgs;
 
 @With(Common.class)
-@Restrictions({@Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN")})
+@Restrictions({ @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN") })
 public class Certificates extends Controller {
 
     private static Truststore api() {
         return BourneUtil.getViprClient().truststore();
     }
 
-    @Before(unless={"list", "listJson"})
+    @Before(unless = { "list", "listJson" })
     static void isClusterStable() {
         if (!Common.isClusterStable()) {
             flash.error(MessagesUtils.get("configProperties.error.clusterNotStable"));
             list();
         }
     }
-	
+
     @FlashException
     public static void list() {
         CertificateDataTable dataTable = new CertificateDataTable();
@@ -74,7 +74,7 @@ public class Certificates extends Controller {
         angularRenderArgs().putAll(ImmutableMap.of(
                 "options", options,
                 "certificateSettings", certificateSettings
-        ));
+                ));
 
         render(dataTable);
     }
@@ -110,7 +110,7 @@ public class Certificates extends Controller {
         Maintenance.maintenance(Common.reverseRoute(Certificates.class, "list"));
     }
 
-    @FlashException(value="list")
+    @FlashException(value = "list")
     public static void addCertificates(CertificateChangesForm certificateChanges) {
         if (certificateChanges.validateAndExtractAdds("certificateChanges")) {
             if (certificateChanges.hasChanges()) {
@@ -121,8 +121,8 @@ public class Certificates extends Controller {
                 flash.success(MessagesUtils.get("certificateChanges.submittedReconfigure"));
                 list();
             } else {
-                //shouldn't actually be possible.
-                //The save button is disabled when there are no changes.
+                // shouldn't actually be possible.
+                // The save button is disabled when there are no changes.
                 flash.error(MessagesUtils.get("certificates.nothing"));
             }
         } else {
@@ -151,12 +151,11 @@ public class Certificates extends Controller {
             if (cert == null) {
                 throw new CertificateException("No certificate found in file " + file.getName());
             }
-            //some characters (such as non printable characters) are ignored by the cert parser but
-            //trip up our XML encoding/decoding. Get the PEM to send to API from the validated certificate
-            //instead of the uploaded file.
+            // some characters (such as non printable characters) are ignored by the cert parser but
+            // trip up our XML encoding/decoding. Get the PEM to send to API from the validated certificate
+            // instead of the uploaded file.
             return (X509Factory.BEGIN_CERT + System.lineSeparator() +
-                    new Base64().encodeToString(cert.getEncoded()) + System.lineSeparator() +
-                    X509Factory.END_CERT);
+                    new Base64().encodeToString(cert.getEncoded()) + System.lineSeparator() + X509Factory.END_CERT);
         }
 
         public boolean validateAndExtractAdds(String formName) {

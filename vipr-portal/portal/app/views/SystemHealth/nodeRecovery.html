@@ -71,11 +71,9 @@
 	        render.recoveryStatus('#recoveryStatus', status);
 	        render.recoveryStatus('#recoveryStatusAnim', status);
 	   	 
-	        startime = (startime) ? startime : "NA";
-	        $('#startTime').append(startime);
+	        startime = (startime) ? $('#startTime').append(formatLocalDateTime(new Date(startime))) : $('#startTime').append("NA");
 	   	 
-	        endtime = (endtime) ? endtime : "NA";
-	        $('#endTime').append(endtime);
+	        endtime = (endtime) ? $('#endTime').append(formatLocalDateTime(new Date(endtime))) : $('#endTime').append("NA");
 	        render.recoveryErrorStatus("#errorCode", errorcode)
 	   	
 	        if (status == 'INIT' || status == 'PREPARING' || status == 'SYNCING' || status == 'REPAIRING') {
@@ -153,8 +151,8 @@
                 disableBtnWhenStable();
     			setInterval(getRecoveryStatus, 5000);
     			renderRecoveryStatus("${recoveryStatus?.status}",
-    					             "${recoveryStatus?.startTime}",
-    					             "${recoveryStatus?.endTime}",
+    					             "${startTime}",
+    					             "${endTime}",
     					             "${recoveryStatus?.errorCode}");    			
     		},
     		error: function(jqXHR, exception) {

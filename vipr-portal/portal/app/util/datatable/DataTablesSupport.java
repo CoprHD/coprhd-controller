@@ -1,12 +1,10 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util.datatable;
 
 import java.util.Collection;
-import java.util.List;
-
 import org.apache.commons.lang.StringUtils;
 
 import play.mvc.Scope;
@@ -31,7 +29,6 @@ public class DataTablesSupport {
         return toJson(source);
     }
 
-
     public static Source createSource(SourceDataTable dataTable, Scope.Params requestParams) {
         DataTableParams params = createParams(requestParams);
         Source source = new Source();
@@ -51,7 +48,7 @@ public class DataTablesSupport {
 
     public static Source createSource(Collection data, Scope.Params requestParams, String message) {
         Source source = createSource(data, requestParams);
-        source.message = StringUtils.defaultIfEmpty(message,  null);
+        source.message = StringUtils.defaultIfEmpty(message, null);
         return source;
     }
 

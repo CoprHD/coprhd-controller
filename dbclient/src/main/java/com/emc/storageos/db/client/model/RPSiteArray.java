@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.client.model;
@@ -22,7 +12,7 @@ import javax.xml.bind.annotation.XmlElement;
 /**
  * Object that helps to identify RP systems, their sites and arrays.
  * Helps with placement, replication, and connectivity tables.
- *
+ * 
  */
 @Cf("RPSiteArray")
 public class RPSiteArray extends DataObject {
@@ -102,8 +92,8 @@ public class RPSiteArray extends DataObject {
 
     // Identity helper in logs
     public String toString() {
-        return _rpProtectionSystem.toString() + ":" + _rpInternalSiteName + ":" + _rpSiteName + ":" + _arraySerialNumber + ":" + _storageSystem.toString();
+        return _rpProtectionSystem.toString() + ":" + _rpInternalSiteName + ":" + _rpSiteName + ":" + _arraySerialNumber + ":"
+                + _storageSystem.toString();
     }
-
 
 }

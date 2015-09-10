@@ -1,16 +1,13 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) $today_year. EMC Corporation All Rights Reserved This software contains the
- * intellectual property of EMC Corporation or is licensed to EMC Corporation from third parties.
- * Use of this software and the intellectual property contained therein is expressly limited to the
- * terms and conditions of the License Agreement under which it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis;
 
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.JOB_COMPLETED_NO_ERROR;
+
 import java.net.URI;
+import java.util.List;
 
 import javax.cim.CIMArgument;
 import javax.cim.CIMInstance;
@@ -40,8 +37,6 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateMirrorJob
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockDeleteMirrorJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResumeMirrorJob;
 
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.JOB_COMPLETED_NO_ERROR;
-
 /**
  * A class to provide common, array-independent mirror implementations
  */
@@ -51,26 +46,26 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
     protected SmisCommandHelper _helper;
     protected CIMObjectPathFactory _cimPath;
     protected NameGenerator _nameGenerator;
-    
+
     public void setCimObjectPathFactory(CIMObjectPathFactory cimObjectPathFactory) {
         _cimPath = cimObjectPathFactory;
     }
-    
+
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
     }
-    
+
     public void setSmisCommandHelper(SmisCommandHelper smisCommandHelper) {
         _helper = smisCommandHelper;
     }
-    
+
     public void setNameGenerator(NameGenerator nameGenerator) {
         _nameGenerator = nameGenerator;
     }
-    
+
     @Override
     public void createSingleVolumeMirror(StorageSystem storage, URI mirror, Boolean createInactive,
-                                         TaskCompleter taskCompleter) throws DeviceControllerException {
+            TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("createSingleVolumeMirror operation START");
         try {
             BlockMirror mirrorObj = _dbClient.queryObject(BlockMirror.class, mirror);
@@ -90,7 +85,7 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
             }
             else {
                 inArgs = _helper.getCreateElementReplicaMirrorInputArguments(storage, source, targetPool,
-                    createInactive, targetLabelToUse);
+                        createInactive, targetLabelToUse);
             }
 
             CIMArgument[] outArgs = new CIMArgument[5];
@@ -113,7 +108,7 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
             taskCompleter.error(_dbClient, serviceError);
         }
     }
-    
+
     @Override
     public void fractureSingleVolumeMirror(StorageSystem storage, URI mirror, Boolean sync, TaskCompleter taskCompleter)
             throws DeviceControllerException {
@@ -144,7 +139,7 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
             }
         }
     }
-    
+
     @Override
     public void resumeSingleVolumeMirror(StorageSystem storage, URI mirror, TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("resumeSingleVolumeMirror operation START");
@@ -166,7 +161,7 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
                 /**
                  * JIRA CTRL-11855
                  * User created mirror and did pause operation using SMI 4.6.2.
-                 * Then He upgraded to SMI 8.0.3. While doing mirror resume getting exception from SMI because of the 
+                 * Then He upgraded to SMI 8.0.3. While doing mirror resume getting exception from SMI because of the
                  * existing mirrorObj.getSynchronizedInstance() contains SystemName=\"SYMMETRIX+000195701573\""
                  * This is wrong with 8.0.3 as SystemName=\"SYMMETRIX-+-000195701573\"".
                  * To resolve this issue setting new value collected from current smis provider here.
@@ -182,8 +177,14 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
                 if (job != null) {
                     ControllerServiceImpl.enqueueJob(new QueueJob(new SmisBlockResumeMirrorJob(job,
                             storage.getId(), taskCompleter)));
+                } else {
+                    CIMInstance syncObject = _helper.getInstance(storage, storageSync, false, false,
+                            new String[] { SmisConstants.CP_SYNC_STATE });
+                    mirrorObj.setSyncState(CIMPropertyFactory.getPropertyValue(syncObject, SmisConstants.CP_SYNC_STATE));
+                    _dbClient.persistObject(mirrorObj);
+                    taskCompleter.ready(_dbClient);
                 }
-                
+
             }
         } catch (Exception e) {
             _log.error("Failed to resume single volume mirror: {}", mirror);
@@ -195,7 +196,13 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
             }
         }
     }
-    
+
+    @Override
+    public void establishVolumeNativeContinuousCopyGroupRelation(StorageSystem storage, URI sourceVolume,
+            URI mirror, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
     @Override
     public void detachSingleVolumeMirror(StorageSystem storage, URI mirror, TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("detachSingleVolumeMirror operation START");
@@ -213,12 +220,12 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
                 taskCompleter.error(_dbClient, DeviceControllerException.errors.smis.jobFailed(msg));
             }
         } catch (Exception e) {
-            _log.info("Problem making SMI-S call: ", e);
+            _log.error("Problem making SMI-S call: ", e);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             taskCompleter.error(_dbClient, serviceError);
         }
     }
-    
+
     @Override
     public void deleteSingleVolumeMirror(StorageSystem storage, URI mirror, TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("deleteSingleVolumeMirror operation START");
@@ -269,5 +276,36 @@ public abstract class AbstractMirrorOperations implements MirrorOperations {
             }
         }
         return defaultInstance;
+    }
+
+    @Override
+    public void createGroupMirrors(StorageSystem storage, List<URI> mirrorList, Boolean createInactive, TaskCompleter taskCompleter) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void fractureGroupMirrors(StorageSystem storage, List<URI> mirrorList, Boolean sync, TaskCompleter taskCompleter) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void resumeGroupMirrors(StorageSystem storage, List<URI> mirrorList, TaskCompleter taskCompleter) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void detachGroupMirrors(StorageSystem storage, List<URI> mirrorList, Boolean deleteGroup, TaskCompleter taskCompleter) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void deleteGroupMirrors(StorageSystem storage, List<URI> mirrorList, TaskCompleter taskCompleter) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void removeMirrorFromDeviceMaskingGroup(StorageSystem system, List<URI> mirrorList,
+            TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

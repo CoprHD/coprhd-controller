@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 
@@ -12,36 +12,33 @@
 
 package com.emc.storageos.vasa;
 
-public class NotFound extends java.lang.Exception{
+public class NotFound extends java.lang.Exception {
 
     private static final long serialVersionUID = 1348562968868L;
-    
+
     private com.emc.storageos.vasa.VasaServiceStub.NotFoundE faultMessage;
 
-    
-        public NotFound() {
-            super("NotFound");
-        }
-
-        public NotFound(java.lang.String s) {
-           super(s);
-        }
-
-        public NotFound(java.lang.String s, java.lang.Throwable ex) {
-          super(s, ex);
-        }
-
-        public NotFound(java.lang.Throwable cause) {
-            super(cause);
-        }
-    
-
-    public void setFaultMessage(com.emc.storageos.vasa.VasaServiceStub.NotFoundE msg){
-       faultMessage = msg;
+    public NotFound() {
+        super("NotFound");
     }
-    
-    public com.emc.storageos.vasa.VasaServiceStub.NotFoundE getFaultMessage(){
-       return faultMessage;
+
+    public NotFound(java.lang.String s) {
+        super(s);
+    }
+
+    public NotFound(java.lang.String s, java.lang.Throwable ex) {
+        super(s, ex);
+    }
+
+    public NotFound(java.lang.Throwable cause) {
+        super(cause);
+    }
+
+    public void setFaultMessage(com.emc.storageos.vasa.VasaServiceStub.NotFoundE msg) {
+        faultMessage = msg;
+    }
+
+    public com.emc.storageos.vasa.VasaServiceStub.NotFoundE getFaultMessage() {
+        return faultMessage;
     }
 }
-    

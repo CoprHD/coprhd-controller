@@ -1,21 +1,12 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.block;
 
 import java.util.ArrayList;
 import java.util.List;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
@@ -31,25 +22,28 @@ import com.emc.storageos.model.adapters.StringSetMapAdapter;
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class UnManagedVolumeRestRep extends DataObjectRestRep {
     /**
-     * The native GUID of a discovered unmanaged volume which 
-     * has not yet been ingested into ViPR.  
+     * The native GUID of a discovered unmanaged volume which
+     * has not yet been ingested into ViPR.
+     * 
      * @valid none
-     */ 
+     */
     private String nativeGuid;
-    
+
     /**
-     * Information about the unmanaged volume. For example, allocated capacity, 
-     * provisioned capacity, disk technology, and whether or not the volume is 
-     * thinly provisioned. 
+     * Information about the unmanaged volume. For example, allocated capacity,
+     * provisioned capacity, disk technology, and whether or not the volume is
+     * thinly provisioned.
+     * 
      * @valid none
-     */ 
+     */
     private List<StringSetMapAdapter.Entry> volumeInformation;
-    
+
     /**
-     * Characteristics of the unmanaged volume, such as is it mapped, 
-     * is it a composite, and is it a snapshot. 
+     * Characteristics of the unmanaged volume, such as is it mapped,
+     * is it a composite, and is it a snapshot.
+     * 
      * @valid none
-     */ 
+     */
     private List<StringHashMapEntry> volumeCharacteristics;
 
     /**
@@ -71,17 +65,24 @@ public class UnManagedVolumeRestRep extends DataObjectRestRep {
      * List of storage port URIs associated with this UnManagedVolume.
      */
     private List<String> storagePortUris;
-    
+
     /**
-     * The storage system to which this volume belongs. 
+     * List of supported VPool URIs associated with this UnManagedVolume.
+     */
+    private List<String> supportedVPoolUris;
+
+    /**
+     * The storage system to which this volume belongs.
+     * 
      * @valid none
-     */ 
+     */
     private RelatedResourceRep storageSystem;
 
     /**
-     * The storage pool to which this volume belongs. 
+     * The storage pool to which this volume belongs.
+     * 
      * @valid none
-     */ 
+     */
     private RelatedResourceRep storagePool;
 
     @XmlElement(name = "native_guid")
@@ -101,7 +102,7 @@ public class UnManagedVolumeRestRep extends DataObjectRestRep {
     public void setStorageSystem(RelatedResourceRep storageSystem) {
         this.storageSystem = storageSystem;
     }
-    
+
     @XmlElement(name = "storage_pool")
     public RelatedResourceRep getStoragePool() {
         return storagePool;
@@ -187,6 +188,19 @@ public class UnManagedVolumeRestRep extends DataObjectRestRep {
 
     public void setStoragePortUris(List<String> storagePortUris) {
         this.storagePortUris = storagePortUris;
+    }
+
+    @XmlElementWrapper(name = "supported_virtual_pools")
+    @XmlElement(name = "virtual_pool")
+    public List<String> getSupportedVPoolUris() {
+        if (supportedVPoolUris == null) {
+            supportedVPoolUris = new ArrayList<String>();
+        }
+        return supportedVPoolUris;
+    }
+
+    public void setSupportedVPoolUris(List<String> supportedVPoolUris) {
+        this.supportedVPoolUris = supportedVPoolUris;
     }
 
 }

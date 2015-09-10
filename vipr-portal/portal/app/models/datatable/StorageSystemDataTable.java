@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.datatable;
@@ -26,7 +26,8 @@ public class StorageSystemDataTable extends DataTable {
         addColumn("version").hidden();
         addColumn("userName").hidden();
         StorageSystemInfo.addDiscoveryColumns(this);
-        sortAll();
+        addColumn("actions").setRenderFunction("renderButtonBar");
+        sortAllExcept("actions");
         setDefaultSort("name", "asc");
     }
 

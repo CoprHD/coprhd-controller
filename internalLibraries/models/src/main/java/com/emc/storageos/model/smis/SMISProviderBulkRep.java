@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.smis;
@@ -15,8 +15,10 @@ import java.util.List;
 @XmlRootElement(name = "bulk_smis_providers")
 public class SMISProviderBulkRep extends BulkRestRep {
     private List<SMISProviderRestRep> smisProviders;
+
     /**
      * List of SMIS Providers.
+     * 
      * @valid none
      */
     @XmlElement(name = "smis_provider")

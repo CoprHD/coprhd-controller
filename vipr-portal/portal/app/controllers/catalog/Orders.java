@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.catalog;
@@ -77,7 +77,7 @@ public class Orders extends OrderExecution {
     private static final int NORMAL_DELAY = 3000;
     private static final int LONG_DELAY = 15000;
     private static final int DEFAULT_DELAY = 60000;
-    
+
     public static final String RECENT_ACTIVITIES = "VIPRUI_RECENT_ACTIVITIES";
     public static final int MAX_RECENT_SERVICES = 4;
 
@@ -127,7 +127,7 @@ public class Orders extends OrderExecution {
         dataTable.setUserInfo(Security.getUserInfo());
         renderJSON(DataTablesSupport.createJSON(dataTable.fetchAll(), params));
     }
-    
+
     public static void itemsJson(@As(",") String[] ids) {
         List<OrderInfo> results = Lists.newArrayList();
         if (ids != null && ids.length > 0) {
@@ -143,12 +143,12 @@ public class Orders extends OrderExecution {
         }
         renderJSON(results);
     }
-    
+
     /**
      * Resubmits an order, creating a new copy with the same parameters.
      * 
      * @param orderId
-     *        the order ID.
+     *            the order ID.
      */
     public static void resubmitOrder(@Required String orderId) {
         checkAuthenticity();
@@ -206,10 +206,10 @@ public class Orders extends OrderExecution {
         else {
             flash.success(MessagesUtils.get("order.submitSuccess"));
         }
-		
+
         Http.Cookie cookie = request.cookies.get(RECENT_ACTIVITIES);
         response.setCookie(RECENT_ACTIVITIES, updateRecentActivitiesCookie(cookie, serviceId));
-        
+
         String orderId = submittedOrder.getId().toString();
         receipt(orderId);
     }
@@ -250,9 +250,9 @@ public class Orders extends OrderExecution {
         fetchData(details);
         render(orderId, details);
     }
-    
+
     /**
-     * Waits for an update to the order.  The lastUpdated value is specified by the receipt page and only once the
+     * Waits for an update to the order. The lastUpdated value is specified by the receipt page and only once the
      * order has been updated more recently than that are the detail returned.
      * 
      * @param orderId the order ID.
@@ -287,37 +287,37 @@ public class Orders extends OrderExecution {
     private static int getWaitDelay(OrderDetails details) {
         OrderStatus status = OrderStatus.valueOf(details.order.getOrderStatus());
         switch (status) {
-        case PENDING:
-        case APPROVED:
-            // Pending and approved will be quick transitions
-            return SHORT_DELAY;
-        case EXECUTING:
-            // Order is executing, normal delay
-            return NORMAL_DELAY;
-        case SCHEDULED:
-        case APPROVAL:
-            // Order is waiting, long delay
-            return LONG_DELAY;
-        default:
-            return DEFAULT_DELAY;
+            case PENDING:
+            case APPROVED:
+                // Pending and approved will be quick transitions
+                return SHORT_DELAY;
+            case EXECUTING:
+                // Order is executing, normal delay
+                return NORMAL_DELAY;
+            case SCHEDULED:
+            case APPROVAL:
+                // Order is waiting, long delay
+                return LONG_DELAY;
+            default:
+                return DEFAULT_DELAY;
         }
     }
 
     private static String updateRecentActivitiesCookie(Http.Cookie cookie, String serviceId) {
-    	List<String> ids = Lists.newArrayList();
+        List<String> ids = Lists.newArrayList();
         if (cookie != null && cookie.value != null) {
-        	ids.addAll(Arrays.asList(cookie.value.split(",")));
-        	if (ids.contains(serviceId)) {
-        		ids.remove(serviceId);
-        	}
+            ids.addAll(Arrays.asList(cookie.value.split(",")));
+            if (ids.contains(serviceId)) {
+                ids.remove(serviceId);
+            }
         }
         ids.add(0, serviceId);
-       	while (ids.size() > MAX_RECENT_SERVICES) {
-        	ids.remove(ids.size() - 1);
+        while (ids.size() > MAX_RECENT_SERVICES) {
+            ids.remove(ids.size() - 1);
         }
-    	return StringUtils.join(ids, ",");
+        return StringUtils.join(ids, ",");
     }
-    
+
     /**
      * Fetches the remaining data for the order.
      */
@@ -392,7 +392,7 @@ public class Orders extends OrderExecution {
                 }
             }
         }
-        
+
         private void checkLastUpdated(OrderRestRep obj) {
             if ((obj != null) && (obj.getLastUpdated() != null)) {
                 long updated = obj.getLastUpdated().getTime();
@@ -401,7 +401,7 @@ public class Orders extends OrderExecution {
                 }
             }
         }
-        
+
         private void checkLastUpdated(ExecutionStateRestRep obj) {
             if ((obj != null) && (obj.getLastUpdated() != null)) {
                 long updated = obj.getLastUpdated().getTime();
@@ -409,8 +409,8 @@ public class Orders extends OrderExecution {
                     lastUpdated = updated;
                 }
             }
-        }      
-        
+        }
+
         private void checkLastUpdated(ExecutionLogRestRep obj) {
             if ((obj != null) && (obj.getLastUpdated() != null)) {
                 long updated = obj.getLastUpdated().getTime();
@@ -418,8 +418,8 @@ public class Orders extends OrderExecution {
                     lastUpdated = updated;
                 }
             }
-        }               
-        
+        }
+
         private void checkLastUpdated(ApprovalRestRep approval) {
             if ((approval != null) && (approval.getDateActioned() != null)) {
                 long updated = approval.getDateActioned().getTime();
@@ -452,7 +452,7 @@ public class Orders extends OrderExecution {
          * Determines if this has been updated more recently than the given time.
          * 
          * @param time
-         *        the time.
+         *            the time.
          * @return true if this has been updated more recently.
          */
         public boolean isNewer(long time) {
@@ -468,17 +468,16 @@ public class Orders extends OrderExecution {
             try {
                 OrderStatus status = OrderStatus.valueOf(order.getOrderStatus());
                 switch (status) {
-                case CANCELLED:
-                case PARTIAL_SUCCESS:
-                case REJECTED:
-                case SUCCESS:
-                case ERROR:
-                    return true;
-                default:
-                    return false;
+                    case CANCELLED:
+                    case PARTIAL_SUCCESS:
+                    case REJECTED:
+                    case SUCCESS:
+                    case ERROR:
+                        return true;
+                    default:
+                        return false;
                 }
-            }
-            catch (RuntimeException e) {
+            } catch (RuntimeException e) {
                 return false;
             }
         }

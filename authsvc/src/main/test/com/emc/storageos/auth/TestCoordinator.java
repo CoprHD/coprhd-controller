@@ -1,32 +1,22 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.auth;
 
-import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
-import com.emc.storageos.coordinator.client.model.DbVersionInfo;
-import com.emc.storageos.coordinator.client.model.MigrationStatus;
-import com.emc.storageos.coordinator.client.service.*;
-import com.emc.storageos.coordinator.client.service.WorkPool.WorkAssignmentListener;
-import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
-import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
-import com.emc.storageos.coordinator.common.Configuration;
-import com.emc.storageos.coordinator.common.Service;
-import com.emc.storageos.coordinator.exceptions.CoordinatorException;
-import com.emc.storageos.model.property.PropertyInfo;
-import com.emc.vipr.model.sys.ClusterInfo;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Properties;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
+
 import org.apache.curator.framework.recipes.leader.LeaderLatch;
 import org.apache.curator.framework.recipes.leader.LeaderSelector;
 import org.apache.curator.framework.recipes.leader.LeaderSelectorListener;
@@ -35,22 +25,37 @@ import org.apache.curator.framework.recipes.locks.InterProcessReadWriteLock;
 import org.apache.curator.framework.recipes.locks.InterProcessSemaphoreMutex;
 import org.apache.curator.framework.recipes.queue.QueueSerializer;
 
-import java.io.IOException;
-import java.util.*;
-import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
-
+import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
+import com.emc.storageos.coordinator.client.model.DbVersionInfo;
+import com.emc.storageos.coordinator.client.model.MigrationStatus;
+import com.emc.storageos.coordinator.client.service.ConnectionStateListener;
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.coordinator.client.service.DistributedAroundHook;
+import com.emc.storageos.coordinator.client.service.DistributedDataManager;
+import com.emc.storageos.coordinator.client.service.DistributedLockQueueManager;
+import com.emc.storageos.coordinator.client.service.DistributedPersistentLock;
+import com.emc.storageos.coordinator.client.service.DistributedQueue;
+import com.emc.storageos.coordinator.client.service.DistributedSemaphore;
+import com.emc.storageos.coordinator.client.service.NodeListener;
+import com.emc.storageos.coordinator.client.service.WorkPool;
+import com.emc.storageos.coordinator.client.service.WorkPool.WorkAssignmentListener;
+import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
+import com.emc.storageos.coordinator.client.service.impl.DistributedLockQueueTaskConsumer;
+import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
+import com.emc.storageos.coordinator.common.Configuration;
+import com.emc.storageos.coordinator.common.Service;
+import com.emc.storageos.coordinator.exceptions.CoordinatorException;
+import com.emc.storageos.model.property.PropertyInfo;
+import com.emc.vipr.model.sys.ClusterInfo;
 
 /**
- *  Stub coordinator class for use with unit tests
+ * Stub coordinator class for use with unit tests
  */
 public class TestCoordinator implements CoordinatorClient {
 
-    private ConcurrentHashMap<String, HashMap<String, Configuration> > configurations = 
-            new ConcurrentHashMap<String, HashMap<String, Configuration> >();
-    
+    private ConcurrentHashMap<String, HashMap<String, Configuration>> configurations =
+            new ConcurrentHashMap<String, HashMap<String, Configuration>>();
+
     @Override
     public <T> T locateService(Class<T> clazz, String name, String version,
             String tag, String endpointKey) throws CoordinatorException {
@@ -65,7 +70,6 @@ public class TestCoordinator implements CoordinatorClient {
         return null;
     }
 
-
     @Override
     public List<Service> locateAllSvcsAllVers(String name) throws CoordinatorException {
         return null;
@@ -75,7 +79,7 @@ public class TestCoordinator implements CoordinatorClient {
     public <T> DistributedQueue<T> getQueue(String name,
             DistributedQueueConsumer<T> consumer,
             QueueSerializer<T> serializer, int maxThreads, int maxItem)
-                    throws CoordinatorException {
+            throws CoordinatorException {
         // TODO Auto-generated method stub
         return null;
     }
@@ -85,6 +89,11 @@ public class TestCoordinator implements CoordinatorClient {
             DistributedQueueConsumer<T> consumer,
             QueueSerializer<T> serializer, int maxThreads) throws CoordinatorException {
         // TODO Auto-generated method stub
+        return null;
+    }
+
+    @Override
+    public <T> DistributedLockQueueManager getLockQueue(DistributedLockQueueTaskConsumer<T> consumer) throws CoordinatorException {
         return null;
     }
 
@@ -114,11 +123,11 @@ public class TestCoordinator implements CoordinatorClient {
         return null;
     }
 
-    private HashMap<String,TestLock> _locks = new HashMap<String,TestLock>();
-    
+    private HashMap<String, TestLock> _locks = new HashMap<String, TestLock>();
+
     @Override
     public synchronized InterProcessLock getLock(String name) throws CoordinatorException {
-        if(_locks.containsKey(name)) {
+        if (_locks.containsKey(name)) {
             return _locks.get(name);
         } else {
             TestLock l = new TestLock();
@@ -151,14 +160,13 @@ public class TestCoordinator implements CoordinatorClient {
         return false;
     }
 
-
     @Override
     public void persistServiceConfiguration(Configuration... config)
             throws CoordinatorException {
         HashMap<String, Configuration> configMap = configurations.get(config[0].getKind());
         if (configMap == null) {
             configMap = new HashMap<String, Configuration>();
-        }        
+        }
         configMap.put(config[0].getId(), config[0]);
         configurations.put(config[0].getKind(), configMap);
     }
@@ -177,7 +185,7 @@ public class TestCoordinator implements CoordinatorClient {
     @Override
     public List<Configuration> queryAllConfiguration(String kind)
             throws CoordinatorException {
-        HashMap<String, Configuration> configMap = configurations.get(kind);       
+        HashMap<String, Configuration> configMap = configurations.get(kind);
         if (configMap != null) {
             Set<Entry<String, Configuration>> asSet = configMap.entrySet();
             ArrayList<Configuration> configs = new ArrayList<Configuration>();
@@ -193,7 +201,7 @@ public class TestCoordinator implements CoordinatorClient {
     public Configuration queryConfiguration(String kind, String id)
             throws CoordinatorException {
         HashMap<String, Configuration> configMap = configurations.get(kind);
-        if (configMap !=null) {
+        if (configMap != null) {
             return configMap.get(id);
         }
         return null;
@@ -226,7 +234,22 @@ public class TestCoordinator implements CoordinatorClient {
     }
 
     @Override
-    public CoordinatorClientInetAddressMap getInetAddessLookupMap() {    
+    public boolean isDistributedOwnerLockAvailable(String lockPath) throws Exception {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setDistributedOwnerLockAroundHook(DistributedAroundHook ownerLockAroundHook) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public DistributedAroundHook getDistributedOwnerLockAroundHook() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public CoordinatorClientInetAddressMap getInetAddessLookupMap() {
         return null;
     }
 
@@ -235,7 +258,7 @@ public class TestCoordinator implements CoordinatorClient {
         private final String _updateTime = null;
         Properties _properties = new Properties();
         private String _kind = null;
-        private String _id = null;        
+        private String _id = null;
 
         @Override
         public String getKind() {
@@ -265,13 +288,13 @@ public class TestCoordinator implements CoordinatorClient {
         @Override
         public void setConfig(String key, String val) {
             _properties.setProperty(key, val);
-            return;     
+            return;
         }
 
         @Override
         public void removeConfig(String key) {
             _properties.remove(key);
-            return;     
+            return;
         }
 
         @Override
@@ -294,9 +317,9 @@ public class TestCoordinator implements CoordinatorClient {
 
         @Override
         public synchronized void acquire() throws Exception {
-            while(_isAcquired) {
+            while (_isAcquired) {
                 Thread.sleep(100);
-            }     
+            }
             _isAcquired = true;
             _threadId = Thread.currentThread().getId();
         }
@@ -308,7 +331,7 @@ public class TestCoordinator implements CoordinatorClient {
         }
 
         @Override
-        public  boolean isAcquiredInThisProcess() {
+        public boolean isAcquiredInThisProcess() {
             if (_threadId != Thread.currentThread().getId()) {
                 return false;
             }
@@ -356,7 +379,7 @@ public class TestCoordinator implements CoordinatorClient {
 
     @Override
     public DistributedDataManager createDistributedDataManager(String basePath,
-                                                               long maxNodes) throws CoordinatorException {
+            long maxNodes) throws CoordinatorException {
         // Pass in null instead ZK for tests only
         TestDistributedDataManager dataMgr = new TestDistributedDataManager(null, basePath, maxNodes);
         return dataMgr;
@@ -369,9 +392,9 @@ public class TestCoordinator implements CoordinatorClient {
     }
 
     @Override
-    public <T extends CoordinatorSerializable> T getNodeInfo(Service service, String nodeId, Class<T> clazz)         
+    public <T extends CoordinatorSerializable> T getNodeInfo(Service service, String nodeId, Class<T> clazz)
             throws Exception {
-        return null; 
+        return null;
     }
 
     @Override
@@ -385,24 +408,24 @@ public class TestCoordinator implements CoordinatorClient {
 
     @Override
     public <T extends CoordinatorSerializable> Map<Service,
-    T> getAllNodeInfos(Class<T> clazz, Pattern nodeIdFilter) throws Exception {
-        return null; 
+            T> getAllNodeInfos(Class<T> clazz, Pattern nodeIdFilter) throws Exception {
+        return null;
     }
 
     @Override
     public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz) throws Exception {
-        return null; 
+        return null;
     }
 
     @Override
     public <T extends CoordinatorSerializable> T getTargetInfo(final Class<T> clazz, String id, String kind)
             throws Exception {
-        return null; 
+        return null;
     }
 
     @Override
     public String getUpgradeLockOwner(String lockId) {
-        return null; 
+        return null;
     }
 
     @Override
@@ -412,22 +435,22 @@ public class TestCoordinator implements CoordinatorClient {
 
     @Override
     public String getCurrentDbSchemaVersion() {
-        return null; 
+        return null;
     }
 
     @Override
     public String getTargetDbSchemaVersion() {
-        return null; 
+        return null;
     }
 
     @Override
     public MigrationStatus getMigrationStatus() {
-        return null; 
+        return null;
     }
 
     @Override
     public String getDbConfigPath(String serviceName) {
-        return null; 
+        return null;
     }
 
     @Override

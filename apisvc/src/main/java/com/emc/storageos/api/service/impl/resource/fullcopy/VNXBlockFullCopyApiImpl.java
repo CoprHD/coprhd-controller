@@ -1,19 +1,8 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.fullcopy;
-
 
 import java.net.URI;
 import java.util.Iterator;
@@ -34,7 +23,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
  * The VNX storage system implementation for the block full copy API.
  */
 public class VNXBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
-    
+
     /**
      * Constructor
      * 
@@ -43,7 +32,7 @@ public class VNXBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      * @param scheduler A reference to a scheduler.
      */
     public VNXBlockFullCopyApiImpl(DbClient dbClient, CoordinatorClient coordinator,
-        Scheduler scheduler) {
+            Scheduler scheduler) {
         super(dbClient, coordinator, scheduler);
     }
 
@@ -61,7 +50,7 @@ public class VNXBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     @Override
     public void validateFullCopyCreateRequest(List<BlockObject> fcSourceObjList, int count) {
         super.validateFullCopyCreateRequest(fcSourceObjList, count);
-        
+
         // Now platform specific checks.
         Iterator<BlockObject> fcSourceObjIter = fcSourceObjList.iterator();
         while (fcSourceObjIter.hasNext()) {
@@ -69,27 +58,27 @@ public class VNXBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
             URI fcSourceURI = fcSourceObj.getId();
             if (URIUtil.isType(fcSourceURI, Volume.class)) {
                 Volume fcSourceVolume = (Volume) fcSourceObj;
-                
-                // For VNX, if a full copy source is itself a full copy, 
+
+                // For VNX, if a full copy source is itself a full copy,
                 // and it is not detached, full copy creation would fail.
                 // So, we prevent a full copy of an attached full copy.
-                if ((BlockFullCopyUtils.isVolumeFullCopy(fcSourceVolume, _dbClient)) && 
-                    (!BlockFullCopyUtils.isFullCopyDetached(fcSourceVolume, _dbClient))) {
+                if ((BlockFullCopyUtils.isVolumeFullCopy(fcSourceVolume, _dbClient)) &&
+                        (!BlockFullCopyUtils.isFullCopyDetached(fcSourceVolume, _dbClient))) {
                     throw APIException.badRequests.cantCreateFullCopyOfVNXFullCopy();
                 }
             }
         }
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray,
-        String name, boolean createInactive, int count, String taskId) {
+            String name, boolean createInactive, int count, String taskId) {
         return super.create(fcSourceObjList, varray, name, createInactive, count, taskId);
-    }    
-   
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -104,7 +93,7 @@ public class VNXBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     @Override
     public TaskList detach(BlockObject fcSourceObj, Volume fullCopyVolume) {
         return super.detach(fcSourceObj, fullCopyVolume);
-    }    
+    }
 
     /**
      * {@inheritDoc}
@@ -128,5 +117,5 @@ public class VNXBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
     @Override
     public VolumeRestRep checkProgress(URI sourceURI, Volume fullCopyVolume) {
         return super.checkProgress(sourceURI, fullCopyVolume);
-    }    
+    }
 }

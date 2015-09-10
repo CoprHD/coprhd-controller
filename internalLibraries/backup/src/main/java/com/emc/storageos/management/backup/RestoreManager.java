@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.management.backup;
@@ -21,29 +11,27 @@ import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashSet;
 import java.util.Properties;
 import java.util.Scanner;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.services.util.PlatformUtils;
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.management.backup.exceptions.BackupException;
-import com.emc.storageos.management.backup.util.CmdUtil;
 
 public class RestoreManager {
 
     private static final Logger log = LoggerFactory.getLogger(RestoreManager.class);
 
-    private static final String VIPR_SERVICE = "storageos";
     private static final String OUTPUT_FORMAT = "  %-40s - %s";
+    private String[] serviceNames = new String[] {"dbsvc", "geodbsvc", "coordinatorsvc"};
 
     private RestoreHandler dbRestoreHandler;
     private RestoreHandler zkRestoreHandler;
     private RestoreHandler geoDbRestoreHandler;
-    private String nodeName;
+    private String nodeId;
     private int nodeCount = 0;
     private String ipAddress4;
     private String ipAddress6;
@@ -66,8 +54,8 @@ public class RestoreManager {
         this.geoDbRestoreHandler = geoDbRestoreHandler;
     }
 
-    public void setNodeName(String nodeName) {
-        this.nodeName = nodeName;
+    public void setNodeId(String nodeId) {
+        this.nodeId = nodeId;
     }
 
     public void setNodeCount(int nodeCount) {
@@ -88,11 +76,12 @@ public class RestoreManager {
 
     /**
      * Purges existing ViPR data
+     * 
      * @param needReinit
-     *          Need to create reinit marker or not
+     *            Need to create reinit marker or not
      */
     public void purge(final boolean needReinit) {
-        validateViprServiceDown();
+        validateViPRServiceDown();
         try {
             dbRestoreHandler.purge();
             geoDbRestoreHandler.purge();
@@ -108,12 +97,13 @@ public class RestoreManager {
 
     /**
      * Restores backup data to current node, including local db, geo db and coordinator
+     * 
      * @param backupPath
-     *          The backup data folder
+     *            The backup data folder
      * @param snapshotName
-     *          The backup which will be restored
+     *            The backup which will be restored
      * @param geoRestoreFromScratch
-     *          True if restore geodb from scratch, or else false
+     *            True if restore geodb from scratch, or else false
      */
     public void restore(final String backupPath, final String snapshotName, final boolean geoRestoreFromScratch) {
         log.info("Start to restore backup...");
@@ -140,27 +130,42 @@ public class RestoreManager {
     /**
      * Checks ViPR is running or not.
      */
-    private void validateViprServiceDown(){
-        boolean isRunning = CmdUtil.isJavaProcessRunning(VIPR_SERVICE);
-        if(isRunning)
-            throw new IllegalStateException("ViPR service is running");
-        else
-            log.info(String.format(OUTPUT_FORMAT,
-                    "ViPR service down validation", Validation.passed.name()));
+    private void validateViPRServiceDown() {
+        for (String serviceName : serviceNames) {
+            boolean isRunning = isServiceRunning(serviceName);
+            if (isRunning) {
+                log.info("{} is still running", serviceName);
+                throw new IllegalStateException(serviceName + " is running");
+            }
+        }
+        log.info(String.format(OUTPUT_FORMAT, "ViPR service down validation", Validation.passed.name()));
+    }
+
+    private boolean isServiceRunning(String serviceName) {
+        try {
+            int pid = PlatformUtils.getServicePid(serviceName);
+            log.debug("Found pid({}) of {}", pid, serviceName);
+            return pid != 0;
+        } catch (Exception ex) {
+            log.debug("Can't find pid of {}", serviceName);
+            return false;
+        }
     }
 
     /**
      * Validates data structure under backup folder
+     * 
      * @param backupPath
-     *          The backup folder path
+     *            The backup folder path
      * @param snapshotName
-     *          The backup which will be restored
+     *            The backup which will be restored
      */
     private void validateBackupFolder(final String backupPath, final String snapshotName)
             throws IOException {
         File backupFolder = new File(backupPath);
-        if (!backupFolder.exists())
+        if (!backupFolder.exists()) {
             throw new FileNotFoundException(String.format("(%s) is not exist", backupPath));
+        }
 
         // Validate backup files
         File[] backupFiles = backupFolder.listFiles(new FilenameFilter() {
@@ -171,27 +176,29 @@ public class RestoreManager {
             }
         });
         String errorMessage = String.format("Need db, geodb and zk backup files under folder");
-        if (backupFiles == null || backupFiles.length < BackupType.values().length - 1)
+        if (backupFiles == null || backupFiles.length < BackupType.values().length - 1) {
             throw new IllegalArgumentException(errorMessage);
+        }
 
         int matched = 0;
         boolean backupInMultiVdc = false;
-        for (File backupFile : backupFiles){
+        for (File backupFile : backupFiles) {
             String backupFileName = backupFile.getName();
             log.debug("Checking backup file: {}", backupFileName);
-            if (!backupFileName.contains(nodeName)
-                    && !backupFileName.contains(BackupType.zk.name()))
+            if (!backupFileName.contains(nodeId)
+                    && !backupFileName.contains(BackupType.zk.name())) {
                 continue;
+            }
             if (backupFileName.contains(BackupConstants.BACKUP_NAME_DELIMITER +
-                    BackupType.db.name())){
+                    BackupType.db.name())) {
                 dbRestoreHandler.setBackupArchive(backupFile);
                 ++matched;
             } else if (backupFileName.contains(BackupConstants.BACKUP_NAME_DELIMITER +
-                    BackupType.zk.name())){
+                    BackupType.zk.name())) {
                 zkRestoreHandler.setBackupArchive(backupFile);
                 ++matched;
             } else if (backupFileName.contains(BackupConstants.BACKUP_NAME_DELIMITER +
-                    BackupType.geodb.name())){
+                    BackupType.geodb.name())) {
                 geoDbRestoreHandler.setBackupArchive(backupFile);
                 ++matched;
                 if (backupFileName.contains(BackupConstants.BACKUP_NAME_DELIMITER +
@@ -205,8 +212,9 @@ public class RestoreManager {
             log.debug("Found backup file: {}", backupFile.getName());
         }
 
-        if (matched != BackupType.values().length - 1)
+        if (matched != BackupType.values().length - 1) {
             throw new IllegalArgumentException(errorMessage);
+        }
 
         // Check backup info
         checkBackupInfo(new File(backupFolder, snapshotName + BackupConstants.BACKUP_INFO_SUFFIX), backupInMultiVdc);
@@ -217,7 +225,8 @@ public class RestoreManager {
 
     /**
      * Checks version and IPs
-     * @param backupInfoFile  The backup info file
+     * 
+     * @param backupInfoFile The backup info file
      */
     private void checkBackupInfo(final File backupInfoFile, boolean backupInMultiVdc) {
         try (InputStream fis = new FileInputStream(backupInfoFile)) {
@@ -226,22 +235,18 @@ public class RestoreManager {
             checkVersion(properties);
             checkHosts(properties, backupInMultiVdc);
         } catch (IOException ex) {
-            //Ignore this exception
-            log.warn("Unable to check backup Info");
+            // Ignore this exception
+            log.warn("Unable to check backup Info", ex);
         }
     }
 
     private void checkVersion(Properties properties) throws IOException {
         String backupVersion = properties.getProperty(BackupConstants.BACKUP_INFO_VERSION);
-        String currentVersion = null;
-        try (Scanner scanner = new Scanner(new File("/proc/cmdline"))) {
-            String cmdLine = scanner.nextLine();
-            if (cmdLine != null && !cmdLine.trim().isEmpty())
-                currentVersion = cmdLine.substring(cmdLine.indexOf("product=")+8).split(" ")[0];
-        }
+        String currentVersion = PlatformUtils.getProductIdent();
         log.info("Backup Version:  {}\nCurrent Version:  {}", backupVersion, currentVersion);
-        if (!enableChangeVersion && !backupVersion.equals(currentVersion))
+        if (!enableChangeVersion && !backupVersion.equals(currentVersion)) {
             throw new IllegalArgumentException("version is not allowed to be changed");
+        }
     }
 
     private void checkHosts(Properties properties, boolean backupInMultiVdc) throws IOException {

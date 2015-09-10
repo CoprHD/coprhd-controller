@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.cloud.ucsm.service;
@@ -8,12 +8,14 @@ import java.util.regex.Pattern;
 
 public class UcsmVersionChecker {
     /**
-     * TODO This code is *copied* from VersionChecker in com.emc.storageos.util package in the controllersvc project. Cannot create a direct dependency on controllersvc
+     * TODO This code is *copied* from VersionChecker in com.emc.storageos.util package in the controllersvc project. Cannot create a direct
+     * dependency on controllersvc
      * project as controllersvc depends on this (compute) project. Best to refactor the code into common area
      */
-    
+
     /**
      * Compare the two versions
+     * 
      * @param minimumSupportedVersion
      * @param version - version discovered
      * @return 0 if versions are equal,
@@ -29,12 +31,13 @@ public class UcsmVersionChecker {
         version = version.trim();
 
         // split by dots, parentheses, and adjoining letters and numbers
-        String[] versionToVerifyWith = Pattern.compile("[\\.|\\)|\\(| ]|(?<=\\D)(?=\\d)|(?<=\\d)(?=\\D)", Pattern.DOTALL).split(minimumSupportedVersion);
+        String[] versionToVerifyWith = Pattern.compile("[\\.|\\)|\\(| ]|(?<=\\D)(?=\\d)|(?<=\\d)(?=\\D)", Pattern.DOTALL).split(
+                minimumSupportedVersion);
         String[] versionProvided = Pattern.compile("[\\.|\\)|\\(| ]|(?<=\\D)(?=\\d)|(?<=\\d)(?=\\D)", Pattern.DOTALL).split(version);
 
         // to remove leading zeroes from the first part. For vnxblock, the version is 05.32
         versionToVerifyWith[0] = versionToVerifyWith[0].replaceFirst("^0*", "");
-        versionProvided[0] = versionProvided[0].replaceFirst("^0*", "");            
+        versionProvided[0] = versionProvided[0].replaceFirst("^0*", "");
 
         int i = 0;
         while (i < versionProvided.length && i < versionToVerifyWith.length

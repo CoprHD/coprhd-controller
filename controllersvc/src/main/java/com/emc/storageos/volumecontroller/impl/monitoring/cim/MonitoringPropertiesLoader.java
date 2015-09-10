@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.monitoring.cim;
@@ -56,7 +56,8 @@ public class MonitoringPropertiesLoader {
     }
 
     /**
-     * This Method will help you to split the String separated with comma into a String Array 
+     * This Method will help you to split the String separated with comma into a String Array
+     * 
      * @param value
      * @return
      */

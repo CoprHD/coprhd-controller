@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.vplex.api;
 
@@ -23,20 +13,20 @@ package com.emc.storageos.vplex.api;
  * with the information contained within the response.
  */
 public class VPlexCacheStatusInfo {
-    
+
     // The status of the request.
-    InvalidateStatus invalidateStatus = InvalidateStatus.IN_PROGRESS;
-    
+    private InvalidateStatus invalidateStatus = InvalidateStatus.IN_PROGRESS;
+
     // The reason why the cache invalidate failed, when it does fail.
-    String invalidateFailedError = "";
-    
+    private String invalidateFailedError = "";
+
     // Enum captures the states.
     public static enum InvalidateStatus {
         SUCCESS,
         FAILED,
         IN_PROGRESS
     };
-    
+
     /**
      * Getter for the cache invalidate status.
      * 
@@ -45,7 +35,7 @@ public class VPlexCacheStatusInfo {
     public InvalidateStatus getCacheInvalidateStatus() {
         return invalidateStatus;
     }
-    
+
     /**
      * Setter for the cache invalidate status.
      * 
@@ -54,7 +44,7 @@ public class VPlexCacheStatusInfo {
     public void setCacheInvalidateStatus(InvalidateStatus status) {
         invalidateStatus = status;
     }
-    
+
     /**
      * Getter for the failure message when the cache invalidate fails.
      * 
@@ -63,7 +53,7 @@ public class VPlexCacheStatusInfo {
     public String getCacheInvalidateFailedMessage() {
         return invalidateFailedError;
     }
-    
+
     /**
      * Setter for the failure message when the cache invalidate fails.
      * 
@@ -81,10 +71,10 @@ public class VPlexCacheStatusInfo {
         StringBuilder str = new StringBuilder();
         str.append("CacheStatusInfo ( ");
         str.append(super.toString());
-        str.append(", invalidateStatus: " + invalidateStatus.name());
-        str.append(", invalidateFailedError: " + invalidateFailedError);
+        str.append(", invalidateStatus: ").append(invalidateStatus.name());
+        str.append(", invalidateFailedError: ").append(invalidateFailedError);
         str.append(" )");
-        
+
         return str.toString();
     }
 }

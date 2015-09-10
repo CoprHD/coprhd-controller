@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.file;
@@ -32,7 +32,7 @@ public class CreateFileSystemService extends ViPRService {
 
     @Param(VOLUME_NAME)
     protected String shareName;
-    
+
     @Override
     public void execute() throws Exception {
         FileStorageUtils.createFileSystem(project, virtualArray, virtualPool, shareName, sizeInGb);

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.computesystemcontroller.impl.adapter;
@@ -29,131 +19,199 @@ import com.google.common.collect.Lists;
  */
 public class ExportGroupState implements Serializable {
 
-    private URI id;
-    private Collection<URI> initiators;
-    private Collection<URI> hosts;
-    private Collection<URI> clusters;
+    private final URI id;
+    private final Collection<URI> removedInitiators;
+    private final Collection<URI> removedHosts;
+    private final Collection<URI> removedClusters;
+    private final Collection<URI> addedInitiators;
+    private final Collection<URI> addedHosts;
+    private final Collection<URI> addedClusters;
     private Map<URI, Integer> volumesMap;
-    
+    private List<URI> initiators;
+    private List<URI> hosts;
+    private List<URI> clusters;
+
     /**
-     * Create an export group state with an id, list of initiators, hosts, clusters, and volumes.
+     * Create an export group state with an id.
+     * 
      * @param id export group id
+     */
+    public ExportGroupState(URI id) {
+        this.id = id;
+        this.addedInitiators = Lists.newArrayList();
+        this.removedInitiators = Lists.newArrayList();
+
+        this.addedHosts = Lists.newArrayList();
+        this.removedHosts = Lists.newArrayList();
+
+        this.addedClusters = Lists.newArrayList();
+        this.removedClusters = Lists.newArrayList();
+    }
+
+    /**
+     * Gets the state of the export by removing initiators, hosts, and clusters from the state.
+     * 
      * @param initiators list of initiators in the export
      * @param hosts list of hosts in the export
      * @param clusters list of clusters in the export
      * @param volumesMap list of volumes in the export
      */
-    public ExportGroupState(URI id, List<URI> initiators, List<URI> hosts, List<URI> clusters, Map<URI, Integer> volumesMap) {
-        this.id = id;
+    public void getRemoveDiff(List<URI> initiators, List<URI> hosts, List<URI> clusters,
+            Map<URI, Integer> volumesMap) {
         this.initiators = initiators;
         this.hosts = hosts;
         this.clusters = clusters;
         this.volumesMap = volumesMap;
+        this.initiators.removeAll(this.removedInitiators);
+        this.hosts.removeAll(this.removedHosts);
+        this.clusters.removeAll(this.removedClusters);
     }
-    
+
+    /**
+     * Gets the state of the export by adding initiators, hosts, and clusters to the state.
+     * 
+     * @param initiators list of initiators in the export
+     * @param hosts list of hosts in the export
+     * @param clusters list of clusters in the export
+     * @param volumesMap list of volumes in the export
+     */
+    public void getAddDiff(List<URI> initiators, List<URI> hosts, List<URI> clusters,
+            Map<URI, Integer> volumesMap) {
+        this.initiators = initiators;
+        this.hosts = hosts;
+        this.clusters = clusters;
+        this.volumesMap = volumesMap;
+
+        // remove what should no longer be in the export group
+        this.initiators.removeAll(this.removedInitiators);
+        this.hosts.removeAll(this.removedHosts);
+        this.clusters.removeAll(this.removedClusters);
+
+        this.initiators.addAll(this.addedInitiators);
+        this.hosts.addAll(this.addedHosts);
+        this.clusters.addAll(this.addedClusters);
+    }
+
+    /**
+     * Returns initiators for this export group state
+     * 
+     * @return list of initiators
+     */
+    public List<URI> getInitiators() {
+        return this.initiators;
+    }
+
+    /**
+     * Returns hosts for this export group state
+     * 
+     * @return list of hosts
+     */
+    public List<URI> getHosts() {
+        return this.hosts;
+    }
+
+    /**
+     * Returns clusters for this export group state
+     * 
+     * @return list of clusters
+     */
+    public List<URI> getClusters() {
+        return this.clusters;
+    }
+
+    /**
+     * Returns volumes for this export group state
+     * 
+     * @return volume map
+     */
+    public Map<URI, Integer> getVolumesMap() {
+        return this.volumesMap;
+    }
+
     /**
      * Returns export group id
+     * 
      * @return id
      */
     public URI getId() {
         return this.id;
     }
-    
+
     /**
-     * Returns list of initiators
-     * @return initiators
+     * Returns true is export group state has additions (new hosts, new clusters, new initiators)
+     * 
+     * @return true if adds, otherwise false
      */
-    public Collection<URI> getInitiators() {
-        return initiators;
+    public boolean hasAdds() {
+        return !addedClusters.isEmpty() || !addedHosts.isEmpty() || !addedInitiators.isEmpty();
     }
 
     /**
-     * Remove a list of initiators from export's initiators
-     * @param initiators initiators to remove
+     * Returns true is export group state has removals (removed hosts, removed clusters, removed initiators)
+     * 
+     * @return true if removed, otherwise false
      */
-    public void removeInitiators(List<URI> initiators) {
-        if (this.initiators != null) {
-            this.initiators.removeAll(initiators);
-        }
+    public boolean hasRemoves() {
+        return !removedClusters.isEmpty() || !removedHosts.isEmpty() || !removedInitiators.isEmpty();
     }
-    
+
     /**
-     * Remove a collection of initiators from export's initiators
-     * @param initiators initiators to remove
-     */
-    public void removeInitiators(Collection<URI> initiators) {
-        if (this.initiators != null) {
-            this.initiators.removeAll(initiators);
-        }
-    }
-    
-    /**
-     * Add a collection of initiators to export's initiators
-     * @param initiators initiators to add
+     * Add initiators to the export group state
+     * 
+     * @param initiators
      */
     public void addInitiators(Collection<URI> initiators) {
-        if (this.initiators == null) {
-            this.initiators = Lists.newArrayList();
-        }
-        this.initiators.addAll(initiators);
+        this.addedInitiators.addAll(initiators);
     }
 
     /**
-     * Return collection of hosts
-     * @return hosts
+     * Remove initiators from the export group state
+     * 
+     * @param initiators
      */
-    public Collection<URI> getHosts() {
-        return hosts;
+    public void removeInitiators(Collection<URI> initiators) {
+        this.removedInitiators.addAll(initiators);
     }
 
     /**
-     * Remove a host from the export's hosts
-     * @param host host to remove
+     * Add host to the export group state
+     * 
+     * @param id
      */
-    public void removeHosts(URI host) {
-        if (this.hosts != null) {
-            this.hosts.remove(host);
-        }
+    public void addHost(URI id) {
+        this.addedHosts.add(id);
     }
 
     /**
-     * Add a host to the export's hosts
-     * @param host host to add
+     * Remove host from the export group state
+     * 
+     * @param id
      */
-    public void addHosts(URI host) {
-        if (this.hosts == null) {
-            this.hosts = Lists.newArrayList();
-        }
-        this.hosts.add(host);
+    public void removeHost(URI id) {
+        this.removedHosts.add(id);
     }
 
     /**
-     * Returns collection of clusters
-     * @return clusters
+     * Add cluster to the export group state
+     * 
+     * @param id
      */
-    public Collection<URI> getClusters() {
-        return clusters;
-    }
-    
-    /**
-     * Remove a cluster from the export's clusters
-     * @param cluster
-     */
-    public void removeCluster(URI cluster) {
-        if (this.clusters != null) {
-            this.clusters.remove(cluster);
-        }
+    public void addCluster(URI id) {
+        this.addedClusters.add(id);
     }
 
     /**
-     * Returns the volumes in the export
-     * @return volumes
+     * Remove cluster from the export group state
+     * 
+     * @param id
      */
-    public Map<URI, Integer> getVolumesMap() {
-        return volumesMap;
+    public void removeCluster(URI id) {
+        this.removedClusters.add(id);
     }
-    
+
+    @Override
     public String toString() {
-        return "ExportGroupState: [ExportId: " + this.id + ", Initiators: " + this.initiators + ", Hosts: " + this.hosts + ", Clusters: " + this.clusters + ", Volumes: " + this.volumesMap + "]";
+        return "ExportGroupState: [ExportId: " + this.id + ", Initiators: " + this.initiators + ", Hosts: "
+                + this.hosts + ", Clusters: " + this.clusters + ", Volumes: " + this.volumesMap + "]";
     }
 }

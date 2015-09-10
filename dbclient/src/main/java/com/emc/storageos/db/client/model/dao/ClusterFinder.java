@@ -1,10 +1,11 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model.dao;
 
 import java.net.URI;
+import java.util.Iterator;
 import java.util.List;
 
 import com.emc.storageos.db.client.ModelClient;
@@ -35,5 +36,25 @@ public class ClusterFinder extends TenantModelFinder<Cluster> {
 
     public List<NamedElement> findIdsByProject(URI projectId) {
         return client.findBy(Cluster.class, PROJECT_COLUMN_NAME, projectId);
+    }
+
+    /**
+     * Find the Cluster in a vCenterDataCenter by name.
+     *
+     * @param datacenterId vCenterDataCenterId.
+     * @param name name of the Cluster.
+     * @param activeOnly indicates whether active only or not.
+     * @return the Cluster if the name matches, otherwise null.
+     */
+    public Cluster findClusterByNameAndDatacenter(URI datacenterId, String name, boolean activeOnly) {
+        List<NamedElement> clusters = findIdsByDatacenter(datacenterId);
+        Iterator<NamedElement> clusterIt = clusters.iterator();
+        while(clusterIt.hasNext()) {
+            Cluster cluster = findById(clusterIt.next().getId());
+            if(cluster != null && cluster.getLabel().equalsIgnoreCase(name)) {
+                return cluster;
+            }
+        }
+        return null;
     }
 }

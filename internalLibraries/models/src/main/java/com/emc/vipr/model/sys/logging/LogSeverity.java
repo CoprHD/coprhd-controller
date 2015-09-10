@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.vipr.model.sys.logging;
 
@@ -32,7 +22,7 @@ public enum LogSeverity {
     INFO,
     DEBUG,
     TRACE,
-    NA; //this indicates a get logger level request, shouldn't be used elsewhere
+    NA; // this indicates a get logger level request, shouldn't be used elsewhere
 
     private final List<String> values;
 
@@ -53,8 +43,9 @@ public enum LogSeverity {
 
     public static int toLevel(String sevName) {
         LogSeverity severity = find(sevName.toUpperCase());
-        if (severity != null)
+        if (severity != null) {
             return severity.ordinal();
+        }
         return -1;
     }
 
@@ -64,4 +55,3 @@ public enum LogSeverity {
 
     public static final int MAX_LEVEL = 10;
 }
-

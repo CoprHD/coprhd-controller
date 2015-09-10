@@ -1,19 +1,8 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.fullcopy;
-
 
 import static com.emc.storageos.db.client.constraint.ContainmentConstraint.Factory.getVolumesByConsistencyGroup;
 
@@ -66,19 +55,19 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
  * common to all platform specific implementations.
  */
 public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
-    
+
     // A reference to a database client.
     protected DbClient _dbClient;
-    
+
     // A reference to the coordinator.
     protected CoordinatorClient _coordinator = null;
-    
+
     // A reference to a scheduler.
     protected Scheduler _scheduler = null;
-    
+
     // A reference to a logger.
-    private static final Logger s_logger = LoggerFactory.getLogger(AbstractBlockFullCopyApiImpl.class);    
-    
+    private static final Logger s_logger = LoggerFactory.getLogger(AbstractBlockFullCopyApiImpl.class);
+
     /**
      * Constructor
      * 
@@ -87,12 +76,12 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
      * @param scheduler A reference to the scheduler.
      */
     public AbstractBlockFullCopyApiImpl(DbClient dbClient, CoordinatorClient coordinator,
-        Scheduler scheduler) {
+            Scheduler scheduler) {
         _dbClient = dbClient;
         _coordinator = coordinator;
         _scheduler = scheduler;
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -115,41 +104,40 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
                 fcSourceObjList.add(fcSourceObj);
             }
         }
-            
+
         return fcSourceObjList;
     }
-    
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public Map<URI, Volume> getFullCopySetMap(BlockObject fcSourceObj,
-        Volume fullCopyVolume) {
+            Volume fullCopyVolume) {
         Map<URI, Volume> fullCopyMap = new HashMap<URI, Volume>();
         URI cgURI = fcSourceObj.getConsistencyGroup();
         if ((!NullColumnValueGetter.isNullURI(cgURI))
-            && (!BlockFullCopyUtils.isFullCopyDetached(fullCopyVolume, _dbClient))) {
+                && (!BlockFullCopyUtils.isFullCopyDetached(fullCopyVolume, _dbClient))) {
             // If the full copy is not detached and the source is
             // in a CG, then the full copy is treated as a set and
-            // there should be a full copy for each source in the 
+            // there should be a full copy for each source in the
             // CG and they should be part of the same replication
             // group instance.
             URIQueryResultList queryResults = new URIQueryResultList();
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getCloneReplicationGroupInstanceConstraint(fullCopyVolume
-                    .getReplicationGroupInstance()), queryResults);
+                    .getCloneReplicationGroupInstanceConstraint(fullCopyVolume
+                            .getReplicationGroupInstance()), queryResults);
             Iterator<URI> resultsIter = queryResults.iterator();
             while (resultsIter.hasNext()) {
                 URI fullCopyURI = resultsIter.next();
                 fullCopyMap.put(fullCopyURI,
-                    _dbClient.queryObject(Volume.class, fullCopyURI));
+                        _dbClient.queryObject(Volume.class, fullCopyURI));
             }
         } else {
             fullCopyMap.put(fullCopyVolume.getId(), fullCopyVolume);
         }
         return fullCopyMap;
-    }    
+    }
 
     /**
      * Gets the active volumes in the passed consistency group.
@@ -162,9 +150,9 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         List<Volume> volumeList = new ArrayList<Volume>();
         URIQueryResultList uriQueryResultList = new URIQueryResultList();
         _dbClient.queryByConstraint(getVolumesByConsistencyGroup(cg.getId()),
-            uriQueryResultList);
+                uriQueryResultList);
         Iterator<Volume> volumeIterator = _dbClient.queryIterativeObjects(Volume.class,
-            uriQueryResultList, true);
+                uriQueryResultList, true);
         while (volumeIterator.hasNext()) {
             Volume volume = volumeIterator.next();
             volumeList.add(volume);
@@ -193,8 +181,8 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
 
         // Verify full copy is supported for each full copy source object's storage pool.
         for (BlockObject fcSourceObj : fcSourceObjList) {
-            // Verify full copy is supported for each full copy 
-            // source object's storage pool. The pool could be 
+            // Verify full copy is supported for each full copy
+            // source object's storage pool. The pool could be
             // null when called by the VPLEX implementation.
             StoragePool storagePool = BlockFullCopyUtils.queryFullCopySourceStoragePool(fcSourceObj, _dbClient);
             if (storagePool != null) {
@@ -205,7 +193,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
             verifyFullCopyRequestCount(fcSourceObj, count);
         }
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -213,13 +201,13 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
     public void validateSnapshotCreateRequest(Volume requestedVolume, List<Volume> volumesToSnap) {
         // Nothing to do by default.
     }
-        
+
     /**
      * Verify if full copy is supported for the storage pool with the passed
      * URI.
      * 
      * @param storagePool A reference to the storage pool for the full copy
-     *        source.
+     *            source.
      */
     protected void verifyFullCopySupportedForStoragePool(StoragePool storagePool) {
         StringSet copyTypes = storagePool.getSupportedCopyTypes();
@@ -227,16 +215,16 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
             throw APIException.badRequests.fullCopyNotSupportedOnArray(storagePool.getStorageDevice());
         }
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public TaskList create(List<BlockObject> fcSourceObjList, VirtualArray varray,
-        String name, boolean createInactive, int count, String taskId) {
+            String name, boolean createInactive, int count, String taskId) {
         throw APIException.methodNotAllowed.notSupported();
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -244,7 +232,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
     public TaskList activate(BlockObject fcSourceObj, Volume fullCopyVolume) {
         // Create the task list.
         TaskList taskList = new TaskList();
-        
+
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
 
@@ -254,10 +242,10 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         // be a full copy for all volumes in the CG.
         Map<URI, Volume> fullCopyMap = getFullCopySetMap(fcSourceObj, fullCopyVolume);
         Set<URI> fullCopyURIs = fullCopyMap.keySet();
-        
+
         // The full copy manager will not call activate if the full copy is
-        // detached, so if the state is not inactive, then it must have 
-        // already been activated. In this case return activate action is 
+        // detached, so if the state is not inactive, then it must have
+        // already been activated. In this case return activate action is
         // completed successfully. Otherwise, send activate full copy request
         // to controller.
         if (!BlockFullCopyUtils.isFullCopyInactive(fullCopyVolume, _dbClient)) {
@@ -267,21 +255,21 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
             for (URI fullCopyURI : fullCopyURIs) {
                 _dbClient.createTaskOpStatus(Volume.class, fullCopyURI, taskId, op);
                 TaskResourceRep task = TaskMapper.toTask(fullCopyMap.get(fullCopyURI),
-                    taskId, op);
+                        taskId, op);
                 taskList.addTask(task);
             }
         } else {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class,
-                fullCopyVolume.getStorageController());
+                    fullCopyVolume.getStorageController());
             BlockController controller = getController(BlockController.class,
-                storageSystem.getSystemType());
+                    storageSystem.getSystemType());
             for (URI fullCopyURI : fullCopyURIs) {
                 _dbClient.createTaskOpStatus(Volume.class, fullCopyURI, taskId,
-                    ResourceOperationTypeEnum.ACTIVATE_VOLUME_FULL_COPY);
+                        ResourceOperationTypeEnum.ACTIVATE_VOLUME_FULL_COPY);
             }
             try {
                 controller.activateFullCopy(storageSystem.getId(), new ArrayList<URI>(
-                    fullCopyURIs), taskId);
+                        fullCopyURIs), taskId);
             } catch (ControllerException ce) {
                 s_logger.error("Failed to activate volume full copy {}", fullCopyVolume.getId(), ce);
                 _dbClient.error(Volume.class, fullCopyVolume.getId(), taskId, ce);
@@ -292,7 +280,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
                 Volume updatedFullCopyVolume = _dbClient.queryObject(Volume.class, fullCopyURI);
                 Operation taskOpStatus = updatedFullCopyVolume.getOpStatus().get(taskId);
                 TaskResourceRep task = TaskMapper.toTask(fullCopyMap.get(fullCopyURI),
-                    taskId, taskOpStatus);
+                        taskId, taskOpStatus);
                 taskList.addTask(task);
             }
         }
@@ -307,7 +295,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
 
         // Create the task list.
         TaskList taskList = new TaskList();
-        
+
         // Create a unique task id.
         String taskId = UUID.randomUUID().toString();
 
@@ -320,17 +308,17 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
 
         // If full copy volume is already detached, return detach action is
         // completed successfully. Also, if the state is inactive, then it was
-        // never activated and therefore is also really detached. Otherwise, 
+        // never activated and therefore is also really detached. Otherwise,
         // send detach full copy request to controller.
         if ((BlockFullCopyUtils.isFullCopyDetached(fullCopyVolume, _dbClient)) ||
-            (BlockFullCopyUtils.isFullCopyInactive(fullCopyVolume, _dbClient))) {
+                (BlockFullCopyUtils.isFullCopyInactive(fullCopyVolume, _dbClient))) {
             Operation op = new Operation();
             op.setResourceType(ResourceOperationTypeEnum.DETACH_VOLUME_FULL_COPY);
             op.ready("Full copy is already detached");
             for (URI fullCopyURI : fullCopyURIs) {
                 _dbClient.createTaskOpStatus(Volume.class, fullCopyURI, taskId, op);
                 TaskResourceRep task = TaskMapper.toTask(fullCopyMap.get(fullCopyURI),
-                    taskId, op);
+                        taskId, op);
                 taskList.addTask(task);
                 if (!BlockFullCopyUtils.isFullCopyDetached(fullCopyVolume, _dbClient)) {
                     // Make sure the replica state is set to detached.
@@ -344,16 +332,16 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
             }
         } else {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class,
-                fullCopyVolume.getStorageController());
+                    fullCopyVolume.getStorageController());
             BlockController controller = getController(BlockController.class,
-                storageSystem.getSystemType());
+                    storageSystem.getSystemType());
             for (URI fullCopyURI : fullCopyURIs) {
                 _dbClient.createTaskOpStatus(Volume.class, fullCopyURI, taskId,
-                    ResourceOperationTypeEnum.DETACH_VOLUME_FULL_COPY);
+                        ResourceOperationTypeEnum.DETACH_VOLUME_FULL_COPY);
             }
             try {
                 controller.detachFullCopy(storageSystem.getId(), new ArrayList<URI>(
-                    fullCopyURIs), taskId);
+                        fullCopyURIs), taskId);
             } catch (ControllerException ce) {
                 s_logger.error("Failed to detach volume full copy {}", fullCopyVolume.getId(), ce);
                 _dbClient.error(Volume.class, fullCopyVolume.getId(), taskId, ce);
@@ -364,7 +352,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
                 Volume updatedFullCopyVolume = _dbClient.queryObject(Volume.class, fullCopyURI);
                 Operation taskOpStatus = updatedFullCopyVolume.getOpStatus().get(taskId);
                 TaskResourceRep task = TaskMapper.toTask(fullCopyMap.get(fullCopyURI),
-                    taskId, taskOpStatus);
+                        taskId, taskOpStatus);
                 taskList.addTask(task);
             }
         }
@@ -386,7 +374,15 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
     public TaskList resynchronizeCopy(Volume sourceVolume, Volume fullCopyVolume) {
         throw APIException.methodNotAllowed.notSupported();
     }
-    
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public TaskList establishVolumeAndFullCopyGroupRelation(Volume sourceVolume, Volume fullCopyVolume) {
+        throw APIException.methodNotAllowed.notSupported();
+    }
+
     /**
      * {@inheritDoc}
      */
@@ -397,16 +393,16 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         volumeRestRep.getProtection().getFullCopyRep().setPercentSynced(result);
         return volumeRestRep;
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     public boolean volumeCanBeExpanded(Volume volume) {
-        if (((BlockFullCopyUtils.isVolumeFullCopy(volume, _dbClient)) && 
-             (!BlockFullCopyUtils.isFullCopyDetached(volume, _dbClient))) || 
-            ((BlockFullCopyUtils.isVolumeFullCopySource(volume, _dbClient)) &&
-             (!BlockFullCopyUtils.volumeDetachedFromFullCopies(volume, _dbClient)))) {
+        if (((BlockFullCopyUtils.isVolumeFullCopy(volume, _dbClient)) &&
+                (!BlockFullCopyUtils.isFullCopyDetached(volume, _dbClient))) ||
+                ((BlockFullCopyUtils.isVolumeFullCopySource(volume, _dbClient)) &&
+                (!BlockFullCopyUtils.volumeDetachedFromFullCopies(volume, _dbClient)))) {
             return false;
         }
 
@@ -427,15 +423,15 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         if (!BlockFullCopyUtils.isFullCopyInactive(fullCopyVolume, _dbClient)) {
             String taskId = UUID.randomUUID().toString();
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class,
-                fullCopyVolume.getStorageController());
+                    fullCopyVolume.getStorageController());
             BlockController controller = getController(BlockController.class,
-                storageSystem.getSystemType());
+                    storageSystem.getSystemType());
             try {
                 result = controller.checkSyncProgress(storageSystem.getId(),
-                    sourceURI, fullCopyURI, taskId);
+                        sourceURI, fullCopyURI, taskId);
             } catch (ControllerException ce) {
                 s_logger.error("Failed to check synchronization progress for volume full copy {}",
-                    fullCopyURI, ce);
+                        fullCopyURI, ce);
             }
         } else {
             result = 0;
@@ -444,10 +440,10 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
         if (result == null) {
             throw APIException.badRequests.protectionUnableToGetSynchronizationProgress();
         }
-        
+
         return result;
     }
-    
+
     /**
      * Looks up controller dependency for given hardware
      * 
@@ -459,13 +455,13 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
      */
     protected <T extends Controller> T getController(Class<T> clazz, String hw) {
         return _coordinator.locateService(clazz, BlockServiceApi.CONTROLLER_SVC,
-            BlockServiceApi.CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
+                BlockServiceApi.CONTROLLER_SVC_VER, hw, clazz.getSimpleName());
     }
-    
+
     /**
      * Creates a capabilities wrapper specifying some parameters for the
      * full copy create request.
-     *  
+     * 
      * @param fcSourceObj A reference to the full copy source.
      * @param vpool A reference to the source's virtual pool.
      * @param count A count of the number of full copies requested.
@@ -473,24 +469,24 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
      * @return VirtualPoolCapabilityValuesWrapper
      */
     protected VirtualPoolCapabilityValuesWrapper getCapabilitiesForFullCopyCreate(
-        BlockObject fcSourceObj, VirtualPool vpool, int count) {
+            BlockObject fcSourceObj, VirtualPool vpool, int count) {
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, count);
         capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE,
-            BlockFullCopyUtils.getCapacityForFullCopySource(fcSourceObj, _dbClient));
+                BlockFullCopyUtils.getCapacityForFullCopySource(fcSourceObj, _dbClient));
         if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
-            vpool.getSupportedProvisioningType())) {
+                vpool.getSupportedProvisioningType())) {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
-            
+
             // To guarantee that storage pool for a copy has enough physical
             // space to contain current allocated capacity of thin source volume
             capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE,
-                BlockFullCopyUtils.getAllocatedCapacityForFullCopySource(fcSourceObj, _dbClient));
+                    BlockFullCopyUtils.getAllocatedCapacityForFullCopySource(fcSourceObj, _dbClient));
         }
 
         return capabilities;
     }
-    
+
     /**
      * Sorts the passed list of full copy source objects based
      * on the natural sort order of their labels. Used to align
@@ -503,8 +499,8 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
      * the full copy for foo-2 to be bar-2. However, when you get
      * the volumes in the CG, there is no guarantee of order. Now
      * there is no restriction that volumes in a CG are named like
-     * this, but often they are because often one would create 
-     * multiple volumes in a CG in a single request. So, in this 
+     * this, but often they are because often one would create
+     * multiple volumes in a CG in a single request. So, in this
      * simple case, then the full copy names should align. We can
      * always create a more sophisticated comparator for the sort
      * routine if something more elaborate is desired.
@@ -515,28 +511,28 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
      */
     protected List<BlockObject> sortFullCopySourceList(List<BlockObject> fcSourceObjects) {
         List<BlockObject> sortedSourceObjects = new ArrayList<BlockObject>();
-        
+
         // Put the full copy source objects in a map
         // keyed by label.
         Map<String, BlockObject> fcSourcObjectsMap = new HashMap<String, BlockObject>();
         for (BlockObject fcSourceObject : fcSourceObjects) {
             fcSourcObjectsMap.put(fcSourceObject.getLabel(), fcSourceObject);
         }
-        
+
         // Create a list of the labels and sort them in natural order.
         List<String> fcSourceLabels = new ArrayList<String>(fcSourcObjectsMap.keySet());
         Collections.sort(fcSourceLabels);
-        
+
         // Iterate over the sorted labels adding them to the list.
         for (String fcSourceLabel : fcSourceLabels) {
             sortedSourceObjects.add(fcSourcObjectsMap.get(fcSourceLabel));
         }
         return sortedSourceObjects;
     }
-    
+
     /**
      * Verify the requested full copy count is valid.
-     *  
+     * 
      * @param fcSourceObj A reference to the full copy source.
      * @param count The requested full copy count.
      */
@@ -547,7 +543,7 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
     /**
      * Verify the requested full copy count for volume in CG is valid.
      * For array where group clone is not supported, override this method in platform specific impl.
-     *
+     * 
      * @param count The requested full copy count.
      */
     protected void verifyCGVolumeRequestCount(int count) {

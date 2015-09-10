@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.vipr.model.sys.healthmonitor;
 
@@ -26,15 +16,18 @@ import java.util.List;
 public class NodeDiagnostics {
 
     private String nodeId;
+    private String nodeName;
     private String ip;
     private List<DiagTest> diagTests;
-    
+
     public NodeDiagnostics() {
         this.nodeId = HealthMonitorConstants.DIAG_UNKNOWN;
+        this.nodeName = HealthMonitorConstants.DIAG_UNKNOWN;
     }
 
-    public NodeDiagnostics(String nodeId, String ip, List<DiagTest> diagTests) {
+    public NodeDiagnostics(String nodeId, String nodeName, String ip, List<DiagTest> diagTests) {
         this.nodeId = nodeId;
+        this.nodeName = nodeName;
         this.ip = ip;
         this.diagTests = diagTests;
     }
@@ -42,6 +35,11 @@ public class NodeDiagnostics {
     @XmlElement(name = "node_id")
     public String getNodeId() {
         return nodeId;
+    }
+
+    @XmlElement(name = "node_name")
+    public String getNodeName() {
+        return nodeName;
     }
 
     @XmlElement(name = "ip")
@@ -57,6 +55,10 @@ public class NodeDiagnostics {
 
     public void setNodeId(String nodeId) {
         this.nodeId = nodeId;
+    }
+
+    public void setNodeName(String nodeName) {
+        this.nodeName = nodeName;
     }
 
     public void setIp(String ip) {

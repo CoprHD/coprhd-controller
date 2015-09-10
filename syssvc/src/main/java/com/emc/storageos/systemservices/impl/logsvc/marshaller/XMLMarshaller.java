@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.logsvc.marshaller;
 
@@ -20,12 +10,12 @@ import java.io.OutputStream;
 import com.emc.storageos.systemservices.impl.logsvc.LogMessage;
 import com.emc.storageos.systemservices.impl.logsvc.util.LogUtil;
 
-public class XMLMarshaller extends Marshaller{
-	
-	XMLMarshaller(OutputStream outputStream) {
-		super(outputStream);
-		// TODO Auto-generated constructor stub
-	}
+public class XMLMarshaller extends Marshaller {
+
+    XMLMarshaller(OutputStream outputStream) {
+        super(outputStream);
+        // TODO Auto-generated constructor stub
+    }
 
     @Override
     public void head() throws IOException {
@@ -38,14 +28,16 @@ public class XMLMarshaller extends Marshaller{
     }
 
     @Override
-    public void marshall(LogMessage logMessage)	throws IOException {
+    public void marshall(LogMessage logMessage) throws IOException {
         outputStream.write("<log_info>\n\t<class>".getBytes());
         outputStream.write(LogUtil.escapeXml(logMessage.getFileName()));
         outputStream.write("</class>\n\t<line>".getBytes());
         outputStream.write(LogUtil.escapeXml(logMessage.getLineNumber()));
         outputStream.write("</line>\n\t<node>".getBytes());
         outputStream.write(LogUtil.escapeXml(logMessage.getNodeId()));
-        outputStream.write("</node>\n\t<message>".getBytes());
+        outputStream.write("</node>\n\t<node_name>".getBytes());
+        outputStream.write(LogUtil.escapeXml(logMessage.getNodeName()));
+        outputStream.write("</node_name>\n\t<message>".getBytes());
         outputStream.write(LogUtil.escapeXml(logMessage.getLogContent()));
         outputStream.write("</message>\n\t<severity>".getBytes());
         outputStream.write(LogUtil.escapeXml(logMessage.getLevel()));
@@ -59,9 +51,9 @@ public class XMLMarshaller extends Marshaller{
         outputStream.write(String.valueOf(logMessage.getTime()).getBytes());
         outputStream.write("</time_ms>\n</log_info>\n".getBytes());
     }
-	
+
     @Override
-    public void marshall(String msg ,LogMessage prevMsg) throws IOException {
+    public void marshall(String msg, LogMessage prevMsg) throws IOException {
         outputStream.write("<log_info>\n\t<message>".getBytes());
         outputStream.write(LogUtil.escapeXml(msg.getBytes()));
         outputStream.write("</message>\n\t<severity>ERROR</severity>\n\t<service>internal</service>\n\t<time>".getBytes());

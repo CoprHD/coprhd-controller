@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.infra;
@@ -19,7 +19,6 @@ import util.UserPreferencesUtils;
 import controllers.Common;
 import controllers.deadbolt.Restrict;
 import controllers.deadbolt.Restrictions;
-import controllers.util.Models;
 
 @With(Common.class)
 @Restrictions({ @Restrict("TENANT_ADMIN"), @Restrict("SYSTEM_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
@@ -52,8 +51,7 @@ public class SupportRequest extends Controller {
         try {
             task = submit(supportRequest);
             flash.put("info", MessagesUtils.get(SUCCESS_KEY));
-        }
-        catch (RuntimeException e) {
+        } catch (RuntimeException e) {
             flash.error(MessagesUtils.get(ERROR_KEY, e.getMessage()));
             Logger.error(e, e.getMessage());
             createSupportRequest();
@@ -76,14 +74,14 @@ public class SupportRequest extends Controller {
         public String comment;
 
         public long start;
-        
+
         public long end;
 
         public boolean endIsCurrentTime;
 
         public SupportRequestForm() {
         }
-        
+
         public void loadDefaults() {
             email = UserPreferencesUtils.getEmail();
             comment = MessagesUtils.get(COMMENT_TEMPLATE_KEY);

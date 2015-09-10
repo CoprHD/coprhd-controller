@@ -2717,6 +2717,16 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         throw APIException.methodNotAllowed.notSupportedForVplexVolumes();
     }
 
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public TaskResourceRep establishVolumeAndSnapshotGroupRelation(
+            StorageSystem storageSystem, Volume sourceVolume,
+            BlockSnapshot snapshot, String taskId) throws ControllerException {
+        throw APIException.methodNotAllowed.notSupportedForVplexVolumes();
+    }
+
     @Override
     protected Set<URI> getConnectedVarrays(URI varrayUID) {
 

@@ -11,7 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
@@ -28,7 +27,6 @@ import com.emc.storageos.hds.model.ReplicationInfo;
 import com.emc.storageos.hds.model.SnapshotGroup;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.DefaultSnapshotOperations;
-import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.hds.prov.utils.HDSUtils;
 
@@ -352,4 +350,9 @@ public class HDSSnapshotOperations extends DefaultSnapshotOperations {
         return repInfo;
     }
 
+    @Override
+    public void establishVolumeSnapshotGroupRelation(StorageSystem storage, URI sourceVolume,
+            URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

@@ -60,6 +60,8 @@ import com.emc.sa.service.vipr.block.tasks.GetVolumeByName;
 import com.emc.sa.service.vipr.block.tasks.RemoveBlockResourcesFromExport;
 import com.emc.sa.service.vipr.block.tasks.RestoreFromFullCopy;
 import com.emc.sa.service.vipr.block.tasks.ResynchronizeFullCopy;
+import com.emc.sa.service.vipr.block.tasks.StartBlockSnapshot;
+import com.emc.sa.service.vipr.block.tasks.StartFullCopy;
 import com.emc.sa.service.vipr.block.tasks.SwapContinuousCopies;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
@@ -702,6 +704,16 @@ public class BlockStorageUtils {
         Tasks<VolumeRestRep> copies = execute(new CreateContinuousCopy(volumeId, name, countValue, type, copyId));
         addAffectedResources(copies);
         return copies;
+    }
+
+    public static void startSnapshot(URI snapshotId) {
+        Task<BlockSnapshotRestRep> task = execute(new StartBlockSnapshot(snapshotId));
+        addAffectedResource(task);
+    }
+
+    public static void startFullCopy(URI fullCopyId) {
+        Tasks<VolumeRestRep> task = execute(new StartFullCopy(fullCopyId));
+        addAffectedResources(task);
     }
 
     public static Tasks<VolumeRestRep> swapContinuousCopy(URI targetVolumeId, String type) {

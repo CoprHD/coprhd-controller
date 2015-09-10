@@ -27,7 +27,8 @@ public class ObjectBucketsDataTable extends DataTable {
     
     public ObjectBucketsDataTable() {
         addColumn("name");
-        addColumn("capacity");
+        addColumn("hardquota");
+        addColumn("softquota");
         addColumn("varray");
         addColumn("vpool");
         addColumn("protocols");
@@ -58,7 +59,8 @@ public class ObjectBucketsDataTable extends DataTable {
         public String rowLink;
         public URI id;
         public String name;
-        public String capacity;
+        public String softquota;
+        public String hardquota;
         public String varray;
         public String vpool;
         public Set<String> protocols;
@@ -68,7 +70,8 @@ public class ObjectBucketsDataTable extends DataTable {
             id = bucket.getId();
             name = bucket.getName();
             this.rowLink = createLink(ObjectBuckets.class, "bucket", "bucketId", id);
-            capacity = bucket.getSoftQuota();
+            softquota = bucket.getSoftQuota();
+            hardquota = bucket.getHardQuota();
             if (bucket.getVirtualArray() != null) {
                 varray = varrayMap.get(bucket.getVirtualArray().getId());
             }

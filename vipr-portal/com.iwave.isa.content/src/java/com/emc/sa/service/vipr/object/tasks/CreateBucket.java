@@ -18,16 +18,16 @@ public class CreateBucket extends WaitForTask<BucketRestRep> {
     private final URI vpoolId;
     private final Double softQuota;
     private final Double hardQuota;
-    private final Double retention;
+    private final String retention;
     private final String owner;
 
     public CreateBucket(String name, String varrayId, String vpoolId, String projectId, Double softQuota, Double hardQuota,
-            Double retention,
+            String retention,
             String ownerId) {
         this(name, uri(varrayId), uri(vpoolId), uri(projectId), softQuota, hardQuota, retention, ownerId);
     }
 
-    public CreateBucket(String name, URI varrayId, URI vpoolId, URI projectId, Double softQuota, Double hardQuota, Double retention,
+    public CreateBucket(String name, URI varrayId, URI vpoolId, URI projectId, Double softQuota, Double hardQuota, String retention,
             String ownerId) {
         this.name = name;
         this.projectId = projectId;

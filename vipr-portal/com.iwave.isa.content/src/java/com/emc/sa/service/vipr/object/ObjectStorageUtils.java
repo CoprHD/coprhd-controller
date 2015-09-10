@@ -25,7 +25,7 @@ public class ObjectStorageUtils {
     // (bucketName, virtualPool, project, softQuota, hardQuota, retention, namespace, tenant, owner)
     public static URI createBucket(String bucketName, URI virtualArray, URI virtualPoolId, URI projectId, Double softQuota,
             Double hardQuota,
-            Double retention, String owner) {
+            String retention, String owner) {
         Task<BucketRestRep> task = execute(new CreateBucket(bucketName, virtualArray, virtualPoolId, projectId, softQuota, hardQuota,
                 retention,
                 owner));

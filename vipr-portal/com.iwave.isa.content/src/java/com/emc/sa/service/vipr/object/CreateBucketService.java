@@ -41,7 +41,7 @@ public class CreateBucketService extends ViPRService {
     protected Double hardQuota;
 
     @Param(value = RETENTION, required = false)
-    protected Double retention;
+    protected String retention;
 
     @Param(value = OWNER, required = false)
     protected String owner;

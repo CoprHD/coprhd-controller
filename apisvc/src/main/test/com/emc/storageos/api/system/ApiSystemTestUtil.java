@@ -7,6 +7,9 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 
+import com.emc.storageos.api.service.impl.resource.BlockService;
+import com.emc.storageos.api.service.impl.resource.TaskService;
+import com.emc.storageos.cinder.model.AccessWrapper.Tenant;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.Volume;
@@ -21,7 +24,18 @@ import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
 import com.emc.storageos.model.block.VolumeIngest;
 import com.emc.storageos.model.block.VolumeRestRep;
+import com.emc.storageos.model.host.BaseInitiatorParam;
+import com.emc.storageos.model.host.HostCreateParam;
+import com.emc.storageos.model.host.HostRestRep;
+import com.emc.storageos.model.host.InitiatorCreateParam;
+import com.emc.storageos.model.host.InitiatorRestRep;
+import com.emc.storageos.model.pools.VirtualArrayAssignmentChanges;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
+import com.emc.storageos.model.varray.EndpointChanges;
+import com.emc.storageos.model.varray.NetworkRestRep;
+import com.emc.storageos.model.varray.NetworkUpdate;
+import com.emc.vipr.client.AuthClient;
+import com.emc.vipr.client.ClientConfig;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -148,6 +162,86 @@ public class ApiSystemTestUtil {
 		}
 	}
 	
+	private static Integer initiatorCounter = 0x10;
+	
+	public URI createHost(String hostName, String name, URI clusterId, URI netAId, URI netBId) {
+	    try {
+	        HostCreateParam hostInput = new HostCreateParam();
+	        hostInput.setHostName(hostName);
+	        hostInput.setName(name);
+	        hostInput.setType("Other");
+	        hostInput.setUserName("user");
+	        hostInput.setPassword("pass");
+	        hostInput.setUseSsl(false);
+	        hostInput.setDiscoverable(false);
+	        if (clusterId != null) {
+	            hostInput.setCluster(clusterId);
+	        }
+	        hostInput.setTenant(client.getUserTenantId());;
+	        Task<HostRestRep> rep = client.hosts().create(hostInput);
+	        HostRestRep host = rep.get();
+	        log.info(String.format("host %s status %s", host.getHostName(), host.getProvisioningJobStatus()));
+	        URI hostId = host.getId();
+	        String initiatorName = String.format("initiator%2x", initiatorCounter);
+	        String initiatorPort = String.format("10:00:00:00:57:00:00:%2x", initiatorCounter++);
+	        InitiatorCreateParam initiatorInput =  new InitiatorCreateParam();
+	        initiatorInput.setProtocol("FC");
+	        initiatorInput.setName(initiatorName);
+	        initiatorInput.setNode(initiatorPort);
+	        initiatorInput.setPort(initiatorPort);
+	        Task<InitiatorRestRep> initRep = client.initiators().create(hostId, initiatorInput);
+	        if (netAId != null) {
+                List<String> added = new ArrayList<String>();
+                List<String> removed = new ArrayList<String>();
+                added.add(initiatorPort);
+                updateNetworkEndpoints(netAId, added, removed);
+            }
+	        initiatorName = String.format("initiator%2x", initiatorCounter);
+            initiatorPort = String.format("10:00:00:00:57:00:00:%2x", initiatorCounter++);
+            
+            initiatorInput = new InitiatorCreateParam();
+            initiatorInput.setProtocol("FC");
+            initiatorInput.setName(initiatorName);
+            initiatorInput.setNode(initiatorPort);;
+            initiatorInput.setPort(initiatorPort);
+            initRep = client.initiators().create(hostId, initiatorInput);
+            if (netBId != null) {
+                List<String> added = new ArrayList<String>();
+                List<String> removed = new ArrayList<String>();
+                added.add(initiatorPort);
+                updateNetworkEndpoints(netBId, added, removed);
+            }
+            return hostId;
+	    } catch (ServiceErrorException ex) {
+	        log.error("Exception creating hosts: " + ex.getMessage(), ex);
+	        throw ex;
+	    }
+	}
+	
+	public void deleteHost(URI hostURI) {
+	    try {
+	        client.hosts().deactivate(hostURI, true);
+	    } catch (Exception ex) {
+	        log.error("Exception deleting hosts: " + ex.getMessage(), ex);
+            throw ex;
+	    }
+	}
+	
+	public void updateNetworkEndpoints(URI netId, List<String> added, List<String> removed) {
+	    try {
+	        NetworkUpdate netUpdate = new NetworkUpdate();
+	        netUpdate.setVarrayChanges(new VirtualArrayAssignmentChanges());
+	        EndpointChanges endpointChanges = new EndpointChanges();
+	        endpointChanges.setAdd(added);
+	        endpointChanges.setRemove(removed);
+	        netUpdate.setEndpointChanges(endpointChanges);
+	        NetworkRestRep rep = client.networks().update(netId, netUpdate);
+	        log.info("response: " + rep.getAssignedVirtualArrays().toString());
+	    } catch (ServiceErrorException ex) {
+            log.error("Exception adjusting network endpoints: " + ex.getMessage(), ex);
+            throw ex;
+        }
+	}
 	
 	public <T extends DataObject> URI getURIFromLabel(Class<T>  clazz, String label) {
 		Joiner j = new Joiner(dbClient);
@@ -175,6 +269,8 @@ public class ApiSystemTestUtil {
 				.match("nativeGuid", nativeGuids).go().list("vol");
 		return volumes;
 	}
+	
+	
 	
 
 }

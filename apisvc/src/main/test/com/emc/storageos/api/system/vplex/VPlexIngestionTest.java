@@ -23,6 +23,7 @@ import org.springframework.context.annotation.DependsOn;
 import com.emc.storageos.api.service.utils.ApisvcTestBase;
 import com.emc.storageos.api.system.ApiSystemTestUtil;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.Network;
 import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.VirtualArray;
@@ -77,6 +78,8 @@ public class VPlexIngestionTest extends ApisvcTestBase {
 	private static final String ARRAY2_GUID = "array2GUID";
 	private static final String ARRAY3_GUID = "array3GUID";
 	private static final String VPLEX_GUID = "vplexGUID";
+	private static final String SAN_A = "sanA";
+	private static final String SAN_B = "sanB";
 	// Name of the configuration file:
 	private static final String CONFIG_FILE = "vplex-ingestion-test.properties";
 	
@@ -110,15 +113,32 @@ public class VPlexIngestionTest extends ApisvcTestBase {
 	@After
 	public void teardown() {
 		if (client != null) {
+		    if (hostAUri != null) {
+		        util.deleteHost(hostAUri);
+		    }
+		    if (hostBUri != null) {
+		        util.deleteHost(hostBUri);
+		    }
 			client.auth().logout();
 		}
 	}
 	
+	public URI hostAUri, hostBUri;
+	
 	@Ignore
+	@Test
+	public void createHosts() {
+	    URI netAId = util.getURIFromLabel(Network.class, properties.getProperty(SAN_A));
+	    URI netBId = util.getURIFromLabel(Network.class, properties.getProperty(SAN_B));
+	    String hostA = "hostA" + getTimeInt();
+	    hostAUri = util.createHost(hostA + ".org", hostA, null, netAId, netBId);
+	    String hostB = "hostB" + getTimeInt();
+	    hostBUri = util.createHost(hostB + ".org", hostB, null, netAId, netBId);
+	}
+	
 	@Test
 	// Test1 creates a vplex locl volume, inventory deletes it, 
 	// discovers unmanaged resources, and ingests volume.
-	// test1a creates unmanaged  vplex local volume create. Ingestion handled in test1b.
 	public void prepare1() {
 		// Create the volume to be ingested
 		start();
@@ -146,7 +166,6 @@ public class VPlexIngestionTest extends ApisvcTestBase {
 		
 	}
 	
-	@Ignore
 	@Test
 	// Test2 creates a vplex distributed volume, inventory deletes it, 
 	// discovers unmanaged resources, and ingests volume.
@@ -216,6 +235,37 @@ public class VPlexIngestionTest extends ApisvcTestBase {
 	}
 	
 	@Test
+    // Test4 creates a vplex local volume, exports it, then inventory deletes it, 
+    // discovers unmanaged resources, and ingests exported volume.
+    public void prepare4() {
+        // Create the volume to be ingested
+        start();
+        String timeInt = getTimeInt();
+        String volumeName = "vpingest" + timeInt;
+        printLog("Creating virtual volume: " + volumeName);
+        URI vpool = util.getURIFromLabel(VirtualPool.class, properties.getProperty(LOCAL_VPOOL));
+        URI varray = util.getURIFromLabel(VirtualArray.class, properties.getProperty(LOCAL_VARRAY));
+        URI project = util.getURIFromLabel(Project.class, properties.getProperty(PROJECT));
+        String cgName =  properties.getProperty(CONSISTENCY_GROUP) + timeInt;
+        URI cg = null;
+        if (cgName != null) {
+            cg = util.createConsistencyGroup(cgName, project);
+        }
+        List<URI> volumeURIs = util.createVolume(volumeName, "1GB", 1,  vpool, varray, project, cg);
+        // Look up the volume
+        VolumeRestRep volume = client.blockVolumes().get(volumeURIs.get(0));
+        String nativeId = volume.getNativeId();
+        args.put("test4NativeId", nativeId);
+        printLog("Virtual volume: " + nativeId);
+        stop("Test 4 virtual volume creation: " + volumeName);
+        
+        // Export the virtual volume
+        // Inventory only delete it.
+        util.deleteVolumes(volumeURIs, true);
+        
+    }
+	
+	@Test
 	public void prepare999() {
 		// Do discovery of unmanaged volumes / exports
 				URI storageSystemURI;
@@ -248,7 +298,6 @@ public class VPlexIngestionTest extends ApisvcTestBase {
 		
 	}
 	
-	@Ignore
 	@Test
 	public void test1() {
 		printLog("test1");
@@ -288,7 +337,6 @@ public class VPlexIngestionTest extends ApisvcTestBase {
 		}
 	}
 	
-	@Ignore
 	@Test
 	public void test2() {
 		printLog("test2");
@@ -327,6 +375,7 @@ public class VPlexIngestionTest extends ApisvcTestBase {
 		}
 	}
 	
+	@Ignore
 	@Test
 	public void test3() {
 		printLog("test3");
@@ -366,7 +415,6 @@ public class VPlexIngestionTest extends ApisvcTestBase {
 		}
 	}
 	
-	@Ignore
 	@Test
 	/**
 	 * Causes the apisvc to hang around for an hour after testing completes.
@@ -374,6 +422,7 @@ public class VPlexIngestionTest extends ApisvcTestBase {
 	public void test999() {
 		printLog("test999");
 		try {
+		    teardown();
 			Thread.sleep(3600000);
 		} catch (InterruptedException ex) {
 			log.info("Interrupted");;

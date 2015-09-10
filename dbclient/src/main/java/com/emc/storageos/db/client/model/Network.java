@@ -8,6 +8,7 @@ package com.emc.storageos.db.client.model;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -222,7 +223,7 @@ public class Network extends DiscoveredDataObject {
      * 
      * @param endpoints
      */
-    private void addEndpoints(Map<String, String> endpoints) {
+    private void addEndpoints(HashMap<String, String> endpoints) {
         if (getEndpointsMap() == null) {
             setEndpointsMap(new StringMap());
         }
@@ -237,7 +238,7 @@ public class Network extends DiscoveredDataObject {
      * @param isDiscovered boolean (required)
      */
     public void addEndpoints(List<String> endpoints, boolean isDiscovered) {
-        Map<String, String> endpointMap = makeEndpointMap(EndpointUtility.changeCase(endpoints), isDiscovered);
+        HashMap<String, String> endpointMap = makeEndpointMap(EndpointUtility.changeCase(endpoints), isDiscovered);
         addEndpoints(endpointMap);
     }
 

@@ -15,6 +15,7 @@ import com.emc.storageos.model.object.BucketBulkRep;
 import com.emc.storageos.model.object.BucketDeleteParam;
 import com.emc.storageos.model.object.BucketParam;
 import com.emc.storageos.model.object.BucketRestRep;
+import com.emc.storageos.model.object.BucketUpdateParam;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -73,6 +74,19 @@ public class ObjectBuckets extends ProjectResources<BucketRestRep> implements Ta
      * @return a task for monitoring the progress of the operation.
      */
     public Task<BucketRestRep> create(BucketParam input) {
+        return postTask(input, getDeactivateUrl());
+    }
+    
+    /**
+     * Begins update the bucket.
+     * <p>
+     * API Call: <tt>POST /object/buckets</tt>
+     * 
+     * @param input
+     *            the create configuration.
+     * @return a task for monitoring the progress of the operation.
+     */
+    public Task<BucketRestRep> update(BucketUpdateParam input) {
         return postTask(input, getDeactivateUrl());
     }
 }

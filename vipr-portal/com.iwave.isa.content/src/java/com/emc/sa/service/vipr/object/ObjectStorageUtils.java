@@ -15,6 +15,7 @@ import java.util.List;
 import com.emc.sa.service.vipr.object.tasks.CreateBucket;
 import com.emc.sa.service.vipr.object.tasks.DeactivateBucket;
 import com.emc.sa.service.vipr.object.tasks.GetBucketResource;
+import com.emc.sa.service.vipr.object.tasks.UpdateBucket;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.object.BucketRestRep;
 import com.emc.vipr.client.Task;
@@ -49,6 +50,11 @@ public class ObjectStorageUtils {
     
     public static void removeBucketResource(URI bucketResourceId) {
         Task<BucketRestRep> task = execute(new DeactivateBucket(bucketResourceId));
+        addAffectedResource(task);
+    }
+    
+    public static void editBucketResource(URI bucketResourceId, Double softQuota, Double hardQuota, Double retention) {
+        Task<BucketRestRep> task = execute(new UpdateBucket(bucketResourceId, softQuota, hardQuota, retention));
         addAffectedResource(task);
     }
 }

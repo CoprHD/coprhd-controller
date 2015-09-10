@@ -12,16 +12,16 @@ import com.emc.storageos.model.object.BucketUpdateParam;
 import com.emc.vipr.client.Task;
 
 public class UpdateBucket extends WaitForTask<BucketRestRep> {
-    private URI bucketId;
-    private Double softQuota;
-    private Double hardQuota;
-    private Double retention;
-    
-    public UpdateBucket(String bucketId, Double softQuota, Double hardQuota, Double retention) {
+    private final URI bucketId;
+    private final String softQuota;
+    private final String hardQuota;
+    private final String retention;
+
+    public UpdateBucket(String bucketId, String softQuota, String hardQuota, String retention) {
         this(uri(bucketId), softQuota, hardQuota, retention);
     }
 
-    public UpdateBucket(URI bucketId, Double softQuota, Double hardQuota, Double retention) {
+    public UpdateBucket(URI bucketId, String softQuota, String hardQuota, String retention) {
 
         this.bucketId = bucketId;
         this.softQuota = softQuota;
@@ -35,13 +35,13 @@ public class UpdateBucket extends WaitForTask<BucketRestRep> {
     public Task<BucketRestRep> doExecute() throws Exception {
         BucketUpdateParam create = new BucketUpdateParam();
         if (softQuota != null) {
-            create.setSoftQuota(softQuota.toString());
+            create.setSoftQuota(softQuota);
         }
         if (hardQuota != null) {
-            create.setHardQuota(hardQuota.toString());
+            create.setHardQuota(hardQuota);
         }
         if (retention != null) {
-            create.setRetention(retention.toString());
+            create.setRetention(retention);
         }
 
         return getClient().objectBuckets().update(bucketId, create);

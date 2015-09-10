@@ -22,10 +22,9 @@ import com.emc.vipr.client.Task;
 import com.google.common.collect.Lists;
 
 public class ObjectStorageUtils {
-    // (bucketName, virtualPool, project, softQuota, hardQuota, retention, namespace, tenant, owner)
-    public static URI createBucket(String bucketName, URI virtualArray, URI virtualPoolId, URI projectId, Double softQuota,
-            Double hardQuota,
-            String retention, String owner) {
+
+    public static URI createBucket(String bucketName, URI virtualArray, URI virtualPoolId, URI projectId, String softQuota,
+            String hardQuota, String retention, String owner) {
         Task<BucketRestRep> task = execute(new CreateBucket(bucketName, virtualArray, virtualPoolId, projectId, softQuota, hardQuota,
                 retention,
                 owner));
@@ -53,7 +52,7 @@ public class ObjectStorageUtils {
         addAffectedResource(task);
     }
 
-    public static void editBucketResource(URI bucketResourceId, Double softQuota, Double hardQuota, Double retention) {
+    public static void editBucketResource(URI bucketResourceId, String softQuota, String hardQuota, String retention) {
         Task<BucketRestRep> task = execute(new UpdateBucket(bucketResourceId, softQuota, hardQuota, retention));
         addAffectedResource(task);
     }

@@ -15,19 +15,19 @@ import com.emc.sa.service.vipr.ViPRService;
 
 @Service("EditBucket")
 public class EditBucketService extends ViPRService {
-    
+
     @Param(BUCKET)
     protected String bucketId;
-    
+
     @Param(value = SOFT_QUOTA, required = false)
-    protected Double softQuota;
-    
+    protected String softQuota;
+
     @Param(value = HARD_QUOTA, required = false)
-    protected Double hardQuota;
-    
+    protected String hardQuota;
+
     @Param(value = RETENTION, required = false)
-    protected Double retention;
-    
+    protected String retention;
+
     @Override
     public void execute() throws Exception {
         ObjectStorageUtils.editBucketResource(uri(bucketId), softQuota, hardQuota, retention);

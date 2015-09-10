@@ -16,18 +16,17 @@ public class CreateBucket extends WaitForTask<BucketRestRep> {
     private final URI varrayId;
     private final URI projectId;
     private final URI vpoolId;
-    private final Double softQuota;
-    private final Double hardQuota;
+    private final String softQuota;
+    private final String hardQuota;
     private final String retention;
     private final String owner;
 
-    public CreateBucket(String name, String varrayId, String vpoolId, String projectId, Double softQuota, Double hardQuota,
-            String retention,
-            String ownerId) {
+    public CreateBucket(String name, String varrayId, String vpoolId, String projectId, String softQuota, String hardQuota,
+            String retention, String ownerId) {
         this(name, uri(varrayId), uri(vpoolId), uri(projectId), softQuota, hardQuota, retention, ownerId);
     }
 
-    public CreateBucket(String name, URI varrayId, URI vpoolId, URI projectId, Double softQuota, Double hardQuota, String retention,
+    public CreateBucket(String name, URI varrayId, URI vpoolId, URI projectId, String softQuota, String hardQuota, String retention,
             String ownerId) {
         this.name = name;
         this.projectId = projectId;
@@ -46,10 +45,10 @@ public class CreateBucket extends WaitForTask<BucketRestRep> {
         create.setLabel(name);
         create.setVarray(varrayId);
         create.setVpool(vpoolId);
-        create.setSoftQuota(softQuota.toString());
-        create.setHardQuota(hardQuota.toString());
+        create.setSoftQuota(softQuota);
+        create.setHardQuota(hardQuota);
         if (retention != null) {
-            create.setRetention(retention.toString());
+            create.setRetention(retention);
         }
         if (owner != null) {
             create.setOwner(owner);

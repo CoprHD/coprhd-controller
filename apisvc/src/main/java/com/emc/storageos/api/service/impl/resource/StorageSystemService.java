@@ -241,7 +241,7 @@ public class StorageSystemService extends TaskResourceService {
         ArgValidator.checkFieldNotEmpty(param.getSystemType(), "system_type");
         ArgValidator.checkFieldValueFromEnum(param.getSystemType(), "system_type", EnumSet.of(
                 StorageSystem.Type.vnxfile, StorageSystem.Type.isilon, StorageSystem.Type.rp,
-                StorageSystem.Type.netapp, StorageSystem.Type.netappc, StorageSystem.Type.vnxe, 
+                StorageSystem.Type.netapp, StorageSystem.Type.netappc, StorageSystem.Type.vnxe,
                 StorageSystem.Type.xtremio, StorageSystem.Type.ecs));
         StorageSystem.Type systemType = StorageSystem.Type.valueOf(param.getSystemType());
         if (systemType.equals(StorageSystem.Type.vnxfile)) {
@@ -262,7 +262,7 @@ public class StorageSystemService extends TaskResourceService {
 
         startStorageSystem(system);
 
-        //Rather if else everywhere some code duplication with object and file
+        // Rather if else everywhere some code duplication with object and file
         if (StorageSystem.Type.ecs.toString().equals(system.getSystemType())) {
             ObjectController controller = getController(ObjectController.class, param.getSystemType());
             ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
@@ -271,7 +271,7 @@ public class StorageSystemService extends TaskResourceService {
 
             TaskList taskList = discoverStorageSystems(tasks, controller);
             return taskList.getTaskList().listIterator().next();
-            
+
         } else {
             FileController controller = getController(FileController.class, param.getSystemType());
             ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);

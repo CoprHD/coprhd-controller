@@ -45,50 +45,50 @@ import com.sun.jersey.client.apache.ApacheHttpClientHandler;
  * ECS specific object controller implementation.
  */
 public class ECSObjectStorageDevice implements ObjectStorageDevice {
-	  private Logger _log = LoggerFactory.getLogger(ECSObjectStorageDevice.class);
-	  private ECSApiFactory ecsApiFactory;
-	  private DbClient _dbClient;
+    private Logger _log = LoggerFactory.getLogger(ECSObjectStorageDevice.class);
+    private ECSApiFactory ecsApiFactory;
+    private DbClient _dbClient;
 
-	    /**
-	     * Set ECS API factory
-	     * 
-	     * @param factory
-	     */
-	    public void setECSApiFactory(ECSApiFactory factory) {
-	    	_log.info("ECSObjectStorageDevice setECSApiFactory");
-	    	ecsApiFactory = factory;
-	    }
+    /**
+     * Set ECS API factory
+     * 
+     * @param factory
+     */
+    public void setECSApiFactory(ECSApiFactory factory) {
+        _log.info("ECSObjectStorageDevice setECSApiFactory");
+        ecsApiFactory = factory;
+    }
 
-	    public void setDbClient(DbClient dbc) {
-	        _dbClient = dbc;
-	    }
-	    
-	    /**
-	     * Initialize HTTP client
-	     */
-	    public void init() {
-	    	_log.info("From ECSObjectStorageDevice:init");
+    public void setDbClient(DbClient dbc) {
+        _dbClient = dbc;
+    }
 
-	    }
+    /**
+     * Initialize HTTP client
+     */
+    public void init() {
+        _log.info("From ECSObjectStorageDevice:init");
 
-		@Override
-		public BiosCommandResult doCreateBucket(StorageSystem storageObj, ObjectDeviceInputOutput args) 
-				throws ControllerException {
+    }
 
-			_log.info("ECSObjectStorageDevice:doCreateBucket start");
+    @Override
+    public BiosCommandResult doCreateBucket(StorageSystem storageObj, ObjectDeviceInputOutput args)
+            throws ControllerException {
 
-			try {
-				ECSApi ecsApi = getAPI(storageObj);
-				ecsApi.createBucket(args.getName(), args.getNamespace(), args.getRepGroup(), 
-						args.getRetentionPeriod(), args.getBlkSizeHQ(), args.getNotSizeSQ(), args.getOwner());
-				_log.info("ECSObjectStorageDevice:doCreateBucket end");
-				return BiosCommandResult.createSuccessfulResult();
-			} catch (ECSException e) {
-				_log.error("ECSObjectStorageDevice:doCreateBucket failed. ECSException", e);
-				return BiosCommandResult.createErrorResult(e);
-			}
-		}
-		
+        _log.info("ECSObjectStorageDevice:doCreateBucket start");
+
+        try {
+            ECSApi ecsApi = getAPI(storageObj);
+            ecsApi.createBucket(args.getName(), args.getNamespace(), args.getRepGroup(),
+                    args.getRetentionPeriod(), args.getBlkSizeHQ(), args.getNotSizeSQ(), args.getOwner());
+            _log.info("ECSObjectStorageDevice:doCreateBucket end");
+            return BiosCommandResult.createSuccessfulResult();
+        } catch (ECSException e) {
+            _log.error("ECSObjectStorageDevice:doCreateBucket failed. ECSException", e);
+            return BiosCommandResult.createErrorResult(e);
+        }
+    }
+
     @Override
     public BiosCommandResult doUpdateBucket(StorageSystem storageObj, Bucket bucket, Long softQuota, Long hardQuota, Integer retention) {
         BiosCommandResult result = BiosCommandResult.createSuccessfulResult();

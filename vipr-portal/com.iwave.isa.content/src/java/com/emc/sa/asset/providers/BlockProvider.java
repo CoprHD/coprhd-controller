@@ -141,6 +141,17 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return CONSISTENCY_GROUP_OPTION_KEY.equals(type);
     }
 
+    public static boolean checkTypeConsistency(URI volumeId, String volumeOrConsistencyType) {
+        if (volumeId == null || volumeOrConsistencyType == null) {
+            return false;
+        } else if (isVolumeType(volumeOrConsistencyType) && !BlockProviderUtils.isType(volumeId, "Volume")) {
+            return false;
+        } else if (isConsistencyGroupType(volumeOrConsistencyType) && !BlockProviderUtils.isType(volumeId, "ConsistencyGroup")) {
+            return false;
+        }
+        return true;
+    }
+
     @Asset("blockVolumeOrConsistencyType")
     @AssetDependencies("project")
     public List<AssetOption> getblockVolumeOrConsistencyType(AssetOptionsContext ctx, URI project) {
@@ -674,6 +685,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("blockSnapshotOrConsistencyGroup")
     @AssetDependencies({ "project", "consistencyGroupByProject", "blockVolumeOrConsistencyType" })
     public List<AssetOption> getBlockSnapshotsByVolume(AssetOptionsContext ctx, URI project, URI consistencyGroupId, String type) {
+        if (!checkTypeConsistency(consistencyGroupId, type)) {
+            warn("Inconsistent types, %s and %s, return empty results", consistencyGroupId, type);
+            return new ArrayList<AssetOption>();
+        }
+
         if (isVolumeType(type)) {
             debug("getting blockSnapshots (project=%s)", project);
             return getSnapshotOptionsForProject(ctx, project);
@@ -1189,6 +1205,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("fullCopy")
     @AssetDependencies({ "volumeWithFullCopies", "blockVolumeOrConsistencyType" })
     public List<AssetOption> getFullCopies(AssetOptionsContext ctx, URI volumeId, String volumeOrConsistencyType) {
+
+        if (!checkTypeConsistency(volumeId, volumeOrConsistencyType)) {
+            warn("Inconsistent types, %s and %s, return empty results", volumeId, volumeOrConsistencyType);
+            return new ArrayList<AssetOption>();
+        }
+
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
             return createBaseResourceOptions(client.blockVolumes().getFullCopies(volumeId));
@@ -1200,6 +1222,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("fullCopyAvailableForDetach")
     @AssetDependencies({ "volumeWithFullCopies", "blockVolumeOrConsistencyType" })
     public List<AssetOption> getFullCopiedDetach(AssetOptionsContext ctx, URI volumeId, String volumeOrConsistencyType) {
+        if (!checkTypeConsistency(volumeId, volumeOrConsistencyType)) {
+            warn("Inconsistent types, %s and %s, return empty results", volumeId, volumeOrConsistencyType);
+            return new ArrayList<AssetOption>();
+        }
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
             List<VolumeRestRep> volumes = client.blockVolumes().getFullCopies(volumeId, new DefaultResourceFilter<VolumeRestRep>() {
@@ -1227,6 +1253,10 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("fullCopyAvailableForResynchronize")
     @AssetDependencies({ "volumeWithFullCopies", "blockVolumeOrConsistencyType" })
     public List<AssetOption> getFullCopiedSynchronize(AssetOptionsContext ctx, URI volumeId, String volumeOrConsistencyType) {
+        if (!checkTypeConsistency(volumeId, volumeOrConsistencyType)) {
+            warn("Inconsistent types, %s and %s, return empty results", volumeId, volumeOrConsistencyType);
+            return new ArrayList<AssetOption>();
+        }
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
             List<VolumeRestRep> volumes = client.blockVolumes().getFullCopies(volumeId, new DefaultResourceFilter<VolumeRestRep>() {
@@ -1247,6 +1277,11 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("fullCopyAvailableForRestore")
     @AssetDependencies({ "volumeWithFullCopies", "blockVolumeOrConsistencyType" })
     public List<AssetOption> getFullCopiedRestore(AssetOptionsContext ctx, URI volumeId, String volumeOrConsistencyType) {
+        if (!checkTypeConsistency(volumeId, volumeOrConsistencyType)) {
+            warn("Inconsistent types, %s and %s, return empty results", volumeId, volumeOrConsistencyType);
+            return new ArrayList<AssetOption>();
+        }
+
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
             List<VolumeRestRep> volumes = client.blockVolumes().getFullCopies(volumeId, new DefaultResourceFilter<VolumeRestRep>() {

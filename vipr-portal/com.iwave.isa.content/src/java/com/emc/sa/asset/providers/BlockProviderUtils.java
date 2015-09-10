@@ -301,4 +301,8 @@ public class BlockProviderUtils {
         return vpool != null && vpool.getMultiVolumeConsistent() != null && vpool.getMultiVolumeConsistent();
     }
 
+    public static boolean isType(URI uri, String name) {
+        return uri.toString().startsWith("urn:storageos:" + name);
+    }
+
 }

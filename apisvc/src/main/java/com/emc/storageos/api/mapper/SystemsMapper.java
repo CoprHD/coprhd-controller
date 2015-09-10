@@ -11,25 +11,32 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.model.DecommissionedResource;
+import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageProvider;
 import com.emc.storageos.db.client.model.StorageSystem;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.RestLinkRep;
 import com.emc.storageos.model.adapters.StringMapAdapter;
 import com.emc.storageos.model.pools.StoragePoolRestRep;
 import com.emc.storageos.model.ports.StoragePortRestRep;
+import com.emc.storageos.model.rdfgroup.RDFGroupRestRep;
 import com.emc.storageos.model.smis.SMISProviderRestRep;
 import com.emc.storageos.model.smis.StorageProviderRestRep;
 import com.emc.storageos.model.systems.StorageSystemRestRep;
 import com.emc.storageos.model.varray.DecommissionedResourceRep;
+import com.emc.storageos.model.vnas.VirtualNASRestRep;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.plugins.metering.smis.processor.MetricsKeys;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatcher;
@@ -104,6 +111,99 @@ public class SystemsMapper {
         to.setRegistrationStatus(from.getRegistrationStatus());
         to.setSecondaryUsername(from.getSecondaryUsername());
         to.setElementManagerURL(from.getElementManagerURL());
+        return to;
+    }
+
+    public static RDFGroupRestRep map(RemoteDirectorGroup from, List<URI> volumeURIList) {
+        if (from == null) {
+            return null;
+        }
+        RDFGroupRestRep to = new RDFGroupRestRep();
+        mapDiscoveredDataObjectFields(from, to);
+        to.setActive(from.getActive());
+        to.setConnectivityStatus(from.getConnectivityStatus());
+        to.setSupportedCopyMode(from.getSupportedCopyMode());
+        to.setCopyState(from.getCopyState());
+        to.setRemoteGroupId(from.getRemoteGroupId());
+        to.setRemotePort(from.getRemotePort());
+        to.setSourceGroupId(from.getSourceGroupId());
+        to.setSourcePort(from.getSourcePort());
+        to.setSourceReplicationGroupName(from.getSourceReplicationGroupName());
+        to.setSupported(from.getSupported());
+        to.setTargetReplicationGroupName(from.getTargetReplicationGroupName());
+        to.setSourceStorageSystemUri(from.getSourceStorageSystemUri());
+        to.setRemoteStorageSystemUri(from.getRemoteStorageSystemUri());
+        to.setVolumes(volumeURIList);
+        return to;
+    }
+
+    public static VirtualNASRestRep map(VirtualNAS from) {
+        if (from == null) {
+            return null;
+        }
+
+        VirtualNASRestRep to = new VirtualNASRestRep();
+        mapDiscoveredDataObjectFields(from, to);
+        to.setAssignedVirtualArrays(from.getAssignedVirtualArrays());
+        to.setBaseDirPath(from.getBaseDirPath());
+        to.setCompatibilityStatus(from.getCompatibilityStatus());
+        to.setConnectedVirtualArrays(from.getConnectedVirtualArrays());
+        to.setDiscoveryStatus(from.getDiscoveryStatus());
+        to.setNasName(from.getNasName());
+        to.setName(from.getNasName());
+        to.setNasState(from.getNasState());
+        to.setNasTag(from.getNAStag());
+
+        if (from.getParentNasUri() != null) {
+            to.setParentNASURI(from.getParentNasUri().toString());
+        }
+
+        to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject()));
+
+        to.setProtocols(from.getProtocols());
+        to.setRegistrationStatus(from.getRegistrationStatus());
+
+        Set<String> cifsServers = new HashSet<String>();
+        if (from.getCifsServersMap() != null && !from.getCifsServersMap().isEmpty()) {
+            for (String serverName : from.getCifsServersMap().keySet()) {
+                String serverDomain = serverName;
+                if (from.getCifsServersMap().get(serverName).getDomain() != null) {
+                    serverDomain = serverDomain + "=" + from.getCifsServersMap().get(serverName).getDomain();
+                }
+
+                cifsServers.add(serverDomain);
+            }
+            if (cifsServers != null && !cifsServers.isEmpty()) {
+                to.setCifsServers(cifsServers);
+            }
+        }
+
+        for (String port : from.getStoragePorts()) {
+            to.getStoragePorts().add(toRelatedResource(
+                    ResourceTypeEnum.STORAGE_PORT, URI.create(port)));
+        }
+
+        to.setTaggedVirtualArrays(from.getTaggedVirtualArrays());
+
+        to.setStorageDeviceURI(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageDeviceURI()));
+
+        // Set the metrics!!!
+        to.setMaxStorageCapacity(MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, from.getMetrics()).toString());
+        to.setMaxStorageObjects(MetricsKeys.getLong(MetricsKeys.maxStorageObjects, from.getMetrics()).toString());
+
+        to.setStorageObjects(MetricsKeys.getLong(MetricsKeys.storageObjects, from.getMetrics()).toString());
+        to.setStorageCapacity(MetricsKeys.getLong(MetricsKeys.usedStorageCapacity, from.getMetrics()).toString());
+        to.setIsOverloaded(MetricsKeys.getBoolean(MetricsKeys.overLoaded, from.getMetrics()));
+
+        Double percentBusy = MetricsKeys.getDoubleOrNull(MetricsKeys.emaPercentBusy, from.getMetrics());
+        if (percentBusy != null) {
+            to.setAvgEmaPercentagebusy(percentBusy.toString());
+        }
+        percentBusy = MetricsKeys.getDoubleOrNull(MetricsKeys.avgPortPercentBusy, from.getMetrics());
+        if (percentBusy != null) {
+            to.setAvgPercentagebusy(percentBusy.toString());
+        }
+
         return to;
     }
 

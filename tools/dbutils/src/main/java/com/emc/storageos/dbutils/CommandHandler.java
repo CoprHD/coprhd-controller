@@ -7,6 +7,7 @@ package com.emc.storageos.dbutils;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.text.SimpleDateFormat;
@@ -61,8 +62,7 @@ public abstract class CommandHandler {
     }
 
     public static class CountHandler extends CommandHandler {
-        private static final String COUNT_ACTIVE = "-activeonly";
-        private boolean isActiveOnly = false;
+        private boolean isActiveOnly = true;
 
         public CountHandler(String args[]) {
             if (args.length < 2) {
@@ -70,10 +70,10 @@ public abstract class CommandHandler {
             }
             if (args.length == 3) {
                 String isActiveOnlyStr = args[1];
-                if (!isActiveOnlyStr.equalsIgnoreCase(COUNT_ACTIVE)) {
+                if (!isActiveOnlyStr.equalsIgnoreCase(Main.INACTIVE)) {
                     throw new IllegalArgumentException("Invalid command option: " + isActiveOnlyStr);
                 }
-                isActiveOnly = true;
+                isActiveOnly = false;
                 cfName = args[2];
             } else {
                 cfName = args[1];
@@ -175,30 +175,40 @@ public abstract class CommandHandler {
         private static final String TYPE_EVENTS = "events";
         private static final String TYPE_STATS = "stats";
         private static final String TYPE_AUDITS = "audits";
-        private static final String LIST_ACTIVE = "-activeonly";
-        private static final String LIST_LIMIT = "-limit";
         private static final String REGEX_NUMBERS = "\\d+";
+        private static final String CRITERIAS_DELIMITER = "=";
+        /*
+         * The KEY of map is the field name of an object, VALUE is the given value wants to be matched.
+         */
+        private static Map<String, String> criterias = new HashMap<>();
 
-        public ListHandler(String[] args, DBClient _client) {
+        public ListHandler(String[] args, DBClient client) {
+            if (args.length < 2) {
+                throw new IllegalArgumentException("Invalid list command ");
+            }
+
             if (args[1].equalsIgnoreCase(TYPE_EVENTS) ||
                     args[1].equalsIgnoreCase(TYPE_STATS) ||
                     args[1].equalsIgnoreCase(TYPE_AUDITS)) {
                 if (args.length < 3) {
                     throw new IllegalArgumentException("The file name prefix is missing");
                 }
-                processTimeSeriesReq(args, _client);
+                processTimeSeriesReq(args, client);
                 return;
             }
-            if (args[1].equalsIgnoreCase(LIST_ACTIVE) ||
-                    args[1].equalsIgnoreCase(LIST_LIMIT)) {
-                processListArgs(args, _client);
+            
+            if (args[1].equalsIgnoreCase(Main.INACTIVE)
+                    || args[1].equalsIgnoreCase(Main.LIST_LIMIT)
+                    || args[1].equalsIgnoreCase(Main.MODIFICATION_TIME)
+                    || args[1].equals(Main.FILTER)) {
+                processListArgs(args, client);
             }
             cfName = args[args.length - 1];
         }
 
         @Override
         public void process(DBClient _client) throws Exception {
-            _client.listRecords(cfName);
+            _client.listRecords(cfName, criterias);
         }
 
         private static boolean isValidDateTime(String[] args) {
@@ -281,21 +291,35 @@ public abstract class CommandHandler {
         }
 
         private static void processListArgs(String[] args, DBClient _client) {
-            if (args[args.length - 1].equalsIgnoreCase(LIST_LIMIT)
-                    || args[args.length - 1].equalsIgnoreCase(LIST_ACTIVE)
-                    || args[args.length - 1].matches(REGEX_NUMBERS)) {
+            if (args[args.length - 1].equalsIgnoreCase(Main.LIST_LIMIT)
+                    || args[args.length - 1].equalsIgnoreCase(Main.INACTIVE)
+                    || args[args.length - 1].matches(REGEX_NUMBERS)
+                    || args[args.length - 1].equalsIgnoreCase(Main.MODIFICATION_TIME)
+                    || args[args.length - 1].equalsIgnoreCase(Main.FILTER)
+                    || args[args.length - 1].contains(CRITERIAS_DELIMITER)) {
                 System.err.println("The Column Family Name is missing");
                 throw new IllegalArgumentException("The Column Family Name is missing");
             }
             for (int i = 1; i < args.length - 1; i++) {
-                if (args[i].equalsIgnoreCase(LIST_ACTIVE)) {
-                    _client.setActiveOnly(true);
+                if (args[i].equalsIgnoreCase(Main.INACTIVE)) {
+                    _client.setActiveOnly(false);
                 }
-                if (args[i].equalsIgnoreCase(LIST_LIMIT)) {
+                if (args[i].equalsIgnoreCase(Main.LIST_LIMIT)) {
                     _client.setTurnOnLimit(true);
                     if (args[i + 1].matches(REGEX_NUMBERS)) {
                         _client.setListLimit(Integer.valueOf(args[i + 1]));
                     }
+                }
+                if (args[i].equalsIgnoreCase(Main.MODIFICATION_TIME)) {
+                    _client.setShowModificationTime(true);
+                }
+                if (args[i].equalsIgnoreCase(Main.FILTER)) {
+                    if(!args[i+1].contains(CRITERIAS_DELIMITER)) {
+                        String errMsg = "The filter criteria is not available, please follow the usage.";
+                        throw new IllegalArgumentException(errMsg);
+                    }
+                    String[] pureCriteria = args[i+1].split(CRITERIAS_DELIMITER);
+                    criterias.put(pureCriteria[0], pureCriteria[1]);
                 }
             }
         }
@@ -304,12 +328,17 @@ public abstract class CommandHandler {
     public static class QueryHandler extends CommandHandler {
         String id = null;
 
-        public QueryHandler(String[] args) {
+        public QueryHandler(String[] args, DBClient client) {
             if (args.length < 3) {
                 throw new IllegalArgumentException("Invalid query command ");
             }
-            cfName = args[1];
-            id = args[2];
+
+            if (args[1].equalsIgnoreCase(Main.MODIFICATION_TIME)) {
+                client.setShowModificationTime(true);
+            }
+
+            cfName = args[args.length - 2];
+            id = args[args.length - 1];
         }
 
         @Override

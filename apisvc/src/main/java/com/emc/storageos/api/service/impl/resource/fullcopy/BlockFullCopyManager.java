@@ -557,6 +557,62 @@ public class BlockFullCopyManager {
     }
 
     /**
+     * Generates a group synchronized between volume Replication group
+     * and clone Replication group.
+     * 
+     * @param sourceURI The URI of the source.
+     * @param fullCopyURI The URI of the full copy volume.
+     * 
+     * @return TaskList
+     * 
+     * @throws InternalException
+     */
+    public TaskList startFullCopy(URI sourceURI, URI fullCopyURI)
+        throws InternalException {
+        s_logger.info(
+                "START establish group relation between Volume group and Full copy group."
+                        + " Source: {}, Full copy: {}", sourceURI, fullCopyURI);
+
+        // Verify passed URIs for the full copy request.
+        Map<URI, BlockObject> resourceMap = BlockFullCopyUtils.verifySourceAndFullCopy(
+            sourceURI, fullCopyURI, _uriInfo, _dbClient);
+
+        // Get the source and full copy volumes
+        Volume sourceVolume = (Volume) resourceMap.get(sourceURI);
+        Volume fullCopyVolume = (Volume) resourceMap.get(fullCopyURI);
+
+        if (!sourceVolume.hasConsistencyGroup() ||
+                fullCopyVolume.getReplicationGroupInstance() == null) {
+            throw APIException.badRequests.blockObjectHasNoConsistencyGroup();
+        }
+
+        // Check if the full copy is detached.
+        if (BlockFullCopyUtils.isFullCopyDetached(fullCopyVolume, _dbClient)) {
+            throw APIException.badRequests
+                .cannotEstablishGroupRelationForDetachedFullCopy(fullCopyURI.toString());
+        }
+
+        // Check if the full copy was not activated.
+        if (BlockFullCopyUtils.isFullCopyInactive(fullCopyVolume, _dbClient)) {
+            throw APIException.badRequests
+                .cannotEstablishGroupRelationForInactiveFullCopy(fullCopyURI.toString());
+        }
+
+        // Get the platform specific full copy implementation.
+        BlockFullCopyApi fullCopyApiImpl = getPlatformSpecificFullCopyImpl(fullCopyVolume);
+
+        // Now restore the source volume.
+        TaskList taskList = fullCopyApiImpl.establishVolumeAndFullCopyGroupRelation(sourceVolume, fullCopyVolume);
+
+        // Log an audit message
+        auditOp(OperationTypeEnum.ESTABLISH_VOLUME_FULL_COPY, true,
+            AuditLogManager.AUDITOP_BEGIN, fullCopyURI);
+
+        s_logger.info("FINISH establish group relation between Volume group and FullCopy group");
+        return taskList;
+    }
+
+    /**
      * Checks the progress of the data copy from the source with the
      * passed URI to the full copy with the passed URI.
      * 

@@ -110,7 +110,6 @@ task assembleScripts(type: Copy) {
 task assembleConfs(type: Copy) {
     eachExternalProject {
         from "${it.projectDir}/src/conf"
-        from "${it.projectDir}/src/${buildType}/conf"
         from "${it.projectDir}/src/main/resources"
     }
     def platformDir = project(":com.iwave.platform").projectDir
@@ -130,6 +129,7 @@ task assemblePortal(type: Copy, dependsOn: ":portal:assemble") {
         exclude "documentation/"
         exclude "samples-and-tests/"
         exclude "support/"
+		exclude "python/"
         exclude "**/junit-*.jar"
     }
     into("conf") {

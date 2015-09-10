@@ -16,15 +16,18 @@ import java.util.List;
 public class NodeDiagnostics {
 
     private String nodeId;
+    private String nodeName;
     private String ip;
     private List<DiagTest> diagTests;
 
     public NodeDiagnostics() {
         this.nodeId = HealthMonitorConstants.DIAG_UNKNOWN;
+        this.nodeName = HealthMonitorConstants.DIAG_UNKNOWN;
     }
 
-    public NodeDiagnostics(String nodeId, String ip, List<DiagTest> diagTests) {
+    public NodeDiagnostics(String nodeId, String nodeName, String ip, List<DiagTest> diagTests) {
         this.nodeId = nodeId;
+        this.nodeName = nodeName;
         this.ip = ip;
         this.diagTests = diagTests;
     }
@@ -32,6 +35,11 @@ public class NodeDiagnostics {
     @XmlElement(name = "node_id")
     public String getNodeId() {
         return nodeId;
+    }
+
+    @XmlElement(name = "node_name")
+    public String getNodeName() {
+        return nodeName;
     }
 
     @XmlElement(name = "ip")
@@ -47,6 +55,10 @@ public class NodeDiagnostics {
 
     public void setNodeId(String nodeId) {
         this.nodeId = nodeId;
+    }
+
+    public void setNodeName(String nodeName) {
+        this.nodeName = nodeName;
     }
 
     public void setIp(String ip) {

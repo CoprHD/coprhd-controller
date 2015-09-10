@@ -59,6 +59,14 @@
       <dt>&{'tasks.elapsed'}:</dt>
       <dd>{{task.elapsedTime | timeAgoInWords}}&nbsp;</dd>
 
+      <span ng-show="task.queueName">
+        <dt>&{'tasks.queueName'}:</dt>
+        <dd>{{task.queueName}}&nbsp;</dd>
+
+        <dt>&{'tasks.queuedElapsed'}:</dt>
+        <dd>{{task.queuedElapsedTime | timeAgoInWords}}&nbsp;</dd>
+      </span>
+
       <span ng-if="task.workflowId">
           <dt>&{'tasks.workflowId'}:</dt>
           <dd>{{task.workflowId}}&nbsp;</dd>
@@ -197,7 +205,9 @@ function renderMessage(o, val) {
 }
 
 function renderDetails(data) {
-  var details = "<dl class='dl-horizontal'><dt>&{'system.logs.node'}</dt><dd>" + data.node + "</dd>";
+  var details = "<dl class='dl-horizontal'><dt>&{'system.logs.nodeId'}</dt><dd>" + data.node_id + "</dd>";
+
+  details += "<dt>&{'system.logs.nodeName'}</dt><dd>" + data.node_name + "</dd>";
   
   if (data["thread"]) {
 	details += "<dt>&{'system.logs.thread'}</dt><dd>" + data.thread + "</dd>";

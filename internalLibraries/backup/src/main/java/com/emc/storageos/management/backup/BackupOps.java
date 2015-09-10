@@ -129,7 +129,7 @@ public class BackupOps {
     /**
      * Gets ViPR hosts from coordinator client, update it if necessary
      * 
-     * @return map of node name to IP address for each ViPR host
+     * @return map of node id to IP address for each ViPR host
      */
     private Map<String, String> getHosts() {
         if (hosts == null || hosts.isEmpty()) {
@@ -144,14 +144,14 @@ public class BackupOps {
         }
         CoordinatorClientInetAddressMap addressMap = getInetAddressLookupMap();
         hosts = new TreeMap<>();
-        for (String nodeName : addressMap.getControllerNodeIPLookupMap().keySet()) {
+        for (String nodeId : addressMap.getControllerNodeIPLookupMap().keySet()) {
             try {
-                String ipAddr = addressMap.getConnectableInternalAddress(nodeName);
+                String ipAddr = addressMap.getConnectableInternalAddress(nodeId);
                 DualInetAddress inetAddress = DualInetAddress.fromAddress(ipAddr);
                 String host = normalizeDualInetAddress(inetAddress);
-                hosts.put(nodeName, host);
+                hosts.put(nodeId, host);
             } catch (Exception ex) {
-                throw BackupException.fatals.failedToGetHost(nodeName, ex);
+                throw BackupException.fatals.failedToGetHost(nodeId, ex);
             }
         }
         this.quorumSize = hosts.size() / 2 + 1;
@@ -159,9 +159,9 @@ public class BackupOps {
     }
 
     /**
-     * Gets a map of node name and IP addresses, update it if necessary
+     * Gets a map of node id and IP addresses, update it if necessary
      * 
-     * @return map of node name to IP address(both IPv4 and IPv6 if configured)
+     * @return map of node id to IP address(both IPv4 and IPv6 if configured)
      *         for each ViPR host
      */
     // Suppress Sonar violation of Multithreaded correctness
@@ -180,13 +180,13 @@ public class BackupOps {
         }
         dualAddrHosts = new TreeMap<>();
         CoordinatorClientInetAddressMap addressMap = getInetAddressLookupMap();
-        for (String nodeName : addressMap.getControllerNodeIPLookupMap().keySet()) {
-            String normalizedHost = normalizeDualInetAddress(addressMap.get(nodeName));
+        for (String nodeId : addressMap.getControllerNodeIPLookupMap().keySet()) {
+            String normalizedHost = normalizeDualInetAddress(addressMap.get(nodeId));
             if (normalizedHost == null) {
                 throw BackupException.fatals
                         .failedToGetValidDualInetAddress("Neither IPv4 or IPv6 address is configured");
             }
-            dualAddrHosts.put(nodeName, normalizedHost);
+            dualAddrHosts.put(nodeId, normalizedHost);
         }
         return dualAddrHosts;
     }
@@ -613,12 +613,14 @@ public class BackupOps {
 
     private void releaseLock(InterProcessLock lock) {
         if (lock == null) {
+            log.info("The lock is null, no need to release");
             return;
         }
         try {
             lock.release();
+            log.info("Release lock successful");
         } catch (Exception ignore) {
-            log.error("lock release failed, {}", ignore.getMessage());
+            log.error("Release lock failed", ignore);
         }
     }
 

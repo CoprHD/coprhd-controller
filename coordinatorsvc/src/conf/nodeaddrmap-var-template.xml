@@ -8,7 +8,7 @@
     <bean id="inetAddessLookupMap"
         class="com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap"
         scope="singleton" >
-        <property name="nodeName" value="${node_name}" />
+        <property name="nodeId" value="${node_id}" />
         <property name="dualInetAddress" >
                 <bean class="com.emc.storageos.coordinator.client.service.impl.DualInetAddress" factory-method="fromAddresses">
                     <constructor-arg index="0" value="${network_ipaddr}"/>

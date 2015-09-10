@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2014 EMC Corporation
+ * Copyright 2015 EMC Corporation
  * All Rights Reserved
  */
 
@@ -30,12 +30,11 @@ import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
-import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedExportMask;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume;
-import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.SupportedVolumeInformation;
+import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedVolume.Types;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.plugins.common.Constants;
@@ -55,8 +54,71 @@ public class DiscoveryUtils {
     /**
      * get Matched Virtual Pools For Pool.
      * This is called to calculate supported vpools during unmanaged objects discovery
-     * 
+     *
      * @param poolUri
+     * @return
+     */
+    public static StringSet getMatchedVirtualPoolsForPool(DbClient dbClient, URI poolUri,
+            String isThinlyProvisionedUnManagedObject, Set<URI> srdfProtectedVPoolUris, String volumeType) {
+        StringSet vpoolUriSet = new StringSet();
+        // We should match all virtual pools as below:
+        // 1) Virtual pools which have useMatchedPools set to true and have the storage pool in their matched pools
+        // 2) Virtual pools which have the storage pool in their assigned pools
+
+        List<VirtualPool> vPoolsMatchedPools = getMatchedVPoolsOfAPool(poolUri, dbClient);
+        String provisioningTypeUnManagedObject = UnManagedVolume.SupportedProvisioningType
+                .getProvisioningType(isThinlyProvisionedUnManagedObject);
+        StoragePool storagePool = dbClient.queryObject(StoragePool.class, poolUri);
+        for (VirtualPool vPool : vPoolsMatchedPools) {
+            if (!VirtualPool.vPoolSpecifiesHighAvailability(vPool)) {
+                // if the volume is srdf target volume, then the vpool should have a relation to its source vpool.
+                // Cases to skip the vpool
+                // 1. If volume is SRDF Target volume but the vpool is not SRDF Protected.
+                // 2. If the volume is regular volume but the vpool is SRDF protected either source/target.
+                // 3. If the volume is SRDF Source volume but the vpool is SRDF target volume.
+
+                boolean srdfVolNoMatchingVpool = Types.isTargetVolume(Types.valueOf(volumeType))
+                        && !srdfProtectedVPoolUris.contains(vPool.getId());
+
+                boolean isSRDFSourceVpool = (null != vPool.getProtectionRemoteCopySettings() && !vPool
+                        .getProtectionRemoteCopySettings().isEmpty());
+
+                boolean regularVolWithSRDFVpool = Types.isRegularVolume(Types.valueOf(volumeType))
+                        && (srdfProtectedVPoolUris.contains(vPool.getId()) || isSRDFSourceVpool);
+
+                boolean srdfSourceWithTargetVpool = Types.isSourceVolume(Types.valueOf(volumeType))
+                        && srdfProtectedVPoolUris.contains(vPool.getId());
+
+                if (srdfVolNoMatchingVpool || regularVolWithSRDFVpool || srdfSourceWithTargetVpool) {
+                    _log.debug(
+                            "Skipping vpool {} srdfVolNoMatchingVpool: {} regularVolWithSRDFVpool: {} srdfSourceWithTargetVpool:{}",
+                            new Object[] { vPool.getLabel(), srdfVolNoMatchingVpool, regularVolWithSRDFVpool,
+                                    srdfSourceWithTargetVpool });
+                    continue;
+                }
+
+                List<StoragePool> validPools = VirtualPool.getValidStoragePools(vPool, dbClient, true);
+
+                for (StoragePool sPool : validPools) {
+                    if (sPool.getId().equals(storagePool.getId()) &&
+                            provisioningTypeUnManagedObject.equalsIgnoreCase(vPool.getSupportedProvisioningType())) {
+                        vpoolUriSet.add(vPool.getId().toString());
+                        break;
+                    }
+                }
+            }
+        }
+
+        return vpoolUriSet;
+    }
+
+    /**
+     * Get Matched Virtual Pools For Pool.
+     * This is called to calculate supported vpools during unmanaged objects discovery
+     * 
+     * @param dbClient
+     * @param poolUri
+     * @param isThinlyProvisionedUnManagedObject
      * @return
      */
     public static StringSet getMatchedVirtualPoolsForPool(DbClient dbClient, URI poolUri,
@@ -65,11 +127,7 @@ public class DiscoveryUtils {
         // We should match all virtual pools as below:
         // 1) Virtual pools which have useMatchedPools set to true and have the storage pool in their matched pools
         // 2) Virtual pools which have the storage pool in their assigned pools
-
-        URIQueryResultList vpoolMatchedPoolsResultList = new URIQueryResultList();
-        dbClient.queryByConstraint(ContainmentConstraint.Factory
-                .getMatchedPoolVirtualPoolConstraint(poolUri), vpoolMatchedPoolsResultList);
-        List<VirtualPool> vPoolsMatchedPools = dbClient.queryObject(VirtualPool.class, vpoolMatchedPoolsResultList);
+        List<VirtualPool> vPoolsMatchedPools = getMatchedVPoolsOfAPool(poolUri, dbClient);
         String provisioningTypeUnManagedObject = UnManagedVolume.SupportedProvisioningType
                 .getProvisioningType(isThinlyProvisionedUnManagedObject);
         StoragePool storagePool = dbClient.queryObject(StoragePool.class, poolUri);
@@ -95,11 +153,7 @@ public class DiscoveryUtils {
         // We should match all virtual pools as below:
         // 1) Virtual pools which have useMatchedPools set to true and have the storage pool in their matched pools
         // 2) Virtual pools which have the storage pool in their assigned pools
-
-        URIQueryResultList vpoolMatchedPoolsResultList = new URIQueryResultList();
-        dbClient.queryByConstraint(ContainmentConstraint.Factory
-                .getMatchedPoolVirtualPoolConstraint(poolUri), vpoolMatchedPoolsResultList);
-        List<VirtualPool> vPoolsMatchedPools = dbClient.queryObject(VirtualPool.class, vpoolMatchedPoolsResultList);
+        List<VirtualPool> vPoolsMatchedPools = getMatchedVPoolsOfAPool(poolUri, dbClient);
         StoragePool storagePool = dbClient.queryObject(StoragePool.class, poolUri);
         for (VirtualPool vPool : vPoolsMatchedPools) {
             List<StoragePool> validPools = VirtualPool.getValidStoragePools(vPool, dbClient, true);
@@ -110,13 +164,12 @@ public class DiscoveryUtils {
                 }
             }
         }
-
         return vpoolUriSet;
     }
 
     /**
      * Filters supported vPools in UnManaged Volume based on Auto-Tiering Policy.
-     * 
+     *
      * @param unManagedVolume the UnManaged volume
      * @param policyName the policy name associated with UnManaged volume
      * @param system the system
@@ -125,9 +178,7 @@ public class DiscoveryUtils {
     public static void filterSupportedVpoolsBasedOnTieringPolicy(
             UnManagedVolume unManagedVolume, String policyName, StorageSystem system, DbClient dbClient) {
 
-        StringSetMap unManagedVolumeInformation = unManagedVolume.getVolumeInformation();
-        StringSet supportedVpoolURIs = unManagedVolumeInformation
-                .get(SupportedVolumeInformation.SUPPORTED_VPOOL_LIST.toString());
+        StringSet supportedVpoolURIs = unManagedVolume.getSupportedVpoolUris();
         List<String> vPoolsToRemove = new ArrayList<String>();
         if (supportedVpoolURIs != null) {
             Iterator<String> itr = supportedVpoolURIs.iterator();
@@ -159,7 +210,7 @@ public class DiscoveryUtils {
 
     /**
      * Checks the UnManaged Volume's policy with vPool's policy.
-     * 
+     *
      * @param vPool the vPool
      * @param autoTierPolicyId the auto tier policy id on unmanaged volume
      * @param system the system
@@ -436,7 +487,7 @@ public class DiscoveryUtils {
         SetView<URI> onlyAvailableinDB = Sets.difference(unManagedVolumesInDBSet, discoveredUnManagedVolumes);
 
         _log.info("Diff :" + Joiner.on("\t").join(onlyAvailableinDB));
-        if (!onlyAvailableinDB.isEmpty()) {
+        if (onlyAvailableinDB.size() > 0) {
             List<UnManagedVolume> unManagedVolumeTobeDeleted = new ArrayList<UnManagedVolume>();
             Iterator<UnManagedVolume> unManagedVolumes = dbClient.queryIterativeObjects(UnManagedVolume.class,
                     new ArrayList<URI>(onlyAvailableinDB));
@@ -453,7 +504,7 @@ public class DiscoveryUtils {
                 volume.setInactive(true);
                 unManagedVolumeTobeDeleted.add(volume);
             }
-            if (!unManagedVolumeTobeDeleted.isEmpty()) {
+            if (unManagedVolumeTobeDeleted.size() > 0) {
                 partitionManager.updateAndReIndexInBatches(unManagedVolumeTobeDeleted, 1000,
                         dbClient, UNMANAGED_VOLUME);
             }
@@ -474,7 +525,7 @@ public class DiscoveryUtils {
 
         SetView<URI> onlyAvailableinDB = Sets.difference(allMasksInDatabase, discoveredUnManagedExportMasks);
 
-        if (!onlyAvailableinDB.isEmpty()) {
+        if (onlyAvailableinDB.size() > 0) {
             _log.info("these UnManagedExportMasks are orphaned and will be cleaned up:"
                     + Joiner.on("\t").join(onlyAvailableinDB));
 
@@ -494,11 +545,25 @@ public class DiscoveryUtils {
                 uem.setInactive(true);
                 unManagedExportMasksToBeDeleted.add(uem);
             }
-            if (!unManagedExportMasksToBeDeleted.isEmpty()) {
+            if (unManagedExportMasksToBeDeleted.size() > 0) {
                 partitionManager.updateAndReIndexInBatches(unManagedExportMasksToBeDeleted, Constants.DEFAULT_PARTITION_SIZE,
                         dbClient, UNMANAGED_EXPORT_MASK);
             }
         }
+    }
 
+    /**
+     * Return the Matched VirtualPools of a given physical pool.
+     * 
+     * @param poolUri
+     *            - Physical Pool URI.
+     * @param dbClient
+     * @return
+     */
+    private static List<VirtualPool> getMatchedVPoolsOfAPool(URI poolUri, DbClient dbClient) {
+        URIQueryResultList vpoolMatchedPoolsResultList = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getMatchedPoolVirtualPoolConstraint(poolUri), vpoolMatchedPoolsResultList);
+        return dbClient.queryObject(VirtualPool.class, vpoolMatchedPoolsResultList);
     }
 }

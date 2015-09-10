@@ -137,9 +137,9 @@ public class Upgrade extends Controller {
 
         Map<String, DownloadStatus> nodeProgress = Maps.newHashMap();
         for (Map.Entry<String, NodeProgress> nodeEntry : downloadProgress.getProgress().entrySet()) {
-            String nodeName = nodeEntry.getKey().substring("syssvc-".length());
+            String nodeId = nodeEntry.getKey().substring("syssvc-".length());
 
-            nodeProgress.put(nodeName, new DownloadStatus(calculatePercentage(nodeEntry.getValue().getBytesDownloaded(), imageSize),
+            nodeProgress.put(nodeId, new DownloadStatus(calculatePercentage(nodeEntry.getValue().getBytesDownloaded(), imageSize),
                     nodeEntry.getValue().getStatus().toString()));
         }
 

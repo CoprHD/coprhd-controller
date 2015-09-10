@@ -12,6 +12,21 @@
   #{breadcrumb.item active:true}#{get 'title'/}#{/breadcrumb.item}
 #{/breadcrumb.container}
 
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+  $(document).ready(function() {
+    $('#vCenter_enableTenants').on('change', function() {
+        if ($(this).prop('checked')) {
+          $('#vCenter_tenantsControlGroup').closest("fieldset").show();
+        } else {
+          $('#vCenter_tenantsControlGroup').closest("fieldset").hide();
+        }
+    }).trigger('change');
+  });
+</script>
+#{/set}
+
 <div class="container">
 #{Form.header titleKey:titleKey, descriptionKey:descriptionKey, image:image /}
 
@@ -23,10 +38,8 @@
       <input type="hidden" name="${field.name}" value="${field.value}">
     #{/field}
   #{/if}
-  #{field 'vCenter.tenantId'}
-      <input type="hidden" name="${field.name}" value="${field.value}"/>
-  #{/field}
 
+  #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['TENANT_ADMIN']]}
   <fieldset>
   
   #{field 'vCenter.name'}
@@ -72,12 +85,37 @@
     }%        
     #{Form.inputPasswordControlGroup field:field /}
   #{/field}
-  
   </fieldset>
-  
-  #{Form.saveValidateCancelButtonBar size:'large'/}
+  #{/deadbolt.restrict}
+
+  *{ tenantOptions are only available for users that can set tenant ACLs }*
+  #{if tenantOptions}
+  <fieldset>
+    <legend>&{'security.tenantControlList'}<small>&{'security.tenantControlList.description.vcenter'}</small></legend>
+    #{field 'vCenter.enableTenants'}
+      #{Form.booleanCheckBoxControlGroup field:field /}
+    #{/field}
+    <div class="vCenter_enableTenants" data-show="true">
+      <fieldset>
+        #{field 'vCenter.tenants'}
+          %{
+              field.helpTextKey = field.name + '.description'
+          }%
+          #{Form.selectManyControlGroup field:field, options:tenantOptions /}
+        #{/field}
+      </fieldset>
+    </div>
+  </fieldset>
+  #{/if}
+  #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['TENANT_ADMIN']]}
+     #{Form.saveValidateCancelButtonBar size:'large'/}
+  #{/deadbolt.restrict}
+  #{deadbolt.restrict roles:[['!SYSTEM_ADMIN', '!TENANT_ADMIN']]}
+     #{Form.saveCancelButtonBar size:'large'/}
+  #{/deadbolt.restrict}
 #{/}
 
+#{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['TENANT_ADMIN']]}
 #{if play.mode.isDev() && dbVCenter}
   <fieldset class="discovery vcenter">
       <legend>&{'discovery.details'}<small>&{'discovery.details.description'}</small></legend>
@@ -153,5 +191,6 @@
       </ul>
   </fieldset>
 #{/if}
+#{/deadbolt.restrict}
 
 </div>

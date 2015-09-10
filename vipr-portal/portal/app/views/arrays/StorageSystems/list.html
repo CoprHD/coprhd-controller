@@ -6,10 +6,11 @@
 #{DataTable.formAction @deregisterArrays(), id:'deregisterForm', table:'storageArray'/}
 
 #{DataTable.header titleKey:'StorageSystems.list.title'/}
+<div class="row">
+  <div class="col-sm-12">
 #{DataTable.crudTable id:'storageArray',
                       dataTable:dataTable,
                       expandable: true,
-                      actions: ['StorageSystems.pools': @pools(':id'), 'StorageSystems.ports': @ports(':id')],
                       deleteConfirm:messages.get('StorageSystems.deleteConfirm')}
   #{Form.button name:'button.rediscover', class:'info', icon:'repeat', submit:'rediscoverForm',
                 data:['enabled':'selected', 'property':'discoveryStatus', 'not-value':'IN_PROGRESS']/}
@@ -19,6 +20,17 @@
                 data:['enabled':'selected', 'property':'registrationStatus', 'value':'REGISTERED']/}
 #{/DataTable.crudTable}
 #{DataTable.expandHtml @itemDetails(':id'), table:'storageArray' /}
+  </div>
+</div>
+
+<script id="inlineActions.html" type="text/ng-template">
+    <div class="btn-group-nas">
+        <a class="btn btn-default btn-xs" role="button" href="{{poolsUrl}}">{{'StorageSystems.pools' | t}}</a>
+        <a class="btn btn-default btn-xs" role="button" href="{{portsUrl}}">{{'StorageSystems.ports' | t}}</a>
+        <a class="btn btn-default btn-xs" ng-show="isVnasEnable" role="button" href="{{vnasUrl}}">{{'StorageSystems.vnas' | t}}</a>
+    </div>
+</script>
+
 
 <script type="text/javascript">
 $(document).ready(function() {
@@ -26,4 +38,42 @@ $(document).ready(function() {
     var itemsJson = #{jsAction @itemsJson(':ids')/};
     watchDiscoveryStatus(dataTable, itemsJson, ['version', 'registrationStatus']);
 });
+</script>
+
+<script type="text/javascript">
+var storagePoolsUrl = #{jsAction @pools(':storageId') /}
+var storagePortsUrl = #{jsAction @ports(':storageId') /}
+var storageVnasUrl = #{jsAction @virtualNasServers(':storageId') /}
+
+angular.module('tags').directive({
+	actions: function() {
+     return {
+         restrict: "E",
+         templateUrl: "inlineActions.html",
+         link: function(scope, elem, attrs) {
+        	 scope.poolsUrl = storagePoolsUrl({'storageId': scope.row.id});
+        	 scope.portsUrl = storagePortsUrl({'storageId': scope.row.id});
+        	 scope.vnasUrl = storageVnasUrl({'storageId': scope.row.id});
+        	 scope.isVnasEnable = false;
+        	 var systemWithNas = ["EMC VNX File"];
+        	 var found = $.inArray(scope.row.type, systemWithNas) > -1;
+             if(found){
+             	scope.isVnasEnable = true;
+             }
+            
+         }
+     }
+ },
+ url: function() {
+     return {
+         restrict: "E",
+         templateUrl: "inlineLink.html"
+     }
+ }
+});
+
+function renderButtonBar(o,val) {
+    return "<actions></actions>";
+    
+}
 </script>

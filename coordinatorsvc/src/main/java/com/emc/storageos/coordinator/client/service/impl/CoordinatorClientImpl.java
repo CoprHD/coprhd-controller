@@ -85,6 +85,8 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
     private NodeCacheWatcher nodeWatcher = new NodeCacheWatcher();
 
+    private DistributedAroundHook ownerLockAroundHook;
+
     /**
      * Set ZK cluster connection. Connection must be built but not connected when this method is
      * called
@@ -220,16 +222,16 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         DualInetAddress address = inetAddressLookupMap.getDualInetAddress();
         if (!inetAddressLookupMap.isControllerNode()) {
             // this is a data node
-            if (!verifyPublishedDualInetAddress(inetAddressLookupMap.getNodeName())) {
+            if (!verifyPublishedDualInetAddress(inetAddressLookupMap.getNodeId())) {
                 // publish
-                setNodeDualInetAddressInfo(inetAddressLookupMap.getNodeName(), address.toString());
+                setNodeDualInetAddressInfo(inetAddressLookupMap.getNodeId(), address.toString());
             }
         }
         // if the data node map does not have it yet, save it to the map
-        if (inetAddressLookupMap.get(inetAddressLookupMap.getNodeName()) == null
-                || (!inetAddressLookupMap.get(inetAddressLookupMap.getNodeName()).equals(
+        if (inetAddressLookupMap.get(inetAddressLookupMap.getNodeId()) == null
+                || (!inetAddressLookupMap.get(inetAddressLookupMap.getNodeId()).equals(
                         inetAddressLookupMap.getDualInetAddress()))) {
-            inetAddressLookupMap.put(inetAddressLookupMap.getNodeName(), address);
+            inetAddressLookupMap.put(inetAddressLookupMap.getNodeId(), address);
         }
     }
 
@@ -483,7 +485,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
      * 
      * @param serviceRoot
      *            path under /service
-     * @return child node names under /service/<serviceRoot>
+     * @return child node ids under /service/<serviceRoot>
      * @throws CoordinatorException
      */
     private List<String> lookupServicePath(String serviceRoot) throws CoordinatorException {
@@ -611,6 +613,15 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                 serializer, name, maxThreads);
         queue.start();
         return queue;
+    }
+
+    @Override
+    public <T> DistributedLockQueueManager getLockQueue(DistributedLockQueueTaskConsumer<T> consumer)
+            throws CoordinatorException {
+        DistributedLockQueueManager<T> lockQueue = new DistributedLockQueueManagerImpl<>(_zkConnection,
+                ZkPath.LOCKQUEUE.toString(), consumer);
+        lockQueue.start();
+        return lockQueue;
     }
 
     @Override
@@ -1292,6 +1303,12 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         nodeWatcher.removeListener(listener);
     }
 
+    @Override
+    public boolean isDistributedOwnerLockAvailable(String lockPath) throws Exception {
+        Stat stat = _zkConnection.curator().checkExists().forPath(lockPath);
+        return stat == null;
+    }
+
     /**
      * To share NodeCache for listeners listening same path.
      * The empty NodeCache (counter zero) means the NodeCache should be closed.
@@ -1420,5 +1437,26 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 
             log.info("Removed the listener {}", listener.getPath());
         }
+    }
+
+    /**
+     * Set an instance of {@link DistributedAroundHook} that exposes the ability to wrap arbitrary code
+     * with before and after hooks that lock and unlock the owner locks "globalLock", respectively.
+     *
+     * @param ownerLockAroundHook An instance to help with owner lock management.
+     */
+    @Override
+    public void setDistributedOwnerLockAroundHook(DistributedAroundHook ownerLockAroundHook) {
+        this.ownerLockAroundHook = ownerLockAroundHook;
+    }
+
+    /**
+     * Gets the instance of {@link DistributedAroundHook} for owner lock management.
+     *
+     * @return An instance to help with owner lock management.
+     */
+    @Override
+    public DistributedAroundHook getDistributedOwnerLockAroundHook() {
+        return ownerLockAroundHook;
     }
 }

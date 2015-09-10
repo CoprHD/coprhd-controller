@@ -189,10 +189,10 @@ public class VPlexConsistencyGroupInfo extends VPlexResourceInfo {
         StringBuilder str = new StringBuilder();
         str.append("ConsistencyGroupInfo ( ");
         str.append(super.toString());
-        str.append(", clusterName: " + clusterName);
-        str.append(", virtualVolumes: " + virtualVolumes.toString());
-        str.append(", visibleClusters: " + visibleClusters.toString());
-        str.append(", storageAtClusters: " + storageAtClusters.toString());
+        str.append(", clusterName: ").append(clusterName);
+        str.append(", virtualVolumes: ").append(virtualVolumes.toString());
+        str.append(", visibleClusters: ").append(visibleClusters.toString());
+        str.append(", storageAtClusters: ").append(storageAtClusters.toString());
         str.append(" )");
         return str.toString();
     }

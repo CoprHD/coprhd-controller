@@ -58,7 +58,11 @@ angular.module("services", []).directive({
                         item.loading = true;
                         $http.get("/api/options/" + fieldDescriptor.assetType, {params: params }).success(function(data) {
                             item.disabled = false;
-                            item.options = data;
+                            if (item.select == 'field') {
+                            	item.value = data[0].value
+                            } else {
+                                item.options = data;
+                            }
                             if (item.select != 'many') {
                             	addBlankOptionIfRequired(item);
                             }
@@ -109,21 +113,26 @@ angular.module("services", []).directive({
                     type = '<select-many>';
                     // TODO: support for select many 'choice'
                 } else if (item.type.match(/^assetType\./)) {
-                    item.options = scope.$root[scope.item.type + "-options"];
-                    tagAttrs = {
-                        'options': "item.options",
-                        'value-property': "key",
-                        'label-property': "value",
-                        'ng-disabled': "item.disabled",
-                        'auto-select-if-one': item.required
-                    };
-                    if (item.select == 'many') {
-                    	type = '<select-many>';
-                    }
-                    else {
-                    	type = '<select-one>';
-                    	addBlankOptionIfRequired(item);
-                    }
+                	if (item.select == 'field') {
+                		type = '<input-text>';
+                	}
+                	else {
+	                    item.options = scope.$root[scope.item.type + "-options"];
+	                    tagAttrs = {
+	                        'options': "item.options",
+	                        'value-property': "key",
+	                        'label-property': "value",
+	                        'ng-disabled': "item.disabled",
+	                        'auto-select-if-one': item.required
+	                    };
+	                    if (item.select == 'many') {
+	                    	type = '<select-many>';
+	                    }
+	                    else {
+	                    	type = '<select-one>';
+	                    	addBlankOptionIfRequired(item);
+	                    }
+                	}
                 } else {
                     item.error = " ";
                     type = "<p class='help-inline'>" + translate('serviceField.unsupportedType',item.type) + "</p>";

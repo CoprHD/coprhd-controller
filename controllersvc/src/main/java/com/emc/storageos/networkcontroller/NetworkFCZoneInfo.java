@@ -85,6 +85,11 @@ public class NetworkFCZoneInfo implements Serializable {
         this._fabricWwn = _fabricWwn;
     }
 
+    public NetworkFCZoneInfo(URI _networkDeviceId, String _fabricId, String _fabricWwn, URI _volumeId) {
+        this(_networkDeviceId, _fabricId, _fabricWwn);
+        this._volumeId = _volumeId;
+    }
+
     public NetworkFCZoneInfo() {
         super();
     }
@@ -213,4 +218,19 @@ public class NetworkFCZoneInfo implements Serializable {
         _canBeRolledBack = b;
     }
 
+    public NetworkFCZoneInfo clone() {
+        NetworkFCZoneInfo newInfo = new NetworkFCZoneInfo();
+        newInfo.setAltNetworkDeviceId(_altNetworkDeviceId);
+        newInfo.setEndPoints(_endPoints);
+        newInfo.setExistingZone(existingZone);
+        newInfo.setFabricId(_fabricId);
+        newInfo.setFabricWwn(_fabricWwn);
+        newInfo.setCanBeRolledBack(_canBeRolledBack);
+        newInfo.setFcZoneReferenceId(_fcZoneReferenceId);
+        newInfo.setLastReference(_isLastReference);
+        newInfo.setNetworkDeviceId(_networkDeviceId);
+        newInfo.setVolumeId(_volumeId);
+        newInfo.setZoneName(_zoneName);
+        return newInfo;
+    }
 }

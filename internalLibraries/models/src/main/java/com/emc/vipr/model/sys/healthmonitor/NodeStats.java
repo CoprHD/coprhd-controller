@@ -21,6 +21,7 @@ import java.util.List;
 public class NodeStats {
 
     private String nodeId;
+    private String nodeName;
     private String ip;
     // proc/loadavg
     private LoadAvgStats loadAvgStats;
@@ -34,13 +35,15 @@ public class NodeStats {
     // Default constructor for JAXB
     public NodeStats() {
         this.nodeId = HealthMonitorConstants.UNKNOWN;
+        this.nodeName = HealthMonitorConstants.UNKNOWN;
     }
 
-    public NodeStats(String nodeId, String ip, LoadAvgStats loadAvgStats,
-            MemoryStats memoryStats, DataDiskStats dataDiskStats,
-            List<ServiceStats> serviceStatsList,
-            List<DiskStats> diskStatsList) {
+    public NodeStats(String nodeId,String nodeName, String ip, LoadAvgStats loadAvgStats,
+                     MemoryStats memoryStats, DataDiskStats dataDiskStats,
+                     List<ServiceStats> serviceStatsList,
+                     List<DiskStats> diskStatsList) {
         this.nodeId = nodeId;
+        this.nodeName = nodeName;
         this.ip = ip;
         this.loadAvgStats = loadAvgStats;
         this.memoryStats = memoryStats;
@@ -52,6 +55,11 @@ public class NodeStats {
     @XmlElement(name = "node_id")
     public String getNodeId() {
         return nodeId;
+    }
+
+    @XmlElement(name = "node_name")
+    public String getNodeName() {
+        return nodeName;
     }
 
     @XmlElement(name = "load_avg")
@@ -98,6 +106,10 @@ public class NodeStats {
 
     public void setNodeId(String nodeId) {
         this.nodeId = nodeId;
+    }
+
+    public void setNodeName(String nodeName) {
+        this.nodeName = nodeName;
     }
 
     public void setIp(String ip) {

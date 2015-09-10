@@ -10,16 +10,14 @@
  */
 
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 
 import java.net.URI;
 
-public class DbTest {
+public class DbTest extends TestCase {
 
     public DbClient getDbClient() {
         return dbClient;
@@ -33,6 +31,8 @@ public class DbTest {
 
     static URI projectId = URI.create("Project1");
     static URI tenantId = URI.create("Tenant1");
+
+    private Event curEvent;
 
     public void test1() throws Exception {
         Event event = genEvent();
@@ -67,11 +67,25 @@ public class DbTest {
         return event;
     }
 
+    @Override
+    public void setup() throws Exception {
+        curEvent = genEvent();
+    }
+
+    @Override
+    public void execute() throws Exception {
+        String bucketId = dbClient.insertTimeSeries(EventTimeSeries.class, curEvent);
+    }
+
     public static void main(String[] args) throws Exception {
 
         ClassPathXmlApplicationContext ctx = new ClassPathXmlApplicationContext("/dbtest-conf.xml");
         DbTest dbTest = (DbTest) ctx.getBean("dbtest");
 
-        dbTest.test1();
+        int nThreads = Integer.parseInt(args[0]);
+        int nCounts = Integer.parseInt(args[1]);
+
+        Runner runner = new Runner(dbTest, nThreads, nCounts);
+        runner.run();
     }
 }

@@ -581,6 +581,11 @@ public class BlockFullCopyManager {
         Volume sourceVolume = (Volume) resourceMap.get(sourceURI);
         Volume fullCopyVolume = (Volume) resourceMap.get(fullCopyURI);
 
+        if (!sourceVolume.hasConsistencyGroup() ||
+                fullCopyVolume.getReplicationGroupInstance() == null) {
+            throw APIException.badRequests.blockObjectHasNoConsistencyGroup();
+        }
+
         // Check if the full copy is detached.
         if (BlockFullCopyUtils.isFullCopyDetached(fullCopyVolume, _dbClient)) {
             throw APIException.badRequests

@@ -58,6 +58,11 @@
     <bean id="blockstoragescheduler" class="com.emc.storageos.volumecontroller.placement.BlockStorageScheduler">
         <property name="dbClient" ref="dbclient"/>
         <property name="portMetricsProcessor" ref="portMetricsProcessor"/>
+        <property name="networkScheduler" ref="networkScheduler"/>
+    </bean>
+
+    <bean id="networkScheduler" class="com.emc.storageos.networkcontroller.impl.NetworkScheduler">
+        <property name="dbClient" ref="dbclient"/>
     </bean>
     
     <bean id="storagescheduler" class="com.emc.storageos.api.service.impl.placement.StorageScheduler">
@@ -320,6 +325,11 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
     </bean>
+    
+    <bean id="computeImageServerService" class="com.emc.storageos.api.service.impl.resource.ComputeImageServerService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
 
     <bean id="userGroupService" class="com.emc.storageos.api.service.impl.resource.UserGroupService">
         <property name="dbClient" ref="dbclient"/>
@@ -366,6 +376,7 @@
                 <ref bean="computeVirtualPoolService"/>
                 <ref bean="computeElementService"/>
                 <ref bean="computeImageService"/>
+                <ref bean="computeImageServerService"/>
                 <ref bean="vcenterService"/>
                 <ref bean="vcenterDataCenterService"/>
                 <ref bean="clusterService"/>

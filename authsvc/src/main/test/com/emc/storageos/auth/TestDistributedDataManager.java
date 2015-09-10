@@ -79,6 +79,11 @@ public class TestDistributedDataManager implements DistributedDataManager {
     }
 
     @Override
+    public void removeNode(String path, boolean recursive) throws Exception {
+        _dataMap.remove(path);
+    }
+    
+    @Override
     public void putData(String path, Object data) throws Exception {
         _dataMap.put(path, data);
     }
@@ -103,5 +108,7 @@ public class TestDistributedDataManager implements DistributedDataManager {
         }
         return list;
     }
-
+    
+    
+    
 }

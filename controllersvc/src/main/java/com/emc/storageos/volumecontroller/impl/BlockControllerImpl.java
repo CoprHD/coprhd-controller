@@ -268,6 +268,11 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
+    public void establishVolumeAndSnapshotGroupRelation(URI storage, URI sourceVolume, URI snapshot, String opId) throws InternalException {
+        blockRMI("establishVolumeAndSnapshotGroupRelation", storage, sourceVolume, snapshot, opId);
+    }
+
+    @Override
     public void resumeNativeContinuousCopies(URI storage, List<URI> mirrors, String opId) throws InternalException {
         blockRMI("resumeNativeContinuousCopies", storage, mirrors, opId);
     }

@@ -24,6 +24,7 @@ import org.apache.commons.lang.StringUtils;
 
 import com.emc.sa.engine.ExecutionUtils;
 import com.emc.sa.service.vipr.ViPRExecutionUtils;
+import com.emc.sa.service.vipr.block.tasks.AddJournalCapacity;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToConsistencyGroup;
 import com.emc.sa.service.vipr.block.tasks.AddVolumesToExport;
 import com.emc.sa.service.vipr.block.tasks.CreateBlockVolume;
@@ -60,6 +61,8 @@ import com.emc.sa.service.vipr.block.tasks.GetVolumeByName;
 import com.emc.sa.service.vipr.block.tasks.RemoveBlockResourcesFromExport;
 import com.emc.sa.service.vipr.block.tasks.RestoreFromFullCopy;
 import com.emc.sa.service.vipr.block.tasks.ResynchronizeFullCopy;
+import com.emc.sa.service.vipr.block.tasks.StartBlockSnapshot;
+import com.emc.sa.service.vipr.block.tasks.StartFullCopy;
 import com.emc.sa.service.vipr.block.tasks.SwapContinuousCopies;
 import com.emc.sa.service.vipr.tasks.GetCluster;
 import com.emc.sa.service.vipr.tasks.GetHost;
@@ -202,6 +205,20 @@ public class BlockStorageUtils {
 
     public static List<ExportGroupRestRep> findExportsContainingHost(URI host, URI projectId, URI varrayId) {
         return execute(new FindExportsContainingHost(host, projectId, varrayId));
+    }
+
+    public static List<URI> addJournalCapacity(URI projectId, URI virtualArrayId, URI virtualPoolId, double sizeInGb, Integer count,
+            URI consistencyGroupId, String copyName) {
+        String volumeSize = gbToVolumeSize(sizeInGb);
+        Tasks<VolumeRestRep> tasks = execute(new AddJournalCapacity(virtualPoolId, virtualArrayId, projectId, volumeSize,
+                count, consistencyGroupId, copyName));
+        List<URI> volumeIds = Lists.newArrayList();
+        for (Task<VolumeRestRep> task : tasks.getTasks()) {
+            URI volumeId = task.getResourceId();
+            addAffectedResource(volumeId);
+            volumeIds.add(volumeId);
+        }
+        return volumeIds;
     }
 
     public static List<URI> createVolumes(URI projectId, URI virtualArrayId, URI virtualPoolId,
@@ -702,6 +719,16 @@ public class BlockStorageUtils {
         Tasks<VolumeRestRep> copies = execute(new CreateContinuousCopy(volumeId, name, countValue, type, copyId));
         addAffectedResources(copies);
         return copies;
+    }
+
+    public static void startSnapshot(URI snapshotId) {
+        Task<BlockSnapshotRestRep> task = execute(new StartBlockSnapshot(snapshotId));
+        addAffectedResource(task);
+    }
+
+    public static void startFullCopy(URI fullCopyId) {
+        Tasks<VolumeRestRep> task = execute(new StartFullCopy(fullCopyId));
+        addAffectedResources(task);
     }
 
     public static Tasks<VolumeRestRep> swapContinuousCopy(URI targetVolumeId, String type) {

@@ -39,6 +39,7 @@ import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.Workflow.Method;
@@ -132,11 +133,11 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
         }
 
         StoragePortsAllocator allocator = new StoragePortsAllocator();
-        
+
         for (int i = 0; i < CINDER_NUM_PORT_GROUP; i++) {
             Map<URI, List<StoragePort>> portGroup = new HashMap<URI, List<StoragePort>>();
             StringSet portNames = new StringSet();
-            
+
             for (URI netURI : allocatablePorts.keySet()) {
                 NetworkLite net = networkMap.get(netURI);
                 List<StoragePort> allocatedPorts = allocatePorts(allocator,
@@ -160,14 +161,12 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
         return portGroups;
     }
 
-    @Override
     public StringSetMap configureZoning(Map<URI, List<StoragePort>> portGroup,
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup,
-            Map<URI, NetworkLite> networkMap) {
-        return VPlexBackEndOrchestratorUtil.configureZoning(portGroup, initiatorGroup, networkMap);
+            Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner) {
+        return VPlexBackEndOrchestratorUtil.configureZoning(portGroup, initiatorGroup, networkMap, assigner);
     }
-    
-    
+
     /**
      * Method to re-validate the Export Mask
      * 
@@ -193,13 +192,13 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
                 idToInitiatorMap,
                 portWwnToClusterMap);
     }
-    
+
     /**
      * Re-validate the ExportMask
      * 
-     *  This is required to be done as the ExportMask
-     *  gets updated by reading the cinder export volume
-     *  response.
+     * This is required to be done as the ExportMask
+     * gets updated by reading the cinder export volume
+     * response.
      *
      * 
      * @param varrayURI
@@ -215,23 +214,23 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             Map<URI, List<StoragePort>> initiatorPortMap, URI exportMaskURI,
             Map<String, Set<String>> directorToInitiatorIds, Map<String, Initiator> idToInitiatorMap,
             Map<String, String> portWwnToClusterMap, String stepId) {
-        
+
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
-            
+
             // Export Mask is updated, read it from DB
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
             VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI, initiatorPortMap, exportMask, null, directorToInitiatorIds,
                     idToInitiatorMap, _dbClient, portWwnToClusterMap);
-            
+
             WorkflowStepCompleter.stepSucceded(stepId);
-            
+
         } catch (Exception ex) {
             _log.error("Failed to validate export mask for cinder: ", ex);
             VPlexApiException vplexex = DeviceControllerExceptions.vplex.failedToValidateExportMask(exportMaskURI.toString(), ex);
             WorkflowStepCompleter.stepFailed(stepId, vplexex);
         }
-        
+
     }
 
     @Override
@@ -334,7 +333,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
         _log.debug("END - createOrAddVolumesToExportMask");
 
     }
-    
+
     @Override
     public void suggestExportMasksForPlacement(
             StorageSystem storage, BlockStorageDevice device, List<Initiator> initiators,

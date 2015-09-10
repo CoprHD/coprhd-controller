@@ -77,8 +77,6 @@ public class VcenterService extends TaskResourceService {
 
     private static final String EVENT_SERVICE_TYPE = "vcenter";
 
-    private static final String DATAOBJECT_NAME_FIELD = "label";
-
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
     }
@@ -204,12 +202,7 @@ public class VcenterService extends TaskResourceService {
         if (vcenter == null || (param.getName() != null && !param.getName().equals(vcenter.getLabel()))) {
             checkDuplicateLabel(Vcenter.class, param.getName(), "vcenter");
         }
-        if (StringUtils.isBlank(param.getPassword()) && vcenter != null) {
-            param.setPassword(StringUtils.trimToNull(vcenter.getPassword()));
-        }
-
-        ArgValidator.checkFieldNotNull(param.getUserName(), "username");
-        ArgValidator.checkFieldNotNull(param.getPassword(), "password");
+        validateVcenterCredentials(param, vcenter);
 
         if (validateConnection != null && validateConnection == true) {
             String errorMessage = VCenterConnectionValidator.isVCenterConnectionValid(param);
@@ -1030,10 +1023,8 @@ public class VcenterService extends TaskResourceService {
      * @param vcenter to be deleted.
      */
     private void checkIfOtherTenantsUsingTheVcenter(Vcenter vcenter) {
-        if (!isSystemAdmin()) {
-            if (vcenter.getAcls().size() > 1) {
-                throw APIException.forbidden.tenantAdminCannotDeleteVcenter(getUserFromContext().getName(), vcenter.getLabel());
-            }
+        if (!isSystemAdmin() && vcenter.getAcls().size() > 1) {
+            throw APIException.forbidden.tenantAdminCannotDeleteVcenter(getUserFromContext().getName(), vcenter.getLabel());
         }
     }
 
@@ -1111,5 +1102,24 @@ public class VcenterService extends TaskResourceService {
             return true;
         }
         return false;
+    }
+
+    /**
+     * Validates vCenter user credentials from create or update parameters.
+     *
+     * @param param either vCenter create or update param.
+     * @param vcenter vCenter object.
+     */
+    private void validateVcenterCredentials(VcenterParam param, Vcenter vcenter) {
+        if (StringUtils.isBlank(param.getPassword()) && vcenter != null) {
+            param.setPassword(StringUtils.trimToNull(vcenter.getPassword()));
+        }
+
+        if (StringUtils.isBlank(param.getUserName()) && vcenter != null) {
+            param.setUserName(StringUtils.trimToNull(vcenter.getUsername()));
+        }
+
+        ArgValidator.checkFieldNotNull(param.getUserName(), "username");
+        ArgValidator.checkFieldNotNull(param.getPassword(), "password");
     }
 }

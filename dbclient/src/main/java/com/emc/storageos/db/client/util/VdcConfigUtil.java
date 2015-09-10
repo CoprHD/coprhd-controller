@@ -26,7 +26,7 @@ public class VdcConfigUtil {
 
     // It's no longer a version since it's not incremental, but it serves the same
     // purpose
-    public static final String VDC_CONFIG_HASHCODE = "vdc_config_hashcode";
+    public static final String VDC_CONFIG_VERSION = "vdc_config_version";
     public static final String VDC_MYID = "vdc_myid";
     public static final String VDC_IDS = "vdc_ids";
     public static final String VDC_NODE_COUNT_PTN = "vdc_%s_node_count";
@@ -144,8 +144,6 @@ public class VdcConfigUtil {
         });
         vdcConfig.put(VDC_IDS, StringUtils.join(vdcShortIdList, ","));
 
-        setVdcConfigVersion(vdcConfig);
-
         log.info("vdc config property: \n{}", vdcConfig.toString());
 
         return vdcConfig;
@@ -155,7 +153,7 @@ public class VdcConfigUtil {
         String address;
         int standbyNodeCnt = 0;
         String shortId = vdc.getShortId();
-        StringSet standbySiteIds = vdc.getStandbyIDs();
+        StringSet standbySiteIds = vdc.getSiteIDs();
         if (standbySiteIds != null && !standbySiteIds.isEmpty()) {
             for (String siteIdStr : standbySiteIds) {
                 try {
@@ -209,35 +207,5 @@ public class VdcConfigUtil {
             return true;
         }
         return false;
-    }
-
-    private void setVdcConfigVersion(Map<String, String> vdcConfig) {
-        List<String> propertyValues = new ArrayList<>();
-        propertyValues.add(vdcConfig.get(VDC_MYID));
-        propertyValues.add(vdcConfig.get(VDC_IDS));
-        for (String vdcShortId : vdcConfig.get(VDC_IDS).split(",")) {
-            String nodeCountStr = vdcConfig.get(String.format(VDC_NODE_COUNT_PTN,
-                    vdcShortId));
-            propertyValues.add(nodeCountStr);
-
-            int nodeCount = Integer.valueOf(nodeCountStr);
-            for (int i = 1; i <= nodeCount; i++) {
-                propertyValues.add(vdcConfig.get(String.format(VDC_IPADDR_PTN, vdcShortId, i)));
-                propertyValues.add(vdcConfig.get(String.format(VDC_IPADDR6_PTN, vdcShortId, i)));
-            }
-
-            String standbyNodeCntStr = vdcConfig.get(String.format(VDC_STANDBY_NODE_COUNT_PTN, vdcShortId));
-            propertyValues.add(standbyNodeCntStr);
-
-            int standbyNodeCnt = Integer.valueOf(standbyNodeCntStr);
-            for (int i = 1; i <= standbyNodeCnt; i++) {
-                propertyValues.add(String.format(VDC_STANDBY_IPADDR_PTN, vdcShortId, i));
-                propertyValues.add(String.format(VDC_STANDBY_IPADDR6_PTN, vdcShortId, i));
-            }
-        }
-
-        int hashCode = Arrays.hashCode(propertyValues.toArray(new String[propertyValues.size()]));
-        log.info("the current vdc config hashcode is {}", hashCode);
-        vdcConfig.put(VDC_CONFIG_HASHCODE, String.valueOf(hashCode));
     }
 }

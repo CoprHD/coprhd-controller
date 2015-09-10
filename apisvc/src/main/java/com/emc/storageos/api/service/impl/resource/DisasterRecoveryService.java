@@ -22,6 +22,9 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+
+import com.emc.storageos.coordinator.client.model.SiteInfo;
+import com.emc.storageos.coordinator.common.impl.ConfigurationImpl;
 import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,6 +44,8 @@ import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerato
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
+
+import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO;
 
 @Path("/site")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN },
@@ -82,6 +87,8 @@ public class DisasterRecoveryService extends TaggedResource {
         
         log.info("Update VCD to persist new standby site ID");
         _dbClient.persistObject(vdc);
+
+        updateVdcTargetVersion();
 
         return siteMapper.map(standbySite);
     }
@@ -151,6 +158,7 @@ public class DisasterRecoveryService extends TaggedResource {
                     vdc.getSiteIDs().remove(standby.getId());
                     _dbClient.persistObject(vdc);
                     _dbClient.markForDeletion(standby);
+                    updateVdcTargetVersion();
                     return siteMapper.map(standby);
                 }
             }
@@ -209,7 +217,20 @@ public class DisasterRecoveryService extends TaggedResource {
         log.info("Update VCD to persist new site ID");
         _dbClient.persistObject(vdc);
 
+        updateVdcTargetVersion();
+
         return siteMapper.map(primarySite);
+    }
+
+    // TODO: replace the implementation with CoordinatorClientExt#setTargetInfo after the APIs get moved to syssvc
+    private void updateVdcTargetVersion() {
+        ConfigurationImpl cfg = new ConfigurationImpl();
+        String vdcTargetVersion = String.valueOf(System.currentTimeMillis());
+        cfg.setId(SiteInfo.CONFIG_ID);
+        cfg.setKind(SiteInfo.CONFIG_KIND);
+        cfg.setConfig(TARGET_INFO, vdcTargetVersion);
+        _coordinator.persistServiceConfiguration(cfg);
+        log.info("VDC target version updated to {}", vdcTargetVersion);
     }
     
     @Override

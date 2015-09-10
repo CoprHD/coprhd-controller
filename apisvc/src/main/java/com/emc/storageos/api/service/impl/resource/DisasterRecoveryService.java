@@ -229,7 +229,7 @@ public class DisasterRecoveryService extends TaggedResource {
         cfg.setId(SiteInfo.CONFIG_ID);
         cfg.setKind(SiteInfo.CONFIG_KIND);
         cfg.setConfig(TARGET_INFO, vdcTargetVersion);
-        _coordinator.persistServiceConfiguration(cfg);
+        coordinator.persistServiceConfiguration(cfg);
         log.info("VDC target version updated to {}", vdcTargetVersion);
     }
     

@@ -159,15 +159,7 @@ public class VdcSiteManager extends AbstractManager {
         // set target if empty
         targetVdcPropVersion = coordinator.getTargetInfo(SiteInfo.class);
         if (targetVdcPropVersion == null) {
-            try {
-                targetVdcPropVersion = new SiteInfo();
-                coordinator.setTargetInfo(targetVdcPropVersion);
-                log.info("Step2b: Target site version set to 0");
-            } catch (CoordinatorClientException e) {
-                log.info("Step2b: Wait another control node to set target");
-                retrySleep();
-                throw e;
-            }
+            targetVdcPropVersion = new SiteInfo();
         }
 
         // Initialize vdc prop info

@@ -26,17 +26,12 @@ import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.model.VirtualPool;
-import com.emc.storageos.model.object.BucketParam;
-import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ControllerException;
-import com.emc.storageos.volumecontroller.FileStorageDevice;
 import com.emc.storageos.volumecontroller.ObjectController;
 import com.emc.storageos.volumecontroller.ObjectDeviceInputOutput;
 import com.emc.storageos.volumecontroller.ObjectStorageDevice;
-import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 
 /**
  * Generic Object Controller Implementation that does all of the database
@@ -140,7 +135,7 @@ public class ObjectDeviceController implements ObjectController {
         _log.info("ObjectDeviceController:deleteBucket");
         Bucket bucketObj = _dbClient.queryObject(Bucket.class, bucket);
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-        BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteBucket(storageObj, bucketObj);
+        BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteBucket(storageObj, bucketObj, task);
 
         if (result.getCommandPending()) {
             return;
@@ -156,7 +151,7 @@ public class ObjectDeviceController implements ObjectController {
         Bucket bucketObj = _dbClient.queryObject(Bucket.class, bucket);
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
         BiosCommandResult result = getDevice(storageObj.getSystemType()).doUpdateBucket(storageObj, bucketObj, softQuota, hardQuota,
-                retention);
+                retention, task);
 
         if (result.getCommandPending()) {
             return;

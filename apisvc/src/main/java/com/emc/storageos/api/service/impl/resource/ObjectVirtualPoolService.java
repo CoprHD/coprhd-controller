@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2013 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 
@@ -89,7 +89,7 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
         ArgValidator.checkFieldNotEmpty(param.getDescription(), VPOOL_DESCRIPTION);
         VirtualPoolUtil.validateObjectVirtualPoolCreateParams(param, _dbClient);
         VirtualPool cos = prepareVirtualPool(param);
-        
+
         // update the implicit pools matching with this VirtualPool.
         ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(cos, _dbClient, _coordinator);
         _dbClient.createObject(cos);
@@ -360,7 +360,6 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
      * @brief List all instances of Object VirtualPools
      * 
      */
-
     @POST
     @Path("/bulk")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -371,6 +370,7 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
     }
 
     /**
+     * Gets Quota information.
      * 
      * @param id the URN of a ViPR VirtualPool.
      * @brief Show quota and available capacity before quota is exhausted
@@ -385,6 +385,7 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
     }
 
     /**
+     * Update Quota information.
      * 
      * @param id the URN of a ViPR VirtualPool.
      * @param param new values for the quota
@@ -409,6 +410,9 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
         }
     }
 
+    /**
+     * Gets list of all Object Virtual pool IDs
+     */
     @Override
     public ObjectVirtualPoolBulkRep queryBulkResourceReps(List<URI> ids) {
 
@@ -492,7 +496,7 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
         if (null != param.getMaxRetention()) {
             vPool.setMaxRetention(param.getMaxRetention());
         }
-        
+
         return vPool;
     }
 }

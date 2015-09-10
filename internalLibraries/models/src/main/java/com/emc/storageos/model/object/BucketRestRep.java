@@ -46,7 +46,7 @@ public class BucketRestRep extends DataObjectRestRep {
     public void setNativeId(String nativeId) {
         this.nativeId = nativeId;
     }
-    
+
     /**
      * SoftQuota of the bucket in GB
      * 

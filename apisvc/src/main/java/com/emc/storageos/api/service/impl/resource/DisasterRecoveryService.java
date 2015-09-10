@@ -76,25 +76,12 @@ public class DisasterRecoveryService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public SiteRestRep addStandby(SiteAddParam siteParam) {
         log.info("Begin to add standby site");
-        
-        if (log.isDebugEnabled()) {
-            log.debug(siteParam.toString());
-        }
+        log.info(siteParam.toString());
             
-        this.precheckForStandbyAttach(siteParam);
+        precheckForStandbyAttach(siteParam);
         
-        Site standbySite = new Site();
-        standbySite.setId(URIUtil.createId(Site.class));
-        standbySite.setUuid(siteParam.getUuid());
-        standbySite.setName(siteParam.getName());
-        standbySite.setVip(siteParam.getVip());
-        standbySite.getHostIPv4AddressMap().putAll(new StringMap(siteParam.getHostIPv4AddressMap()));
-        standbySite.getHostIPv6AddressMap().putAll(new StringMap(siteParam.getHostIPv6AddressMap()));
-        standbySite.setSecretKey(siteParam.getSecretKey());
-
-        if (log.isDebugEnabled()) {
-            log.debug(standbySite.toString());
-        }
+        Site standbySite = new Site(URIUtil.createId(Site.class));
+        siteMapper.map(siteParam, standbySite);
         
         VirtualDataCenter vdc = queryLocalVDC();
         vdc.getSiteIDs().add(standbySite.getId().toString());

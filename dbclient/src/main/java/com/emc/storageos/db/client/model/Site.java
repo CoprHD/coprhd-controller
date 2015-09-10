@@ -4,6 +4,8 @@
  */
 package com.emc.storageos.db.client.model;
 
+import java.net.URI;
+
 /**
  * Representation for a ViPR standby
  */
@@ -17,7 +19,15 @@ public class Site extends DataObject {
     private String secretKey;
     private StringMap hostIPv4AddressMap = new StringMap();
     private StringMap hostIPv6AddressMap = new StringMap();
-
+    
+    public Site() {
+        
+    }
+    
+    public Site(URI id) {
+        this.setId(id);
+    }
+    
     @Name("uuid")
     public String getUuid() {
         return uuid;

@@ -784,6 +784,9 @@ render.recoveryStatus = function(selector, val) {
 render.dbstatus = function(selector, val) {
     val = (val) ? val : "NA";
 
+    if (val == "FAILED" || val == "SUCCESS") {
+    	val = "FINISHED";
+    }
     var states = {
         'NOT_STARTED': {
         	'icon': 'glyphicon glyphicon-repeat',
@@ -795,15 +798,10 @@ render.dbstatus = function(selector, val) {
             'classes': 'label-info',
             'text': Messages.get("renderFunctions.database.status.progress")
         },        
-        'FAILED': {
-        	'icon': 'glyphicon glyphicon-remove',
-            'classes': 'label-danger',
-            'text': Messages.get("renderFunctions.database.status.fail")
-        },
-        'SUCCESS': {
+        'FINISHED': {
         	'icon': 'glyphicon glyphicon-ok',
             'classes': 'label-success',
-            'text': Messages.get("renderFunctions.database.status.success")
+            'text': Messages.get("renderFunctions.database.status.finished")
         }
         
     }
@@ -815,8 +813,6 @@ render.dbstatus = function(selector, val) {
         $(selector).html(val);
     }
 }
-
-
 
 render.editableLink = function(o, val) {
     var data = o.aData;

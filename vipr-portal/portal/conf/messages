@@ -831,7 +831,7 @@ health.end=End time
 dbstatus.lastCompletionTime=Last Completed Database Check: 
 dbstatus.progress=Percentage completed: 
 dbstatus.startTime=Start Time of Database Repair: 
-dbstatus.status=Status
+dbstatus.status=Status:
 dbstatus.inprogress.info=Normal Provisioning is not affected when Database Housekeeping status is "In Progress"
 
 system.nodes.total=Total Nodes
@@ -3683,6 +3683,7 @@ renderFunctions.database.status.started=Started
 renderFunctions.database.status.progress=In Progress
 renderFunctions.database.status.fail=Failed
 renderFunctions.database.status.success=Success
+renderFunctions.database.status.finished=Finished
 
 renderFunctions.recovery.status.init=Initializing
 renderFunctions.recovery.status.preparing=Preparing

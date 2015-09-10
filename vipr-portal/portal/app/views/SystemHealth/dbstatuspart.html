@@ -1,0 +1,67 @@
+<div class="container">
+#{Form.header titleKey:'db.healthdashboard.title' /}
+#{alerts/}
+<div class="row">
+  <div class="col-md-12">
+  <table class="table">
+  	<tbody>
+  		<tr>
+  			<br/>
+  		</tr>
+  	</tbody>
+  </table>
+  </div>
+</div>
+
+#{if dbstatus?.status.toString() =='IN_PROGRESS'}
+<div class="alert alert-info">No Problem</div>
+#{/if}
+
+<div id="knobDiv" class="col-md-1 ">
+    <knob warn="value < (max * 0.1)" danger="value < (max * 0.3)" value="progress" max ="100"></knob>
+</div>
+<div class="row">
+  <div class="col-md-12">
+  <table class="table">
+  	<tbody>
+  		<tr>
+  			<br/>
+  		</tr>
+  	</tbody>
+  </table>
+  </div>
+</div> 
+
+<div id="dbResults">
+      <table class="table table-condensed" style="margin-top:25px;margin-left:1em;width:50%">
+      <tr>
+      <td>Status</td>
+      <td><span id="dbState" data-state=${dbstatus?.status} style="margin-right: 1em;"></span></td>
+      </tr>
+		#{if dbstatus?.status.toString()!='NOT_STARTED'}
+        #{if startTime} 
+        	<tr>                  
+            	<td class="name">Start time</td>
+            	<td id="start" class="time"></td>
+          	</tr>
+           	<script>
+        		var starttime = '${startTime}';        		
+        		$('#start').append(formatLocalDateTime(new Date(starttime)));
+ 			</script>
+ 		#{/if}
+		#{/if}
+		#{if dbstatus?.status.toString()=='SUCCESS'}
+          #{if endTime}
+          <tr>         
+           	<td class="end">End time</td>
+          	<td id="end" class="endTime"></td>
+          </tr>
+          	<script>
+        		var endtime = '${endTime}';
+        		$('#end').append(formatLocalDateTime(new Date(endtime)));
+ 		  </script>
+          #{/if}
+          #{/if}
+	  </table>
+	</div>
+</div>

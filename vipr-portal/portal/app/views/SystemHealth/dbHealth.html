@@ -1,67 +1,56 @@
 #{extends 'main.html'/}
 #{set navSelected: ['nav.adminDashboard', 'nav.dbHealthDashboard'] /}
-<div class="page-header">
-  <h3>{{'db.healthdashboard.title' | t}}</h3>
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+
+ <div id="dbStatusMain">
+ #{include 'SystemHealth/dbstatuspart.html'/}
 </div>
 
-<div class="row">
-  <div class="col-md-12">
-  <table class="table">
-  	<tbody>
-  		<tr>
-  			<br/>
-  		</tr>
-  	</tbody>
-  </table>
-  </div>
-</div>
+<script>
 
-#{if dbstatus.status.toString() =='IN_PROGRESS'}
-<div class="alert alert-info">{{'dbstatus.inprogress.info' | t}}</div>
-#{/if}
+$(document).ajaxSuccess(function() {
+	render.dbstatus('#dbState',$('#dbState').data('state'));
+	 //$('#knobDiv').empty();
+	$('#knobDiv').append("<knob warn=\"value < (max * 0.1)\" danger=\"value < (max * 0.3)\" value=\"progress\" max =\"100\"></knob>");
+});
 
-<div class="col-md-1 ">
-    <knob warn="value < (max * 0.1)" danger="value < (max * 0.3)" value="progress" max ="100" ></knob>
- </div>
+$(document).ready(function() {
+	render.dbstatus('#dbState',$('#dbState').data('state'));	
+	loadDbStatus();
+});
 
- <div class="row">
-  <div class="col-md-12">
-    <div class="dbstats">
-      <table class="table table-condensed table-striped">
-        <tbody>
-        <tr>
-        <tr>
-          <td class="status">{{'dbstatus.status' |t}}</td>
-          <td id="health" class="time">${health}</td></div>
-        </tr>  
-        </tr>
-        #{if dbstatus.status.toString()!='NOT_STARTED'}
-        #{if startTime} 
-          <tr>                  
-            <td class="name">{{'health.start' | t}} </td>
-            <td id="start" class="time"></td>
-          </tr>
-           	<script>
-        		var starttime = '${startTime}';        		
-        		$('#start').append(formatLocalDateTime(new Date(starttime)));
- 			</script>
-          #{/if}
-          #{/if}
-          #{if dbstatus.status.toString()=='SUCCESS'}
-          #{if endTime}
-          <tr>         
-           	<td class="end">{{'health.end' |t}}</td>
-          	<td id="end" class="endTime"></td>
-          </tr>
-          	<script>
-        		var endtime = '${endTime}';
-        		$('#end').append(formatLocalDateTime(new Date(endtime)));
- 		  </script>
-          #{/if}
-          #{/if}
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
- 
+function loadDbStatus() {
+	var uri = "@{dbHealth()}";
+    	$.ajax({
+    		method: "get",
+    		url: uri,
+    		dataType: "html",
+    		success: function(ret) {
+    			 //$("#dbStatusMain").html(ret);
+    			startUpdating('@{SystemHealth.dbHealth()}','dbStatusMain',50000);
+    		}
+    	});
+}
+
+function startUpdating(url, contentId, delayInSeconds) {
+	
+	var content = DynamicContent();
+ 	content.watchValue(contentId);
+	var update = function() {
+		$.get(url, function(data) {
+			//alert(data.substring(data.indexOf('<div class="container" id="databaseStatus">'),data.indexOf('<span id="test"></span>')));
+			 var newData = $('<div></div>').html(data);
+// 			 alert(data);
+            // content.update(newData);
+              $('#'+contentId).empty();
+                $('#'+contentId).append(data);
+              
+               //$('#knobDiv').append("<knob warn=\"value < (max * 0.1)\" danger=\"value < (max * 0.3)\" value=\"progress\" max =\"100\"></knob>");
+			window.setTimeout(update, delayInSeconds);
+	});
+};
+update();
+}
+</script>
+#{/set}

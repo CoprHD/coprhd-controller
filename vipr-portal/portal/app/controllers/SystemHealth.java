@@ -109,25 +109,29 @@ public class SystemHealth extends Controller {
         trySetRenderArgs(promises);
         render();
     }
-
+    //@Restrictions({ @Restrict("SYSTEM_MONITOR"), @Restrict("SYSTEM_ADMIN"), @Restrict("SECURITY_ADMIN"), @Restrict("RESTRICTED_SECURITY_ADMIN"), @Restrict("RESTRICTED_SYSTEM_ADMIN") })
     public static void dbHealth() {
-        DbRepairStatus dbstatus = AdminDashboardUtils.gethealthdb();
-        int progress = dbstatus.getProgress();
-        String health = dbstatus.getStatus().toString();
-        angularRenderArgs().put("progress", progress + "%");
-        if (health == DBHEALTH_STATUS_SUCCESS || health == DBHEALTH_STATUS_FAIL) {
-        	health = DBHEALTH_STATUS_FINISH;
-        }
-        renderArgs.put("health", health);
-        if (dbstatus.getStartTime() != null) {
-            DateTime startTime = new DateTime(dbstatus.getStartTime().getTime());
-            renderArgs.put("startTime", startTime);
-        }
-        if (dbstatus.getLastCompletionTime() != null) {
-            DateTime endTime = new DateTime(dbstatus.getLastCompletionTime().getTime());
-            renderArgs.put("endTime", endTime);
-        }
-        render(dbstatus);
+    	 DbRepairStatus dbstatus = AdminDashboardUtils.gethealthdb();
+         int progress = dbstatus.getProgress();
+         String health = dbstatus.getStatus().toString();
+         angularRenderArgs().put("progress", progress + "%");
+         if (health == DBHEALTH_STATUS_SUCCESS || health == DBHEALTH_STATUS_FAIL) {
+         	health = DBHEALTH_STATUS_FINISH;
+         }
+         renderArgs.put("health", health);
+         if (dbstatus.getStartTime() != null) {
+             DateTime startTime = new DateTime(dbstatus.getStartTime().getTime());
+             renderArgs.put("startTime", startTime);
+         }
+         if (dbstatus.getLastCompletionTime() != null) {
+             DateTime endTime = new DateTime(dbstatus.getLastCompletionTime().getTime());
+             renderArgs.put("endTime", endTime);
+         }
+         render(dbstatus);
+    }
+    
+    public static void dbstatuspart() {
+    	render();
     }
 
     public static void nodeRecovery() {

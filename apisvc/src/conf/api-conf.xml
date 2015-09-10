@@ -193,15 +193,12 @@
         <property name="matcherFramework" ref="matcherFramework"/>
     </bean>
     
-<<<<<<< HEAD
     <bean id="objectVirtualPoolService" class="com.emc.storageos.api.service.impl.resource.ObjectVirtualPoolService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
         <property name="matcherFramework" ref="matcherFramework"/>
     </bean>
 
-=======
->>>>>>> 5025e1e1ab0e2b1ae2bf66916d6fe8a38a1258b6
     <bean id="virtualArrayService" class="com.emc.storageos.api.service.impl.resource.VirtualArrayService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>

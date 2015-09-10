@@ -850,8 +850,8 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param protectionSystemURI URI for the Protection System being used
      * @param personalityType Personality of the volume
      * @param rsetName Replication set name
-     * @param volume volume to create; null if not pre-created
-     * @param sourceVolume Source volume if needed
+     * @param volume An optionally pre-created source volume, non-null when calling this method to create a SOURCE volume.
+     * @param sourceVolume Source volume. Sent down if we're making a target/metadata that needs to be associated to this volume.
      * @param taskList Tasklist to capture all tasks for the UI
      * @param task Task Id
      * @param copyName RP Copy Name
@@ -1803,7 +1803,6 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
 
     /**
      * 
-     * /**
      * Upgrade a local block volume to a protected RP volume
      * 
      * @param volume the existing volume being protected.

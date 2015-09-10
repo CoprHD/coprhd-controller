@@ -135,7 +135,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                 volume,
                 cos,
                 SRDFScheduler.getTargetVirtualArraysForVirtualPool(project, cos, _dbClient,
-                        _permissionsHelper), cosChangeParam);
+                        _permissionsHelper),
+                cosChangeParam);
     }
 
     /**
@@ -196,7 +197,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                     if (srcVolume != null) {
                         volumePrecreated = true;
                     }
-                    
+
                     // Assemble a Replication Set; A Collection of volumes. One production, and any
                     // number of targets.
                     if (recommendation.getVpoolChangeVolume() == null) {
@@ -242,7 +243,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         } catch (Exception e) {
             _log.error("Rolling back the created CGs if any.");
             throw APIException.badRequests.srdfInternalError(e);
-                }
+        }
         return volumeURIs;
     }
 
@@ -260,7 +261,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      */
     private List<VolumeDescriptor> createVolumeDescriptors(final SRDFRecommendation recommendation,
             final List<URI> volumeURIs, final VirtualPoolCapabilityValuesWrapper capabilities)
-            throws ControllerException {
+                    throws ControllerException {
 
         List<Volume> preparedVolumes = _dbClient.queryObject(Volume.class, volumeURIs);
 
@@ -314,7 +315,8 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
 
     /**
      * Prepare Volume for an SRDF protected volume
-     * @param volume 
+     * 
+     * @param volume
      *            pre-created volume from the api service
      * @param param
      *            volume request
@@ -354,7 +356,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
             final boolean remote, final Volume.PersonalityTypes personality, final URI srcVolumeId,
             final URI raGroupURI, final String copyMode) {
         boolean newVolume = false;
-        
+
         if (volume == null) {
             // check for duplicate label
             validateVolumeLabel(label, project);
@@ -492,10 +494,12 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                 param.getSize(),
                 recommendation,
                 new StringBuilder(volumeLabelBuilder.toString()).append(
-                        "-target-" + targetVirtualArray.getLabel()).toString(), null,
+                        "-target-" + targetVirtualArray.getLabel()).toString(),
+                null,
                 task, true, Volume.PersonalityTypes.TARGET, srcVolume.getId(), recommendation
-                                .getVirtualArrayTargetMap().get(targetVirtualArray.getId())
-                                .getSourceRAGroup(), settings.getCopyMode());
+                        .getVirtualArrayTargetMap().get(targetVirtualArray.getId())
+                        .getSourceRAGroup(),
+                settings.getCopyMode());
         volumeURIs.add(volume.getId());
         // add target only during vpool change.
         if (recommendation.getVpoolChangeVolume() != null) {
@@ -544,7 +548,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         if (taskList == null) {
             taskList = new TaskList();
         }
-        
+
         Iterator<Recommendation> recommendationsIter;
 
         final BlockConsistencyGroup consistencyGroup = capabilities.getBlockConsistencyGroup() == null ? null
@@ -753,7 +757,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
      */
     private void upgradeToTargetVolume(final Volume volume, final VirtualPool vpool,
             final VirtualPoolChangeParam cosChangeParam, final String taskId)
-            throws InternalException {
+                    throws InternalException {
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
         capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, volume.getConsistencyGroup());
         List<Recommendation> recommendations = getRecommendationsForVirtualPoolChangeRequest(
@@ -772,7 +776,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
         // consume.
         VolumeCreate param = new VolumeCreate(volume.getLabel(), String.valueOf(volume
                 .getCapacity()), 1, vpool.getId(), volume.getVirtualArray(), volume.getProject()
-                .getURI());
+                        .getURI());
 
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
 
@@ -787,7 +791,6 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
                     capabilities.getMetaVolumeMemberCount()));
         }
 
-        // WJEIV -- double check this use case to make sure it works.
         createVolumes(param, project, varray, vpool, recommendations, null, taskId, capabilities);
     }
 
@@ -799,7 +802,7 @@ public class SRDFBlockServiceApiImpl extends AbstractBlockServiceApiImpl<SRDFSch
     @Override
     public void changeVolumeVirtualPool(final URI systemURI, final Volume volume,
             final VirtualPool vpool, final VirtualPoolChangeParam vpoolChangeParam, final String taskId)
-            throws InternalException {
+                    throws InternalException {
         _log.debug("Volume {} VirtualPool change.", volume.getId());
 
         // Check for common Vpool updates handled by generic code. It returns true if handled.

@@ -10,11 +10,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.stereotype.Component;
+
 import com.emc.sa.asset.AssetOptionsContext;
 import com.emc.sa.asset.AssetOptionsUtils;
 import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
+import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.object.BucketRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -23,6 +26,8 @@ import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;
 
+@Component
+@AssetNamespace("vipr")
 public class ObjectProvider extends BaseAssetOptionsProvider {
 
     @Asset("sourceBuckets")

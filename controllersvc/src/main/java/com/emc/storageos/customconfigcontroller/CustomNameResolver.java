@@ -425,9 +425,7 @@ public class CustomNameResolver extends CustomConfigResolver {
                     && !token.equals(END_DELIMITER)) {
                 // a literal - just append it
                 resolvedValue.append(token);
-            } /*else if (token.equals(END_DELIMITER)) {
-            // do nothing
-        	}*/
+            }
         }
         return resolvedValue.toString();
     }

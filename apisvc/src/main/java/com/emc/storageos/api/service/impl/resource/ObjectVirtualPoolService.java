@@ -89,9 +89,7 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
         ArgValidator.checkFieldNotEmpty(param.getDescription(), VPOOL_DESCRIPTION);
         VirtualPoolUtil.validateObjectVirtualPoolCreateParams(param, _dbClient);
         VirtualPool cos = prepareVirtualPool(param);
-        if (null != param.getMaxRetention()) {
-            cos.setMaxRetention(param.getMaxRetention());
-        }
+        
         // update the implicit pools matching with this VirtualPool.
         ImplicitPoolMatcher.matchVirtualPoolWithAllStoragePools(cos, _dbClient, _coordinator);
         _dbClient.createObject(cos);
@@ -491,10 +489,10 @@ public class ObjectVirtualPoolService extends VirtualPoolService {
             arrayInfo.put(VirtualPoolCapabilityValuesWrapper.SYSTEM_TYPE, param.getSystemType());
             vPool.addArrayInfoDetails(arrayInfo);
         }
-
-        if (null != param.getLongTermRetention()) {
-            vPool.setLongTermRetention(param.getLongTermRetention());
+        if (null != param.getMaxRetention()) {
+            vPool.setMaxRetention(param.getMaxRetention());
         }
+        
         return vPool;
     }
 }

@@ -144,9 +144,7 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.srdfcontroller.SRDFController;
-import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.svcs.errorhandling.resources.InternalServerErrorException;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
@@ -162,10 +160,8 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 
 @Path("/block/volumes")
-@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        readAcls = { ACL.OWN, ACL.ALL },
-        writeRoles = { Role.TENANT_ADMIN },
-        writeAcls = { ACL.OWN, ACL.ALL })
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
+        Role.TENANT_ADMIN }, writeAcls = { ACL.OWN, ACL.ALL })
 @SuppressWarnings({ "unchecked", "deprecation", "rawtypes" })
 public class BlockService extends TaskResourceService {
     private static final String SEARCH_VARRAY = "virtual_array";
@@ -256,7 +252,7 @@ public class BlockService extends TaskResourceService {
         }
     }
 
-    private static final Logger _log = LoggerFactory.getLogger(BlockService.class);
+    static final Logger _log = LoggerFactory.getLogger(BlockService.class);
 
     public static final String EVENT_SERVICE_TYPE = "block";
 
@@ -266,7 +262,7 @@ public class BlockService extends TaskResourceService {
 
     private TenantsService _tenantsService;
 
-    private PlacementManager _placementManager;
+    PlacementManager _placementManager;
 
     public void setPlacementManager(PlacementManager placementManager) {
         _placementManager = placementManager;
@@ -307,8 +303,7 @@ public class BlockService extends TaskResourceService {
     @Override
     public VolumeBulkRep queryBulkResourceReps(List<URI> ids) {
 
-        Iterator<Volume> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        Iterator<Volume> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new VolumeBulkRep(BulkList.wrapping(_dbIterator, MapVolume.getInstance()));
     }
 
@@ -316,8 +311,7 @@ public class BlockService extends TaskResourceService {
     protected BulkRestRep queryFilteredBulkResourceReps(
             List<URI> ids) {
 
-        Iterator<Volume> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        Iterator<Volume> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
         BulkList.ResourceFilter<Volume> filter = new BulkList.ProjectResourceFilter<Volume>(
                 getUserFromContext(), _permissionsHelper);
         return new VolumeBulkRep(BulkList.wrapping(_dbIterator, MapVolume.getInstance(), filter));
@@ -875,7 +869,7 @@ public class BlockService extends TaskResourceService {
                             if ((!VirtualPool.vPoolSpecifiesMetroPoint(requestedVpool) &&
                                     VirtualPool.vPoolSpecifiesMetroPoint(existingVpool)) ||
                                     (VirtualPool.vPoolSpecifiesMetroPoint(requestedVpool) &&
-                                    !VirtualPool.vPoolSpecifiesMetroPoint(existingVpool))) {
+                                            !VirtualPool.vPoolSpecifiesMetroPoint(existingVpool))) {
                                 throw APIException.badRequests.cannotMixMetroPointAndNonMetroPointVolumes(consistencyGroup.getLabel());
                             }
                         }
@@ -935,10 +929,10 @@ public class BlockService extends TaskResourceService {
 
         // COP-14028
         // Changing the return of a TaskList to return immediately while the underlying tasks are
-        // being built up.  Steps:
+        // being built up. Steps:
         // 1. Create a task object ahead of time and persist it for each requested volume.
-        // 2. Fire off a thread that does the placement and preparation of the volumes, which will use the pre-created 
-        //    task/volume objects during their source volume creations.
+        // 2. Fire off a thread that does the placement and preparation of the volumes, which will use the pre-created
+        // task/volume objects during their source volume creations.
         // 3. Return to the caller the new Task objects that is in the pending state.
         String task = UUID.randomUUID().toString();
         TaskList taskList = createVolumeTaskList(param.getSize(), project, varray, vpool, param.getName(), task, volumeCount);
@@ -948,10 +942,10 @@ public class BlockService extends TaskResourceService {
                 param.getName(), volumeCount, varray.getId().toString(), actualId.toString());
 
         // call thread that does the work.
-        CreateVolumeSchedulingThread cvst = new CreateVolumeSchedulingThread(varray, project, vpool, capabilities, taskList, task, 
+        CreateVolumeSchedulingThread.executeApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, varray,
+                project, vpool, capabilities, taskList, task,
                 consistencyGroup, requestedTypes, param, blockServiceImpl);
-        new Thread(cvst).start();
-        
+
         _log.info("Kicked off thread to perform placement and scheduling.  Returning " + taskList.getTaskList().size() + " tasks");
         return taskList;
     }
@@ -968,12 +962,13 @@ public class BlockService extends TaskResourceService {
      * @param volumeCount number of volumes requested
      * @return a list of tasks associated with this request
      */
-    private TaskList createVolumeTaskList(String size, Project project, VirtualArray varray, VirtualPool vpool, String label, String task, Integer volumeCount) {
+    private TaskList createVolumeTaskList(String size, Project project, VirtualArray varray, VirtualPool vpool, String label, String task,
+            Integer volumeCount) {
         TaskList taskList = new TaskList();
-        
+
         // For each volume requested, pre-create a volume object/task object
         long lsize = SizeUtil.translateSize(size);
-        for (int i = 0; i < volumeCount ; i++) {
+        for (int i = 0; i < volumeCount; i++) {
             Volume volume = StorageScheduler.prepareEmptyVolume(_dbClient, lsize, project, varray, vpool, label, i, volumeCount);
             Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(),
                     task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
@@ -983,84 +978,10 @@ public class BlockService extends TaskResourceService {
             _log.info(String.format("Volume and Task Pre-creation Objects [Init]--  Source Volume: %s, Task: %s, Op: %s",
                     volume.getId(), volumeTask.getId(), task));
         }
-        
+
         return taskList;
     }
 
-    /**
-     * Background thread that runs the placement, scheduling, and controller dispatching of a create volume
-     * request.  This allows the API to return a Task object quickly.  
-     */
-    private class CreateVolumeSchedulingThread implements Runnable {
-
-        private VirtualArray varray;
-        private Project project;
-        private VirtualPool vpool;
-        private VirtualPoolCapabilityValuesWrapper capabilities;
-        private TaskList taskList;
-        private String task;
-        private BlockConsistencyGroup consistencyGroup;
-        private ArrayList<String> requestedTypes;
-        private VolumeCreate param;
-        private BlockServiceApi blockServiceImpl;
-        
-        public CreateVolumeSchedulingThread(VirtualArray varray, Project project, VirtualPool vpool, VirtualPoolCapabilityValuesWrapper capabilities,
-                TaskList taskList, String task, BlockConsistencyGroup consistencyGroup, ArrayList<String> requestedTypes, VolumeCreate param,
-                BlockServiceApi blockServiceImpl) {
-            this.varray = varray;
-            this.project = project;
-            this.vpool = vpool;
-            this.capabilities = capabilities;
-            this.taskList = taskList;
-            this.task = task;
-            this.consistencyGroup = consistencyGroup;
-            this.requestedTypes = requestedTypes;
-            this.param = param;
-            this.blockServiceImpl = blockServiceImpl;
-        }
-        
-        @Override
-        public void run() {
-            _log.info("Starting scheduling/placement thread...");
-            // Call out placementManager to get the recommendation for placement.
-            try {
-                List recommendations = _placementManager.getRecommendationsForVolumeCreateRequest(
-                        varray, project, vpool, capabilities);
-
-                if (recommendations.isEmpty()) {
-                    throw APIException.badRequests.noMatchingStoragePoolsForVpoolAndVarray(vpool.getId(), varray.getId());
-                }
-
-                // At this point we are committed to initiating the request.
-                if (consistencyGroup != null) {
-                    consistencyGroup.addRequestedTypes(requestedTypes);
-                    _dbClient.updateAndReindexObject(consistencyGroup);
-                }
-
-                // Call out to the respective block service implementation to prepare
-                // and create the volumes based on the recommendations.
-                blockServiceImpl.createVolumes(param, project, varray, vpool, recommendations, taskList, task, capabilities);
-            } catch (Exception ex) {
-                for (TaskResourceRep taskObj : taskList.getTaskList()) {
-                    if (ex instanceof ServiceCoded) {
-                        _dbClient.error(Volume.class, taskObj.getResource().getId(), taskObj.getOpId(), (ServiceCoded)ex);
-                    } else {
-                        _dbClient.error(Volume.class, taskObj.getResource().getId(), taskObj.getOpId(), 
-                                InternalServerErrorException.internalServerErrors
-                                .unexpectedErrorVolumePlacement(ex));
-                    }
-                    _log.error(ex.getMessage(), ex);
-                    taskObj.setMessage(ex.getMessage());
-                    // Set the volumes to inactive
-                    Volume volume = _dbClient.queryObject(Volume.class, taskObj.getResource().getId());
-                    volume.setInactive(true);
-                    _dbClient.updateAndReindexObject(volume);
-                }
-            }
-            _log.info("Ending scheduling/placement thread...");
-        }
-    }
-            
     private boolean isAlphaNumeric(String consistencyGroupName) {
         String pattern = "^[a-zA-Z0-9]*$";
         if (consistencyGroupName.matches(pattern)) {
@@ -1275,7 +1196,8 @@ public class BlockService extends TaskResourceService {
                     .format(
                             "expandVolume --- Zero capacity expansion: allowed as a recovery to cleanup dangling members from previous expand failure.\n"
                                     +
-                                    "VolumeId id: %s, Current size: %d, New size: %d, Dangling volumes: %s ", id,
+                                    "VolumeId id: %s, Current size: %d, New size: %d, Dangling volumes: %s ",
+                            id,
                             volume.getCapacity(), newSize, volume.getMetaVolumeMembers()));
         } else if (newSize <= volume.getCapacity()) {
             _log.info(String.format(
@@ -1871,7 +1793,7 @@ public class BlockService extends TaskResourceService {
     public TaskResourceRep deleteVolume(@PathParam("id") URI id,
             @DefaultValue("false") @QueryParam("force") boolean force,
             @DefaultValue("FULL") @QueryParam("type") String type)
-            throws InternalException {
+                    throws InternalException {
         ArgValidator.checkFieldUriType(id, Volume.class, "id");
         Volume volume = queryVolumeResource(id);
 
@@ -1924,8 +1846,7 @@ public class BlockService extends TaskResourceService {
             URI systemURI = null;
             if (!NullColumnValueGetter.isNullURI(volume.getProtectionController())) {
                 systemURI = volume.getProtectionController();
-            }
-            else {
+            } else {
                 systemURI = volume.getStorageController();
             }
 
@@ -1995,8 +1916,7 @@ public class BlockService extends TaskResourceService {
 
         // For volume operations, user need to has TENANT_ADMIN role or proper ACLs etc.
         StorageOSUser user = getUserFromContext();
-        Iterator<Volume> dbVolumeIter =
-                _dbClient.queryIterativeObjects(getResourceClass(), volumeURIs.getIds());
+        Iterator<Volume> dbVolumeIter = _dbClient.queryIterativeObjects(getResourceClass(), volumeURIs.getIds());
         Set<URI> tenantSet = new HashSet<>();
         List<Volume> volumes = new ArrayList<Volume>();
         while (dbVolumeIter.hasNext()) {
@@ -2073,8 +1993,7 @@ public class BlockService extends TaskResourceService {
                 URI systemURI = null;
                 if (!NullColumnValueGetter.isNullURI(volume.getProtectionController())) {
                     systemURI = volume.getProtectionController();
-                }
-                else {
+                } else {
                     systemURI = volume.getStorageController();
                 }
 
@@ -2140,7 +2059,7 @@ public class BlockService extends TaskResourceService {
                     volumeTask.setMessage(e.getMessage());
                     _dbClient.updateTaskOpStatus(Volume.class, volumeTask
                             .getResource().getId(), task, new Operation(
-                            Operation.Status.error.name(), e.getMessage()));
+                                    Operation.Status.error.name(), e.getMessage()));
                 }
             }
         }
@@ -3249,8 +3168,7 @@ public class BlockService extends TaskResourceService {
             if (associatedResources != null) {
                 // We need the task to reflect that there are associated resources affected by this operation.
                 volumeTask = toTask(volume, associatedResources, taskId, op);
-            }
-            else {
+            } else {
                 volumeTask = toTask(volume, taskId, op);
             }
 
@@ -3284,7 +3202,7 @@ public class BlockService extends TaskResourceService {
                 volumeTask.setMessage(errorMsg);
                 _dbClient.updateTaskOpStatus(Volume.class, volumeTask
                         .getResource().getId(), taskId, new Operation(
-                        Operation.Status.error.name(), errorMsg));
+                                Operation.Status.error.name(), errorMsg));
             }
             throw e;
         }
@@ -3293,7 +3211,8 @@ public class BlockService extends TaskResourceService {
         for (Volume volume : volumes) {
             auditOp(OperationTypeEnum.CHANGE_VOLUME_VPOOL, true,
                     AuditLogManager.AUDITOP_BEGIN, volume.getLabel(), 1, volume
-                            .getVirtualArray().toString(), volume.getProject()
+                            .getVirtualArray().toString(),
+                    volume.getProject()
                             .toString());
         }
 
@@ -3630,9 +3549,9 @@ public class BlockService extends TaskResourceService {
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageId);
             if (DiscoveredDataObject.Type.vplex.name().equals(storage.getSystemType())) {
                 // For VPlex, the volumes should include all volumes, which are in the same backend storage system, in the CG.
-                 if (!VPlexUtil.verifyVolumesInCG(volumes, cgVolumes, _dbClient)) {
-                     throw APIException.badRequests.cantChangeVarrayNotAllCGVolumes();
-                 }
+                if (!VPlexUtil.verifyVolumesInCG(volumes, cgVolumes, _dbClient)) {
+                    throw APIException.badRequests.cantChangeVarrayNotAllCGVolumes();
+                }
             } else {
                 verifyVolumesInCG(volumes, cgVolumes);
             }
@@ -4221,7 +4140,8 @@ public class BlockService extends TaskResourceService {
         } else {
             _dbClient.queryByConstraint(
                     ContainmentPrefixConstraint.Factory.getVolumeUnderProjectConstraint(
-                            projectId, name), resRepList);
+                            projectId, name),
+                    resRepList);
         }
         return resRepList;
     }
@@ -4445,8 +4365,8 @@ public class BlockService extends TaskResourceService {
 
         if (!authorized) {
             Iterator<SearchResultResourceRep> _queryResultIterator = resRepList.iterator();
-            ResRepFilter<SearchResultResourceRep> resrepFilter =
-                    (ResRepFilter<SearchResultResourceRep>) getPermissionFilter(getUserFromContext(), _permissionsHelper);
+            ResRepFilter<SearchResultResourceRep> resrepFilter = (ResRepFilter<SearchResultResourceRep>) getPermissionFilter(
+                    getUserFromContext(), _permissionsHelper);
 
             SearchedResRepList filteredResRepList = new SearchedResRepList();
             filteredResRepList.setResult(
@@ -4466,8 +4386,7 @@ public class BlockService extends TaskResourceService {
      */
     @Override
     protected ResRepFilter<? extends RelatedResourceRep> getPermissionFilter(StorageOSUser user,
-            PermissionsHelper permissionsHelper)
-    {
+            PermissionsHelper permissionsHelper) {
         return new ProjOwnedResRepFilter(user, permissionsHelper, Volume.class);
     }
 
@@ -4494,7 +4413,7 @@ public class BlockService extends TaskResourceService {
         _log.info("Protection set status: " + protectionSet.getProtectionStatus());
         return map(protectionSet);
     }
-    
+
     /**
      * This api allows the user to add new journal volume(s) to a recoverpoint
      * consistency group copy
@@ -4513,13 +4432,13 @@ public class BlockService extends TaskResourceService {
     @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public TaskList addJournalCapacity(VolumeCreate param) throws InternalException {
         ArgValidator.checkFieldNotNull(param, "volume_create");
-        
+
         ArgValidator.checkFieldNotNull(param.getName(), "name");
-        
+
         ArgValidator.checkFieldNotNull(param.getSize(), "size");
-        
+
         ArgValidator.checkFieldNotNull(param.getCount(), "count");
-        
+
         ArgValidator.checkFieldUriType(param.getProject(), Project.class, "project");
 
         // Get and validate the project.
@@ -4527,7 +4446,7 @@ public class BlockService extends TaskResourceService {
         ArgValidator.checkEntity(project, param.getProject(), isIdEmbeddedInURL(param.getProject()));
 
         final URI actualId = project.getId();
-        
+
         // Verify the user is authorized.
         BlockServiceUtils.verifyUserIsAuthorizedForRequest(project, getUserFromContext(), _permissionsHelper);
 
@@ -4543,66 +4462,66 @@ public class BlockService extends TaskResourceService {
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
         capabilities.put(VirtualPoolCapabilityValuesWrapper.ADD_JOURNAL_CAPACITY, Boolean.TRUE);
         // Get the count indicating the number of journal volumes to add. If not
-        //passed assume 1. 
+        // passed assume 1.
         Integer volumeCount = 1;
         Long volumeSize = 0L;
-        
+
         if (param.getCount() <= 0) {
-        	throw APIException.badRequests.parameterMustBeGreaterThan("count", 0);
+            throw APIException.badRequests.parameterMustBeGreaterThan("count", 0);
         }
         if (param.getCount() > MAX_VOLUME_COUNT) {
-        	throw APIException.badRequests.exceedingLimit("count", MAX_VOLUME_COUNT);
+            throw APIException.badRequests.exceedingLimit("count", MAX_VOLUME_COUNT);
         }
         volumeCount = param.getCount();
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, volumeCount);        
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, volumeCount);
 
         // Validate the requested volume size is greater then 0.
         volumeSize = SizeUtil.translateSize(param.getSize());
         // Validate the requested volume size is at least 1 GB.
         if (volumeSize < GB) {
-        	throw APIException.badRequests.leastVolumeSize("1");
+            throw APIException.badRequests.leastVolumeSize("1");
         }
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, volumeSize);        
-        
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, volumeSize);
+
         // verify quota
         long size = volumeCount * SizeUtil.translateSize(param.getSize());
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
         ArgValidator.checkEntity(tenant, project.getTenantOrg().getURI(), false);
-        CapacityUtils.validateQuotasForProvisioning(_dbClient, vpool, project, tenant, size, "volume");    
-        
+        CapacityUtils.validateQuotasForProvisioning(_dbClient, vpool, project, tenant, size, "volume");
+
         if (null != vpool.getThinVolumePreAllocationPercentage()
                 && 0 < vpool.getThinVolumePreAllocationPercentage()) {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, VirtualPoolUtil
                     .getThinVolumePreAllocationSize(vpool.getThinVolumePreAllocationPercentage(), volumeSize));
         }
-        
+
         if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
                 vpool.getSupportedProvisioningType())) {
             capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
         }
 
         // Get and validate the BlockConsistencyGroup
-        BlockConsistencyGroup consistencyGroup = queryConsistencyGroup(param.getConsistencyGroup());          
+        BlockConsistencyGroup consistencyGroup = queryConsistencyGroup(param.getConsistencyGroup());
 
         // Check that the project and the CG project are the same
         final URI expectedId = consistencyGroup.getProject().getURI();
-        checkProjectsMatch(expectedId, project.getId());                
+        checkProjectsMatch(expectedId, project.getId());
 
         // Validate the CG type is RP
         if (!consistencyGroup.getRequestedTypes().contains(BlockConsistencyGroup.Types.RP.toString())) {
-        	throw APIException.badRequests.consistencyGroupIsNotCompatibleWithRequest(
-        			consistencyGroup.getId(), consistencyGroup.getTypes().toString(), BlockConsistencyGroup.Types.RP.toString());
-        }                                
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, consistencyGroup.getId());           
-        
+            throw APIException.badRequests.consistencyGroupIsNotCompatibleWithRequest(
+                    consistencyGroup.getId(), consistencyGroup.getTypes().toString(), BlockConsistencyGroup.Types.RP.toString());
+        }
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, consistencyGroup.getId());
+
         // Create a unique task id if one is not passed in the request.
         String task = UUID.randomUUID().toString();
 
         auditOp(OperationTypeEnum.ADD_JOURNAL_VOLUME, true, AuditLogManager.AUDITOP_BEGIN,
                 param.getName(), volumeCount, varray.getId().toString(), actualId.toString());
-        
-        // add the journal capacity to the CG        
-        RPBlockServiceApiImpl blockServiceImpl = (RPBlockServiceApiImpl)getBlockServiceImpl(DiscoveredDataObject.Type.rp.name());
+
+        // add the journal capacity to the CG
+        RPBlockServiceApiImpl blockServiceImpl = (RPBlockServiceApiImpl) getBlockServiceImpl(DiscoveredDataObject.Type.rp.name());
         return blockServiceImpl.addJournalCapacity(param, project, varray, vpool, consistencyGroup, capabilities, task);
     }
 
@@ -4656,14 +4575,14 @@ public class BlockService extends TaskResourceService {
                 VplexMirror mirror = _dbClient.queryObject(VplexMirror.class, URI.create(mirrorURI));
                 if (!mirror.getInactive() &&
                         ((count > 1 && mirror.getLabel().matches("^" + name + "\\-\\d+$")) ||
-                        (count == 1 && name.equals(mirror.getLabel())))) {
+                                (count == 1 && name.equals(mirror.getLabel())))) {
                     dupList.add(mirror.getLabel());
                 }
             } else {
                 BlockMirror mirror = _dbClient.queryObject(BlockMirror.class, URI.create(mirrorURI));
                 if (null != mirror && !mirror.getInactive() &&
                         ((count > 1 && mirror.getLabel().matches("^" + name + "\\-\\d+$")) ||
-                        (count == 1 && name.equals(mirror.getLabel())))) {
+                                (count == 1 && name.equals(mirror.getLabel())))) {
                     dupList.add(mirror.getLabel());
                 }
             }
@@ -4847,8 +4766,8 @@ public class BlockService extends TaskResourceService {
      * @param count The number of mirrors requested to be created
      */
     private void validateMirrorCount(Volume sourceVolume, VirtualPool sourceVPool, int count) {
-        int currentMirrorCount = (sourceVolume.getMirrors() == null || sourceVolume.getMirrors().isEmpty()) ?
-                0 : sourceVolume.getMirrors().size();
+        int currentMirrorCount = (sourceVolume.getMirrors() == null || sourceVolume.getMirrors().isEmpty()) ? 0
+                : sourceVolume.getMirrors().size();
         int requestedMirrorCount = currentMirrorCount + count;
         if (sourceVPool.getHighAvailability() != null
                 && sourceVPool.getHighAvailability().equals(VirtualPool.HighAvailabilityType.vplex_distributed.name())) {

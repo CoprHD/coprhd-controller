@@ -679,6 +679,10 @@
         <property name="asynchJobThreads" value="5"/>
     </bean>
 
+    <bean id="asyncTaskExecutor" class="com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorService" init-method="start" destroy-method="stop">
+        <property name="asyncTaskThreads" value="5"/>
+    </bean>
+
 	<bean id="defaultCapacityCalculator" class="com.emc.storageos.api.service.impl.resource.utils.DefaultCapacityCalculator" />
 	<bean id="vmaxCapacityCalculator" class="com.emc.storageos.api.service.impl.resource.utils.VmaxCapacityCalculator"/>
 	<bean id="xtremioCapacityCalculator" class="com.emc.storageos.api.service.impl.resource.utils.XtremioCapacityCalculator"/>

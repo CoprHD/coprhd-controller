@@ -1,9 +1,12 @@
+/*
+ * Copyright (c) 2012-2015 EMC
+ * All Rights Reserved
+ */
 package com.emc.sa.service.vipr.object.tasks;
 
 import java.net.URI;
 
 import com.emc.sa.service.vipr.tasks.WaitForTask;
-import com.emc.storageos.model.object.BucketParam;
 import com.emc.storageos.model.object.BucketRestRep;
 import com.emc.storageos.model.object.BucketUpdateParam;
 import com.emc.vipr.client.Task;

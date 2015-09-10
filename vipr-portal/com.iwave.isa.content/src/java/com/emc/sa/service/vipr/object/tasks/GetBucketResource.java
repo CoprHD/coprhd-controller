@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 EMC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.object.tasks;
@@ -7,11 +7,7 @@ package com.emc.sa.service.vipr.object.tasks;
 import java.net.URI;
 
 import com.emc.sa.service.vipr.tasks.ViPRExecutionTask;
-import com.emc.sa.util.ResourceType;
 import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.storageos.model.block.BlockObjectRestRep;
-import com.emc.storageos.model.block.BlockSnapshotRestRep;
-import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.object.BucketRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 

@@ -26,12 +26,11 @@ import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.sun.jersey.api.client.ClientResponse;
 
 /**
  * implementation of ECS specifics
- *
+ * 
  */
 public class ECSApi {
     private Logger _log = LoggerFactory.getLogger(ECSApi.class);
@@ -383,6 +382,15 @@ public class ECSApi {
 
     }// end create bucket
 
+    /**
+     * Updates Bucket Quota
+     * 
+     * @param bucketName Bucket name
+     * @param namespace Namespace of bucket
+     * @param softQuota Notification Quota limit in GB
+     * @param hardQuota Notification Quota limit in GB
+     * @throws ECSException if Error occurs during update
+     */
     public void updateBucketQuota(String bucketName, String namespace, Long softQuota, Long hardQuota) throws ECSException {
         ClientResponse clientResp = null;
 
@@ -391,15 +399,28 @@ public class ECSApi {
                 String quotaUpdate = " { \"blockSize\": \"" + hardQuota + "\", \"notificationSize\": \"" + softQuota
                         + "\", \"namespace\": \"" + namespace + "\" }  ";
                 final String path = MessageFormat.format(URI_UPDATE_BUCKET_QUOTA, bucketName);
-                clientResp = put(path, quotaUpdate);
-
-                if (clientResp.getStatus() != 200) {
-                    throw ECSException.exceptions.bucketUpdateFailed(bucketName, "Quota");
+                try {
+                    clientResp = put(path, quotaUpdate);
+                } catch (Exception e) {
+                    _log.error("Error occured while Quota update for bucket : {}", bucketName, e);
+                } finally {
+                    if (null == clientResp || clientResp.getStatus() != 200) {
+                        throw ECSException.exceptions.bucketUpdateFailed(bucketName, "Quota");
+                    }
+                    closeResponse(clientResp);
                 }
             }
         }
     }
 
+    /**
+     * Updates Retention value on a bucket
+     * 
+     * @param bucketName Bucket name
+     * @param namespace Namespace
+     * @param retention Retention in seconds
+     * @throws ECSException If error occurs during update
+     */
     public void updateBucketRetention(String bucketName, String namespace, Integer retention) throws ECSException {
         ClientResponse clientResp = null;
 
@@ -407,24 +428,41 @@ public class ECSApi {
             if (null != retention) {
                 String retentionUpdate = " { \"period\": \"" + retention + "\", \"namespace\": \"" + namespace + "\" }  ";
                 final String path = MessageFormat.format(URI_UPDATE_BUCKET_RETENTION, bucketName);
-                clientResp = put(path, retentionUpdate);
-                if (clientResp.getStatus() != 200) {
-                    throw ECSException.exceptions.bucketUpdateFailed(bucketName, "Retention");
+                try {
+                    clientResp = put(path, retentionUpdate);
+                } catch (Exception e) {
+                    _log.error("Error occured while Retention update for bucket : {}", bucketName, e);
+                } finally {
+                    if (null == clientResp || clientResp.getStatus() != 200) {
+                        throw ECSException.exceptions.bucketUpdateFailed(bucketName, "Retention");
+                    }
+                    closeResponse(clientResp);
                 }
             }
         }
     }
 
+    /**
+     * Delets a bucket on ECS Storage
+     * 
+     * @param bucketName Bucket name
+     * @throws ECSException If error occurs during delete
+     */
     public void deleteBucket(String bucketName) throws ECSException {
         ClientResponse clientResp = null;
 
         if (null != bucketName) {
             String deleteBody = " {  }  ";
             final String path = MessageFormat.format(URI_DEACTIVATE_BUCKET, bucketName);
-            clientResp = post(path, deleteBody);
-
-            if (clientResp.getStatus() != 200) {
-                throw ECSException.exceptions.bucketDeleteFailed(bucketName);
+            try {
+                clientResp = post(path, deleteBody);
+            } catch (Exception e) {
+                _log.error("Error occured while delete of bucket : {}", bucketName, e);
+            } finally {
+                if (null == clientResp || clientResp.getStatus() != 200) {
+                    throw ECSException.exceptions.bucketDeleteFailed(bucketName);
+                }
+                closeResponse(clientResp);
             }
         }
     }
@@ -445,5 +483,11 @@ public class ECSApi {
             clientResp = _client.put_json(_baseUrl.resolve(uri), authToken, body);
         }
         return clientResp;
+    }
+
+    private void closeResponse(ClientResponse clientResp) {
+        if (null != clientResp) {
+            clientResp.close();
+        }
     }
 }

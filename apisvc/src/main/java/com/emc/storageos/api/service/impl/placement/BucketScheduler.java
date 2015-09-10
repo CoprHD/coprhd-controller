@@ -87,8 +87,8 @@ public class BucketScheduler {
         List<BucketRecommendation> result = new ArrayList<BucketRecommendation>();
         for (Recommendation recommendation : poolRecommends) {
             BucketRecommendation rec = new BucketRecommendation(recommendation);
-            URI storageUri = recommendation.getSourceDevice();
-            URI storagePoolUri = recommendation.getSourcePool();
+            URI storageUri = recommendation.getSourceStorageSystem();
+            URI storagePoolUri = recommendation.getSourceStoragePool();
 
             // Verify if the Storage System is an Object Store
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageUri);

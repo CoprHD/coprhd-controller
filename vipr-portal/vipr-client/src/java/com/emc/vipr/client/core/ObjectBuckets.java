@@ -11,6 +11,7 @@ import java.net.URI;
 import java.util.List;
 
 import com.emc.storageos.model.BulkIdParam;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.storageos.model.object.BucketBulkRep;
 import com.emc.storageos.model.object.BucketDeleteParam;
 import com.emc.storageos.model.object.BucketParam;
@@ -73,10 +74,12 @@ public class ObjectBuckets extends ProjectResources<BucketRestRep> implements Ta
      *            the create configuration.
      * @return a task for monitoring the progress of the operation.
      */
-    public Task<BucketRestRep> create(BucketParam input) {
-        return postTask(input, getDeactivateUrl());
+    public Task<BucketRestRep> create(BucketParam input, URI project) {
+        URI uri = client.uriBuilder(baseUrl).queryParam("project", project).build();
+        TaskResourceRep task = client.postURI(TaskResourceRep.class, input, uri);
+        return new Task<>(client, task, resourceClass);
     }
-    
+
     /**
      * Begins update the bucket.
      * <p>
@@ -87,6 +90,6 @@ public class ObjectBuckets extends ProjectResources<BucketRestRep> implements Ta
      * @return a task for monitoring the progress of the operation.
      */
     public Task<BucketRestRep> update(BucketUpdateParam input) {
-        return postTask(input, getDeactivateUrl());
+        return postTask(input, getIdUrl());
     }
 }

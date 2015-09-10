@@ -47,9 +47,8 @@ public class CreateBucket extends WaitForTask<BucketRestRep> {
         create.setSoftQuota(softQuota.toString());
         create.setHardQuota(hardQuota.toString());
         create.setRetention(retention.toString());
-        create.setNamespace(namespace.toString());
         create.setOwner(owner.toString());
 
-        return getClient().objectBuckets().create(create);
+        return getClient().objectBuckets().create(create, projectId);
     }
 }

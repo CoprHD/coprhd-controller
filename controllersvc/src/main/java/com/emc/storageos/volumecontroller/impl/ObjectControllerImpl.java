@@ -1,3 +1,17 @@
+/*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
+ */
+/**
+ *  Copyright (c) 2008-2011 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
+ */
 package com.emc.storageos.volumecontroller.impl;
 
 import java.net.URI;
@@ -22,9 +36,15 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
 import com.emc.storageos.volumecontroller.impl.monitoring.MonitoringJob;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.MonitorTaskCompleter;
 
+/**
+ * South bound API implementation - a singleton instance
+ * of this class services all provisioning calls. Provisioning
+ * calls are matched against device specific controller implementations
+ * and forwarded from this implementation
+ */
 public class ObjectControllerImpl extends AbstractDiscoveredSystemController
-		implements ObjectController {
-	 private final static Logger _log = LoggerFactory.getLogger(FileControllerImpl.class);
+        implements ObjectController {
+    private final static Logger _log = LoggerFactory.getLogger(FileControllerImpl.class);
 
     // device specific ObjectController implementations
     private Set<ObjectController> _deviceImpl;
@@ -42,24 +62,24 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
     public void setDbClient(DbClient dbClient) {
         _dbClient = dbClient;
     }
-    
-	@Override
-	public void connectStorage(URI storage) throws InternalException {
-		_log.info("ObjectControllerImpl:connectStorage");
-		 execOb("connectStorage", storage);
 
-	}
+    @Override
+    public void connectStorage(URI storage) throws InternalException {
+        _log.info("ObjectControllerImpl:connectStorage");
+        execOb("connectStorage", storage);
 
-	@Override
-	public void disconnectStorage(URI storage) throws InternalException {
-		execOb("disconnectStorage", storage);
+    }
 
-	}
+    @Override
+    public void disconnectStorage(URI storage) throws InternalException {
+        execOb("disconnectStorage", storage);
 
-	@Override
-	public void discoverStorageSystem(AsyncTask[] tasks)
-			throws InternalException {
-		_log.info("ObjectControllerImpl:discoverStorageSystem");
+    }
+
+    @Override
+    public void discoverStorageSystem(AsyncTask[] tasks)
+            throws InternalException {
+        _log.info("ObjectControllerImpl:discoverStorageSystem");
         try {
             ControllerServiceImpl.scheduleDiscoverJobs(tasks, Lock.DISCOVER_COLLECTION_LOCK, ControllerServiceImpl.DISCOVERY);
         } catch (Exception e) {
@@ -69,21 +89,21 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
             throw ClientControllerException.fatals.unableToScheduleDiscoverJobs(tasks, e);
         }
 
-	}
+    }
 
-	@Override
-	public void scanStorageProviders(AsyncTask[] tasks)
-			throws InternalException {
-		_log.info("ObjectControllerImpl:scanStorageProviders");
-		 throw ClientControllerException.fatals.unableToScanSMISProviders(tasks, "ObjectController", null);
+    @Override
+    public void scanStorageProviders(AsyncTask[] tasks)
+            throws InternalException {
+        _log.info("ObjectControllerImpl:scanStorageProviders");
+        throw ClientControllerException.fatals.unableToScanSMISProviders(tasks, "ObjectController", null);
 
-	}
+    }
 
-	@Override
-	public void startMonitoring(AsyncTask task, Type deviceType)
-			throws InternalException {
+    @Override
+    public void startMonitoring(AsyncTask task, Type deviceType)
+            throws InternalException {
         try {
-        	_log.info("ObjectControllerImpl:startMonitoring");
+            _log.info("ObjectControllerImpl:startMonitoring");
             MonitoringJob job = new MonitoringJob();
             job.setCompleter(new MonitorTaskCompleter(task));
             job.setDeviceType(deviceType);
@@ -91,30 +111,29 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
         } catch (Exception e) {
             throw ClientControllerException.fatals.unableToMonitorSMISProvider(task, deviceType.toString(), e);
         }
-	}
+    }
 
-	@Override
-	public Controller lookupDeviceController(DiscoveredSystemObject device) {
+    @Override
+    public Controller lookupDeviceController(DiscoveredSystemObject device) {
         // dummy impl that returns the first one
-		_log.info("ObjectControllerImpl:lookupDeviceController");
-        return _deviceImpl.iterator().next();	
-        }
-	
+        _log.info("ObjectControllerImpl:lookupDeviceController");
+        return _deviceImpl.iterator().next();
+    }
+
     private void execOb(String methodName, Object... args) throws InternalException {
-    	StringBuilder logMsgBuilder = new StringBuilder(String.format(
+        StringBuilder logMsgBuilder = new StringBuilder(String.format(
                 "ObjectControllerImpl Method=%s StorageSystem.class:%s", methodName, StorageSystem.class));
         queueTask(_dbClient, StorageSystem.class, _dispatcher, methodName, args);
     }
 
-	@Override
-	public void createBucket(URI storage, URI vPool, URI bkt, String label, String namespace, String retention,
-			String hardQuota, String softQuota, String owner, String opId) throws InternalException {
-		// TODO Auto-generated method stub
-		_log.info("ObjectControllerImpl:createBukcet start");
-		execOb("createBucket", storage, vPool, bkt, label, namespace, retention,
-				hardQuota, softQuota, owner, opId);
-		_log.info("ObjectControllerImpl:createBukcet end");
-	}
+    @Override
+    public void createBucket(URI storage, URI vPool, URI bkt, String label, String namespace, String retention,
+            String hardQuota, String softQuota, String owner, String opId) throws InternalException {
+        _log.info("ObjectControllerImpl:createBukcet start");
+        execOb("createBucket", storage, vPool, bkt, label, namespace, retention,
+                hardQuota, softQuota, owner, opId);
+        _log.info("ObjectControllerImpl:createBukcet end");
+    }
 
     @Override
     public void deleteBucket(URI storage, URI bucket, String task) throws InternalException {
@@ -123,7 +142,8 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
     }
 
     @Override
-    public void updateBucket(URI storage, URI bucket, Long softQuota, Long hardQuota, Integer retention, String task) throws InternalException {
+    public void updateBucket(URI storage, URI bucket, Long softQuota, Long hardQuota, Integer retention, String task)
+            throws InternalException {
         _log.info("ObjectControllerImpl:updateBukcet");
         execOb("updateBucket", storage, bucket, softQuota, hardQuota, retention, task);
     }

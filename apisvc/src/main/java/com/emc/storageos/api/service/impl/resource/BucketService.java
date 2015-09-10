@@ -153,16 +153,19 @@ public class BucketService extends TaskResourceService {
 
         // Check for all mandatory field
         ArgValidator.checkFieldNotNull(param.getLabel(), "name");
-        ArgValidator.checkFieldNotNull(param.getNamespace(), "namespace");
         ArgValidator.checkFieldNotNull(param.getOwner(), "owner");
 
         Project project = _permissionsHelper.getObjectById(id, Project.class);
         ArgValidator.checkEntity(project, id, isIdEmbeddedInURL(id));
         ArgValidator.checkFieldNotNull(project.getTenantOrg(), "project");
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
-
-        final String bucketName = param.getNamespace() + "_" + project.getLabel() + "_" + param.getLabel();
-        final String bucketPath = param.getNamespace() + "/" + project.getLabel() + "/" + param.getLabel();
+        
+        final String namespace = tenant.getNamespace();
+        if(null==namespace || namespace.isEmpty()){
+            throw APIException.badRequests.objNoNamespaceForTenant(tenant.getId());
+        }
+        final String bucketName = namespace + "_" + project.getLabel() + "_" + param.getLabel();
+        final String bucketPath = namespace + "/" + project.getLabel() + "/" + param.getLabel();
         // No need to generate any name -- Since the requirement is to use the customizing label we should use the same.
         // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _
         final String convertedName = bucketName.replaceAll("[^\\dA-Za-z\\_]", "");
@@ -204,9 +207,6 @@ public class BucketService extends TaskResourceService {
             throw APIException.badRequests.virtualPoolNotForObjectStorage(VirtualPool.Type.object.name());
         }
 
-        // verify quota
-        CapacityUtils.validateQuotasForProvisioning(_dbClient, cos, project, tenant, hardQuota, "bucket");
-
         // verify retention
         if (retention > cos.getMaxRetention()) {
             throw APIException.badRequests.insufficientRetentionForVirtualPool(cos.getLabel(), "bucket");
@@ -237,9 +237,9 @@ public class BucketService extends TaskResourceService {
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceDevice());
             ObjectController controller = getController(ObjectController.class, system.getSystemType());
-            controller.createBucket(recommendation.getSourceDevice(), recommendation.getSourcePool(), bucket.getId(), 
-            		param.getLabel(), param.getNamespace(), param.getRetention(), param.getHardQuota(), 
-            		param.getSoftQuota(), param.getOwner(), task);
+            controller.createBucket(recommendation.getSourceDevice(), recommendation.getSourcePool(), bucket.getId(),
+                    param.getLabel(), tenant.getNamespace(), param.getRetention(), param.getHardQuota(),
+                    param.getSoftQuota(), param.getOwner(), task);
         } catch (InternalException e) {
             bucket.setInactive(true);
             _dbClient.persistObject(bucket);
@@ -372,7 +372,7 @@ public class BucketService extends TaskResourceService {
         bucket.setSoftQuota(SizeUtil.translateSize(param.getSoftQuota()));
         bucket.setRetention(Integer.valueOf(param.getRetention()));
         bucket.setOwner(param.getOwner());
-        bucket.setNamespace(param.getNamespace());
+        bucket.setNamespace(tenantOrg.getNamespace());
         bucket.setVirtualPool(param.getVpool());
         if (project != null) {
             bucket.setProject(new NamedURI(project.getId(), bucket.getLabel()));

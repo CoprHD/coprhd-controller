@@ -21,7 +21,7 @@ public interface ObjectStorageDevice {
      * @throws ControllerException if Update fails
      */
     BiosCommandResult doUpdateBucket(StorageSystem storageObj, Bucket bucket, Long softQuota, Long hardQuota,
-            Integer retention) throws ControllerException;
+            Integer retention, String taskId) throws ControllerException;
 
     /**
      * 
@@ -30,6 +30,5 @@ public interface ObjectStorageDevice {
      * @return Result of operation
      * @throws ControllerException if Delete fails
      */
-    BiosCommandResult doDeleteBucket(StorageSystem storageObj, Bucket bucket) throws ControllerException;
-
+    BiosCommandResult doDeleteBucket(StorageSystem storageObj, Bucket bucket, String taskId) throws ControllerException;
 }

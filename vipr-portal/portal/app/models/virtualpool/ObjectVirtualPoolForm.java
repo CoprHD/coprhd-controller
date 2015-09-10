@@ -52,7 +52,6 @@ public class ObjectVirtualPoolForm extends VirtualPoolCommonForm<ObjectVirtualPo
     public ObjectVirtualPoolRestRep save() {
     	ObjectVirtualPoolRestRep virtualPool = doSave();
         ObjectVirtualPools vpools = getViprClient().objectVpools();
-        saveQuota(vpools);
         saveTenantACLs(vpools);
         return virtualPool;
     }

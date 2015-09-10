@@ -84,20 +84,6 @@ $(document).ready(function() {
     #{Form.selectManyControlGroup field:field, options:virtualArrayOptions, required:true /}
   #{/field}
 </div>
-  #{field 'vpool.enableQuota'}
-    #{Form.booleanCheckBoxControlGroup field:field /}
-  #{/field}
-  
-  <div data-source="vpool_enableQuota" data-show="true">
-  #{field 'vpool.quota'}
-    #{Form.controlGroup field:field, width:3}
-      <div class="input-group">
-        #{Form.inputText field:field/}
-        <span class="input-group-addon">&{'GB'}</span>
-      </div>
-    #{/Form.controlGroup}
-  #{/field}
-  </div>
   
   <div class="panel-group">
   <div class="storagePoolCriteria">
@@ -113,8 +99,7 @@ $(document).ready(function() {
         #{Form.selectOneControlGroup field:field, options:systemTypeOptions, cssClass:'span4' /}
       #{/field}
   #{/collapse}
-  
-  #{collapse 'vpool.group.archive', icon:'floppy-disk'}
+  #{collapse 'vpool.group.protection', icon:'vipricon-protectionv8'}
      #{field 'vpool.maxRetention'}
         #{Form.inputTextControlGroup field:field, cssClass:'span1' /}
       #{/field}

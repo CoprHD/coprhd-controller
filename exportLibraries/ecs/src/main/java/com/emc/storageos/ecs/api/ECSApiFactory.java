@@ -1,3 +1,17 @@
+/*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
+ */
+/**
+ *  Copyright (c) 2012 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
+ */
 package com.emc.storageos.ecs.api;
 
 import java.io.IOException;
@@ -23,13 +37,16 @@ import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 import com.sun.jersey.client.apache.ApacheHttpClient;
 import com.sun.jersey.client.apache.ApacheHttpClientHandler;
 
+/**
+ * ECS API client factory
+ */
 public class ECSApiFactory {
-	private Logger _log = LoggerFactory.getLogger(ECSApiFactory.class);
+    private Logger _log = LoggerFactory.getLogger(ECSApiFactory.class);
     private static final int DEFAULT_MAX_CONN = 300;
     private static final int DEFAULT_MAX_CONN_PER_HOST = 100;
     private static final int DEFAULT_CONN_TIMEOUT = 1000 * 30;
     private static final int DEFAULT_SOCKET_CONN_TIMEOUT = 1000 * 60 * 60;
-    
+
     private int _maxConn = DEFAULT_MAX_CONN;
     private int _maxConnPerHost = DEFAULT_MAX_CONN_PER_HOST;
     private int _connTimeout = DEFAULT_CONN_TIMEOUT;
@@ -104,11 +121,11 @@ public class ECSApiFactory {
 
         Protocol.registerProtocol("https", new Protocol("https", new NonValidatingSocketFactory(), 4443));
     }
-    
+
     /**
      * shutdown http connection manager.
      */
-    protected void shutdown()  {
+    protected void shutdown() {
         _connectionManager.shutdown();
     }
 
@@ -119,16 +136,16 @@ public class ECSApiFactory {
      * @return
      */
     public ECSApi getRESTClient(URI endpoint) {
-        ECSApi ecsApi = _clientMap.get(endpoint.toString()+":"+":");
+        ECSApi ecsApi = _clientMap.get(endpoint.toString() + ":" + ":");
         if (ecsApi == null) {
             Client jerseyClient = new ApacheHttpClient(_clientHandler);
             RESTClient restClient = new RESTClient(jerseyClient);
             ecsApi = new ECSApi(endpoint, restClient);
-            _clientMap.putIfAbsent(endpoint.toString()+":"+":", ecsApi);
+            _clientMap.putIfAbsent(endpoint.toString() + ":" + ":", ecsApi);
         }
         return ecsApi;
     }
-    
+
     /**
      * Create ECS API client
      *
@@ -136,41 +153,42 @@ public class ECSApiFactory {
      * @return
      */
     public ECSApi getRESTClient(URI endpoint, String username, String password) {
-        ECSApi ecsApi = _clientMap.get(endpoint.toString() +":"+ username +":"+ password);
+        ECSApi ecsApi = _clientMap.get(endpoint.toString() + ":" + username + ":" + password);
         if (ecsApi == null) {
             Client jerseyClient = new ApacheHttpClient(_clientHandler);
             jerseyClient.addFilter(new HTTPBasicAuthFilter(username, password));
             RESTClient restClient = new RESTClient(jerseyClient);
             ecsApi = new ECSApi(endpoint, restClient);
-            _clientMap.putIfAbsent(endpoint.toString()+":"+username+":"+password, ecsApi);
+            _clientMap.putIfAbsent(endpoint.toString() + ":" + username + ":" + password, ecsApi);
         }
         return ecsApi;
     }
-    
-   /*
-    public static void main(String[] args) {
-    	System.out.println("starting ecs main");
-    	URI uri = URI.create(String.format("https://10.247.78.171:4443/login"));
-    	ECSApiFactory factory = new ECSApiFactory();
-    	factory.init();
-    	ECSApi ecsApi = factory.getRESTClient(uri, "root", "ChangeMe");
-    	
-    	String authToken = ecsApi.getAuthToken();
-    	System.out.println(authToken);
-    	
-    	if (ecsApi.isSystemAdmin())
-    		System.out.println("Sys admin");
-    	else 
-    		System.out.println("NOT Sys admin");
-    		
-    	//ecsApi.getStoragePools();
-    	//ecsApi.getStoragePort("10.32.4.98");
 
-    	//createBucket(String name, String namespace, String repGroup, 
-    	//String retentionPeriod, String blkSizeHQ, String notSizeSQ) throws ECSException {
-    	ecsApi.createBucket("m1", "s3", "urn:storageos:ReplicationGroupInfo:b3bf2d47-d732-457c-bb9b-d260eb53a76a:global", 
-    			"4", "99", "55", "testlogin");
-    	
-    }*/
-    
+    /*
+     * public static void main(String[] args) {
+     * System.out.println("starting ecs main");
+     * URI uri = URI.create(String.format("https://10.247.78.171:4443/login"));
+     * ECSApiFactory factory = new ECSApiFactory();
+     * factory.init();
+     * ECSApi ecsApi = factory.getRESTClient(uri, "root", "ChangeMe");
+     * 
+     * String authToken = ecsApi.getAuthToken();
+     * System.out.println(authToken);
+     * 
+     * if (ecsApi.isSystemAdmin())
+     * System.out.println("Sys admin");
+     * else
+     * System.out.println("NOT Sys admin");
+     * 
+     * //ecsApi.getStoragePools();
+     * //ecsApi.getStoragePort("10.32.4.98");
+     * 
+     * //createBucket(String name, String namespace, String repGroup,
+     * //String retentionPeriod, String blkSizeHQ, String notSizeSQ) throws ECSException {
+     * ecsApi.createBucket("m1", "s3", "urn:storageos:ReplicationGroupInfo:b3bf2d47-d732-457c-bb9b-d260eb53a76a:global",
+     * "4", "99", "55", "testlogin");
+     * 
+     * }
+     */
+
 }

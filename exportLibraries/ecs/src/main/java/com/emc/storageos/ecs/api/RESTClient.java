@@ -1,3 +1,17 @@
+/*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
+ */
+/**
+ *  Copyright (c) 2012 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
+ */
 package com.emc.storageos.ecs.api;
 
 import com.sun.jersey.api.client.*;
@@ -15,52 +29,52 @@ import java.util.concurrent.Future;
 import javax.ws.rs.core.MediaType;
 
 public class RESTClient {
-	private Client _client;
+    private Client _client;
 
-	/**
-	 * Constructor
-	 *
-	 * @param client Jersey client to use
-	 */
-	public RESTClient(Client client) {
-		_client = client;
-	}
+    /**
+     * Constructor
+     *
+     * @param client Jersey client to use
+     */
+    public RESTClient(Client client) {
+        _client = client;
+    }
 
-	/**
-	 * Get resource as a ClientResponse
-	 *
-	 * @param   url             url for the resource to get
-	 * @return  ClientResponse  response
-	 */
-	public ClientResponse get(URI url) {
-		return _client.resource(url).get(ClientResponse.class);
-	}
-	
-	public ClientResponse get_json(URI url, String authToken) {
-		WebResource r = _client.resource(url);
-		return r.header("Content-Type", "application/json").header("X-SDS-AUTH-TOKEN", authToken).get(ClientResponse.class);
-	}
+    /**
+     * Get resource as a ClientResponse
+     *
+     * @param url url for the resource to get
+     * @return ClientResponse response
+     */
+    public ClientResponse get(URI url) {
+        return _client.resource(url).get(ClientResponse.class);
+    }
 
-	public ClientResponse get_xml(URI url, String authToken) {
-		WebResource r = _client.resource(url);
-		return r.header("Content-Type", "application/xml").header("X-SDS-AUTH-TOKEN", authToken).get(ClientResponse.class);
-	}
+    public ClientResponse get_json(URI url, String authToken) {
+        WebResource r = _client.resource(url);
+        return r.header("Content-Type", "application/json").header("X-SDS-AUTH-TOKEN", authToken).get(ClientResponse.class);
+    }
+
+    public ClientResponse get_xml(URI url, String authToken) {
+        WebResource r = _client.resource(url);
+        return r.header("Content-Type", "application/xml").header("X-SDS-AUTH-TOKEN", authToken).get(ClientResponse.class);
+    }
 
     public ClientResponse post_json(URI url, String authToken, String body) {
-    	WebResource r = _client.resource(url);
-		return r.header("Content-Type", "application/json").header("X-SDS-AUTH-TOKEN", authToken).post(ClientResponse.class, body);
+        WebResource r = _client.resource(url);
+        return r.header("Content-Type", "application/json").header("X-SDS-AUTH-TOKEN", authToken).post(ClientResponse.class, body);
     }
 
     public ClientResponse put_json(URI url, String authToken, String body) {
-    	WebResource r = _client.resource(url);
-		return r.header("Content-Type", "application/json").header("X-SDS-AUTH-TOKEN", authToken).put(ClientResponse.class, body);
+        WebResource r = _client.resource(url);
+        return r.header("Content-Type", "application/json").header("X-SDS-AUTH-TOKEN", authToken).put(ClientResponse.class, body);
     }
-    
-	/**
-	 * Close the client
-	 */
-	public void close() {
-		_client.destroy();
-	}
+
+    /**
+     * Close the client
+     */
+    public void close() {
+        _client.destroy();
+    }
 
 }

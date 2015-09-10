@@ -42,45 +42,47 @@ import com.emc.storageos.volumecontroller.impl.utils.ImplicitPoolMatcher;
  * Class for ECS discovery object storage device
  */
 public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImpl {
-	private static final int BYTESCONVERTER = 1024;
-	private static final String NEW = "new";
-	private static final String EXISTING = "existing";
-	
-	private static final Logger _logger = LoggerFactory.getLogger(ECSCommunicationInterface.class);
-	private ECSApiFactory ecsApiFactory;
-		
+    private static final int BYTESCONVERTER = 1024;
+    private static final String NEW = "new";
+    private static final String EXISTING = "existing";
+
+    private static final Logger _logger = LoggerFactory.getLogger(ECSCommunicationInterface.class);
+    private ECSApiFactory ecsApiFactory;
+
     /**
      * @param ecsApiFactory the ecsApiFactory to set
      */
     public void setecsApiFactory(ECSApiFactory ecsApiFactory) {
-    	_logger.info("ECSCommunicationInterface:setecsApiFactory");
+        _logger.info("ECSCommunicationInterface:setecsApiFactory");
         this.ecsApiFactory = ecsApiFactory;
     }
-	
-	@Override
-	public void collectStatisticsInformation(AccessProfile accessProfile)
-			throws BaseCollectionException {
-		// TODO Auto-generated method stub
-		
-	}
 
-	@Override
-	public void scan(AccessProfile accessProfile)
-			throws BaseCollectionException {
-		// TODO Auto-generated method stub
-		 _logger.info("ECSCommunicationInterface:scan scan Access Profile Details :" + accessProfile.toString());
-	}
+    @Override
+    public void collectStatisticsInformation(AccessProfile accessProfile)
+            throws BaseCollectionException {
+        // TODO Auto-generated method stub
 
-	@Override
-	public void discover(AccessProfile accessProfile)
-			throws BaseCollectionException {
+    }
+
+    @Override
+    public void scan(AccessProfile accessProfile)
+            throws BaseCollectionException {
+        // TODO Auto-generated method stub
+    }
+
+    /**
+     * Get storage pool and storage ports
+     */
+    @Override
+    public void discover(AccessProfile accessProfile)
+            throws BaseCollectionException {
         URI storageSystemId = null;
         StorageSystem storageSystem = null;
         String detailedStatusMessage = "Unknown Status";
         long startTime = System.currentTimeMillis();
 
         _logger.info("ECSCommunicationInterface:discover Access Profile Details :" + accessProfile.toString());
-		try {
+        try {
             storageSystemId = accessProfile.getSystemId();
             storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemId);
 
@@ -88,22 +90,22 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             ECSApi ecsApi = getECSDevice(storageSystem);
             String authToken = ecsApi.getAuthToken();
             if (authToken.isEmpty()) {
-            	throw ECSException.exceptions.discoverFailed("Could not obtain authToken");
+                throw ECSException.exceptions.discoverFailed("Could not obtain authToken");
             }
-            
-            //Make sure user is system admin before proceeding to discovery
+
+            // Make sure user is system admin before proceeding to discovery
             if (!ecsApi.isSystemAdmin()) {
-            	_logger.error("User:" + accessProfile.getUserName() + "dont have privileges to access Elastic Clound Storage: "
-            			+ accessProfile.getIpAddress());
-            	_logger.error("Discovery failed");
-            	throw ECSException.exceptions.discoverFailed("User is not ECS System Admin");
+                _logger.error("User:" + accessProfile.getUserName() + "dont have privileges to access Elastic Clound Storage: "
+                        + accessProfile.getIpAddress());
+                _logger.error("Discovery failed");
+                throw ECSException.exceptions.discoverFailed("User is not ECS System Admin");
             }
-            
-            //Get details of storage system
+
+            // Get details of storage system
             String nativeGuid = NativeGUIDGenerator.generateNativeGuid(DiscoveredDataObject.Type.ecs.toString(),
-            		authToken.substring(0, 20)); //Take first 20 chars in authToken as there is not other id from ECS is available
+                    authToken.substring(0, 20)); // Take first 20 chars in authToken as there is no other id from ECS is available
             storageSystem.setNativeGuid(nativeGuid);
-            storageSystem.setSerialNumber(nativeGuid); //No serial num API exposed
+            storageSystem.setSerialNumber(nativeGuid); // No serial num API exposed
             storageSystem.setUsername(accessProfile.getUserName());
             storageSystem.setPassword(accessProfile.getPassword());
             storageSystem.setPortNumber(accessProfile.getPortNumber());
@@ -112,158 +114,150 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             storageSystem.setReachableStatus(true);
             storageSystem.setInactive(false);
             _dbClient.persistObject(storageSystem);
-            
-            //Discover storage pools
+
+            // Discover storage pools
             Map<String, List<StoragePool>> allPools = new HashMap<String, List<StoragePool>>();
             List<StoragePool> newPools = new ArrayList<StoragePool>();
             List<StoragePool> existingPools = new ArrayList<StoragePool>();
             StoragePool storagePool;
-            
+
             List<ECSStoragePool> ecsStoragePools = ecsApi.getStoragePools();
 
-            for (ECSStoragePool ecsPool : ecsStoragePools)  {
-            	// Check if this storage pool was already discovered
+            for (ECSStoragePool ecsPool : ecsStoragePools) {
+                // Check if this storage pool was already discovered
                 storagePool = null;
-            	StorageSystem tempSystem = new StorageSystem();
-            	tempSystem.setSystemType("ecs");
-            	tempSystem.setSerialNumber("0123456789");
+                StorageSystem tempSystem = new StorageSystem();
+                tempSystem.setSystemType("ecs");
+                tempSystem.setSerialNumber("0123456789");// Since there is no serial number of the device
 
-            	String storagePoolNativeGuid = NativeGUIDGenerator.generateNativeGuid(
-            			tempSystem, ecsPool.getId(), NativeGUIDGenerator.POOL);     	
-                //String storagePoolNativeGuid = NativeGUIDGenerator.generateNativeGuid(
-                //        storageSystem, ecsPool.getId(), NativeGUIDGenerator.POOL);
+                String storagePoolNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                        tempSystem, ecsPool.getId(), NativeGUIDGenerator.POOL);
                 @SuppressWarnings("deprecation")
                 List<URI> poolURIs = _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
                         getStoragePoolByNativeGuidConstraint(storagePoolNativeGuid));
 
-                for (URI poolUri : poolURIs ) {
+                for (URI poolUri : poolURIs) {
                     StoragePool pool = _dbClient.queryObject(StoragePool.class, poolUri);
-                    if (!pool.getInactive()&&pool.getStorageDevice().equals(storageSystemId)) {
+                    if (!pool.getInactive() && pool.getStorageDevice().equals(storageSystemId)) {
                         storagePool = pool;
                         break;
                     }
                 }
-                
+
                 if (storagePool == null) {
-                	storagePool = new StoragePool();
-                	storagePool.setId(URIUtil.createId(StoragePool.class));
-                	storagePool.setNativeId(ecsPool.getId());
-                	storagePool.setNativeGuid(storagePoolNativeGuid);
-                	storagePool.setLabel(storagePoolNativeGuid);
-                	storagePool.setPoolClassName("ECS Pool");
-                	storagePool.setStorageDevice(storageSystem.getId());
-                	StringSet protocols = new StringSet();
-                	protocols.add("S3");
-                	protocols.add("Swift");
-                	protocols.add("Atmos");
-                	storagePool.setProtocols(protocols);
-                	storagePool.setPoolName(ecsPool.getName()); 
-                	storagePool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.toString());
-                	storagePool.setPoolServiceType(PoolServiceType.object.toString());
-                	storagePool.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
-                	storagePool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THICK_ONLY.toString());
-                    storagePool.setFreeCapacity(ecsPool.getFreeCapacity()*BYTESCONVERTER*BYTESCONVERTER);
-                    storagePool.setTotalCapacity(ecsPool.getTotalCapacity()*BYTESCONVERTER*BYTESCONVERTER);
+                    storagePool = new StoragePool();
+                    storagePool.setId(URIUtil.createId(StoragePool.class));
+                    storagePool.setNativeId(ecsPool.getId());
+                    storagePool.setNativeGuid(storagePoolNativeGuid);
+                    storagePool.setLabel(storagePoolNativeGuid);
+                    storagePool.setPoolClassName("ECS Pool");
+                    storagePool.setStorageDevice(storageSystem.getId());
+                    StringSet protocols = new StringSet();
+                    protocols.add("S3");
+                    protocols.add("Swift");
+                    protocols.add("Atmos");
+                    storagePool.setProtocols(protocols);
+                    storagePool.setPoolName(ecsPool.getName());
+                    storagePool.setOperationalStatus(StoragePool.PoolOperationalStatus.READY.toString());
+                    storagePool.setPoolServiceType(PoolServiceType.object.toString());
+                    storagePool.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
+                    storagePool.setSupportedResourceTypes(StoragePool.SupportedResourceTypes.THICK_ONLY.toString());
+                    storagePool.setFreeCapacity(ecsPool.getFreeCapacity() * BYTESCONVERTER * BYTESCONVERTER);
+                    storagePool.setTotalCapacity(ecsPool.getTotalCapacity() * BYTESCONVERTER * BYTESCONVERTER);
                     storagePool.setInactive(false);
-                    //storagePool.setSubscribedCapacity((ecsPool.getTotalCapacity()-ecsPool.getFreeCapacity()));
-                	_logger.info("Creating new ECS storage pool using NativeId : {}", storagePoolNativeGuid);
+                    _logger.info("Creating new ECS storage pool using NativeId : {}", storagePoolNativeGuid);
                     storagePool.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
                     storagePool.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
-                	newPools.add(storagePool);
+                    newPools.add(storagePool);
                 }
                 else {
-                	existingPools.add(storagePool);
+                    existingPools.add(storagePool);
                 }
-                
-                /*if(ImplicitPoolMatcher.checkPoolPropertiesChanged(storagePool.getCompatibilityStatus(), DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name())
-                        || ImplicitPoolMatcher.checkPoolPropertiesChanged(storagePool.getDiscoveryStatus(), DiscoveryStatus.VISIBLE.name())){
-                    poolsToMatchWithVpool.add(storagePool);
-                }*/
             }
             allPools.put(NEW, newPools);
             allPools.put(EXISTING, existingPools);
             _logger.info("No of newly discovered pools {}", allPools.get(NEW).size());
             _logger.info("No of existing discovered pools {}", allPools.get(EXISTING).size());
 
-            if(allPools.get(NEW).size() > 0){
+            if (allPools.get(NEW).size() > 0) {
                 _dbClient.createObject(allPools.get(NEW));
             }
 
-            if(allPools.get(EXISTING).size() > 0){
+            if (allPools.get(EXISTING).size() > 0) {
                 _dbClient.persistObject(allPools.get(EXISTING));
             }
-            
-            //Get storage ports
+
+            // Get storage ports
             HashMap<String, List<StoragePort>> storagePorts = new HashMap<String, List<StoragePort>>();
             List<StoragePort> newStoragePorts = new ArrayList<StoragePort>();
             List<StoragePort> existingStoragePorts = new ArrayList<StoragePort>();
             List<ECSStoragePort> ecsStoragePorts = ecsApi.getStoragePort(storageSystem.getIpAddress());
 
             for (ECSStoragePort ecsPort : ecsStoragePorts) {
-            	StoragePort storagePort = null;
-            	StorageSystem tempSystem = new StorageSystem();
-            	tempSystem.setSystemType("ecs");
-            	tempSystem.setSerialNumber("0123456789");
+                StoragePort storagePort = null;
+                StorageSystem tempSystem = new StorageSystem();
+                tempSystem.setSystemType("ecs");
+                tempSystem.setSerialNumber("0123456789");
 
-            	String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(
-            			tempSystem, ecsPort.getIpAddress(),
-            			NativeGUIDGenerator.PORT);
-            	// Check if storage port was already discovered
-            	@SuppressWarnings("deprecation")
-            	List<URI> portURIs = _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
-            			getStoragePortByNativeGuidConstraint(portNativeGuid));
-            	for (URI portUri : portURIs ) {
-            		StoragePort port = _dbClient.queryObject(StoragePort.class, portUri);
-            		if (port.getStorageDevice().equals(storageSystemId) && !port.getInactive()) {
-            			storagePort = port;
-            			break;
-            		}
-            	}
+                String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(
+                        tempSystem, ecsPort.getIpAddress(),
+                        NativeGUIDGenerator.PORT);
+                // Check if storage port was already discovered
+                @SuppressWarnings("deprecation")
+                List<URI> portURIs = _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
+                        getStoragePortByNativeGuidConstraint(portNativeGuid));
+                for (URI portUri : portURIs) {
+                    StoragePort port = _dbClient.queryObject(StoragePort.class, portUri);
+                    if (port.getStorageDevice().equals(storageSystemId) && !port.getInactive()) {
+                        storagePort = port;
+                        break;
+                    }
+                }
 
-            	if (storagePort == null) {
-            		// Create new port
-            		storagePort = new StoragePort();
-            		storagePort.setId(URIUtil.createId(StoragePort.class));
-            		storagePort.setTransportType("IP");
-            		storagePort.setNativeGuid(portNativeGuid);
-            		storagePort.setLabel(portNativeGuid);
-            		storagePort.setStorageDevice(storageSystemId);
-            		storagePort.setPortNetworkId(ecsPort.getIpAddress().toLowerCase());
-            		storagePort.setPortName(ecsPort.getName());
-            		storagePort.setLabel(ecsPort.getName());
-            		//storagePort.setPortSpeed(isilonPort.getPortSpeed());
+                if (storagePort == null) {
+                    // Create new port
+                    storagePort = new StoragePort();
+                    storagePort.setId(URIUtil.createId(StoragePort.class));
+                    storagePort.setTransportType("IP");
+                    storagePort.setNativeGuid(portNativeGuid);
+                    storagePort.setLabel(portNativeGuid);
+                    storagePort.setStorageDevice(storageSystemId);
+                    storagePort.setPortNetworkId(ecsPort.getIpAddress().toLowerCase());
+                    storagePort.setPortName(ecsPort.getName());
+                    storagePort.setLabel(ecsPort.getName());
                     storagePort.setPortGroup(ecsPort.getName());
-            		storagePort.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
-            		storagePort.setOperationalStatus(StoragePort.OperationalStatus.OK.toString());
-            		_logger.info("Creating new storage port using NativeGuid : {}", portNativeGuid);
-            		newStoragePorts.add(storagePort);
-            	} else {
-            		existingStoragePorts.add(storagePort);
-            	}
-            	storagePort.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
-            	storagePort.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
+                    storagePort.setRegistrationStatus(RegistrationStatus.REGISTERED.toString());
+                    storagePort.setOperationalStatus(StoragePort.OperationalStatus.OK.toString());
+                    _logger.info("Creating new storage port using NativeGuid : {}", portNativeGuid);
+                    newStoragePorts.add(storagePort);
+                } else {
+                    existingStoragePorts.add(storagePort);
+                }
+                storagePort.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
+                storagePort.setCompatibilityStatus(DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name());
             }
             storagePorts.put(NEW, newStoragePorts);
             storagePorts.put(EXISTING, existingStoragePorts);
 
             _logger.info("No of newly discovered ports {}", storagePorts.get(NEW).size());
             _logger.info("No of existing discovered ports {}", storagePorts.get(EXISTING).size());
-            if(storagePorts.get(NEW).size() > 0) {
+            if (storagePorts.get(NEW).size() > 0) {
                 _dbClient.createObject(storagePorts.get(NEW));
             }
 
-            if(storagePorts.get(EXISTING).size() > 0) {
-                _dbClient.persistObject(storagePorts.get(EXISTING)); 
+            if (storagePorts.get(EXISTING).size() > 0) {
+                _dbClient.persistObject(storagePorts.get(EXISTING));
             }
 
-		}  catch (Exception e) {
-            detailedStatusMessage = String.format("Discovery failed for Storage System ECS: because %s",
-                    e.getMessage());
+        } catch (Exception e) {
+            detailedStatusMessage = String.format("Discovery failed for Storage System ECS %s: because %s",
+                    accessProfile.getIpAddress(), e.getMessage());
             _logger.error(detailedStatusMessage, e);
-            //throw new SMIPluginException(detailedStatusMessage);
-		}finally {
+        } finally {
             if (storageSystem != null) {
                 try {
+                    detailedStatusMessage = String.format("Discovery completed successfully for ECS: %s",
+                            accessProfile.getIpAddress());
                     // set detailed message
                     storageSystem.setLastDiscoveryStatusMessage(detailedStatusMessage);
                     _dbClient.persistObject(storageSystem);
@@ -271,23 +265,24 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
                     _logger.error("Error while persisting object to DB", ex);
                 }
             }
-            //releaseResources();
+
             long totalTime = System.currentTimeMillis() - startTime;
-            _logger.info(String.format("Discovery of Storage System %s took %f seconds", "ECS", (double) totalTime
-                    / (double) 1000));
+            _logger.info(String.format("Discovery of ECS Storage System %s took %f seconds", accessProfile.getIpAddress(),
+                    (double) totalTime
+                            / (double) 1000));
         }
-	}
-	
+    }
+
     /**
      * Get ecs device represented by the StorageDevice
      *
-     * @param ecsCluster  StorageDevice object
+     * @param ecsCluster StorageDevice object
      * @return ECSApi object
      * @throws ECSException
      * @throws URISyntaxException
      */
     private ECSApi getECSDevice(StorageSystem ecsSystem) throws ECSException, URISyntaxException {
-    	URI deviceURI = new URI("https", null, ecsSystem.getIpAddress(), ecsSystem.getPortNumber(), "/", null, null);
+        URI deviceURI = new URI("https", null, ecsSystem.getIpAddress(), ecsSystem.getPortNumber(), "/", null, null);
 
         return ecsApiFactory
                 .getRESTClient(deviceURI, ecsSystem.getUsername(), ecsSystem.getPassword());

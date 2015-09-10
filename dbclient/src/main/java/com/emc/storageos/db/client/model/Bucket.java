@@ -8,10 +8,6 @@ import java.net.URI;
 
 import javax.xml.bind.annotation.XmlTransient;
 
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
-
 /**
  * Bucket data object
  */
@@ -161,7 +157,7 @@ public class Bucket extends DataObject implements ProjectResource {
 
     public void setRetention(Integer retention) {
         this._retention = retention;
-        setChanged("varray");
+        setChanged("retention");
     }
 
     @Name("path")

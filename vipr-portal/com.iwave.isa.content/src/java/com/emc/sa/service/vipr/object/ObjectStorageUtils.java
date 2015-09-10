@@ -23,9 +23,11 @@ import com.google.common.collect.Lists;
 
 public class ObjectStorageUtils {
     // (bucketName, virtualPool, project, softQuota, hardQuota, retention, namespace, tenant, owner)
-    public static URI createBucket(String bucketName, URI virtualPoolId, URI projectId, Double softQuota, Double hardQuota,
+    public static URI createBucket(String bucketName, URI virtualArray, URI virtualPoolId, URI projectId, Double softQuota,
+            Double hardQuota,
             Double retention, String owner) {
-        Task<BucketRestRep> task = execute(new CreateBucket(bucketName, virtualPoolId, projectId, softQuota, hardQuota, retention,
+        Task<BucketRestRep> task = execute(new CreateBucket(bucketName, virtualArray, virtualPoolId, projectId, softQuota, hardQuota,
+                retention,
                 owner));
         addAffectedResource(task);
         URI bucketId = task.getResourceId();

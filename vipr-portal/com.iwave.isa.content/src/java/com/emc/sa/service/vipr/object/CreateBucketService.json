@@ -2,16 +2,15 @@
   baseKey:"ObjectStorageService.CreateBucket",
   serviceId:"CreateBucket",
   fields:{
-    name:{
-        type:"text",
-        validation:{
-            min:2,
-            max:128
-        }
-    },
 
+    virtualArray:{
+      type:"assetType.vipr.virtualArray",
+      lockable:true
+    },
+    
     virtualPool:{
-      type:"assetType.vipr.objectVirtualPool"
+      type:"assetType.vipr.objectVirtualPool",
+      lockable:true
     },
     
     project:{
@@ -19,20 +18,26 @@
       lockable: true
     }, 
     
+    name:{
+        type:"text",
+        validation:{
+            min:2,
+            max:128
+        }
+    },
+    
     softQuota:{
         type:"number",
         validation:{
             min:1
-        },
-        required: "false"
+        }
     },
     
     hardQuota:{
         type:"number",
         validation:{
             min:1
-        },
-        required: "false"
+        }
     },
     
     retention:{

@@ -1645,7 +1645,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
     }
 
-    public List<AssetOption> createVirtualPoolResourceOptions(Collection<? extends VirtualPoolCommonRestRep> virtualPools) {
+    public static List<AssetOption> createVirtualPoolResourceOptions(Collection<? extends VirtualPoolCommonRestRep> virtualPools) {
 
         List<AssetOption> options = Lists.newArrayList();
 
@@ -1656,7 +1656,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         return options;
     }
 
-    public AssetOption createVirtualPoolResourceOption(VirtualPoolCommonRestRep virtualPool) {
+    public static AssetOption createVirtualPoolResourceOption(VirtualPoolCommonRestRep virtualPool) {
         boolean hasPools = (virtualPool.getUseMatchedPools() && !CollectionUtils.isEmpty(virtualPool.getMatchedStoragePools()) ||
                 (!virtualPool.getUseMatchedPools() && !CollectionUtils.isEmpty(virtualPool.getAssignedStoragePools())));
 

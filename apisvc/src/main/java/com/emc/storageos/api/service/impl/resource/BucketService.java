@@ -213,7 +213,7 @@ public class BucketService extends TaskResourceService {
         }
 
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
-        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, hardQuota);
+        
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
         capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.FALSE);
 
@@ -231,13 +231,13 @@ public class BucketService extends TaskResourceService {
 
         _log.info(String.format(
                 "createBucket --- Bucket: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
-                bucket.getId(), recommendation.getSourcePool(), recommendation.getSourceDevice()));
+                bucket.getId(), recommendation.getSourceStoragePool(), recommendation.getSourceStorageSystem()));
 
         // TODO : Controller call
         try {
-            StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceDevice());
+            StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceStorageSystem());
             ObjectController controller = getController(ObjectController.class, system.getSystemType());
-            controller.createBucket(recommendation.getSourceDevice(), recommendation.getSourcePool(), bucket.getId(),
+            controller.createBucket(recommendation.getSourceStorageSystem(), recommendation.getSourceStoragePool(), bucket.getId(),
                     param.getLabel(), tenant.getNamespace(), param.getRetention(), param.getHardQuota(),
                     param.getSoftQuota(), param.getOwner(), task);
         } catch (InternalException e) {
@@ -380,16 +380,16 @@ public class BucketService extends TaskResourceService {
         bucket.setTenant(new NamedURI(tenantOrg.getId(), param.getLabel()));
         bucket.setVirtualArray(neighborhood.getId());
 
-        if (null != placement.getSourcePool()) {
-            pool = _dbClient.queryObject(StoragePool.class, placement.getSourcePool());
+        if (null != placement.getSourceStoragePool()) {
+            pool = _dbClient.queryObject(StoragePool.class, placement.getSourceStoragePool());
             if (null != pool) {
                 bucket.setProtocol(new StringSet());
                 bucket.getProtocol().addAll(VirtualPoolUtil.getMatchingProtocols(vpool.getProtocols(), pool.getProtocols()));
             }
         }
 
-        bucket.setStorageDevice(placement.getSourceDevice());
-        bucket.setPool(placement.getSourcePool());
+        bucket.setStorageDevice(placement.getSourceStorageSystem());
+        bucket.setPool(placement.getSourceStoragePool());
         bucket.setOpStatus(new OpStatusMap());
 
         if (flags != null) {

@@ -20,6 +20,7 @@ import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.sa.asset.annotation.AssetNamespace;
 import com.emc.storageos.model.DataObjectRestRep;
 import com.emc.storageos.model.object.BucketRestRep;
+import com.emc.storageos.model.vpool.ObjectVirtualPoolRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.util.ResourceUtils;
@@ -70,7 +71,7 @@ public class ObjectProvider extends BaseAssetOptionsProvider {
     private static String getBucketObjectLabel(ViPRCoreClient client, DataObjectRestRep bucketObject, Map<URI, BucketRestRep> volumeNames) {
         if (bucketObject instanceof BucketRestRep) {
             BucketRestRep bucket = (BucketRestRep) bucketObject;
-            return getMessage("block.volume", bucket.getName());
+            return bucket.getName();
         }
         return bucketObject.getName();
     }
@@ -79,7 +80,15 @@ public class ObjectProvider extends BaseAssetOptionsProvider {
     public static List<BucketRestRep> listSourceBuckets(ViPRCoreClient client, URI project, ResourceFilter<BucketRestRep>... filters) {
         return client.objectBuckets().findByProject(project);
     }
-    
+
+    @Asset("objectVirtualPool")
+    @AssetDependencies({ "virtualArray" })
+    public List<AssetOption> getObjectVirtualPoolsForVirtualArray(AssetOptionsContext ctx, URI virtualArray) {
+        debug("getting getObjectVirtualPoolsForVirtualArray(virtualArray=%s)", virtualArray);
+        List<ObjectVirtualPoolRestRep> virtualPools = api(ctx).objectVpools().getByVirtualArray(virtualArray);
+        return BlockProvider.createVirtualPoolResourceOptions(virtualPools);
+    }
+
     @Asset("objectVirtualPool")
     public List<AssetOption> getObjectVirtualPools(AssetOptionsContext ctx) {
         debug("getting objectVirtualPools");

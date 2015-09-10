@@ -10,6 +10,7 @@ import static com.emc.sa.service.ServiceParams.OWNER;
 import static com.emc.sa.service.ServiceParams.PROJECT;
 import static com.emc.sa.service.ServiceParams.RETENTION;
 import static com.emc.sa.service.ServiceParams.SOFT_QUOTA;
+import static com.emc.sa.service.ServiceParams.VIRTUAL_ARRAY;
 import static com.emc.sa.service.ServiceParams.VIRTUAL_POOL;
 
 import java.net.URI;
@@ -27,23 +28,26 @@ public class CreateBucketService extends ViPRService {
     @Param(VIRTUAL_POOL)
     protected URI virtualPool;
 
+    @Param(VIRTUAL_ARRAY)
+    protected URI virtualArray;
+
     @Param(PROJECT)
     protected URI project;
 
-    @Param(value = SOFT_QUOTA, required = false)
+    @Param(value = SOFT_QUOTA)
     protected Double softQuota;
 
-    @Param(value = HARD_QUOTA, required = false)
+    @Param(value = HARD_QUOTA)
     protected Double hardQuota;
 
     @Param(value = RETENTION, required = false)
-    protected Double retention;
+    protected String retention;
 
     @Param(value = OWNER, required = false)
     protected String owner;
 
     @Override
     public void execute() throws Exception {
-        ObjectStorageUtils.createBucket(bucketName, virtualPool, project, softQuota, hardQuota, retention, owner);
+        ObjectStorageUtils.createBucket(bucketName, virtualArray, virtualPool, project, softQuota, hardQuota, retention, owner);
     }
 }

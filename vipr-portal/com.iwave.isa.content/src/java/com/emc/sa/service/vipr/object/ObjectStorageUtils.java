@@ -21,25 +21,23 @@ import com.emc.storageos.model.object.BucketRestRep;
 import com.emc.vipr.client.Task;
 import com.google.common.collect.Lists;
 
-
-
 public class ObjectStorageUtils {
-    //(bucketName, virtualPool, project, softQuota, hardQuota, retention, namespace, tenant, owner)
+    // (bucketName, virtualPool, project, softQuota, hardQuota, retention, namespace, tenant, owner)
     public static URI createBucket(String bucketName, URI virtualPoolId, URI projectId, Double softQuota, Double hardQuota,
-            Double retention, URI namespace, URI tenant, URI owner) {
+            Double retention, String owner) {
         Task<BucketRestRep> task = execute(new CreateBucket(bucketName, virtualPoolId, projectId, softQuota, hardQuota, retention,
-                namespace, tenant, owner));
+                owner));
         addAffectedResource(task);
         URI bucketId = task.getResourceId();
         addRollback(new DeactivateBucket(bucketId));
         logInfo("file.storage.filesystem.task", bucketId, task.getOpId());
         return bucketId;
     }
-    
+
     public static DataObjectRestRep getBucketResource(URI resourceId) {
         return execute(new GetBucketResource(resourceId));
     }
-    
+
     public static List<DataObjectRestRep> getBucketResources(List<URI> resourceIds) {
         List<DataObjectRestRep> bucketResources = Lists.newArrayList();
         for (URI resourceId : resourceIds) {
@@ -47,12 +45,12 @@ public class ObjectStorageUtils {
         }
         return bucketResources;
     }
-    
+
     public static void removeBucketResource(URI bucketResourceId) {
         Task<BucketRestRep> task = execute(new DeactivateBucket(bucketResourceId));
         addAffectedResource(task);
     }
-    
+
     public static void editBucketResource(URI bucketResourceId, Double softQuota, Double hardQuota, Double retention) {
         Task<BucketRestRep> task = execute(new UpdateBucket(bucketResourceId, softQuota, hardQuota, retention));
         addAffectedResource(task);

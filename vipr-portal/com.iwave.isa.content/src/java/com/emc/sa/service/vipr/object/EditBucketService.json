@@ -1,9 +1,6 @@
 {
   baseKey:"ObjectStorageService.EditBucket",
   serviceId:"EditBucket",
-  roles: [
-    "HOME_TENANT_ADMIN"
-  ],
   fields:{
     project:{
       type:"assetType.vipr.project",

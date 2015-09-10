@@ -15,8 +15,8 @@ import com.emc.storageos.services.util.Strings;
  * We are simply creating a target here for VdcSiteManager to watch.
  */
 public class SiteInfo implements CoordinatorSerializable {
-    public static final String CONFIG_ID = "sitetargetconfig";
-    public static final String CONFIG_KIND = "global";
+    public static final String CONFIG_KIND = "sitetargetconfig";
+    public static final String CONFIG_ID = "global";
 
     private final int version;
 

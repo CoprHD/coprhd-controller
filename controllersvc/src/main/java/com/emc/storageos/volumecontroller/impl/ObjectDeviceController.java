@@ -119,7 +119,7 @@ public class ObjectDeviceController implements ObjectController {
         _log.info("ObjectDeviceController:deleteBucket");
         Bucket bucketObj = _dbClient.queryObject(Bucket.class, bucket);
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
-        BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteBucket(storageObj, bucketObj);
+        BiosCommandResult result = getDevice(storageObj.getSystemType()).doDeleteBucket(storageObj, bucketObj, task);
 
         if (result.getCommandPending()) {
             return;
@@ -135,7 +135,7 @@ public class ObjectDeviceController implements ObjectController {
         Bucket bucketObj = _dbClient.queryObject(Bucket.class, bucket);
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
         BiosCommandResult result = getDevice(storageObj.getSystemType()).doUpdateBucket(storageObj, bucketObj, softQuota, hardQuota,
-                retention);
+                retention, task);
 
         if (result.getCommandPending()) {
             return;

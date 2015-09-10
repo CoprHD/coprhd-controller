@@ -3,8 +3,10 @@ package com.emc.storageos.ecs.api;
 import java.net.URI;
 
 import com.emc.storageos.svcs.errorhandling.annotations.DeclareServiceCode;
+import com.emc.storageos.svcs.errorhandling.annotations.MessageBundle;
 import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 
+@MessageBundle
 public interface ECSExceptions {
     
     @DeclareServiceCode(ServiceCode.ECS_RETURN_PARAM_ERROR)

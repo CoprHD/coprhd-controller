@@ -1,17 +1,8 @@
 package com.emc.storageos.volumecontroller.impl.ecs;
 
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.HttpMethod;
-import org.apache.commons.httpclient.HttpMethodRetryHandler;
-import org.apache.commons.httpclient.MultiThreadedHttpConnectionManager;
-import org.apache.commons.httpclient.params.HttpConnectionManagerParams;
-import org.apache.commons.httpclient.params.HttpMethodParams;
-import org.apache.commons.httpclient.protocol.Protocol;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,7 +16,6 @@ import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.ObjectDeviceInputOutput;
 import com.emc.storageos.volumecontroller.ObjectStorageDevice;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
-import com.sun.jersey.client.apache.ApacheHttpClientHandler;
 
 public class ECSObjectStorageDevice implements ObjectStorageDevice {
 	  private Logger _log = LoggerFactory.getLogger(ECSObjectStorageDevice.class);
@@ -80,19 +70,17 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
 		}
 		
     @Override
-    public BiosCommandResult doUpdateBucket(StorageSystem storageObj, Bucket bucket, Long softQuota, Long hardQuota, Integer retention) {
-        BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
-        boolean persistBucket = false;
+    public BiosCommandResult doUpdateBucket(StorageSystem storageObj, Bucket bucket, Long softQuota, Long hardQuota, Integer retention, String taskId) {
         // Update Quota
         try {
             ECSApi objectAPI = getAPI(storageObj);
             objectAPI.updateBucketQuota(bucket.getLabel(), bucket.getNamespace(), softQuota, hardQuota);
             bucket.setHardQuota(hardQuota);
             bucket.setSoftQuota(softQuota);
-            persistBucket = true;
         } catch (ECSException e) {
             _log.error("Quota Update for Bucket : {} failed.", bucket.getLabel(), e);
-            result = BiosCommandResult.createErrorResult(e);
+            completeTask(bucket.getId(), taskId, e);
+            return BiosCommandResult.createErrorResult(e);
         }
 
         // Update Retention
@@ -100,20 +88,19 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             ECSApi objectAPI = getAPI(storageObj);
             objectAPI.updateBucketRetention(bucket.getLabel(), bucket.getNamespace(), retention);
             bucket.setRetention(retention);
-            persistBucket = true;
         } catch (ECSException e) {
             _log.error("Retention Update for Bucket : {} failed.", bucket.getLabel(), e);
-            result = BiosCommandResult.createErrorResult(e);
+            completeTask(bucket.getId(), taskId, e);
+            return BiosCommandResult.createErrorResult(e);
         }
 
-        if (persistBucket) {
-            _dbClient.persistObject(bucket);
-        }
-        return result;
+        _dbClient.persistObject(bucket);
+        completeTask(bucket.getId(), taskId, "Successfully updated Bucket.");
+        return BiosCommandResult.createSuccessfulResult();
     }
 
     @Override
-    public BiosCommandResult doDeleteBucket(StorageSystem storageObj, Bucket bucket) {
+    public BiosCommandResult doDeleteBucket(StorageSystem storageObj, Bucket bucket, final String taskId) {
         BiosCommandResult result;
         try {
             ECSApi objectAPI = getAPI(storageObj);
@@ -121,9 +108,11 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             bucket.setInactive(true);
             _dbClient.persistObject(bucket);
             result = BiosCommandResult.createSuccessfulResult();
+            completeTask(bucket.getId(), taskId, "Bucket deleted successfully!");
         } catch (ECSException e) {
             _log.error("Delete Bucket : {} failed.", bucket.getLabel(), e);
             result = BiosCommandResult.createErrorResult(e);
+            completeTask(bucket.getId(), taskId, e);
         }
         return result;
     }
@@ -142,5 +131,15 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
             objectAPI = ecsApiFactory.getRESTClient(deviceURI);
         }
         return objectAPI;
+    }
+    
+    private void completeTask(final URI bucketID, final String taskID, ECSException error) {
+        BucketOperationTaskCompleter completer = new BucketOperationTaskCompleter(Bucket.class, bucketID, taskID);
+        completer.error(_dbClient, error);
+    }
+    
+    private void completeTask(final URI bucketID, final String taskID, final String message) {
+        BucketOperationTaskCompleter completer = new BucketOperationTaskCompleter(Bucket.class, bucketID, taskID);
+        completer.statusReady(_dbClient, message);
     }
 }

@@ -83,13 +83,13 @@ public class ObjectBuckets extends ProjectResources<BucketRestRep> implements Ta
     /**
      * Begins update the bucket.
      * <p>
-     * API Call: <tt>POST /object/buckets</tt>
+     * API Call: <tt>PUT /object/buckets</tt>
      * 
      * @param input
      *            the create configuration.
      * @return a task for monitoring the progress of the operation.
      */
     public Task<BucketRestRep> update(BucketUpdateParam input) {
-        return postTask(input, getIdUrl());
+        return putTask(input, getIdUrl());
     }
 }

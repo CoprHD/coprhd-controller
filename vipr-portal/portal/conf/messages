@@ -3071,6 +3071,9 @@ resources.buckets.deleteConfirm.VIPR_ONLY=Are you sure you want to delete the se
 resources.bucket.image=assets/Volume.png
 resources.bucket.path=Path
 resources.bucket.owner=Owner
+resources.bucket.hardQuota=Hard Quota
+resources.bucket.softQuota=Soft Quota
+resources.bucket.retention=Retention
 
 resources.exports.none=No Exports
 resources.exportgroups.deleteConfirm=Are you sure you want to delete the selected export groups?
@@ -3227,7 +3230,8 @@ volumes.lun=LUN
 volumes.actions=Actions
 
 buckets.name=Bucket Name
-buckets.capacity=Size
+buckets.softquota=Soft Quota
+buckets.hardquota=Hard Quota
 buckets.vpool=Object Virtual Pool
 buckets.varray=Virtual Array
 buckets.protocols=Protocols

@@ -56,7 +56,7 @@ public class MdsNetworkSystemDevice extends NetworkSystemDeviceImpl implements N
             getConnectionFactory().acquireLease(network);
             SSHSession session = new SSHSession();
             session.connect(network.getIpAddress(), network.getPortNumber(), network.getUsername(), network.getPassword());
-            MDSDialog dialog = new MDSDialog(session, getDefaultTimeout());
+            MDSDialog dialog = new MDSDialog(network, session, getDefaultTimeout());
             dialog.initialize();
             return dialog;
         } catch (Exception ex) {

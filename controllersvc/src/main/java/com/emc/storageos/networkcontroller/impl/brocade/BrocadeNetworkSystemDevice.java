@@ -82,127 +82,14 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
     public BiosCommandResult doDisconnect(NetworkSystem network) {
         BiosCommandResult result = BiosCommandResult.createSuccessfulResult();
         return result;
-<<<<<<< HEAD
-	}
-
-	@Override
-	public List<FCEndpoint> getPortConnections(NetworkSystem network, Map<String, Set<String>> routedConnections)
-			throws Exception {
-	    WBEMClient client = null;
-		try {
-			client = getNetworkDeviceClient(network);
-			return _smisHelper.getPortConnections(client, routedConnections, discoverEndpointsByFabric());
-		} catch (WBEMException ex) {			
-			String exMsg = ex.getLocalizedMessage();
-			if (exMsg.equals("Unable to connect")) {
-				exMsg = "Unable to connect on port " + network.getSmisPortNumber() 
-						+ ", please check that the port is active";
-			}
-			String msg = MessageFormat.format("Cannot get port connections for network device {0}: {1}", 
-					network.getLabel(), exMsg);
-			_log.error(msg);
-			throw NetworkDeviceControllerException.exceptions.getPortConnectionsFailed(network.getLabel(), exMsg, ex);
-        } finally {
-            releaseResources(client, network);
-		}
-	}
-
-	@Override
-	public Map<String, String> getFabricIdsMap(NetworkSystem network) throws Exception {
-        WBEMClient client = null;
-		try {
-            client = getNetworkDeviceClient(network);
-			return _smisHelper.getFabricIdsMap(client);
-		} catch (WBEMException ex) {
-			_log.error("Cannot get fabric ids map for network device "
-					+ network.getLabel() + ": " + ex.getLocalizedMessage());
-			throw ex;
-        } finally {
-            releaseResources(client, network);
-		}
-	}
-
-	@Override
-	public List<String> getFabricIds(NetworkSystem network) throws Exception {
-	    WBEMClient client = null;
-		try {
-			client = getNetworkDeviceClient(network);
-			return _smisHelper.getFabricIds(client);
-		} catch (WBEMException ex) {
-			_log.error("Cannot get fabricIds for network device "
-					+ network.getLabel() + ": " + ex.getLocalizedMessage());
-			throw ex;
-        } finally {
-            releaseResources(client, network);
-		}
-	}
-
-	@Override
-	public List<Zoneset> getZonesets(NetworkSystem network, String fabricId, String fabricWwn, String zoneName, boolean excludeMembers)
-			throws Exception {
-		WBEMClient client = null;
-		try {
-	        client = getNetworkDeviceClient(network);
-		    validateFabric(client, network, fabricWwn, fabricId);
-			return _smisHelper.getZoneSets(client,fabricId, fabricWwn, zoneName, excludeMembers);
-		} catch (Exception ex) {
-			_log.error("Cannot get zonesets for fabricId " + fabricId
-					+ " on network device  " + network.getLabel() + ": "
-					+ ex.getLocalizedMessage());
-			throw ex;
-        } finally {
-            releaseResources(client, network);
-		}
-	}
-
-	@Override
-	public BiosCommandResult addZones(NetworkSystem networkSystem, List<Zone> zones,
-	        String fabricId, String fabricWwn, boolean activateZones) throws NetworkDeviceControllerException {
-	    BiosCommandResult result = null;
-	    WBEMClient client = null;
-	    
-	    // a zone-name-to-result map to hold the results for each zone
-	    Map<String, String> addZonesResults = new HashMap<String, String>();
-	    try {
-	        client = getNetworkDeviceClient(networkSystem);
-            validateFabric(client, networkSystem, fabricWwn, fabricId);
-	        Map<NetworkLite, List<Zone>> zonesPerFabric = getAllZonesForZones(zones, false, fabricId, fabricWwn);
-	        for (NetworkLite network : zonesPerFabric.keySet()) {
-	            addZonesResults.putAll( addZonesStrategy(
-	                    client, zonesPerFabric.get(network),
-	                    network.getNativeId(), NetworkUtil.getNetworkWwn(network),activateZones));
-	        }
-	        _log.info(toMessage(addZonesResults));
-            result = getBiosCommandResult(addZonesResults);
-	    } catch (NetworkDeviceControllerException ex) {
-	        _log.error("Cannot add zones: " + ex.getLocalizedMessage());
-	        throw ex;
-	    } finally {
-	        releaseResources(client, networkSystem);
-	    }
-	    return result;
-	}
-	
-	/**
-	 * For a list of zones requested by clients, check is routing is needed and created
-	 * the required zone to support both use cases: switched and routed endpoints. For
-	 * switched endpoints the same list of zone is returned. For routed endpoints, 
-	 * for each zone in the primary fabrics, an identical zone in the target fabrics 
-	 * will also be created. 
-	 * @param zones the zones to be created or deleted.
-	 * 
-	 * @return a map of zones to be created grouped by fabric. When the zone members
-	 * are in different fabrics (i.e. routed), there will be a zone to create in each
-	 *  member's fabric
-	 */
-=======
     }
 
     @Override
     public List<FCEndpoint> getPortConnections(NetworkSystem network, Map<String, Set<String>> routedConnections)
             throws Exception {
+        WBEMClient client = null;
         try {
-            WBEMClient client = getNetworkDeviceClient(network);
+            client = getNetworkDeviceClient(network);
             return _smisHelper.getPortConnections(client, routedConnections, discoverEndpointsByFabric());
         } catch (WBEMException ex) {
             String exMsg = ex.getLocalizedMessage();
@@ -214,44 +101,57 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
                     network.getLabel(), exMsg);
             _log.error(msg);
             throw NetworkDeviceControllerException.exceptions.getPortConnectionsFailed(network.getLabel(), exMsg, ex);
+        } finally {
+            releaseResources(client, network);
         }
     }
 
     @Override
     public Map<String, String> getFabricIdsMap(NetworkSystem network) throws Exception {
+        WBEMClient client = null;
         try {
-            WBEMClient client = getNetworkDeviceClient(network);
+            client = getNetworkDeviceClient(network);
             return _smisHelper.getFabricIdsMap(client);
         } catch (WBEMException ex) {
             _log.error("Cannot get fabric ids map for network device "
                     + network.getLabel() + ": " + ex.getLocalizedMessage());
             throw ex;
+        } finally {
+            releaseResources(client, network);
         }
     }
 
     @Override
     public List<String> getFabricIds(NetworkSystem network) throws Exception {
+        WBEMClient client = null;
         try {
-            WBEMClient client = getNetworkDeviceClient(network);
+            client = getNetworkDeviceClient(network);
             return _smisHelper.getFabricIds(client);
         } catch (WBEMException ex) {
             _log.error("Cannot get fabricIds for network device "
                     + network.getLabel() + ": " + ex.getLocalizedMessage());
             throw ex;
+        } finally {
+            releaseResources(client, network);
         }
     }
 
     @Override
     public List<Zoneset> getZonesets(NetworkSystem network, String fabricId, String fabricWwn, String zoneName, boolean excludeMembers,
-    		boolean excludeAliases) throws Exception {
+            boolean excludeAliases)
+            throws Exception {
+        WBEMClient client = null;
         try {
-            validateFabric(network, fabricWwn, fabricId);
-            return _smisHelper.getZoneSets(getNetworkDeviceClient(network), fabricId, fabricWwn, zoneName, excludeMembers, excludeAliases);
+            client = getNetworkDeviceClient(network);
+            validateFabric(client, network, fabricWwn, fabricId);
+            return _smisHelper.getZoneSets(client, fabricId, fabricWwn, zoneName, excludeMembers, excludeAliases);
         } catch (Exception ex) {
             _log.error("Cannot get zonesets for fabricId " + fabricId
                     + " on network device  " + network.getLabel() + ": "
                     + ex.getLocalizedMessage());
             throw ex;
+        } finally {
+            releaseResources(client, network);
         }
     }
 
@@ -259,13 +159,14 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
     public BiosCommandResult addZones(NetworkSystem networkSystem, List<Zone> zones,
             String fabricId, String fabricWwn, boolean activateZones) throws NetworkDeviceControllerException {
         BiosCommandResult result = null;
+        WBEMClient client = null;
 
         // a zone-name-to-result map to hold the results for each zone
         Map<String, String> addZonesResults = new HashMap<String, String>();
         try {
-            validateFabric(networkSystem, fabricWwn, fabricId);
+            client = getNetworkDeviceClient(networkSystem);
+            validateFabric(client, networkSystem, fabricWwn, fabricId);
             Map<NetworkLite, List<Zone>> zonesPerFabric = getAllZonesForZones(zones, false, fabricId, fabricWwn);
-            WBEMClient client = getNetworkDeviceClient(networkSystem);
             for (NetworkLite network : zonesPerFabric.keySet()) {
                 addZonesResults.putAll(addZonesStrategy(
                         client, zonesPerFabric.get(network),
@@ -276,6 +177,8 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
         } catch (NetworkDeviceControllerException ex) {
             _log.error("Cannot add zones: " + ex.getLocalizedMessage());
             throw ex;
+        } finally {
+            releaseResources(client, networkSystem);
         }
         return result;
     }
@@ -293,7 +196,6 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
      *         are in different fabrics (i.e. routed), there will be a zone to create in each
      *         member's fabric
      */
->>>>>>> master
     private Map<NetworkLite, List<Zone>> getAllZonesForZones(List<Zone> zones,
             boolean delete, String fabricId, String fabricWwn) {
         Map<NetworkLite, List<Zone>> allZones = new HashMap<NetworkLite, List<Zone>>();
@@ -393,86 +295,20 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
             }
         }
         return epNetworks;
-<<<<<<< HEAD
-	}
-	
-	public BiosCommandResult removeZones(NetworkSystem networkSystem,
-			List<Zone> zones, String fabricId, String fabricWwn, boolean activateZones)
-			throws NetworkDeviceControllerException {
-	    WBEMClient client = null;
-		BiosCommandResult result = null;
-		Map<String, String> removedZoneResults=new HashMap<String, String>();
-		try {
-            client = getNetworkDeviceClient(networkSystem);
-            validateFabric(client, networkSystem, fabricWwn, fabricId);
-            Map<NetworkLite, List<Zone>> zonesPerFabric = getAllZonesForZones(zones, true, fabricId, fabricWwn);  
-            
-            for (NetworkLite network : zonesPerFabric.keySet()) {
-    			removedZoneResults.putAll(removeZonesStrategy(
-    			        client, zonesPerFabric.get(network),
-    					network.getNativeId(), NetworkUtil.getNetworkWwn(network),activateZones));
-            }
-            result = getBiosCommandResult(removedZoneResults);
-            _log.info("Remove zone results {}", toMessage(removedZoneResults));
-		} catch (NetworkDeviceControllerException ex) {
-			_log.error("Cannot remove zones: " + ex.getLocalizedMessage());
-			throw ex;
-        } finally {
-            releaseResources(client, networkSystem);
-		}
-		return result;
-	}
-
-	private WBEMClient getNetworkDeviceClient(NetworkSystem network) throws NetworkDeviceControllerException {
-        try  {
-            getConnectionFactory().acquireLease(network);
-		return getWBEMClient(network.getSmisProviderIP(), network
-				.getSmisPortNumber().toString(), network.getSmisUserName(),
-				network.getSmisPassword(), network.getSmisUseSSL());
-        } catch (Exception ex) {
-            getConnectionFactory().returnLease(network);
-            throw ex;
-        }
-	}
-
-    private void releaseResources (WBEMClient client, NetworkSystem network) throws NetworkDeviceControllerException {
-        if (client != null) {
-            client.close();
-        }
-        getConnectionFactory().returnLease(network);
-	}
-
-	private WBEMClient getWBEMClient(String ipaddress, String smisport,
-			String username, String password, boolean useSSL) throws NetworkDeviceControllerException {
-		try {
-			WBEMClient client = WBEMClientFactory
-					.getClient(WBEMClientConstants.PROTOCOL_CIMXML);
-	        String protocol = useSSL ? CimConstants.SECURE_PROTOCOL : CimConstants.DEFAULT_PROTOCOL;
-			CIMObjectPath path = CimObjectPathCreator.createInstance(protocol, ipaddress,
-					smisport.toString(), BrocadeNetworkSMIS.getNamespace(),
-					null, null);
-			final Subject subject = new Subject();
-			subject.getPrincipals().add(new UserPrincipal(username));
-			subject.getPrivateCredentials().add(
-					new PasswordCredential(password));
-			client.initialize(path, subject, new Locale[] { Locale.US });
-			return client;
-		} catch (WBEMException ex) {
-			_log.info("Failed to connect to Brocade at IP: " + ipaddress + " because: "	+ ex.getLocalizedMessage());
-=======
     }
 
     public BiosCommandResult removeZones(NetworkSystem networkSystem,
             List<Zone> zones, String fabricId, String fabricWwn, boolean activateZones)
             throws NetworkDeviceControllerException {
+        WBEMClient client = null;
         BiosCommandResult result = null;
         Map<String, String> removedZoneResults = new HashMap<String, String>();
         try {
-            validateFabric(networkSystem, fabricWwn, fabricId);
+            client = getNetworkDeviceClient(networkSystem);
+            validateFabric(client, networkSystem, fabricWwn, fabricId);
             Map<NetworkLite, List<Zone>> zonesPerFabric = getAllZonesForZones(zones, true, fabricId, fabricWwn);
 
             for (NetworkLite network : zonesPerFabric.keySet()) {
-                WBEMClient client = getNetworkDeviceClient(networkSystem);
                 removedZoneResults.putAll(removeZonesStrategy(
                         client, zonesPerFabric.get(network),
                         network.getNativeId(), NetworkUtil.getNetworkWwn(network), activateZones));
@@ -482,15 +318,29 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
         } catch (NetworkDeviceControllerException ex) {
             _log.error("Cannot remove zones: " + ex.getLocalizedMessage());
             throw ex;
+        } finally {
+            releaseResources(client, networkSystem);
         }
         return result;
     }
 
     private WBEMClient getNetworkDeviceClient(NetworkSystem network) throws NetworkDeviceControllerException {
-        return getWBEMClient(network.getSmisProviderIP(), network
-                .getSmisPortNumber().toString(), network.getSmisUserName(),
-                network.getSmisPassword(), network.getSmisUseSSL());
+        try {
+            getConnectionFactory().acquireLease(network);
+            return getWBEMClient(network.getSmisProviderIP(), network
+                    .getSmisPortNumber().toString(), network.getSmisUserName(),
+                    network.getSmisPassword(), network.getSmisUseSSL());
+        } catch (Exception ex) {
+            getConnectionFactory().returnLease(network);
+            throw ex;
+        }
+    }
 
+    private void releaseResources(WBEMClient client, NetworkSystem network) throws NetworkDeviceControllerException {
+        if (client != null) {
+            client.close();
+        }
+        getConnectionFactory().returnLease(network);
     }
 
     private WBEMClient getWBEMClient(String ipaddress, String smisport,
@@ -510,7 +360,6 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
             return client;
         } catch (WBEMException ex) {
             _log.info("Failed to connect to Brocade at IP: " + ipaddress + " because: " + ex.getLocalizedMessage());
->>>>>>> master
             throw NetworkDeviceControllerException.exceptions.getWBEMClientFailed(ipaddress, ex);
         }
     }
@@ -887,62 +736,14 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
             }
             _log.error("Failed to remove zones " + e1.getMessage());
             throw NetworkDeviceControllerException.exceptions.removeZonesStrategyFailed(e1);
-<<<<<<< HEAD
-		}
-	}
-
-	@Override
-	public String getVersion(NetworkSystem network) throws Exception {
-	    WBEMClient client = null;
-		try {
-			client = getNetworkDeviceClient(network);
-			return _smisHelper.getVersion(client);
-		} catch (WBEMException ex) {
-			String exMsg = ex.getLocalizedMessage();
-			if (exMsg.equals("Unable to connect")) {
-				exMsg = "Unable to connect to device " + network.getLabel() + ": Unable to connect to ip " 
-						+ network.getIpAddress() + " on port " + network.getSmisPortNumber();
-			}
-			String msg = MessageFormat.format("Failed to get version: {0}", exMsg);
-			_log.error(msg);
-		
-			throw NetworkDeviceControllerException.exceptions.getVersionFailed(exMsg, ex);
-        } finally {
-            releaseResources(client, network);
-		}
-	}
-
-	@Override
-	public String getUptime(NetworkSystem network) throws Exception {
-	    WBEMClient client = null;
-		try {
-			client = getNetworkDeviceClient(network);
-			return _smisHelper.getUptime(client);
-		} catch (WBEMException ex) {
-			String exMsg = ex.getLocalizedMessage();
-			if (exMsg.equals("Unable to connect")) {
-				exMsg = "Unable to get uptime for device " + network.getLabel() + ": Unable to connect to ip " 
-					+ network.getIpAddress() + " on port " + network.getSmisPortNumber();
-			} else {
-				exMsg = "Unable to get uptime for device " + network.getLabel();
-			}
-			
-			String msg = MessageFormat.format("Failed to get uptime: {0}", exMsg);
-			_log.error(msg);
-			
-			throw NetworkDeviceControllerException.exceptions.getUptimeFailed(exMsg, ex);
-        } finally {
-            releaseResources(client, network);
-		}
-	}
-=======
         }
     }
 
     @Override
     public String getVersion(NetworkSystem network) throws Exception {
+        WBEMClient client = null;
         try {
-            WBEMClient client = getNetworkDeviceClient(network);
+            client = getNetworkDeviceClient(network);
             return _smisHelper.getVersion(client);
         } catch (WBEMException ex) {
             String exMsg = ex.getLocalizedMessage();
@@ -954,13 +755,16 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
             _log.error(msg);
 
             throw NetworkDeviceControllerException.exceptions.getVersionFailed(exMsg, ex);
+        } finally {
+            releaseResources(client, network);
         }
     }
 
     @Override
     public String getUptime(NetworkSystem network) throws Exception {
+        WBEMClient client = null;
         try {
-            WBEMClient client = getNetworkDeviceClient(network);
+            client = getNetworkDeviceClient(network);
             return _smisHelper.getUptime(client);
         } catch (WBEMException ex) {
             String exMsg = ex.getLocalizedMessage();
@@ -975,9 +779,10 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
             _log.error(msg);
 
             throw NetworkDeviceControllerException.exceptions.getUptimeFailed(exMsg, ex);
+        } finally {
+            releaseResources(client, network);
         }
     }
->>>>>>> master
 
     @Override
     public Set<String> getRoutedEndpoints(NetworkSystem networkSystem,
@@ -986,7 +791,7 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
         try {
             client = getNetworkDeviceClient(networkSystem);
             return _smisHelper.getRoutedEndpoints(client, fabricId, fabricWwn);
-            
+
         } finally {
             releaseResources(client, networkSystem);
         }
@@ -994,24 +799,14 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
 
     @Override
     public BiosCommandResult updateZones(NetworkSystem networkSystem, List<ZoneUpdate> zoneUpdates,
-<<<<<<< HEAD
-            String fabricId, String fabricWwn, boolean activateZoneset) 
-                    throws NetworkDeviceControllerException {
+            String fabricId, String fabricWwn, boolean activateZoneset)
+            throws NetworkDeviceControllerException {
         WBEMClient client = null;
         BiosCommandResult cmdResults = null;
         try {
             client = getNetworkDeviceClient(networkSystem);
             validateFabric(client, networkSystem, fabricWwn, fabricId);
-            Map<String, String>  results = updateZonesStrategy(client, zoneUpdates, fabricId, fabricWwn, activateZoneset);
-=======
-            String fabricId, String fabricWwn, boolean activateZoneset)
-            throws NetworkDeviceControllerException {
-        BiosCommandResult cmdResults = null;
-        try {
-            WBEMClient client = getNetworkDeviceClient(networkSystem);
-            validateFabric(networkSystem, fabricWwn, fabricId);
             Map<String, String> results = updateZonesStrategy(client, zoneUpdates, fabricId, fabricWwn, activateZoneset);
->>>>>>> master
             cmdResults = getBiosCommandResult(results);
             _log.info("Update zone results {}", toMessage(results));
         } catch (NetworkDeviceControllerException ex) {
@@ -1310,20 +1105,14 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
     @Override
     public List<ZoneWwnAlias> getAliases(NetworkSystem network, String fabricId,
             String fabricWwn) throws Exception {
-<<<<<<< HEAD
-        WBEMClient client =  null;
+        WBEMClient client = null;
         try {
-            client =  getNetworkDeviceClient(network);
+            client = getNetworkDeviceClient(network);
             validateFabric(client, network, fabricWwn, fabricId);
             return _smisHelper.getAliases(client, fabricId, fabricWwn);
         } finally {
             releaseResources(client, network);
         }
-=======
-        WBEMClient client = getNetworkDeviceClient(network);
-        validateFabric(network, fabricWwn, fabricId);
-        return _smisHelper.getAliases(client, fabricId, fabricWwn);
->>>>>>> master
     }
 
     @Override
@@ -1508,16 +1297,9 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
             throws NetworkDeviceControllerException {
         // a alias-name-to-result map to hold the results for each alias
         Map<String, String> aliasUpdateResults = new HashMap<String, String>();
-<<<<<<< HEAD
         if (aliases.isEmpty())
-            throw DeviceControllerException.exceptions.entityNullOrEmpty("aliases");   
-        WBEMClient client = null;
-=======
-        if (aliases.isEmpty()) {
             throw DeviceControllerException.exceptions.entityNullOrEmpty("aliases");
-        }
-        WBEMClient client = getNetworkDeviceClient(networkSystem);
->>>>>>> master
+        WBEMClient client = null;
 
         CIMInstance zoneServiceIns = null;
         try {
@@ -1593,19 +1375,12 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
         }
         return names;
     }
-<<<<<<< HEAD
-    
-    private void validateFabric(WBEMClient client, NetworkSystem networkSystem, String fabricWwn, String fabricId) throws NetworkDeviceControllerException {
+
+    private void validateFabric(WBEMClient client, NetworkSystem networkSystem, String fabricWwn, String fabricId)
+            throws NetworkDeviceControllerException {
         try {
             Map<String, String> map = _smisHelper.getFabricIdsMap(client);
-            if (!map.containsKey(fabricWwn) && !map.containsValue(fabricId) ) {
-=======
-
-    private void validateFabric(NetworkSystem networkSystem, String fabricWwn, String fabricId) throws NetworkDeviceControllerException {
-        try {
-            Map<String, String> map = getFabricIdsMap(networkSystem);
             if (!map.containsKey(fabricWwn) && !map.containsValue(fabricId)) {
->>>>>>> master
                 throw NetworkDeviceControllerException.exceptions.fabricNotFoundInNetwork(fabricId, networkSystem.getLabel());
             }
         } catch (Exception ex) {
@@ -1615,16 +1390,10 @@ public class BrocadeNetworkSystemDevice extends NetworkSystemDeviceImpl
     }
 
     @Override
-<<<<<<< HEAD
-    public Map<String, List<Zone>> getEndpointsZones(NetworkSystem networkSystem, String fabricWwn, 
-            String nativeId, Collection<String> endpointsWwn)  {
-        WBEMClient client = null;
-        Map<String, List<Zone>>  zones = new HashMap<String, List<Zone>>();
-=======
     public Map<String, List<Zone>> getEndpointsZones(NetworkSystem networkSystem, String fabricWwn,
             String nativeId, Collection<String> endpointsWwn) {
+        WBEMClient client = null;
         Map<String, List<Zone>> zones = new HashMap<String, List<Zone>>();
->>>>>>> master
         Map<CIMObjectPath, Zone> cachedZones = new HashMap<CIMObjectPath, Zone>();
         try {
             client = getNetworkDeviceClient(networkSystem);

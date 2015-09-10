@@ -20,13 +20,13 @@ import com.emc.storageos.volumecontroller.impl.metering.plugins.smis.Cassandrafo
 
 public class MDSConnectionTest {
     private static final Log _log = LogFactory.getLog(MDSConnectionTest.class);
-//    private NetworkConnectionDirector factory = new NetworkConnectionDirector();
+    // private NetworkConnectionDirector factory = new NetworkConnectionDirector();
     @Autowired
     private CoordinatorClientImpl coordinator = null;
     private ApplicationContext _context = null;
     private DbClient dbClient = null;
     private Dispatcher dispatcher = null;
-    
+
     private void init() throws IOException {
         dbClient = Cassandraforplugin.returnDBClient();
         coordinator = new CoordinatorClientImpl(); // really need to figure this out
@@ -34,28 +34,31 @@ public class MDSConnectionTest {
         dispatcher.setCoordinator(coordinator);
         dispatcher.setDeviceMaxConnectionMap(Collections.singletonMap("mds", 1));
     }
+
     private MDSDialog setUpDialog(NetworkSystem network) throws NetworkDeviceControllerException {
         try {
-//            getConnectionFactory().acquireLease(network);
+            // getConnectionFactory().acquireLease(network);
             SSHSession session = new SSHSession();
             session.connect(network.getIpAddress(), network.getPortNumber(), network.getUsername(), network.getPassword());
-            MDSDialog dialog = new MDSDialog( session,  getDefaultTimeout());
+            MDSDialog dialog = new MDSDialog(network, session, getDefaultTimeout());
             dialog.initialize();
             return dialog;
         } catch (Exception ex) {
             String exMsg = ex.getLocalizedMessage();
-            if (exMsg.equals("Auth fail")) exMsg = "Authorization Failed";
-            if (exMsg.equals("timeout: socket is not established")) exMsg = "Connection Failed";
+            if (exMsg.equals("Auth fail"))
+                exMsg = "Authorization Failed";
+            if (exMsg.equals("timeout: socket is not established"))
+                exMsg = "Connection Failed";
             String msg = MessageFormat.format("Could not connect to device {0}: {1}", network.getLabel(), exMsg);
             _log.error(msg);
-//            getConnectionFactory().returnLease(network);
+            // getConnectionFactory().returnLease(network);
             throw NetworkDeviceControllerException.exceptions.setUpDialogFailed(network.getLabel(), exMsg, ex);
         }
     }
-    
-//    private NetworkConnectionDirector getConnectionFactory() {
-//        return factory;
-//    }
+
+    // private NetworkConnectionDirector getConnectionFactory() {
+    // return factory;
+    // }
 
     private int getDefaultTimeout() {
         int defaultTimeout = 300 * 1000; // default to 5 minutes

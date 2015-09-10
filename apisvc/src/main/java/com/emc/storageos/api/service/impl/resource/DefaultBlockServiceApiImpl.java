@@ -22,6 +22,7 @@ import com.emc.storageos.api.service.impl.resource.utils.VirtualPoolChangeAnalyz
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationController;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.Project;
@@ -293,5 +294,37 @@ public class DefaultBlockServiceApiImpl extends AbstractBlockServiceApiImpl<Stor
             volumeDescriptors.add(desc);
         }
         return volumeDescriptors;
+    }
+
+    /**
+     * {@inheritDoc}
+     * @throws ControllerException
+     */
+    @Override
+    public TaskResourceRep establishVolumeAndSnapshotGroupRelation(
+            StorageSystem storageSystem, Volume sourceVolume,
+            BlockSnapshot snapshot, String taskId) throws ControllerException {
+
+        _log.info("START establish Volume and Snapshot group relation");
+        // Create the task on the block snapshot
+        Operation op = _dbClient.createTaskOpStatus(BlockSnapshot.class, snapshot.getId(),
+                taskId, ResourceOperationTypeEnum.ESTABLISH_VOLUME_SNAPSHOT);
+        snapshot.getOpStatus().put(taskId, op);
+
+        try {
+            BlockController controller = getController(BlockController.class,
+                    storageSystem.getSystemType());
+            controller.establishVolumeAndSnapshotGroupRelation(storageSystem.getId(),
+                    sourceVolume.getId(), snapshot.getId(), taskId);
+        } catch (ControllerException e) {
+            String errorMsg = String.format(
+                    "Failed to establish group relation between volume group and snapshot group."
+                    + "Source volume: %s, Snapshot: %s",
+                    sourceVolume.getId(), snapshot.getId());
+            _log.error(errorMsg, e);
+            _dbClient.error(BlockSnapshot.class, snapshot.getId(), taskId, e);
+        }
+
+        return toTask(snapshot, taskId, op);
     }
 }

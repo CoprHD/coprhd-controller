@@ -170,6 +170,22 @@ public class VPlexApiClient {
      * 
      * @param shallow true to get just the name and path for each cluster, false
      *            to get additional info about the systems and volumes.
+     * @param isStorageVolumeItlsFetch true to get the storage volume ITLs, false otherwise.
+     * 
+     * @return A list of VPlexClusterInfo instances.
+     * 
+     * @throws VPlexApiException When an error occurs querying the VPlex.
+     */
+    public List<VPlexClusterInfo> getClusterInfo(boolean shallow, boolean isStorageVolumeItlsFetch) throws VPlexApiException {
+        s_logger.info("Request for cluster info for VPlex at {}", _baseURI);
+        return _discoveryMgr.getClusterInfo(shallow, isStorageVolumeItlsFetch);
+    }
+    
+    /**
+     * Gets information about the VPLEX clusters.
+     * 
+     * @param shallow true to get just the name and path for each cluster, false
+     *            to get additional info about the systems and volumes.
      * 
      * @return A list of VPlexClusterInfo instances.
      * 
@@ -177,7 +193,7 @@ public class VPlexApiClient {
      */
     public List<VPlexClusterInfo> getClusterInfo(boolean shallow) throws VPlexApiException {
         s_logger.info("Request for cluster info for VPlex at {}", _baseURI);
-        return _discoveryMgr.getClusterInfo(shallow);
+        return _discoveryMgr.getClusterInfo(shallow, false);
     }
 
     /**
@@ -277,6 +293,7 @@ public class VPlexApiClient {
             for (VPlexVirtualVolumeInfo virtualVolumeInfo : clusterVirtualVolumeInfoList) {
                 virtualVolumeInfo.addCluster(clusterId);
                 String virtualVolumeName = virtualVolumeInfo.getName();
+                
                 if (!virtualVolumeInfoMap.containsKey(virtualVolumeName)) {
                     // We want the unique list of virtual volumes on all
                     // clusters. Distributed volumes will appear on both
@@ -1222,9 +1239,8 @@ public class VPlexApiClient {
      * @return the name for the cluster or null in none found
      */
     public String getClusterName(String clusterId) {
-        String clusterName = null;
-
-        List<VPlexClusterInfo> clusterInfos = _discoveryMgr.getClusterInfo(true);
+        String clusterName = null;        
+        List<VPlexClusterInfo> clusterInfos = _discoveryMgr.getClusterInfo(true, false);
         for (VPlexClusterInfo clusterInfo : clusterInfos) {
             if (clusterId.equals(clusterInfo.getClusterId())) {
                 clusterName = clusterInfo.getName();
@@ -1242,8 +1258,7 @@ public class VPlexApiClient {
      */
     public Map<String, String> getClusterIdToNameMap() {
         Map<String, String> clusterIdToNameMap = new HashMap<String, String>();
-
-        List<VPlexClusterInfo> clusterInfos = _discoveryMgr.getClusterInfo(true);
+        List<VPlexClusterInfo> clusterInfos = _discoveryMgr.getClusterInfo(true, false);
         for (VPlexClusterInfo clusterInfo : clusterInfos) {
             clusterIdToNameMap.put(clusterInfo.getClusterId(), clusterInfo.getName());
         }
@@ -1298,7 +1313,7 @@ public class VPlexApiClient {
     ClientResponse get(URI resourceURI) {
         return get(resourceURI,
                 VPlexApiConstants.ACCEPT_JSON_FORMAT_0,
-                VPlexApiConstants.CACHE_CONTROL_MAXAGE_ZERO);
+                VPlexApiConstants.CACHE_CONTROL_MAXAGE_DEFAULT_VALUE);
     }
 
     /**
@@ -1312,7 +1327,7 @@ public class VPlexApiClient {
      */
     ClientResponse get(URI resourceURI, String jsonFormat) {
         return get(resourceURI, jsonFormat,
-                VPlexApiConstants.CACHE_CONTROL_MAXAGE_ZERO);
+                VPlexApiConstants.CACHE_CONTROL_MAXAGE_DEFAULT_VALUE);
     }
 
     /**
@@ -1526,5 +1541,94 @@ public class VPlexApiClient {
                 break;
             }
         }
+    }
+
+    /**
+     * Returns a Map of lowest-level storage-volume resource's WWN to its VPlexStorageVolumeInfo
+     * object for a given device name, virtual volume type, and cluster name.  If 
+     * hasMirror is true, this indicates the top-level device is composed of a
+     * RAID-1 mirror, so there's an extra layers of components to traverse in finding
+     * the lowest-level storage-volume resources.
+     * 
+     * @param deviceName the name of the top-level device to look at
+     * @param virtualVolumeType the type of virtual volume (local or distributed)
+     * @param clusterName the cluster name
+     * @param hasMirror indicates if the top-level device is a RAID-1 mirror
+     * 
+     * @return a map of WWNs to VPlexStorageVolumeInfo objects
+     * @throws VPlexApiException
+     */
+    public Map<String, VPlexStorageVolumeInfo> getStorageVolumeInfoForDevice(String deviceName, String virtualVolumeType,
+            String clusterName, boolean hasMirror) throws VPlexApiException {
+        s_logger.info("Request to find storage volume wwns for {} on VPLEX at {}",
+                deviceName, _baseURI);
+
+        List<VPlexStorageVolumeInfo> storageVolumes = getDiscoveryManager()
+                .getStorageVolumesForDevice(deviceName, virtualVolumeType, clusterName, hasMirror);
+
+        Map<String, VPlexStorageVolumeInfo> storageVolumeWwns = new HashMap<String, VPlexStorageVolumeInfo>();
+        for (VPlexStorageVolumeInfo info : storageVolumes) {
+            if (null == info.getWwn()) {
+                String reason = "could not parse WWN for storage volume " + info.getName();
+                s_logger.error(reason);
+                throw VPlexApiException.exceptions.failedGettingStorageVolumeInfoForIngestion(reason);
+            }
+            storageVolumeWwns.put(info.getWwn(), info);
+        }
+
+        return storageVolumeWwns;
+    }
+
+    /**
+     * Returns the top-level supporting device name for a given storage volume native id,
+     * wwn, and backend array serial number.
+     * 
+     * @param volumeNativeId the storage volume's native id
+     * @param wwn the storage volume's wwn
+     * @param backendArraySerialNum the serial number of the backend array
+     * 
+     * @return the name of the top level device for the given storage volume
+     * @throws VPlexApiException
+     */
+    public String getDeviceForStorageVolume(String volumeNativeId,
+            String wwn, String backendArraySerialNum) throws VPlexApiException {
+
+        s_logger.info("Request to find device name for storage volume {} on VPLEX at {}",
+                volumeNativeId, _baseURI);
+
+        String deviceName = getDiscoveryManager()
+                .getDeviceForStorageVolume(volumeNativeId, wwn, backendArraySerialNum);
+
+        return deviceName;
+    }
+
+    /**
+     * Returns a VPlexResourceInfo object for the given device name based
+     * on its virtual volume type (local or distributed).
+     * 
+     * @param deviceName the name of the device
+     * @param virtualVolumeType the type of virtual volume (local or distributed)
+     * 
+     * @return a VPlexResourceInfo object for the device name
+     * @throws VPlexApiException
+     */
+    public VPlexResourceInfo getDeviceStructure(String deviceName, String virtualVolumeType) 
+            throws VPlexApiException {
+        s_logger.info("Request to find device structure for {} on VPLEX at {}", deviceName, _baseURI);
+
+        VPlexResourceInfo device = null;
+
+        switch (virtualVolumeType) {
+            case VPlexApiConstants.DISTRIBUTED_VIRTUAL_VOLUME:
+                device = getDiscoveryManager()
+                            .getDeviceStructureForDistributedIngestion(deviceName, virtualVolumeType);
+                break;
+            case VPlexApiConstants.LOCAL_VIRTUAL_VOLUME:
+                device = getDiscoveryManager()
+                            .getDeviceStructureForLocalIngestion(deviceName, virtualVolumeType);
+                break;
+        }
+
+        return device;
     }
 }

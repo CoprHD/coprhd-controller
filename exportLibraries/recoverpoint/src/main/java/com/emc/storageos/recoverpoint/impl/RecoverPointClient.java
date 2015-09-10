@@ -395,12 +395,16 @@ public class RecoverPointClient {
      * Updates an existing CG by adding new replication sets.
      *
      * @param request - contains all the information required to create the consistency group
+     * 
+     * @param attachAsClean attach as clean can be true if source and target are guaranteed to be the same (as in create
+     *            new volume). for change vpool, attach as clean should be false
      *
      * @return RecoverPointCGResponse - response as to success or fail of creating the consistency group
      *
      * @throws RecoverPointException
      **/
-    public RecoverPointCGResponse addReplicationSetsToCG(CGRequestParams request, boolean metropoint) throws RecoverPointException {
+    public RecoverPointCGResponse addReplicationSetsToCG(CGRequestParams request, boolean metropoint, boolean attachAsClean)
+            throws RecoverPointException {
 
         if (null == _endpoint.toASCIIString()) {
             throw RecoverPointException.exceptions.noRecoverPointEndpoint();
@@ -462,7 +466,7 @@ public class RecoverPointClient {
 
             ConsistencyGroupSettingsChangesParam cgSettingsParam = configureCGSettingsChangeParams(request, cgUID, prodSites,
                     clusterIdCache,
-                    productionCopiesUID, nonProductionCopiesUID);
+                    productionCopiesUID, nonProductionCopiesUID, attachAsClean);
 
             logger.info("Adding journals and rsets for CG " + request.getCgName());
             functionalAPI.setConsistencyGroupSettings(cgSettingsParam);
@@ -478,7 +482,7 @@ public class RecoverPointClient {
             }
 
             logger.info("Waiting for links to become active for CG " + request.getCgName());
-            (new RecoverPointImageManagementUtils()).waitForCGLinkState(functionalAPI, cgUID, null, PipeState.ACTIVE);
+            (new RecoverPointImageManagementUtils()).waitForCGLinkState(functionalAPI, cgUID, PipeState.ACTIVE);
             logger.info(String.format("Replication sets have been added to consistency group %s.", request.getCgName()));
 
             response.setReturnCode(RecoverPointReturnCode.SUCCESS);
@@ -498,12 +502,15 @@ public class RecoverPointClient {
      * Creates a consistency group
      *
      * @param request - contains all the information required to create the consistency group
+     * 
+     * @param attachAsClean attach as clean can be true if source and target are guaranteed to be the same (as in create
+     *            new volume). for change vpool, attach as clean should be false
      *
      * @return CreateCGResponse - response as to success or fail of creating the consistency group
      *
      * @throws RecoverPointException
      **/
-    public RecoverPointCGResponse createCG(CGRequestParams request, boolean metropoint) throws RecoverPointException {
+    public RecoverPointCGResponse createCG(CGRequestParams request, boolean metropoint, boolean attachAsClean) throws RecoverPointException {
 
         if (null == _endpoint.toASCIIString()) {
             throw RecoverPointException.exceptions.noRecoverPointEndpoint();
@@ -549,14 +556,13 @@ public class RecoverPointClient {
 
             ConsistencyGroupSettingsChangesParam cgSettingsParam = configureCGSettingsChangeParams(request, cgUID, prodSites,
                     clusterIdCache,
-                    productionCopiesUID, nonProductionCopiesUID);
+                    productionCopiesUID, nonProductionCopiesUID, attachAsClean);
 
             logger.info("Adding journals and rsets for CG " + request.getCgName());
-            functionalAPI.validateSetConsistencyGroupSettings(cgSettingsParam);
             functionalAPI.setConsistencyGroupSettings(cgSettingsParam);
 
             logger.info("Waiting for links to become active for CG " + request.getCgName());
-            (new RecoverPointImageManagementUtils()).waitForCGLinkState(functionalAPI, cgUID, null, PipeState.ACTIVE);
+            (new RecoverPointImageManagementUtils()).waitForCGLinkState(functionalAPI, cgUID, PipeState.ACTIVE);
             logger.info(String.format("Consistency group %s has been created.", request.getCgName()));
 
             response.setReturnCode(RecoverPointReturnCode.SUCCESS);
@@ -576,6 +582,83 @@ public class RecoverPointClient {
 
     }
 
+    /**
+     * Operation to add journal volumes to an existing recoverpoint consistency group
+     * 
+     * @param request - contains both the consistency group
+     *                  and the journals to add to the consistency group
+     * @param copyType - indicates whether the copy is production, local or remote
+     * @return boolean indicating the result of the operation
+     *
+     */
+    public boolean addJournalVolumesToCG(CGRequestParams request, int copyType) {
+    	// Make sure the CG name is unique.
+    	ConsistencyGroupUID cgUID = null;
+    	List<ConsistencyGroupUID> allCgs;
+    	String copyName = "not determined";
+    	Map<ConsistencyGroupCopyUID, DeviceUID> addedJournalVolumes = new HashMap<ConsistencyGroupCopyUID, DeviceUID>();
+    	try {
+    		allCgs = functionalAPI.getAllConsistencyGroups();
+    		for (ConsistencyGroupUID cg : allCgs) {
+    			ConsistencyGroupSettings settings = functionalAPI.getGroupSettings(cg);
+    			if (settings.getName().toString().equalsIgnoreCase(request.getCgName())) {
+    				cgUID = settings.getGroupUID();
+    				break;
+    			}
+    		}
+    		if (cgUID == null) {
+    			// The CG does not exist so we cannot add replication sets
+    			throw RecoverPointException.exceptions.failedToAddReplicationSetCgDoesNotExist(request.getCgName());    			
+    		}    		
+    		
+    		List<CreateCopyParams> copyParams = request.getCopies();
+    		
+    		// determine if the volumes are visible to the recoverpoint appliance
+    		Set<RPSite> allSites = scan(copyParams, null);    		    		
+    		
+    		for (CreateCopyParams copyParam : copyParams) {    		
+    			for (CreateVolumeParams journalVolume: copyParam.getJournals()) {
+    				copyName = journalVolume.getRpCopyName();
+    				ClusterUID clusterId = RecoverPointUtils.getRPSiteID(functionalAPI, journalVolume.getInternalSiteName()); 
+    				ConsistencyGroupCopyUID copyUID = getCGCopyUid(clusterId, getCopyType(copyType), cgUID);    				
+    				DeviceUID journalDevice = RecoverPointUtils.getDeviceID(allSites, journalVolume.getWwn());
+    				addedJournalVolumes.put(copyUID, journalDevice);
+    				functionalAPI.addJournalVolume(copyUID, journalDevice);        		
+    			}    			
+    		}
+    	}
+    	catch (FunctionalAPIActionFailedException_Exception e) {
+    		if (!addedJournalVolumes.isEmpty()) {
+    			try {
+    				for (Map.Entry<ConsistencyGroupCopyUID, DeviceUID> journalVolume : addedJournalVolumes.entrySet()) {
+    					functionalAPI.removeJournalVolume(journalVolume.getKey(), journalVolume.getValue()); 			   
+    				}
+    			} catch (Exception e1) {
+                  logger.error("Error removing journal volume from consistency group");
+                  logger.error(e1.getMessage(), e1);
+    			}
+    		}    		
+    		logger.error("Error in attempting to add a journal volume to the recoverpoint consistency group");
+            logger.error(e.getMessage(), e);
+            throw RecoverPointException.exceptions.failedToAddJournalVolumeToConsistencyGroup(copyName, getCause(e));
+    	} catch (FunctionalAPIInternalError_Exception e) {
+    		if (!addedJournalVolumes.isEmpty()) {
+    			try {
+    				for (Map.Entry<ConsistencyGroupCopyUID, DeviceUID> journalVolume : addedJournalVolumes.entrySet()) {
+    					functionalAPI.removeJournalVolume(journalVolume.getKey(), journalVolume.getValue()); 			   
+    				}
+    			} catch (Exception e1) {
+                  logger.error("Error removing journal volume from consistency group");
+                  logger.error(e1.getMessage(), e1);
+    			}
+    		}  
+    		logger.error("Error in attempting to add a journal volume to the recoverpoint consistency group");
+            logger.error(e.getMessage(), e);
+            throw RecoverPointException.exceptions.failedToCreateConsistencyGroup(copyName, getCause(e));
+    	}
+    	return true;        
+    }
+    
     /**
      * @param request
      * @param clusterIdCache
@@ -637,6 +720,23 @@ public class RecoverPointClient {
     }
 
     /**
+     * Determines and creates RecoverPointCGCopyType type based on passed int value
+     * 
+     * @param type - the copy type
+     * @return RecoverPointCGCopyType representing the copy type
+     */
+    private RecoverPointCGCopyType getCopyType(int type) {
+    	RecoverPointCGCopyType copyType = RecoverPointCGCopyType.PRODUCTION;
+    	if (type == RecoverPointCGCopyType.LOCAL.getCopyNumber()) {
+    		copyType = RecoverPointCGCopyType.LOCAL;
+    	}
+    	if (type == RecoverPointCGCopyType.REMOTE.getCopyNumber()) {
+    		copyType = RecoverPointCGCopyType.REMOTE;
+    	}
+    	return copyType;
+    }
+    
+    /**
      * construct a CG copy UID
      *
      * @param clusterUID
@@ -658,6 +758,8 @@ public class RecoverPointClient {
      * @param request
      * @param prodSites
      * @param clusterIdCache
+     * @param attachAsClean attach as clean can be true if source and target are guaranteed to be the same (as in create
+     *            new volume). for change vpool, attach as clean should be false
      * @return
      * @throws FunctionalAPIInternalError_Exception
      * @throws FunctionalAPIActionFailedException_Exception
@@ -665,7 +767,8 @@ public class RecoverPointClient {
     private ConsistencyGroupSettingsChangesParam configureCGSettingsChangeParams(CGRequestParams request, ConsistencyGroupUID cgUID,
             List<ClusterUID> prodSites,
             Map<String, ClusterUID> clusterIdCache, Map<Long, ConsistencyGroupCopyUID> productionCopiesUID,
-            Map<Long, ConsistencyGroupCopyUID> nonProductionCopiesUID) throws FunctionalAPIActionFailedException_Exception,
+            Map<Long, ConsistencyGroupCopyUID> nonProductionCopiesUID, boolean attachAsClean)
+            throws FunctionalAPIActionFailedException_Exception,
             FunctionalAPIInternalError_Exception {
 
         Set<RPSite> allSites = getAssociatedRPSites();
@@ -723,7 +826,7 @@ public class RecoverPointClient {
 
             ReplicationSetSettingsChangesParam repSetSettings = new ReplicationSetSettingsChangesParam();
             repSetSettings.setName(rsetParam.getName());
-            repSetSettings.setShouldAttachAsClean(false);
+            repSetSettings.setShouldAttachAsClean(attachAsClean);
 
             Set<String> sourceWWNsInRset = new HashSet<String>();
             for (CreateVolumeParams volume : rsetParam.getVolumes()) {
@@ -985,6 +1088,10 @@ public class RecoverPointClient {
                 }
             }
 
+            // When adding new journal volumes only no need to look at source and target volumes
+            if (rSets == null || rSets.isEmpty()) {
+            	continue;
+            }
             //
             // Walk through the source/target volumes to see where our WWNs lie
             //
@@ -1486,8 +1593,7 @@ public class RecoverPointClient {
                 Set<RPCopy> copies = rpcg.getCopies();
                 for (RPCopy copy : copies) {
                     // For restore, just wait for link state of the copy being restored
-                    imageManager.waitForCGLinkState(functionalAPI, copy.getCGGroupCopyUID().getGroupUID(), copy.getCGGroupCopyUID(),
-                            PipeState.ACTIVE);
+                    imageManager.waitForCGLinkState(functionalAPI, copy.getCGGroupCopyUID().getGroupUID(), PipeState.ACTIVE);
                     boolean waitForLinkState = false;
                     imageManager.enableCGCopy(functionalAPI, copy.getCGGroupCopyUID(), waitForLinkState, ImageAccessMode.LOGGED_ACCESS,
                             request.getBookmark(), request.getAPITTime());
@@ -1662,7 +1768,7 @@ public class RecoverPointClient {
             ConsistencyGroupUID cgUID = new ConsistencyGroupUID();
             cgUID.setId(volumeInfo.getRpVolumeGroupID());
             if (volumeInfo.getRpVolumeCurrentProtectionStatus() == RecoverPointVolumeProtectionInfo.volumeProtectionStatus.PROTECTED_SOURCE) {
-                // Disable the whole CG.
+                // Disable the whole CG
                 disableConsistencyGroup(cgUID);
             } else {
                 // Disable the CG copy associated with the target.
@@ -1674,7 +1780,7 @@ public class RecoverPointClient {
 
                 // Make sure the CG copy is stopped
                 RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
-                imageManager.waitForCGLinkState(functionalAPI, cgUID, cgCopyUID, PipeState.UNKNOWN);
+                imageManager.waitForCGLinkState(functionalAPI, cgUID, PipeState.UNKNOWN);
                 logger.info("Protection disabled on CG copy " + cgCopyName + " on CG " + cgName);
             }
         } catch (FunctionalAPIActionFailedException_Exception e) {
@@ -1701,7 +1807,7 @@ public class RecoverPointClient {
 
         // Make sure the CG is stopped
         RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
-        imageManager.waitForCGLinkState(functionalAPI, cgUID, null, PipeState.UNKNOWN);
+        imageManager.waitForCGLinkState(functionalAPI, cgUID, PipeState.UNKNOWN);
     }
 
     /**
@@ -1733,7 +1839,7 @@ public class RecoverPointClient {
             }
             // Make sure the CG is ready
             RecoverPointImageManagementUtils imageManager = new RecoverPointImageManagementUtils();
-            imageManager.waitForCGLinkState(functionalAPI, cgUID, cgCopyUID, PipeState.ACTIVE);
+            imageManager.waitForCGLinkState(functionalAPI, cgUID, PipeState.ACTIVE);
             logger.info("Protection enabled on CG copy " + cgCopyName + " on CG " + cgName);
         } catch (FunctionalAPIActionFailedException_Exception e) {
             throw RecoverPointException.exceptions.failedToEnableProtection(
@@ -2022,7 +2128,7 @@ public class RecoverPointClient {
         }
 
         logger.info("Waiting for links to become active for CG " + (cgName == null ? "unknown CG name" : cgName));
-        (new RecoverPointImageManagementUtils()).waitForCGLinkState(functionalAPI, cgUID, null, PipeState.ACTIVE);
+        (new RecoverPointImageManagementUtils()).waitForCGLinkState(functionalAPI, cgUID, PipeState.ACTIVE);
         logger.info(String.format("Replication sets have been added to consistency group %s.",
                 (cgName == null ? "unknown CG name" : cgName)));
     }
@@ -2949,7 +3055,7 @@ public class RecoverPointClient {
             functionalAPI.startGroupTransfer(cgUID);
 
             RecoverPointImageManagementUtils rpiMgmt = new RecoverPointImageManagementUtils();
-            rpiMgmt.waitForCGLinkState(functionalAPI, cgUID, null, PipeState.ACTIVE);
+            rpiMgmt.waitForCGLinkState(functionalAPI, cgUID, PipeState.ACTIVE);
 
         } catch (Exception e) {
             throw RecoverPointException.exceptions.failedToFailoverCopy(activeCgCopyName, cgName, e);

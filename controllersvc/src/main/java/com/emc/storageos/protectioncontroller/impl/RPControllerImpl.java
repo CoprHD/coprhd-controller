@@ -53,6 +53,7 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
         _dbClient = dbClient;
     }
 
+    @Override
     protected Controller lookupDeviceController(DiscoveredSystemObject storageSystem) {
         // dummy impl that returns the first one
         return _deviceImpl.iterator().next();
@@ -79,11 +80,12 @@ public class RPControllerImpl extends AbstractDiscoveredSystemController impleme
     }
 
     @Override
-    public void createSnapshot(URI protectionDevice, URI storageDevice, List<URI> snapshotList, Boolean createInactive, String opId)
-            throws InternalException {
-        execFS("createSnapshot", protectionDevice, storageDevice, snapshotList, createInactive, opId);
+    public void createSnapshot(URI protectionDevice, URI storageDevice, List<URI> snapshotList, Boolean createInactive, Boolean readOnly,
+            String opId) throws InternalException {
+        execFS("createSnapshot", protectionDevice, storageDevice, snapshotList, createInactive, readOnly, opId);
     }
 
+    @Override
     public void discover(AsyncTask[] tasks) throws ControllerException {
         try {
             ControllerServiceImpl.scheduleDiscoverJobs(tasks, Lock.DISCOVER_COLLECTION_LOCK, ControllerServiceImpl.DISCOVERY);

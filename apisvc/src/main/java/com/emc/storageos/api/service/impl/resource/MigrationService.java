@@ -10,6 +10,7 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -121,6 +122,10 @@ public class MigrationService extends TaskResourceService {
         // Verify the requested volume supports migration.
         Volume vplexVolume = verifyRequestedVolumeSupportsMigration(migrateParam.getVolume());
         s_logger.debug("Verfified requested volume");
+                
+        // Make sure that we don't have some pending
+        // operation against the volume
+        checkForPendingTasks(Arrays.asList(vplexVolume.getTenant().getURI()), Arrays.asList(vplexVolume));
 
         // Determine the backend volume of the requested VPlex volume that
         // is to be migrated. It is the volume on the passed source storage
@@ -177,8 +182,8 @@ public class MigrationService extends TaskResourceService {
 
         // There should be a single recommendation.
         Recommendation recommendation = recommendations.get(0);
-        URI recommendedSystem = recommendation.getSourceDevice();
-        URI recommendedPool = recommendation.getSourcePool();
+        URI recommendedSystem = recommendation.getSourceStorageSystem();
+        URI recommendedPool = recommendation.getSourceStoragePool();
         s_logger.debug("Recommendation storage system is {}", recommendedSystem);
         s_logger.debug("Recommendation storage pool is {}", recommendedPool);
 

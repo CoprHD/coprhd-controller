@@ -35,6 +35,7 @@ import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
+import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.workflow.Workflow;
 import com.emc.storageos.workflow.WorkflowService;
@@ -79,6 +80,13 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
     public ExportMask refreshExportMask(StorageSystem storage,
             BlockStorageDevice device, ExportMask mask) {
         return super.refreshExportMask(storage, device, mask);
+    }
+
+    @Override
+    public void suggestExportMasksForPlacement(
+            StorageSystem storage, BlockStorageDevice device, List<Initiator> initiators,
+            ExportMaskPlacementDescriptor placementDescriptor) {
+        super.suggestExportMasksForPlacement(storage, device, initiators, placementDescriptor);
     }
 
     static final Integer MAX_PORTS_PER_NETWORK = 24;
@@ -239,8 +247,8 @@ public class VPlexHDSMaskingOrchestrator extends HDSMaskingOrchestrator
     @Override
     public StringSetMap configureZoning(Map<URI, List<StoragePort>> portGroup,
             Map<String, Map<URI, Set<Initiator>>> initiatorGroup,
-            Map<URI, NetworkLite> networkMap) {
-        return VPlexBackEndOrchestratorUtil.configureZoning(portGroup, initiatorGroup, networkMap);
+            Map<URI, NetworkLite> networkMap, StoragePortsAssigner assigner) {
+        return VPlexBackEndOrchestratorUtil.configureZoning(portGroup, initiatorGroup, networkMap, assigner);
     }
 
     @Override

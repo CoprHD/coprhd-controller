@@ -31,6 +31,7 @@ import com.emc.fapiclient.ws.FunctionalAPIActionFailedException_Exception;
 import com.emc.fapiclient.ws.FunctionalAPIInternalError_Exception;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
+import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor.Type;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
@@ -80,6 +81,7 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.recoverpoint.impl.RecoverPointClient;
+import com.emc.storageos.recoverpoint.impl.RecoverPointClient.RecoverPointCGCopyType;
 import com.emc.storageos.recoverpoint.objectmodel.RPBookmark;
 import com.emc.storageos.recoverpoint.objectmodel.RPConsistencyGroup;
 import com.emc.storageos.recoverpoint.objectmodel.RPSite;
@@ -170,6 +172,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     private static final String STEP_EXPORT_GROUP_DISABLE = "exportGroupDisable";
     private static final String STEP_EXPORT_REMOVE_SNAPSHOT = "exportRemoveSnapshot";
     private static final String STEP_POST_VOLUME_CREATE = "postVolumeCreate";
+    private static final String STEP_ADD_JOURNAL_VOLUME = "addJournalVolume";
 
     private static final String STEP_PRE_VOLUME_EXPAND = "preVolumeExpand";
     private static final String STEP_POST_VOLUME_EXPAND = "postVolumeExpand";
@@ -180,6 +183,10 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     // Methods in the create workflow. Constants helps us avoid step dependency flubs.
     private static final String METHOD_CG_CREATE_STEP = "cgCreateStep";
     private static final String METHOD_CG_CREATE_ROLLBACK_STEP = "cgCreateRollbackStep";
+    
+    // Methods in the add journal volume workflow.
+    private static final String METHOD_ADD_JOURNAL_STEP = "addJournalStep";
+    private static final String METHOD_ADD_JOURNAL_ROLLBACK_STEP = "addJournalRollbackStep";
 
     // Methods in the update workflow.
     private static final String METHOD_CG_UPDATE_STEP = "cgUpdateStep";
@@ -399,7 +406,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         List<VolumeDescriptor> protectionControllerDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_TARGET,
                         VolumeDescriptor.Type.RP_VPLEX_VIRT_TARGET,
-                        VolumeDescriptor.Type.RP_EXISTING_PROTECTED_SOURCE },
+                        VolumeDescriptor.Type.RP_EXISTING_PROTECTED_SOURCE,
+                        VolumeDescriptor.Type.RP_JOURNAL,
+                        VolumeDescriptor.Type.RP_VPLEX_VIRT_JOURNAL},
                 new VolumeDescriptor.Type[] {});
         // If there are no RP volumes, just return
         if (protectionControllerDescriptors.isEmpty()) {
@@ -408,6 +417,22 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         }
 
         _log.info("Adding RP steps for create volumes");
+        
+        // Determine if this operation only involves adding additional journal capacity
+        boolean isJournalAdd = false;
+        List<VolumeDescriptor> journalDescriptors = VolumeDescriptor.filterByType(protectionControllerDescriptors,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_JOURNAL,
+                        VolumeDescriptor.Type.RP_VPLEX_VIRT_JOURNAL},
+                new VolumeDescriptor.Type[] {});
+        if (!journalDescriptors.isEmpty()) {
+        	for (VolumeDescriptor journDesc : journalDescriptors) {
+        		if (journDesc.getCapabilitiesValues().getAddJournalCapacity()) {
+        			isJournalAdd = true;
+        			break;
+        		}
+        	}
+        }
+        
         // Grab any volume from the list so we can grab the protection system, which will be the same for all volumes.
         Volume volume = _dbClient.queryObject(Volume.class, protectionControllerDescriptors.get(0).getVolumeURI());
         ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, volume.getProtectionController());
@@ -426,9 +451,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         // If there are no RP volumes, just return
         if (volumeDescriptorsTypeFilter.isEmpty()) {
             return waitFor;
-        }
-
-        String lastStep = waitFor;
+        }        
+        
+        String lastStep = waitFor;        
 
         try {
             List<VolumeDescriptor> existingProtectedSourceDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
@@ -436,7 +461,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     new VolumeDescriptor.Type[] {});
 
             boolean executeCreateSteps = true;
-            if (!existingProtectedSourceDescriptors.isEmpty()) {
+            if (!existingProtectedSourceDescriptors.isEmpty() || isJournalAdd) {
                 executeCreateSteps = false;
             }
 
@@ -445,8 +470,13 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Handle creation or updating of the Consistency Group (moved from the Export Workflow)
             // Get the CG Params based on the volume descriptors
             CGRequestParams params = this.getCGRequestParams(volumeDescriptors, rpSystem);
-            updateCGParams(params);
-
+            updateCGParams(params);            
+            
+            if (isJournalAdd) {
+            	lastStep = addAddJournalVolumesToCGStep(workflow, volumeDescriptors, params, rpSystem, taskId);
+            	return lastStep;
+            }            
+            
             if (executeCreateSteps) {
                 _log.info("Adding steps for Create CG...");
                 lastStep = addCreateCGStep(workflow, volumeDescriptors, params, rpSystem, taskId);
@@ -770,6 +800,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             // Set up the journal volumes in the copy objects
             if (volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_JOURNAL)
                     || volumeDescriptor.getType().equals(VolumeDescriptor.Type.RP_VPLEX_VIRT_JOURNAL)) {
+            	if (cgName == null) {
+            		project = _dbClient.queryObject(Project.class, volume.getProject());
+            		cg = _dbClient.queryObject(BlockConsistencyGroup.class, volumeDescriptor.getCapabilitiesValues()
+	                        .getBlockConsistencyGroup());
+	                cgName = cg.getCgNameOnStorageSystem(rpSystem.getId());
+	                if (cgName == null) {
+	                    cgName = CG_NAME_PREFIX + cg.getLabel();
+	                }
+            	}
                 CreateVolumeParams volumeParams = populateVolumeParams(volume.getId(),
                         volume.getStorageController(),
                         volume.getVirtualArray(),
@@ -986,12 +1025,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 for (String wwn : wwns.keySet()) {
                     Initiator initiator = new Initiator();
                     initiator.addInternalFlags(Flag.RECOVERPOINT);
-                    initiator.setHostName(rpSiteName);
+                    // Remove all non alpha-numeric characters, excluding "_", from the hostname
+                    initiator.setHostName(rpSiteName.replaceAll("[^A-Za-z0-9_]", ""));
                     initiator.setInitiatorPort(wwn);
                     initiator.setInitiatorNode(wwns.get(wwn));
                     initiator.setProtocol("FC");
                     initiator.setIsManualCreation(false);
-                    initiator = getInitiator(initiator);
+
+                    // Either get the existing initiator or create a new if needed
+                    initiator = getOrCreateNewInitiator(initiator);
                     initiators.add(initiator);
                 }
 
@@ -1192,6 +1234,33 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
     }
 
     /**
+     * This operation will add additional journal volumes to a recoverpoint consistency group
+     * 
+     * @param rpSystemId - recoverpoint system
+     * @param volumeDescriptors - journal volumes to add
+     * @param taskId - task tracking the operation
+     * @return boolean indicating the result of the operation
+     */
+    public boolean addJournalStep(URI rpSystemId, List<VolumeDescriptor> volumeDescriptors, String taskId) {    	
+    	WorkflowStepCompleter.stepExecuting(taskId);
+    	if (volumeDescriptors.isEmpty()) {
+    		stepFailed(taskId, "addJournalStep");
+    	}
+    	ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);    	
+    	RecoverPointClient rp = RPHelper.getRecoverPointClient(rpSystem);    	    	    	    	
+    	CGRequestParams cgParams = this.getCGRequestParams(volumeDescriptors, rpSystem);
+        updateCGParams(cgParams);    	
+    	
+        try {
+        	rp.addJournalVolumesToCG(cgParams, volumeDescriptors.get(0).getCapabilitiesValues().getRPCopyType());    
+        	WorkflowStepCompleter.stepSucceded(taskId);
+        } catch (Exception e) {
+        	stepFailed(taskId, "addJournalStep");
+        }
+    	return true;
+    }        
+    
+    /**
      * Recoverpoint specific workflow method for creating an Export Group
      * NOTE: Workflow.Method requires that opId is added as a param.
      *
@@ -1263,7 +1332,47 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
         return STEP_CG_CREATION;
     }
+    
+    /**
+     * Method that adds the step to the workflow for adding a journal volume to a CG.
+     * 
+     * @param workflow
+     * @param recommendation
+     * @param rpSystem
+     * @throws InternalException
+     * @return the step group
+     */
+    private String addAddJournalVolumesToCGStep(Workflow workflow, List<VolumeDescriptor> volumeDescriptors, CGRequestParams cgParams,
+            ProtectionSystem rpSystem,
+            String taskId) throws InternalException {
+        String stepId = workflow.createStepId();
+        Workflow.Method addJournalExecuteMethod = new Workflow.Method(METHOD_ADD_JOURNAL_STEP,
+                rpSystem.getId(),
+                volumeDescriptors);
+        Workflow.Method addJournalExecutionRollbackMethod = new Workflow.Method(METHOD_ADD_JOURNAL_ROLLBACK_STEP,
+                rpSystem.getId());
 
+        workflow.createStep(STEP_ADD_JOURNAL_VOLUME, "Create add journal volume to consistency group subtask for RP CG: " + cgParams.getCgName(),
+                STEP_EXPORT_ORCHESTRATION, rpSystem.getId(), rpSystem.getSystemType(), this.getClass(),
+                addJournalExecuteMethod, addJournalExecutionRollbackMethod, stepId);
+
+        return STEP_ADD_JOURNAL_VOLUME;
+    }
+    
+    /**
+     * Workflow step method for rolling back adding journal volumes to CG.
+     *
+     * @param rpSystem RP system
+     * @param token the task
+     * @return
+     * @throws WorkflowException
+     */
+    public boolean addJournalRollbackStep(URI rpSystemId, String token) throws WorkflowException {
+        // nothing to do for now.
+        WorkflowStepCompleter.stepSucceded(token);
+        return true;
+    }
+    
     /**
      * Workflow step method for creating/updating a consistency group.
      *
@@ -1291,10 +1400,15 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             ProtectionSystem rpSystem = _dbClient.queryObject(ProtectionSystem.class, rpSystemId);
             URI cgId = volumeDescriptors.iterator().next().getCapabilitiesValues().getBlockConsistencyGroup();
             BlockConsistencyGroup cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgId);
+            boolean attachAsClean = true;
 
             for (VolumeDescriptor sourceVolumedescriptor : sourceVolumeDescriptors) {
                 Volume sourceVolume = _dbClient.queryObject(Volume.class, sourceVolumedescriptor.getVolumeURI());
                 metropoint = _rpHelper.isMetroPointVolume(sourceVolume);
+                // if this is a change vpool, attachAsClean should be false so that source and target are synchronized
+                if (VolumeDescriptor.Type.RP_EXISTING_SOURCE.equals(sourceVolumedescriptor.getType())) {
+                    attachAsClean = false;
+                }
             }
 
             // Build the CG Request params
@@ -1324,9 +1438,9 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
             _log.info("Submitting RP Request: " + cgParams);
             if (cg.nameExistsForStorageSystem(rpSystem.getId(), cgParams.getCgName()) && rp.doesCgExist(cgParams.getCgName())) {
                 // cg exists in both the ViPR db and on the RP system
-                response = rp.addReplicationSetsToCG(cgParams, metropoint);
+                response = rp.addReplicationSetsToCG(cgParams, metropoint, attachAsClean);
             } else {
-                response = rp.createCG(cgParams, metropoint);
+                response = rp.createCG(cgParams, metropoint, attachAsClean);
 
                 // "Turn-on" the consistency group
                 cg = _dbClient.queryObject(BlockConsistencyGroup.class, cgParams.getCgUri());
@@ -3310,7 +3424,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      *
      * @throws InternalException When an error occurs querying the database.
      */
-    private Initiator getInitiator(Initiator initiatorParam)
+    private Initiator getOrCreateNewInitiator(Initiator initiatorParam)
             throws InternalException {
         Initiator initiator = null;
         URIQueryResultList resultsList = new URIQueryResultList();
@@ -3319,11 +3433,19 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         Iterator<URI> resultsIter = resultsList.iterator();
         if (resultsIter.hasNext()) {
             initiator = _dbClient.queryObject(Initiator.class, resultsIter.next());
+            // If the hostname has been changed then we need to update the
+            // Initiator object to reflect that change.
+            if (NullColumnValueGetter.isNotNullValue(initiator.getHostName())
+                    && !initiator.getHostName().equals(initiatorParam.getHostName())) {
+                initiator.setHostName(initiatorParam.getHostName());
+                _dbClient.persistObject(initiator);
+            }
         } else {
             initiatorParam.setId(URIUtil.createId(Initiator.class));
             _dbClient.createObject(initiatorParam);
             initiator = initiatorParam;
         }
+
         return initiator;
     }
 
@@ -3732,11 +3854,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * (non-Javadoc)
      * 
      * @see com.emc.storageos.protectioncontroller.RPController#createSnapshot(java.net.URI, java.net.URI, java.util.List,
-     * java.lang.Boolean, java.lang.String)
+     * java.lang.Boolean, java.lang.Boolean, java.lang.String)
      */
     @Override
     public void createSnapshot(URI protectionDevice, URI storageURI, List<URI> snapshotList,
-            Boolean createInactive, String opId) throws InternalException {
+            Boolean createInactive, Boolean readOnly, String opId) throws InternalException {
         TaskCompleter completer = new BlockSnapshotCreateCompleter(snapshotList, opId);
         Map<URI, Integer> snapshotMap = new HashMap<URI, Integer>();
         try {
@@ -3801,7 +3923,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 waitFor = addEnableImageAccessStep(workflow, system, snapshotMap, waitFor);
 
                 // Step 3 - Invoke block storage doCreateSnapshot
-                waitFor = addCreateBlockSnapshotStep(workflow, waitFor, storageURI, snapshotList, createInactive, system);
+                waitFor = addCreateBlockSnapshotStep(workflow, waitFor, storageURI, snapshotList, createInactive, readOnly, system);
 
                 // Step 4 - Disable image access
                 addBlockSnapshotDisableImageAccessStep(workflow, waitFor, snapshotList, system);
@@ -3832,17 +3954,18 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param storageURI UID of the storage system
      * @param snapshotList List of snaphots in the request
      * @param createInactive Specifies whether the snapshot is created and activated or just created
+     * @param readOnly Specifies whether the snapshot should be created as read only
      * @param rpSystem Protection system
      * @return This method step, so the caller can wait on this for invoking subsequent step(s).
      */
     private String addCreateBlockSnapshotStep(Workflow workflow, String waitFor, URI storageURI,
-            List<URI> snapshotList, Boolean createInactive, ProtectionSystem rpSystem) throws InternalException {
+            List<URI> snapshotList, Boolean createInactive, Boolean readOnly, ProtectionSystem rpSystem) throws InternalException {
 
         String stepId = workflow.createStepId();
         // Now add the steps to create the block snapshot on the storage system
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageURI);
         Workflow.Method createBlockSnapshotMethod = new Workflow.Method(METHOD_CREATE_BLOCK_SNAPSHOT_STEP, storageURI, snapshotList,
-                createInactive);
+                createInactive, readOnly);
         Workflow.Method rollbackCreateBlockSnapshotMethod = new Workflow.Method(METHOD_ROLLBACK_CREATE_BLOCK_SNAPSHOT);
 
         workflow.createStep(STEP_CREATE_BLOCK_SNAPSHOT, "Create Block Snapshot subtask for RP: ",
@@ -3860,16 +3983,17 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
      * @param storageURI Storage System URI
      * @param snapshotList List of snaps in the request
      * @param createInactive Specifies whether the snapshot is created and activated or just created
+     * @param readOnly Specifies whether the snapshot is created as read only
      * @param stepId workflow step Id for this step.
      * @return true if successful, false otherwise
      */
     public boolean createBlockSnapshotStep(URI storageURI,
-            List<URI> snapshotList, Boolean createInactive, String stepId) {
+            List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String stepId) {
         WorkflowStepCompleter.stepExecuting(stepId);
         try {
             StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageURI);
             BlockController controller = getController(BlockController.class, storageSystem.getSystemType());
-            controller.createSnapshot(storageURI, snapshotList, createInactive, stepId);
+            controller.createSnapshot(storageURI, snapshotList, createInactive, readOnly, stepId);
         } catch (Exception e) {
             WorkflowStepCompleter.stepFailed(stepId, DeviceControllerException.errors.jobFailed(e));
             return false;

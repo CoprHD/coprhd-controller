@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
-
 import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "exported_volumes_ingest")
@@ -20,6 +19,7 @@ public class VolumeExportIngestParam {
     private URI cluster;
     private URI project;
     private List<URI> unManagedVolumes;
+    private String vplexIngestionMethod;
 
     public VolumeExportIngestParam() {
     }
@@ -108,6 +108,21 @@ public class VolumeExportIngestParam {
 
     public void setCluster(URI cluster) {
         this.cluster = cluster;
+    }
+
+    /**
+     * The ingestion method for VPLEX volumes.
+     * Defaults to "Full" if not specificed.
+     * 
+     * @valid "Full" or "VirtualVolumesOnly"
+     */
+    @XmlElement(required = false)
+    public String getVplexIngestionMethod() {
+        return vplexIngestionMethod;
+    }
+
+    public void setVplexIngestionMethod(String type) {
+        this.vplexIngestionMethod = type;
     }
 
 }

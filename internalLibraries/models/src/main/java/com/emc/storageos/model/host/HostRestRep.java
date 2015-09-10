@@ -191,7 +191,7 @@ public class HostRestRep extends ComputeSystemRestRep {
     /**
      * The id of boot volume.
      * 
-     * @return The id of boot volume
+     * @return The bootVolume
      */
     @XmlElement(name = "boot_volume")
     public RelatedResourceRep getBootVolume() {

@@ -63,6 +63,20 @@ public interface DistributedDataManager {
     public void removeNode(String path) throws Exception;
 
     /**
+     * If present, removes the node (and any direct children it may have)
+     * given by the path using "guaranteed". If recursive is requested,
+     * it removes an entire subtree with nested nodes using
+     * deletingChildrenIfNeeded mode.
+     * 
+     * @param path -- String zookeeper path.
+     * @param recursive -- false to ensure the node is removed only
+     *            when it has no children nodes.
+     *            true to remove a subtree starting with node
+     * @throws Exception
+     */
+    public void removeNode(String path, boolean recursive) throws Exception;
+
+    /**
      * Stores the Java object given by data (which must be Serializable) as data of the
      * zookeeper node give by path (will create the node if necessary).
      * 

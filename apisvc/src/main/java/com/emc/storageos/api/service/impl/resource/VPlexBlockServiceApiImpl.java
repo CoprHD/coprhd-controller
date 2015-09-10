@@ -3195,7 +3195,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         
         // Check if the source volume is an ingested CG, without any back end CGs yet. if yes, throw error
         if (VPlexUtil.isVolumeInIngestedCG(reqVolume, _dbClient)) {
-            throw APIException.badRequests.snapshotNotAllowedForIngestedCG(reqVolume.getId().toString());
+            throw APIException.badRequests.cannotCreateSnapshotOfVplexCG();
         }
     }
     

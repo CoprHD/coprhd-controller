@@ -2422,8 +2422,5 @@ public interface BadRequestExceptions {
     
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException fullCopyNotAllowedForIngestedCG(final String uri);
-    
-    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
-    public BadRequestException snapshotNotAllowedForIngestedCG(final String uri);
-    
+
 }

@@ -1,7 +1,10 @@
+/*
+ * Copyright (c) 2012-2015 EMC
+ * All Rights Reserved
+ */
 package com.emc.sa.asset.providers;
 
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -13,16 +16,9 @@ import com.emc.sa.asset.BaseAssetOptionsProvider;
 import com.emc.sa.asset.annotation.Asset;
 import com.emc.sa.asset.annotation.AssetDependencies;
 import com.emc.storageos.model.DataObjectRestRep;
-import com.emc.storageos.model.block.VolumeDeleteTypeEnum;
-import com.emc.storageos.model.block.VolumeRestRep;
-import com.emc.storageos.model.block.export.ExportBlockParam;
-import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.object.BucketRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
-import com.emc.vipr.client.core.filters.FilterChain;
-import com.emc.vipr.client.core.filters.RecoverPointPersonalityFilter;
 import com.emc.vipr.client.core.filters.ResourceFilter;
-import com.emc.vipr.client.core.filters.SRDFTargetFilter;
 import com.emc.vipr.client.core.util.ResourceUtils;
 import com.emc.vipr.model.catalog.AssetOption;
 import com.google.common.collect.Lists;

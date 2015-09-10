@@ -34,9 +34,15 @@ public class UpdateBucket extends WaitForTask<BucketRestRep> {
     @Override
     public Task<BucketRestRep> doExecute() throws Exception {
         BucketUpdateParam create = new BucketUpdateParam();
-        create.setSoftQuota(softQuota.toString());
-        create.setHardQuota(hardQuota.toString());
-        create.setRetention(retention.toString());
+        if (softQuota != null) {
+            create.setSoftQuota(softQuota.toString());
+        }
+        if (hardQuota != null) {
+            create.setHardQuota(hardQuota.toString());
+        }
+        if (retention != null) {
+            create.setRetention(retention.toString());
+        }
 
         return getClient().objectBuckets().update(bucketId, create);
     }

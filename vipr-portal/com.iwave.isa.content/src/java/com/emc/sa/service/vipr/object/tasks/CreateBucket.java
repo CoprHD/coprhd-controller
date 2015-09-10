@@ -48,8 +48,12 @@ public class CreateBucket extends WaitForTask<BucketRestRep> {
         create.setVpool(vpoolId);
         create.setSoftQuota(softQuota.toString());
         create.setHardQuota(hardQuota.toString());
-        create.setRetention(retention.toString());
-        create.setOwner(owner);
+        if (retention != null) {
+            create.setRetention(retention.toString());
+        }
+        if (owner != null) {
+            create.setOwner(owner);
+        }
 
         return getClient().objectBuckets().create(create, projectId);
     }

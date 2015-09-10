@@ -200,16 +200,9 @@ public class DisasterRecoveryService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/standby/config")
     public SiteRestRep addPrimary(SiteAddParam param) {
-        log.info("Begin to add primary site");
+        log.info("Begin to add primary site {}", param.toString());
 
-        Site primarySite = new Site();
-        primarySite.setId(URIUtil.createId(Site.class));
-        primarySite.setUuid(param.getUuid());
-        primarySite.setName(param.getName());
-        primarySite.setVip(param.getVip());
-        primarySite.setSecretKey(param.getSecretKey());
-        primarySite.getHostIPv4AddressMap().putAll(new StringMap(param.getHostIPv4AddressMap()));
-        primarySite.getHostIPv6AddressMap().putAll(new StringMap(param.getHostIPv6AddressMap()));
+        Site primarySite = createSiteBasedOn(param);
 
         VirtualDataCenter vdc = queryLocalVDC();
 
@@ -226,6 +219,18 @@ public class DisasterRecoveryService extends TaggedResource {
         _dbClient.persistObject(vdc);
 
         return siteMapper.map(primarySite);
+    }
+
+    private Site createSiteBasedOn(SiteAddParam param) {
+        Site site = new Site();
+        site.setId(URIUtil.createId(Site.class));
+        site.setUuid(param.getUuid());
+        site.setName(param.getName());
+        site.setVip(param.getVip());
+        site.setSecretKey(param.getSecretKey());
+        site.getHostIPv4AddressMap().putAll(new StringMap(param.getHostIPv4AddressMap()));
+        site.getHostIPv6AddressMap().putAll(new StringMap(param.getHostIPv6AddressMap()));
+        return site;
     }
     
     @Override

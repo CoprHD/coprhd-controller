@@ -63,13 +63,9 @@ import sanfabrics
 import loginfailedip
 import keystore
 import truststore
-<<<<<<< HEAD
-import bucket
-
-=======
 import vnasserver
 import computeimageserver
->>>>>>> 5025e1e1ab0e2b1ae2bf66916d6fe8a38a1258b6
+import bucket
 import warnings
 
 
@@ -176,12 +172,9 @@ computevpool.computevpool_parser(module_parsers, common_parser)
 loginfailedip.loginfailedip_parser(module_parsers, common_parser)
 keystore.keystore_parser(module_parsers, common_parser)
 truststore.truststore_parser(module_parsers, common_parser)
-<<<<<<< HEAD
-bucket.bucket_parser(module_parsers, common_parser)
-=======
 vnasserver.vnasserver_parser(module_parsers, common_parser)
 computeimageserver.computeimageserver_parser(module_parsers, common_parser)
->>>>>>> 5025e1e1ab0e2b1ae2bf66916d6fe8a38a1258b6
+bucket.bucket_parser(module_parsers, common_parser)
 network.network_parser(module_parsers, common_parser)
 
 

@@ -23,27 +23,27 @@ import java.util.Set;
  * other tests.
  */
 public class ApiTestAuthnProviderUtils {
-    private final String AUTHN_PROVIDER_BASE_URL = "/vdc/admin/authnproviders";
-    private final String AUTHN_PROVIDER_EDIT_URL = AUTHN_PROVIDER_BASE_URL + "/%s";
+    private static final String AUTHN_PROVIDER_BASE_URL = "/vdc/admin/authnproviders";
+    private static final String AUTHN_PROVIDER_EDIT_URL = AUTHN_PROVIDER_BASE_URL + "/%s";
 
-    private final static String DEFAULT_TEST_LDAP_AUTHN_PROVIDER_LABEL = "LDAPAuthnProvider";
-    private final static String DEFAULT_TEST_LDAP_AUTHN_PROVIDER_DESCRIPTION = "Authn Provider implemented by LDAP";
-    private final static String DEFAULT_TEST_LDAP_AUTHN_PROVIDER_MODE = "ldap";
+    private static final String DEFAULT_TEST_LDAP_AUTHN_PROVIDER_LABEL = "LDAPAuthnProvider";
+    private static final String DEFAULT_TEST_LDAP_AUTHN_PROVIDER_DESCRIPTION = "Authn Provider implemented by LDAP";
+    private static final String DEFAULT_TEST_LDAP_AUTHN_PROVIDER_MODE = "ldap";
 
-    private final static String DEFAULT_TEST_LDAP_SERVER_URL = "ldap://" + EnvConfig.get("sanity", "ldap2.ip");
-    private final static String DEFAULT_TEST_LDAP_SERVER_DOMIN = "maxcrc.com";
-    private final static String DEFAULT_TEST_LDAP_SERVER_MANAGER_DN = "cn=Manager,dc=maxcrc,dc=com";
-    private final static String DEFAULT_TEST_LDAP_SERVER_MANAGER_DN_PWD = "secret";
-    private final static String DEFAULT_TEST_LDAP_SERVER_SEARCH_BASE = "ou=vipr,dc=maxcrc,dc=com";
-    private final static String DEFAULT_TEST_LDAP_SERVER_SEARCH_SCOPE = "SUBTREE";
-    private final static String DEFAULT_TEST_LDAP_SERVER_SEARCH_FILTER = "uid=%U";
-    private final static String DEFAULT_TEST_LDAP_SERVER_GROUP_ATTRIBUTE = "CN";
-    private final static String DEFAULT_TEST_SECOND_DOMAIN = "sanity.local";
-    private final static String DEFAULT_TEST_ONE_LETTER_DOMAIN = "d";
+    private static final String DEFAULT_TEST_LDAP_SERVER_URL = "ldap://" + EnvConfig.get("sanity", "ldap2.ip");
+    private static final String DEFAULT_TEST_LDAP_SERVER_DOMIN = "maxcrc.com";
+    private static final String DEFAULT_TEST_LDAP_SERVER_MANAGER_DN = "cn=Manager,dc=maxcrc,dc=com";
+    private static final String DEFAULT_TEST_LDAP_SERVER_MANAGER_DN_PWD = "secret";
+    private static final String DEFAULT_TEST_LDAP_SERVER_SEARCH_BASE = "ou=vipr,dc=maxcrc,dc=com";
+    private static final String DEFAULT_TEST_LDAP_SERVER_SEARCH_SCOPE = "SUBTREE";
+    private static final String DEFAULT_TEST_LDAP_SERVER_SEARCH_FILTER = "uid=%U";
+    private static final String DEFAULT_TEST_LDAP_SERVER_GROUP_ATTRIBUTE = "CN";
+    private static final String DEFAULT_TEST_SECOND_DOMAIN = "sanity.local";
+    private static final String DEFAULT_TEST_ONE_LETTER_DOMAIN = "d";
 
-    private final static String[] DEFAULT_TEST_LDAP_SERVER_GROUP_OBJECT_CLASSES = { "groupofnames", "groupofuniquenames", "posixgroup",
+    private static final String[] DEFAULT_TEST_LDAP_SERVER_GROUP_OBJECT_CLASSES = { "groupofnames", "groupofuniquenames", "posixgroup",
             "organizationalrole" };
-    private final static String[] DEFAULT_TEST_LDAP_SERVER_GROUP_MEMBER_ATTRIBUTES = { "member", "uniquemember", "memberuid",
+    private static final String[] DEFAULT_TEST_LDAP_SERVER_GROUP_MEMBER_ATTRIBUTES = { "member", "uniquemember", "memberuid",
             "roleoccupant" };
 
     // ldapViPRUserGroup - groupOfNames object class.
@@ -55,7 +55,7 @@ public class ApiTestAuthnProviderUtils {
     // Marketing - groupOfUniqueNames object class.
     // MarketingNew - groupOfUniqueNames object class.
     // MarketingOuter - groupOfUniqueNames object class.
-    private final static String[] DEFAULT_TEST_LDAP_GROUPS = { "ldapViPRUserGroup", "ldapViPRUserGroupNew", "ldapViPRUserGroupOrgRole",
+    private static final String[] DEFAULT_TEST_LDAP_GROUPS = { "ldapViPRUserGroup", "ldapViPRUserGroupNew", "ldapViPRUserGroupOrgRole",
             "ldapViPRUniqueNameGroup", "ldapViPRPosixGroup", "ldapViPRUserGroupNewOuter", "Marketing", "MarketingNew", "MarketingOuter" };
 
     // ldapViPRUser1 - is a member of ldapViPRUserGroup and Marketing.
@@ -68,16 +68,16 @@ public class ApiTestAuthnProviderUtils {
     // ldapViPRUser5 - has attributes departmentNumber = [ENG, DEV] and localityName = [Boston].
     // ldapViPRUser6 - has attributes departmentNumber = [ENG, QE] and localityName = [New York].
     // ldapViPRUser7 - has attributes departmentNumber = [ENG, QE, MANAGE] and localityName = [Boston].
-    private final static String[] DEFAULT_TEST_LDAP_USERS_UID = { "ldapViPRUser1", "ldapViPRUser2", "ldapViPRUser3", "ldapViPRUser4",
+    private static final String[] DEFAULT_TEST_LDAP_USERS_UID = { "ldapViPRUser1", "ldapViPRUser2", "ldapViPRUser3", "ldapViPRUser4",
             "ldapViPRUser5", "ldapViPRUser6", "ldapViPRUser7", "ldapViPRUser8", "ldapViPRUser9" };
 
-    private final static String DEFAULT_TEST_LDAP_SERVER_NON_MANAGER_BIND_DN = "uid=ldapViPRUser1,ou=Users,ou=ViPR,dc=maxcrc,dc=com";
+    private static final String DEFAULT_TEST_LDAP_SERVER_NON_MANAGER_BIND_DN = "uid=ldapViPRUser1,ou=Users,ou=ViPR,dc=maxcrc,dc=com";
 
-    private final static String DEFAULT_TEST_TENANT_USERS_PASS_WORD = "secret";
+    private static final String DEFAULT_TEST_TENANT_USERS_PASS_WORD = "secret";
 
-    private final String[] TEST_DEFAULT_ATTRIBUTE_KEYS = { "departmentNumber", "l" }; // l means localityName
-    private final String[] TEST_DEFAULT_ATTRIBUTE_DEPARTMENT_VALUES = { "ENG", "QE", "DEV", "MANAGE" };
-    private final String[] TEST_DEFAULT_ATTRIBUTE_LOCALITY_VALUES = { "Boston", "New York", "West Coast" };
+    private static final String[] TEST_DEFAULT_ATTRIBUTE_KEYS = { "departmentNumber", "l" }; // l means localityName
+    private static final String[] TEST_DEFAULT_ATTRIBUTE_DEPARTMENT_VALUES = { "ENG", "QE", "DEV", "MANAGE" };
+    private static final String[] TEST_DEFAULT_ATTRIBUTE_LOCALITY_VALUES = { "Boston", "New York", "West Coast" };
 
     public Set<String> getDefaultGroupObjectClasses() {
         return new HashSet<String>(Arrays.asList(DEFAULT_TEST_LDAP_SERVER_GROUP_OBJECT_CLASSES));

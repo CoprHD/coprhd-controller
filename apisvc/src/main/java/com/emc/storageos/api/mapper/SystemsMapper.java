@@ -192,7 +192,7 @@ public class SystemsMapper {
         to.setMaxStorageObjects(MetricsKeys.getLong(MetricsKeys.maxStorageObjects, from.getMetrics()).toString());
 
         to.setStorageObjects(MetricsKeys.getLong(MetricsKeys.storageObjects, from.getMetrics()).toString());
-        to.setStorageCapacity(MetricsKeys.getLong(MetricsKeys.storageCapacity, from.getMetrics()).toString());
+        to.setStorageCapacity(MetricsKeys.getLong(MetricsKeys.usedStorageCapacity, from.getMetrics()).toString());
         to.setIsOverloaded(MetricsKeys.getBoolean(MetricsKeys.overLoaded, from.getMetrics()));
 
         Double percentBusy = MetricsKeys.getDoubleOrNull(MetricsKeys.emaPercentBusy, from.getMetrics());

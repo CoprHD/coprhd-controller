@@ -9,6 +9,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.Project;
@@ -23,6 +26,8 @@ import com.emc.storageos.volumecontroller.BlockExportController;
  * request. This allows the API to return a Task object quickly.
  */
 class CreateExportGroupSchedulingThread implements Runnable {
+
+    static final Logger _log = LoggerFactory.getLogger(CreateExportGroupSchedulingThread.class);
 
     private final ExportGroupService exportGroupService;
     private VirtualArray virtualArray;
@@ -55,7 +60,7 @@ class CreateExportGroupSchedulingThread implements Runnable {
 
     @Override
     public void run() {
-        ExportGroupService._log.info("Starting scheduling for export group create thread...");
+        _log.info("Starting scheduling for export group create thread...");
         // Call out placementManager to get the recommendation for placement.
         try {
             // validate clients (initiators, hosts clusters) input and package them
@@ -64,7 +69,7 @@ class CreateExportGroupSchedulingThread implements Runnable {
                     project, virtualArray, storageMap.keySet(),
                     clusters, hosts, initiators,
                     volumeMap.keySet());
-            ExportGroupService._log.info("Initiators {} will be used.", affectedInitiators);
+            _log.info("Initiators {} will be used.", affectedInitiators);
 
             // If initiators list is empty and storage map is empty, there's no work to do (yet).
             if (storageMap.isEmpty() || affectedInitiators.isEmpty()) {
@@ -74,7 +79,7 @@ class CreateExportGroupSchedulingThread implements Runnable {
 
             // push it to storage devices
             BlockExportController exportController = this.exportGroupService.getExportController();
-            ExportGroupService._log.info("createExportGroup request is submitted.");
+            _log.info("createExportGroup request is submitted.");
             exportController.exportGroupCreate(exportGroup.getId(), volumeMap, affectedInitiators, task);
         } catch (Exception ex) {
             if (ex instanceof ServiceCoded) {
@@ -85,13 +90,13 @@ class CreateExportGroupSchedulingThread implements Runnable {
                         InternalServerErrorException.internalServerErrors
                                 .unexpectedErrorExportGroupPlacement(ex));
             }
-            ExportGroupService._log.error(ex.getMessage(), ex);
+            _log.error(ex.getMessage(), ex);
             taskRes.setMessage(ex.getMessage());
             // Set the export group to inactive
             exportGroup.setInactive(true);
             this.exportGroupService._dbClient.updateAndReindexObject(exportGroup);
         }
-        ExportGroupService._log.info("Ending export group create scheduling thread...");
+        _log.info("Ending export group create scheduling thread...");
     }
 
     /**
@@ -123,7 +128,7 @@ class CreateExportGroupSchedulingThread implements Runnable {
             executorService.execute(schedulingThread);
         } catch (Exception e) {
             String message = "Failed to execute export group creation API task for resource " + exportGroup.getId();
-            ExportGroupService._log.error(message);
+            _log.error(message);
             taskRes.setMessage(message);
             // Set the export group to inactive
             exportGroup.setInactive(true);

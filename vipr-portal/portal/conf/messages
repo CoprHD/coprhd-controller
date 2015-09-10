@@ -1691,6 +1691,7 @@ storageArray.errorDetails=Error Details
 storageArray.dataProtectionConnectivity=Data Protection
 storageArray.host=Host
 storageArray.type=Type
+storageArray.actions=Edit
 storageArray.version=Version
 storageArray.ipAddress=IP Address
 storageArray.ipAddress.help=Enter the IP address of the system.

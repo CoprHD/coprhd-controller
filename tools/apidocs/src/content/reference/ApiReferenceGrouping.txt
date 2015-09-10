@@ -23,6 +23,7 @@ ComputeSystemService
 ComputeElementService
 ComputeVirtualPoolService
 ComputeImageService
+ComputeImageServerService
 
 =Virtual Data Center Services
 AuthnConfigurationService

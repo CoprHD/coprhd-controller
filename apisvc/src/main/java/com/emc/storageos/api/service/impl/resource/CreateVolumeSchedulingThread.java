@@ -8,6 +8,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.Project;
@@ -27,6 +30,8 @@ import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValues
  * request. This allows the API to return a Task object quickly.
  */
 class CreateVolumeSchedulingThread implements Runnable {
+
+    static final Logger _log = LoggerFactory.getLogger(CreateVolumeSchedulingThread.class);
 
     private final BlockService blockService;
     private VirtualArray varray;
@@ -61,7 +66,7 @@ class CreateVolumeSchedulingThread implements Runnable {
 
     @Override
     public void run() {
-        BlockService._log.info("Starting scheduling/placement thread...");
+        _log.info("Starting scheduling/placement thread...");
         // Call out placementManager to get the recommendation for placement.
         try {
             List recommendations = this.blockService._placementManager.getRecommendationsForVolumeCreateRequest(
@@ -89,7 +94,7 @@ class CreateVolumeSchedulingThread implements Runnable {
                             InternalServerErrorException.internalServerErrors
                                     .unexpectedErrorVolumePlacement(ex));
                 }
-                BlockService._log.error(ex.getMessage(), ex);
+                _log.error(ex.getMessage(), ex);
                 taskObj.setMessage(ex.getMessage());
                 // Set the volumes to inactive
                 Volume volume = this.blockService._dbClient.queryObject(Volume.class, taskObj.getResource().getId());
@@ -97,7 +102,7 @@ class CreateVolumeSchedulingThread implements Runnable {
                 this.blockService._dbClient.updateAndReindexObject(volume);
             }
         }
-        BlockService._log.info("Ending scheduling/placement thread...");
+        _log.info("Ending scheduling/placement thread...");
     }
 
     /**
@@ -132,7 +137,7 @@ class CreateVolumeSchedulingThread implements Runnable {
         } catch (Exception e) {
             for (TaskResourceRep taskObj : taskList.getTaskList()) {
                 String message = "Failed to execute volume creation API task for resource " + taskObj.getResource().getId();
-                BlockService._log.error(message);
+                _log.error(message);
                 taskObj.setMessage(message);
                 // Set the volumes to inactive
                 Volume volume = dbClient.queryObject(Volume.class, taskObj.getResource().getId());

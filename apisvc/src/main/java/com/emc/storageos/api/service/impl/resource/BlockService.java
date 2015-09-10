@@ -570,8 +570,7 @@ public class BlockService extends TaskResourceService {
      * @param fullCopyId Full copy URI
      *
      * @brief Activate full copy
-     * @brief Activate full copy. This method is deprecated. Use /block/full-copies/{id}/activate instead with {id} representing full copy
-     *        URI id
+     * @brief Activate full copy. This method is deprecated. Use /block/full-copies/{id}/activate instead with {id} representing full copy URI id
      * 
      * @return TaskResourceRep
      */
@@ -2890,6 +2889,7 @@ public class BlockService extends TaskResourceService {
      * 
      * Change the virtual pool of a VMAX and VNX volume to allow change of Auto-tiering policy
      * associated with it.
+     * <p>
      * Since this method has been deprecated use POST /block/volumes/vpool-change
      * 
      * @brief Change the virtual pool for a volume.

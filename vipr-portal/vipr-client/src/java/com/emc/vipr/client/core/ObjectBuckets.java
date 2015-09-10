@@ -89,7 +89,7 @@ public class ObjectBuckets extends ProjectResources<BucketRestRep> implements Ta
      *            the create configuration.
      * @return a task for monitoring the progress of the operation.
      */
-    public Task<BucketRestRep> update(BucketUpdateParam input) {
-        return putTask(input, getIdUrl());
+    public Task<BucketRestRep> update(URI id, BucketUpdateParam input) {
+        return putTask(input, getIdUrl(), id);
     }
 }

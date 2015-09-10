@@ -34,7 +34,7 @@ public class UpdateBucket extends WaitForTask<BucketRestRep> {
         create.setSoftQuota(softQuota.toString());
         create.setHardQuota(hardQuota.toString());
         create.setRetention(retention.toString());
-        
-        return getClient().objectBuckets().update(create);
+
+        return getClient().objectBuckets().update(bucketId, create);
     }
 }

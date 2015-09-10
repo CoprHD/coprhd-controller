@@ -7,7 +7,7 @@
       lockable: true
     },
     
-    buckets:{
+    bucket:{
       type:"assetType.vipr.sourceBuckets"
     }, 
     

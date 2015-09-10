@@ -1,6 +1,6 @@
 package com.emc.sa.service.vipr.object;
 
-import static com.emc.sa.service.ServiceParams.BUCKETS;
+import static com.emc.sa.service.ServiceParams.BUCKET;
 import static com.emc.sa.service.ServiceParams.HARD_QUOTA;
 import static com.emc.sa.service.ServiceParams.RETENTION;
 import static com.emc.sa.service.ServiceParams.SOFT_QUOTA;
@@ -12,7 +12,7 @@ import com.emc.sa.service.vipr.ViPRService;
 @Service("EditBucket")
 public class EditBucketService extends ViPRService {
     
-    @Param(BUCKETS)
+    @Param(BUCKET)
     protected String bucketId;
     
     @Param(value = SOFT_QUOTA, required = false)

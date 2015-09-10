@@ -1,3 +1,18 @@
+/*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
+ */
+/**
+ *  Copyright (c) 2008-2013 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
+ */
+
 package com.emc.storageos.volumecontroller.impl;
 
 import java.net.URI;
@@ -23,6 +38,10 @@ import com.emc.storageos.volumecontroller.ObjectDeviceInputOutput;
 import com.emc.storageos.volumecontroller.ObjectStorageDevice;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 
+/**
+ * Generic Object Controller Implementation that does all of the database
+ * operations and calls methods on the array specific implementations
+ */
 public class ObjectDeviceController implements ObjectController {
 
 	private DbClient _dbClient;
@@ -82,19 +101,20 @@ public class ObjectDeviceController implements ObjectController {
 	@Override
 	public void createBucket(URI storage, URI uriPool, URI bkt, String label, String namespace, String retention,
 			String hardQuota, String softQuota, String owner, String opId) throws ControllerException {
-		// TODO Auto-generated method stub
+
 		_log.info("ObjectDeviceController:createBucket start");
 		StorageSystem storageObj = null;
+		Bucket bucketObj = _dbClient.queryObject(Bucket.class, bkt);
+		BiosCommandResult result = null;
 		
-	//	try {
+		try {
 			StoragePool stPool = _dbClient.queryObject(StoragePool.class, uriPool);
-			Bucket bucketObj = _dbClient.queryObject(Bucket.class, bkt);
 			ObjectDeviceInputOutput args = new ObjectDeviceInputOutput();
 			storageObj = _dbClient.queryObject(StorageSystem.class, storage);
 
 			args.setName(label);
 			args.setNamespace(namespace);
-			args.setRepGroup(stPool.getNativeId()); //recommended storeage pool
+			args.setRepGroup(stPool.getNativeId()); //recommended storage pool
 			args.setRetentionPeriod(retention);
 			args.setBlkSizeHQ(hardQuota);
 			args.setNotSizeSQ(softQuota);
@@ -102,16 +122,17 @@ public class ObjectDeviceController implements ObjectController {
 
 			_log.info("ObjectDeviceController:createBucket URI and Type: " + storage.toString() + "   " +
 					storageObj.getSystemType());
-			BiosCommandResult result = getDevice(storageObj.getSystemType()).doCreateBucket(storageObj, args);
+			result = getDevice(storageObj.getSystemType()).doCreateBucket(storageObj, args);
 			if (!result.getCommandPending()) {
 				bucketObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
 			}
 
-			//_dbClient.persistObject(bucketObj);
+			_dbClient.persistObject(bucketObj);
 			_log.info("ObjectDeviceController:createBucket end");
-		//} catch (Exception e) {
-			//_log.error("Unable to create Bucket storage");
-		//}
+		} catch (Exception e) {
+			bucketObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
+			_log.error("ObjectDeviceController:createBucket Unable to create Bucket storage");
+		}
 	}
 	
     @Override

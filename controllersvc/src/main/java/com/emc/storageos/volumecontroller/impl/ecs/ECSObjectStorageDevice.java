@@ -1,3 +1,17 @@
+/*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
+ */
+/**
+ * Copyright (c) 2008-2012 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
+ */
 package com.emc.storageos.volumecontroller.impl.ecs;
 
 import java.io.IOException;
@@ -27,6 +41,9 @@ import com.emc.storageos.volumecontroller.ObjectStorageDevice;
 import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 import com.sun.jersey.client.apache.ApacheHttpClientHandler;
 
+/**
+ * ECS specific object controller implementation.
+ */
 public class ECSObjectStorageDevice implements ObjectStorageDevice {
 	  private Logger _log = LoggerFactory.getLogger(ECSObjectStorageDevice.class);
 	  private ECSApiFactory ecsApiFactory;
@@ -57,22 +74,15 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
 		@Override
 		public BiosCommandResult doCreateBucket(StorageSystem storageObj, ObjectDeviceInputOutput args) 
 				throws ControllerException {
-			// TODO Auto-generated method stub
+
 			_log.info("ECSObjectStorageDevice:doCreateBucket start");
 
 			try {
-				URI deviceURI = new URI("https", null, storageObj.getIpAddress(), storageObj.getPortNumber(), "/", null, null);
-
-				ECSApi ecsApi = ecsApiFactory.getRESTClient(deviceURI, storageObj.getUsername(), storageObj.getPassword());
-				
-				String id = ecsApi.createBucket(args.getName(), args.getNamespace(), args.getRepGroup(), 
+				ECSApi ecsApi = getAPI(storageObj);
+				ecsApi.createBucket(args.getName(), args.getNamespace(), args.getRepGroup(), 
 						args.getRetentionPeriod(), args.getBlkSizeHQ(), args.getNotSizeSQ(), args.getOwner());
-				
 				_log.info("ECSObjectStorageDevice:doCreateBucket end");
 				return BiosCommandResult.createSuccessfulResult();
-			} catch (URISyntaxException ex) {
-				_log.error("ECSObjectStorageDevice:doCreateBucket failed URISyntaxException.", ex);
-	    		throw ECSException.exceptions.errorCreatingServerURL(storageObj.getIpAddress(), storageObj.getPortNumber(), ex);
 			} catch (ECSException e) {
 				_log.error("ECSObjectStorageDevice:doCreateBucket failed. ECSException", e);
 				return BiosCommandResult.createErrorResult(e);

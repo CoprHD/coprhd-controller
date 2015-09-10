@@ -1,3 +1,17 @@
+/*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
+ */
+/**
+ *  Copyright (c) 2008-2011 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
+ */
 package com.emc.storageos.volumecontroller.impl;
 
 import java.net.URI;
@@ -22,6 +36,12 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl.Lock;
 import com.emc.storageos.volumecontroller.impl.monitoring.MonitoringJob;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.MonitorTaskCompleter;
 
+/**
+ * South bound API implementation - a singleton instance
+ * of this class services all provisioning calls.  Provisioning
+ * calls are matched against device specific controller implementations
+ * and forwarded from this implementation
+ */
 public class ObjectControllerImpl extends AbstractDiscoveredSystemController
 		implements ObjectController {
 	 private final static Logger _log = LoggerFactory.getLogger(FileControllerImpl.class);
@@ -109,7 +129,6 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
 	@Override
 	public void createBucket(URI storage, URI vPool, URI bkt, String label, String namespace, String retention,
 			String hardQuota, String softQuota, String owner, String opId) throws InternalException {
-		// TODO Auto-generated method stub
 		_log.info("ObjectControllerImpl:createBukcet start");
 		execOb("createBucket", storage, vPool, bkt, label, namespace, retention,
 				hardQuota, softQuota, owner, opId);

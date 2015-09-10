@@ -1,3 +1,17 @@
+/*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
+ */
+/**
+ * Copyright (c) 2008-2011 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
+ */
 package com.emc.storageos.ecs.api;
 
 import java.net.URI;
@@ -12,8 +26,13 @@ import org.codehaus.jettison.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.sun.jersey.api.client.ClientResponse;
 
+/**
+ * implementation of ECS specifics
+ *
+ */
 public class ECSApi {
 	private Logger _log = LoggerFactory.getLogger(ECSApi.class);
     private final URI _baseUrl;
@@ -48,6 +67,11 @@ public class ECSApi {
         _client.close();
     }
     
+    /**
+     * 
+     * @return authentication token
+     * @throws ECSException
+     */
     public String getAuthToken() throws ECSException {
     	_log.info("ECSApi:getAuthToken enter");
     	List<String> authTokenList = null;
@@ -67,7 +91,11 @@ public class ECSApi {
     	_log.info("ECSApi:getAuthToken leave");
     	return authToken;
     }
-    
+    /**
+     * 
+     * @return user has sys admin priviledges or not
+     * @throws ECSException
+     */
     public boolean isSystemAdmin() throws ECSException {
     	ClientResponse clientResp = null;
     	
@@ -91,8 +119,14 @@ public class ECSApi {
     	}
     }
     
+    /**
+     * Get storage pools.
+     * 
+     * @return storage pools
+     * @throws ECSException
+     */
     public List<ECSStoragePool> getStoragePools() throws ECSException {
-    	_log.info("ECSApi:getStoragePools enter--");
+    	_log.info("ECSApi:getStoragePools enter");
     	ClientResponse clientResp = null;
     	
     	clientResp = _client.get_json(_baseUrl.resolve(URI_STORAGE_POOL), authToken);
@@ -103,7 +137,8 @@ public class ECSApi {
     		}
     		
     		if (clientResp.getStatus() != 200) {
-    			throw ECSException.exceptions.getStoragePoolsAccessFailed(_baseUrl, clientResp.getStatus());
+    			throw ECSException.exceptions.storageAccessFailed(_baseUrl.resolve(URI_STORAGE_POOL), clientResp.getStatus(), 
+    					"getStoragePools");
     		}
     	}
     	
@@ -148,7 +183,8 @@ public class ECSApi {
     		    		}
     		    		
     		    		if (clientRespVarray.getStatus() != 200) {
-    		    			throw ECSException.exceptions.getStoragePoolsAccessFailed(_baseUrl, clientRespVarray.getStatus());
+    		    			throw ECSException.exceptions.storageAccessFailed(_baseUrl.resolve(uriEcsVarray), 
+    		    					clientRespVarray.getStatus(), "get ECS vArray");
     		    		}
     		    	}
     		    	
@@ -168,11 +204,13 @@ public class ECSApi {
                 }
     		}
     	} catch (Exception e) {
+    		_log.error("discovery of Pools failed");
             String response = String.format("%1$s", (clientResp == null) ? "" : clientResp);
             String response2 = String.format("%1$s", (clientRespVarray == null) ? "" : clientRespVarray);
             response = response + response2;
             throw ECSException.exceptions.getStoragePoolsFailed(response, e);
         } finally {
+        	_log.error("discovery of Pools success");
             if (clientResp != null) {
                 clientResp.close();
             }
@@ -185,7 +223,12 @@ public class ECSApi {
         return ecsPools;
     }
 
-
+    /**
+     * 
+     * @param name ipAddress of storage system
+     * @return list of ECS ports
+     * @throws ECSException
+     */
     public List<ECSStoragePort> getStoragePort(String name) throws ECSException {
     	List<ECSStoragePort> ecsPort = new ArrayList<ECSStoragePort>();
     	ECSStoragePort port = new ECSStoragePort();
@@ -197,8 +240,20 @@ public class ECSApi {
     	return ecsPort;
     }
     
-    
-    public String createBucket(String name, String namespace, String repGroup, String retentionPeriod, String blkSizeHQ, String notSizeSQ, String owner) throws ECSException {
+    /**
+     * 
+     * @param name				Name of bucket
+     * @param namespace			Namespace with this associated
+     * @param repGroup			ECS storage pool name
+     * @param retentionPeriod	retained value
+     * @param blkSizeHQ			blocking limit
+     * @param notSizeSQ			notification limit
+     * @param owner				owner of bucket
+     * @return					id (not used)
+     * @throws ECSException
+     */
+    public String createBucket(String name, String namespace, String repGroup, String retentionPeriod, String blkSizeHQ, 
+    		String notSizeSQ, String owner) throws ECSException {
     	_log.info("ECSApi:createBucket enter");
     	ClientResponse clientResp = null;
     	String id = null;
@@ -208,61 +263,45 @@ public class ECSApi {
     		_log.info("ECSApi:createBucket URI_CREATE_BUCKET");
     		clientResp = _client.post_json(_baseUrl.resolve(URI_CREATE_BUCKET), authToken, body);
     		if (clientResp.getStatus() != 200) {
-    			//if (clientResp.getStatus() == 401 || clientResp.getStatus() == 302) {
+    			if (clientResp.getStatus() == 401 || clientResp.getStatus() == 302) {
     				_log.info("getting new auth token " + clientResp.getStatus());
     				getAuthToken();
     				clientResp = _client.post_json(_baseUrl.resolve(URI_CREATE_BUCKET), authToken, body);
-    			//}
+    			}
 
     			if (clientResp.getStatus() != 200) {
     				JSONObject jObj = clientResp.getEntity(JSONObject.class);
-    				_log.info("ECSApi:createBucket resp error " + jObj.toString() + " " + _baseUrl.resolve(URI_CREATE_BUCKET).toString() + " " + body 
-    						+ "  " + authToken);
-    				throw ECSException.exceptions.getStoragePoolsAccessFailed(_baseUrl, clientResp.getStatus());
+    				throw ECSException.exceptions.storageAccessFailed(_baseUrl.resolve(URI_CREATE_BUCKET), clientResp.getStatus(),
+    						"creating base bucket");
     			}
     		}
     		
-    		//working
-			JSONObject jObj = clientResp.getEntity(JSONObject.class);
-			_log.info("ECSApi:createBucket working " + jObj.toString() + " " + _baseUrl.resolve(URI_CREATE_BUCKET).toString() + " " + body 
-					+ "  " + authToken);
-
-
-    		//extract bucket id
-//    		JSONObject jObj = clientResp.getEntity(JSONObject.class);
-//    		if (jObj.has("id")) {
-//    			id = jObj.getString("id");
-//    		}
-
     		//update retention period
     		if (retentionPeriod != null) {
     			_log.info("ECSApi:createBucket update retention");
-    			ClientResponse clientResp2 = null;
+    			ClientResponse clientRespRet = null;
 
-    			String body2 = " { \"period\": \""+ retentionPeriod + "\", \"namespace\": \"" + namespace + "\"}  ";
+    			String bodyRet = " { \"period\": \""+ retentionPeriod + "\", \"namespace\": \"" + namespace + "\"}  ";
 
     			//ECS_BUCKET_UPDATE_BASE
     			String bucketRetention = ECS_BUCKET_UPDATE_BASE + name + "/retention.json";
     			URI uriBucketRetention = URI.create(bucketRetention);
 
-    			clientResp2 = _client.put_json(_baseUrl.resolve(uriBucketRetention), authToken, body2);
-    			if (clientResp2.getStatus() != 200) {
-    				//if (clientResp2.getStatus() == 401 || clientResp2.getStatus() == 302) {
-    				_log.info("getting new auth token " + clientResp2.getStatus());
-    					_log.info("getting new auth token");
+    			clientRespRet = _client.put_json(_baseUrl.resolve(uriBucketRetention), authToken, bodyRet);
+    			if (clientRespRet.getStatus() != 200) {
+    				if (clientRespRet.getStatus() == 401 || clientRespRet.getStatus() == 302) {
     					getAuthToken();
-    					clientResp2 = _client.put_json(_baseUrl.resolve(uriBucketRetention), authToken, body2);
-    				//}
+    					clientRespRet = _client.put_json(_baseUrl.resolve(uriBucketRetention), authToken, bodyRet);
+    				}
 
-    				if (clientResp2.getStatus() != 200) {
-    					JSONObject jObj2 = clientResp2.getEntity(JSONObject.class);
-    					_log.info("ECSApi:createBucket resp error " + jObj2.toString());
-    					throw ECSException.exceptions.getStoragePoolsAccessFailed(_baseUrl, clientResp2.getStatus());
+    				if (clientRespRet.getStatus() != 200) {
+    					throw ECSException.exceptions.storageAccessFailed(_baseUrl.resolve(uriBucketRetention), 
+    							clientRespRet.getStatus(), "add bucket retention");
     				}
     			}
 
-    			if (clientResp2 != null) {
-    				clientResp2.close();
+    			if (clientRespRet != null) {
+    				clientRespRet.close();
     			}
     		}//end retention period != null
 
@@ -270,63 +309,59 @@ public class ECSApi {
     		//update hard=block and soft=notification quota
     		if (blkSizeHQ != null && notSizeSQ != null) {
     			_log.info("ECSApi:createBucket update hard and soft quota");
-    			ClientResponse clientResp3 = null;
+    			ClientResponse clientRespQt = null;
 
-    			String body3 = " {  \"blockSize\": \""+ blkSizeHQ + "\", \"notificationSize\": \""+ notSizeSQ +
+    			String bodyQt = " {  \"blockSize\": \""+ blkSizeHQ + "\", \"notificationSize\": \""+ notSizeSQ +
     					  "\", \"namespace\": \"" + namespace + "\"}  ";
     			
     			//ECS_BUCKET_UPDATE_BASE
     			String bucketQuota = ECS_BUCKET_UPDATE_BASE + name + "/quota.json";
     			URI uriBucketQuota = URI.create(bucketQuota);
 
-    			clientResp3 = _client.put_json(_baseUrl.resolve(uriBucketQuota), authToken, body3);
-    			if (clientResp3.getStatus() != 200) {
-    				//if (clientResp3.getStatus() == 401 || clientResp3.getStatus() == 302) {
-    				_log.info("getting new auth token " + clientResp3.getStatus());
+    			clientRespQt = _client.put_json(_baseUrl.resolve(uriBucketQuota), authToken, bodyQt);
+    			if (clientRespQt.getStatus() != 200) {
+    				if (clientRespQt.getStatus() == 401 || clientRespQt.getStatus() == 302) {
     					getAuthToken();
-    					clientResp3 = _client.put_json(_baseUrl.resolve(uriBucketQuota), authToken, body3);
-    				//}
+    					clientRespQt = _client.put_json(_baseUrl.resolve(uriBucketQuota), authToken, bodyQt);
+    				}
 
-    				if (clientResp3.getStatus() != 200) {
-    					JSONObject jObj3 = clientResp3.getEntity(JSONObject.class);
-    					_log.info("ECSApi:createBucket resp error " + jObj3.toString());
-    					throw ECSException.exceptions.getStoragePoolsAccessFailed(_baseUrl, clientResp3.getStatus());
+    				if (clientRespQt.getStatus() != 200) {
+    					throw ECSException.exceptions.storageAccessFailed(_baseUrl.resolve(uriBucketQuota), 
+    							clientRespQt.getStatus(), "add hard and soft quota");
     				}
     			}
 
-    			if (clientResp3 != null) {
-    				clientResp3.close();
+    			if (clientRespQt != null) {
+    				clientRespQt.close();
     			}
     		}//end update hard=block and soft=notification quota
 
     		//update owner
     		if (owner != null) {
     			_log.info("ECSApi:createBucket update owner");
-    			ClientResponse clientResp4 = null;
+    			ClientResponse clientRespOnr = null;
 
-    			String body4 = " { \"new_owner\": \""+ owner + "\", \"namespace\": \"" + namespace + "\"}  ";
+    			String bodyOnr = " { \"new_owner\": \""+ owner + "\", \"namespace\": \"" + namespace + "\"}  ";
     			
     			//ECS_BUCKET_UPDATE_BASE
     			String bucketOwner = ECS_BUCKET_UPDATE_BASE + name + "/owner.json";
     			URI uriBucketOwner = URI.create(bucketOwner);
 
-    			clientResp4 = _client.post_json(_baseUrl.resolve(uriBucketOwner), authToken, body4);
-    			if (clientResp4.getStatus() != 200) {
-    				//if (clientResp4.getStatus() == 401 || clientResp4.getStatus() == 302) {
-    				_log.info("getting new auth token " + clientResp4.getStatus());
+    			clientRespOnr = _client.post_json(_baseUrl.resolve(uriBucketOwner), authToken, bodyOnr);
+    			if (clientRespOnr.getStatus() != 200) {
+    				if (clientRespOnr.getStatus() == 401 || clientRespOnr.getStatus() == 302) {
     					getAuthToken();
-    					clientResp4 = _client.post_json(_baseUrl.resolve(uriBucketOwner), authToken, body4);
-    				//}
+    					clientRespOnr = _client.post_json(_baseUrl.resolve(uriBucketOwner), authToken, bodyOnr);
+    				}
 
-    				if (clientResp4.getStatus() != 200) {
-    					JSONObject jObj4 = clientResp4.getEntity(JSONObject.class);
-    					_log.info("ECSApi:createBucket resp error " + jObj4.toString());
-    					throw ECSException.exceptions.getStoragePoolsAccessFailed(_baseUrl, clientResp4.getStatus());
+    				if (clientRespOnr.getStatus() != 200) {
+    					throw ECSException.exceptions.storageAccessFailed(_baseUrl.resolve(uriBucketOwner), 
+    							clientRespOnr.getStatus(), "add bucket owner");
     				}
     			}
 
-    			if (clientResp4 != null) {
-    				clientResp4.close();
+    			if (clientRespOnr != null) {
+    				clientRespOnr.close();
     			}
     		}//end update owner
     	
@@ -340,7 +375,7 @@ public class ECSApi {
     		String response = String.format("%1$s", (clientResp == null) ? "" : clientResp);
     		throw ECSException.exceptions.createBucketFailed(response, e);
     	} finally {
-    		_log.info("ECSApi:createBucket leave2");
+    		_log.info("ECSApi:createBucket success");
     		if (clientResp != null) {
     			clientResp.close();
     		}

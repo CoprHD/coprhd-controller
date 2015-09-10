@@ -263,7 +263,7 @@ public class StorageSystemService extends TaskResourceService {
         startStorageSystem(system);
 
         //Rather if else everywhere some code duplication with object and file
-        if (system.getSystemType().equals("ecs")) {
+        if (StorageSystem.Type.ecs.toString().equals(system.getSystemType())) {
             ObjectController controller = getController(ObjectController.class, param.getSystemType());
             ArrayList<AsyncTask> tasks = new ArrayList<AsyncTask>(1);
             String taskId = UUID.randomUUID().toString();

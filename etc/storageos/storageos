@@ -59,7 +59,7 @@ _checkConfigurable() {
 }
 
 _startsvc() {
-    ${SYSTEMCTL} start storageos-${1}.service
+    _checkactive ${1} || ${SYSTEMCTL} start storageos-${1}.service
 }
 
 _checksvc() {
@@ -95,8 +95,7 @@ _start_services() {
     /etc/storageos/ipchecktool --panic
     echo -n "Starting @product_brand@ ${STORAGEOS_VARIANT} services "
     for svc in @systemd_storageos@ ; do
-        _checkactive ${svc}
-        [ $? == 1 ] && _startsvc ${svc}
+        _startsvc ${svc}
         echo -n "."
     done
     echo " Done"
@@ -132,14 +131,12 @@ startcoverage)
 api)
     echo -n "Starting @product_brand@ api services"
     for svc in auth coordinator db geodb api geo ; do
-        _checkactive ${svc}
-        [ $? == 1 ] && _startsvc ${svc}
+        _startsvc ${svc}
     done
     ;;
 controller)
     echo -n "Starting @product_brand@ controller service"
-    _checkactive controller
-    [ $? == 1 ] && _startsvc controller
+    _startsvc controller
     ;;
 stop)
     _stop_services

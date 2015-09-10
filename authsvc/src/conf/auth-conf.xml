@@ -40,10 +40,10 @@
                 <bean class="com.emc.storageos.auth.service.impl.resource.AuthenticationResource" />
                 <bean class="com.emc.storageos.auth.service.impl.resource.PrincipalValidatorResource" />
                 <bean class="com.emc.storageos.auth.service.impl.resource.ReloadProviderResource" />
+                <bean class="com.emc.storageos.auth.service.impl.resource.ReloadAuthsvcPropertyResource" />
                 <bean class="com.emc.storageos.auth.service.impl.resource.UserTenantResource" />
                 <bean class="com.emc.storageos.svcs.errorhandling.mappers.ServiceCodeExceptionMapper"/>
                 <bean class="com.emc.storageos.auth.service.impl.resource.AuthnProviderValidatorResource">
-                    <property name="ldapConnectionTimeoutInSecs" value="5"/>
                     <property name="coordinator" ref="coordinator"/>
                     <property name="dbClient" ref="dbclient"/>
                 </bean>
@@ -69,16 +69,15 @@
     </bean>    
     <bean id="invalidLoginManager" class="com.emc.storageos.security.password.InvalidLoginManager">
         <property name="coordinator" ref="coordinator"/>
-        <property name="maxAuthnLoginAttemtsCount" value="10"/>
-        <property name="maxAuthnLoginAttemtsLifeTimeInMins" value="10"/>
-        <property name="cleanupThreadInitialDelay" value="10"/>
     </bean>
        
     <bean id="tokenManager" class="com.emc.storageos.auth.impl.CassandraTokenManager"/>
     <bean id="interVDCTokenCacheHelper" class="com.emc.storageos.security.geo.InterVDCTokenCacheHelper"/>
     <bean id="tokenEncoder" class="com.emc.storageos.security.authentication.Base64TokenEncoder" init-method="managerInit"/>
     <bean id="tokenKeyGenerator" class="com.emc.storageos.security.authentication.TokenKeyGenerator" destroy-method="destroy" />
-    <bean id="tokenMaxLifeValuesHolder" class="com.emc.storageos.security.authentication.TokenMaxLifeValuesHolder" />
+    <bean id="tokenMaxLifeValuesHolder" class="com.emc.storageos.security.authentication.TokenMaxLifeValuesHolder">
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
     <!-- Uncomment this to disable token encoding/decoding, signing
     <bean id="tokenEncodingDisabler" class="com.emc.storageos.security.TokenEncodingDisabler"/>
     -->

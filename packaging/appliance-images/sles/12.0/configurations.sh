@@ -184,6 +184,7 @@ adg_zypperRepos() {
     zypper addrepo http://lglob090.lss.emc.com/SLES12/SDK/ sles12_sdk
     zypper addrepo http://lglob090.lss.emc.com/SLES12/SLE/ sles12
     zypper addrepo http://pld-imgapprd01.isus.emc.com:8081/artifactory/adg-icc icc
+    zypper addrepo http://asdrepo.isus.emc.com:8081/artifactory/adg-catalog/sles/12 sles12_icc
 }
 
 #======================================
@@ -1161,7 +1162,37 @@ fix_devkit_readme() {
 	[ -f /etc/devkit.README ] || touch /etc/devkit.README ]
     xcat /etc/devkit.README \
 '
-Release notes for ViPR Devkit 2.5
+Release notes for ViPR DevKit Version 2.4.0.0 (Sept 2015)
+
+How to install/start Eclipse/Intellij on your ViPRDevKit:
+
+A. On ViPRDevKit: How to install and run Eclipse/Intellij:
+  1. Verify your ViPRDevKit has version 2.4.0.0 or higher (cat /etc/ImageVersion)
+  2. Take snapshot your DevKit in case to revert back later
+  3. If using Windows Remote Desktop connection, please disable FIPS mode on DevKit by:
+     3a. Modify /boot/grub2/grub.cfg and change all "fips=1" to "fips=0"
+     3b. Reboot
+  4. Install Eclipse by typing "installeclipse"  (or intellij by typing "installintellij")
+  5. Start the vnc by typing "startvnc"  and enter your vnc password (or stop vnc by typing stopvnc)
+  
+B. On client side on Windows:
+  1. Access your ViPRDevKit with vnc or Remote Desktop connection:
+     - Using Tiger VNC Viewer: Connect to your DevKit by enter "<your_devkit_IP>:1;<your_vnc_passwd":
+       Example:  10.247.64.100:1;password
+      		
+     - Using Remote Desktop: Connect to your DevKit by using:
+        Module: vnc-any
+        IP: your_devkit_IP
+        Port: 5901
+        Password : your_vnc_password
+	  
+   2. Starting Eclipse or Intellij:
+     - For starting Eclipse then from terminal, typing "/opt/eclipse/eclipse" 
+     - For starting Intellij then from terminal, typing "/opt/idea-IC-139.1603.1/bin/idea.sh"
+
+
+====================================================================
+Release notes for ViPR Devkit 2.3
 
 Initial version, 2014/4/8
 

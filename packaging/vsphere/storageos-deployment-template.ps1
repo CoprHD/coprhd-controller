@@ -134,7 +134,7 @@ function Usage() {
     Write-Host "-mode: "
     Write-Host "         install              Install a new cluster"
     Write-Host "         redeploy             Redeploy a VM in a cluster"
-	Write-Host "         install-vmx          Install a VM at VMware workstation"
+	Write-Host "         install-vmx          Create a VM at VMware workstation"
     Write-Host "	"
     Write-Host "Install mode options: "
     Write-Host "    -vip:               Public virtual IPv4 address"
@@ -699,7 +699,11 @@ function DisplaySummaryTitle () {
 
 function DisplayNetworkProperties() {
 	Write-Host "Network properties"
-	Write-Host "	Node count [ 1 (evaluation only) | 3 | 5 ]: $Script:nodeCount"
+    $nodeCountLabel = "	Node count [ 1 (evaluation only) | 3 | 5 ]"
+    if ($Script:isVMX -eq $true) {
+        $nodeCountLabel = "	Node count [ 1 (Node count can only be 1 in install-vmx mode) ]"
+    }
+    Write-Host "	${nodeCountLabel}: $Script:nodeCount"
 	Write-Host "	IPv4 Settings"
 	Write-Host "		Public virtual IPv4 address: $Script:vip"
 	Write-Host "		IPv4 default gateway: $Script:gateway"
@@ -852,8 +856,7 @@ function CalculateChecksumForOVFTemplateAndDisk4($ovfFileName, $disk4FileName, $
 
 function GenerateOVFFileTemplateForEachNode($disk4FileName, $currentNodeId) {
     $ovfTemplate='${include="storageos-vsphere-template.xml"}'
-    $vSphereOnly="</Item>
-      <Item>
+    $vSphereOnly="<Item>
         <rasd:Address>0</rasd:Address>
         <rasd:Description>SCSI Controller</rasd:Description>
         <rasd:ElementName>SCSI Controller 0</rasd:ElementName>
@@ -861,14 +864,15 @@ function GenerateOVFFileTemplateForEachNode($disk4FileName, $currentNodeId) {
         <rasd:ResourceSubType>VirtualSCSI</rasd:ResourceSubType>
         <rasd:ResourceType>6</rasd:ResourceType>
       </Item>"
-	
+    if ($Script:isVMX -eq $true) {
+        $vSphereOnly=""
+	}
+
     $ovfTemplate=$ovfTemplate.Replace('${vmdk_dir}', $scriptPath)
 	$ovfTemplate=$ovfTemplate.Replace('${cpu_count}', $Script:cpuCount)
 	$ovfTemplate=$ovfTemplate.Replace('${memory}', $Script:memory)
-    $ovfContent=$ovfTemplate.Replace('${2}', $disk4FileName)
-	if ($Script:isVMX -eq $true) {
-		$ovfContent=$ovfContent.Replace($vSphereOnly, "</Item>")
-	}
+    $ovfTemplate=$ovfTemplate.Replace('${2}', $disk4FileName)
+	$ovfContent=$ovfTemplate.Replace('${vsphere_only}', $vSphereOnly)
     $outputFilePath=$scriptPath+"\${product_name}-$releaseVersion-controller-$currentNodeId.ovf"
     [io.file]::WriteAllText($outputFilePath, $ovfContent)
 }

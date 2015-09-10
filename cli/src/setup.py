@@ -14,6 +14,7 @@ distutils.core.setup(
         'Topic :: Software Development',
     ],
     data_files=[('', ['authentication.py',
+                      'loginfailedip.py',
                       'viprcli.py',
                       'common.py',
                       'virtualpool.py',
@@ -61,6 +62,7 @@ distutils.core.setup(
 		      'computelement.py',
 		      'computesystem.py',
 		      'computevpool.py',
+                      'vnasserver.py',
                       'quotadirectory.py']
                  )]
 )

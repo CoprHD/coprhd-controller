@@ -179,6 +179,18 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                 // Call super first.
                 super.validateFullCopyCreateRequest(fcSourceObjList, count);
 
+                // If there are more than one volume in the consistency group, and they are on 
+                // different backend storage systems, return error.
+                if (fcSourceObjList.size() >1) {
+                    List<Volume> volumes = new ArrayList<Volume>();
+                    for (BlockObject fcSource : fcSourceObjList) {
+                        volumes.add((Volume)fcSource);
+                    }
+                    if (!VPlexUtil.isVPLEXCGBackendVolumesInSameStorage(volumes, _dbClient)) {
+                        throw APIException.badRequests.fullCopyNotAllowedWhenCGAcrossMultipleSystems();
+                    }
+                }
+                
                 // Platform specific checks.
                 for (BlockObject fcSourceObj : fcSourceObjList) {
                     Volume fcSourceVolume = (Volume) fcSourceObj;
@@ -466,9 +478,9 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
 
                 // Prepare the volume.
                 Volume volume = VPlexBlockServiceApiImpl.prepareVolumeForRequest(size,
-                        vplexSystemProject, haVarray, haVpool,
-                        haRecommendation.getSourceDevice(), haRecommendation.getSourcePool(),
-                        nameBuilder.toString(), null, taskId, _dbClient);
+                    vplexSystemProject, haVarray, haVpool,
+                    haRecommendation.getSourceStorageSystem(), haRecommendation.getSourceStoragePool(),
+                    nameBuilder.toString(), null, taskId, _dbClient);
                 volume.addInternalFlags(Flag.INTERNAL_OBJECT);
                 _dbClient.persistObject(volume);
                 copyHAVolumes.add(volume);

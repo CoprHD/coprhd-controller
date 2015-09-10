@@ -4,14 +4,14 @@
  */
 package com.emc.storageos.volumecontroller;
 
+import java.net.URI;
+import java.util.List;
+import java.util.Set;
+
 import com.emc.storageos.db.client.model.RemoteDirectorGroup;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.SRDFMirrorCreateCompleter;
-
-import java.net.URI;
-import java.util.List;
-import java.util.Set;
 
 /**
  * An interface for storage devices that support remote mirrors.
@@ -27,9 +27,10 @@ public interface RemoteMirroring {
      * @param system
      * @param sources
      * @param remoteDirectorGroup
+     * @param forceAdd
      * @param completer
      */
-    void doAddVolumePairsToCg(StorageSystem system, List<URI> sources, URI remoteDirectorGroup, TaskCompleter completer);
+    void doAddVolumePairsToCg(StorageSystem system, List<URI> sources, URI remoteDirectorGroup, boolean forceAdd, TaskCompleter completer);
 
     /**
      * Create and establish a replication link between the given source and target volume.
@@ -225,6 +226,16 @@ public interface RemoteMirroring {
      * 
      * @param targetURIs
      */
-    void refreshStorageSystem(URI systemURI);
+    void refreshStorageSystem(URI systemURI, List<URI> volumeURIsToCheck);
+
+    /**
+     * Change SRDF Copy Mode.
+     *
+     * @param system
+     * @param target
+     * @param completer
+     * @throws Exception
+     */
+    void doChangeCopyMode(StorageSystem system, Volume target, TaskCompleter completer);
 
 }

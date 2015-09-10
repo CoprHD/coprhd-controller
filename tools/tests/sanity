@@ -85,9 +85,14 @@ IP_INDEX=0
 QUICK=0
 
 SS=${3}
-if [ ${SS} = "recoverpoint" ]; then
+if [ ${SS} = "vplex" ]; then
+        VPLEX_QUICK_PARAM=${4:-'normal'}
+	AUTH=${5:-ldap}
+	EXTRA_PARAM=${6}
+elif [ ${SS} = "recoverpoint" ]; then
         RP_QUICK_PARAM=${4:-'quick'}
-        AUTH=ldap
+	AUTH=${5:-ldap}
+	EXTRA_PARAM=${6}
 elif [ ${SS} = "vdc" ]; then
         VDC_DEFAULT_ENDPOINT=vdc_dummy_endpoint
         VDC_ENDPOINT_B=${4:-$VDC_DEFAULT_ENDPOINT}
@@ -393,6 +398,7 @@ SRDF_VOLUME=srdfSanity-${HOSTNAME}-${RANDOM}
 # RecoverPoint configuration
 #
 RP_SYSTEM_TYPE=rp
+RP_REMOVE_BAD_CHARS_HOSTNAME=${HOSTNAME//[^a-zA-Z0-9]/}
 RP_MODIFIED_HOSTNAME=${HOSTNAME:0:8}
 RP_SANITY_RANDOM=$((RANDOM % 999))
 
@@ -1486,7 +1492,7 @@ consistencygroup_block_cos_setup()
 vplex_cos_setup()
 {
     cos create block cosvplexlocal                            \
-                     --description 'Local CoS for VPlex' true \
+                     --description 'Local CoS for VPlex' false \
                      --protocols FC                           \
                      --numpaths 2                             \
                      --provisionType 'Thin'                   \
@@ -1497,14 +1503,20 @@ vplex_cos_setup()
                      --expandable false 
 
     cos allow cosvplexlocal block $TENANT
-    cos update block cosvplexlocal --storage $VPLEX_VNX1_NATIVEGUID
-    if [ "$AUTH" != 'ipv6' ] ; then
-    cos update block cosvplexlocal --storage $VPLEX_VNX2_NATIVEGUID
+    if [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
+	cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX1_NATIVEGUID
+	cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX2_NATIVEGUID
+	cos update block cosvplexlocal --storage $VPLEX_SIM_VMAX3_NATIVEGUID
+    else
+	cos update block cosvplexlocal --storage $VPLEX_VNX1_NATIVEGUID
+	if [ "$AUTH" != 'ipv6' ] ; then
+	    cos update block cosvplexlocal --storage $VPLEX_VNX2_NATIVEGUID
+	fi
+	cos update block cosvplexlocal --storage $VPLEX_VMAX_NATIVEGUID
     fi
-    cos update block cosvplexlocal --storage $VPLEX_VMAX_NATIVEGUID
 
     cos create block cosvplexdist                                   \
-                     --description 'Distributed CoS for VPlex' true \
+                     --description 'Distributed CoS for VPlex' false \
                      --protocols FC                                 \
                      --numpaths 2                                   \
                      --provisionType 'Thin'                         \
@@ -1517,8 +1529,14 @@ vplex_cos_setup()
                      --expandable false
 
     cos allow cosvplexdist block $TENANT
-    cos update block cosvplexdist --storage $VPLEX_VNX1_NATIVEGUID
-    cos update block cosvplexdist --storage $VPLEX_VMAX_NATIVEGUID
+    if [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
+	cos update block cosvplexdist --storage $VPLEX_SIM_VMAX1_NATIVEGUID
+	cos update block cosvplexdist --storage $VPLEX_SIM_VMAX2_NATIVEGUID
+	cos update block cosvplexdist --storage $VPLEX_SIM_VMAX3_NATIVEGUID
+    else
+	cos update block cosvplexdist --storage $VPLEX_VNX1_NATIVEGUID
+	cos update block cosvplexdist --storage $VPLEX_VMAX_NATIVEGUID
+    fi
 }
 
 vplex_setup()
@@ -1547,6 +1565,39 @@ vplex_setup_once()
 	# The arrays are assigned to individual varrays as well.
 	storageport update $VPLEX_VNX1_NATIVEGUID FC --addvarrays $NH
 	storageport update $VPLEX_VMAX_NATIVEGUID FC --addvarrays $NH2        
+    elif [ "${VPLEX_QUICK_PARAM}" = "quick" ]; then
+	echo "Setting up VPLEX environment connected to simulators on: ${VPLEX_SIM_IP}"
+
+	# Discover the Brocade SAN switch.
+	echo "Configuring MDS/Cisco Simulator using SSH on: $VPLEX_SIM_MDS_IP"
+	run networksystem create $FABRIC_SIMULATOR  mds --devip $VPLEX_SIM_MDS_IP --devport 22 --username $VPLEX_SIM_MDS_USER --password $VPLEX_SIM_MDS_PW
+	transportzone listall
+	run transportzone assign ${SIMULATOR_VSAN_11} ${NH}
+        run transportzone assign ${SIMULATOR_VSAN_12} ${NH2}
+
+	# Discover the storage systems 
+	echo "Discovering back-end storage arrays using ECOM/SMIS simulator on: $VPLEX_SIM_SMIS_IP..."
+	smisprovider show $VPLEX_SIM_SMIS_DEV_NAME &> /dev/null && return $?
+	run smisprovider create $VPLEX_SIM_SMIS_DEV_NAME $VPLEX_SIM_SMIS_IP 5988 $VPLEX_SIM_SMIS_USER "$VPLEX_SIM_SMIS_PASSWD" false
+
+	echo "Discovering VPLEX using simulator on: ${VPLEX_SIM_IP}..."
+	storageprovider show $VPLEX_SIM_DEV_NAME &> /dev/null && return $?
+	run storageprovider create $VPLEX_SIM_DEV_NAME $VPLEX_SIM_IP 443 $VPLEX_SIM_USER "$VPLEX_SIM_PASSWD" vplex
+	run storagedevice discover_all
+
+	# Setup the varrays. $NH contains VPLEX cluster-1 and $NH2 contains VPLEX cluster-2.
+	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-A --addvarrays $NH
+	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-1-1-B --addvarrays $NH
+	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-2-1-A --addvarrays $NH2
+	run storageport update $VPLEX_SIM_VPLEX_GUID FC --group director-2-1-B --addvarrays $NH2
+	# The arrays are assigned to individual varrays as well.
+	run storageport update $VPLEX_SIM_VMAX1_NATIVEGUID FC --addvarrays $NH
+	run storageport update $VPLEX_SIM_VMAX3_NATIVEGUID FC --addvarrays $NH
+	run storageport update $VPLEX_SIM_VMAX2_NATIVEGUID FC --addvarrays $NH2
+	vplex_cos_setup
+	VPLEX_GUID=$VPLEX_SIM_VPLEX_GUID
+	CLUSTER1NET_NAME=$CLUSTER1NET_SIM_NAME
+        echo "Done setting up VPLEX environment..."
     else
 	echo "Setting up VPLEX environment for IPv4"
 
@@ -1592,111 +1643,115 @@ vplex_tests()
 {
     storageport list $VPLEX_GUID --v
     if [ "$AUTH" != 'ipv6' ] ; then
-    echo "**** Executing VPLEX tests"
+	echo "**** Executing VPLEX tests"
 
-    hname=$(hostname)
-    if [ $hname = "standalone" ]; then
-        hname=$SHORTENED_HOST
-    fi
-    echo "hostname is $hname"
+	hname=$(hostname)
+	if [ $hname = "standalone" ]; then
+	    hname=$SHORTENED_HOST
+	fi
+	echo "hostname is $hname"
+	
+	localVolume1=$hname-${RANDOM}-VPlexLocal1
+	localVolume2=$hname-${RANDOM}-VPlexLocal2
+	localMirror1=$hname-${RANDOM}-VPlexLocalMirror1
+	localMirror2=$hname-${RANDOM}-VPlexLocalMirror2
+	sourceSideSuffix=-0
+	localSnapshot=$hname-${RANDOM}-VPlexLocalSnap
+	distVolume1=$hname-${RANDOM}-VPlexDist1
+	distSrcLocalMirror1=$hname-${RANDOM}-srcLocalMirror1
+	distSnapshot=$hname-${RANDOM}-VPlexDist1Snap
+	distVolume2=$hname-${RANDOM}-VPlexDist2
+	distSrcLocalMirror2=$hname-${RANDOM}-srcLocalMirror2
+	host=$PROJECT.lss.emc.com
+	hostLbl=$PROJECT
+	PWWN1=10:00:00:E0:7E:00:00:0F
+	WWNN1=20:00:00:E0:7E:00:00:0F
+	PWWN2=10:00:00:90:FA:18:0E:99
+	WWNN2=20:00:00:90:FA:18:0E:99
 
-    localVolume1=$hname-${RANDOM}-VPlexLocal1
-    localVolume2=$hname-${RANDOM}-VPlexLocal2
-    localMirror1=$hname-${RANDOM}-VPlexLocalMirror1
-    localMirror2=$hname-${RANDOM}-VPlexLocalMirror2
-    sourceSideSuffix=-0
-    localSnapshot=$hname-${RANDOM}-VPlexLocalSnap
-    distVolume1=$hname-${RANDOM}-VPlexDist1
-    distSrcLocalMirror1=$hname-${RANDOM}-srcLocalMirror1
-    distSnapshot=$hname-${RANDOM}-VPlexDist1Snap
-    distVolume2=$hname-${RANDOM}-VPlexDist2
-    distSrcLocalMirror2=$hname-${RANDOM}-srcLocalMirror2
-    host=$PROJECT.lss.emc.com
-    hostLbl=$PROJECT
-    PWWN1=10:00:00:E0:7E:00:00:0F
-    WWNN1=20:00:00:E0:7E:00:00:0F
-    PWWN2=10:00:00:90:FA:18:0E:99
-    WWNN2=20:00:00:90:FA:18:0E:99
+	echo "**** Creating VPLEX local volumes"
+	run volume create $localVolume1 $PROJECT $NH cosvplexlocal $BLK_SIZE
+	run volume create $localVolume2 $PROJECT $NH cosvplexlocal $BLK_SIZE
+	
+	echo "**** Creating VPLEX local mirrors"
+	run blockmirror attach  $PROJECT/$localVolume1 $localMirror1 1
+	run blockmirror attach  $PROJECT/$localVolume2 $localMirror2 1
 
-    echo "**** Creating VPLEX local volumes"
-    run volume create $localVolume1 $PROJECT $NH cosvplexlocal $BLK_SIZE
-    run volume create $localVolume2 $PROJECT $NH cosvplexlocal $BLK_SIZE
-    
-    echo "**** Creating VPLEX local mirrors"
-    run blockmirror attach  $PROJECT/$localVolume1 $localMirror1 1
-    run blockmirror attach  $PROJECT/$localVolume2 $localMirror2 1
+	echo "**** Deleting VPLEX local mirror"
+	run blockmirror deactivate  $PROJECT/$localVolume2 $localMirror2$sourceSideSuffix
 
-    echo "**** Deleting VPLEX local mirror"
-    run blockmirror deactivate  $PROJECT/$localVolume2 $localMirror2$sourceSideSuffix
+	echo "**** Creating VPLEX distributed volumes"
+	run volume create $distVolume1 $PROJECT $NH cosvplexdist $BLK_SIZE
+	run volume create $distVolume2 $PROJECT $NH cosvplexdist $BLK_SIZE
 
-    echo "**** Creating VPLEX distributed volumes"
-    run volume create $distVolume1 $PROJECT $NH cosvplexdist $BLK_SIZE
-    run volume create $distVolume2 $PROJECT $NH cosvplexdist $BLK_SIZE
+	echo "**** Creating local mirrors for the Distributed volumes on the source side"
+	run blockmirror attach  $PROJECT/$distVolume1 $distSrcLocalMirror1 1
+	run blockmirror attach  $PROJECT/$distVolume2 $distSrcLocalMirror2 1
+	
+	echo "**** Deleting local mirror for the VPLEX Distributed volume"
+	run blockmirror deactivate  $PROJECT/$distVolume2 $distSrcLocalMirror2$sourceSideSuffix
+	
+	echo "**** Creating host"
+	hosts create $hostLbl $TENANT Windows $host --port 8111 --username user --password 'password' --osversion 1.0
+	
+	echo "**** Creating initiators"
+	initiator create $hostLbl FC $PWWN1 --node $WWNN1
+	initiator create $hostLbl FC $PWWN2 --node $WWNN2
+	
+	echo "**** Adding WWNs to Network"
+	run transportzone add ${NH}/${CLUSTER1NET_NAME} $PWWN1
+	run transportzone add ${NH}/${CLUSTER1NET_NAME} $PWWN2
+	
+	echo "**** Exporting VPLEX volumes to host in varray " $NH
+	run export_group create $PROJECT $hname-1$host $NH --volspec "$PROJECT/$distVolume1+1" --inits "$hostLbl/$PWWN1","$hostLbl/$PWWN2"
+	run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$distVolume2+2
+	run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume1+3
+	run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume2+4
+	
+	echo "**** Exporting VPLEX volumes to host in varray " $NH2
+        # run export_group create $PROJECT $hname-2$host $NH2 --volspec "$PROJECT/$distVolume1+1" --inits "$hostLbl/$PWWN2"
+	echo "Exports for $distVolume1"
+	volume exports "$PROJECT/$distVolume1" --v
+	echo "Exports for $distVolume2"
+	volume exports "$PROJECT/$distVolume2" --v
+	echo "Exports for $localVolume1"
+	volume exports "$PROJECT/$localVolume1" --v
+	echo "Exports for $localVolume2"
+	volume exports "$PROJECT/$localVolume1" --v
 
-    echo "**** Creating local mirrors for the Distributed volumes on the source side"
-    run blockmirror attach  $PROJECT/$distVolume1 $distSrcLocalMirror1 1
-    run blockmirror attach  $PROJECT/$distVolume2 $distSrcLocalMirror2 1
+	echo "**** Creating VPLEX volume snapshots"
+	run blocksnapshot create $PROJECT/$localVolume1 $localSnapshot
+	blocksnapshot list $PROJECT/$localVolume1
+	blocksnapshot show $PROJECT/$localVolume1/$localSnapshot
+	run blocksnapshot create $PROJECT/$distVolume1 $distSnapshot
+	blocksnapshot list $PROJECT/$distVolume1
+	blocksnapshot show $PROJECT/$distVolume1/$distSnapshot
 
-    echo "**** Deleting local mirror for the VPLEX Distributed volume"
-    run blockmirror deactivate  $PROJECT/$distVolume2 $distSrcLocalMirror2$sourceSideSuffix
+	echo "**** Restoring VPLEX volume snapshots"
+        # Must deactivate mirrors before restoring snapshots now.
+	run blockmirror deactivate  $PROJECT/$localVolume1 $localMirror1$sourceSideSuffix
+	run blocksnapshot restore $PROJECT/$localVolume1/$localSnapshot
+	run blockmirror deactivate  $PROJECT/$distVolume1 $distSrcLocalMirror1$sourceSideSuffix
+	run blocksnapshot restore $PROJECT/$distVolume1/$distSnapshot
 
-    echo "**** Creating host"
-    hosts create $hostLbl $TENANT Windows $host --port 8111 --username user --password 'password' --osversion 1.0
+	echo "**** Deleting VPLEX volume snapshots"
+	run blocksnapshot delete $PROJECT/$localVolume1/$localSnapshot
+	run blocksnapshot delete $PROJECT/$distVolume1/$distSnapshot
 
-    echo "**** Creating initiators"
-    initiator create $hostLbl FC $PWWN1 --node $WWNN1
-    initiator create $hostLbl FC $PWWN2 --node $WWNN2
+	echo "**** Deleting VPLEX exports"
+	run export_group delete $PROJECT/$hname-1$host
+	# run export_group delete $PROJECT/$hname-2$host
 
-    echo "**** Exporting VPLEX volumes to host in varray " $NH
-    run export_group create $PROJECT $hname-1$host $NH --volspec "$PROJECT/$distVolume1+1" --inits "$hostLbl/$PWWN1","$hostLbl/$PWWN2"
-    run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$distVolume2+2
-    run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume1+3
-    run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume2+4
+	echo "**** Deleting VPLEX volumes"
+	run volume delete $PROJECT/$localVolume1 --wait
+	run volume delete $PROJECT/$localVolume2 --wait
+	run volume delete $PROJECT/$distVolume1 --wait
+	run volume delete $PROJECT/$distVolume2 --wait
 
-    echo "**** Exporting VPLEX volumes to host in varray " $NH2
-    #run export_group create $PROJECT $hname-2$host $NH2 --volspec "$PROJECT/$distVolume1+1" --inits "$hostLbl/$PWWN2"
-    echo "Exports for $distVolume1"
-    volume exports "$PROJECT/$distVolume1" --v
-    echo "Exports for $distVolume2"
-    volume exports "$PROJECT/$distVolume2" --v
-    echo "Exports for $localVolume1"
-    volume exports "$PROJECT/$localVolume1" --v
-    echo "Exports for $localVolume2"
-    volume exports "$PROJECT/$localVolume1" --v
+	echo "**** Deleting Host"
+	hosts delete $hostLbl
 
-    echo "**** Creating VPLEX volume snapshots"
-    run blocksnapshot create $PROJECT/$localVolume1 $localSnapshot
-    blocksnapshot list $PROJECT/$localVolume1
-    blocksnapshot show $PROJECT/$localVolume1/$localSnapshot
-    run blocksnapshot create $PROJECT/$distVolume1 $distSnapshot
-    blocksnapshot list $PROJECT/$distVolume1
-    blocksnapshot show $PROJECT/$distVolume1/$distSnapshot
-
-    echo "**** Restoring VPLEX volume snapshots"
-    # Must deactivate mirrors before restoring snapshots now.
-    run blockmirror deactivate  $PROJECT/$localVolume1 $localMirror1$sourceSideSuffix
-    run blocksnapshot restore $PROJECT/$localVolume1/$localSnapshot
-    run blockmirror deactivate  $PROJECT/$distVolume1 $distSrcLocalMirror1$sourceSideSuffix
-    run blocksnapshot restore $PROJECT/$distVolume1/$distSnapshot
-
-    echo "**** Deleting VPLEX volume snapshots"
-    run blocksnapshot delete $PROJECT/$localVolume1/$localSnapshot
-    run blocksnapshot delete $PROJECT/$distVolume1/$distSnapshot
-
-    echo "**** Deleting VPLEX exports"
-    run export_group delete $PROJECT/$hname-1$host
-    # run export_group delete $PROJECT/$hname-2$host
-
-    echo "**** Deleting VPLEX volumes"
-    run volume delete $PROJECT/$localVolume1 --wait
-    run volume delete $PROJECT/$localVolume2 --wait
-    run volume delete $PROJECT/$distVolume1 --wait
-    run volume delete $PROJECT/$distVolume2 --wait
-
-    echo "**** Deleting Host"
-    hosts delete $hostLbl
-
-    echo "**** Completed VPLEX Tests"
+	echo "**** Completed VPLEX Tests"
     fi
 }
 
@@ -2130,9 +2185,9 @@ rp_isolate_rpa_clusters()
     if [ "$RP_USE_RPA_ISOLATION" = "1" ]; then
         echo '*** Recoverpoint isolate RPA clusters ***'
 
-        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER1_IP --addvarrays $RECOVERPOINT_VARRAY1
-        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER3_IP --addvarrays $RECOVERPOINT_VARRAY2
-        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER4_IP --addvarrays $RECOVERPOINT_VARRAY3
+        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER1 --addvarrays $RECOVERPOINT_VARRAY1
+        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER3 --addvarrays $RECOVERPOINT_VARRAY2
+        run protectionsystem update --ip ${remote_ip} --name $RECOVERPOINT --cluster $RECOVERPOINT_RPA_CLUSTER4 --addvarrays $RECOVERPOINT_VARRAY3
     fi
 }
 
@@ -2448,20 +2503,17 @@ recoverpoint_tests()
             rp_type='cdp'
 
             # RP
-            rp_src_vpool='rp_'$rp_type
             rp_tgt_varray=$RECOVERPOINT_VARRAY1
             rp_tgt_vpool='rp_targets'
             rp_base_cvp='rp_regular'
 
             # RP+VPLEX
-            rpvplex_src_vpool='rpvplex_'$rp_type
             rpvplex_tgt_varray=$RECOVERPOINT_VARRAY1
             rpvplex_tgt_vpool='rpvplex_targets'
             rpvplex_base_cvp1='rpvplex_local_regular'
             rpvplex_base_cvp2='rpvplex_dist_regular'
 
             # MP
-            mp_src_vpool='mp_'$rp_type
             mp_active_tgt_varray=$RECOVERPOINT_VARRAY1
             mp_standby_tgt_varray=$RECOVERPOINT_VARRAY2
             mp_tgt_vpool='rp_targets'
@@ -2470,23 +2522,58 @@ recoverpoint_tests()
         if [ "$RP_CRR" = "1" ]; then
             echo 'RP CRR Tests'
             rp_type='crr'
+
+            # RP
+            rp_tgt_varray=$RECOVERPOINT_VARRAY3
+            rp_tgt_vpool='rp_targets'
+            rp_base_cvp='rp_regular'
+
+            # RP+VPLEX
+            rpvplex_tgt_varray=$RECOVERPOINT_VARRAY1
+            rpvplex_tgt_vpool='rpvplex_targets'
+            rpvplex_base_cvp1='rpvplex_local_regular'
+            rpvplex_base_cvp2='rpvplex_dist_regular'
+
+            # MP
+            mp_active_tgt_varray=$RECOVERPOINT_VARRAY3
+            mp_standby_tgt_varray=''
+            mp_tgt_vpool='rp_targets'
         fi
 
         if [ "$RP_CLR" = "1" ]; then
             echo 'RP CLR Tests'
             rp_type='clr'
+
+            # RP
+            rp_tgt_varray=$RECOVERPOINT_VARRAY3
+            rp_tgt_vpool='rp_targets'
+            rp_base_cvp='rp_regular'
+
+            # RP+VPLEX
+            rpvplex_tgt_varray=$RECOVERPOINT_VARRAY1
+            rpvplex_tgt_vpool='rpvplex_targets'
+            rpvplex_base_cvp1='rpvplex_local_regular'
+            rpvplex_base_cvp2='rpvplex_dist_regular'
+
+            # MP
+            mp_active_tgt_varray=$RECOVERPOINT_VARRAY3
+            mp_standby_tgt_varray=''
+            mp_tgt_vpool='rp_targets'
         fi
 
         # RP
+        rp_src_vpool='rp_'$rp_type
         rpvolume=${RP_VOLUME}
         rpvolumetarget=${rpvolume}'-target-'${rp_tgt_varray}
 
         # RP+VPLEX
+        rpvplex_src_vpool='rpvplex_'$rp_type
         rpvplexvolume=${RP_VPLEX_VOLUME}
         rpvplexvolumetarget=${rpvplexvolume}'-target-'${rpvplex_tgt_varray}
 
         # MP
-        mpvolume=${MP_VOLUME}
+        mp_src_vpool='mp_'$rp_type
+        mpvolume=${RP_METROPOINT_VOLUME}
         mpvolumetarget=${mpvolume}'-target-'${mp_tgt_varray}
 
         # Setup test volumes...
@@ -3695,6 +3782,10 @@ file_tests()
     fsname=$(echo $fsname | sed s/-/_/g)
     fsname=$(echo $fsname | sed s/:/_/g)
     echo $fsname
+    
+	if [ $cos = $COS_VNXFILE ] ; then
+	    run vnas list
+	fi
     
     run fileshare create $fsname $PROJECT $NH $cos $FS_SIZEMB
     if [ "$EXTRA_PARAM" = "search" ] ; then
@@ -6413,7 +6504,7 @@ fail(){
 trap _failure ERR INT
 set -E
 if [ "$2" != "recoverpoint" ] && [ "$2" != "vdc" ]; then
-	common_setup	
+    common_setup	
 fi
 
 datastore_setup(){

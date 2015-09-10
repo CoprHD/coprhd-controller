@@ -118,6 +118,17 @@ public interface BlockFullCopyApi {
     public TaskList resynchronizeCopy(Volume sourceVolume, Volume fullCopyVolume);
 
     /**
+     * Creates group synchronized relation between volume group
+     * and full copy group.
+     * 
+     * @param sourceVolume A reference to the full copy source volume.
+     * @param fullCopyVolume A reference to the full copy volume.
+     * 
+     * @return TaskList
+     */
+    public TaskList establishVolumeAndFullCopyGroupRelation(Volume sourceVolume, Volume fullCopyVolume);
+
+    /**
      * Checks the progress of a data copy between the source and full copy.
      * 
      * @param sourceURI A URI of the source.

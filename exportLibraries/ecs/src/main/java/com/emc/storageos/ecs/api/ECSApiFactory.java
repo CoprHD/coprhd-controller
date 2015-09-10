@@ -1,3 +1,17 @@
+/*
+ * Copyright 2015 EMC Corporation
+ * All Rights Reserved
+ */
+/**
+ *  Copyright (c) 2012 EMC Corporation
+ * All Rights Reserved
+ *
+ * This software contains the intellectual property of EMC Corporation
+ * or is licensed to EMC Corporation from third parties.  Use of this
+ * software and the intellectual property contained therein is expressly
+ * limited to the terms and conditions of the License Agreement under which
+ * it is provided by or on behalf of EMC.
+ */
 package com.emc.storageos.ecs.api;
 
 import java.io.IOException;
@@ -22,7 +36,9 @@ import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.filter.HTTPBasicAuthFilter;
 import com.sun.jersey.client.apache.ApacheHttpClient;
 import com.sun.jersey.client.apache.ApacheHttpClientHandler;
-
+/**
+ * ECS API client factory
+ */
 public class ECSApiFactory {
 	private Logger _log = LoggerFactory.getLogger(ECSApiFactory.class);
     private static final int DEFAULT_MAX_CONN = 300;
@@ -147,8 +163,8 @@ public class ECSApiFactory {
         return ecsApi;
     }
     
-   /*
-    public static void main(String[] args) {
+   
+    /*public static void main(String[] args) {
     	System.out.println("starting ecs main");
     	URI uri = URI.create(String.format("https://10.247.78.171:4443/login"));
     	ECSApiFactory factory = new ECSApiFactory();

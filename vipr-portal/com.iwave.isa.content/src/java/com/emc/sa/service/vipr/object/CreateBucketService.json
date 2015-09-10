@@ -10,8 +10,14 @@
         }
     },
 
+    virtualArray:{
+      type:"assetType.vipr.virtualArray",
+      lockable:true
+    },
+    
     virtualPool:{
-      type:"assetType.vipr.objectVirtualPool"
+      type:"assetType.vipr.objectVirtualPool",
+      lockable:true
     },
     
     project:{

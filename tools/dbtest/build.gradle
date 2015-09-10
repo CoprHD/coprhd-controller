@@ -8,9 +8,19 @@ scripts {
     }
 }
 
+scripts {
+    eventtest {
+        mainClass = 'GetEvent'
+        service = false
+        gcDetails = false
+    }
+}
+
 dependencies {
     compile library(commons_io),
             library(commons_codec),
-            project(":controllersvc")
-            project(":dbsvc")
+            project(":controllersvc"),
+            project(":dbsvc"),
+            project("vipr-client")
+
 }       

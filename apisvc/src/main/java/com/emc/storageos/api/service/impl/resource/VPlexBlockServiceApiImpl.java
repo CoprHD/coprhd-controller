@@ -3192,6 +3192,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
         if (volumesToSnap.size()>1 && !VPlexUtil.isVPLEXCGBackendVolumesInSameStorage(volumesToSnap, _dbClient)) {
             throw APIException.badRequests.snapshotNotAllowedWhenCGAcrossMultipleSystems();
         }
+        
+        // Check if the source volume is an ingested CG, without any back end CGs yet. if yes, throw error
+        if (VPlexUtil.isVolumeInIngestedCG(reqVolume, _dbClient)) {
+            throw APIException.badRequests.snapshotNotAllowedForIngestedCG(reqVolume.getId().toString());
+        }
     }
     
     /**

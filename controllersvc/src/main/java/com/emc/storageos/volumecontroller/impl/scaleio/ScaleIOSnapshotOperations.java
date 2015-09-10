@@ -21,6 +21,7 @@ import com.emc.storageos.volumecontroller.SnapshotOperations;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -177,5 +178,11 @@ public class ScaleIOSnapshotOperations extends DefaultSnapshotOperations {
                     e.getMessage());
             taskCompleter.error(dbClient, code);
         }
+    }
+
+    @Override
+    public void establishVolumeSnapshotGroupRelation(StorageSystem storage, URI sourceVolume,
+            URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 }

@@ -128,6 +128,17 @@ public class BlockVolumes extends ProjectResources<VolumeRestRep> implements Tas
     }
 
     /**
+     * Adds journal capacity
+     * 
+     * @param create
+     *            the block volume create configuration for journal volumes.
+     * @return tasks for monitoring the progress of the operation(s).
+     */
+    public Tasks<VolumeRestRep> addJournalCapacity(VolumeCreate create) {
+        return postTasks(create, baseUrl + "/protection/addJournalCapacity");
+    }
+
+    /**
      * Begins deactivating a block volume by ID.
      * <p>
      * API Call: <tt>POST /block/volumes/{id}/deactivate?type=FULL</tt>

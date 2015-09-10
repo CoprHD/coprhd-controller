@@ -4390,6 +4390,117 @@ public class BlockService extends TaskResourceService {
         _log.info("Protection set status: " + protectionSet.getProtectionStatus());
         return map(protectionSet);
     }
+    
+    /**
+     * This api allows the user to add new journal volume(s) to a recoverpoint
+     * consistency group copy
+     * 
+     * @param param POST data containing the journal volume(s) creation information.
+     * 
+     * @brief Add journal volume(s) to the exiting recoverpoint CG copy
+     * @return A reference to a BlockTaskList containing a list of
+     *         TaskResourceRep references specifying the task data for the
+     *         journal volume creation tasks.
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/protection/addJournalCapacity")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.ANY })
+    public TaskList addJournalCapacity(VolumeCreate param) throws InternalException {
+        ArgValidator.checkFieldNotNull(param, "volume_create");
+        
+        ArgValidator.checkFieldNotNull(param.getName(), "name");
+        
+        ArgValidator.checkFieldNotNull(param.getSize(), "size");
+        
+        ArgValidator.checkFieldNotNull(param.getCount(), "count");
+        
+        ArgValidator.checkFieldUriType(param.getProject(), Project.class, "project");
+
+        // Get and validate the project.
+        Project project = _permissionsHelper.getObjectById(param.getProject(), Project.class);
+        ArgValidator.checkEntity(project, param.getProject(), isIdEmbeddedInURL(param.getProject()));
+
+        final URI actualId = project.getId();
+        
+        // Verify the user is authorized.
+        BlockServiceUtils.verifyUserIsAuthorizedForRequest(project, getUserFromContext(), _permissionsHelper);
+
+        // Get and validate the varray
+        ArgValidator.checkFieldUriType(param.getVarray(), VirtualArray.class, "varray");
+        VirtualArray varray = BlockServiceUtils.verifyVirtualArrayForRequest(project,
+                param.getVarray(), uriInfo, _permissionsHelper, _dbClient);
+        ArgValidator.checkEntity(varray, param.getVarray(), isIdEmbeddedInURL(param.getVarray()));
+
+        // Get and validate the journal vPool.
+        VirtualPool vpool = getVirtualPoolForVolumeCreateRequest(project, param);
+
+        VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.ADD_JOURNAL_CAPACITY, Boolean.TRUE);
+        // Get the count indicating the number of journal volumes to add. If not
+        //passed assume 1. 
+        Integer volumeCount = 1;
+        Long volumeSize = 0L;
+        
+        if (param.getCount() <= 0) {
+        	throw APIException.badRequests.parameterMustBeGreaterThan("count", 0);
+        }
+        if (param.getCount() > MAX_VOLUME_COUNT) {
+        	throw APIException.badRequests.exceedingLimit("count", MAX_VOLUME_COUNT);
+        }
+        volumeCount = param.getCount();
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, volumeCount);        
+
+        // Validate the requested volume size is greater then 0.
+        volumeSize = SizeUtil.translateSize(param.getSize());
+        // Validate the requested volume size is at least 1 GB.
+        if (volumeSize < GB) {
+        	throw APIException.badRequests.leastVolumeSize("1");
+        }
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.SIZE, volumeSize);        
+        
+        // verify quota
+        long size = volumeCount * SizeUtil.translateSize(param.getSize());
+        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
+        ArgValidator.checkEntity(tenant, project.getTenantOrg().getURI(), false);
+        CapacityUtils.validateQuotasForProvisioning(_dbClient, vpool, project, tenant, size, "volume");    
+        
+        if (null != vpool.getThinVolumePreAllocationPercentage()
+                && 0 < vpool.getThinVolumePreAllocationPercentage()) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_VOLUME_PRE_ALLOCATE_SIZE, VirtualPoolUtil
+                    .getThinVolumePreAllocationSize(vpool.getThinVolumePreAllocationPercentage(), volumeSize));
+        }
+        
+        if (VirtualPool.ProvisioningType.Thin.toString().equalsIgnoreCase(
+                vpool.getSupportedProvisioningType())) {
+            capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.TRUE);
+        }
+
+        // Get and validate the BlockConsistencyGroup
+        BlockConsistencyGroup consistencyGroup = queryConsistencyGroup(param.getConsistencyGroup());          
+
+        // Check that the project and the CG project are the same
+        final URI expectedId = consistencyGroup.getProject().getURI();
+        checkProjectsMatch(expectedId, project.getId());                
+
+        // Validate the CG type is RP
+        if (!consistencyGroup.getRequestedTypes().contains(BlockConsistencyGroup.Types.RP.toString())) {
+        	throw APIException.badRequests.consistencyGroupIsNotCompatibleWithRequest(
+        			consistencyGroup.getId(), consistencyGroup.getTypes().toString(), BlockConsistencyGroup.Types.RP.toString());
+        }                                
+        capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP, consistencyGroup.getId());           
+        
+        // Create a unique task id if one is not passed in the request.
+        String task = UUID.randomUUID().toString();
+
+        auditOp(OperationTypeEnum.ADD_JOURNAL_VOLUME, true, AuditLogManager.AUDITOP_BEGIN,
+                param.getName(), volumeCount, varray.getId().toString(), actualId.toString());
+        
+        // add the journal capacity to the CG        
+        RPBlockServiceApiImpl blockServiceImpl = (RPBlockServiceApiImpl)getBlockServiceImpl(DiscoveredDataObject.Type.rp.name());
+        return blockServiceImpl.addJournalCapacity(param, project, varray, vpool, consistencyGroup, capabilities, task);
+    }
 
     /**
      * Perform simple validation-- make sure this volume owns the protection set.

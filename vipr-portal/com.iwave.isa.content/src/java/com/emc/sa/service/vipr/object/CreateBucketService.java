@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2012-2015 EMC
+ * All Rights Reserved
+ */
 package com.emc.sa.service.vipr.object;
 
 import static com.emc.sa.service.ServiceParams.HARD_QUOTA;

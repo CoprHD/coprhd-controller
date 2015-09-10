@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2012-2015 EMC
+ * All Rights Reserved
+ */
 package com.emc.sa.service.vipr.object.tasks;
 
 import java.net.URI;
@@ -30,7 +34,7 @@ public class CreateBucket extends WaitForTask<BucketRestRep> {
         this.hardQuota = hardQuota;
         this.retention = retention;
         this.owner = ownerId;
-        // provideDetailArgs(name, size, vpoolId, varrayId, projectId);
+        provideDetailArgs(name, vpoolId, projectId);
     }
 
     @Override

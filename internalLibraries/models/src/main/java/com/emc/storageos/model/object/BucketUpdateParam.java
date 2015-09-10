@@ -32,7 +32,7 @@ public class BucketUpdateParam {
      * 
      * @valid none
      */
-    @XmlElement(required = true, name = "soft_quota")
+    @XmlElement(required = false, name = "soft_quota")
     public String getSoftQuota() {
         return softQuota;
     }
@@ -46,7 +46,7 @@ public class BucketUpdateParam {
      * 
      * @valid none
      */
-    @XmlElement(required = true, name = "hard_quota")
+    @XmlElement(required = false, name = "hard_quota")
     public String getHardQuota() {
         return hardQuota;
     }

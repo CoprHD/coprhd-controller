@@ -41,7 +41,7 @@ public class BucketScheduler {
     }
 
     /**
-     * Schedule storage for fileshare in the varray with the given CoS capabilities.
+     * Schedule storage for Object in the varray with the given CoS capabilities.
      * 
      * @param vArray
      * @param vPool
@@ -80,7 +80,7 @@ public class BucketScheduler {
      * 
      * @param vpool
      * @param poolRecommends recommendations after selecting matching storage pools.
-     * @return list of FileRecommendation
+     * @return list of Bucket Recommendation
      */
     private List<BucketRecommendation> selectMatchingStoragePool(VirtualPool vpool, List<Recommendation> poolRecommends) {
 
@@ -92,7 +92,7 @@ public class BucketScheduler {
 
             // Verify if the Storage System is an Object Store
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class, storageUri);
-            if (!storage.getSystemType().equals(Type.ecs.toString())) {
+            if (!Type.isObjectStorageSystem(StorageSystem.Type.valueOf(storage.getSystemType()))) {
                 continue;
             }
 
@@ -105,5 +105,4 @@ public class BucketScheduler {
         }
         return result;
     }
-
 }

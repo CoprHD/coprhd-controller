@@ -8,10 +8,6 @@ import java.net.URI;
 
 import javax.xml.bind.annotation.XmlTransient;
 
-import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
-
 /**
  * Bucket data object
  */

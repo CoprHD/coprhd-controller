@@ -122,7 +122,7 @@ public class BucketParam {
         this.retention = retention;
     }
 
-    @XmlElement(required = true, name = "owner")
+    @XmlElement(required = false, name = "owner")
     public String getOwner() {
         return owner;
     }

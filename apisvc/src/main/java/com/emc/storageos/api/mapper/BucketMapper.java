@@ -7,9 +7,6 @@ package com.emc.storageos.api.mapper;
 import static com.emc.storageos.api.mapper.DbObjectMapper.mapDataObjectFields;
 import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.model.ResourceTypeEnum;
@@ -43,8 +40,6 @@ public class BucketMapper {
         to.setPath(from.getPath());
 
         to.setNativeId(from.getNativeId());
-        to.setStorageSystem(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageDevice()));
-        to.setPool(toRelatedResource(ResourceTypeEnum.STORAGE_POOL, from.getPool(), from.getStorageDevice()));
         return to;
     }
 }

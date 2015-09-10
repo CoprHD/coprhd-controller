@@ -161,7 +161,7 @@ public class Bucket extends DataObject implements ProjectResource {
 
     public void setRetention(Integer retention) {
         this._retention = retention;
-        setChanged("varray");
+        setChanged("retention");
     }
 
     @Name("path")

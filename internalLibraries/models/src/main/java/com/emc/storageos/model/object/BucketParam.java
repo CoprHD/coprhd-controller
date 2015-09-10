@@ -24,7 +24,6 @@ public class BucketParam {
     private URI vpool;
     private URI varray;
     private String retention;
-    private String namespace;
     private String owner;
     private String path;
 
@@ -121,15 +120,6 @@ public class BucketParam {
 
     public void setRetention(String retention) {
         this.retention = retention;
-    }
-
-    @XmlElement(required = true, name = "namespace")
-    public String getNamespace() {
-        return namespace;
-    }
-
-    public void setNamespace(String namespace) {
-        this.namespace = namespace;
     }
 
     @XmlElement(required = true, name = "owner")

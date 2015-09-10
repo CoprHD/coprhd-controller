@@ -1125,8 +1125,6 @@ vdc.task.REMOVEVDC.message=Removing
 vdc.task.DISCONNECTVDC.message=Disconnecting
 vdc.task.RECONNECTVDC.message=Reconnecting
 
-vdc.compatible.error=check vdc compatible error
-
 keystores.title=Update Keystore
 keystores.description=Enter the information needed to update the Keystore.
 keystore.saved=Keystore updated successfully.

@@ -197,14 +197,28 @@ public class DisasterRecoveryServiceTest {
     }
     
     @Test
-    public void testPrecheckForStandbyAttach_PrimarySite() throws Exception {
+    public void testPrecheckForStandbyAttach_NotPrimarySite() throws Exception {
         try {
-            doReturn("site-is-not-primary").when(coordinator).getSiteId();
+            doReturn("654321").when(coordinator).getPrimarySiteId();
+            doReturn("123456").when(coordinator).getSiteId();
             drService.precheckForStandbyAttach(standby);
             fail();
         } catch (Exception e) {
             // ignore expected exception
         }
+    }
+    
+    @Test
+    public void testPrecheckForStandbyAttach_PrimarySite_EmptyPrimaryID() throws Exception {
+        doReturn(null).when(coordinator).getPrimarySiteId();
+        drService.precheckForStandbyAttach(standby);
+    }
+    
+    @Test
+    public void testPrecheckForStandbyAttach_PrimarySite_IsPrimary() throws Exception {
+        doReturn("123456").when(coordinator).getPrimarySiteId();
+        doReturn("123456").when(coordinator).getSiteId();
+        drService.precheckForStandbyAttach(standby);
     }
 
     protected void compareSiteResponse(SiteRestRep response, Site site) {

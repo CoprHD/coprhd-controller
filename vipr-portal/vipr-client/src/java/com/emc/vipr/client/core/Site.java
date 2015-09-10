@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.dr.SiteAddParam;
+import com.emc.storageos.model.dr.SiteConfigRestRep;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.vipr.client.ViPRCoreClient;
@@ -37,8 +38,8 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
         return client.get(SiteList.class, PathConstants.SITE_URL);
     }
     
-    public SiteRestRep getStandbyConfig() {
-        return client.get(SiteRestRep.class, PathConstants.SITE_URL + "/standby/config");
+    public SiteConfigRestRep getStandbyConfig() {
+        return client.get(SiteConfigRestRep.class, PathConstants.SITE_URL + "/standby/config");
     }
     
     public SiteRestRep addPrimary(SiteAddParam input) {

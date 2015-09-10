@@ -275,49 +275,61 @@ public class DisasterRecoveryService extends TaggedResource {
      * Internal method to check whether standby can be attached to current primary site
      */
     protected void precheckForStandbyAttach(SiteAddParam standby) {
-        //standby should be refresh install
-        if (standby.isFreshInstallation() == false) {
-            log.info("Standby is not refresh installation");
-            throw APIException.internalServerErrors.addStandbyPrecheckFailed();
-        }
-        
-        //DB schema version should be same
-        String currentDbSchemaVersion = coordinator.getCurrentDbSchemaVersion();
-        String standbyDbSchemaVersion = standby.getDbSchemaVersion();
-        if (!currentDbSchemaVersion.equalsIgnoreCase(standbyDbSchemaVersion)) {
-            log.info("Standby db schema version {} is not same as primary {}", standbyDbSchemaVersion, currentDbSchemaVersion);
-            throw APIException.internalServerErrors.addStandbyPrecheckFailed();
-        }
-        
-        //software version should be matched
-        SoftwareVersion currentSoftwareVersion;
-        SoftwareVersion standbySoftwareVersion;
         try {
-            currentSoftwareVersion = coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion();
-            standbySoftwareVersion = new SoftwareVersion(standby.getSoftwareVersion());
+            //standby should be refresh install
+            if (standby.isFreshInstallation() == false) {
+                throw new Exception("Standby is not refresh installation");
+            }
+            
+            //DB schema version should be same
+            String currentDbSchemaVersion = coordinator.getCurrentDbSchemaVersion();
+            String standbyDbSchemaVersion = standby.getDbSchemaVersion();
+            if (!currentDbSchemaVersion.equalsIgnoreCase(standbyDbSchemaVersion)) {
+                throw new Exception(String.format("Standby db schema version %s is not same as primary %s", standbyDbSchemaVersion, currentDbSchemaVersion));
+            }
+            
+            //software version should be matched
+            SoftwareVersion currentSoftwareVersion;
+            SoftwareVersion standbySoftwareVersion;
+            try {
+                currentSoftwareVersion = coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion();
+                standbySoftwareVersion = new SoftwareVersion(standby.getSoftwareVersion());
+            } catch (Exception e) {
+                throw new Exception(String.format("Fail to get software version %s", e.getMessage()));
+            }
+            
+            if (!isVersionMatchedForStandbyAttach(currentSoftwareVersion,standbySoftwareVersion)) {
+                throw new Exception(String.format("Standby site version %s is not equals to current version %s", standbySoftwareVersion, currentSoftwareVersion));
+            }
+            
+            //this site should not be standby site
+            String primaryID = coordinator.getPrimarySiteId();
+            if (primaryID != null && !primaryID.equals(coordinator.getSiteId())) {
+                throw new Exception("This site is also a standby site");
+            }
         } catch (Exception e) {
-            log.error("Fail to get software version {}", e);
-            throw APIException.internalServerErrors.addStandbyPrecheckFailed();
+            log.error("Standby information can't pass pre-check {}", e.getMessage());
+            throw APIException.internalServerErrors.addStandbyPrecheckFailed(e.getMessage());
         }
         
-        if (!currentSoftwareVersion.isNaturallySwitchableTo(standbySoftwareVersion)) {
-            log.info("Standby site version {} is not equals to current version {}", standbySoftwareVersion, currentSoftwareVersion);
-            throw APIException.internalServerErrors.addStandbyPrecheckFailed();
-        }
-        
-        //this site should be primary site
-        if (!coordinator.getSiteId().equals(coordinator.getPrimarySiteId())) {
-            log.info("This site is not primary site");
-            throw APIException.internalServerErrors.addStandbyPrecheckFailed();
-        }
     }
-    
+
     protected boolean isFreshInstallation() {
         Configuration setupConfig = coordinator.queryConfiguration(CONFIG_KIND, CONFIG_ID);
         boolean freshInstall = (setupConfig == null) || Boolean.parseBoolean(setupConfig.getConfig(COMPLETE)) == false;
         
         log.info("Fresh installation {}", freshInstall);
         return freshInstall;
+    }
+    
+    protected boolean isVersionMatchedForStandbyAttach(SoftwareVersion currentSoftwareVersion, SoftwareVersion standbySoftwareVersion) {
+        if (currentSoftwareVersion == null || standbySoftwareVersion == null) {
+            return false;
+        }
+        
+        String versionString = standbySoftwareVersion.toString();
+        SoftwareVersion standbyVersionWildcard = new SoftwareVersion(versionString.substring(0, versionString.lastIndexOf("."))+".*");
+        return currentSoftwareVersion.weakEquals(standbyVersionWildcard);
     }
     
     // encapsulate the get local VDC operation for easy UT writing because VDCUtil.getLocalVdc is static method

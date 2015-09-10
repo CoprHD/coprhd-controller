@@ -4,7 +4,18 @@
  */
 package com.emc.storageos.volumecontroller.impl.smis;
 
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.*;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_REPLICATION_GROUP;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_GROUP;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_NEW_TARGET_VALUE;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DEFAULT_INSTANCE;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DELETE_GROUP;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DESIRED_COPY_METHODOLOGY;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.EMC_RETURN_TO_STORAGE_POOL;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.GET_DEFAULT_REPLICATION_SETTING_DATA;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.MIRROR_REPLICATION_TYPE;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.RETURN_ELEMENTS_TO_STORAGE_POOL;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SNAPSHOT_REPLICATION_TYPE;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.TARGET_ELEMENT_SUPPLIER;
 import static java.text.MessageFormat.format;
 import static javax.cim.CIMDataType.UINT16_T;
 
@@ -157,7 +168,6 @@ public class ReplicationUtils {
     /**
      * Refresh the given storagesystem.
      *
-     * @param dbClient
      * @param helper
      * @param storage
      */
@@ -505,7 +515,7 @@ public class ReplicationUtils {
      *
      * @param storage StorageSystem
      * @param groupName replication group to be deleted
-     * @param dbCLient
+     * @param dbClient
      * @param helper
      * @param cimPath
      *

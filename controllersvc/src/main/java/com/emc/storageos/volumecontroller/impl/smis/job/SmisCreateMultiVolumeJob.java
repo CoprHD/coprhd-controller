@@ -79,7 +79,7 @@ public class SmisCreateMultiVolumeJob extends SmisAbstractCreateVolumeJob {
     protected void specificProcessing(final StorageSystem storageSystem, final DbClient dbClient,
                                       final WBEMClient client, final Volume volume, CIMInstance volumeInstance,
                                       final CIMObjectPath volumePath) {
-        if (storageSystem.getUsingSmis80() != null && storageSystem.getUsingSmis80()) {
+        if (storageSystem.getUsingSmis80()) {
             super.specificProcessing(storageSystem, dbClient, client, volume, volumeInstance, volumePath);
         } else {
             specificProcessingFor4x(dbClient, client, volume, volumePath);

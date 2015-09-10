@@ -25,7 +25,14 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.cim.*;
+import javax.cim.CIMArgument;
+import javax.cim.CIMDataType;
+import javax.cim.CIMInstance;
+import javax.cim.CIMObjectPath;
+import javax.cim.CIMProperty;
+import javax.cim.UnsignedInteger16;
+import javax.cim.UnsignedInteger32;
+import javax.cim.UnsignedInteger64;
 import javax.wbem.CloseableIterator;
 import javax.wbem.WBEMException;
 import javax.wbem.client.WBEMClient;
@@ -913,7 +920,7 @@ public class SmisCommandHelper implements SmisConstants {
                                                                   Long capacity,
                                                                   int count,
                                                                   boolean isThinlyProvisioned) {
-        if (isStorageSystemUsing80(storageDevice)) {
+        if (storageDevice.getUsingSmis80()) {
             return getCreateVolumesInputArgumentsasList80(storageDevice, pool, labels, capacity, count,
                     isThinlyProvisioned);
         } else {
@@ -998,7 +1005,7 @@ public class SmisCommandHelper implements SmisConstants {
     public CIMArgument[] getCreateVolumesBasedOnSettingInputArguments(
             StorageSystem storage, CIMObjectPath poolPath,
             CIMInstance storageSetting, String label, int count, long capacity) {
-        if (storage.getUsingSmis80() != null && storage.getUsingSmis80()) {
+        if (storage.getUsingSmis80()) {
             return getCreateVolumesBasedOnSettingInputArguments80(storage, poolPath, storageSetting, label, count,
                     capacity);
         } else {
@@ -1115,7 +1122,7 @@ public class SmisCommandHelper implements SmisConstants {
         List<CIMArgument> list = getCreateVolumesInputArgumentsasList(storageDevice, pool,
                 labels, capacity, count, isThinlyProvisioned);
         if (!isBoundToPool) {
-            if (isStorageSystemUsing80(storageDevice)) {
+            if (storageDevice.getUsingSmis80()) {
                 list.add(_cimArgument.boolArray(CP_EMC_BIND_ELEMENTS, toMultiElementArray(count, false)));
             } else {
                 list.add(_cimArgument.bool(CP_EMC_BIND_ELEMENTS, false));
@@ -1123,7 +1130,7 @@ public class SmisCommandHelper implements SmisConstants {
 
         }
         if (poolSetting != null) {
-            if (isStorageSystemUsing80(storageDevice)) {
+            if (storageDevice.getUsingSmis80()) {
                 list.add(_cimArgument.referenceArray(CP_GOAL, toMultiElementArray(count, poolSetting.getObjectPath())));
             } else {
                 list.add(_cimArgument.reference(CP_GOAL, poolSetting.getObjectPath()));
@@ -1143,7 +1150,7 @@ public class SmisCommandHelper implements SmisConstants {
                 isThinlyProvisioned);
 
         if (!isBoundToPool) {
-            if (isStorageSystemUsing80(storageDevice)) {
+            if (storageDevice.getUsingSmis80()) {
                 list.add(_cimArgument.boolArray(CP_EMC_BIND_ELEMENTS, toMultiElementArray(count, false)));
             } else {
                 list.add(_cimArgument.bool(CP_EMC_BIND_ELEMENTS, false));
@@ -1158,7 +1165,7 @@ public class SmisCommandHelper implements SmisConstants {
 
             // set volumeType for fully-thin or fully-allocated
             int volumeType = fullyAllocated ? STORAGE_VOLUME_FULLY_ALLOCATED : STORAGE_VOLUME_TYPE_THIN;
-            if (isStorageSystemUsing80(storageDevice)) {
+            if (storageDevice.getUsingSmis80()) {
                 list.add(_cimArgument.uint16Array(CP_ELEMENT_TYPE,
                         toMultiElementArray(count, new UnsignedInteger16(volumeType))));
             } else {
@@ -1177,7 +1184,7 @@ public class SmisCommandHelper implements SmisConstants {
                                                                          boolean isThinlyProvisioned,
                                                                          String fastPolicyName) throws IOException {
 
-        if (isStorageSystemUsing80(storageDevice)) {
+        if (storageDevice.getUsingSmis80()) {
             List<String> labels = new ArrayList<>(asList(toMultiElementArray(count, label)));
             return getCreateVolumesInputArgumentsOnFastEnabledPool(storageDevice, pool, labels, capacity, count,
                     isThinlyProvisioned, fastPolicyName);
@@ -1224,7 +1231,7 @@ public class SmisCommandHelper implements SmisConstants {
         }
 
         if (null != poolSettingId) {
-            if (isStorageSystemUsing80(storageDevice)) {
+            if (storageDevice.getUsingSmis80()) {
                 list.add(_cimArgument.referenceArray(CP_GOAL,
                         toMultiElementArray(count, _cimPath.getPoolSettingPath(storageDevice, poolSettingId))));
             } else {
@@ -6481,12 +6488,8 @@ public class SmisCommandHelper implements SmisConstants {
         return array;
     }
 
-    public boolean isStorageSystemUsing80(StorageSystem storageSystem) {
-        return storageSystem.getUsingSmis80() != null && storageSystem.getUsingSmis80();
-    }
-
     public String createVolumesMethodName(StorageSystem storageSystem) {
-        return isStorageSystemUsing80(storageSystem) ?
+        return storageSystem.getUsingSmis80() ?
                 EMC_CREATE_MULTIPLE_TYPE_ELEMENTS_FROM_STORAGE_POOL :
                 CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL;
     }

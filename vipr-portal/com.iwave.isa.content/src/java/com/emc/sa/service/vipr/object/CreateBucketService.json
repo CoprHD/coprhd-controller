@@ -23,16 +23,14 @@
         type:"number",
         validation:{
             min:1
-        },
-        required: "false"
+        }
     },
     
     hardQuota:{
         type:"number",
         validation:{
             min:1
-        },
-        required: "false"
+        }
     },
     
     retention:{

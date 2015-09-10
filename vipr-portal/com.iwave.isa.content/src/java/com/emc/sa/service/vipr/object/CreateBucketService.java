@@ -30,10 +30,10 @@ public class CreateBucketService extends ViPRService {
     @Param(PROJECT)
     protected URI project;
 
-    @Param(value = SOFT_QUOTA, required = false)
+    @Param(value = SOFT_QUOTA)
     protected Double softQuota;
 
-    @Param(value = HARD_QUOTA, required = false)
+    @Param(value = HARD_QUOTA)
     protected Double hardQuota;
 
     @Param(value = RETENTION, required = false)

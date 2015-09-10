@@ -22,7 +22,7 @@ public class CreateBucket extends WaitForTask<BucketRestRep> {
 
     public CreateBucket(String name, String projectId, String vpoolId, Double softQuota, Double hardQuota, Double retention,
             String ownerId) {
-        this(name, uri(projectId), uri(vpoolId), softQuota, hardQuota, retention, ownerId);
+        this(name, uri(vpoolId), uri(projectId), softQuota, hardQuota, retention, ownerId);
     }
 
     public CreateBucket(String name, URI projectId, URI vpoolId, Double softQuota, Double hardQuota, Double retention,

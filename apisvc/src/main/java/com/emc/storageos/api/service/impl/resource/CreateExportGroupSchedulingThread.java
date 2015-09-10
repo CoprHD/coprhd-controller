@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2012 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;

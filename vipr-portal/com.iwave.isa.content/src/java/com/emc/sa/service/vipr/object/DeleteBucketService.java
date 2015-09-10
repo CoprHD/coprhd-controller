@@ -1,6 +1,6 @@
 package com.emc.sa.service.vipr.object;
 
-import static com.emc.sa.service.ServiceParams.BUCKETS;
+import static com.emc.sa.service.ServiceParams.BUCKET;
 
 import com.emc.sa.engine.bind.Param;
 import com.emc.sa.engine.service.Service;
@@ -8,7 +8,7 @@ import com.emc.sa.service.vipr.ViPRService;
 
 @Service("DeleteBucket")
 public class DeleteBucketService extends ViPRService  {
-    @Param(BUCKETS)
+    @Param(BUCKET)
     protected String bucketId;
     
     @Override

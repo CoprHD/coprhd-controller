@@ -18,17 +18,17 @@ public class SiteInfo implements CoordinatorSerializable {
     public static final String CONFIG_KIND = "sitetargetconfig";
     public static final String CONFIG_ID = "global";
 
-    private final int version;
+    private final long version;
 
     public SiteInfo() {
         version = 0;
     }
 
-    public SiteInfo(final int version) {
+    public SiteInfo(final long version) {
         this.version = version;
     }
 
-    public int getVersion() {
+    public long getVersion() {
         return version;
     }
 
@@ -64,7 +64,7 @@ public class SiteInfo implements CoordinatorSerializable {
 
     @Override
     public SiteInfo decodeFromString(String infoStr) throws DecodingException {
-        Integer hash = Integer.valueOf(infoStr);
+        Long hash = Long.valueOf(infoStr);
         return new SiteInfo(hash);
     }
 

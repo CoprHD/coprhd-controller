@@ -169,7 +169,7 @@ public class VdcSiteManager extends AbstractManager {
             localVdcPropInfo = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
             localVdcPropInfo.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION,
                     String.valueOf(targetVdcPropVersion.getVersion()));
-            localRepository.setVdcPropertyInfo(targetVdcPropInfo);
+            localRepository.setVdcPropertyInfo(localVdcPropInfo);
 
             String vdc_ids = targetVdcPropInfo.getProperty(VDC_IDS_KEY);
             String[] vdcIds = vdc_ids.split(",");
@@ -197,9 +197,9 @@ public class VdcSiteManager extends AbstractManager {
      * @return
      */
     private boolean vdcPropertiesChanged() {
-        int localVdcConfigVersion = localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION) == null ? 0 :
+        long localVdcConfigVersion = localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION) == null ? 0 :
                 Integer.parseInt(localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION));
-        int targetVdcConfigVersion = targetVdcPropVersion.getVersion();
+        long targetVdcConfigVersion = targetVdcPropVersion.getVersion();
 
         return localVdcConfigVersion != targetVdcConfigVersion;
     }

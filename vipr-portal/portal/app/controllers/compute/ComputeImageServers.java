@@ -24,6 +24,7 @@ import play.data.validation.Validation;
 import play.mvc.With;
 import util.ComputeImageServerUtils;
 import util.MessagesUtils;
+import util.validation.HostNameOrIpAddressCheck;
 
 import com.emc.storageos.model.compute.ComputeImageServerCreate;
 import com.emc.storageos.model.compute.ComputeImageServerRestRep;
@@ -98,6 +99,8 @@ public class ComputeImageServers extends ViprResourceController {
         ComputeImageServerRestRep computeImageServer = ComputeImageServerUtils.getComputeImageServer(id);
         if (computeImageServer != null) {
             ComputeImageServerForm computeImageServers = new ComputeImageServerForm(computeImageServer);
+            System.out.println("CIS edit line 102 password " + computeImageServer.getImageServerSecondIp());
+            System.out.println("CIS edit line 103 password " + computeImageServers.password);
             render("@edit", computeImageServers);
         }
         else {
@@ -108,14 +111,11 @@ public class ComputeImageServers extends ViprResourceController {
 
     @FlashException(keep = true, referrer = { "create", "edit" })
     public static void save(ComputeImageServerForm computeImageServers) {
-        System.out.println("ComputeImageServers line 128 ");
         if (computeImageServers != null) {
         }
         computeImageServers.validate("computeImageServers");
 
         if (Validation.hasErrors()) {
-            System.out.println("ComputeImageServers if validate errors " + Validation.errors());
-
             handleError(computeImageServers);
         }
         computeImageServers.save();
@@ -125,10 +125,11 @@ public class ComputeImageServers extends ViprResourceController {
     }
 
     private static void handleError(ComputeImageServerForm computeImageServers) {
+        params.remove("computeImageServers.password");
+        params.remove("computeImageServers.confirmPassword");
         params.flash();
         Validation.keep();
         if (computeImageServers.isNew()) {
-            System.out.println("ComputeImageServers handle errors " + Validation.errors());
             create();
         }
         else {
@@ -152,7 +153,6 @@ public class ComputeImageServers extends ViprResourceController {
 
         @MaxSize(128)
         @MinSize(2)
-        @Required
         public String name;
 
         @MaxSize(2048)
@@ -201,24 +201,17 @@ public class ComputeImageServers extends ViprResourceController {
             return StringUtils.isBlank(this.id);
         }
 
-        public boolean isCreate() {
-            return StringUtils.isBlank(this.id);
-        }
-
         public void validate(String fieldName) {
-            /*
-             * Validation.valid(fieldName, this);
-             * if (isCreate()) {
-             * Validation.required(fieldName + ".password", this.password);
-             * System.out.println("ComputeImageServers validate ip no this " + imageServerIp);
-             * Validation.required(fieldName + ".imageServerIp", this.imageServerIp);
-             * if (!HostNameOrIpAddressCheck.isValidHostNameOrIp(imageServerIp)) {
-             * System.out.println("ComputeImageServers not ip " + imageServerIp);
-             * Validation.addError(fieldName + ".imageServerIp",
-             * MessagesUtils.get("computeSystem.invalid.ipAddress"));
-             * }
-             * }
-             */
+
+            Validation.valid(fieldName, this);
+            if (isNew()) {
+                Validation.required(fieldName + ".password", this.password);
+                Validation.required(fieldName + ".imageServerIp", this.imageServerIp);
+                if (!HostNameOrIpAddressCheck.isValidHostNameOrIp(imageServerIp)) {
+                    Validation.addError(fieldName + ".imageServerIp",
+                            MessagesUtils.get("computeSystem.invalid.ipAddress"));
+                }
+            }
         }
 
         public URI save() {
@@ -243,13 +236,13 @@ public class ComputeImageServers extends ViprResourceController {
 
         private ComputeImageServerRestRep update() {
             ComputeImageServerUpdate updateParam = new ComputeImageServerUpdate();
-            ComputeImageServerRestRep originalCIS = ComputeImageServerUtils.getComputeImageServer(this.id);
 
             updateParam.setImageServerIp(this.imageServerIp);
             updateParam.setTftpbootDir(this.tftpBootDir);
             updateParam.setOsInstallTimeoutMs(this.osInstallTimeOut);
             updateParam.setImageServerUser(this.userName);
             updateParam.setImageServerSecondIp(this.osInstallNetworkAddress);
+            System.out.println("CIS update password " + this.password);
             if (this.password != null && this.password.length() > 0) {
                 updateParam.setImageServerPassword(this.password);
             }

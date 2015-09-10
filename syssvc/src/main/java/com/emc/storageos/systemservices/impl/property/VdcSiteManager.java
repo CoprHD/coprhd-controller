@@ -17,7 +17,6 @@ import com.emc.storageos.coordinator.client.service.NodeListener;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.util.VdcConfigUtil;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
-import com.emc.storageos.systemservices.exceptions.CoordinatorClientException;
 import com.emc.storageos.systemservices.exceptions.InvalidLockOwnerException;
 import com.emc.storageos.systemservices.impl.client.SysClientFactory;
 import com.emc.storageos.systemservices.impl.util.AbstractManager;
@@ -198,7 +197,7 @@ public class VdcSiteManager extends AbstractManager {
      */
     private boolean vdcPropertiesChanged() {
         long localVdcConfigVersion = localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION) == null ? 0 :
-                Integer.parseInt(localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION));
+                Long.parseLong(localVdcPropInfo.getProperty(VdcConfigUtil.VDC_CONFIG_VERSION));
         long targetVdcConfigVersion = targetVdcPropVersion.getVersion();
 
         return localVdcConfigVersion != targetVdcConfigVersion;

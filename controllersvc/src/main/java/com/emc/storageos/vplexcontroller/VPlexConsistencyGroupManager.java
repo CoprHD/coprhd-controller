@@ -428,6 +428,9 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
                         "UpdateConsistencyGroup: " + cg.getLabel());
             }
             
+            // Users could use updateConsistencyGroup operation to add backend CGs for ingested CGs.
+            // if that's the case, we will only add the backend CGs, but not add those virtual volumes to 
+            // the VPlex CG.
             boolean isIngestedCG = isAddingBackendCGForIngestedCG(cg, addVolumesList);
             // If necessary, create a step to update the local CGs.
             if (cg.getTypes().contains(Types.LOCAL.toString()) || isIngestedCG) {
@@ -646,10 +649,10 @@ public class VPlexConsistencyGroupManager extends AbstractConsistencyGroupManage
     }
     
     /**
-     * Check update consistency group operation is for adding back end consistency groups for ingested CG.
+     * Check if update consistency group operation is for adding back end consistency groups for ingested CG.
      * @param cg
      * @param addVolumesList
-     * @return
+     * @return true or false
      */
     private boolean isAddingBackendCGForIngestedCG(BlockConsistencyGroup cg, List<URI>addVolumesList) {
         boolean result = false;

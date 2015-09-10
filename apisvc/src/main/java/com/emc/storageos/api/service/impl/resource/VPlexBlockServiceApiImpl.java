@@ -2216,7 +2216,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
                 }
             }
         }
-        // If the CG is ingested, and we would like to back end CGs for those virtual volumes in the CG,
+        // If the CG is ingested, and we would like to add back end CGs for those virtual volumes in the CG,
         // all the virtual volumes in the CG have to be selected.
         verifyAddVolumesToIngestedCG(consistencyGroup, addVolumesList);
         Operation op = _dbClient.createTaskOpStatus(BlockConsistencyGroup.class, consistencyGroup.getId(),
@@ -3195,8 +3195,8 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
     }
     
     /**
-     * Verify the add volumes are valid for ingested consistency group. For ingested consistency group, the valid add volumes 
-     * are either all virtual volumes in the CG, or a new virtual volume
+     * Verify that the adding volumes are valid for ingested consistency group. For ingested consistency group, 
+     * the valid adding volumes are either all virtual volumes in the CG, or a new virtual volume not in the CG.
      * @param consistencyGroup
      * @param addVolumesList
      */

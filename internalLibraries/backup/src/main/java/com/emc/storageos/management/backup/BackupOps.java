@@ -620,7 +620,7 @@ public class BackupOps {
             lock.release();
             log.info("Release lock successful");
         } catch (Exception ignore) {
-            log.error("Release lock failed, {}", ignore.getMessage());
+            log.error("Release lock failed", ignore);
         }
     }
 

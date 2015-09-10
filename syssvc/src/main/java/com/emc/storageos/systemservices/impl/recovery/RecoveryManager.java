@@ -645,7 +645,7 @@ public class RecoveryManager implements Runnable {
             lock.release();
             log.info("Release recovery lock successful");
         } catch (Exception ignore) {
-            log.warn("Release recovery lock failed, {}", ignore.getMessage());
+            log.warn("Release recovery lock failed", ignore);
         }
     }
 

@@ -37,7 +37,6 @@ public class ObjectVirtualPoolForm extends VirtualPoolCommonForm<ObjectVirtualPo
     public void load(ObjectVirtualPoolRestRep virtualPool) {
         doLoad(virtualPool);
         ObjectVirtualPools vpools = getViprClient().objectVpools();
-        loadQuota(vpools);
         loadTenantACLs(vpools);
     }
 

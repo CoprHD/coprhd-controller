@@ -5085,7 +5085,6 @@ security_tests()
 ##### full_copy tests 
 #######################
 
-VMAX3_FC_NATIVEGUID=SYMMETRIX+000196700567
 VMAX3_FC_SMIS_DEV=VMAX3_FC_SMIS_DEV
 VMAX3_FC_PORTS_A="FA-1D FA-3D"
 VMAX3_FC_PORTS_B="FA-2D FA-4D"
@@ -5179,11 +5178,14 @@ full_copy_single_volume_vnx()
     echo "Listing all full copies for source volume"
     run volume full_copy_list $PROJECT/${full_copy_source}
 
-    echo "Restoring source from full copy"
+    echo "Resynchronizing full copy from source"
     run volume full_copy_resync $PROJECT/${full_copy_clone}
 
-    echo "Resynchronizing full copy from source"
+    echo "Restoring source from full copy"
     run volume full_copy_restore $PROJECT/${full_copy_clone}
+
+    echo "Detaching full copy..."
+    run volume detach ${PROJECT}/${full_copy_source} ${PROJECT}/${full_copy_clone}
 
     echo "Deactivating full copy volume"
     run volume delete $PROJECT/${full_copy_clone} --wait
@@ -5211,11 +5213,14 @@ full_copy_single_volume_vmax()
     echo "Listing all full copies for source volume"
     run volume full_copy_list $PROJECT/${full_copy_source}
 
-    echo "Restoring source from full copy"
+    echo "Resynchronizing full copy from source"
     run volume full_copy_resync $PROJECT/${full_copy_clone}
 
-    echo "Resynchronizing full copy from source"
+    echo "Restoring source from full copy"
     run volume full_copy_restore $PROJECT/${full_copy_clone}
+
+    echo "Detaching full copy..."
+    run volume detach ${PROJECT}/${full_copy_source} ${PROJECT}/${full_copy_clone}
 
     echo "Deactivating full copy volume"
     run volume delete $PROJECT/${full_copy_clone} --wait
@@ -5287,11 +5292,14 @@ full_copy_single_volume_vmax3()
     echo "Listing all full copies for source volume"
     run volume full_copy_list $PROJECT/${full_copy_source}
 
-    echo "Restoring source from full copy"
+    echo "Resynchronizing full copy from source"
     run volume full_copy_resync $PROJECT/${full_copy_clone}
 
-    echo "Resynchronizing full copy from source"
+    echo "Restoring source from full copy"
     run volume full_copy_restore $PROJECT/${full_copy_clone}
+
+    echo "Detaching full copy..."
+    run volume detach ${PROJECT}/${full_copy_source} ${PROJECT}/${full_copy_clone}
 
     echo "Deactivating full copy volume"
     run volume delete $PROJECT/${full_copy_clone} --wait

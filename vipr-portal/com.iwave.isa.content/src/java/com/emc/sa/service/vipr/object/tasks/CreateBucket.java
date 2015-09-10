@@ -3,40 +3,34 @@ package com.emc.sa.service.vipr.object.tasks;
 import java.net.URI;
 
 import com.emc.sa.service.vipr.tasks.WaitForTask;
-import com.emc.storageos.model.block.VolumeCreate;
-import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.object.BucketParam;
 import com.emc.storageos.model.object.BucketRestRep;
 import com.emc.vipr.client.Task;
 
 public class CreateBucket extends WaitForTask<BucketRestRep> {
-    private String name;
-    private URI projectId;
-    private URI vpoolId;
-    private Double softQuota;
-    private Double hardQuota;
-    private Double retention;
-    private URI namespace;
-    private URI tenant;
-    private URI owner;
-    
+    private final String name;
+    private final URI projectId;
+    private final URI vpoolId;
+    private final Double softQuota;
+    private final Double hardQuota;
+    private final Double retention;
+    private final String owner;
+
     public CreateBucket(String name, String projectId, String vpoolId, Double softQuota, Double hardQuota, Double retention,
-            String namespaceId, String tenantId, String ownerId) {
-        this(name, uri(projectId), uri(vpoolId), softQuota, hardQuota, retention, uri(namespaceId), uri(tenantId), uri(ownerId));
+            String ownerId) {
+        this(name, uri(projectId), uri(vpoolId), softQuota, hardQuota, retention, ownerId);
     }
 
     public CreateBucket(String name, URI projectId, URI vpoolId, Double softQuota, Double hardQuota, Double retention,
-            URI namespaceId, URI tenantId, URI ownerId) {
+            String ownerId) {
         this.name = name;
         this.projectId = projectId;
         this.vpoolId = vpoolId;
         this.softQuota = softQuota;
         this.hardQuota = hardQuota;
         this.retention = retention;
-        this.namespace = namespaceId;
-        this.tenant = tenantId;
         this.owner = ownerId;
-        //provideDetailArgs(name, size, vpoolId, varrayId, projectId);
+        // provideDetailArgs(name, size, vpoolId, varrayId, projectId);
     }
 
     @Override
@@ -47,7 +41,7 @@ public class CreateBucket extends WaitForTask<BucketRestRep> {
         create.setSoftQuota(softQuota.toString());
         create.setHardQuota(hardQuota.toString());
         create.setRetention(retention.toString());
-        create.setOwner(owner.toString());
+        create.setOwner(owner);
 
         return getClient().objectBuckets().create(create, projectId);
     }

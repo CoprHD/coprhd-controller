@@ -7,6 +7,7 @@ package com.emc.storageos.systemservices.impl;
 
 import com.emc.storageos.systemservices.impl.ipreconfig.IpReconfigManager;
 import com.emc.storageos.systemservices.impl.property.PropertyManager;
+import com.emc.storageos.systemservices.impl.property.VdcSiteManager;
 import com.emc.storageos.systemservices.impl.security.SecretsManager;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -32,6 +33,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
     private Thread _upgradeManagerThread = null;
     private Thread _secretsManagerThread = null;
     private Thread _propertyManagerThread = null;
+    private Thread _vdcManagerThread = null;
     private Thread _ipreconfigManagerThread = null;
     private int _timeout;
 
@@ -40,6 +42,9 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
 
     @Autowired
     private PropertyManager _propertyMgr;
+
+    @Autowired
+    private VdcSiteManager _vdcMgr;
 
     @Autowired
     private IpReconfigManager _ipreconfigMgr;
@@ -99,6 +104,12 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
         _propertyManagerThread.start();
     }
 
+    private void startVdcManager() {
+        _vdcManagerThread = new Thread(_vdcMgr);
+        _vdcManagerThread.setName("VdcManager");
+        _vdcManagerThread.start();
+    }
+
     private void startNewVersionCheck() {
         if (_coordinator.isControlNode()) {
             RemoteRepository.setCoordinator(_coordinator);
@@ -146,6 +157,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
             startUpgradeManager();
             startSecretsManager();
             startPropertyManager();
+            startVdcManager();
             startIpReconfigManager();
             _recoveryMgr.init();
             startSystemAudit(_dbClient);
@@ -160,6 +172,7 @@ public class SysSvcImpl extends AbstractSecuredWebServer implements SysSvc {
         _upgradeMgr.stop();
         _secretsMgr.stop();
         _propertyMgr.stop();
+        _vdcMgr.stop();
         stopNewVersionCheck();
         _server.stop();
     }

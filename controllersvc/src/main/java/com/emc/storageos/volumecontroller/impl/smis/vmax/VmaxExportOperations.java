@@ -46,7 +46,6 @@ import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
-import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
@@ -54,9 +53,9 @@ import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.Volume.PersonalityTypes;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
-import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.networkcontroller.impl.NetworkDeviceController;
@@ -227,6 +226,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
      * @param taskCompleter
      * @throws DeviceControllerException
      */
+    @Override
     public void createExportMask(StorageSystem storage,
             URI exportMaskURI,
             VolumeURIHLU[] volumeURIHLUs,
@@ -310,6 +310,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
         _log.info("{} createExportMask END...", storage.getSerialNumber());
     }
 
+    @Override
     public void deleteExportMask(StorageSystem storage,
             URI exportMaskURI,
             List<URI> volumeURIList,
@@ -648,6 +649,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
         }
     }
 
+    @Override
     public void addVolume(StorageSystem storage,
             URI exportMaskURI,
             VolumeURIHLU[] volumeURIHLUs,
@@ -1027,6 +1029,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
         return result;
     }
 
+    @Override
     public void removeVolume(StorageSystem storage,
             URI exportMaskURI,
             List<URI> volumeURIList,
@@ -1274,6 +1277,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
         }
     }
 
+    @Override
     public void addInitiator(StorageSystem storage, URI exportMaskURI,
             List<Initiator> initiatorList, List<URI> targetURIList, TaskCompleter taskCompleter) throws DeviceControllerException {
         _log.info("{} addInitiator START...", storage.getSerialNumber());
@@ -1354,6 +1358,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
         _log.info("{} addInitiator END...", storage == null ? null : storage.getSerialNumber());
     }
 
+    @Override
     public void removeInitiator(StorageSystem storage,
             URI exportMaskURI,
             List<Initiator> initiatorList,
@@ -1533,6 +1538,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
      *            considered a hit.
      * @return Map of port name to Set of ExportMask URIs
      */
+    @Override
     public Map<String, Set<URI>> findExportMasks(StorageSystem storage,
             List<String> initiatorNames,
             boolean mustHaveAllPorts) {
@@ -1568,10 +1574,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
 
                 List<String> matchingInitiators = new ArrayList<String>();
                 for (String port : initiatorNames) {
-                    String normalizedName = port;
-                    if (WWNUtility.isValidWWN(port)) {
-                        normalizedName = WWNUtility.getUpperWWNWithNoColons(port);
-                    }
+                    String normalizedName = Initiator.normalizePort(port);
                     if (initiatorPorts.contains(normalizedName)) {
                         matchingInitiators.add(normalizedName);
                     }
@@ -3869,6 +3872,7 @@ public class VmaxExportOperations implements ExportMaskOperations {
      * @param taskCompleter
      * @throws Exception the exception
      */
+    @Override
     public void updateStorageGroupPolicyAndLimits(StorageSystem storage, ExportMask exportMask,
             List<URI> volumeURIs, VirtualPool newVirtualPool, boolean rollback,
             TaskCompleter taskCompleter) throws Exception {

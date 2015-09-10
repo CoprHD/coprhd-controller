@@ -63,6 +63,10 @@
         {
           "image": "Service_Change_Virtual_Array.png",
           "baseService": "ChangeVolumeVirtualArray"
+        },
+        {
+          "image": "icon_consistency_group_add_volumes.png",
+          "baseService": "AddVolumesToConsistencyGroup"
         }
       ]
     },
@@ -130,6 +134,10 @@
         {
           "image": "icon_host_remove_snapshot.png",
           "baseService": "UnexportSnapshot"
+        },
+        {
+          "image": "Service_Add_Journal_Capacity.png",
+          "baseService": "AddJournalCapacity"
         }
       ]
     },

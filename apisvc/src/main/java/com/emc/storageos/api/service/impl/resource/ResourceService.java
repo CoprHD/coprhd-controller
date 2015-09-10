@@ -15,6 +15,8 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
+import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.security.authorization.PermissionsKey;
 import com.emc.storageos.security.geo.GeoDependencyChecker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,8 +29,6 @@ import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.*;
-import com.emc.storageos.db.client.model.DataObject;
-import com.emc.storageos.db.client.model.Project;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -44,6 +44,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.sun.jersey.api.NotFoundException;
+import org.springframework.util.CollectionUtils;
 
 /**
  * Base resource with common dependencies and convenience methods
@@ -462,5 +463,270 @@ public abstract class ResourceService {
             throw APIException.forbidden
                     .insufficientPermissionsForUser(getUserFromContext().getName());
         }
+    }
+
+    /**
+     * This function is to retrieve the name and id list of a class of objects.
+     *
+     * @param clazz the class objects to retrieved.
+     * @param nameField the name of the field of the class that will be displayed as
+     *            name in {@link NamedRelatedResourceRep}. Note this field should be a required
+     *            field because, objects for which this field is null will not be returned by
+     *            this function.
+     * @return a name and id list of a given class
+     */
+    protected <T extends DataObject> List<NamedElementQueryResultList.NamedElement> listDataObjects(Class<T> clazz,
+                                                                                                    String nameField) {
+        List<T> dataObjects = getDataObjects(clazz);
+        if(!CollectionUtils.isEmpty(dataObjects)) {
+            return getNamedElementsList(clazz, nameField, dataObjects);
+        } else {
+            return new ArrayList<NamedElementQueryResultList.NamedElement>();
+        }
+    }
+
+    /**
+     * This function is to get the name and id list of a class from the list of given objects.
+     *
+     * @param clazz the class objects to retrieved.
+     * @param nameField the name of the field of the class that will be displayed as
+     *            name in {@link NamedRelatedResourceRep}. Note this field should be a required
+     *            field because, objects for which this field is null will not be returned by
+     *            this function.
+     * @param dataObjects all the data objects of the class to which the name and id pair list
+     *                    is created.
+     * @return a name and id list of a given class.
+     */
+    protected  <T extends DataObject> List<NamedElementQueryResultList.NamedElement> getNamedElementsList(Class<T> clazz,
+                                                                                                          String nameField,
+                                                                                                          List<T> dataObjects) {
+        List<NamedElementQueryResultList.NamedElement> elements =
+                new ArrayList<NamedElementQueryResultList.NamedElement>(dataObjects.size());
+        for (T dataObject : dataObjects) {
+            Object name = DataObjectUtils.getPropertyValue(clazz, dataObject, nameField);
+            elements.add(NamedElementQueryResultList.NamedElement.createElement(
+                    dataObject.getId(), name == null ? "" : name.toString()));
+        }
+        return elements;
+    }
+
+    /**
+     * Filters the data objects with no configured acls from the given list of objects.
+     * From the filtered list, creates the name and id pair elements.
+     *
+     * @param clazz class objects to be filtered.
+     * @param nameField name field of the objects.
+     * @param dataObjects list of data objects to be filtered with no acls.
+     * @return a name and id list of a given class with no acls.
+     */
+    protected  <T extends DiscoveredComputeSystemWithAcls> List<NamedElementQueryResultList.NamedElement> getNamedElementsWithNoAcls(Class<T> clazz,
+                                                                                                                                     String nameField,
+                                                                                                                                     List<T> dataObjects) {
+        List<NamedElementQueryResultList.NamedElement> elements =
+                new ArrayList<NamedElementQueryResultList.NamedElement>(dataObjects.size());
+        for (T dataObject : dataObjects) {
+            if (CollectionUtils.isEmpty(dataObject.getAcls())) {
+                Object name = DataObjectUtils.getPropertyValue(clazz, dataObject, nameField);
+                elements.add(NamedElementQueryResultList.NamedElement.createElement(
+                        dataObject.getId(), name == null ? "" : name.toString()));
+            }
+        }
+        return elements;
+    }
+
+    /**
+     * Get the data object of a type.
+     *
+     * @param clazz of objects to be retrieved.
+     * @return list of all the objects of type clazz.
+     */
+    protected <T extends DataObject> List<T> getDataObjects(Class<T> clazz) {
+        @SuppressWarnings("deprecation")
+        List<URI> uris = _dbClient.queryByType(clazz, true);
+        List<T> dataObjects = null;
+        if (uris != null) {
+            dataObjects = _dbClient.queryObject(clazz, uris);
+        }
+        return dataObjects;
+    }
+
+    /**
+     * Retrieves the list of NamedElements of the data objects with acls
+     * and the list is filtered based on the tenant information.
+     *
+     * @param tenantId the URN of parent
+     * @param clzz the child class
+     * @param nameField the name of the field of the child class that will be displayed as
+     *            name in {@link NamedRelatedResourceRep}. Note this field should be a required
+     *            field because, objects for which this field is null will not be returned by
+     *            this function.
+     * @return a list of NamedElements filtered by tenant.
+     */
+    protected  <T extends DiscoveredComputeSystemWithAcls> List<NamedElementQueryResultList.NamedElement> listChildrenWithAcls (URI tenantId,
+                                                                                                                                Class<T> clzz,
+                                                                                                                                String nameField) {
+        List<T> dataObjects = getDiscoveredComputeObjects(tenantId, clzz);
+        List<NamedElementQueryResultList.NamedElement> elements = new ArrayList<NamedElementQueryResultList.NamedElement>(dataObjects.size());
+        for (T dataObject : dataObjects) {
+            Object name = DataObjectUtils.getPropertyValue(Vcenter.class, dataObject, nameField);
+            elements.add(NamedElementQueryResultList.NamedElement.createElement(
+                    dataObject.getId(), name == null ? "" : name.toString()));
+        }
+        return elements;
+    }
+
+    /**
+     * Retrieves the list of objects with acls based on the tenant information.
+     *
+     * @param tenantId to used to filter the objects.
+     * @param clzz class of objects.
+     * @return the filtered list of objects with acls.
+     */
+    protected  <T extends DiscoveredComputeSystemWithAcls> List<T> getDiscoveredComputeObjects(URI tenantId, Class<T> clzz) {
+        PermissionsKey permissionKey = new PermissionsKey(PermissionsKey.Type.TENANT, tenantId.toString());
+
+        URIQueryResultList resultURIs = new URIQueryResultList();
+        Constraint aclConstraint = ContainmentPermissionsConstraint.Factory.getDiscoveredObjsWithPermissionsConstraint(
+                permissionKey.toString(), Vcenter.class);
+        _dbClient.queryByConstraint(aclConstraint, resultURIs);
+        List<URI> uris = new ArrayList<URI>();
+        for (URI result : resultURIs) {
+            uris.add(result);
+        }
+
+        List<T> dataObjects = new ArrayList<T>();
+        if (uris != null && !uris.isEmpty()) {
+            dataObjects = _dbClient.queryObjectField(clzz, "label", uris);
+        }
+        return dataObjects;
+    }
+
+    /**
+     * Filters the named element list of abstract tenant resources
+     * like vCenterDataCenter and Cluster by its tenant.
+     *
+     * @param tenantId will be filtered based on this tenantId.
+     * @param elements List of named elements of all the active abstract tenant
+     *                 resources to be filtered based on the tenant.
+     * @return returns the filtered element list based on the tenant.
+     */
+    protected  <T extends AbstractTenantResource> List<NamedElementQueryResultList.NamedElement>
+    filterTenantResourcesByTenant(URI tenantId, Class<T> clazz,
+                                  List<NamedElementQueryResultList.NamedElement> elements) {
+        if (CollectionUtils.isEmpty(elements)) {
+            return elements;
+        }
+
+        //The the requested tenant is null or ALL, return all the vCenters.
+        if (NullColumnValueGetter.isNullURI(tenantId) ||
+                AbstractTenantResource.NO_TENANT_SELECTOR.equalsIgnoreCase(tenantId.toString())) {
+            return elements;
+        }
+
+        //If the filter tenantId is "NONE" modify the search tenantId to null.
+        if (AbstractDiscoveredTenantResource.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(tenantId.toString())) {
+            tenantId = NullColumnValueGetter.getNullURI();
+        }
+
+        Iterator<NamedElementQueryResultList.NamedElement> elementIterator = elements.iterator();
+        while (elementIterator.hasNext()) {
+            NamedElementQueryResultList.NamedElement element = elementIterator.next();
+            if (element == null) {
+                continue;
+            }
+
+            T dataCenter = _dbClient.queryObject(clazz, element.getId());
+            if (dataCenter == null) {
+                continue;
+            }
+
+            //The vCenters tenant
+            if (areEqual(tenantId, dataCenter.getTenant())) {
+                continue;
+            }
+            elementIterator.remove();
+        }
+
+        return elements;
+    }
+
+    /**
+     * Filters the named element list of abstract discovered tenant resources
+     * like vCenter and Host by its tenant.
+     *
+     * @param tenantId will be filtered based on this tenantId.
+     * @param elements List of named elements of all the active abstract discovered,
+     *                 tenant resources to be filtered based on the tenant.
+     * @return returns the filtered element list based on the tenant.
+     */
+    protected  <T extends AbstractDiscoveredTenantResource> List<NamedElementQueryResultList.NamedElement>
+    filterDiscoveredTenantResourcesByTenant(URI tenantId, Class<T> clazz,
+                                            List<NamedElementQueryResultList.NamedElement> elements) {
+        if (CollectionUtils.isEmpty(elements)) {
+            return elements;
+        }
+
+        //The the requested tenant is null or ALL, return all the vCenters.
+        if (NullColumnValueGetter.isNullURI(tenantId) ||
+                AbstractDiscoveredTenantResource.NO_TENANT_SELECTOR.equalsIgnoreCase(tenantId.toString())) {
+            return elements;
+        }
+
+        //If the filter tenantId is "NONE" modify the search tenantId to null.
+        if (AbstractDiscoveredTenantResource.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(tenantId.toString())) {
+            tenantId = NullColumnValueGetter.getNullURI();
+        }
+
+        Iterator<NamedElementQueryResultList.NamedElement> elementIterator = elements.iterator();
+        while (elementIterator.hasNext()) {
+            NamedElementQueryResultList.NamedElement element = elementIterator.next();
+            if (element == null) {
+                continue;
+            }
+
+            T dataCenter = _dbClient.queryObject(clazz, element.getId());
+            if (dataCenter == null) {
+                continue;
+            }
+
+            //The vCenters tenant
+            if (areEqual(tenantId, dataCenter.getTenant())) {
+                continue;
+            }
+            elementIterator.remove();
+        }
+
+        return elements;
+    }
+
+    /**
+     * Filters the named element list of abstract discovered tenant resources
+     * like vCenter and Host by its tenant.
+     *
+     * @param tenantId will be filtered based on this tenantId.
+     * @param clazz class of the resource to be filtered.
+     * @param nameField label field of the resource.
+     * @param linkField name of the parent link field.
+     * @return returns the filtered element list based on the tenant.
+     */
+    protected  <T extends DataObject> List<NamedElementQueryResultList.NamedElement>
+    filterTenantResourcesByTenant(URI tenantId, Class<T> clazz, String nameField, String linkField) {
+
+        List<NamedElementQueryResultList.NamedElement> elements;
+
+        //The the requested tenant is null or ALL, return all the vCenters.
+        if (NullColumnValueGetter.isNullURI(tenantId) ||
+                AbstractDiscoveredTenantResource.NO_TENANT_SELECTOR.equalsIgnoreCase(tenantId.toString())) {
+            elements = listDataObjects(clazz, nameField);
+            return elements;
+        }
+
+        //If the filter tenantId is "NONE" modify the search tenantId to null.
+        if (AbstractDiscoveredTenantResource.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(tenantId.toString())) {
+            tenantId = NullColumnValueGetter.getNullURI();
+        }
+
+        elements = listChildren(tenantId, clazz, nameField, linkField);
+        return elements;
     }
 }

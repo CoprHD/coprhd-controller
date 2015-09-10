@@ -125,6 +125,10 @@ class URIHelper(object):
     '''
     BLOCK_VPOOL_URIS_MAP = dict()
     URI_BLOCK_VPOOL_QUOTA = "/block/vpools/{0}/quota"
+    
+    
+    OBJECT_VPOOL_URIS_MAP = dict()
+    URI_OBJECT_VPOOL_QUOTA = "/object/vpools/{0}/quota"
 
     '''
     Datastore task APIs
@@ -210,6 +214,8 @@ class URIHelper(object):
             "block_vpool"] = self.BLOCK_VPOOL_URIS_MAP
         self.COMPONENT_TYPE_VS_URIS_MAP[
             "file_vpool"] = self.FILE_VPOOL_URIS_MAP
+        self.COMPONENT_TYPE_VS_URIS_MAP[
+            "object_vpool"] = self.OBJECT_VPOOL_URIS_MAP
         self.COMPONENT_TYPE_VS_URIS_MAP["datastore"] = self.DATASTORE_URIS_MAP
         self.COMPONENT_TYPE_VS_URIS_MAP[
             "host"] = self.HOST_URIS_MAP
@@ -307,6 +313,8 @@ class URIHelper(object):
         self.BLOCK_VPOOL_URIS_MAP["quota"] = self.URI_BLOCK_VPOOL_QUOTA
 
         self.FILE_VPOOL_URIS_MAP["quota"] = self.URI_FILE_VPOOL_QUOTA
+        
+        self.OBJECT_VPOOL_URIS_MAP["quota"] = self.URI_OBJECT_VPOOL_QUOTA
 
     def __fillStorageSystemMap(self):
         self.STORAGE_SYSTEM_URIS_MAP["tasks_list"] = self.URI_STORAGE_SYSTEM_TASKS

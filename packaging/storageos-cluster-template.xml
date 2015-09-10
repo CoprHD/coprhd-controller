@@ -202,6 +202,10 @@ ${include="storageos-cluster-properties.xml"}
         <FullVersion>${product_version}.${product_release}</FullVersion>
         <ProductUrl>http://www.emc.com/vipr</ProductUrl>
         <VendorUrl>http://www.emc.com</VendorUrl>
+        <Property ovf:key="node_id" ovf:type="string" ovf:userConfigurable="false" ovf:value="vipr${iter}">
+          <Label>Node ID</Label>
+          <Description>ID of ViPR Node</Description>
+        </Property>
       </ProductSection>
 
     </VirtualSystem>

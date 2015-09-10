@@ -1260,7 +1260,7 @@ def update_parser(subcommand_parsers, common_parser):
                                default='file',
                                dest='type',
                                metavar='<vpooltype>',
-                               choices=['file', 'block'])
+                               choices=['file', 'block' , 'object'])
     update_parser.add_argument('-description', '-desc',
                                help='Description of VPool',
                                dest='description',
@@ -1464,7 +1464,7 @@ def delete_parser(subcommand_parsers, common_parser):
                                default='file',
                                dest='type',
                                metavar='<vpooltype>',
-                               choices=['file', 'block'])
+                               choices=['file', 'block' , 'object'])
     delete_parser.set_defaults(func=vpool_delete)
 
 
@@ -1504,7 +1504,7 @@ def show_parser(subcommand_parsers, common_parser):
                              default='file',
                              dest='type',
                              metavar='<vpooltype>',
-                             choices=['file', 'block'])
+                             choices=['file', 'block' , 'object'])
     show_parser.add_argument('-xml',
                              dest='xml',
                              action='store_true',
@@ -1546,7 +1546,7 @@ def getpools_parser(subcommand_parsers, common_parser):
                                  default='file',
                                  dest='type',
                                  metavar='<vpooltype>',
-                                 choices=['file', 'block'])
+                                 choices=['file', 'block' ,'object'])
     getpools_parser.set_defaults(func=vpool_getpools)
 
 
@@ -1591,7 +1591,7 @@ def refreshpools_parser(subcommand_parsers, common_parser):
                                      default='file',
                                      dest='type',
                                      metavar='<vpooltype>',
-                                     choices=['file', 'block'])
+                                     choices=['file', 'block' , 'object'])
     refreshpools_parser.set_defaults(func=vpool_refreshpools)
 
 
@@ -1641,12 +1641,12 @@ def addpools_parser(subcommand_parsers, common_parser):
                                  default='file',
                                  dest='type',
                                  metavar='<vpooltype>',
-                                 choices=['file', 'block'])
+                                 choices=['file', 'block' , 'object'])
     mandatory_args.add_argument('-serialnumber', '-sn',
                                 help='Native GUID of Storage System',
                                 metavar='<serialnumber>',
                                 dest='serialnumber',
-                                required=True)
+                                required=False)
     mandatory_args.add_argument('-devicetype', '-dt',
                                 help='device type',
                                 dest='devicetype',
@@ -1748,7 +1748,7 @@ def allow_parser(subcommand_parsers, common_parser):
                               default='file',
                               dest='type',
                               metavar='<vpooltype>',
-                              choices=['file', 'block'])
+                              choices=['file', 'block' , 'object'])
     allow_parser.set_defaults(func=vpool_allow_tenant)
 
 
@@ -1788,7 +1788,7 @@ def disallow_parser(subcommand_parsers, common_parser):
                               default='file',
                               dest='type',
                               metavar='<vpooltype>',
-                              choices=['file', 'block'])
+                              choices=['file', 'block' , 'object'])
     allow_parser.set_defaults(func=vpool_remove_tenant)
 
 
@@ -1843,7 +1843,7 @@ def vpool_list(args):
         if(args.type):
             types = [args.type]
         else:
-            types = ['block', 'file']
+            types = ['block', 'file' , 'object']
 
         output = []
         for type in types:

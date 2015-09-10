@@ -64,6 +64,7 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
      * @return
      * @throws ControllerException
      */
+    @Override
     protected Controller lookupDeviceController(DiscoveredSystemObject device)
             throws ControllerException {
         if (device == null) {
@@ -101,15 +102,18 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
         queueTask(_dbClient, StorageSystem.class, _dispatcher, methodName, args);
     }
 
+    @Override
     public void createVolumes(URI storage, URI pool, List<URI> volumes, VirtualPoolCapabilityValuesWrapper capabilities, String opId)
             throws InternalException {
         blockRMI("createVolumes", storage, pool, volumes, capabilities, opId);
     }
 
+    @Override
     public void modifyVolumes(URI storage, URI pool, List<URI> volumes, String opId) throws InternalException {
         blockRMI("modifyVolumes", storage, pool, volumes, opId);
     }
 
+    @Override
     public void createMetaVolume(URI storage, URI pool, URI volume, VirtualPoolCapabilityValuesWrapper capabilities, String opId)
             throws InternalException {
         blockRMI("createMetaVolume", storage, pool, volume, capabilities, opId);
@@ -158,9 +162,9 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
-    public void createSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, String opId)
+    public void createSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId)
             throws InternalException {
-        blockRMI("createSnapshot", storage, snapshotList, createInactive, opId);
+        blockRMI("createSnapshot", storage, snapshotList, createInactive, readOnly, opId);
     }
 
     @Override
@@ -200,6 +204,11 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
+    public void resyncSnapshot(URI storage, URI volume, URI snapshot, Boolean updateOpStatus, String opId) throws InternalException {
+        blockRMI("resyncSnapshot", storage, volume, snapshot, updateOpStatus, opId);
+    }
+
+    @Override
     public void resyncFullCopy(URI storage, List<URI> clone, Boolean updateOpStatus, String opId)
             throws InternalException {
         blockRMI("resyncFullCopy", storage, clone, updateOpStatus, opId);
@@ -216,13 +225,13 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
-    public void createMirror(URI storage, URI mirror, Boolean createInactive, String opId) throws InternalException {
-        blockRMI("createMirror", storage, mirror, createInactive, opId);
+    public void createMirror(URI storage, List<URI> mirrorList, Boolean isCG, Boolean createInactive, String opId) throws InternalException {
+        blockRMI("createMirror", storage, mirrorList, createInactive, opId);
     }
 
     @Override
-    public void attachNativeContinuousCopies(URI storage, URI sourceVolume, String opId) throws InternalException {
-        blockRMI("attachNativeContinuousCopies", storage, sourceVolume, opId);
+    public void attachNativeContinuousCopies(URI storage, URI sourceVolume, List<URI> mirrorList, String opId) throws InternalException {
+        blockRMI("attachNativeContinuousCopies", storage, sourceVolume, mirrorList, opId);
     }
 
     @Override
@@ -254,23 +263,33 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
+    public void establishVolumeAndNativeContinuousCopyGroupRelation(URI storage, URI sourceVolume, URI mirror, String opId) throws InternalException {
+        blockRMI("establishVolumeAndNativeContinuousCopyGroupRelation", storage, sourceVolume, mirror, opId);
+    }
+
+    @Override
+    public void establishVolumeAndSnapshotGroupRelation(URI storage, URI sourceVolume, URI snapshot, String opId) throws InternalException {
+        blockRMI("establishVolumeAndSnapshotGroupRelation", storage, sourceVolume, snapshot, opId);
+    }
+
+    @Override
     public void resumeNativeContinuousCopies(URI storage, List<URI> mirrors, String opId) throws InternalException {
         blockRMI("resumeNativeContinuousCopies", storage, mirrors, opId);
     }
 
     @Override
-    public void detachMirror(URI storage, URI mirror, String opId) throws InternalException {
-        blockRMI("detachMirror", storage, mirror, opId);
+    public void detachMirror(URI storage, List<URI> mirrorList, Boolean deleteGroup, String opId) throws InternalException {
+        blockRMI("detachMirror", storage, mirrorList, deleteGroup, opId);
     }
 
     @Override
-    public void deleteMirror(URI storage, URI mirror, String opId) throws InternalException {
-        blockRMI("deleteMirror", storage, mirror, opId);
+    public void deleteMirror(URI storage, List<URI> mirrorList, String opId) throws InternalException {
+        blockRMI("deleteMirror", storage, mirrorList, opId);
     }
 
     @Override
-    public void deactivateMirror(URI storage, URI mirror, String opId) throws InternalException {
-        blockRMI("deactivateMirror", storage, mirror, opId);
+    public void deactivateMirror(URI storage, List<URI> mirrorList, String opId) throws InternalException {
+        blockRMI("deactivateMirror", storage, mirrorList, opId);
     }
 
     @Override
@@ -313,6 +332,11 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     @Override
     public void detachFullCopy(URI storage, List<URI> fullCopy, String opId) {
         blockRMI("detachFullCopy", storage, fullCopy, opId);
+    }
+
+    @Override
+    public void establishVolumeAndFullCopyGroupRelation(URI storage, URI sourceVolume, URI fullCopy, String opId) {
+        blockRMI("establishVolumeAndFullCopyGroupRelation", storage, sourceVolume, fullCopy, opId);
     }
 
     @Override

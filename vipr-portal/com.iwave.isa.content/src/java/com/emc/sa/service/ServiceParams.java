@@ -24,7 +24,7 @@ public interface ServiceParams {
     public String PROTOCOL = "protocol";
     public String MULTIPATH_POLICY = "multipathPolicy";
     public String STORAGE_IO_CONTROL = "storageIOControl";
-
+    
     public String WINDOWS_DOMAIN = "domain";
     public String VOLUME_NAME = "volumeName";
     public String SHARE_NAME = "shareName";
@@ -34,12 +34,15 @@ public interface ServiceParams {
 
     public String SHARE_COMMENT = "shareComment";
 
+    public String COPY_NAME = "copyName";
+
     public String PROJECT = "project";
     public String VIRTUAL_ARRAY = "virtualArray";
     public String VIRTUAL_POOL = "virtualPool";
     public String COMPUTE_VIRTUAL_POOL = "computeVirtualPool";
     public String NAME = "name";
     public String TYPE = "type";
+    public String STORAGE_TYPE = "storageType";
     public String VOLUMES = "volumes";
     public String DELETION_TYPE = "deletionType";
     public String STORAGE_SYSTEMS = "storageSystems";
@@ -58,6 +61,8 @@ public interface ServiceParams {
     public String CONSISTENCY_GROUP = "consistencyGroup";
     public String HLU = "hlu";
     public String COPIES = "copies";
+    public String INGESTION_METHOD = "ingestionMethod";
+    public String READ_ONLY = "readOnly";
 
     public String TARGET_VIRTUAL_POOL = "targetVirtualPool";
     public String TARGET_VIRTUAL_ARRAY = "targetVirtualArray";

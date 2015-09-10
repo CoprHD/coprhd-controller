@@ -15,6 +15,7 @@ public class SizeUtil {
     public static final String SIZE_MB = "MB";
     public static final String SIZE_GB = "GB";
     public static final String SIZE_TB = "TB";
+    public static final String SIZE_KB = "KB";
 
     public static Long translateSize(String size) {
         long sizeVal = 0;
@@ -54,6 +55,8 @@ public class SizeUtil {
             multiplier = 1024 * 1024 * 1024L;
         } else if (to.endsWith(SIZE_MB)) {
             multiplier = 1024 * 1024L;
+        } else if (to.endsWith(SIZE_KB)) {
+        	multiplier = 1024L;
         }
         Double d = Double.valueOf(size / (double) multiplier);
         long sizeVal = d.longValue();

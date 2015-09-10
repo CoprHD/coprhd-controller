@@ -16,14 +16,17 @@ from common import SOSError
 from tenant import Tenant
 from vcenterdatacenter import VcenterDatacenter
 from common import TableGenerator
+from project import Project
 
 
 class Bucket(object):
 
     '''
-    The class definition for operations on 'Cluster'.
+    The class definition for operations on 'Bucket'.
     '''
     #URI_BUCKET_CREATE = "/object/buckets"
+    URI_BUCKET_SHOW = '/object/buckets/{0}'
+    URI_BUCKET_DEACTIVATE = '/object/buckets/{0}/deactivate'
 
     def __init__(self, ipAddr, port):
         '''
@@ -34,17 +37,10 @@ class Bucket(object):
         self.__port = port
 
         '''
-        create cluster action
-        Parameters:
-            name      : Name of the bucket 
-            tenant    : name of tenant
-            datacenter: Name of datacenter
-            vcenter   : name of vcenter
-        Returns:
-            result of the action.
+        
         '''
 
-    def bucket_create(self, name, project, owner , namespace , varray,vpool , retention, softquota , hardquota):
+    def bucket_create(self, name, project, owner , varray,vpool , retention, softquota , hardquota):
         
         
         
@@ -71,8 +67,7 @@ class Bucket(object):
         if(owner):
             request["owner"] = owner
         
-        if(namespace):
-            request["namespace"] = namespace
+       
         
         if(retention):
             request["retention"] = retention
@@ -96,40 +91,51 @@ class Bucket(object):
             uri,
             body)
         o = common.json_decode(s)
+        return o
 
-    '''
-        list cluster action
-        Parameters:
-            tenant : name of tenant
-        Returns:
-            return cluster id list
-        '''
 
-    def cluster_list(self, tenant):
-        uri = Tenant(self.__ipAddr, self.__port).tenant_query(tenant)
+       
+    #Routine to delete Bucket 
+    
+    
+    def bucket_delete(self,tenant, project, name , forceDelete=False):
+        
+        
+        if(name):
+            
+            
+                                   
+            bucket_uri = self.get_bucket_uri(tenant, project, name)
+            
+             
+            
+            
+            
+            request = dict()
+            if(forceDelete):
+                
+                request ['forceDelete']  = False
+            body = json.dumps(request)
+            
+       
 
         (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "GET",
-            Cluster.URI_TENANTS_CLUSTERS, None)
-        o = common.json_decode(s)
-        return o['cluster']
+            self.__ipAddr, self.__port, "POST", Bucket.URI_BUCKET_DEACTIVATE.format(bucket_uri), body)
+        return
+    
+    
+    def bucket_show(self , tenant, project, name , xml=False):
 
-        '''
-        show cluster action
-        Parameters:
-            label : Name of the cluster
-            tenant : name of tenant
-            xml    : content-type
-        Returns:
-            cluster detail information
-        '''
-
-    def cluster_show(self, label, tenant=None, xml=False):
-
-        uri = self.cluster_query(label, tenant)
+        if(name):
+            
+            
+                                   
+            bucket_uri = self.get_bucket_uri(tenant, project, name)
+            
+            
 
         (s, h) = common.service_json_request(self.__ipAddr, self.__port, "GET",
-                                             Cluster.URI_CLUSTER.format(uri),
+                                             Bucket.URI_BUCKET_SHOW.format(bucket_uri),
                                              None, None, xml)
 
         if(not xml):
@@ -140,255 +146,85 @@ class Bucket(object):
         else:
             return s
         return o
-    '''
-        Makes a REST API call to retrieve details of a cluster based on UUID
-        Parameters:
-            uri : uri of the cluster
-        Returns:
-            cluster detail information
-        '''
-
-    def cluster_show_uri(self, uri):
-        (s, h) = common.service_json_request(self.__ipAddr, self.__port, "GET",
-                                             Cluster.URI_CLUSTER.format(uri),
-                                             None, None, False)
-        o = common.json_decode(s)
-        if(o['inactive'] is False):
-            return o
-
-        return None
-
-    '''
-        search cluster action
-        Parameters:
-            name : Name of the cluster
-        Returns:
-            return clusters list
-        '''
-
-    def cluster_search(self, name):
-
-        (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "GET",
-            Cluster.URI_CLUSTER_SEARCH_NAME.format(name), None)
-        o = common.json_decode(s)
-        return o['resource']
-
-        '''
-        query cluster action
-        Parameters:
-            name : Name of the cluster
-            tenant : name of tenant
-        Returns:
-            return cluster id or uri
-        '''
-    # default = None(provider tenant)
-
-    def cluster_query(self, name, tenant=None):
-
-        resources = self.cluster_search(name)
-        for resource in resources:
-            details = self.cluster_show_uri(resource['id'])
-            if (details is not None and details['name'] == name):
+    
+    
+    
+        
+    def get_bucket_uri(self, tenant, project, name):
+        
+        #if(name.startswith('urn:storageos:Bucket')):
+        #   return name
+        from project import Project
+        proj_obj = Project(self.__ipAddr, self.__port)
+        project_uri = proj_obj.project_query(tenant+"/"+project)
+        
+        
+        
+        resources = proj_obj.project_resource_show(tenant+"/"+project,xml=False)
+       
+        for resource in resources['project_resource']:
+            
+            if (resource is not None and resource['name'] == name):
+                
                 return resource['id']
-
+            
         raise SOSError(SOSError.NOT_FOUND_ERR,
-                       "cluster " + name + ": not found")
-
+                       "bucket  " + name + ": not found")
+    
+    
+    #routine for bucket update 
+    
+    def bucket_update(self, name, project, varray, softquota, hardquota, retention , tenant):
         '''
-        delete cluster action
+        update bucket with softquota , hardquota , retention
         Parameters:
-            name : Name of the cluster
-            tenant : name of tenant
-        Returns:
-            result of the action.
-        '''
-
-    def cluster_delete(self, name, tenant=None, detachstorage=False):
-
-        uri = self.cluster_query(name, tenant)
-
-        formaturi = self.URI_RESOURCE_DEACTIVATE.format(
-            Cluster.URI_CLUSTER.format(uri))
-
-        if(detachstorage):
-            formaturi = formaturi + "?detach-storage=true"
-
-        (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "POST", formaturi,
-            None)
-        return
-
-        '''
-        detach cluster action
-        Parameters:
-            name : Name of the cluster
-            tenant : name of tenant
-        Returns:
-            result of the action.
-        '''
-
-    def cluster_detach(self, name, tenant=None):
-
-        uri = self.cluster_query(name, tenant)
-
-        (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "POST",
-            Cluster.URI_CLUSTER_DETACH.format(uri),
-            None)
-
-        return
-
-    def cluster_update(self, name, tenant, datacenter, vcenter, label):
-        '''
-        update cluster with datacenter, label
-        Parameters:
-            name      : Name of the cluster
+            name      : Name of the bucket
             tenant    : name of tenant
-            datacenter: Name of datacenter
-            vcenter   : name of vcenter
-            label     : new name to existing cluster
+            
         Returns:
             result of the action.
         '''
+        from virtualarray import VirtualArray
+        varray_obj = VirtualArray(self.__ipAddr, self.__port)
+        varray_uri = varray_obj.varray_query(varray)
         parms = {}
         # new name
-        if(label):
-            parms['name'] = label
-
+        
         # datacenter
-        if(datacenter):
-            vdatacenterobj = VcenterDatacenter(self.__ipAddr, self.__port)
-            data_uri = vdatacenterobj.vcenterdatacenter_query(
-                datacenter, vcenter, tenant)
-            parms['vcenter_data_center'] = data_uri
+        if(varray):
+            parms['varray'] = varray_uri
+        
+        if(softquota):
+            parms['soft_quota'] = softquota
+            
+        if(hardquota):
+            parms['hard_quota'] = hardquota
+            
+        if(retention):
+            parms['retention'] = retention
+            
 
         # get the cluster uri
-        cluster_uri = self.cluster_query(name, tenant)
+        if(name):
+            bucket_uri = self.get_bucket_uri( tenant, project, name)
+            
+            
+
 
         body = json.dumps(parms)
         common.service_json_request(self.__ipAddr, self.__port, "PUT",
-                                    Cluster.URI_CLUSTER.format(cluster_uri),
+                                    Bucket.URI_BUCKET_SHOW.format(bucket_uri),
                                     body)
         return
+         
 
-    '''
-        get the uri of a datacenter
-        Parameters:
-            datacenter : Name of the datacenter
-            vcenter : name of vcenter
-
-        Returns:
-            uri of datacenter
-        '''
-
-    def get_datacenter_uri(self, datacenter, vcenter):
-        vdatacenterobj = VcenterDatacenter(self.__ipAddr, self.__port)
-        return vdatacenterobj.vcenterdatacenter_query(datacenter, vcenter)
-
-    def cluster_get_details_list(self, detailslst):
-        rsltlst = []
-        for item in detailslst:
-            detail = self.cluster_show_uri(item['id'])
-            if(detail):
-                rsltlst.append(self.cluster_show_uri(item['id']))
-
-        return rsltlst
-
-    def list_tasks(self, tenant_name, cluster_name=None, task_id=None):
-
-        uri = self.cluster_query(cluster_name, tenant_name)
-
-        if(cluster_name):
-            cluster = self.cluster_show_uri(uri)
-            if(cluster['name'] == cluster_name):
-                if(not task_id):
-                    return common.get_tasks_by_resourceuri(
-                        "cluster", cluster["id"],
-                        self.__ipAddr, self.__port)
-
-                else:
-                    res = common.get_task_by_resourceuri_and_taskId(
-                        "cluster", cluster["id"], task_id,
-                        self.__ipAddr, self.__port)
-                    if(res):
-                        return res
-            raise SOSError(
-                SOSError.NOT_FOUND_ERR,
-                "Cluster with name: " +
-                cluster_name +
-                " not found")
-
-    '''
-        get the list of hosts associated with Cluster '''
-
-    def cluster_get_hosts(self, label, tenantname):
-
-        '''
-        Makes a REST API call to retrieve details of a hosts
-        associated with cluster
-        '''
-
-        uri = self.cluster_query(label, tenantname)
-
-        (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "GET",
-            Cluster.URI_CLUSTER_HOSTS.format(uri),
-            None, None, False)
-
-        from host import Host
-        obj = Host(self.__ipAddr, self.__port)
-
-        o = common.json_decode(s)
-        hostsdtls = obj.show(o['host'])
-
-        return hostsdtls
-
-    def list_um_exportmasks(self, clusterName):
-
-        cluster_uri = self.cluster_query(clusterName, None)
-
-        (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "GET",
-            Cluster.URI_HOST_LIST_UM_EXPORT_MASKS.format(cluster_uri),
-            None)
-        if(not s):
-            return []
-        o = common.json_decode(s)
-        res = o["unmanaged_export_mask"]
-        return res
-
-    def list_um_volumes(self, clusterName):
-
-        cluster_uri = self.cluster_query(clusterName, None)
-
-        (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "GET",
-            Cluster.URI_HOST_LIST_UM_VOLUMES.format(cluster_uri),
-            None)
-        if(not s):
-            return []
-        o = common.json_decode(s)
-        res = o["unmanaged_volume"]
-        return res
-
-    def show_um_export_mask(self, export_mask_id):
-        (s, h) = common.service_json_request(
-            self.__ipAddr, self.__port, "GET",
-            Cluster.URI_UM_EXPORT_MASK.format(export_mask_id),
-            None)
-        if(not s):
-            return None
-        o = common.json_decode(s)
-        return o
-
-
+   
 # create command parser
 def create_parser(subcommand_parsers, common_parser):
 
     create_parser = subcommand_parsers.add_parser(
         'create',
-        description='ViPR Cluster Create CLI usage.',
+        description='ViPR Bucket Create CLI usage.',
         parents=[common_parser],
         conflict_handler='resolve',
         help='Create a Bucket')
@@ -398,7 +234,7 @@ def create_parser(subcommand_parsers, common_parser):
         '-name', '-n',
         metavar='<name>',
         dest='name',
-        help='name for the cluster',
+        help='name for the bucket',
         required=True)
     create_parser.add_argument('-project', '-pr',
                                metavar='<project>',
@@ -430,13 +266,6 @@ def create_parser(subcommand_parsers, common_parser):
                                help='ECS Owner',
                                dest='owner',
                                metavar='<retention>')
-    create_parser.add_argument('-namespace', '-nms',
-                               help='namespace',
-                               dest='namespace',
-                               metavar='<namespace>')
-    
-    
-
     create_parser.set_defaults(func=bucket_create)
 
 
@@ -447,7 +276,7 @@ def bucket_create(args):
             if(args.vpool is None or args.varray is None):
                 print ("Both vpool and varray details are required")
                 return
-        obj.bucket_create(args.name, args.project,args.owner , args.namespace ,
+        obj.bucket_create(args.name, args.project,args.owner,
                            args.varray, args.vpool,args.retention , args.softquota, args.hardquota)
     except SOSError as e:
         common.format_err_msg_and_raise("create", "bucket",
@@ -475,21 +304,30 @@ def delete_parser(subcommand_parsers, common_parser):
                                dest='tenant',
                                help='name of tenant',
                                default=None)
-    delete_parser.add_argument('-detachstorage', '-ds',
-                               dest='detachstorage',
-                               action='store_true',
-                               help='Detach storege before deactivation')
+    delete_parser.add_argument('-project', '-pr',
+                               dest='project',
+                               metavar='<project>',
+                               help='name of Project')
+    delete_parser.add_argument('-project', '-pr',
+                               dest='project',
+                               metavar='<project>',
+                               help='name of Project')
+    delete_parser.add_argument('-forceDelete', '-fd',
+                               dest='forcedelete',
+                               choices = ["true" , "false"],
+                               metavar='<forcedelete>',
+                               help='force Delete option ')
 
-    delete_parser.set_defaults(func=cluster_delete)
+    delete_parser.set_defaults(func=bucket_delete)
 
 
-def cluster_delete(args):
-    obj = Cluster(args.ip, args.port)
+def bucket_delete(args):
+    obj = Bucket(args.ip, args.port)
     try:
-        obj.cluster_delete(args.name, args.tenant, args.detachstorage)
+        obj.bucket_delete(args.tenant , args.project , args.name, args.forcedelete)
         return
     except SOSError as e:
-        common.format_err_msg_and_raise("delete", "cluster",
+        common.format_err_msg_and_raise("delete", "bucket",
                                         e.err_text, e.err_code)
 
 # show command parser
@@ -499,19 +337,24 @@ def show_parser(subcommand_parsers, common_parser):
 
     show_parser = subcommand_parsers.add_parser(
         'show',
-        description='ViPR Cluster Show CLI usage.',
+        description='ViPR Bucket Show CLI usage.',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Show a Cluster')
+        help='Show a Bucket')
     mandatory_args = show_parser.add_argument_group('mandatory arguments')
 
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<name>',
                                 dest='name',
-                                help='name of a the cluster',
+                                help='name of a the bucket',
                                 required=True)
+    show_parser.add_argument('-project', '-tn',
+                             metavar='<project>',
+                             dest='project',
+                             help='name of project',
+                             default=None)
     show_parser.add_argument('-tenant', '-tn',
-                             metavar='<tenantname>',
+                             metavar='<tenant>',
                              dest='tenant',
                              help='name of tenant',
                              default=None)
@@ -520,81 +363,22 @@ def show_parser(subcommand_parsers, common_parser):
                              action='store_true',
                              help='XML response')
 
-    show_parser.set_defaults(func=cluster_show)
+    show_parser.set_defaults(func=bucket_show)
 
 
-def cluster_show(args):
-    obj = Cluster(args.ip, args.port)
+def bucket_show(args):
+    obj = Bucket(args.ip, args.port)
     try:
-        res = obj.cluster_show(args.name, args.tenant, args.xml)
+        res = obj.bucket_show(args.tenant , args.project , args.name, args.xml)
 
         if(args.xml):
             return common.format_xml(res)
 
         return common.format_json_object(res)
     except SOSError as e:
-        common.format_err_msg_and_raise("show", "cluster",
+        common.format_err_msg_and_raise("show", "bucket",
                                         e.err_text, e.err_code)
 
-
-# list command parser
-def list_parser(subcommand_parsers, common_parser):
-
-    list_parser = subcommand_parsers.add_parser(
-        'list',
-        description='StorageOS Cluster List CLI usage.',
-        parents=[common_parser],
-        conflict_handler='resolve',
-        help='List of vcenters')
-    list_parser.add_argument('-verbose', '-v',
-                             action='store_true',
-                             help='List vcenters with details',
-                             dest='verbose')
-
-    list_parser.add_argument(
-        '-long', '-l',
-        action='store_true',
-        help='List cluster with more details in tabular form',
-        dest='long')
-
-    list_parser.add_argument('-tenant', '-tn',
-                             help='Name of Tenant',
-                             metavar='<tenant>',
-                             dest='tenant',
-                             default=None)
-
-    list_parser.set_defaults(func=cluster_list)
-
-
-def cluster_list(args):
-    obj = Cluster(args.ip, args.port)
-    try:
-        clusters = obj.cluster_list(args.tenant)
-        output = []
-        vdatacenterobj = VcenterDatacenter(args.ip, args.port)
-        for cluster_uri in clusters:
-            clobj = obj.cluster_show_uri(cluster_uri['id'])
-            if(clobj):
-                # add vdatacenter name to cluster object
-                if('vcenter_data_center' in clobj and args.long):
-                    vobj = vdatacenterobj.vcenterdatacenter_show_by_uri(
-                        clobj['vcenter_data_center']['id'])
-                    clobj['vcenter_data_center'] = vobj['name']
-                output.append(clobj)
-
-        if(len(output) > 0):
-            if(args.verbose):
-                return common.format_json_object(output)
-            elif(args.long):
-
-                TableGenerator(output,
-                               ['name', 'vcenter_data_center']).printTable()
-            else:
-                TableGenerator(output, ['name']).printTable()
-
-    except SOSError as e:
-        common.format_err_msg_and_raise("list", "cluster",
-                                        e.err_text, e.err_code)
 
 
 # update command parser
@@ -602,298 +386,64 @@ def update_parser(subcommand_parsers, common_parser):
 
     update_parser = subcommand_parsers.add_parser(
         'update',
-        description='ViPR Cluster Update CLI usage.',
+        description='ViPR Bucket Update CLI usage.',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Update a Cluster')
+        help='Update a Bucket')
     mandatory_args = update_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<name>',
                                 dest='name',
-                                help='name of a the cluster',
+                                help='name of a the bucket',
                                 required=True)
 
+    
+    update_parser.add_argument('-project', '-pr',
+                               metavar='<project>',
+                               dest='project',
+                               help='name of project ')
+    update_parser.add_argument('-varray', '-va',
+                               metavar='<varray>',
+                               dest='varray',
+                               help='varray')
+    update_parser.add_argument('-softquota', '-sfquota',
+                               help='softquota',
+                               dest='softquota',
+                               metavar='<softquota>')
+    update_parser.add_argument('-hardquota', '-hdquota',
+                               help='hardquota ',
+                               dest='hardquota',
+                               metavar='<hardquota>')
+    update_parser.add_argument('-retention', '-ret',
+                               help='retention',
+                               dest='retention',
+                               metavar='<retention>')
     update_parser.add_argument('-tenant', '-tn',
-                               metavar='<tenantname>',
+                               help='tenant',
                                dest='tenant',
-                               help='new name of tenant',
-                               default=None)
-    update_parser.add_argument('-datacenter', '-dc',
-                               metavar='<datacentername>',
-                               dest='datacenter',
-                               help='new name of datacenter')
-    update_parser.add_argument('-label', '-l',
-                               metavar='<label>',
-                               dest='label',
-                               help='new label for the cluster')
-    update_parser.add_argument('-vcenter', '-vc',
-                               help='new name of a vcenter',
-                               dest='vcenter',
-                               metavar='<vcentername>')
+                               metavar='<tenant>')
 
-    update_parser.set_defaults(func=cluster_update)
+    update_parser.set_defaults(func=bucket_update)
 
 
-def cluster_update(args):
-    obj = Cluster(args.ip, args.port)
+def bucket_update(args):
+    obj = Bucket(args.ip, args.port)
     try:
-        if(args.label is None and args.tenant is None and
-           args.datacenter is None and args.vcenter is None):
+        if(args.varray is None and args.project is None ):
             raise SOSError(
                 SOSError.CMD_LINE_ERR, sys.argv[0] + " " + sys.argv[1] +
-                " " + sys.argv[2] + ": error:" + "At least one of the"
-                " arguments :-tenant -label -vcenter -datacenter"
-                " should be provided to update the cluster")
+                " " + sys.argv[2] + ": error:" + "Enter Project and Varray")
 
-        if(args.datacenter or args.vcenter):
-            if(args.datacenter is None or args.vcenter is None):
-                raise SOSError(SOSError.CMD_LINE_ERR, sys.argv[0] + " " +
-                               sys.argv[1] + " " + sys.argv[2] + ": error:" +
-                               "For a vcenter associated cluster, both " +
-                               "vcenter and datacenter needs to be specified")
+        
 
-        obj.cluster_update(args.name, args.tenant, args.datacenter,
-                           args.vcenter, args.label)
+        obj.bucket_update(args.name, args.project, args.varray,args.
+                           args.softquota, args.hardquota , args.retention , args.tenant)
     except SOSError as e:
-        common.format_err_msg_and_raise("update", "cluster",
+        common.format_err_msg_and_raise("update", "bucket",
                                         e.err_text, e.err_code)
 
 
-def detach_parser(subcommand_parsers, common_parser):
 
-    detach_parser = subcommand_parsers.add_parser(
-        'detach',
-        description='ViPR Cluster Detach CLI usage.',
-        parents=[common_parser],
-        conflict_handler='resolve',
-        help='Detach a Cluster')
-    mandatory_args = detach_parser.add_argument_group('mandatory arguments')
-    mandatory_args.add_argument('-name', '-n',
-                                metavar='<name>',
-                                dest='name',
-                                help='name of a the cluster',
-                                required=True)
-    detach_parser.add_argument('-tenant', '-tn',
-                               metavar='<tenantname>',
-                               dest='tenant',
-                               help='name of tenant',
-                               default=None)
-    detach_parser.set_defaults(func=cluster_detach)
-
-
-def cluster_detach(args):
-    obj = Cluster(args.ip, args.port)
-    try:
-        obj.cluster_detach(args.name, args.tenant)
-    except SOSError as e:
-        common.format_err_msg_and_raise("detach", "cluster",
-                                        e.err_text, e.err_code)
-
-
-def task_parser(subcommand_parsers, common_parser):
-    # show command parser
-    task_parser = subcommand_parsers.add_parser(
-        'tasks',
-        description='ViPR cluster tasks  CLI usage.',
-        parents=[common_parser],
-        conflict_handler='resolve',
-        help='check tasks of a vcenter')
-
-    mandatory_args = task_parser.add_argument_group('mandatory arguments')
-
-    mandatory_args.add_argument('-name', '-n',
-                                metavar='<name>',
-                                dest='name',
-                                help='name of a the cluster',
-                                required=True)
-    task_parser.add_argument('-tenant', '-tn',
-                             metavar='<tenantname>',
-                             dest='tenant',
-                             help='name of tenant',
-                             default=None)
-
-    task_parser.add_argument('-id',
-                             dest='id',
-                             metavar='<id>',
-                             help='Task ID')
-
-    task_parser.add_argument('-v', '-verbose',
-                             dest='verbose',
-                             action="store_true",
-                             help='List all tasks')
-
-    task_parser.set_defaults(func=cluster_list_tasks)
-
-
-def cluster_list_tasks(args):
-    obj = Cluster(args.ip, args.port)
-
-    try:
-        if(not args.tenant):
-            args.tenant = ""
-        if(args.id):
-            res = obj.list_tasks(args.tenant, args.name, args.id)
-            if(res):
-                return common.format_json_object(res)
-        elif(args.name):
-            res = obj.list_tasks(args.tenant, args.name)
-            if(res and len(res) > 0):
-                if(args.verbose):
-                    return common.format_json_object(res)
-                else:
-                    from common import TableGenerator
-                    TableGenerator(res, ["module/id", "name",
-                                         "state"]).printTable()
-        else:
-            res = obj.list_tasks(args.tenant)
-            if(res and len(res) > 0):
-                if(not args.verbose):
-                    from common import TableGenerator
-                    TableGenerator(res, ["module/id", "name",
-                                         "state"]).printTable()
-                else:
-                    return common.format_json_object(res)
-
-    except SOSError as e:
-        common.format_err_msg_and_raise("get tasks list", "cluster",
-                                        e.err_text, e.err_code)
-
-
-def get_hosts_parser(subcommand_parsers, common_parser):
-    # get hosts command parser
-    get_hosts_parser = subcommand_parsers.add_parser(
-        'get-hosts',
-        description='ViPR Cluster get hosts CLI usage.',
-        parents=[common_parser],
-        conflict_handler='resolve',
-        help='Show the hosts of a cluster')
-
-    mandatory_args = get_hosts_parser.add_argument_group(
-        'mandatory arguments')
-    mandatory_args.add_argument('-name', '-n',
-                                help='name of cluster',
-                                dest='name',
-                                metavar='<clustername>',
-                                required=True)
-
-    get_hosts_parser.add_argument('-tenant', '-tn',
-                                  help='Name of Tenant',
-                                  metavar='<tenant>',
-                                  dest='tenant',
-                                  default=None)
-
-    get_hosts_parser.add_argument(
-        '-long', '-l',
-        action='store_true',
-        help='List hosts with more details in tabular form',
-        dest='long')
-
-    get_hosts_parser.add_argument('-verbose', '-v',
-                                  action='store_true',
-                                  help='List hosts with details',
-                                  dest='verbose')
-
-    get_hosts_parser.set_defaults(func=cluster_get_hosts)
-
-
-def cluster_get_hosts(args):
-    obj = Cluster(args.ip, args.port)
-    try:
-        res = obj.cluster_get_hosts(args.name, args.tenant)
-
-        if(len(res) > 0):
-            if(args.verbose):
-                return common.format_json_object(res)
-            elif(args.long):
-                from common import TableGenerator
-                TableGenerator(res, ['name', 'type',
-                               'job_discovery_status',
-                                     'job_metering_status']).printTable()
-            else:
-                from common import TableGenerator
-                TableGenerator(res, ['name']).printTable()
-
-    except SOSError as e:
-        common.format_err_msg_and_raise("get hosts", "cluster",
-                                        e.err_text, e.err_code)
-
-
-def list_exportmasks_parser(subcommand_parsers, common_parser):
-    list_exportmasks_parser = subcommand_parsers.add_parser(
-        'list-umexportmasks',
-        description='ViPR Cluster list-umexportmasks CLI usage',
-        parents=[common_parser],
-        conflict_handler='resolve',
-        help='Lists unmanaged export masks')
-    mandatory_args = list_exportmasks_parser.add_argument_group(
-        'mandatory arguments')
-    mandatory_args.add_argument('-name', '-n',
-                                metavar='<name>',
-                                dest='name',
-                                help='name of a the cluster',
-                                required=True)
-    list_exportmasks_parser.add_argument('-v', '-verbose',
-        dest='verbose',
-        action='store_true',
-        help='Lists unmanaged export masks with details')
-
-    list_exportmasks_parser.set_defaults(func=cluster_list_exportmasks)
-
-
-def cluster_list_exportmasks(args):
-    clusterObj = Cluster(args.ip, args.port)
-
-    try:
-        um_export_mask_list = clusterObj.list_um_exportmasks(args.name)
-
-        if(len(um_export_mask_list) > 0):
-
-            if(args.verbose):
-                return common.format_json_object(um_export_mask_list)
-            else:
-                TableGenerator(um_export_mask_list, ['id']).printTable()
-    except SOSError as e:
-        common.format_err_msg_and_raise("list-umexportmasks", "cluster",
-                                        e.err_text, e.err_code)
-
-
-def list_umvolumes_parser(subcommand_parsers, common_parser):
-    list_umvols_parser = subcommand_parsers.add_parser(
-        'list-umvolumes',
-        description='ViPR Cluster list-umvolumes CLI usage',
-        parents=[common_parser],
-        conflict_handler='resolve',
-        help='Lists unmanaged volumes')
-    mandatory_args = list_umvols_parser.add_argument_group(
-        'mandatory arguments')
-    mandatory_args.add_argument('-name', '-n',
-                                metavar='<name>',
-                                dest='name',
-                                help='name of a the cluster',
-                                required=True)
-    list_umvols_parser.add_argument('-v', '-verbose',
-        dest='verbose',
-        action='store_true',
-        help='Lists unmanaged volumes with details')
-
-    list_umvols_parser.set_defaults(func=cluster_list_umvolumes)
-
-
-def cluster_list_umvolumes(args):
-    clusterObj = Cluster(args.ip, args.port)
-
-    try:
-        um_volume_list = clusterObj.list_um_volumes(args.name)
-
-        if(len(um_volume_list) > 0):
-
-            if(args.verbose):
-                return common.format_json_object(um_volume_list)
-            else:
-                TableGenerator(um_volume_list, ['id']).printTable()
-    except SOSError as e:
-        common.format_err_msg_and_raise("list-umvolumes", "cluster",
-                                        e.err_text, e.err_code)
 
 
 def bucket_parser(parent_subparser, common_parser):
@@ -903,34 +453,17 @@ def bucket_parser(parent_subparser, common_parser):
         description='ViPR Bucket CLI usage',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Operations on Cluster')
+        help='Operations on Buckets')
     subcommand_parsers = parser.add_subparsers(
         help='Use one of sub commands(create, list, show, delete, update)')
 
     # create command parser
     create_parser(subcommand_parsers, common_parser)
+    
+    show_parser(subcommand_parsers, common_parser)
+    
+    delete_parser(subcommand_parsers, common_parser)
+    
+    update_parser(subcommand_parsers, common_parser)
 
-    # list command parser
-    #list_parser(subcommand_parsers, common_parser)
-
-    # show command parser
-    #show_parser(subcommand_parsers, common_parser)
-
-    # delete command parser
-    #delete_parser(subcommand_parsers, common_parser)
-
-    # update command parser
-    #update_parser(subcommand_parsers, common_parser)
-
-    # detach  command parser
-    #detach_parser(subcommand_parsers, common_parser)
-
-    # task command parser
-    #task_parser(subcommand_parsers, common_parser)
-
-    # list hosts  command parser
-    #get_hosts_parser(subcommand_parsers, common_parser)
-
-    #list_exportmasks_parser(subcommand_parsers, common_parser)
-
-    #list_umvolumes_parser(subcommand_parsers, common_parser)
+    

@@ -8,11 +8,11 @@
         <property name="id" value="controller-${node_index}"/>
         <property name="endpointMap">
             <map>
-                <entry key="FileController"  value="rmi://${node_name}:10099/FileController"/>
-                <entry key="BlockController" value="rmi://${node_name}:10099/BlockController"/>
+                <entry key="FileController"  value="rmi://${node_id}:10099/FileController"/>
+                <entry key="BlockController" value="rmi://${node_id}:10099/BlockController"/>
                 <entry key="BlockExportController"
-                       value="rmi://${node_name}:10099/BlockExportController"/>
-                <entry key="BlockOrchestrationController" value="rmi://${node_name}:10099/BlockOrchestrationController"/>
+                       value="rmi://${node_id}:10099/BlockExportController"/>
+                <entry key="BlockOrchestrationController" value="rmi://${node_id}:10099/BlockOrchestrationController"/>
                 <entry key="ComputeSystemController" value="rmi://localhost:10099/ComputeSystemController"/>
                 <entry key="ObjectController" value="rmi://${node_name}:10099/ObjectController"/>
             </map>
@@ -43,6 +43,7 @@
                 <value>host</value>
                 <value>vcenter</value>
                 <value>scaleio</value>
+                <value>scaleioapi</value>
                 <value>xtremio</value>
                 <value>ecs</value>
             </set>

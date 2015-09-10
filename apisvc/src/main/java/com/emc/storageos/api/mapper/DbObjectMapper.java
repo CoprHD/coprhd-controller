@@ -4,13 +4,39 @@
  */
 package com.emc.storageos.api.mapper;
 
-import com.emc.storageos.api.service.impl.response.*;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.List;
+import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.emc.storageos.api.service.impl.response.ResourceTypeMapping;
+import com.emc.storageos.api.service.impl.response.RestLinkFactory;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
-import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
+import com.emc.storageos.db.client.model.CustomConfig;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredSystemObject;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.ScopedLabel;
+import com.emc.storageos.db.client.model.StringMap;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.TenantResource;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.db.common.VdcUtil;
-import com.emc.storageos.model.*;
+import com.emc.storageos.model.DataObjectRestRep;
+import com.emc.storageos.model.DiscoveredDataObjectRestRep;
+import com.emc.storageos.model.DiscoveredSystemObjectRestRep;
+import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.RelatedResourceRep;
+import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.RestLinkRep;
+import com.emc.storageos.model.TypedRelatedResourceRep;
 import com.emc.storageos.model.customconfig.CustomConfigRestRep;
 import com.emc.storageos.model.customconfig.RelatedConfigTypeRep;
 import com.emc.storageos.model.customconfig.ScopeParam;
@@ -19,13 +45,6 @@ import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.tenant.TenantOrgRestRep;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.google.common.collect.Lists;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.List;
-import java.util.Map;
 
 public class DbObjectMapper {
     private static final Logger _log = LoggerFactory.getLogger(DbObjectMapper.class);
@@ -170,6 +189,10 @@ public class DbObjectMapper {
             to.setTenant(toRelatedResource(ResourceTypeEnum.TENANT, from.getTenantOrg().getURI()));
         }
         to.setOwner(from.getOwner());
+        if (from.getAssignedVNasServers() != null && !from.getAssignedVNasServers().isEmpty()) {
+            to.setAssignedVNasServers(from.getAssignedVNasServers());
+        }
+
         return to;
     }
 

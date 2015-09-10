@@ -22,6 +22,7 @@ public class SiteAddParam {
     private String softwareVersion;
     private String dbSchemaVersion;
     private boolean freshInstallation;
+    private String secretKey;
 
     @XmlElement(name = "uuid")
     public String getUuid() {
@@ -93,6 +94,15 @@ public class SiteAddParam {
 
     public void setFreshInstallation(boolean freshInstallation) {
         this.freshInstallation = freshInstallation;
+    }
+
+    @XmlElement(name = "secretKey")
+    public String getSecretKey() {
+        return secretKey;
+    }
+
+    public void setSecretKey(String secretKey) {
+        this.secretKey = secretKey;
     }
 
     @Override

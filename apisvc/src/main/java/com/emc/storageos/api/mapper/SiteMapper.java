@@ -13,13 +13,21 @@ public class SiteMapper {
             return null;
         }
         SiteRestRep to = new SiteRestRep();
+        map(from, to);
+        return to;
+    }
+    
+    public void map(Site from, SiteRestRep to) {
+        if (from == null) {
+        }
+        
         mapDataObjectFields(from, to);
         to.setUuid(from.getUuid());
         to.setName(from.getName());
         to.setVip(from.getVip());
         to.setHostIPv4AddressMap(from.getHostIPv4AddressMap());
         to.setHostIPv6AddressMap(from.getHostIPv6AddressMap());
-        return to;
+        to.setSecretKey(from.getSecretKey());
     }
 
     protected void mapDataObjectFields(Site from, SiteRestRep to) {

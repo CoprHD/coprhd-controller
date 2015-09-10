@@ -43,6 +43,7 @@ import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.model.dr.SiteAddParam;
+import com.emc.storageos.model.dr.SiteConfigRestRep;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
@@ -65,19 +66,31 @@ public class DisasterRecoveryService extends TaggedResource {
         siteMapper = new SiteMapper();
     }
 
+    /**
+     * Attach one fresh install site to this primary as standby
+     * @param param site detail information
+     * @return return site response information
+     */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public SiteRestRep addStandby(SiteAddParam param) {
+    public SiteRestRep addStandby(SiteAddParam siteParam) {
         log.info("Begin to add standby site");
-
+        
+        if (log.isDebugEnabled()) {
+            log.debug(siteParam.toString());
+        }
+            
+        this.precheckForStandbyAttach(siteParam);
+        
         Site standbySite = new Site();
         standbySite.setId(URIUtil.createId(Site.class));
-        standbySite.setUuid(param.getUuid());
-        standbySite.setName(param.getName());
-        standbySite.setVip(param.getVip());
-        standbySite.getHostIPv4AddressMap().putAll(new StringMap(param.getHostIPv4AddressMap()));
-        standbySite.getHostIPv6AddressMap().putAll(new StringMap(param.getHostIPv6AddressMap()));
+        standbySite.setUuid(siteParam.getUuid());
+        standbySite.setName(siteParam.getName());
+        standbySite.setVip(siteParam.getVip());
+        standbySite.getHostIPv4AddressMap().putAll(new StringMap(siteParam.getHostIPv4AddressMap()));
+        standbySite.getHostIPv6AddressMap().putAll(new StringMap(siteParam.getHostIPv6AddressMap()));
+        standbySite.setSecretKey(siteParam.getSecretKey());
 
         if (log.isDebugEnabled()) {
             log.debug(standbySite.toString());
@@ -91,12 +104,17 @@ public class DisasterRecoveryService extends TaggedResource {
         
         log.info("Update VCD to persist new standby site ID");
         _dbClient.persistObject(vdc);
+        
+        //TODO post to standby to reconfig
+        
+        //TODO reconfig this primary site itself
 
         return siteMapper.map(standbySite);
     }
 
     /**
      * Get all sites including standby and primary
+     * @return site list contains all sites with detail information
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -122,7 +140,7 @@ public class DisasterRecoveryService extends TaggedResource {
     /**
      * Get specified site according site ID
      * @param id site ID
-     * @return
+     * @return site response with detail information
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
@@ -179,7 +197,7 @@ public class DisasterRecoveryService extends TaggedResource {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/standby/config")
-    public SiteRestRep getStandbyConfig() {
+    public SiteConfigRestRep getStandbyConfig() {
         log.info("Begin to get standby config");
         String siteId = this.coordinator.getSiteId();
         VirtualDataCenter vdc = queryLocalVDC();
@@ -193,22 +211,23 @@ public class DisasterRecoveryService extends TaggedResource {
         localSite.getHostIPv6AddressMap().putAll(vdc.getHostIPv6AddressesMap());
         localSite.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
         
-        SiteRestRep siteRestRep = siteMapper.map(localSite);
+        SiteConfigRestRep siteConfigRestRep = new SiteConfigRestRep(); 
+        siteMapper.map(localSite, siteConfigRestRep);
         
-        siteRestRep.setDbSchemaVersion(coordinator.getCurrentDbSchemaVersion());
-        siteRestRep.setFreshInstallation(isFreshInstallation());
+        siteConfigRestRep.setDbSchemaVersion(coordinator.getCurrentDbSchemaVersion());
+        siteConfigRestRep.setFreshInstallation(isFreshInstallation());
         
         try {
-            siteRestRep.setSoftwareVersion(coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion().toString());
+            siteConfigRestRep.setSoftwareVersion(coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion().toString());
         } catch (Exception e) {
             log.error("Fail to get software version {}", e);
         }
         
-        log.info("localSite: {}", localSite);
-        return siteRestRep;
+        log.info("Return result: {}", siteConfigRestRep);
+        return siteConfigRestRep;
     }
     
-    @POST()
+    @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/standby/config")

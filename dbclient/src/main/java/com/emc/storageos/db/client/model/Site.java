@@ -88,8 +88,6 @@ public class Site extends DataObject {
         builder.append(name);
         builder.append(", vip=");
         builder.append(vip);
-        builder.append(", secretKey=");
-        builder.append(secretKey);
         builder.append(", hostIPv4AddressMap=");
         builder.append(hostIPv4AddressMap);
         builder.append(", hostIPv6AddressMap=");

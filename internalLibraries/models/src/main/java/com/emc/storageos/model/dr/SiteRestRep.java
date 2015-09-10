@@ -22,9 +22,7 @@ public class SiteRestRep extends DataObjectRestRep {
     private String vip;
     private Map<String, String> hostIPv4AddressMap;
     private Map<String, String> hostIPv6AddressMap;
-    private String softwareVersion;
-    private String dbSchemaVersion;
-    private boolean freshInstallation;
+    private String secretKey;
 
     @XmlElement(name = "uuid")
     public String getUuid() {
@@ -70,32 +68,14 @@ public class SiteRestRep extends DataObjectRestRep {
     public void setHostIPv6AddressMap(Map<String, String> hostIPv6AddressMap) {
         this.hostIPv6AddressMap = hostIPv6AddressMap;
     }
-
-    @XmlElement(name = "softwareVersion")
-    public String getSoftwareVersion() {
-        return softwareVersion;
+    
+    @XmlElement(name = "secretKey")
+    public String getSecretKey() {
+        return secretKey;
     }
 
-    public void setSoftwareVersion(String softwareVersion) {
-        this.softwareVersion = softwareVersion;
-    }
-
-    @XmlElement(name = "dbSchemaVersion")
-    public String getDbSchemaVersion() {
-        return dbSchemaVersion;
-    }
-
-    public void setDbSchemaVersion(String dbSchemaVersion) {
-        this.dbSchemaVersion = dbSchemaVersion;
-    }
-
-    @XmlElement(name = "freshInstallation")
-    public boolean isFreshInstallation() {
-        return freshInstallation;
-    }
-
-    public void setFreshInstallation(boolean freshInstallation) {
-        this.freshInstallation = freshInstallation;
+    public void setSecretKey(String secretKey) {
+        this.secretKey = secretKey;
     }
 
     @Override
@@ -111,12 +91,6 @@ public class SiteRestRep extends DataObjectRestRep {
         builder.append(hostIPv4AddressMap);
         builder.append(", hostIPv6AddressMap=");
         builder.append(hostIPv6AddressMap);
-        builder.append(", softwareVersion=");
-        builder.append(softwareVersion);
-        builder.append(", dbSchemaVersion=");
-        builder.append(dbSchemaVersion);
-        builder.append(", freshInstallation=");
-        builder.append(freshInstallation);
         builder.append("]");
         return builder.toString();
     }

@@ -181,17 +181,17 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
      * @param portWwnToClusterMap
      * @return
      */
-    public Method validateExportMaskMethod(URI varrayURI,
+    public Method updateZoningMapAndValidateExportMaskMethod(URI varrayURI,
             Map<URI, List<StoragePort>> initiatorPortMap, URI exportMaskURI,
             Map<String, Set<String>> directorToInitiatorIds, Map<String, Initiator> idToInitiatorMap,
-            Map<String, String> portWwnToClusterMap) {
-        return new Workflow.Method("validateExportMask",
+            Map<String, String> portWwnToClusterMap, StorageSystem vplex, StorageSystem array, String clusterId) {
+        return new Workflow.Method("updateZoningMapAndvalidateExportMask",
                 varrayURI,
                 initiatorPortMap,
                 exportMaskURI,
                 directorToInitiatorIds,
                 idToInitiatorMap,
-                portWwnToClusterMap);
+                portWwnToClusterMap, vplex, array, clusterId);
     }
     
     /**
@@ -211,10 +211,11 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
      * @param dbClient
      * @param portWwnToClusterMap
      */
-    public void validateExportMask(URI varrayURI,
+    public void updateZoningMapAndvalidateExportMask(URI varrayURI,
             Map<URI, List<StoragePort>> initiatorPortMap, URI exportMaskURI,
             Map<String, Set<String>> directorToInitiatorIds, Map<String, Initiator> idToInitiatorMap,
-            Map<String, String> portWwnToClusterMap, String stepId) {
+            Map<String, String> portWwnToClusterMap, StorageSystem vplex,
+            StorageSystem array, String clusterId, String stepId) {
         
         try {
             WorkflowStepCompleter.stepExecuting(stepId);
@@ -224,8 +225,16 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             // First step would be to update the zoning map based on the connectivity
             updateZoningMap(initiatorPortMap, exportMask);
             
-            VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI, initiatorPortMap, exportMask, null, directorToInitiatorIds,
+            boolean passed = VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI, initiatorPortMap, exportMask, null, directorToInitiatorIds,
                     idToInitiatorMap, _dbClient, portWwnToClusterMap);
+            
+            if(!passed) {
+                _log.error("Export Mask is not suitable for VPLEX to backend storage system");
+                WorkflowStepCompleter.stepFailed(stepId, VPlexApiException.exceptions.couldNotFindValidArrayExportMask(
+                        vplex.getNativeGuid(), array.getNativeGuid(), clusterId));                
+                throw VPlexApiException.exceptions.couldNotFindValidArrayExportMask(
+                        vplex.getNativeGuid(), array.getNativeGuid(), clusterId);
+            }
             
             WorkflowStepCompleter.stepSucceded(stepId);
             

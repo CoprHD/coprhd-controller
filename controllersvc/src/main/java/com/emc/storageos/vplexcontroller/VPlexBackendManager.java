@@ -4,6 +4,19 @@
  */
 package com.emc.storageos.vplexcontroller;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
@@ -33,8 +46,8 @@ import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.block.AbstractDefaultMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
-import com.emc.storageos.volumecontroller.impl.block.VPlexBackEndOrchestratorUtil;
 import com.emc.storageos.volumecontroller.impl.block.ExportMaskPlacementDescriptor;
+import com.emc.storageos.volumecontroller.impl.block.VPlexBackEndOrchestratorUtil;
 import com.emc.storageos.volumecontroller.impl.block.VPlexHDSMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VPlexVmaxMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.VPlexVnxMaskingOrchestrator;
@@ -50,18 +63,6 @@ import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssignerFactory;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.workflow.Workflow;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 
 public class VPlexBackendManager {
     private DbClient _dbClient;
@@ -80,7 +81,7 @@ public class VPlexBackendManager {
 
     private static final String ZONING_STEP = "zoning";
     private static final String EXPORT_STEP = AbstractDefaultMaskingOrchestrator.EXPORT_GROUP_MASKING_TASK;
-    private static final String REVALIDATE_MASK = "revalidate-mask";
+    private static final String REVALIDATE_MASK = "update-zoning-and-revalidate-mask";
 
     // Initiator id key to Initiator object
     private Map<String, Initiator> _idToInitiatorMap = new HashMap<String, Initiator>();
@@ -815,16 +816,17 @@ public class VPlexBackendManager {
                 previousStepId, array.getId(), array.getSystemType(), orca.getClass(),
                 updateMaskMethod, rollbackMaskMethod, maskStepId);
         
-        // For OpenStack - Additional step of validating the export mask is needed
+        // For OpenStack - Additional step of update zoning and validating the export mask is needed
         // This is required as the export mask gets updated by reading the cinder response.
         if(isOpenStack) {
             
-            // START - validateExportMask Step            
-            Workflow.Method validateMaskMethod = ((VplexCinderMaskingOrchestrator) orca).validateExportMaskMethod(varrayURI,
-                    _initiatorPortMap, exportMask.getId(), _directorToInitiatorIds, _idToInitiatorMap, _portWwnToClusterMap);
-            workflow.createStep(REVALIDATE_MASK, "revalidateExportMask: " + exportMask.getMaskName(),
-                    maskStepId, array.getId(), array.getSystemType(), orca.getClass(), validateMaskMethod, null, reValidateExportMaskStep);
-            // END - validateExportMask Step
+            // START - updateZoningMapAndValidateExportMask Step            
+            Workflow.Method updatezoningAndvalidateMaskMethod = ((VplexCinderMaskingOrchestrator) orca).updateZoningMapAndValidateExportMaskMethod(varrayURI,
+                    _initiatorPortMap, exportMask.getId(), _directorToInitiatorIds, _idToInitiatorMap, _portWwnToClusterMap,
+                    vplex, array, _cluster);
+            workflow.createStep(REVALIDATE_MASK, "updatezoningAndrevalidateExportMask: " + exportMask.getMaskName(),
+                    maskStepId, array.getId(), array.getSystemType(), orca.getClass(), updatezoningAndvalidateMaskMethod, rollbackMaskMethod, reValidateExportMaskStep);
+            // END - updateZoningMapAndValidateExportMask Step
 
         }
         

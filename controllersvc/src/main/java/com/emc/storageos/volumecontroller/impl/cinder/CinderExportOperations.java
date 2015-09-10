@@ -815,6 +815,7 @@ public class CinderExportOperations implements ExportMaskOperations {
         for (URI nwUri : networkUriSet) {
             List<StoragePort> ports = networkUriVsStoragePorts.get(nwUri);
             for (StoragePort port : ports) {
+                log.info("Varray Tagged Port is "+port.getPortNetworkId());
                 String wwnNoColon = port.getPortNetworkId().replaceAll(CinderConstants.COLON, "");
                 varrayTaggedStoragePortWWNs.put(wwnNoColon, port.getId());
             }

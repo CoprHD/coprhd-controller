@@ -14,7 +14,7 @@
     },
 
     consistencyGroup:{
-      type:"assetType.vipr.consistencyGroupByProject"
+      type:"assetType.vipr.consistencyGroupByProjectAndType"
     },
     
     snapshots:{

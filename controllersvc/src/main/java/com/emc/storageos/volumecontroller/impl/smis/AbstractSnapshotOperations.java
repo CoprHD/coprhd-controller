@@ -12,6 +12,7 @@ import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.cim.CIMProperty;
 
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -229,6 +230,11 @@ public abstract class AbstractSnapshotOperations implements SnapshotOperations {
         // functionality
     }
 
+    @Override
+    public void establishVolumeSnapshotGroupRelation(StorageSystem storage, URI sourceVolume,
+            URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
     @Override
     public void resyncSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();

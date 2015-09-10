@@ -30,6 +30,7 @@ import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.HostInterface.Protocol;
@@ -47,9 +48,11 @@ import com.emc.storageos.db.client.util.CommonTransformerFunctions;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.client.util.StringMapUtil;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.google.common.collect.Collections2;
+import com.google.common.base.Joiner;
 import com.google.common.collect.TreeMultimap;
 
 public class ExportUtils {
@@ -622,7 +625,6 @@ public class ExportUtils {
      * @param exportMask The reference to exportMask
      * @param assignments New assignments Map of initiator to storagePorts that will be updated in the zoning map
      * @param exportMasksToUpdateOnDeviceWithStoragePorts OUT param -- Map of ExportMask to new Storage ports
-     * 
      * @return returns an updated exportMask
      */
     public static ExportMask updateZoningMap(DbClient dbClient, ExportMask exportMask, Map<URI, List<URI>> assignments,
@@ -1115,6 +1117,123 @@ public class ExportUtils {
         }
 
         dbClient.updateAndReindexObject(updatedObjects);
+    }
+
+    /**
+     * Find all the ports in a storage system that can be assigned in a given virtual array. These are
+     * registered ports that are assigned to the virtual array, in good discovery and operational status.
+     * 
+     * @param dbClient an instance of {@link DbClient}
+     * @param storageSystemURI the URI of the storage system
+     * @param varrayURI the virtual array
+     * @return a list of storage ports that are in good operational status and assigned to the virtual array
+     */
+    public static List<StoragePort> getStorageSystemAssignablePorts(DbClient dbClient, URI storageSystemURI, URI varrayURI) {
+        URIQueryResultList sports = new URIQueryResultList();
+        dbClient.queryByConstraint(ContainmentConstraint.Factory.
+                getStorageDeviceStoragePortConstraint(storageSystemURI), sports);
+        Iterator<URI> it = sports.iterator();
+        List<StoragePort> spList = new ArrayList<StoragePort>();
+        List<String> notRegisteredOrOk = new ArrayList<String>();
+        List<String> notInVarray = new ArrayList<String>();
+        while (it.hasNext()) {
+            StoragePort sp = dbClient.queryObject(StoragePort.class, it.next());
+            if (sp.getInactive() || sp.getNetwork() == null
+                    || !DiscoveredDataObject.CompatibilityStatus.COMPATIBLE.name().equals(sp.getCompatibilityStatus())
+                    || !DiscoveryStatus.VISIBLE.name().equals(sp.getDiscoveryStatus())
+                    || !sp.getRegistrationStatus().equals(StoragePort.RegistrationStatus.REGISTERED.name())
+                    || StoragePort.OperationalStatus.NOT_OK.equals(StoragePort.OperationalStatus.valueOf(sp.getOperationalStatus()))
+                    || StoragePort.PortType.valueOf(sp.getPortType()) != StoragePort.PortType.frontend) {
+                _log.debug(
+                        "Storage port {} is not selected because it is inactive, is not compatible, is not visible, has no network assignment, "
+                                +
+                                "is not registered, has a status other than OK, or is not a frontend port", sp.getLabel());
+                notRegisteredOrOk.add(sp.qualifiedPortName());
+            } else if (sp.getTaggedVirtualArrays() == null || !sp.getTaggedVirtualArrays().contains(varrayURI.toString())) {
+                _log.debug("Storage port {} not selected because it is not connected " +
+                        "or assigned to requested virtual array {}", sp.getNativeGuid(), varrayURI);
+                notInVarray.add(sp.qualifiedPortName());
+            } else {
+                spList.add(sp);
+            }
+        }
+        if (!notRegisteredOrOk.isEmpty()) {
+            _log.info("Ports not selected because they are inactive, have no network assignment, " +
+                    "are not registered, bad operational status, or not type front-end: "
+                    + Joiner.on(" ").join(notRegisteredOrOk));
+        }
+        if (!notInVarray.isEmpty()) {
+            _log.info("Ports not selected because they are not assigned to the requested virtual array: "
+                    + varrayURI + " " + Joiner.on(" ").join(notInVarray));
+        }
+        return spList;
+    }
+
+    /**
+     * Given a list of storage ports and networks, map the ports to the networks. If the port network
+     * is in the networks collection, the port is mapped to it. If the port network is not in the
+     * networks collection but can is routed to it, then the port is mapped to the routed network.
+     * 
+     * @param ports the ports to be mapped to their networks
+     * @param networks the networks
+     * @param _dbClient and instance of DbClient
+     * @return a map of networks and ports that can be used by initiators in the network.
+     */
+    public static Map<NetworkLite, List<StoragePort>> mapStoragePortsToNetworks(Collection<StoragePort> ports,
+            Collection<NetworkLite> networks, DbClient _dbClient) {
+        Map<NetworkLite, List<StoragePort>> localPorts = new HashMap<NetworkLite, List<StoragePort>>();
+        Map<NetworkLite, List<StoragePort>> remotePorts = new HashMap<NetworkLite, List<StoragePort>>();
+        for (NetworkLite network : networks) {
+            for (StoragePort port : ports) {
+                if (port.getNetwork().equals(network.getId())) {
+                    StringMapUtil.addToListMap(localPorts, network, port);
+                } else if (network.hasRoutedNetworks(port.getNetwork())) {
+                    StringMapUtil.addToListMap(remotePorts, network, port);
+                }
+            }
+        }
+        // consolidate local and remote ports
+        for (NetworkLite network : networks) {
+            if (localPorts.get(network) == null && remotePorts.get(network) != null) {
+                localPorts.put(network, remotePorts.get(network));
+            }
+        }
+        return localPorts;
+    }
+
+    /**
+     * Consolidate the assignments made from pre-zoned ports with those made by ordinary port assignment.
+     * existingAndPrezonedZoningMap contains all pre-existing assignments plus those made from pre-zoned
+     * ports. exportMask.zoningMap contains all pre-existing assignments, and 'assignments' has all ports
+     * made by ordinary assignment.
+     * 
+     * The function consolidate the targets to be added to the masking view by adding those taken from
+     * pre-zoned ports to those taken from the other set of ports. The way ports taken from pre-zoned
+     * ports are identified is by comparing existingAndPrezonedZoningMap to exportMask.zoningMap, these
+     * are ports assigned to initiators found in existingAndPrezonedZoningMap but not in exportMask.zoningMap.
+     * This is because the port assignment never adds new ports to already used initiators.
+     * 
+     * @param exportMaskZoningMap -- the export mask zoningMap before any assignments are made
+     * @param assignments -- assignments made from all ports not based on what is pre-zoned.
+     * @param existingAndPrezonedZoningMap -- assignments made from pre-zoned ports plus all pre-existing assignments.
+     */
+    public static void addPrezonedAssignments(StringSetMap exportMaskZoningMap, Map<URI, List<URI>> assignments,
+            StringSetMap existingAndPrezonedZoningMap) {
+        for (String iniUriStr : existingAndPrezonedZoningMap.keySet()) {
+            StringSet iniPorts = new StringSet(existingAndPrezonedZoningMap.get(iniUriStr));
+            if (exportMaskZoningMap != null) {
+                if (exportMaskZoningMap.containsKey(iniUriStr)) {
+                    iniPorts.removeAll(exportMaskZoningMap.get(iniUriStr));
+                }
+            }
+            if (!iniPorts.isEmpty()) {
+                URI iniUri = URI.create(iniUriStr);
+                if (!assignments.containsKey(iniUri)) {
+                    assignments.put(iniUri, new ArrayList<URI>());
+                }
+                assignments.get(iniUri).addAll(StringSetUtil.stringSetToUriList(iniPorts));
+            }
+        }
     }
 
     /**

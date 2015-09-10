@@ -583,6 +583,83 @@ public class RecoverPointClient {
     }
 
     /**
+     * Operation to add journal volumes to an existing recoverpoint consistency group
+     * 
+     * @param request - contains both the consistency group
+     *                  and the journals to add to the consistency group
+     * @param copyType - indicates whether the copy is production, local or remote
+     * @return boolean indicating the result of the operation
+     *
+     */
+    public boolean addJournalVolumesToCG(CGRequestParams request, int copyType) {
+    	// Make sure the CG name is unique.
+    	ConsistencyGroupUID cgUID = null;
+    	List<ConsistencyGroupUID> allCgs;
+    	String copyName = "not determined";
+    	Map<ConsistencyGroupCopyUID, DeviceUID> addedJournalVolumes = new HashMap<ConsistencyGroupCopyUID, DeviceUID>();
+    	try {
+    		allCgs = functionalAPI.getAllConsistencyGroups();
+    		for (ConsistencyGroupUID cg : allCgs) {
+    			ConsistencyGroupSettings settings = functionalAPI.getGroupSettings(cg);
+    			if (settings.getName().toString().equalsIgnoreCase(request.getCgName())) {
+    				cgUID = settings.getGroupUID();
+    				break;
+    			}
+    		}
+    		if (cgUID == null) {
+    			// The CG does not exist so we cannot add replication sets
+    			throw RecoverPointException.exceptions.failedToAddReplicationSetCgDoesNotExist(request.getCgName());    			
+    		}    		
+    		
+    		List<CreateCopyParams> copyParams = request.getCopies();
+    		
+    		// determine if the volumes are visible to the recoverpoint appliance
+    		Set<RPSite> allSites = scan(copyParams, null);    		    		
+    		
+    		for (CreateCopyParams copyParam : copyParams) {    		
+    			for (CreateVolumeParams journalVolume: copyParam.getJournals()) {
+    				copyName = journalVolume.getRpCopyName();
+    				ClusterUID clusterId = RecoverPointUtils.getRPSiteID(functionalAPI, journalVolume.getInternalSiteName()); 
+    				ConsistencyGroupCopyUID copyUID = getCGCopyUid(clusterId, getCopyType(copyType), cgUID);    				
+    				DeviceUID journalDevice = RecoverPointUtils.getDeviceID(allSites, journalVolume.getWwn());
+    				addedJournalVolumes.put(copyUID, journalDevice);
+    				functionalAPI.addJournalVolume(copyUID, journalDevice);        		
+    			}    			
+    		}
+    	}
+    	catch (FunctionalAPIActionFailedException_Exception e) {
+    		if (!addedJournalVolumes.isEmpty()) {
+    			try {
+    				for (Map.Entry<ConsistencyGroupCopyUID, DeviceUID> journalVolume : addedJournalVolumes.entrySet()) {
+    					functionalAPI.removeJournalVolume(journalVolume.getKey(), journalVolume.getValue()); 			   
+    				}
+    			} catch (Exception e1) {
+                  logger.error("Error removing journal volume from consistency group");
+                  logger.error(e1.getMessage(), e1);
+    			}
+    		}    		
+    		logger.error("Error in attempting to add a journal volume to the recoverpoint consistency group");
+            logger.error(e.getMessage(), e);
+            throw RecoverPointException.exceptions.failedToAddJournalVolumeToConsistencyGroup(copyName, getCause(e));
+    	} catch (FunctionalAPIInternalError_Exception e) {
+    		if (!addedJournalVolumes.isEmpty()) {
+    			try {
+    				for (Map.Entry<ConsistencyGroupCopyUID, DeviceUID> journalVolume : addedJournalVolumes.entrySet()) {
+    					functionalAPI.removeJournalVolume(journalVolume.getKey(), journalVolume.getValue()); 			   
+    				}
+    			} catch (Exception e1) {
+                  logger.error("Error removing journal volume from consistency group");
+                  logger.error(e1.getMessage(), e1);
+    			}
+    		}  
+    		logger.error("Error in attempting to add a journal volume to the recoverpoint consistency group");
+            logger.error(e.getMessage(), e);
+            throw RecoverPointException.exceptions.failedToCreateConsistencyGroup(copyName, getCause(e));
+    	}
+    	return true;        
+    }
+    
+    /**
      * @param request
      * @param clusterIdCache
      * @return
@@ -642,6 +719,23 @@ public class RecoverPointClient {
         return null;
     }
 
+    /**
+     * Determines and creates RecoverPointCGCopyType type based on passed int value
+     * 
+     * @param type - the copy type
+     * @return RecoverPointCGCopyType representing the copy type
+     */
+    private RecoverPointCGCopyType getCopyType(int type) {
+    	RecoverPointCGCopyType copyType = RecoverPointCGCopyType.PRODUCTION;
+    	if (type == RecoverPointCGCopyType.LOCAL.getCopyNumber()) {
+    		copyType = RecoverPointCGCopyType.LOCAL;
+    	}
+    	if (type == RecoverPointCGCopyType.REMOTE.getCopyNumber()) {
+    		copyType = RecoverPointCGCopyType.REMOTE;
+    	}
+    	return copyType;
+    }
+    
     /**
      * construct a CG copy UID
      *
@@ -994,6 +1088,10 @@ public class RecoverPointClient {
                 }
             }
 
+            // When adding new journal volumes only no need to look at source and target volumes
+            if (rSets == null || rSets.isEmpty()) {
+            	continue;
+            }
             //
             // Walk through the source/target volumes to see where our WWNs lie
             //

@@ -1581,7 +1581,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
         List<Copy> copies = param.getCopies();
         if (copies.size() > 1) {
-            throw APIException.badRequests.swapCopiesParamCanOnlyBeOne();
+            throw APIException.badRequests.failoverCopiesParamCanOnlyBeOne();
         }
         Copy copy = copies.get(0);
         ArgValidator.checkFieldUriType(copy.getCopyID(), VirtualArray.class, "copyId");
@@ -1597,6 +1597,61 @@ public class BlockConsistencyGroupService extends TaskResourceService {
             throw APIException.badRequests.invalidCopyType(copy.getType());
         }
 
+        return taskList;
+    }
+
+    /**
+     * Request to cancel fail over on already failed over volumes.
+     *
+     * @prereq none
+     *
+     * @param id the URN of a ViPR Source volume
+     * @param param Copy to fail back
+     *
+     * @brief fail back to source again
+     * @return TaskList
+     *
+     * @throws ControllerException
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/failover-cancel")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskList failoverCancel(@PathParam("id") URI id, CopiesParam param) throws ControllerException {
+        TaskResourceRep taskResp = null;
+        TaskList taskList = new TaskList();
+        // Validate the source volume URI
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, "id");
+        // Validate the list of copies
+        ArgValidator.checkFieldNotEmpty(param.getCopies(), "copies");
+
+        // Query Consistency Group
+        final BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(id);
+
+        // Ensure that the Consistency Group has been created on all of its defined
+        // system types.
+        if (!consistencyGroup.created()) {
+            throw APIException.badRequests.consistencyGroupNotCreated();
+        }
+
+        List<Copy> copies = param.getCopies();
+        if (copies.size() > 1) {
+            throw APIException.badRequests.failOverCancelCopiesParamCanOnlyBeOne();
+        }
+        Copy copy = copies.get(0);
+        ArgValidator.checkFieldUriType(copy.getCopyID(), VirtualArray.class, "copyId");
+        ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
+
+        if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
+            taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.FAILOVER_CANCEL.getRestOp());
+            taskList.getTaskList().add(taskResp);
+        } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
+            taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.FAILOVER_CANCEL.getRestOp());
+            taskList.getTaskList().add(taskResp);
+        } else {
+            throw APIException.badRequests.invalidCopyType(copy.getType());
+        }
         return taskList;
     }
 

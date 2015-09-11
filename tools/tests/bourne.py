@@ -204,6 +204,8 @@ URI_BLOCK_CONSISTENCY_GROUP_SNAPSHOT_RESTORE    = URI_BLOCK_CONSISTENCY_GROUP_SN
 
 URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE       = URI_BLOCK_CONSISTENCY_GROUP + "/protection/continuous-copies"
 URI_BLOCK_CONSISTENCY_GROUP_SWAP                  = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/swap"
+URI_BLOCK_CONSISTENCY_GROUP_FAILOVER              = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/failover"
+URI_BLOCK_CONSISTENCY_GROUP_FAILOVER_CANCEL       = URI_BLOCK_CONSISTENCY_GROUP_PROTECTION_BASE + "/failover-cancel"
 
 URI_NETWORKSYSTEMS              = URI_SERVICES_BASE   + '/vdc/network-systems'
 URI_NETWORKSYSTEM               = URI_NETWORKSYSTEMS  + '/{0}'
@@ -3974,6 +3976,54 @@ class Bourne:
         copies_param['copy'] = copy_entries
         
         o = self.api('POST', URI_BLOCK_CONSISTENCY_GROUP_SWAP.format(group), copies_param )
+        self.assert_is_dict(o)
+        
+        if ('task' in o):
+            tasks = []
+            for task in o['task']:
+                s = self.api_sync_2(task['resource']['id'], task['op_id'], self.block_consistency_group_show_task)
+                tasks.append(s)
+            s = tasks
+        else:
+            s = o['details']
+
+        return s
+
+    def block_consistency_group_failover(self, group, copyType, targetVarray):
+        copies_param = dict()
+        copy = dict()
+        copy_entries = []
+
+        copy['type'] = copyType
+        copy['copyID'] = targetVarray
+        copy_entries.append(copy)
+        copies_param['copy'] = copy_entries
+        
+        o = self.api('POST', URI_BLOCK_CONSISTENCY_GROUP_FAILOVER.format(group), copies_param )
+        self.assert_is_dict(o)
+        
+        if ('task' in o):
+            tasks = []
+            for task in o['task']:
+                s = self.api_sync_2(task['resource']['id'], task['op_id'], self.block_consistency_group_show_task)
+                tasks.append(s)
+            s = tasks
+        else:
+            s = o['details']
+
+        return s
+
+    def block_consistency_group_failover_cancel(self, group, copyType, targetVarray):
+        copies_param = dict()
+        copy = dict()
+        copy_entries = []
+
+        copy['type'] = copyType
+        copy['copyID'] = targetVarray
+        copy_entries.append(copy)
+        copies_param['copy'] = copy_entries
+        
+        o = self.api('POST', URI_BLOCK_CONSISTENCY_GROUP_FAILOVER_CANCEL.format(group), copies_param )
         self.assert_is_dict(o)
         
         if ('task' in o):

@@ -155,6 +155,24 @@ def consistency_group_swap(args):
     print "Swapping Consistency Group " + str(args.group) + " with target virtial array " + str(args.targetVarray)
     start = time.time()
     s = bourne.block_consistency_group_swap(group_uri, args.copyType, tgt_varray_uri)
+    bourne.pretty_print_json(s) 
+    
+def consistency_group_failover(args):
+    bourne.connect(args.ip)
+    group_uri = bourne.block_consistency_group_query(args.group)
+    tgt_varray_uri = bourne.neighborhood_query(args.targetVarray)
+    print "Failover Consistency Group " + str(args.group) + " with target virtial array " + str(args.targetVarray)
+    start = time.time()
+    s = bourne.block_consistency_group_failover(group_uri, args.copyType, tgt_varray_uri)
+    bourne.pretty_print_json(s)         
+    
+def consistency_group_failover_cancel(args):
+    bourne.connect(args.ip)
+    group_uri = bourne.block_consistency_group_query(args.group)
+    tgt_varray_uri = bourne.neighborhood_query(args.targetVarray)
+    print "Failover Consistency Group " + str(args.group) + " with target virtial array " + str(args.targetVarray)
+    start = time.time()
+    s = bourne.block_consistency_group_failover_cancel(group_uri, args.copyType, tgt_varray_uri)
     bourne.pretty_print_json(s)     
     
 def consistency_group_snapshot_activate(args):
@@ -345,6 +363,12 @@ try:
         args = update.parse_args()
         consistency_group_update(args)	
     elif (cmd == "swap"):
+        args = protectionOperation.parse_args()
+        consistency_group_swap(args)
+    elif (cmd == "failover"):
+        args = protectionOperation.parse_args()
+        consistency_group_swap(args)
+    elif (cmd == "failover_cancel"):
         args = protectionOperation.parse_args()
         consistency_group_swap(args)    	
     else:

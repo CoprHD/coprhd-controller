@@ -65,7 +65,7 @@ public class FileSystemIngestionUtil {
             checkStoragePoolValidForUnManagedFileSystemUri(unManagedFileSystemInformation,
                     dbClient, unManagedFileSystemUri);
 
-            checkVirtualPoolValidForGivenUnManagedFileSystemUris(unManagedFileSystemInformation, unManagedFileSystemUri,
+            checkVirtualPoolValidForGivenUnManagedFileSystemUris(unManagedFileSystem.getSupportedVpoolUris(), unManagedFileSystemUri,
                     cos.getId());
             // TODO: Today, We bring in all the volumes that are exported.We need to add support to bring in all the related FS exports
             // checkUnManagedFileSystemAlreadyExported(unManagedFileSystem);
@@ -113,29 +113,25 @@ public class FileSystemIngestionUtil {
     }
 
     /**
-     * Get Supported CoS from PreExistingFileSystem Storage Pools.
-     * Verify if the given CoS is part of the supported CoS List.
-     * 
-     * @param preExistFileSystemInformation
+     * Get Supported Vpool from PreExistingFileSystem Storage Pools.
+     * Verify if the given vpool is part of the supported vpool List.
+     * @param stringSetVpoolUris
+     * @param unManagedFileSystemUri
      * @param cosUri
      */
     private static void checkVirtualPoolValidForGivenUnManagedFileSystemUris(
-            StringSetMap preExistFileSystemInformation, URI unManagedFileSystemUri, URI cosUri) {
-        // TODO: Currently the assumption is that CoS already exists prior to discovey of unmanaged fileystems.
-        StringSet supportedCosUris = preExistFileSystemInformation
-                .get(UnManagedFileSystem.SupportedFileSystemInformation.SUPPORTED_VPOOL_LIST
-                        .toString());
-
-        if (null == supportedCosUris) {
+            StringSet stringSetVpoolUris, URI unManagedFileSystemUri, URI vpoolUri) {
+        // Currently the assumption is that vpool already exists prior to discovey of unmanaged fileystems.
+        if (null == stringSetVpoolUris) {
             throw APIException.internalServerErrors.storagePoolNotMatchingVirtualPool("FileSystem", unManagedFileSystemUri);
         }
-
-        if (!supportedCosUris.contains(cosUri.toString())) {
-            throw APIException.internalServerErrors.virtualPoolNotMatchingStoragePool(cosUri, "FileSystem", unManagedFileSystemUri, Joiner
-                    .on("\t").join(supportedCosUris));
+        _logger.info("supported vpools :"+ Joiner.on("\t").join(stringSetVpoolUris));
+        if (!stringSetVpoolUris.contains(vpoolUri.toString())) {
+            throw APIException.internalServerErrors.virtualPoolNotMatchingStoragePool(vpoolUri, "FileSystem", unManagedFileSystemUri, Joiner
+                    .on("\t").join(stringSetVpoolUris));
         }
     }
-
+    
     /**
      * Gets and verifies the CoS passed in the request.
      * 

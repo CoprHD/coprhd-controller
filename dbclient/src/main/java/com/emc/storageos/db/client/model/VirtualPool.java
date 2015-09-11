@@ -109,6 +109,8 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     private Boolean metroPoint = false;
     // Flag that enables VPlex automatic cross-connected export, default disabled
     private Boolean autoCrossConnectExport = false;
+    // Max retention for a Virtual Pool
+    private Integer maxRetention;
 
     public static enum MetroPointType {
         @XmlEnumValue("singleRemote")
@@ -272,7 +274,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     }
 
     public static enum SystemType {
-        NONE, isilon, vnxblock, vnxfile, vmax, netapp, netappc, hds, openstack, vnxe, scaleio, datadomain, xtremio, ibmxiv;
+        NONE, isilon, vnxblock, vnxfile, vmax, netapp, netappc, hds, openstack, vnxe, scaleio, datadomain, xtremio, ibmxiv, ecs;
         private static final SystemType[] copyOfValues = values();
 
         public static SystemType lookup(final String name) {
@@ -292,13 +294,18 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
                     || vnxe.name().equalsIgnoreCase(name)
                     || datadomain.name().equalsIgnoreCase(name);
         }
-
+        
         public static boolean isBlockTypeSystem(final String name) {
             return vnxblock.name().equalsIgnoreCase(name) || vmax.name().equalsIgnoreCase(name)
                     || hds.name().equalsIgnoreCase(name) || openstack.name().equalsIgnoreCase(name)
                     || scaleio.name().equalsIgnoreCase(name) || xtremio.name().equalsIgnoreCase(name)
                     || ibmxiv.name().equalsIgnoreCase(name) || vnxe.name().equalsIgnoreCase(name);
         }
+        
+        public static boolean isObjectTypeSystem(final String name) {
+            return ecs.name().equalsIgnoreCase(name);
+        }
+
     }
 
     // flag tells whether to use recommended pools or not.
@@ -318,7 +325,7 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
 
     // names to be used in type field
     public static enum Type {
-        block, file;
+        block, file, object;
         private static final Type[] vpoolTypeValues = values();
 
         public static Type lookup(final String name) {
@@ -1314,5 +1321,15 @@ public class VirtualPool extends DataObjectWithACLs implements GeoVisibleResourc
     public void setAutoCrossConnectExport(Boolean autoCrossConnectExport) {
         this.autoCrossConnectExport = autoCrossConnectExport;
         setChanged("autoCrossConnectExport");
+    }
+    
+    @Name("maxRetention")
+    public Integer getMaxRetention() {
+        return (maxRetention==null) ? 0 : maxRetention;
+    }
+
+    public void setMaxRetention(Integer maxRetention) {
+        this.maxRetention = (null==maxRetention || maxRetention == 0) ? 0 : maxRetention;
+        setChanged("maxRetention");
     }
 }

@@ -53,21 +53,21 @@ task copyBinaryFiles(type: Copy) {
 }
 copyConfs.finalizedBy(copyBinaryFiles)
 
-task generateMetadata(type:Exec) {
-    ext.metadata = new File("${projectDir}/working/conf/sys-metadata-var.xml")
+task generateMetadata {
+    metadata = new File("${projectDir}/working/conf/sys-metadata-var.xml")
 
-    workingDir "${rootProject.projectDir}/packaging"
+    if ( !metadata.exists() ) {
+        def stdout = new ByteArrayOutputStream()
+        exec {
+            workingDir "${rootProject.projectDir}/packaging"
 
-    //run genprops
-    commandLine 'python','genprops.py','--metadata-var','storageos-properties-iterable.def','storageos-properties-ovfenv.def','storageos-properties-config.def'
+            //run genprops
+            commandLine 'python','genprops.py','--metadata-var','storageos-properties-iterable.def','storageos-properties-ovfenv.def','storageos-properties-config.def'
 
-    //store the output instead of printing to the console:
-    standardOutput = new ByteArrayOutputStream()
-
-    if ( !ext.metadata.exists() ) {
-        doLast {
-            metadata.text = standardOutput.toString()
+            //store the output instead of printing to the console:
+            standardOutput = stdout
         }
+        metadata.text = stdout.toString()
     }
 }
 

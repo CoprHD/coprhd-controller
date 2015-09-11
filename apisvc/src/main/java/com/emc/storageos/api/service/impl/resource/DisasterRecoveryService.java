@@ -5,7 +5,6 @@
 package com.emc.storageos.api.service.impl.resource;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Collections;
@@ -29,6 +28,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.emc.storageos.api.mapper.SiteMapper;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.Site;
@@ -167,41 +167,49 @@ public class DisasterRecoveryService extends TaggedResource {
         return null;
     }
     
+    /**
+     * Get standby site configuration
+     * 
+     * @return SiteRestRep standby site configuration.
+     */
     @GET
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/standby/config")
     public SiteRestRep getStandbyConfig() {
         log.info("Begin to get standby config");
         String siteId = this.coordinator.getSiteId();
+        SiteState siteState = this.coordinator.getSiteState();
         VirtualDataCenter vdc = queryLocalVDC();
         SecretKey key = apiSignatureGenerator.getSignatureKey(SignatureKeyType.INTERVDC_API);
-
         Site localSite = new Site();
 
         localSite.setUuid(siteId);
         localSite.setVip(vdc.getApiEndpoint());
+        localSite.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
         localSite.getHostIPv4AddressMap().putAll(vdc.getHostIPv4AddressesMap());
         localSite.getHostIPv6AddressMap().putAll(vdc.getHostIPv6AddressesMap());
-        localSite.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
-
-        log.info("localSite: {}", localSite);
-        return siteMapper.map(localSite);
+        
+        SiteRestRep response = siteMapper.map(localSite);
+        response.setState(siteState.name());
+        log.info("response: {}", response);
+        return response;
     }
     
+    /**
+     * Add primary site
+     * 
+     * @param SiteAddParam primary site configuration
+     * @return SiteRestRep primary site information
+     */
     @POST()
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/standby/config")
     public SiteRestRep addPrimary(SiteAddParam param) {
-        log.info("Begin to add primary site");
+        log.info("Begin to add primary site {}", param);
 
-        Site primarySite = new Site();
-        primarySite.setId(URIUtil.createId(Site.class));
-        primarySite.setUuid(param.getUuid());
-        primarySite.setName(param.getName());
-        primarySite.setVip(param.getVip());
-        primarySite.getHostIPv4AddressMap().putAll(new StringMap(param.getHostIPv4AddressMap()));
-        primarySite.getHostIPv6AddressMap().putAll(new StringMap(param.getHostIPv6AddressMap()));
+        Site primarySite = toSite(param);
 
         VirtualDataCenter vdc = queryLocalVDC();
 
@@ -231,6 +239,18 @@ public class DisasterRecoveryService extends TaggedResource {
         cfg.setConfig(TARGET_INFO, vdcTargetVersion);
         coordinator.persistServiceConfiguration(cfg);
         log.info("VDC target version updated to {}", vdcTargetVersion);
+    }
+
+    private Site toSite(SiteAddParam param) {
+        Site site = new Site();
+        site.setId(URIUtil.createId(Site.class));
+        site.setUuid(param.getUuid());
+        site.setName(param.getName());
+        site.setVip(param.getVip());
+        site.setSecretKey(param.getSecretKey());
+        site.getHostIPv4AddressMap().putAll(new StringMap(param.getHostIPv4AddressMap()));
+        site.getHostIPv6AddressMap().putAll(new StringMap(param.getHostIPv6AddressMap()));
+        return site;
     }
     
     @Override

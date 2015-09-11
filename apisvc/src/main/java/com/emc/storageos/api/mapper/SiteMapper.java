@@ -17,6 +17,7 @@ public class SiteMapper {
         to.setUuid(from.getUuid());
         to.setName(from.getName());
         to.setVip(from.getVip());
+        to.setSecretKey(from.getSecretKey());
         to.setHostIPv4AddressMap(from.getHostIPv4AddressMap());
         to.setHostIPv6AddressMap(from.getHostIPv6AddressMap());
         return to;

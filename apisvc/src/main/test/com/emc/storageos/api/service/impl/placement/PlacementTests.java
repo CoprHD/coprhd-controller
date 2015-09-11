@@ -336,7 +336,6 @@ public class PlacementTests extends DbsvcTestBase {
     }
 
     /**
-     * /**
      * VPLEX HA remote block placement.
      */
     @Test
@@ -1429,7 +1428,7 @@ public class PlacementTests extends DbsvcTestBase {
 
             RPProtectionRecommendation rec = (RPProtectionRecommendation) recommendations.get(0);
             assertNotNull(rec.getSourceRecommendations());
-            assertTrue(rec.getSourceRecommendations().isEmpty());
+            assertTrue(!rec.getSourceRecommendations().isEmpty());
             assertNotNull(rec.getProtectionDevice());
             assertNotNull(rec.getPlacementStepsCompleted().name());
             assertTrue("rp1".equals(rec.getProtectionDevice().toString()));
@@ -3485,7 +3484,7 @@ public class PlacementTests extends DbsvcTestBase {
 
             // TargetJournal
             assertNotNull(rec.getTargetJournalRecommendations());
-            assertTrue(rec.getTargetJournalRecommendations().isEmpty());
+            assertTrue(!rec.getTargetJournalRecommendations().isEmpty());
             for (RPRecommendation targetJournalRec : rec.getTargetJournalRecommendations()) {
                 assertNotNull(targetJournalRec);
                 assertNotNull(targetJournalRec.getInternalSiteName());

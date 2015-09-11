@@ -9,6 +9,7 @@ import java.net.URI;
 @Cf("ComputeImageJob")
 public class ComputeImageJob extends DataObject {
 
+    private URI computeImageServerId;
     private URI computeImageId;
     private URI hostId;
     private URI volumeId;
@@ -27,6 +28,17 @@ public class ComputeImageJob extends DataObject {
 
     public static enum JobStatus {
         CREATED, SUCCESS, FAILED, TIMEDOUT
+    }
+
+    @RelationIndex(cf = "ComputeRelationIndex", type = ComputeImageServer.class)
+    @Name("computeImageServerId")
+    public URI getComputeImageServerId() {
+        return computeImageServerId;
+    }
+
+    public void setComputeImageServerId(URI imageServerId) {
+        this.computeImageServerId = imageServerId;
+        setChanged("computeImageServerId");
     }
 
     @RelationIndex(cf = "ComputeRelationIndex", type = ComputeImage.class)

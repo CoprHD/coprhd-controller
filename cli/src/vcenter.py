@@ -104,14 +104,14 @@ class VCenter(object):
             tenant == "" or
             tenant.lower() == VCenter.VCENTERS_FROM_ALL_TENANTS.lower()):
             uri = VCenter.URI_VCENTERS_WITH_TENANT_PARAM.format(VCenter.VCENTERS_FROM_ALL_TENANTS)
-        elif (tenant.lower() == VCenter.VCENTERS_WITH_NO_TENANTS.lower()):
+        elif tenant.lower() == VCenter.VCENTERS_WITH_NO_TENANTS.lower():
             uri = VCenter.URI_VCENTERS_WITH_TENANT_PARAM.format(tenant)
         else:
             from tenant import Tenant
             obj = Tenant(self.__ipAddr, self.__port)
 
-            tenantUri = obj.tenant_query(tenant)
-            uri = VCenter.URI_VCENTERS_WITH_TENANT_PARAM.format(tenantUri)
+            tenant_uri = obj.tenant_query(tenant)
+            uri = VCenter.URI_VCENTERS_WITH_TENANT_PARAM.format(tenant_uri)
         return uri
 
     def vcenter_get_details_list(self, detailslst):
@@ -232,10 +232,12 @@ class VCenter(object):
 
         except SOSError as e:
             if(e.err_code == SOSError.NOT_FOUND_ERR):
-                from tenant import Tenant
-                obj = Tenant(self.__ipAddr, self.__port)
 
-                uri = obj.tenant_query(tenant)
+                uri = None;
+                if tenant is not None:
+                    from tenant import Tenant
+                    obj = Tenant(self.__ipAddr, self.__port)
+                    uri = obj.tenant_query(tenant)
 
                 var = dict()
                 params = dict()
@@ -259,12 +261,15 @@ class VCenter(object):
                 user_info = common.json_decode(s)
 
                 sys_admin = False
-                if (user_info['vdc_roles']):
-                    vdc_roles = user_info['vdc_roles']
-                    if VCenter.USER_ROLE_SYSTEM_ADMIN in vdc_roles:
-                        sys_admin = True
+                vdc_roles = []
 
-                if (sys_admin):
+                if user_info['vdc_roles']:
+                    vdc_roles = user_info['vdc_roles']
+
+                if VCenter.USER_ROLE_SYSTEM_ADMIN in vdc_roles:
+                    sys_admin = True
+
+                if sys_admin and uri is not None:
                     vcenter_id = (o['resource'])['id']
                     acls_params = dict()
                     acls_params = {'add' : [{
@@ -933,7 +938,7 @@ def add_vcenter_acls(args):
     obj = VCenter(args.ip, args.port)
     try:
         res = obj.add_or_remove_vcenter_acls(args.name, args.tenants, "add")
-        if(res):
+        if res:
             return common.format_json_object(res)
     except SOSError as e:
         raise e
@@ -963,7 +968,7 @@ def remove_vcenter_acls(args):
     obj = VCenter(args.ip, args.port)
     try:
         res = obj.add_or_remove_vcenter_acls(args.name, args.tenants, "remove")
-        if(res):
+        if res:
             return common.format_json_object(res)
     except SOSError as e:
         raise e
@@ -988,7 +993,7 @@ def get_vcenter_acls(args):
     obj = VCenter(args.ip, args.port)
     try:
         res = obj.get_vcenter_acls(args.name)
-        if(res):
+        if res:
             return common.format_json_object(res)
     except SOSError as e:
         raise e

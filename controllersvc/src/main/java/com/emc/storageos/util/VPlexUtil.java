@@ -23,12 +23,15 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.HostInterface;
@@ -946,4 +949,122 @@ public class VPlexUtil {
         return sharedVplexExportMask;
     }
 
+    
+    /**
+     * Check if the backend volumes for the vplex volumes in a consistency group are in the same storage system.
+     * 
+     * @param vplexVolumes List of VPLEX volumes in a consistency group
+     * @param dbClient an instance of {@link DbClient}
+     * 
+     * @return true or false
+     * 
+     */
+    public static boolean isVPLEXCGBackendVolumesInSameStorage(List<Volume> vplexVolumes, DbClient dbClient) {
+        Set<String> backendSystems = new HashSet<String> ();
+        Set<String> haBackendSystems = new HashSet<String>();
+        boolean result = true;
+        for (Volume vplexVolume : vplexVolumes) {
+            Volume srcVolume = getVPLEXBackendVolume(vplexVolume, true, dbClient);
+            backendSystems.add(srcVolume.getStorageController().toString());
+            
+            Volume haVolume = getVPLEXBackendVolume(vplexVolume, false, dbClient);
+            if (haVolume != null) {
+                haBackendSystems.add(haVolume.getStorageController().toString());
+            }
+            
+        }
+        if (backendSystems.size() > 1 || haBackendSystems.size() > 1) {
+            result = false;
+        }
+        return result;
+    }
+    
+    /**
+     * Verifies if the passed volumes are all the volumes in the same backend arrays in the passed
+     * consistency group.
+     * 
+     * @param volumes The list of volumes to verify
+     * @param cg The consistency group
+     * @return true or false
+     */
+    public static boolean verifyVolumesInCG(List<Volume> volumes, BlockConsistencyGroup cg, DbClient dbClient) {
+        List<Volume> cgVolumes = BlockConsistencyGroupUtils.getActiveVplexVolumesInCG(cg, dbClient, null);
+        return verifyVolumesInCG(volumes, cgVolumes, dbClient);
+    }
+    
+    /**
+     * Verifies if the passed volumes are all the volumes in the same backend arrays in the passed
+     * consistency group volumes.
+     * 
+     * @param volumes The list of volumes to verify
+     * @param cgVolumes All the volumes in the consistency group
+     * @return true or false
+     */
+    public static boolean verifyVolumesInCG(List<Volume> volumes, List<Volume> cgVolumes, DbClient dbClient) {
+        boolean result = true;
+        // Sort all the volumes in the CG based on the backend volume's storage system.
+        Map<String, List<String>> cgBackendSystemToVolumesMap = new HashMap<String, List<String>>();
+        for (Volume cgVolume : cgVolumes) {
+            Volume srcVolume = VPlexUtil.getVPLEXBackendVolume(cgVolume, true, dbClient);
+            List<String> vols = cgBackendSystemToVolumesMap.get(srcVolume.getStorageController().toString());
+            if (vols == null) {
+                vols = new ArrayList<String>();
+                cgBackendSystemToVolumesMap.put(srcVolume.getStorageController().toString(), vols);
+            }
+            vols.add(cgVolume.getId().toString());
+        }
+        // Sort the passed volumes, and make sure the volumes are in the CG.
+        Map<String, List<String>> backendSystemToVolumesMap = new HashMap<String, List<String>>();
+        for (Volume volume : volumes) {
+            Volume srcVolume = VPlexUtil.getVPLEXBackendVolume(volume, true, dbClient);
+            List<String> vols = backendSystemToVolumesMap.get(srcVolume.getStorageController().toString());
+            if (vols == null) {
+                vols = new ArrayList<String>();
+                backendSystemToVolumesMap.put(srcVolume.getStorageController().toString(), vols);
+            }
+            vols.add(volume.getId().toString());
+            boolean found = false;
+            for (Volume cgVolume : cgVolumes) {
+                if (volume.getId().equals(cgVolume.getId())) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                return false;
+            }
+        }
+        // Make sure all volumes from the same backend storage systems are selected
+        for (Entry<String, List<String>> entry : backendSystemToVolumesMap.entrySet()) {
+            String systemId = entry.getKey();
+            List<String> selectedVols = entry.getValue();
+            List<String> cgVols = cgBackendSystemToVolumesMap.get(systemId);
+            if (selectedVols.size() < cgVols.size()) {
+                //not all volumes from the same backend system are selected.
+                result = false;
+                break;
+            }
+        }
+        return result;
+    }
+    
+    /**
+     * Check if the volume is in an ingested VPlex consistency group
+     * @param volume The volume to be checked on
+     * @param dbClient
+     * @return true or false
+     */
+    public static boolean isVolumeInIngestedCG(Volume volume, DbClient dbClient) {
+        boolean result = false;
+        URI cgUri = volume.getConsistencyGroup();
+        if (!NullColumnValueGetter.isNullURI(cgUri)) {
+            BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
+            if (cg != null) {
+                if (!cg.getTypes().contains(Types.LOCAL.toString())) {
+                    result = true;
+                }
+            }
+        }
+        return result;
+    }
 }

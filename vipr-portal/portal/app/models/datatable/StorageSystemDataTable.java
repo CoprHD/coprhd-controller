@@ -26,7 +26,8 @@ public class StorageSystemDataTable extends DataTable {
         addColumn("version").hidden();
         addColumn("userName").hidden();
         StorageSystemInfo.addDiscoveryColumns(this);
-        sortAll();
+        addColumn("actions").setRenderFunction("renderButtonBar");
+        sortAllExcept("actions");
         setDefaultSort("name", "asc");
     }
 

@@ -63,6 +63,7 @@ distutils.core.setup(
 		      'computesystem.py',
 		      'computevpool.py',
                       'vnasserver.py',
+		      'computeimageserver.py',
                       'quotadirectory.py']
                  )]
 )

@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.Iterator;
 
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.auth.ACLAssignmentChanges;
 import com.emc.storageos.model.auth.ACLEntry;
 import com.emc.storageos.model.host.vcenter.*;
@@ -153,7 +154,12 @@ public class VCenters extends ViprResourceController {
         VcenterDataCenterRestRep vcenterDataCenter = VcenterDataCenterUtils.getDataCenter(uri(vcenterDataCenterId));
         if (vcenterDataCenter != null) {
             try {
-                VcenterDataCenterUtils.updateDataCenter(uri(vcenterDataCenterId), uri(tenant));
+                URI tenantId = NullColumnValueGetter.getNullURI();
+                if (StringUtils.isNotBlank(tenant)) {
+                    tenantId = uri(tenant);
+                }
+
+                VcenterDataCenterUtils.updateDataCenter(uri(vcenterDataCenterId), tenantId);
                 list();
             } catch (Exception e) {
                 flash.error(MessagesUtils.get("validation.vcenter.messageAndError", e.getMessage()));
@@ -346,10 +352,9 @@ public class VCenters extends ViprResourceController {
         public ACLAssignmentChanges getAclAssignmentChanges() {
             Set<String> tenantIds = Sets.newHashSet();
 
-            if (this.enableTenants) {
-                if (!CollectionUtils.isEmpty(this.tenants)) {
-                    tenantIds.addAll(this.tenants);
-                }
+            if (this.enableTenants &&
+                    !CollectionUtils.isEmpty(this.tenants)) {
+                tenantIds.addAll(this.tenants);
             }
 
             List<ACLEntry> existingAcls = new ArrayList<ACLEntry>();
@@ -436,11 +441,9 @@ public class VCenters extends ViprResourceController {
         private void setTenantsForCreation() {
             this.tenants = new HashSet<String>();
             if (StringUtils.isNotBlank(Models.currentAdminTenantForVcenter()) &&
-                    Models.currentAdminTenantForVcenter().equalsIgnoreCase(TenantUtils.TENANT_SELECTOR_FOR_UNASSIGNED)) {
-            } else if (StringUtils.isNotBlank(Models.currentAdminTenantForVcenter()) &&
-                    Models.currentAdminTenantForVcenter().equalsIgnoreCase(TenantUtils.NO_TENANT_SELECTOR)) {
-                List<TenantOrgRestRep> tenants = TenantUtils.getAllTenants();
-                Iterator<TenantOrgRestRep> tenantsIterator = tenants.iterator();
+                    Models.currentAdminTenantForVcenter().equalsIgnoreCase(TenantUtils.getNoTenantSelector())) {
+                List<TenantOrgRestRep> allTenants = TenantUtils.getAllTenants();
+                Iterator<TenantOrgRestRep> tenantsIterator = allTenants.iterator();
                 while (tenantsIterator.hasNext()) {
                     TenantOrgRestRep tenant = tenantsIterator.next();
                     if (tenant == null) {
@@ -448,7 +451,8 @@ public class VCenters extends ViprResourceController {
                     }
                     this.tenants.add(tenant.getId().toString());
                 }
-            } else {
+            } else if (StringUtils.isNotBlank(Models.currentAdminTenantForVcenter()) &&
+                    !Models.currentAdminTenantForVcenter().equalsIgnoreCase(TenantUtils.getTenantSelectorForUnassigned())) {
                 this.tenants.add(Models.currentAdminTenantForVcenter());
             }
 

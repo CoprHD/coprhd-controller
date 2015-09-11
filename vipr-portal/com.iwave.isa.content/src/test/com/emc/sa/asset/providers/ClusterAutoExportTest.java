@@ -182,7 +182,6 @@ public class ClusterAutoExportTest {
                     return;
                 }
             } catch (InterruptedException e) {
-                e.printStackTrace();
                 log.error(e.getMessage(), e);
             }
 
@@ -201,7 +200,6 @@ public class ClusterAutoExportTest {
                     return;
                 }
             } catch (InterruptedException e) {
-                e.printStackTrace();
                 log.error(e.getMessage(), e);
             }
 

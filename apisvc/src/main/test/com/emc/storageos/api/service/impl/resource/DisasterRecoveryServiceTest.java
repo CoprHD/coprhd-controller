@@ -73,7 +73,7 @@ public class DisasterRecoveryServiceTest {
 
         primarySiteParam = new SiteAddParam();
         primarySiteParam.setUuid("primary-site-uuid");
-        primarySiteParam.setVip("10.247.101.120");
+        primarySiteParam.setVip("127.0.0.1");
         primarySiteParam.setSecretKey("secret-key");
         primarySiteParam.setHostIPv4AddressMap(standbySite1.getHostIPv4AddressMap());
         primarySiteParam.setHostIPv6AddressMap(standbySite1.getHostIPv6AddressMap());
@@ -82,7 +82,7 @@ public class DisasterRecoveryServiceTest {
         VirtualDataCenter localVDC = new VirtualDataCenter();
         localVDC.getSiteIDs().add(standbySite1.getId().toString());
         localVDC.getSiteIDs().add(standbySite2.getId().toString());
-        localVDC.setApiEndpoint("10.247.101.100");
+        localVDC.setApiEndpoint("127.0.0.2");
         localVDC.setHostIPv4AddressesMap(standbySite1.getHostIPv4AddressMap());
         localVDC.getHostIPv6AddressesMap().put("vipr1", "11:11:11:11");
         localVDC.getHostIPv6AddressesMap().put("vipr2", "22:22:22:22");

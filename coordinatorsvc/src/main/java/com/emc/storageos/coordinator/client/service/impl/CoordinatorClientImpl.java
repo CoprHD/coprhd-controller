@@ -1569,7 +1569,7 @@ public class CoordinatorClientImpl implements CoordinatorClient {
 	
 	@Override
     public SiteState getSiteState() {
-        String path = String.format("%1$s/%2$s/%3$s", ZkPath.SITES.toString(), this.getSiteId(), Constants.SITE_STATE);
+        String path = String.format("%1$s/%2$s", this.getSitePrefix(), Constants.SITE_STATE);
         SiteState state = null;
         try {
             byte[] data = _zkConnection.curator().getData().forPath(path);

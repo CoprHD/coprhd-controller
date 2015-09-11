@@ -162,7 +162,6 @@ public class DisasterRecoveryService extends TaggedResource {
     /**
      * Get standby site configuration
      * 
-     * @param NONE
      * @return SiteRestRep standby site configuration.
      */
     @GET
@@ -200,9 +199,9 @@ public class DisasterRecoveryService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/standby/config")
     public SiteRestRep addPrimary(SiteAddParam param) {
-        log.info("Begin to add primary site {}", param.toString());
+        log.info("Begin to add primary site {}", param);
 
-        Site primarySite = createSiteBasedOn(param);
+        Site primarySite = toSite(param);
 
         VirtualDataCenter vdc = queryLocalVDC();
 
@@ -221,7 +220,7 @@ public class DisasterRecoveryService extends TaggedResource {
         return siteMapper.map(primarySite);
     }
 
-    private Site createSiteBasedOn(SiteAddParam param) {
+    private Site toSite(SiteAddParam param) {
         Site site = new Site();
         site.setId(URIUtil.createId(Site.class));
         site.setUuid(param.getUuid());

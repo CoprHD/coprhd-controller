@@ -78,7 +78,7 @@ public class Site extends DataObject {
         this.hostIPv6AddressMap = hostIPv6AddressMap;
         setChanged("hostIPv6AddressMap");
     }
-        
+
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder(this.getClass().getName());

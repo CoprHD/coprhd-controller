@@ -19,13 +19,13 @@ public class EditBucketService extends ViPRService {
     @Param(BUCKET)
     protected String bucketId;
 
-    @Param(value = SOFT_QUOTA, required = false)
+    @Param(value = SOFT_QUOTA)
     protected String softQuota;
 
-    @Param(value = HARD_QUOTA, required = false)
+    @Param(value = HARD_QUOTA)
     protected String hardQuota;
 
-    @Param(value = RETENTION, required = false)
+    @Param(value = RETENTION)
     protected String retention;
 
     @Override

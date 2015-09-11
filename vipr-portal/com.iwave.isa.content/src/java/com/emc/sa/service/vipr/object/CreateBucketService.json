@@ -43,7 +43,7 @@
     retention:{
         type:"number",
         validation:{
-            min:1
+            min:0
         }
     },
     

@@ -1923,7 +1923,7 @@ rpvplex_crr()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
-        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
+        --protectionCoS $targets \
         --rp_copy_mode SYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \
@@ -2382,6 +2382,68 @@ recoverpoint_vpool_change_test()
     run volume change_cos ${PROJECT}/${base_volume}-1 ${rp_vpool}
 }
 
+recoverpoint_cg_swap_test()
+{
+	# The name of the consistency group to swap
+	cg_name=${1}
+	# The source source volume - an arbitrary source volume from the CG
+	src_volume=${2}
+	# The virtual array corresonding to the source volume (src_volume)
+	src_varray=${3}
+	# The target volume name used to identify all target volumes
+	tgt_volumes=${4}
+	# The swap target virtual arrays
+	tgt_varrays=${5}
+
+	# Test the CG swap and swap-back for every target virtual array
+	for tgt_varray in ${tgt_varrays}
+	do
+		# Pre-swap source verification
+	    run volume verify ${PROJECT}/${src_volume} personality SOURCE
+	    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+	    run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+		
+		# Pre-swap target verification
+		for tgt_volume in ${tgt_volumes}
+		do
+	    	run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+	    	run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+	    	run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+		done
+		
+		# Swap
+		run blockconsistencygroup swap $cg_name --copyType rp --targetVarray $tgt_varray
+		
+		# Post-swap source verification
+	    run volume verify ${PROJECT}/${src_volume} personality TARGET
+	    run volume verify ${PROJECT}/${src_volume} access_state NOT_READY
+	    run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+		
+		# Post-swap target verification
+		for tgt_volume in ${tgt_volumes}
+		do
+		    run volume verify ${PROJECT}/${tgt_volume} personality SOURCE
+		    run volume verify ${PROJECT}/${tgt_volume} access_state READWRITE
+		    run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+		done
+		
+		# Swap-back
+		run blockconsistencygroup swap $cg_name --copyType rp --targetVarray $src_varray
+		
+		# swap-back source verification
+	    run volume verify ${PROJECT}/${src_volume} personality SOURCE
+	    run volume verify ${PROJECT}/${src_volume} access_state READWRITE
+	    run volume verify ${PROJECT}/${src_volume} link_status IN_SYNC
+		
+		# swap-back target verification
+		for tgt_volume in ${tgt_volumes}
+		do
+	    	run volume verify ${PROJECT}/${tgt_volume} personality TARGET
+	    	run volume verify ${PROJECT}/${tgt_volume} access_state NOT_READY
+	    	run volume verify ${PROJECT}/${tgt_volume} link_status IN_SYNC
+		done    
+	done
+}
 
 # Simulator setup
 recoverpoint_simulator_setup()
@@ -2504,11 +2566,13 @@ recoverpoint_tests()
 
             # RP
             rp_tgt_varray=$RECOVERPOINT_VARRAY1
+			rp_tgt_varrays=($RECOVERPOINT_VARRAY1)
             rp_tgt_vpool='rp_targets'
             rp_base_cvp='rp_regular'
 
             # RP+VPLEX
             rpvplex_tgt_varray=$RECOVERPOINT_VARRAY1
+			rpvplex_tgt_varrays=($RECOVERPOINT_VARRAY1)
             rpvplex_tgt_vpool='rpvplex_targets'
             rpvplex_base_cvp1='rpvplex_local_regular'
             rpvplex_base_cvp2='rpvplex_dist_regular'
@@ -2516,6 +2580,7 @@ recoverpoint_tests()
             # MP
             mp_active_tgt_varray=$RECOVERPOINT_VARRAY1
             mp_standby_tgt_varray=$RECOVERPOINT_VARRAY2
+			mp_tgt_varrays=($RECOVERPOINT_VARRAY1,$RECOVERPOINT_VARRAY2)
             mp_tgt_vpool='rp_targets'
         fi
 
@@ -2525,17 +2590,20 @@ recoverpoint_tests()
 
             # RP
             rp_tgt_varray=$RECOVERPOINT_VARRAY3
+			rp_tgt_varrays=($RECOVERPOINT_VARRAY3)
             rp_tgt_vpool='rp_targets'
             rp_base_cvp='rp_regular'
 
             # RP+VPLEX
-            rpvplex_tgt_varray=$RECOVERPOINT_VARRAY1
+            rpvplex_tgt_varray=$RECOVERPOINT_VARRAY3
+			rpvplex_tgt_varrays=($RECOVERPOINT_VARRAY3)
             rpvplex_tgt_vpool='rpvplex_targets'
             rpvplex_base_cvp1='rpvplex_local_regular'
             rpvplex_base_cvp2='rpvplex_dist_regular'
 
             # MP
             mp_active_tgt_varray=$RECOVERPOINT_VARRAY3
+			mp_tgt_varrays=($RECOVERPOINT_VARRAY3)
             mp_standby_tgt_varray=''
             mp_tgt_vpool='rp_targets'
         fi
@@ -2546,17 +2614,20 @@ recoverpoint_tests()
 
             # RP
             rp_tgt_varray=$RECOVERPOINT_VARRAY3
+			rp_tgt_varrays=($RECOVERPOINT_VARRAY1,$RECOVERPOINT_VARRAY3)
             rp_tgt_vpool='rp_targets'
             rp_base_cvp='rp_regular'
 
             # RP+VPLEX
             rpvplex_tgt_varray=$RECOVERPOINT_VARRAY1
+			rpvplex_tgt_varrays=($RECOVERPOINT_VARRAY1,$RECOVERPOINT_VARRAY3)
             rpvplex_tgt_vpool='rpvplex_targets'
             rpvplex_base_cvp1='rpvplex_local_regular'
             rpvplex_base_cvp2='rpvplex_dist_regular'
 
             # MP
             mp_active_tgt_varray=$RECOVERPOINT_VARRAY3
+			mp_tgt_varrays=($RECOVERPOINT_VARRAY1,$RECOVERPOINT_VARRAY2,$RECOVERPOINT_VARRAY3)
             mp_standby_tgt_varray=''
             mp_tgt_vpool='rp_targets'
         fi
@@ -2624,6 +2695,27 @@ recoverpoint_tests()
             volume_name_modifier='-1'
         fi
 
+		# Compile a list of target volume names that have been created for RP
+		rp_tgt_volumes=()
+		for tgt in ${rp_tgt_varrays}
+		do
+			rp_tgt_volumes=("${rp_tgt_volumes[@]}" "${rpvolume}-target-${tgt}${volume_name_modifier}")
+		done
+		
+		# Compile a list of target volume names that have been created for RP+VPlex		
+		rp_vplex_tgt_volumes=()
+		for tgt in ${rpvplex_tgt_varrays}
+		do
+			rp_vplex_tgt_volumes=("${rp_vplex_tgt_volumes[@]}" "${rpvplexvolume}-target-${tgt}${volume_name_modifier}")
+		done
+		
+		# Compile a list of target volume names that have been created for MetroPoint		
+		mp_tgt_volumes=()
+		for tgt in ${mp_tgt_varrays}
+		do
+			mp_tgt_volumes=("${mp_tgt_volumes[@]}" "${mpvolume}-target-${tgt}${volume_name_modifier}")
+		done
+
         ### Begin Recoverpoint test cases ###
 
         # RP test cases
@@ -2636,6 +2728,9 @@ recoverpoint_tests()
 
                 # Failover Test
                 recoverpoint_failover_test ${rpvolume}${volume_name_modifier} ${rpvolumetarget}${volume_name_modifier}
+				
+				# CG Swap Test
+				recoverpoint_cg_swap_test ${RP_CONSISTENCY_GROUP} ${rpvolume}${volume_name_modifier} ${rp_src_varray} ${rp_tgt_volumes} ${rp_tgt_varrays}
             fi
 
             # RP+VPLEX test cases
@@ -2646,6 +2741,9 @@ recoverpoint_tests()
 
                 # Failover Test
                 recoverpoint_failover_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier}
+				
+				# CG Swap Test
+				recoverpoint_cg_swap_test ${RP_VPLEX_CONSISTENCY_GROUP} ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_varray} ${rp_vplex_tgt_volumes} ${rp_tgt_varrays}
             fi
 
             # MP test cases
@@ -2656,6 +2754,9 @@ recoverpoint_tests()
 
                 # Failover Test
                 recoverpoint_failover_test ${mpvolume}${volume_name_modifier} ${mpvolumetarget}${volume_name_modifier}
+				
+				# CG Swap Test
+				recoverpoint_cg_swap_test ${RP_METROPOINT_CONSISTENCY_GROUP} ${mpvolume}${volume_name_modifier} ${mp_src_varray} ${mp_tgt_volumes} ${mp_tgt_varrays}
             fi
         fi
 

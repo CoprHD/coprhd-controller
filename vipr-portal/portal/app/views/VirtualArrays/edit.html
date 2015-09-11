@@ -148,10 +148,6 @@
     var itemsJson = #{jsAction @arrays.StorageSystems.itemsJson(':ids')/};
     watchDiscoveryStatus(dataTable, itemsJson, ['version', 'registrationStatus']);
   });
-  function renderButtonBar(o,val) {
-	    return "<actions></actions>";
-	    
-	}
 </script>
 
 %{ formFields = ['virtualArrayId':virtualArray?.id] }%

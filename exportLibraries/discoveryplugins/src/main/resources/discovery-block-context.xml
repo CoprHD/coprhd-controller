@@ -1673,15 +1673,15 @@
 
     <!-- To be run after poolsettingProcessor: keep SLO AutoTieringPolicies in-sync with array -->
     <bean id="vmaxSLOBookkeeping" class="com.emc.storageos.plugins.common.domainmodel.Operation">
-        <property name="arguments">
+        <property name="_arguments">
             <list>
                 <ref bean="bool-true"/>
             </list>
         </property>
         <property name="instance" ref="smiutility"/>
-        <property name="result" value=""/>
-        <property name="method" value="byPassControlToProcessor"/>
-        <property name="processor" ref="vmaxSLOBookkeepingProcessor"/>
+        <property name="_result" value=""/>
+        <property name="_method" value="byPassControlToProcessor"/>
+        <property name="_processor" ref="vmaxSLOBookkeepingProcessor"/>
         <property name="message" value="Examining VMAX3 SLO AutoTieringPolicies and making sure they are in sync with the array"/>
     </bean>
 

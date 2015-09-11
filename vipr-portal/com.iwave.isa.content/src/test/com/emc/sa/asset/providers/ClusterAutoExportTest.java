@@ -7,6 +7,8 @@ package com.emc.sa.asset.providers;
 import java.net.URI;
 import java.util.List;
 
+import org.apache.log4j.Logger;
+
 import com.emc.storageos.model.block.VolumeCreate;
 import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.model.block.export.ExportCreateParam;
@@ -45,6 +47,8 @@ public class ClusterAutoExportTest {
 
     private static URI cluster1;
     private static URI cluster2;
+
+    private static Logger log = Logger.getLogger(ClusterAutoExportTest.class);
 
     private final ViPRCoreClient client;
 
@@ -179,6 +183,7 @@ public class ClusterAutoExportTest {
                 }
             } catch (InterruptedException e) {
                 e.printStackTrace();
+                log.error(e.getMessage(), e);
             }
 
         }
@@ -197,6 +202,7 @@ public class ClusterAutoExportTest {
                 }
             } catch (InterruptedException e) {
                 e.printStackTrace();
+                log.error(e.getMessage(), e);
             }
 
         }

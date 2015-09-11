@@ -4182,7 +4182,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         Workflow.Method createMethod = createFullCopyVolumeMethod(storage, volume.getId(),
                 Arrays.asList(uri), false, false);
         Workflow.Method rollbackMethod = rollbackFullCopyVolumeMethod(storage, asList(uri));
-        workflow.createStep(BlockDeviceController.FULL_COPY_CREATE_STEP_GROUP, "Creating full copy", null, storage,
+        workflow.createStep(BlockDeviceController.FULL_COPY_CREATE_STEP_GROUP, "Creating full copy", waitFor, storage,
                 storageSystem.getSystemType(), getClass(), createMethod, rollbackMethod, null);
 
         boolean isCG = false; // create individual clone, then add to group
@@ -4191,7 +4191,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         Workflow.Method waitForSyncMethod = waitForSynchronizedMethod(Volume.class, storage,
                 Arrays.asList(uri), isCG);
         waitFor = workflow.createStep(BlockDeviceController.FULL_COPY_WFS_STEP_GROUP, "Waiting for synchronization",
-                BlockDeviceController.FULL_COPY_CREATE_STEP_GROUP, storage, storageSystem.getSystemType(),
+                waitFor, storage, storageSystem.getSystemType(),
                 getClass(), waitForSyncMethod, null, null);
 
         // detach if storage system is not vmax/vnx/hds

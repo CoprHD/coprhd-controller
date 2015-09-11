@@ -26,10 +26,10 @@ import static util.BourneUtil.getViprClient;
 public class TenantUtils {
     //To represent the two additional options in the
     //tenant selector.
-    public static String NO_TENANT_SELECTOR = "[No-Filter]";
-    public static String TENANT_SELECTOR_FOR_UNASSIGNED = "[Not-Assigned]";
-    public static String API_NO_TENANT_SELECTOR = "No-Filter";
-    public static String API_TENANT_SELECTOR_FOR_UNASSIGNED = "Not-Assigned";
+    private static final String NO_TENANT_SELECTOR = "[No-Filter]";
+    private static final String TENANT_SELECTOR_FOR_UNASSIGNED = "[Not-Assigned]";
+    private static final String API_NO_TENANT_SELECTOR = "No-Filter";
+    private static final String API_TENANT_SELECTOR_FOR_UNASSIGNED = "Not-Assigned";
 
     public static boolean canReadAllTenants() {
         return Security.hasAnyRole(Security.ROOT_TENANT_ADMIN, Security.SECURITY_ADMIN, Security.SYSTEM_MONITOR);
@@ -216,15 +216,23 @@ public class TenantUtils {
     public static URI getTenantFilter(String tenantId) {
         URI tenantFilter;
         if (StringUtils.isNotBlank(tenantId) &&
-                tenantId.toString().equalsIgnoreCase(NO_TENANT_SELECTOR)) {
+                tenantId.equalsIgnoreCase(NO_TENANT_SELECTOR)) {
             tenantFilter = uri(API_NO_TENANT_SELECTOR);
         } else if (StringUtils.isNotBlank(tenantId) &&
-                tenantId.toString().equalsIgnoreCase(TENANT_SELECTOR_FOR_UNASSIGNED)){
+                tenantId.equalsIgnoreCase(TENANT_SELECTOR_FOR_UNASSIGNED)){
             tenantFilter = uri(API_TENANT_SELECTOR_FOR_UNASSIGNED);
         } else {
             tenantFilter = uri(tenantId);
         }
 
         return tenantFilter;
+    }
+
+    public static String getNoTenantSelector() {
+        return NO_TENANT_SELECTOR;
+    }
+
+    public static String getTenantSelectorForUnassigned() {
+        return TENANT_SELECTOR_FOR_UNASSIGNED;
     }
 }

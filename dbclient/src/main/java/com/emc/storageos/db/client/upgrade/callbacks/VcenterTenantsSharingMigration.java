@@ -22,7 +22,7 @@ import java.util.List;
  *
  */
 public class VcenterTenantsSharingMigration extends BaseCustomMigrationCallback {
-    protected final static Logger _log = LoggerFactory.getLogger(VcenterTenantsSharingMigration.class);
+    protected static final Logger _log = LoggerFactory.getLogger(VcenterTenantsSharingMigration.class);
 
     @Override
     public void process() {

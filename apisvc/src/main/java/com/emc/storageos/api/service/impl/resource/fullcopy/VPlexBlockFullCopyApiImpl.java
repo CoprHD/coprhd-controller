@@ -190,7 +190,11 @@ public class VPlexBlockFullCopyApiImpl extends AbstractBlockFullCopyApiImpl {
                         throw APIException.badRequests.fullCopyNotAllowedWhenCGAcrossMultipleSystems();
                     }
                 }
-                
+                // Check if the source volume is an ingested CG, without any back end CGs yet. if yes, throw error
+                Volume srcVol = (Volume) fcSourceObjList.get(0);
+                if (VPlexUtil.isVolumeInIngestedCG(srcVol, _dbClient)) {
+                    throw APIException.badRequests.fullCopyNotAllowedForIngestedCG(srcVol.getId().toString());
+                }
                 // Platform specific checks.
                 for (BlockObject fcSourceObj : fcSourceObjList) {
                     Volume fcSourceVolume = (Volume) fcSourceObj;

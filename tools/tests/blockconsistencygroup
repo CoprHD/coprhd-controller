@@ -247,7 +247,7 @@ except:
 
 # consistency group cmd cmd_args [--ip ipaddr]
 parser = argparse.ArgumentParser(description = 'Bourne blockconsistencygroups cli usage.')
-parser.add_argument('cmd', help = 'cmd = (create | show | delete | check_volume | delete_with_volumes | check_volume_error | swap)')
+parser.add_argument('cmd', help = 'cmd = (create | show | delete | check_volume | delete_with_volumes | check_volume_error | swap | failover | failover-cancel)')
 parser.add_argument('--ip',    metavar = 'ipaddr',    help = 'IP address of bourne', default=bourne_ip)
 
 # consistency group create fsuri [--ip ipaddr]
@@ -367,10 +367,10 @@ try:
         consistency_group_swap(args)
     elif (cmd == "failover"):
         args = protectionOperation.parse_args()
-        consistency_group_swap(args)
+        consistency_group_failover(args)
     elif (cmd == "failover_cancel"):
         args = protectionOperation.parse_args()
-        consistency_group_swap(args)    	
+        consistency_group_failover_cancel(args)    	
     else:
         parser.print_help()
 

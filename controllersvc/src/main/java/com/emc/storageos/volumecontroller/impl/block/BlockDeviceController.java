@@ -4182,7 +4182,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         Workflow.Method createMethod = createFullCopyVolumeMethod(storage, volume.getId(),
                 Arrays.asList(uri), false, false);
         Workflow.Method rollbackMethod = rollbackFullCopyVolumeMethod(storage, asList(uri));
-        workflow.createStep(BlockDeviceController.FULL_COPY_CREATE_STEP_GROUP, "Creating full copy", waitFor, storage,
+        waitFor = workflow.createStep(BlockDeviceController.FULL_COPY_CREATE_STEP_GROUP, "Creating full copy", waitFor, storage,
                 storageSystem.getSystemType(), getClass(), createMethod, rollbackMethod, null);
 
         boolean isCG = false; // create individual clone, then add to group

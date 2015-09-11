@@ -2129,6 +2129,23 @@ public class SmisCommandHelper implements SmisConstants {
         return argsList.toArray(args);
     }
 
+    public CIMArgument[] getAddVolumesToMaskingGroupInputArguments(StorageSystem storageDevice, String storageGroupName,
+            CIMObjectPath[] members, String[] deviceNumbers, boolean forceFlag) throws Exception {
+        CIMObjectPath maskingGroupPath = _cimPath.getMaskingGroupPath(storageDevice, storageGroupName,
+                MASKING_GROUP_TYPE.SE_DeviceMaskingGroup);
+        List<CIMArgument> argsList = new ArrayList<CIMArgument>();
+        argsList.add(_cimArgument.referenceArray(CP_MEMBERS, members));
+        argsList.add(_cimArgument.reference(CP_MASKING_GROUP, maskingGroupPath));
+        if (deviceNumbers != null && deviceNumbers.length > 0) {
+            argsList.add(_cimArgument.stringArray(CP_DEVICE_NUMBERS, deviceNumbers));
+        }
+        if (forceFlag) {
+            argsList.add(_cimArgument.bool(CP_EMC_FORCE, Boolean.TRUE));
+        }
+        CIMArgument[] args = {};
+        return argsList.toArray(args);
+    }
+
     public CIMArgument[] getAddVolumesToMaskingGroupInputArguments(StorageSystem storageDevice, CIMObjectPath groupPath,
             Set<String> volumeDeviceIds) throws Exception {
         String[] volumeNames = volumeDeviceIds.toArray(new String[volumeDeviceIds.size()]);

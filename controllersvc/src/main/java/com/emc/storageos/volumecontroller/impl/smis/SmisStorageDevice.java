@@ -1231,9 +1231,19 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 final CIMArgument[] outArgs = new CIMArgument[5];
                 final String[] memberNames = nativeIds.toArray(new String[nativeIds.size()]);
                 final CIMObjectPath[] volumePaths = _cimPath.getVolumePaths(storage, memberNames);
-                final CIMArgument[] inArgs = _helper.getAddMembersInputArguments(cgPath, volumePaths);
-                _helper.invokeMethod(storage, replicationSvc, SmisConstants.ADD_MEMBERS, inArgs,
-                        outArgs);
+                // TODO - handle snapshot and mirror, or just add volumes to masking group regardless the CG has existing group relationship or not
+                Set<String> cloneRepGroupNames = ControllerUtils.getCloneReplicationGroupNames(ControllerUtils.getVolumesPartOfCG(consistencyGroup.getId(), _dbClient), _dbClient);
+                if (cloneRepGroupNames.isEmpty()) {
+                    final CIMArgument[] inArgs = _helper.getAddMembersInputArguments(cgPath, volumePaths);
+                    _helper.invokeMethod(storage, replicationSvc, SmisConstants.ADD_MEMBERS, inArgs,
+                            outArgs);
+                } else {
+                    final CIMArgument[] inArgs = _helper.getAddVolumesToMaskingGroupInputArguments(storage,
+                            groupName, volumePaths, null, true);
+                    _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
+                            SmisConstants.ADD_MEMBERS, inArgs, outArgs, null);
+                }
+
                 _log.info("Volumes sucessfully added to the Consistency Group: {}"
                         + consistencyGroup.getId());
             }

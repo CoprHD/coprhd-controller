@@ -17,6 +17,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.Controller;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
 import com.emc.storageos.db.client.DbClient;
@@ -25,6 +26,8 @@ import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.OpStatusMap;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
@@ -43,7 +46,7 @@ import com.emc.storageos.workflow.WorkflowException;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
 import com.google.common.base.Joiner;
 
-public class ReplicaDeviceController implements BlockOrchestrationInterface {
+public class ReplicaDeviceController implements Controller, BlockOrchestrationInterface {
     private static final Logger log = LoggerFactory.getLogger(ReplicaDeviceController.class);
     private DbClient _dbClient;
     private BlockDeviceController _blockDeviceController;
@@ -131,38 +134,23 @@ public class ReplicaDeviceController implements BlockOrchestrationInterface {
     }
 
     private String addClonesToReplicationGroupStep(final Workflow workflow, String waitFor, StorageSystem storageSystem,
-            List<Volume> volumes, String replicationGroupName) {
+            List<Volume> volumes, String repGroupName) {
         log.info("START create clone step");
         URI storage = storageSystem.getId();
         List<URI> cloneList = new ArrayList<URI>();
         for (Volume volume : volumes) {
-            // create clone for the source
-            Volume clone = new Volume();
-            URI uri = URIUtil.createId(Volume.class);
-            clone.setId(uri);
-            clone.setPool(volume.getPool());
-            clone.setStorageController(storage);
-            // TODO - set other necessary properties
-            clone.setAssociatedSourceVolume(volume.getId());
-
-            StringSet fullCopies = volume.getFullCopies();
-            if (fullCopies == null) {
-                fullCopies = new StringSet();
-            }
-
-            volume.setFullCopies(fullCopies);
-            _dbClient.persistObject(clone);
-            _dbClient.persistObject(volume);
-            cloneList.add(uri);
-
-            waitFor = _blockDeviceController.createSingleCloneStep(workflow, storage, storageSystem, volume, uri, waitFor);
+            Volume clone = prepareClone(volume, repGroupName);
+            URI cloneId = clone.getId();
+            cloneList.add(cloneId);
+            // TODO - use CreateListReplica to create clones of all volumes in one call
+            waitFor = _blockDeviceController.createSingleCloneStep(workflow, storage, storageSystem, volume, cloneId, waitFor);
         }
 
         URI cgURI = volumes.get(0).getConsistencyGroup();
         waitFor = workflow.createStep(BlockDeviceController.UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                 String.format("Updating consistency group  %s", cgURI), waitFor, storage,
                 _blockDeviceController.getDeviceType(storage), this.getClass(),
-                addToReplicationGroupMethod(storage, cgURI, replicationGroupName, cloneList),
+                addToReplicationGroupMethod(storage, cgURI, repGroupName, cloneList),
                 _blockDeviceController.rollbackMethodNullMethod(), null);
         log.info(String.format("Step created for adding clone [%s] to group on device [%s]",
                 Joiner.on("\t").join(cloneList), storage));
@@ -170,9 +158,40 @@ public class ReplicaDeviceController implements BlockOrchestrationInterface {
         return waitFor;
     }
 
-    static Workflow.Method addToReplicationGroupMethod(URI storage, URI consistencyGroup, String replicationGroupName,
+    private Volume prepareClone(Volume volume, String repGroupName) {
+        // create clone for the source
+        Volume clone = new Volume();
+        clone.setId(URIUtil.createId(Volume.class));
+        clone.setLabel(volume.getLabel() + "_" + repGroupName);
+        clone.setPool(volume.getPool());
+        clone.setStorageController(volume.getStorageController());
+        clone.setProject(new NamedURI(volume.getProject().getURI(), clone.getLabel()));
+        clone.setTenant(new NamedURI(volume.getTenant().getURI(), clone.getLabel()));
+        clone.setVirtualPool(volume.getVirtualPool());
+        clone.setVirtualArray(volume.getVirtualArray());
+        clone.setProtocol(new StringSet());
+        clone.getProtocol().addAll(volume.getProtocol());
+        clone.setThinlyProvisioned(volume.getThinlyProvisioned());
+        clone.setOpStatus(new OpStatusMap());
+        clone.setAssociatedSourceVolume(volume.getId());
+
+        StringSet fullCopies = volume.getFullCopies();
+        if (fullCopies == null) {
+            fullCopies = new StringSet();
+            volume.setFullCopies(fullCopies);
+        }
+
+        fullCopies.add(clone.getId().toString());
+
+        _dbClient.persistObject(clone);
+        _dbClient.persistObject(volume);
+
+        return clone;
+    }
+
+    static Workflow.Method addToReplicationGroupMethod(URI storage, URI consistencyGroup, String repGroupName,
             List<URI> addVolumesList) {
-        return new Workflow.Method("addToReplicationGroup", storage, consistencyGroup, replicationGroupName, addVolumesList);
+        return new Workflow.Method("addToReplicationGroup", storage, consistencyGroup, repGroupName, addVolumesList);
     }
 
     public boolean addToReplicationGroup(URI storage, URI consistencyGroup, String replicationGroupName, List<URI> addVolumesList,
@@ -339,11 +358,11 @@ public class ReplicaDeviceController implements BlockOrchestrationInterface {
         return waitFor;
     }
 
-    private List<URI> getClonesToBeRemoved(Set<URI> volumes, String replicationGroupName) {
+    private List<URI> getClonesToBeRemoved(Set<URI> volumes, String repGroupName) {
         List<URI> replicas = new ArrayList<URI>();
         URIQueryResultList queryResults = new URIQueryResultList();
         _dbClient.queryByConstraint(AlternateIdConstraint.Factory
-                .getMirrorReplicationGroupInstanceConstraint(replicationGroupName), queryResults);
+                .getMirrorReplicationGroupInstanceConstraint(repGroupName), queryResults);
         Iterator<URI> resultsIter = queryResults.iterator();
         while (resultsIter.hasNext()) {
             Volume clone = _dbClient.queryObject(Volume.class, resultsIter.next());
@@ -355,12 +374,12 @@ public class ReplicaDeviceController implements BlockOrchestrationInterface {
         return replicas;
     }
 
-    static Workflow.Method removeFromReplicationGroupMethod(URI storage, URI consistencyGroup, String replicationGroupName,
+    static Workflow.Method removeFromReplicationGroupMethod(URI storage, URI consistencyGroup, String repGroupName,
             List<URI> addVolumesList) {
-        return new Workflow.Method("removeFromReplicationGroup", storage, consistencyGroup, replicationGroupName, addVolumesList);
+        return new Workflow.Method("removeFromReplicationGroup", storage, consistencyGroup, repGroupName, addVolumesList);
     }
 
-    public boolean removeFromReplicationGroup(URI storage, URI consistencyGroup, String replicationGroupName, List<URI> addVolumesList,
+    public boolean removeFromReplicationGroup(URI storage, URI consistencyGroup, String repGroupName, List<URI> addVolumesList,
             String opId)
                     throws ControllerException {
         TaskCompleter taskCompleter = null;
@@ -369,7 +388,7 @@ public class ReplicaDeviceController implements BlockOrchestrationInterface {
             // TODO - define new completer
             taskCompleter = new BlockConsistencyGroupUpdateCompleter(consistencyGroup, opId);
             _blockDeviceController.getDevice(storageSystem.getSystemType()).doRemoveFromReplicationGroup(
-                    storageSystem, consistencyGroup, replicationGroupName, addVolumesList, taskCompleter);
+                    storageSystem, consistencyGroup, repGroupName, addVolumesList, taskCompleter);
         } catch (Exception e) {
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
             taskCompleter.error(_dbClient, serviceError);

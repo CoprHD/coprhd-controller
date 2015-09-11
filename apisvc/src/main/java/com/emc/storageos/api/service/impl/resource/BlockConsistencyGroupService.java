@@ -1537,6 +1537,70 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     }
 
     /**
+     *
+     * Request to failover the protection link associated with the param.copyID.
+     *
+     * NOTE: This is an asynchronous operation.
+     *
+     * If volume is srdf protected, then invoking failover internally triggers
+     * SRDF SWAP on volume pairs.
+     *
+     * @prereq none
+     *
+     * @param id the URN of a ViPR Source volume
+     * @param param Copy to failover to
+     *
+     * @brief Failover the volume protection link
+     * @return TaskList
+     *
+     * @throws ControllerException
+     */
+    @POST
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/protection/continuous-copies/failover")
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN, ACL.ALL })
+    public TaskList failoverProtection(@PathParam("id") URI id, CopiesParam param) throws ControllerException {
+
+        TaskResourceRep taskResp = null;
+        TaskList taskList = new TaskList();
+
+        // Validate the source volume URI
+        ArgValidator.checkFieldUriType(id, BlockConsistencyGroup.class, "id");
+        // Validate the list of copies
+        ArgValidator.checkFieldNotEmpty(param.getCopies(), "copies");
+
+        // Query Consistency Group
+        final BlockConsistencyGroup consistencyGroup = (BlockConsistencyGroup) queryResource(id);
+
+        // Ensure that the Consistency Group has been created on all of its defined
+        // system types.
+        if (!consistencyGroup.created()) {
+            throw APIException.badRequests.consistencyGroupNotCreated();
+        }
+
+        List<Copy> copies = param.getCopies();
+        if (copies.size() > 1) {
+            throw APIException.badRequests.swapCopiesParamCanOnlyBeOne();
+        }
+        Copy copy = copies.get(0);
+        ArgValidator.checkFieldUriType(copy.getCopyID(), VirtualArray.class, "copyId");
+        ArgValidator.checkFieldNotEmpty(copy.getType(), "type");
+
+        if (copy.getType().equalsIgnoreCase(TechnologyType.RP.toString())) {
+            taskResp = performProtectionAction(id, copy.getCopyID(), ProtectionOp.FAILOVER.getRestOp());
+            taskList.getTaskList().add(taskResp);
+        } else if (copy.getType().equalsIgnoreCase(TechnologyType.SRDF.toString())) {
+            taskResp = performSRDFProtectionAction(id, copy, ProtectionOp.FAILOVER.getRestOp());
+            taskList.getTaskList().add(taskResp);
+        } else {
+            throw APIException.badRequests.invalidCopyType(copy.getType());
+        }
+
+        return taskList;
+    }
+
+    /**
      * Since all of the protection operations are very similar, this method does all of the work.
      * We keep the actual REST methods separate mostly for the purpose of documentation generators.
      *

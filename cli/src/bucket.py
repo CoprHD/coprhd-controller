@@ -184,15 +184,10 @@ class Bucket(object):
         Returns:
             result of the action.
         '''
-        from virtualarray import VirtualArray
-        varray_obj = VirtualArray(self.__ipAddr, self.__port)
-        varray_uri = varray_obj.varray_query(varray)
-        parms = {}
-        # new name
         
-        # datacenter
-        if(varray):
-            parms['varray'] = varray_uri
+        parms = {}
+        
+        
         
         if(softquota):
             parms['soft_quota'] = softquota
@@ -204,7 +199,7 @@ class Bucket(object):
             parms['retention'] = retention
             
 
-        # get the cluster uri
+        
         if(name):
             bucket_uri = self.get_bucket_uri( tenant, project, name)
             
@@ -212,6 +207,7 @@ class Bucket(object):
 
 
         body = json.dumps(parms)
+       
         common.service_json_request(self.__ipAddr, self.__port, "PUT",
                                     Bucket.URI_BUCKET_SHOW.format(bucket_uri),
                                     body)
@@ -236,36 +232,36 @@ def create_parser(subcommand_parsers, common_parser):
         dest='name',
         help='name for the bucket',
         required=True)
-    create_parser.add_argument('-project', '-pr',
+    mandatory_args.add_argument('-project', '-pr',
                                metavar='<project>',
                                dest='project',
                                help='name of the project',
                                default=None)
-    create_parser.add_argument('-varray', '-va',
+    mandatory_args.add_argument('-varray', '-va',
                                metavar='<varray>',
                                dest='varray',
                                help='name of the varray')
-    create_parser.add_argument('-vpool', '-vpool',
+    mandatory_args.add_argument('-vpool', '-vpool',
                                help='name of a vpool',
                                dest='vpool',
                                metavar='<vpool>')
-    create_parser.add_argument('-softquota', '-squota',
+    mandatory_args.add_argument('-softquota', '-squota',
                                help='soft quota size',
                                dest='softquota',
                                metavar='<softquota>')
-    create_parser.add_argument('-hardquota', '-hquota',
+    mandatory_args.add_argument('-hardquota', '-hquota',
                                help='hard quota size',
                                dest='hardquota',
                                metavar='<hardquota>')
     
-    create_parser.add_argument('-retention', '-ret',
+    mandatory_args.add_argument('-retention', '-ret',
                                help='retention period',
                                dest='retention',
-                               metavar='<retention>')
-    create_parser.add_argument('-owner', '-own',
+                               metavar='<retention_period>')
+    mandatory_args.add_argument('-owner', '-own',
                                help='ECS Owner',
                                dest='owner',
-                               metavar='<retention>')
+                               metavar='<owner>')
     create_parser.set_defaults(func=bucket_create)
 
 
@@ -289,26 +285,26 @@ def delete_parser(subcommand_parsers, common_parser):
 
     delete_parser = subcommand_parsers.add_parser(
         'delete',
-        description='ViPR Cluster Delete CLI usage.',
+        description='ViPR Bucket Delete CLI usage.',
         parents=[common_parser],
         conflict_handler='resolve',
-        help='Delete a Cluster')
+        help='Delete a Bucket')
     mandatory_args = delete_parser.add_argument_group('mandatory arguments')
     mandatory_args.add_argument('-name', '-n',
                                 metavar='<name>',
                                 dest='name',
-                                help='name of a the cluster',
+                                help='name of a the bucket',
                                 required=True)
-    delete_parser.add_argument('-tenant', '-tn',
+    mandatory_args.add_argument('-tenant', '-tn',
                                metavar='<tenantname>',
                                dest='tenant',
                                help='name of tenant',
                                default=None)
-    delete_parser.add_argument('-project', '-pr',
+    mandatory_args.add_argument('-project', '-pr',
                                dest='project',
                                metavar='<project>',
                                help='name of Project')
-    delete_parser.add_argument('-project', '-pr',
+    mandatory_args.add_argument('-project', '-pr',
                                dest='project',
                                metavar='<project>',
                                help='name of Project')
@@ -348,12 +344,12 @@ def show_parser(subcommand_parsers, common_parser):
                                 dest='name',
                                 help='name of a the bucket',
                                 required=True)
-    show_parser.add_argument('-project', '-tn',
+    mandatory_args.add_argument('-project', '-tn',
                              metavar='<project>',
                              dest='project',
                              help='name of project',
                              default=None)
-    show_parser.add_argument('-tenant', '-tn',
+    mandatory_args.add_argument('-tenant', '-tn',
                              metavar='<tenant>',
                              dest='tenant',
                              help='name of tenant',
@@ -398,7 +394,7 @@ def update_parser(subcommand_parsers, common_parser):
                                 required=True)
 
     
-    update_parser.add_argument('-project', '-pr',
+    mandatory_args.add_argument('-project', '-pr',
                                metavar='<project>',
                                dest='project',
                                help='name of project ')
@@ -415,10 +411,10 @@ def update_parser(subcommand_parsers, common_parser):
                                dest='hardquota',
                                metavar='<hardquota>')
     update_parser.add_argument('-retention', '-ret',
-                               help='retention',
+                               help='retention in days',
                                dest='retention',
-                               metavar='<retention>')
-    update_parser.add_argument('-tenant', '-tn',
+                               metavar='<retention_period>')
+    mandatory_args.add_argument('-tenant', '-tn',
                                help='tenant',
                                dest='tenant',
                                metavar='<tenant>')
@@ -436,7 +432,7 @@ def bucket_update(args):
 
         
 
-        obj.bucket_update(args.name, args.project, args.varray,args.
+        obj.bucket_update(args.name, args.project, args.varray,
                            args.softquota, args.hardquota , args.retention , args.tenant)
     except SOSError as e:
         common.format_err_msg_and_raise("update", "bucket",
@@ -447,7 +443,7 @@ def bucket_update(args):
 
 
 def bucket_parser(parent_subparser, common_parser):
-    # main cluster parser
+    # main bucket parser
     parser = parent_subparser.add_parser(
         'bucket',
         description='ViPR Bucket CLI usage',

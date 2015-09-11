@@ -69,8 +69,10 @@ public class ECSObjectStorageDevice implements ObjectStorageDevice {
 
         try {
             ECSApi ecsApi = getAPI(storageObj);
-            ecsApi.createBucket(args.getName(), args.getNamespace(), args.getRepGroup(),
+            String bktNativeId = ecsApi.createBucket(args.getName(), args.getNamespace(), args.getDevStoragePool(),
                     args.getRetentionPeriod(), args.getBlkSizeHQ(), args.getNotSizeSQ(), args.getOwner());
+            args.setBktNativeId(bktNativeId);
+            
             _log.info("ECSObjectStorageDevice:doCreateBucket end");
             return BiosCommandResult.createSuccessfulResult();
         } catch (ECSException e) {

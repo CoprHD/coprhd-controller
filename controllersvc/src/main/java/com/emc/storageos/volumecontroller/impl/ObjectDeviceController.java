@@ -109,7 +109,7 @@ public class ObjectDeviceController implements ObjectController {
 
             args.setName(label);
             args.setNamespace(namespace);
-            args.setRepGroup(stPool.getNativeId()); // recommended storage pool
+            args.setDevStoragePool(stPool.getNativeId()); // recommended storage pool
             args.setRetentionPeriod(retention);
             args.setBlkSizeHQ(hardQuota);
             args.setNotSizeSQ(softQuota);
@@ -122,6 +122,9 @@ public class ObjectDeviceController implements ObjectController {
                 bucketObj.getOpStatus().updateTaskStatus(opId, result.toOperation());
             }
 
+            if(result.isCommandSuccess()){
+                bucketObj.setNativeId(args.getBktNativeId());
+            }
             _dbClient.persistObject(bucketObj);
             _log.info("ObjectDeviceController:createBucket end");
         } catch (Exception e) {

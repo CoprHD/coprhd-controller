@@ -38,7 +38,7 @@ import java.util.List;
  */
 public class VcenterTenantsSharingMigrationTest extends DbSimpleMigrationTestBase {
     private Vcenter vcenter;
-    TenantOrg tenant;
+    private TenantOrg tenant;
 
     @BeforeClass
     public static void setup() throws IOException {
@@ -80,7 +80,7 @@ public class VcenterTenantsSharingMigrationTest extends DbSimpleMigrationTestBas
      * @see com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase#prepareData()
      */
     @Override
-    protected void prepareData() throws Exception {
+    protected void prepareData() {
         DbClient dbClient = getDbClient();
 
         tenant = new TenantOrg();
@@ -109,7 +109,7 @@ public class VcenterTenantsSharingMigrationTest extends DbSimpleMigrationTestBas
      * @see com.emc.storageos.db.server.upgrade.DbSimpleMigrationTestBase#verifyResults()
      */
     @Override
-    protected void verifyResults() throws Exception {
+    protected void verifyResults() {
         DbClient dbClient = getDbClient();
 
         Vcenter vcenterObj = dbClient.queryObject(Vcenter.class, vcenter.getId());

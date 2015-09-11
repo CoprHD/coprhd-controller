@@ -25,11 +25,12 @@ import com.emc.storageos.db.client.model.StoragePool;
 public class ObjectDeviceInputOutput {
     private String name;
     private String namespace;
-    private String repGroup;
+    private String devStoragePool;
     private String retentionPeriod;
     private String blkSizeHQ;
     private String notSizeSQ;
     private String owner;
+    private String bktNativeId;
 
     /*
      * get and set of each members
@@ -50,12 +51,12 @@ public class ObjectDeviceInputOutput {
         return namespace;
     }
 
-    public void setRepGroup(String repGroup) {
-        this.repGroup = repGroup;
+    public void setDevStoragePool(String devStoragePool) {
+        this.devStoragePool = devStoragePool;
     }
 
-    public String getRepGroup() {
-        return repGroup;
+    public String getDevStoragePool() {
+        return devStoragePool;
     }
 
     public void setRetentionPeriod(String retentionPeriod) {
@@ -88,6 +89,14 @@ public class ObjectDeviceInputOutput {
 
     public String getOwner() {
         return owner;
+    }
+    
+    public void setBktNativeId(String bktNativeId) {
+        this.bktNativeId = bktNativeId;
+    }
+    
+    public String getBktNativeId() {
+        return bktNativeId;
     }
 
 }

@@ -37,8 +37,7 @@ import com.emc.storageos.volumecontroller.impl.monitoring.MonitoringJob;
 import com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.MonitorTaskCompleter;
 
 /**
- * South bound API implementation - a singleton instance
- * of this class services all provisioning calls. Provisioning
+ * This class services all object provisioning calls. Provisioning
  * calls are matched against device specific controller implementations
  * and forwarded from this implementation
  */
@@ -127,10 +126,10 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
     }
 
     @Override
-    public void createBucket(URI storage, URI vPool, URI bkt, String label, String namespace, String retention,
+    public void createBucket(URI storage, URI stPool, URI bkt, String label, String namespace, String retention,
             String hardQuota, String softQuota, String owner, String opId) throws InternalException {
         _log.info("ObjectControllerImpl:createBukcet start");
-        execOb("createBucket", storage, vPool, bkt, label, namespace, retention,
+        execOb("createBucket", storage, stPool, bkt, label, namespace, retention,
                 hardQuota, softQuota, owner, opId);
         _log.info("ObjectControllerImpl:createBukcet end");
     }

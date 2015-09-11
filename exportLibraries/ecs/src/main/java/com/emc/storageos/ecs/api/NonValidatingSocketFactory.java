@@ -28,7 +28,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
 /**
- * Non validating socket factory for use with Isilon REST client
+ * Non validating socket factory for use with ECS REST client
  */
 class NonValidatingSocketFactory implements ProtocolSocketFactory {
     private SSLContext _sslContext;

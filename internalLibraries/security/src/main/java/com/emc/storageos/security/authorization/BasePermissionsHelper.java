@@ -1995,8 +1995,8 @@ public class BasePermissionsHelper {
      * @param acls to be converted into the ACLEntry list.
      * @return the converted ACLEntry list.
      */
-    public static ArrayList<ACLEntry> convertToACLEntries(StringSetMap acls) {
-        ArrayList<ACLEntry> assignments = new ArrayList<ACLEntry>();
+    public static List<ACLEntry> convertToACLEntries(StringSetMap acls) {
+        List<ACLEntry> assignments = new ArrayList<ACLEntry>();
         if (CollectionUtils.isEmpty(acls)) {
             return assignments;
         }

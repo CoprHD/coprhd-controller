@@ -233,6 +233,10 @@ public class BucketService extends TaskResourceService {
                 "createBucket --- Bucket: %1$s, StoragePool: %2$s, StorageSystem: %3$s",
                 bucket.getId(), recommendation.getSourceStoragePool(), recommendation.getSourceStorageSystem()));
 
+        Operation op = _dbClient.createTaskOpStatus(Bucket.class, bucket.getId(),
+                task, ResourceOperationTypeEnum.CREATE_BUCKET);
+        op.setDescription("Bucket Create");
+
         // TODO : Controller call
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceStorageSystem());
@@ -253,7 +257,7 @@ public class BucketService extends TaskResourceService {
                 param.getLabel(), param.getHardQuota(), neighborhood.getId().toString(),
                 project == null ? null : project.getId().toString());
 
-        return toTask(bucket, task);
+        return toTask(bucket, task, op);
     }
 
     /**

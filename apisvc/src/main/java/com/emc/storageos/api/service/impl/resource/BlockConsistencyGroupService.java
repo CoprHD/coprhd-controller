@@ -1482,11 +1482,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     }
 
     /**
-     * Request to reverse the replication direction, i.e. R1 and R2 are interchanged..
+     * Request to reverse the replication direction, i.e. R1 and R2 are interchanged.
      *
      * @prereq none
      *
-     * @param id the URI of a ViPR BlockConsistencyGroup
+     * @param id the URI of a BlockConsistencyGroup
      * @param param Copy to swap
      *
      * @brief reversing roles of source and target
@@ -1538,7 +1538,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
 
     /**
      *
-     * Request to failover the protection link associated with the param.copyID.
+     * Request to failover the protection link associated with the copy. The target
+     * copy is specified by identifying the virtual array in param.copyId.
      *
      * NOTE: This is an asynchronous operation.
      *
@@ -1547,10 +1548,10 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      *
      * @prereq none
      *
-     * @param id the URN of a ViPR Source volume
+     * @param id the URI of a BlockConsistencyGroup
      * @param param Copy to failover to
      *
-     * @brief Failover the volume protection link
+     * @brief Failover the protection link
      * @return TaskList
      *
      * @throws ControllerException
@@ -1601,11 +1602,11 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     }
 
     /**
-     * Request to cancel fail over on already failed over volumes.
+     * Request to cancel fail over on already failed over consistency group.
      *
      * @prereq none
      *
-     * @param id the URN of a ViPR Source volume
+     * @param id the URI of the BlockConsistencyGroup.
      * @param param Copy to fail back
      *
      * @brief fail back to source again

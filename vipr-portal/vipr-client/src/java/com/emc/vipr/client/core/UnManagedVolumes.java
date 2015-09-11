@@ -13,14 +13,17 @@ import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.TaskList;
-import com.emc.storageos.model.TaskResourceRep;
-import com.emc.storageos.model.block.*;
+import com.emc.storageos.model.block.UnManagedBulkRep;
+import com.emc.storageos.model.block.UnManagedVolumeList;
+import com.emc.storageos.model.block.UnManagedVolumeRestRep;
+import com.emc.storageos.model.block.VolumeExportIngestParam;
+import com.emc.storageos.model.block.VolumeIngest;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.ViPRCoreClient;
 import com.emc.vipr.client.core.filters.ResourceFilter;
 import com.emc.vipr.client.core.impl.PathConstants;
-import com.emc.vipr.client.impl.RestClient;
 import com.emc.vipr.client.core.util.ResourceUtils;
+import com.emc.vipr.client.impl.RestClient;
 
 /**
  * Unmanaged Volumes resources.
@@ -54,7 +57,7 @@ public class UnManagedVolumes extends AbstractCoreBulkResources<UnManagedVolumeR
      * API Call: <tt>GET /vdc/storage-systems/{storageSystemId}/unmanaged/volumes</tt>
      * 
      * @param storageSystemId
-     *        the ID of the storage system.
+     *            the ID of the storage system.
      * @return the list of unmanaged volume references.
      */
     public List<NamedRelatedResourceRep> listByStorageSystem(URI storageSystemId) {
@@ -99,7 +102,7 @@ public class UnManagedVolumes extends AbstractCoreBulkResources<UnManagedVolumeR
      * <tt>getByRefs(listByStorageSystem(storageSystemId))</tt>
      * 
      * @param storageSystemId
-     *        the ID of the storage system.
+     *            the ID of the storage system.
      * @return the list of unmanaged volumes.
      */
     public List<UnManagedVolumeRestRep> getByStorageSystem(URI storageSystemId) {
@@ -129,9 +132,9 @@ public class UnManagedVolumes extends AbstractCoreBulkResources<UnManagedVolumeR
      * <tt>getByRefs(listByStorageSystem(storageSystemId), filter)</tt>
      * 
      * @param storageSystemId
-     *        the ID of the storage system.
+     *            the ID of the storage system.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of unmanaged volumes.
      */
     public List<UnManagedVolumeRestRep> getByStorageSystem(URI storageSystemId,
@@ -146,21 +149,20 @@ public class UnManagedVolumes extends AbstractCoreBulkResources<UnManagedVolumeR
      * API Call: <tt>GET /compute/hosts/{hostId}/unmanaged-volumes</tt>
      *
      * @param hostId
-     *        the ID of the host.
+     *            the ID of the host.
      * @return the list of unmanaged volume references.
      */
-    public List<NamedRelatedResourceRep> listByHost(URI hostId) {
+    public List<RelatedResourceRep> listByHost(URI hostId) {
         UnManagedVolumeList response = client.get(UnManagedVolumeList.class,
-            PathConstants.UNMANAGED_VOLUME_BY_HOST_URL, hostId);
-        return ResourceUtils.defaultList(response.getNamedUnManagedVolumes());
+                PathConstants.UNMANAGED_VOLUME_BY_HOST_URL, hostId);
+        return ResourceUtils.defaultList(response.getUnManagedVolumes());
     }
 
     /**
-     * Gets the list of unmanaged volumes for the given host by ID. This is a convenience method for:
-     * <tt>getByRefs(listByHost(hostId))</tt>
+     * Gets the list of unmanaged volumes for the given host by ID. This is a convenience method for: <tt>getByRefs(listByHost(hostId))</tt>
      *
      * @param hostId
-     *        the ID of the host.
+     *            the ID of the host.
      * @return the list of unmanaged volumes.
      */
     public List<UnManagedVolumeRestRep> getByHost(URI hostId) {
@@ -172,13 +174,13 @@ public class UnManagedVolumes extends AbstractCoreBulkResources<UnManagedVolumeR
      * <tt>getByRefs(listByHost(hostId), filter)</tt>
      *
      * @param hostId
-     *        the ID of the host.
+     *            the ID of the host.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of unmanaged volumes.
      */
     public List<UnManagedVolumeRestRep> getByHost(URI hostId, ResourceFilter<UnManagedVolumeRestRep> filter) {
-        List<NamedRelatedResourceRep> refs = listByHost(hostId);
+        List<RelatedResourceRep> refs = listByHost(hostId);
         return getByRefs(refs, filter);
     }
 
@@ -188,13 +190,13 @@ public class UnManagedVolumes extends AbstractCoreBulkResources<UnManagedVolumeR
      * API Call: <tt>GET /compute/clusters/{clusterId}/unmanaged-volumes</tt>
      *
      * @param clusterId
-     *        the ID of the cluster.
+     *            the ID of the cluster.
      * @return the list of unmanaged volume references.
      */
-    public List<NamedRelatedResourceRep> listByCluster(URI clusterId) {
+    public List<RelatedResourceRep> listByCluster(URI clusterId) {
         UnManagedVolumeList response = client.get(UnManagedVolumeList.class,
-            PathConstants.UNMANAGED_VOLUME_BY_CLUSTER_URL, clusterId);
-        return ResourceUtils.defaultList(response.getNamedUnManagedVolumes());
+                PathConstants.UNMANAGED_VOLUME_BY_CLUSTER_URL, clusterId);
+        return ResourceUtils.defaultList(response.getUnManagedVolumes());
     }
 
     /**
@@ -202,7 +204,7 @@ public class UnManagedVolumes extends AbstractCoreBulkResources<UnManagedVolumeR
      * <tt>getByRefs(listByCluster(clusterId))</tt>
      *
      * @param clusterId
-     *        the ID of the cluster.
+     *            the ID of the cluster.
      * @return the list of unmanaged volumes.
      */
     public List<UnManagedVolumeRestRep> getByCluster(URI clusterId) {
@@ -214,13 +216,13 @@ public class UnManagedVolumes extends AbstractCoreBulkResources<UnManagedVolumeR
      * <tt>getByRefs(listByCluster(hostId), filter)</tt>
      *
      * @param clusterId
-     *        the ID of the cluster.
+     *            the ID of the cluster.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of unmanaged volumes.
      */
     public List<UnManagedVolumeRestRep> getByCluster(URI clusterId, ResourceFilter<UnManagedVolumeRestRep> filter) {
-        List<NamedRelatedResourceRep> refs = listByCluster(clusterId);
+        List<RelatedResourceRep> refs = listByCluster(clusterId);
         return getByRefs(refs, filter);
     }
 
@@ -230,14 +232,13 @@ public class UnManagedVolumes extends AbstractCoreBulkResources<UnManagedVolumeR
      * API Call: <tt>POST /vdc/unmanaged/volumes/ingest</tt>
      * 
      * @param input
-     *        the ingest configuration.
+     *            the ingest configuration.
      * @return the list of ingested volumes.
      */
     public Tasks<UnManagedVolumeRestRep> ingest(VolumeIngest input) {
-    	TaskList tasks = client.post(TaskList.class, input, baseUrl + "/ingest");
-    	return new Tasks<>(client, tasks.getTaskList(), resourceClass);
+        TaskList tasks = client.post(TaskList.class, input, baseUrl + "/ingest");
+        return new Tasks<>(client, tasks.getTaskList(), resourceClass);
     }
-
 
     /**
      * Ingests unmanaged volumes.
@@ -245,11 +246,11 @@ public class UnManagedVolumes extends AbstractCoreBulkResources<UnManagedVolumeR
      * API Call: <tt>POST /vdc/unmanaged/volumes/ingest-exported</tt>
      *
      * @param input
-     *        the ingest configuration.
+     *            the ingest configuration.
      * @return the list of ingested volumes.
      */
     public Tasks<UnManagedVolumeRestRep> ingestExported(VolumeExportIngestParam input) {
-    	TaskList tasks = client.post(TaskList.class, input, "/vdc/unmanaged/volumes/ingest-exported");
-    	return new Tasks<>(client, tasks.getTaskList(), resourceClass);
+        TaskList tasks = client.post(TaskList.class, input, "/vdc/unmanaged/volumes/ingest-exported");
+        return new Tasks<>(client, tasks.getTaskList(), resourceClass);
     }
 }

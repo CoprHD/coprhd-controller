@@ -4,33 +4,35 @@
  */
 package com.emc.storageos.model.block;
 
-import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.RelatedResourceRep;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.RelatedResourceRep;
 
 @XmlRootElement(name = "unmanaged_volumes")
 public class UnManagedVolumeList {
 
     private List<RelatedResourceRep> unManagedVolumes;
-    
+
     private List<NamedRelatedResourceRep> namedUnManagedVolumes;
-    
-    public UnManagedVolumeList() {}
-            
+
+    public UnManagedVolumeList() {
+    }
+
     public UnManagedVolumeList(List<RelatedResourceRep> unManagedVolumes) {
         this.unManagedVolumes = unManagedVolumes;
     }
 
     /**
-     * The list of unmanaged volumes which are available in a storage system.  
-     * Used primarily to ingest volumes into ViPR.  
+     * The list of unmanaged volumes which are available in a storage system.
+     * Used primarily to ingest volumes into ViPR.
+     * 
      * @valid none
-     */    
+     */
     @XmlElement(name = "unmanaged_volume")
     public List<RelatedResourceRep> getUnManagedVolumes() {
         if (unManagedVolumes == null) {
@@ -44,11 +46,12 @@ public class UnManagedVolumeList {
     }
 
     /**
-     * The list of unmanaged volumes with name which are available in a storage system.  
-     * Used primarily to ingest volumes into ViPR.  
+     * The list of unmanaged volumes with name which are available in a storage system.
+     * Used primarily to ingest volumes into ViPR.
+     * 
      * @valid none
-     */ 
-    @XmlElement(name = "unmanaged_volume")
+     */
+    @XmlElement(name = "named_unmanaged_volume")
     public List<NamedRelatedResourceRep> getNamedUnManagedVolumes() {
         if (namedUnManagedVolumes == null) {
             namedUnManagedVolumes = new ArrayList<NamedRelatedResourceRep>();

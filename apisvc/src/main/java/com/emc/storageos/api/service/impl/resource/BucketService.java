@@ -211,8 +211,8 @@ public class BucketService extends TaskResourceService {
             throw APIException.badRequests.virtualPoolNotForObjectStorage(VirtualPool.Type.object.name());
         }
 
-        // verify retention
-        if (retention > cos.getMaxRetention()) {
+        // verify retention. Its validated only if Retention is configured.
+        if (retention != 0 && cos.getMaxRetention() != 0 && retention > cos.getMaxRetention()) {
             throw APIException.badRequests.insufficientRetentionForVirtualPool(cos.getLabel(), "bucket");
         }
 

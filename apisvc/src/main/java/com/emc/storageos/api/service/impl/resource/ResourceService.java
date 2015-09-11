@@ -55,6 +55,8 @@ public abstract class ResourceService {
 
     protected final static String CONTROLLER_SVC = "controllersvc";
     protected final static String CONTROLLER_SVC_VER = "1";
+    protected static final String DATAOBJECT_NAME_FIELD = "label";
+
     @SuppressWarnings("unused")
     private final static Logger _log = LoggerFactory.getLogger(ResourceService.class);
 
@@ -129,7 +131,7 @@ public abstract class ResourceService {
                             parentToScope, name));
         } else {
             objectList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, type,
-                    PrefixConstraint.Factory.getFullMatchConstraint(type, "label", name));
+                    PrefixConstraint.Factory.getFullMatchConstraint(type, DATAOBJECT_NAME_FIELD, name));
         }
 
         return objectList;
@@ -149,7 +151,7 @@ public abstract class ResourceService {
                             parentToScope, name));
         } else {
             objectList = CustomQueryUtility.queryActiveResourcesByConstraint(dbClient, type,
-                    PrefixConstraint.Factory.getFullMatchConstraint(type, "label", name));
+                    PrefixConstraint.Factory.getFullMatchConstraint(type, DATAOBJECT_NAME_FIELD, name));
         }
         if (!objectList.isEmpty()) {
             throw APIException.badRequests.duplicateLabel(name);
@@ -341,7 +343,7 @@ public abstract class ResourceService {
     protected <T extends DataObject> void checkDuplicateLabel(Class<T> type,
             String value, String entityName) {
         List<T> objectList = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, type,
-                PrefixConstraint.Factory.getFullMatchConstraint(type, "label", value));
+                PrefixConstraint.Factory.getFullMatchConstraint(type, DATAOBJECT_NAME_FIELD, value));
         if (!objectList.isEmpty()) {
             throw APIException.badRequests.duplicateLabel(entityName);
         }
@@ -596,7 +598,7 @@ public abstract class ResourceService {
 
         List<T> dataObjects = new ArrayList<T>();
         if (uris != null && !uris.isEmpty()) {
-            dataObjects = _dbClient.queryObjectField(clzz, "label", uris);
+            dataObjects = _dbClient.queryObjectField(clzz, DATAOBJECT_NAME_FIELD, uris);
         }
         return dataObjects;
     }
@@ -617,15 +619,16 @@ public abstract class ResourceService {
             return elements;
         }
 
-        //The the requested tenant is null or ALL, return all the vCenters.
-        if (NullColumnValueGetter.isNullURI(tenantId) ||
-                AbstractTenantResource.NO_TENANT_SELECTOR.equalsIgnoreCase(tenantId.toString())) {
+        URI localTenantId = tenantId;
+        //The the requested tenant is null or "No-Filter", return all the vCenters.
+        if (NullColumnValueGetter.isNullURI(localTenantId) ||
+                AbstractTenantResource.NO_TENANT_SELECTOR.equalsIgnoreCase(localTenantId.toString())) {
             return elements;
         }
 
-        //If the filter tenantId is "NONE" modify the search tenantId to null.
-        if (AbstractDiscoveredTenantResource.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(tenantId.toString())) {
-            tenantId = NullColumnValueGetter.getNullURI();
+        //If the filter tenantId is "Not-Assigned" modify the search tenantId to null.
+        if (AbstractDiscoveredTenantResource.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(localTenantId.toString())) {
+            localTenantId = NullColumnValueGetter.getNullURI();
         }
 
         Iterator<NamedElementQueryResultList.NamedElement> elementIterator = elements.iterator();
@@ -641,7 +644,7 @@ public abstract class ResourceService {
             }
 
             //The vCenters tenant
-            if (areEqual(tenantId, dataCenter.getTenant())) {
+            if (areEqual(localTenantId, dataCenter.getTenant())) {
                 continue;
             }
             elementIterator.remove();
@@ -666,15 +669,16 @@ public abstract class ResourceService {
             return elements;
         }
 
+        URI localTenantId = tenantId;
         //The the requested tenant is null or ALL, return all the vCenters.
-        if (NullColumnValueGetter.isNullURI(tenantId) ||
-                AbstractDiscoveredTenantResource.NO_TENANT_SELECTOR.equalsIgnoreCase(tenantId.toString())) {
+        if (NullColumnValueGetter.isNullURI(localTenantId) ||
+                AbstractDiscoveredTenantResource.NO_TENANT_SELECTOR.equalsIgnoreCase(localTenantId.toString())) {
             return elements;
         }
 
         //If the filter tenantId is "NONE" modify the search tenantId to null.
-        if (AbstractDiscoveredTenantResource.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(tenantId.toString())) {
-            tenantId = NullColumnValueGetter.getNullURI();
+        if (AbstractDiscoveredTenantResource.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(localTenantId.toString())) {
+            localTenantId = NullColumnValueGetter.getNullURI();
         }
 
         Iterator<NamedElementQueryResultList.NamedElement> elementIterator = elements.iterator();
@@ -690,7 +694,7 @@ public abstract class ResourceService {
             }
 
             //The vCenters tenant
-            if (areEqual(tenantId, dataCenter.getTenant())) {
+            if (areEqual(localTenantId, dataCenter.getTenant())) {
                 continue;
             }
             elementIterator.remove();
@@ -714,19 +718,20 @@ public abstract class ResourceService {
 
         List<NamedElementQueryResultList.NamedElement> elements;
 
+        URI localTenantId = tenantId;
         //The the requested tenant is null or ALL, return all the vCenters.
-        if (NullColumnValueGetter.isNullURI(tenantId) ||
-                AbstractDiscoveredTenantResource.NO_TENANT_SELECTOR.equalsIgnoreCase(tenantId.toString())) {
+        if (NullColumnValueGetter.isNullURI(localTenantId) ||
+                AbstractDiscoveredTenantResource.NO_TENANT_SELECTOR.equalsIgnoreCase(localTenantId.toString())) {
             elements = listDataObjects(clazz, nameField);
             return elements;
         }
 
         //If the filter tenantId is "NONE" modify the search tenantId to null.
-        if (AbstractDiscoveredTenantResource.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(tenantId.toString())) {
-            tenantId = NullColumnValueGetter.getNullURI();
+        if (AbstractDiscoveredTenantResource.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(localTenantId.toString())) {
+            localTenantId = NullColumnValueGetter.getNullURI();
         }
 
-        elements = listChildren(tenantId, clazz, nameField, linkField);
+        elements = listChildren(localTenantId, clazz, nameField, linkField);
         return elements;
     }
 }

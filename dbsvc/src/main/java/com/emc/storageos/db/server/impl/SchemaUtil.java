@@ -9,6 +9,7 @@ import java.net.URI;
 import java.net.UnknownHostException;
 import java.util.*;
 
+import com.emc.storageos.coordinator.client.model.SiteInfo;
 import com.emc.storageos.coordinator.client.service.impl.DualInetAddress;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.security.password.PasswordUtils;
@@ -59,6 +60,8 @@ import com.emc.storageos.db.common.DbServiceStatusChecker;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.db.client.DbClient;
+
+import static com.emc.storageos.coordinator.client.model.Constants.TARGET_INFO;
 
 /**
  * Utility class for initializing DB schema from model classes
@@ -1167,22 +1170,21 @@ public class SchemaUtil {
             return;
         }
 
-        VdcVersion vdcCersion = getVdcVersion(vdcVersions, vdcId);
+        VdcVersion vdcVersion = getVdcVersion(vdcVersions, vdcId);
 
-        if (vdcCersion == null) {
+        if (vdcVersion == null) {
             _log.info("insert new Vdc db version vdc={}, dbVersion={}", vdcId, version);
-            vdcCersion = new VdcVersion();
-            vdcCersion.setId(URIUtil.createId(VdcVersion.class));
-            vdcCersion.setVdcId(vdcId);
-            vdcCersion.setVersion(version);
-            ;
-            dbClient.createObject(vdcCersion);
+            vdcVersion = new VdcVersion();
+            vdcVersion.setId(URIUtil.createId(VdcVersion.class));
+            vdcVersion.setVdcId(vdcId);
+            vdcVersion.setVersion(version);
+            dbClient.createObject(vdcVersion);
         }
 
-        if (!vdcCersion.getVersion().equals(version)) {
+        if (!vdcVersion.getVersion().equals(version)) {
             _log.info("update Vdc db version vdc={} to dbVersion={}", vdcId, version);
-            vdcCersion.setVersion(version);
-            dbClient.persistObject(vdcCersion);
+            vdcVersion.setVersion(version);
+            dbClient.persistObject(vdcVersion);
         }
     }
 

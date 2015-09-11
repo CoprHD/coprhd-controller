@@ -35,11 +35,15 @@ public class DisasterRecoveryServiceTest {
     public void setUp() throws Exception {
         uriList = new LinkedList<URI>();
         standbySites = new LinkedList<Site>();
-        
+
+        // setup local VDC
+        VirtualDataCenter localVDC = new VirtualDataCenter();
+
         // setup standby site
         standbySite1 = new Site();
         standbySite1.setId(new URI("site-object-id-1"));
         standbySite1.setUuid("site-uuid-1");
+        standbySite1.setVdc(localVDC.getId());
         standbySite1.setVip("10.247.101.110");
         standbySite1.getHostIPv4AddressMap().put("vipr1", "10.247.101.111");
         standbySite1.getHostIPv4AddressMap().put("vipr2", "10.247.101.112");
@@ -48,15 +52,12 @@ public class DisasterRecoveryServiceTest {
         standbySite2 = new Site();
         standbySite2.setId(new URI("site-object-id-2"));
         standbySite2.setUuid("site-uuid-2");
+        standbySite2.setVdc(localVDC.getId());
 
         standbySite3 = new Site();
         standbySite3.setId(new URI("site-object-id-3"));
         standbySite3.setUuid("site-uuid-3");
-
-        // setup local VDC
-        VirtualDataCenter localVDC = new VirtualDataCenter();
-        localVDC.getSiteIDs().add(standbySite1.getId().toString());
-        localVDC.getSiteIDs().add(standbySite2.getId().toString());
+        standbySite3.setVdc(new URI("fake-vdc-id"));
 
         // mock DBClient
         dbClientMock = mock(DbClient.class);

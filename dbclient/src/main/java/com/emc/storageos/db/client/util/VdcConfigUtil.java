@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright (c) 2014-2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.util;
@@ -7,8 +7,9 @@ package com.emc.storageos.db.client.util;
 import java.net.*;
 import java.util.*;
 
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Site;
-import com.emc.storageos.db.client.model.StringSet;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -153,31 +154,24 @@ public class VdcConfigUtil {
         String address;
         int standbyNodeCnt = 0;
         String shortId = vdc.getShortId();
-        StringSet standbySiteIds = vdc.getSiteIDs();
-        if (standbySiteIds != null && !standbySiteIds.isEmpty()) {
-            for (String siteIdStr : standbySiteIds) {
-                try {
-                    // TODO: we need an implementation of URISet
-                    URI siteId = new URI(siteIdStr);
-                    Site site = dbclient.queryObject(Site.class, siteId);
-                    StringMap standbyIPv4Addrs = site.getHostIPv4AddressMap();
-                    StringMap standbyIPv6Addrs = site.getHostIPv6AddressMap();
-                    List<String> standbyHosts = getHostsFromIPAddrMap(standbyIPv4Addrs, standbyIPv6Addrs);
+        URIQueryResultList standbySiteIds = new URIQueryResultList();
+        dbclient.queryByConstraint(ContainmentConstraint.Factory.getVirtualDataCenterSiteConstraint(vdc.getId()),
+                standbySiteIds);
+        for (URI siteId : standbySiteIds) {
+            Site site = dbclient.queryObject(Site.class, siteId);
+            StringMap standbyIPv4Addrs = site.getHostIPv4AddressMap();
+            StringMap standbyIPv6Addrs = site.getHostIPv6AddressMap();
+            List<String> standbyHosts = getHostsFromIPAddrMap(standbyIPv4Addrs, standbyIPv6Addrs);
 
-                    for (String hostName : standbyHosts) {
-                        standbyNodeCnt++;
-                        address = standbyIPv4Addrs.get(hostName);
-                        vdcConfig.put(String.format(VDC_STANDBY_IPADDR_PTN, shortId, standbyNodeCnt),
-                                address == null ? "" : address);
+            for (String hostName : standbyHosts) {
+                standbyNodeCnt++;
+                address = standbyIPv4Addrs.get(hostName);
+                vdcConfig.put(String.format(VDC_STANDBY_IPADDR_PTN, shortId, standbyNodeCnt),
+                        address == null ? "" : address);
 
-                        address = standbyIPv6Addrs.get(hostName);
-                        vdcConfig.put(String.format(VDC_STANDBY_IPADDR6_PTN, shortId, standbyNodeCnt),
-                                address == null ? "" : address);
-                    }
-                } catch (URISyntaxException e) {
-                    log.error("Cannot parse site id: {}", siteIdStr);
-                    throw new IllegalStateException(e);
-                }
+                address = standbyIPv6Addrs.get(hostName);
+                vdcConfig.put(String.format(VDC_STANDBY_IPADDR6_PTN, shortId, standbyNodeCnt),
+                        address == null ? "" : address);
             }
         }
 

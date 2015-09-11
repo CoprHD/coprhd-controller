@@ -125,6 +125,12 @@ public class BlockProvider extends BaseAssetOptionsProvider {
             newAssetOption("ntfs", "ntfs"),
             newAssetOption("fat32", "fat32"));
 
+    private static final String BLOCK_CONSISTENCY_GROUP_TYPE = "BlockConsistencyGroup";
+
+    private static final String VOLUME_TYPE = "Volume";
+
+    private static final String NONE_TYPE = "None";
+
     public static boolean isExclusiveStorage(String storageType) {
         return EXCLUSIVE_STORAGE.equals(storageType);
     }
@@ -144,9 +150,9 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     public static boolean checkTypeConsistency(URI volumeId, String volumeOrConsistencyType) {
         if (volumeId == null || volumeOrConsistencyType == null) {
             return false;
-        } else if (isVolumeType(volumeOrConsistencyType) && !BlockProviderUtils.isType(volumeId, "Volume")) {
+        } else if (isVolumeType(volumeOrConsistencyType) && !BlockProviderUtils.isType(volumeId, VOLUME_TYPE)) {
             return false;
-        } else if (isConsistencyGroupType(volumeOrConsistencyType) && !BlockProviderUtils.isType(volumeId, "BlockConsistencyGroup")) {
+        } else if (isConsistencyGroupType(volumeOrConsistencyType) && !BlockProviderUtils.isType(volumeId, BLOCK_CONSISTENCY_GROUP_TYPE)) {
             return false;
         }
         return true;
@@ -685,7 +691,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("blockSnapshotOrConsistencyGroup")
     @AssetDependencies({ "project", "consistencyGroupByProjectAndType", "blockVolumeOrConsistencyType" })
     public List<AssetOption> getBlockSnapshotsByVolume(AssetOptionsContext ctx, URI project, String type, URI consistencyGroupId) {
-        if ("NONE".equals(type)) {
+        if (NONE_TYPE.equals(type)) {
             debug("getting blockSnapshots (project=%s)", project);
             return getSnapshotOptionsForProject(ctx, project);
         } else {
@@ -694,7 +700,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                 return new ArrayList<AssetOption>();
             }
             URI consistencyGroup = uri(type);
-            if (!BlockProviderUtils.isType(consistencyGroup, "BlockConsistencyGroup")) {
+            if (!BlockProviderUtils.isType(consistencyGroup, BLOCK_CONSISTENCY_GROUP_TYPE)) {
                 error("Consistency Group field is required for Storage Type [%s, %s]", type, consistencyGroupId);
                 return new ArrayList<AssetOption>();
             }
@@ -713,7 +719,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
                     .run();
             return createBaseResourceOptions(consistencyGroups);
         } else {
-            return Lists.newArrayList(newAssetOption("NONE", "None"));
+            return Lists.newArrayList(newAssetOption(NONE_TYPE, "None"));
         }
     }
 
@@ -1209,14 +1215,14 @@ public class BlockProvider extends BaseAssetOptionsProvider {
 
         final ViPRCoreClient client = api(ctx);
         if (isVolumeType(volumeOrConsistencyType)) {
-            if (!BlockProviderUtils.isType(volumeId, "Volume")) {
+            if (!BlockProviderUtils.isType(volumeId, VOLUME_TYPE)) {
                 warn("Inconsistent types, %s and %s, return empty results", volumeId, volumeOrConsistencyType);
                 return new ArrayList<AssetOption>();
             }
 
             return createBaseResourceOptions(client.blockVolumes().getFullCopies(volumeId));
         } else {
-            if (!BlockProviderUtils.isType(volumeId, "BlockConsistencyGroup")) {
+            if (!BlockProviderUtils.isType(volumeId, BLOCK_CONSISTENCY_GROUP_TYPE)) {
                 warn("Inconsistent types, %s and %s, return empty results", volumeId, volumeOrConsistencyType);
                 return new ArrayList<AssetOption>();
             }

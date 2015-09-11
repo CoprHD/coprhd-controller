@@ -152,7 +152,7 @@ def consistency_group_swap(args):
     bourne.connect(args.ip)
     group_uri = bourne.block_consistency_group_query(args.group)
     tgt_varray_uri = bourne.neighborhood_query(args.targetVarray)
-    print "Swapping Consistency Group " + str(args.group)
+    print "Swapping Consistency Group " + str(args.group) + " with target virtial array " + str(args.targetVarray)
     start = time.time()
     s = bourne.block_consistency_group_swap(group_uri, args.copyType, tgt_varray_uri)
     bourne.pretty_print_json(s)     

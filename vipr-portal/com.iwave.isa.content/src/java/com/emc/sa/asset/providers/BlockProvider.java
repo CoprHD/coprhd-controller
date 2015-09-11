@@ -685,12 +685,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
     @Asset("blockSnapshotOrConsistencyGroup")
     @AssetDependencies({ "project", "consistencyGroupByProjectAndType", "blockVolumeOrConsistencyType" })
     public List<AssetOption> getBlockSnapshotsByVolume(AssetOptionsContext ctx, URI project, String type, URI consistencyGroupId) {
-        if (!checkTypeConsistency(consistencyGroupId, type)) {
-            warn("Inconsistent types, %s and %s, return empty results", consistencyGroupId, type);
-            return new ArrayList<AssetOption>();
-        }
-
-        if (isVolumeType(type)) {
+        if ("NONE".equals(type)) {
             debug("getting blockSnapshots (project=%s)", project);
             return getSnapshotOptionsForProject(ctx, project);
         } else {

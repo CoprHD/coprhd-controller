@@ -102,9 +102,8 @@ public class DisasterRecoveryService extends TaggedResource {
         _dbClient.queryByConstraint(ContainmentConstraint.Factory.getVirtualDataCenterSiteConstraint(vdc.getId()),
                 standbySiteIds);
 
-        List<Site> sites = _dbClient.queryObject(Site.class, standbySiteIds);
-        while (sites.iterator().hasNext()) {
-            Site standby = sites.iterator().next();
+        for (URI siteId : standbySiteIds) {
+            Site standby = _dbClient.queryObject(Site.class, siteId);
             standbyList.getSites().add(siteMapper.map(standby));
         }
         
@@ -116,8 +115,6 @@ public class DisasterRecoveryService extends TaggedResource {
     @Path("/{id}")
     public SiteRestRep getStandby(@PathParam("id") String id) {
         log.info("Begin to get standby site by uuid");
-        
-        VirtualDataCenter vdc = queryLocalVDC();
         
         List<URI> ids = _dbClient.queryByType(Site.class, true);
 
@@ -137,8 +134,6 @@ public class DisasterRecoveryService extends TaggedResource {
     @Path("/{id}")
     public SiteRestRep removeStandby(@PathParam("id") String id) {
         log.info("Begin to remove standby site from local vdc");
-        
-        VirtualDataCenter vdc = queryLocalVDC();
         
         List<URI> ids = _dbClient.queryByType(Site.class, true);
 

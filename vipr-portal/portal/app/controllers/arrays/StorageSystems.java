@@ -119,8 +119,15 @@ public class StorageSystems extends ViprResourceController {
     }
 
     public static void list() {
-        renderArgs.put("dataTable", new StorageSystemDataTable());
+        renderArgs.put("dataTable", new StorageSystemsDataTable());
         render();
+    }
+    
+    public static class StorageSystemsDataTable extends StorageSystemDataTable {
+        public StorageSystemsDataTable() {
+            addColumn("actions").setRenderFunction("renderButtonBar");
+            sortAllExcept("actions");
+        }
     }
 
     public static void listJson() {

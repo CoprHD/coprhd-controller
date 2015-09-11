@@ -2,16 +2,7 @@
  * Copyright 2015 EMC Corporation
  * All Rights Reserved
  */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
- */
+
 package com.emc.storageos.ecs.api;
 
 import java.io.IOException;
@@ -167,10 +158,10 @@ public class ECSApiFactory {
     /*
      * public static void main(String[] args) {
      * System.out.println("starting ecs main");
-     * URI uri = URI.create(String.format("https://10.247.78.171:4443/login"));
+     * URI uri = URI.create(String.format("https://xxxxxx:4443/login"));
      * ECSApiFactory factory = new ECSApiFactory();
      * factory.init();
-     * ECSApi ecsApi = factory.getRESTClient(uri, "root", "ChangeMe");
+     * ECSApi ecsApi = factory.getRESTClient(uri, "root", "****");
      * 
      * String authToken = ecsApi.getAuthToken();
      * System.out.println(authToken);

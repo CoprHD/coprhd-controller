@@ -6,6 +6,14 @@ import com.emc.storageos.volumecontroller.impl.BiosCommandResult;
 
 public interface ObjectStorageDevice {
 
+    /**
+     * 
+     * @param storageObj    storage system
+     * @param ob            Device specific paras
+     * @return              Result of command
+     * @throws ControllerException if create fails
+     */
+    
     BiosCommandResult doCreateBucket(StorageSystem storageObj, ObjectDeviceInputOutput ob)
             throws ControllerException;
 

@@ -7,7 +7,7 @@ import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 public class ECSException extends InternalException {
     private static final long serialVersionUID = 8903079831758201184L;
 
-    /** Holds the methods used to create Isilon related exceptions */
+    /** Holds the methods used to create ECS related exceptions */
     public static final ECSExceptions exceptions = ExceptionMessagesProxy.create(ECSExceptions.class);
 
     private ECSException(final ServiceCode code, final Throwable cause,

@@ -48,6 +48,7 @@ public class ECSApi {
     private static final String URI_UPDATE_BUCKET_RETENTION = "/object/bucket/{0}/retention.json";
     private static final String URI_UPDATE_BUCKET_QUOTA = "/object/bucket/{0}/quota.json";
     private static final String URI_DEACTIVATE_BUCKET = "/object/bucket/{0}/deactivate.json";
+    private static final long  DAY_TO_SECONDS = 24*60*60;
 
     /**
      * Constructor for using http connections
@@ -260,28 +261,30 @@ public class ECSApi {
         String body = " { \"name\": \"" + name + "\", " + "\"vpool\": \"" + repGroup + "\", \"namespace\": \"" + namespace + "\"}  ";
 
         try {
-            _log.info("ECSApi:createBucket URI_CREATE_BUCKET");
+            _log.info("ECSApi:createBucket Create bucket base");
             clientResp = _client.post_json(_baseUrl.resolve(URI_CREATE_BUCKET), authToken, body);
             if (clientResp.getStatus() != 200) {
                 if (clientResp.getStatus() == 401 || clientResp.getStatus() == 302) {
-                    _log.info("getting new auth token " + clientResp.getStatus());
                     getAuthToken();
                     clientResp = _client.post_json(_baseUrl.resolve(URI_CREATE_BUCKET), authToken, body);
                 }
 
                 if (clientResp.getStatus() != 200) {
-                    JSONObject jObj = clientResp.getEntity(JSONObject.class);
                     throw ECSException.exceptions.storageAccessFailed(_baseUrl.resolve(URI_CREATE_BUCKET), clientResp.getStatus(),
                             "creating base bucket");
                 }
             }
 
             // update retention period
-            if (retentionPeriod != null) {
+            if (retentionPeriod != null && !retentionPeriod.isEmpty()) {
                 _log.info("ECSApi:createBucket update retention");
                 ClientResponse clientRespRet = null;
 
-                String bodyRet = " { \"period\": \"" + retentionPeriod + "\", \"namespace\": \"" + namespace + "\"}  ";
+                //Convert retention from days to seconds
+                Long lRet = Long.parseLong(retentionPeriod);
+                lRet = lRet * DAY_TO_SECONDS;
+
+                String bodyRet = " { \"period\": \"" + lRet.toString() + "\", \"namespace\": \"" + namespace + "\"}  ";               
 
                 // ECS_BUCKET_UPDATE_BASE
                 String bucketRetention = ECS_BUCKET_UPDATE_BASE + name + "/retention.json";
@@ -306,7 +309,7 @@ public class ECSApi {
             }// end retention period != null
 
             // update hard=block and soft=notification quota
-            if (blkSizeHQ != null && notSizeSQ != null) {
+            if (blkSizeHQ != null && notSizeSQ != null && !blkSizeHQ.isEmpty() && !notSizeSQ.isEmpty()) {
                 _log.info("ECSApi:createBucket update hard and soft quota");
                 ClientResponse clientRespQt = null;
 
@@ -336,7 +339,7 @@ public class ECSApi {
             }// end update hard=block and soft=notification quota
 
             // update owner
-            if (owner != null) {
+            if (owner != null && !owner.isEmpty()) {
                 _log.info("ECSApi:createBucket update owner");
                 ClientResponse clientRespOnr = null;
 
@@ -365,6 +368,12 @@ public class ECSApi {
             }// end update owner
 
             _log.info("ECSApi:createBucket leave");
+
+            //extract bucket id
+            JSONObject jObj = clientResp.getEntity(JSONObject.class);
+            if (jObj.has("id")) {
+                id = jObj.getString("id");
+            }
             return id;
         } catch (ECSException ie) {
             _log.info("ECSApi:createBucket ECSException");
@@ -423,10 +432,10 @@ public class ECSApi {
      */
     public void updateBucketRetention(String bucketName, String namespace, Integer retention) throws ECSException {
         ClientResponse clientResp = null;
-
+        
         if (null != namespace && null != bucketName) {
             if (null != retention) {
-                String retentionUpdate = " { \"period\": \"" + retention + "\", \"namespace\": \"" + namespace + "\" }  ";
+                String retentionUpdate = " { \"period\": \"" + (retention*DAY_TO_SECONDS) + "\", \"namespace\": \"" + namespace + "\" }  ";
                 final String path = MessageFormat.format(URI_UPDATE_BUCKET_RETENTION, bucketName);
                 try {
                     clientResp = put(path, retentionUpdate);

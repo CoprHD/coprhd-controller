@@ -45,6 +45,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
     private static final int BYTESCONVERTER = 1024;
     private static final String NEW = "new";
     private static final String EXISTING = "existing";
+    private static final String ECS_SERIAL_NUM = "0123456789";
 
     private static final Logger _logger = LoggerFactory.getLogger(ECSCommunicationInterface.class);
     private ECSApiFactory ecsApiFactory;
@@ -95,7 +96,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
 
             // Make sure user is system admin before proceeding to discovery
             if (!ecsApi.isSystemAdmin()) {
-                _logger.error("User:" + accessProfile.getUserName() + "dont have privileges to access Elastic Clound Storage: "
+                _logger.error("User:" + accessProfile.getUserName() + "dont have privileges to access Elastic Cloud Storage: "
                         + accessProfile.getIpAddress());
                 _logger.error("Discovery failed");
                 throw ECSException.exceptions.discoverFailed("User is not ECS System Admin");
@@ -103,7 +104,7 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
 
             // Get details of storage system
             String nativeGuid = NativeGUIDGenerator.generateNativeGuid(DiscoveredDataObject.Type.ecs.toString(),
-                    authToken.substring(0, 20)); // Take first 20 chars in authToken as there is no other id from ECS is available
+                    ECS_SERIAL_NUM);
             storageSystem.setNativeGuid(nativeGuid);
             storageSystem.setSerialNumber(nativeGuid); // No serial num API exposed
             storageSystem.setUsername(accessProfile.getUserName());
@@ -126,12 +127,8 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
             for (ECSStoragePool ecsPool : ecsStoragePools) {
                 // Check if this storage pool was already discovered
                 storagePool = null;
-                StorageSystem tempSystem = new StorageSystem();
-                tempSystem.setSystemType("ecs");
-                tempSystem.setSerialNumber("0123456789");// Since there is no serial number of the device
-
                 String storagePoolNativeGuid = NativeGUIDGenerator.generateNativeGuid(
-                        tempSystem, ecsPool.getId(), NativeGUIDGenerator.POOL);
+                        storageSystem, ecsPool.getId(), NativeGUIDGenerator.POOL);
                 @SuppressWarnings("deprecation")
                 List<URI> poolURIs = _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
                         getStoragePoolByNativeGuidConstraint(storagePoolNativeGuid));
@@ -195,12 +192,9 @@ public class ECSCommunicationInterface extends ExtendedCommunicationInterfaceImp
 
             for (ECSStoragePort ecsPort : ecsStoragePorts) {
                 StoragePort storagePort = null;
-                StorageSystem tempSystem = new StorageSystem();
-                tempSystem.setSystemType("ecs");
-                tempSystem.setSerialNumber("0123456789");
 
                 String portNativeGuid = NativeGUIDGenerator.generateNativeGuid(
-                        tempSystem, ecsPort.getIpAddress(),
+                        storageSystem, ecsPort.getIpAddress(),
                         NativeGUIDGenerator.PORT);
                 // Check if storage port was already discovered
                 @SuppressWarnings("deprecation")

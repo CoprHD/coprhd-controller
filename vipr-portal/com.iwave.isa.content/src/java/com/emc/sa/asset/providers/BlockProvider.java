@@ -702,7 +702,7 @@ public class BlockProvider extends BaseAssetOptionsProvider {
         }
     }
 
-    @Asset("consistencyGroupByProject")
+    @Asset("consistencyGroupByProjectAndType")
     @AssetDependencies({ "project", "blockVolumeOrConsistencyType" })
     public List<AssetOption> getAllConsistencyGroups(final AssetOptionsContext ctx, URI projectId, String type) {
 

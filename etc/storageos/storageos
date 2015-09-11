@@ -59,7 +59,7 @@ _checkConfigurable() {
 }
 
 _startsvc() {
-    ${SYSTEMCTL} start storageos-${1}.service
+    _checkactive ${1} || ${SYSTEMCTL} start storageos-${1}.service
 }
 
 _checksvc() {
@@ -114,18 +114,6 @@ _stop_services() {
 _set_variant() {
     sed -i "s,STORAGEOS_VARIANT=\"[a-z\-]*\",STORAGEOS_VARIANT=\"${STORAGEOS_VARIANT}\",g" ${STORAGEOS_SYSCONFIG}
 }
-
-# Do not start if already running!
-#
-case ${1} in
-start|startcoverage|controller|api)
-    _running=""
-    for svc in @systemd_storageos@ ; do
-        _checkactive ${svc} 
-        [ $? == 0 ] && _running="${_running} ${svc}"
-    done
-    [ -n "${_running}" ] && echo "@product_brand@ services already running!" && exit 7
-esac
 
 # Actions
 #

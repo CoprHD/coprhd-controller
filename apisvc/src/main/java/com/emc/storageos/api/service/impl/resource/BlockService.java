@@ -5007,4 +5007,24 @@ public class BlockService extends TaskResourceService {
             }
         }
     }
+
+    /**
+     * Determines the class of the Block resources based on its URI.
+     * This is because, BlockService implements Volume and
+     * Mirror (BlockMirror and VplexMirror) resources. To query the
+     * respective objects from DB, we should use the right class type.
+     *
+     * @param uriStr the uri to determine the right resource class type.
+     *
+     * @return returns the correct resource type of the resource.
+     */
+    public static Class<? extends DataObject> getBlockServiceResourceClass(String uriStr) {
+        Class<? extends DataObject> blockResourceClass = Volume.class;
+        if (URIUtil.isType(URI.create(uriStr), BlockMirror.class)) {
+            blockResourceClass = BlockMirror.class;
+        } else if (URIUtil.isType(URI.create(uriStr), VplexMirror.class)) {
+            blockResourceClass = VplexMirror.class;
+        }
+        return blockResourceClass;
+    }
 }

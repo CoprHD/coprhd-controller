@@ -4,9 +4,38 @@
  */
 package com.emc.storageos.api.service.impl.resource;
 
-import com.emc.storageos.model.tenant.*;
-import com.emc.storageos.security.resource.UserInfoPage;
-import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
+import static com.emc.storageos.api.mapper.DbObjectMapper.map;
+import static com.emc.storageos.api.mapper.DbObjectMapper.toLink;
+import static com.emc.storageos.api.mapper.DbObjectMapper.toNamedRelatedResource;
+import static com.emc.storageos.api.mapper.HostMapper.map;
+
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
+
+import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
+import javax.ws.rs.GET;
+import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+
+import org.apache.commons.lang.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.api.mapper.DbObjectMapper;
 import com.emc.storageos.api.mapper.functions.MapTenant;
@@ -15,9 +44,29 @@ import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.*;
-import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.Constraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentPermissionsConstraint;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
+import com.emc.storageos.db.client.model.AuthnProvider;
+import com.emc.storageos.db.client.model.Cluster;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.DataObjectWithACLs;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
+import com.emc.storageos.db.client.model.Host;
+import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StringSet;
+import com.emc.storageos.db.client.model.StringSetMap;
+import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.TenantResource;
+import com.emc.storageos.db.client.model.UserGroup;
+import com.emc.storageos.db.client.model.Vcenter;
+import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
@@ -40,32 +89,30 @@ import com.emc.storageos.model.project.ProjectList;
 import com.emc.storageos.model.project.ProjectParam;
 import com.emc.storageos.model.quota.QuotaInfo;
 import com.emc.storageos.model.quota.QuotaUpdateParam;
+import com.emc.storageos.model.tenant.TenantCreateParam;
+import com.emc.storageos.model.tenant.TenantOrgBulkRep;
+import com.emc.storageos.model.tenant.TenantOrgList;
+import com.emc.storageos.model.tenant.TenantOrgRestRep;
+import com.emc.storageos.model.tenant.TenantUpdateParam;
+import com.emc.storageos.model.tenant.UserMappingAttributeParam;
+import com.emc.storageos.model.tenant.UserMappingParam;
 import com.emc.storageos.security.authentication.StorageOSUser;
-import com.emc.storageos.security.authorization.*;
+import com.emc.storageos.security.authorization.ACL;
 import com.emc.storageos.security.authorization.BasePermissionsHelper.UserMapping;
+import com.emc.storageos.security.authorization.CheckPermission;
+import com.emc.storageos.security.authorization.DefaultPermissions;
+import com.emc.storageos.security.authorization.PermissionsKey;
+import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.security.resource.UserInfoPage;
 import com.emc.storageos.security.validator.StorageOSPrincipal;
 import com.emc.storageos.security.validator.Validator;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.svcs.errorhandling.resources.BadRequestException;
 import com.emc.storageos.svcs.errorhandling.resources.ForbiddenException;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableBourneEvent;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
-import org.apache.commons.lang.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.CollectionUtils;
-
-import javax.ws.rs.*;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import java.net.URI;
-import java.util.*;
-import java.util.Map.Entry;
-
-import static com.emc.storageos.api.mapper.DbObjectMapper.*;
-import static com.emc.storageos.api.mapper.HostMapper.map;
 
 /**
  * API for creating and manipulating tenants
@@ -529,27 +576,42 @@ public class TenantsService extends TaggedResource {
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @CheckPermission(roles = { Role.TENANT_ADMIN, Role.PROJECT_ADMIN })
     public ProjectElement createProject(@PathParam("id") URI id, ProjectParam param) {
+        ProjectElement projectElement = createProject(id, param, getUserFromContext().getName(), getUserFromContext().getTenantId().toString());
+        auditOp(OperationTypeEnum.CREATE_PROJECT, true, null, param.getName(),
+                id.toString(), projectElement.getId().toString());
+        return projectElement;        
+    }
+
+    /**
+     * Worker method for create project.  Allows external requests (REST) as well as 
+     * internal requests that may not have a security context.
+     *   
+     * @param id tenant id
+     * @param param project params
+     * @param owner name of owner of the request
+     * @param ownerTenantId tenant id of the owner
+     * @return project details
+     */
+    public ProjectElement createProject(URI id, ProjectParam param, String owner, String ownerTenantId) {
         TenantOrg tenant = getTenantById(id, true);
         if (param.getName() != null && !param.getName().isEmpty()) {
             checkForDuplicateName(param.getName(), Project.class, id, "tenantOrg", _dbClient);
         }
-        StorageOSUser user = getUserFromContext();
+        
         Project project = new Project();
         project.setId(URIUtil.createId(Project.class));
         project.setLabel(param.getName());
         project.setTenantOrg(new NamedURI(tenant.getId(), project.getLabel()));
-        project.setOwner(user.getName());
+        project.setOwner(owner);
+
         // set owner acl
         project.addAcl(
-                new PermissionsKey(PermissionsKey.Type.SID, user.getName(), user
-                        .getTenantId()).toString(), ACL.OWN.toString());
+                new PermissionsKey(PermissionsKey.Type.SID, owner, ownerTenantId).toString(), 
+                ACL.OWN.toString());
         _dbClient.createObject(project);
 
         recordTenantEvent(OperationTypeEnum.CREATE_PROJECT, tenant.getId(),
                 project.getId());
-
-        auditOp(OperationTypeEnum.CREATE_PROJECT, true, null, param.getName(),
-                id.toString(), project.getId().toString());
 
         return new ProjectElement(project.getId(), toLink(ResourceTypeEnum.PROJECT,
                 project.getId()), project.getLabel());

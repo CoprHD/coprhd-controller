@@ -1175,7 +1175,7 @@ srdf_cos_setup()
 			 --protocols FC 		          \
 			 --numpaths 1				  \
 			 --max_snapshots 10 			  \
-			 --provisionType 'Thin'		          \
+			 --provisionType 'Thick'	          \
 			 --neighborhoods $NH                      \
                          --multiVolumeConsistency                  \
                          --system_type vmax			
@@ -1190,7 +1190,7 @@ srdf_cos_setup()
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
-	                 --provisionType 'Thin'		        \
+	                 --provisionType 'Thick'	        \
                          --system_type vmax                     \
 			 --neighborhoods $NH                    \
 			 --srdf "${NH}:${COS_VMAXBLOCK_SRDF_TARGET}:SYNCHRONOUS"
@@ -1205,7 +1205,7 @@ srdf_cos_setup()
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
-	                 --provisionType 'Thin'		        \
+	                 --provisionType 'Thick'	        \
                          --system_type vmax                     \
 			 --neighborhoods $NH                    \
                          --multiVolumeConsistency               \
@@ -1224,7 +1224,7 @@ srdf_cos_matcher_test()
     run cos match block true --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
-	                 --provisionType 'Thin'		        \
+	                 --provisionType 'Thick'	        \
 			 --neighborhoods $NH                    \
                          --multiVolumeConsistency               \
 			 --srdf "${NH}:${COS_VMAXBLOCK_SRDF_TARGET}:ASYNCHRONOUS"
@@ -1671,14 +1671,14 @@ vplex_tests()
 
 	echo "**** Creating VPLEX local volumes"
 	run volume create $localVolume1 $PROJECT $NH cosvplexlocal $BLK_SIZE
-	run volume create $localVolume2 $PROJECT $NH cosvplexlocal $BLK_SIZE
+	run volume create $localVolume2 $PROJECT $NH cosvplexlocal $BLK_SIZE --count=2
 	
 	echo "**** Creating VPLEX local mirrors"
 	run blockmirror attach  $PROJECT/$localVolume1 $localMirror1 1
-	run blockmirror attach  $PROJECT/$localVolume2 $localMirror2 1
+	run blockmirror attach  $PROJECT/$localVolume2-1 $localMirror2 1
 
 	echo "**** Deleting VPLEX local mirror"
-	run blockmirror deactivate  $PROJECT/$localVolume2 $localMirror2$sourceSideSuffix
+	run blockmirror deactivate  $PROJECT/$localVolume2-1 $localMirror2$sourceSideSuffix
 
 	echo "**** Creating VPLEX distributed volumes"
 	run volume create $distVolume1 $PROJECT $NH cosvplexdist $BLK_SIZE
@@ -1706,7 +1706,7 @@ vplex_tests()
 	run export_group create $PROJECT $hname-1$host $NH --volspec "$PROJECT/$distVolume1+1" --inits "$hostLbl/$PWWN1","$hostLbl/$PWWN2"
 	run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$distVolume2+2
 	run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume1+3
-	run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume2+4
+	run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume2-1+4
 	
 	echo "**** Exporting VPLEX volumes to host in varray " $NH2
         # run export_group create $PROJECT $hname-2$host $NH2 --volspec "$PROJECT/$distVolume1+1" --inits "$hostLbl/$PWWN2"
@@ -1716,7 +1716,7 @@ vplex_tests()
 	volume exports "$PROJECT/$distVolume2" --v
 	echo "Exports for $localVolume1"
 	volume exports "$PROJECT/$localVolume1" --v
-	echo "Exports for $localVolume2"
+	echo "Exports for $localVolume2-1"
 	volume exports "$PROJECT/$localVolume1" --v
 
 	echo "**** Creating VPLEX volume snapshots"
@@ -1744,7 +1744,9 @@ vplex_tests()
 
 	echo "**** Deleting VPLEX volumes"
 	run volume delete $PROJECT/$localVolume1 --wait
-	run volume delete $PROJECT/$localVolume2 --wait
+	run volume delete $PROJECT/$localVolume2-1 --wait
+        run volume delete $PROJECT/$localVolume2-2 --wait
+
 	run volume delete $PROJECT/$distVolume1 --wait
 	run volume delete $PROJECT/$distVolume2 --wait
 

@@ -75,6 +75,16 @@ public class CIMArgumentFactory {
         return argument;
     }
 
+    public CIMArgument<UnsignedInteger64[]> uint64Array(String name, UnsignedInteger64[] value) {
+        CIMArgument<UnsignedInteger64[]> argument;
+        try {
+            argument = new CIMArgument<>(name, CIMDataType.UINT64_ARRAY_T, value);
+        } catch (Exception e) {
+            throw new IllegalStateException("Problem getting input arguments: ", e);
+        }
+        return argument;
+    }
+
     public CIMArgument<String> string(String name, String value) {
         CIMArgument<String> argument;
         try {
@@ -120,11 +130,21 @@ public class CIMArgumentFactory {
     public CIMArgument<Boolean> bool(String name, Boolean value) {
         CIMArgument<Boolean> bool;
         try {
-            bool = new CIMArgument<Boolean>(name, CIMDataType.BOOLEAN_T, value);
+            bool = new CIMArgument<>(name, CIMDataType.BOOLEAN_T, value);
         } catch (Exception e) {
             throw new IllegalStateException("Problem getting input arguments: ");
         }
         return bool;
+    }
+
+    public CIMArgument<Boolean[]> boolArray(String name, Boolean[] value) {
+        CIMArgument<Boolean[]> boolArray;
+        try {
+            boolArray = new CIMArgument<>(name, CIMDataType.BOOLEAN_ARRAY_T, value);
+        } catch (Exception e) {
+            throw new IllegalStateException("Problem getting input arguments");
+        }
+        return boolArray;
     }
 
     public CIMArgument<Object> object(String name, Object value) {

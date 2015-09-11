@@ -11,6 +11,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -957,6 +958,36 @@ public class ControllerUtils {
             }
         }
         return null;
+    }
+
+    /**
+     * Gets clone replication group names from clones of all volumes in CG.
+     */
+    public static Set<String> getCloneReplicationGroupNames(List<Volume> volumes , DbClient dbClient) {
+        Set<String> groupNames = new HashSet<String>();
+
+        // check if replica of any of these volumes have replicationGroupInstance set
+        for (Volume volume : volumes) {
+            URIQueryResultList cloneList = new URIQueryResultList();
+            dbClient.queryByConstraint(ContainmentConstraint.Factory
+                    .getAssociatedSourceVolumeConstraint(volume.getId()), cloneList);
+            Iterator<URI> iter = cloneList.iterator();
+            while (iter.hasNext()) {
+                URI cloneID = iter.next();
+                Volume clone = dbClient.queryObject(Volume.class, cloneID);
+                if (clone != null && !clone.getInactive()
+                        && NullColumnValueGetter.isNotNullValue(clone.getReplicationGroupInstance())) {
+                    groupNames.add(clone.getReplicationGroupInstance());
+                }
+            }
+
+            if (!groupNames.isEmpty()) {
+                // no need to check other CG members
+                break;
+            }
+        }
+
+        return groupNames;
     }
 
     public static String getMirrorLabel(String sourceLabel, String mirrorLabel) {

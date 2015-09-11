@@ -3499,7 +3499,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * @param deviceURI -- StorageSystem URI
      * @return deviceType String
      */
-    private String getDeviceType(URI deviceURI) throws ControllerException {
+    String getDeviceType(URI deviceURI) throws ControllerException {
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, deviceURI);
         if (storageSystem == null) {
             throw DeviceControllerException.exceptions.getDeviceTypeFailed(deviceURI.toString());
@@ -4178,4 +4178,38 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
+    public String createSingleCloneStep(Workflow workflow, URI storage, StorageSystem storageSystem, Volume volume, URI uri, String waitFor) {
+        Workflow.Method createMethod = createFullCopyVolumeMethod(storage, volume.getId(),
+                Arrays.asList(uri), false, false);
+        Workflow.Method rollbackMethod = rollbackFullCopyVolumeMethod(storage, asList(uri));
+        workflow.createStep(BlockDeviceController.FULL_COPY_CREATE_STEP_GROUP, "Creating full copy", null, storage,
+                storageSystem.getSystemType(), getClass(), createMethod, rollbackMethod, null);
+
+        boolean isCG = false; // create individual clone, then add to group
+        // After all full copies have been created, wait for synchronization
+        // to complete
+        Workflow.Method waitForSyncMethod = waitForSynchronizedMethod(Volume.class, storage,
+                Arrays.asList(uri), isCG);
+        waitFor = workflow.createStep(BlockDeviceController.FULL_COPY_WFS_STEP_GROUP, "Waiting for synchronization",
+                BlockDeviceController.FULL_COPY_CREATE_STEP_GROUP, storage, storageSystem.getSystemType(),
+                getClass(), waitForSyncMethod, null, null);
+
+        // detach if storage system is not vmax/vnx/hds
+        if (!(storageSystem.deviceIsType(Type.vmax) || storageSystem.deviceIsType(Type.hds)
+                || storageSystem.deviceIsType(Type.vnxblock))) {
+            Workflow.Method detachMethod = detachFullCopyMethod(storage, uri);
+            waitFor = workflow.createStep(BlockDeviceController.FULL_COPY_DETACH_STEP_GROUP, "Detaching full copy",
+                    waitFor, storage, storageSystem.getSystemType(), getClass(), detachMethod, null, null);
+        } else if (storageSystem.deviceIsType(Type.vnxblock)) {
+            waitFor = workflow.createStep(BlockDeviceController.FULL_COPY_FRACTURE_STEP_GROUP,
+                    "Fracturing full copy", waitFor, storage, storageSystem.getSystemType(),
+                    BlockDeviceController.class,
+                    BlockDeviceController.fractureCloneMethod(storage, Arrays.asList(uri), isCG), null, null);
+        } else {
+            setCloneReplicaStateStep(workflow, storageSystem, asList(uri), waitFor,
+                    ReplicationState.SYNCHRONIZED);
+        }
+
+        return waitFor;
+    }
 }

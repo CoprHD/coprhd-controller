@@ -375,6 +375,22 @@ public abstract class DefaultBlockStorageDevice implements BlockStorageDevice, R
     }
 
     @Override
+    public void doAddToReplicationGroup(StorageSystem storage,
+            URI consistencyGroupId, String replicationGroupName, List<URI> blockObjects,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doRemoveFromReplicationGroup(StorageSystem storage,
+            URI consistencyGroupId, String replicationGroupName, List<URI> blockObjects,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
+    }
+
+    @Override
     public void doExpandAsMetaVolume(StorageSystem storageSystem,
             StoragePool storagePool, Volume volume, long size,
             MetaVolumeRecommendation recommendation,

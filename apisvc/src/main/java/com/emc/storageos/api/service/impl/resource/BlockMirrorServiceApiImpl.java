@@ -707,8 +707,7 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
 
     private Map<BlockMirror, Volume> getGroupMirrorSourceMap(BlockMirror mirror, Volume sourceVolume) {
         Map<BlockMirror, Volume> mirrorSourceMap = new HashMap<BlockMirror, Volume>();
-        URI cgURI = sourceVolume.getConsistencyGroup();
-        if ((!NullColumnValueGetter.isNullURI(cgURI))) {
+        if (sourceVolume.isInCG()) {
             URIQueryResultList queryResults = new URIQueryResultList();
             _dbClient.queryByConstraint(AlternateIdConstraint.Factory
                     .getMirrorReplicationGroupInstanceConstraint(mirror

@@ -700,6 +700,12 @@ public interface BlockStorageDevice {
     public void doRemoveFromConsistencyGroup(StorageSystem storage, URI consistencyGroupId,
             List<URI> blockObjects, TaskCompleter taskCompleter) throws DeviceControllerException;
 
+    public void doAddToReplicationGroup(StorageSystem storage, URI consistencyGroupId, String replicationGroupName,
+            List<URI> blockObjects, TaskCompleter taskCompleter) throws DeviceControllerException;
+
+    public void doRemoveFromReplicationGroup(StorageSystem storage, URI consistencyGroupId, String replicationGroupName,
+            List<URI> blockObjects, TaskCompleter taskCompleter) throws DeviceControllerException;
+
     /**
      * Validate storage provider connection.
      * 

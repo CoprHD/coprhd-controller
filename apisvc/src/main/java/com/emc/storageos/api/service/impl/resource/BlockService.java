@@ -907,14 +907,6 @@ public class BlockService extends TaskResourceService {
 
             checkCGForSnapshots(consistencyGroup);
 
-            // Creating new volumes in a consistency group is
-            // not supported when the consistency group has
-            // volumes with full copies to which they are still
-            // attached or has volumes that are full copies that
-            // are still attached to their source volumes.
-            getFullCopyManager().verifyNewVolumesCanBeCreatedInConsistencyGroup(consistencyGroup,
-                    activeCGVolumes);
-
             capabilities.put(VirtualPoolCapabilityValuesWrapper.BLOCK_CONSISTENCY_GROUP,
                     param.getConsistencyGroup());
         } else if (VirtualPool.vPoolSpecifiesProtection(vpool)) {

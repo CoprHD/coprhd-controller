@@ -1603,6 +1603,22 @@ public class VNXeStorageDevice extends VNXeOperations
     }
 
     @Override
+    public void doAddToReplicationGroup(StorageSystem storage,
+            URI consistencyGroupId, String replicationGroupName, List<URI> blockObjects,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
+    }
+
+    @Override
+    public void doRemoveFromReplicationGroup(StorageSystem storage,
+            URI consistencyGroupId, String replicationGroupName, List<URI> blockObjects,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions
+                .blockDeviceOperationNotSupported();
+    }
+
+    @Override
     public boolean validateStorageProviderConnection(String ipAddress,
             Integer portNumber) {
         // TODO Auto-generated method stub

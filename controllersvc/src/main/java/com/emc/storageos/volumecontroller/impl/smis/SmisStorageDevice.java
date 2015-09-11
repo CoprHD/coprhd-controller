@@ -95,9 +95,6 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisWaitForSynchronizedJ
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.google.common.base.Joiner;
 
-//import com.emc.storageos.volumecontroller.impl.block.taskcompleter.*;
-//import com.emc.storageos.volumecontroller.impl.smis.job.*;
-
 /**
  * SMI-S specific block controller implementation.
  */
@@ -2115,6 +2112,65 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     .failedToRemoveMembersToConsistencyGroup(consistencyGroup.getLabel(),
                             consistencyGroup.getCgNameOnStorageSystem(storage.getId()), e.getMessage()));
         }
+    }
+
+
+    @Override
+    public void doAddToReplicationGroup(final StorageSystem storage, final URI consistencyGroupId, final String replicationGroupName,
+            final List<URI> replicas, final TaskCompleter taskCompleter) throws DeviceControllerException {
+        // 8.0.3 will support adding replicas to replication group but the replicas should be added to the
+        // device masking group corresponding to the consistency group
+        _log.info("Adding replicas to Device Masking Group equivalent to its ReplicationGroup {}",
+                replicationGroupName);
+        List<URI> replicasToAdd;
+        try {
+            replicasToAdd = _helper.filterReplicasAlreadyPartOfReplicationGroup(
+                    storage, replicationGroupName, replicas);
+
+            if (!replicasToAdd.isEmpty()) {
+                CIMArgument[] inArgsAdd;
+                inArgsAdd = _helper.getAddVolumesToMaskingGroupInputArguments(storage,
+                        replicationGroupName, replicasToAdd, null, true);
+
+                CIMArgument[] outArgsAdd = new CIMArgument[5];
+                _helper.invokeMethodSynchronously(storage, _cimPath.getControllerConfigSvcPath(storage),
+                        SmisConstants.ADD_MEMBERS, inArgsAdd, outArgsAdd, null);
+            } else {
+                _log.info("Requested replicas {} are already part of the Replication Group {}, hence skipping AddMembers call..",
+                        Joiner.on(", ").join(replicas), replicationGroupName);
+            }
+            taskCompleter.ready(_dbClient);
+        } catch (Exception e) {
+            taskCompleter.error(_dbClient, DeviceControllerException.exceptions
+                    .failedToAddMembersToReplicationGroup(replicationGroupName,
+                            storage.getLabel(), e.getMessage()));
+            return;
+        }
+
+        // persist group name in Replica objects
+        List<BlockObject> replicaList = new ArrayList<BlockObject>();
+        for (URI replica : replicas) {
+            BlockObject replicaObj = BlockObject.fetch(_dbClient, replica);
+            replicaObj.setReplicationGroupInstance(replicationGroupName);
+            // don't set CG on Clones
+            if (!(replicaObj instanceof Volume && ControllerUtils.isVolumeFullCopy((Volume) replicaObj, _dbClient))) {
+                replicaObj.setConsistencyGroup(consistencyGroupId);
+            }
+
+            replicaList.add(replicaObj);
+        }
+
+        _dbClient.updateAndReindexObject(replicaList);
+    }
+
+    @Override
+    public void doRemoveFromReplicationGroup(StorageSystem storage,
+            URI consistencyGroupId, String replicationGroupName, List<URI> blockObjects,
+            TaskCompleter taskCompleter) throws DeviceControllerException {
+        // TODO
+        // Approach - detach, then delete?
+        // Update source volume's reference, fullCopies, mirrors
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     @Override

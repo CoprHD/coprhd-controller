@@ -208,7 +208,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
      * 
      * @return A workflow method
      */
-    private Workflow.Method rollbackMethodNullMethod() {
+    Workflow.Method rollbackMethodNullMethod() {
         return new Workflow.Method(ROLLBACK_METHOD_NULL);
     }
 

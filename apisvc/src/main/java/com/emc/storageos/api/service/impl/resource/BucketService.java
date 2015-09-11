@@ -32,7 +32,6 @@ import com.emc.storageos.api.service.authorization.PermissionsHelper;
 import com.emc.storageos.api.service.impl.placement.BucketRecommendation;
 import com.emc.storageos.api.service.impl.placement.BucketScheduler;
 import com.emc.storageos.api.service.impl.placement.VirtualPoolUtil;
-import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ProjOwnedResRepFilter;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
@@ -85,6 +84,8 @@ public class BucketService extends TaskResourceService {
 
     private static final Logger _log = LoggerFactory.getLogger(BucketService.class);
     private static final String EVENT_SERVICE_TYPE = "object";
+    private static final String SLASH ="/";
+    private static final String UNDER_SCORE = "_";
 
     private BucketScheduler _bucketScheduler;
     private NameGenerator _nameGenerator;
@@ -159,20 +160,23 @@ public class BucketService extends TaskResourceService {
         ArgValidator.checkEntity(project, id, isIdEmbeddedInURL(id));
         ArgValidator.checkFieldNotNull(project.getTenantOrg(), "project");
         TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
-        
+
         final String namespace = tenant.getNamespace();
-        if(null==namespace || namespace.isEmpty()){
+        if (null == namespace || namespace.isEmpty()) {
             throw APIException.badRequests.objNoNamespaceForTenant(tenant.getId());
         }
-        final String bucketName = namespace + "_" + project.getLabel() + "_" + param.getLabel();
-        final String bucketPath = namespace + "/" + project.getLabel() + "/" + param.getLabel();
+        StringBuilder bucketName = new StringBuilder();
+        StringBuilder bucketPath = new StringBuilder();
+        bucketName.append(namespace).append(UNDER_SCORE).append(project.getLabel()).append(UNDER_SCORE).append(param.getLabel());
+        bucketPath.append(namespace).append(SLASH).append(project.getLabel()).append(SLASH).append(param.getLabel());
+
         // No need to generate any name -- Since the requirement is to use the customizing label we should use the same.
         // Stripping out the special characters like ; /-+!@#$%^&())";:[]{}\ | but allow underscore character _
-        final String convertedName = bucketName.replaceAll("[^\\dA-Za-z\\_]", "");
+        final String convertedName = bucketName.toString().replaceAll("[^\\dA-Za-z\\_]", "");
         _log.info("Original name {} and converted name {}", bucketName, convertedName);
         // There could be bucket with same name created with different projects/namespaces. Updating name to match this scenario.
         param.setLabel(convertedName);
-        param.setPath(bucketPath);
+        param.setPath(bucketPath.toString());
 
         // Check if there already exist a bucket with same name.
         checkForDuplicateName(param.getLabel(), Bucket.class, null, null, _dbClient);
@@ -213,7 +217,7 @@ public class BucketService extends TaskResourceService {
         }
 
         VirtualPoolCapabilityValuesWrapper capabilities = new VirtualPoolCapabilityValuesWrapper();
-        
+
         capabilities.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
         capabilities.put(VirtualPoolCapabilityValuesWrapper.THIN_PROVISIONING, Boolean.FALSE);
 
@@ -237,7 +241,6 @@ public class BucketService extends TaskResourceService {
                 task, ResourceOperationTypeEnum.CREATE_BUCKET);
         op.setDescription("Bucket Create");
 
-        // TODO : Controller call
         try {
             StorageSystem system = _dbClient.queryObject(StorageSystem.class, recommendation.getSourceStorageSystem());
             ObjectController controller = getController(ObjectController.class, system.getSystemType());
@@ -292,7 +295,6 @@ public class BucketService extends TaskResourceService {
 
     /**
      * Deactivate Bucket, this will move the Bucket to a "marked-for-delete" state
-     * it will be deleted when all references to this Bucket of type Snapshot are deleted.
      * 
      * <p>
      * NOTE: This is an asynchronous operation.
@@ -323,10 +325,10 @@ public class BucketService extends TaskResourceService {
         Operation op = _dbClient.createTaskOpStatus(Bucket.class, bucket.getId(),
                 task, ResourceOperationTypeEnum.DELETE_BUCKET);
         op.setDescription("Bucket deactivate");
-        
+
         ObjectController controller = getController(ObjectController.class, device.getSystemType());
         controller.deleteBucket(bucket.getStorageDevice(), id, task);
-        
+
         auditOp(OperationTypeEnum.DELETE_BUCKET, true, AuditLogManager.AUDITOP_BEGIN,
                 bucket.getId().toString(), device.getId().toString());
 
@@ -403,6 +405,14 @@ public class BucketService extends TaskResourceService {
         return bucket;
     }
 
+    /**
+     * Updates Bucket values like Quota and Retention.
+     * 
+     * @param id Bucket ID
+     * @param param Bucket update parameter
+     * @return Task resource representation
+     * @throws InternalException if update fails
+     */
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
@@ -418,28 +428,29 @@ public class BucketService extends TaskResourceService {
         Long hardQuota = SizeUtil.translateSize(param.getHardQuota());
         Integer retention = null != param.getRetention() ? Integer.valueOf(param.getRetention()) : 0;
 
+        // if no softquota is provided, use the old value
+        if (softQuota == 0) {
+            softQuota = bucket.getSoftQuota();
+        }
+
+        // if no hardquota is provided, use the old value
+        if (hardQuota == 0) {
+            hardQuota = bucket.getHardQuota();
+        }
+
         // Hard Quota should be more than SoftQuota
-        if (softQuota >= hardQuota) {
+        if (softQuota != 0 && hardQuota != 0 && softQuota >= hardQuota) {
             throw APIException.badRequests.invalidQuotaRequestForObjectStorage(bucket.getLabel());
         }
 
-        Project project = _permissionsHelper.getObjectById(bucket.getProject(), Project.class);
-        TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, bucket.getTenant());
+        // if no retention is provided, use the old value
+        if (retention == 0) {
+            retention = bucket.getRetention();
+        }
 
-        // check varray
-        VirtualArray neighborhood = _dbClient.queryObject(VirtualArray.class, bucket.getVirtualArray());
-        ArgValidator.checkEntity(neighborhood, bucket.getVirtualArray(), false);
-        _permissionsHelper.checkTenantHasAccessToVirtualArray(tenant.getId(), neighborhood);
-
-        // check vpool reference
         VirtualPool cos = _dbClient.queryObject(VirtualPool.class, bucket.getVirtualPool());
-        _permissionsHelper.checkTenantHasAccessToVirtualPool(tenant.getId(), cos);
-
-        // verify quota
-        CapacityUtils.validateQuotasForProvisioning(_dbClient, cos, project, tenant, hardQuota, "bucket");
-
-        // verify retention
-        if (retention > cos.getMaxRetention()) {
+        // verify retention. Its validated only if Retention is configured.
+        if (retention != 0 && cos.getMaxRetention() != 0 && retention > cos.getMaxRetention()) {
             throw APIException.badRequests.insufficientRetentionForVirtualPool(cos.getLabel(), "bucket");
         }
 

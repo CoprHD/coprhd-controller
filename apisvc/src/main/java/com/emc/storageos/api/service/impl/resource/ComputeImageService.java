@@ -420,10 +420,11 @@ public class ComputeImageService extends TaskResourceService {
                         ComputeImageServer.class, imageServerId);
 
                 if (reImport
-                        || imageServer.getComputeImage() == null
-                        || !imageServer.getComputeImage().contains(
+                        || imageServer.getComputeImages() == null
+                        || !imageServer.getComputeImages().contains(
                                 ci.getId().toString())) {
                     hasImportTask = true;
+                    break;
                 }
             }
             if (hasImportTask) {

@@ -47,7 +47,7 @@ public class ComputeImageServerMigration extends BaseCustomMigrationCallback {
                         .getProperty(IMAGE_SERVER_ADDRESS));
                 imageServer.setImageServerUser(p
                         .getProperty(IMAGE_SERVER_USERNAME));
-                imageServer.setTftpbootDir(p
+                imageServer.setTftpBootDir(p
                         .getProperty(IMAGE_SERVER_TFTPBOOT_DIR));
                 imageServer.setImageServerSecondIp(p
                         .getProperty(IMAGE_SERVER_OS_NETWORK_IP));

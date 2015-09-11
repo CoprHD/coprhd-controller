@@ -21,23 +21,15 @@ import com.emc.storageos.model.RelatedResourceRep;
 @XmlRootElement(name = "compute_imageserver")
 @XmlAccessorType(XmlAccessType.PROPERTY)
 public class ComputeImageServerRestRep extends DataObjectRestRep {
-
     private String imageServerIp;
-
     private String imageServerSecondIp;
-
-    private String tftpbootDir;
-
-    private List<RelatedResourceRep> computeImage;
-
+    private String tftpBootDir;
+    private List<RelatedResourceRep> computeImages;
     private String computeImageServerStatus;
-
     private Integer osInstallTimeoutMs;
-
     private String imageServerUser;
 
     public ComputeImageServerRestRep() {
-
     }
 
     /**
@@ -77,39 +69,39 @@ public class ComputeImageServerRestRep extends DataObjectRestRep {
     /**
      * @return the computeImage
      */
-    @XmlElementWrapper(name = "compute_image")
+    @XmlElementWrapper(name = "compute_images")
     @XmlElement(name = "compute_image")
-    @JsonProperty("compute_image")
-    public List<RelatedResourceRep> getComputeImage() {
-        if (null == computeImage) {
-            computeImage = new ArrayList<RelatedResourceRep>();
+    @JsonProperty("compute_images")
+    public List<RelatedResourceRep> getComputeImages() {
+        if (null == computeImages) {
+            computeImages = new ArrayList<RelatedResourceRep>();
         }
-        return computeImage;
+        return computeImages;
     }
 
     /**
-     * @param computeImage
-     *            the computeImage to set
+     * @param computeImages
+     *            the computeImages to set
      */
-    public void setComputeImage(List<RelatedResourceRep> computeImage) {
-        this.computeImage = computeImage;
+    public void setComputeImages(List<RelatedResourceRep> computeImages) {
+        this.computeImages = computeImages;
     }
 
     /**
      * @return the tftpbootDir
      */
-    @XmlElement(name = "tftpbootdir")
-    @JsonProperty("tftpbootdir")
-    public String getTftpbootDir() {
-        return tftpbootDir;
+    @XmlElement(name = "tftpBootdir")
+    @JsonProperty("tftpBootdir")
+    public String getTftpBootDir() {
+        return tftpBootDir;
     }
 
     /**
-     * @param tftpbootDir
-     *            the tftpbootDir to set
+     * @param tftpBootDir
+     *            the tftpBootDir to set
      */
-    public void setTftpbootDir(String tftpbootDir) {
-        this.tftpbootDir = tftpbootDir;
+    public void setTftpBootDir(String tftpBootDir) {
+        this.tftpBootDir = tftpBootDir;
     }
 
     @XmlElement(name = "imageserver_status")

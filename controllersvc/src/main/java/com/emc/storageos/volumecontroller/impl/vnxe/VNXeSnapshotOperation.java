@@ -325,4 +325,9 @@ public class VNXeSnapshotOperation extends VNXeOperations implements SnapshotOpe
         
     }
 
+    @Override
+    public void establishVolumeSnapshotGroupRelation(StorageSystem storage, URI sourceVolume,
+            URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

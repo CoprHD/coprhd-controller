@@ -57,10 +57,10 @@ public class PxeIntegrationService {
         ImageServerUtils.replaceAll(sb, "${pxe_identifier}", job.getPxeBootIdentifier());
         String content = sb.toString();
         log.trace(content);
-        d.writeFile(imageServer.getTftpbootDir() + PXELINUX_CFG_DIR + job.getPxeBootIdentifier(), content);
+        d.writeFile(imageServer.getTftpBootDir() + PXELINUX_CFG_DIR + job.getPxeBootIdentifier(), content);
 
         // create uuid.boot.cfg - only for esxi 5
-        s = d.readFile(imageServer.getTftpbootDir() + ci.getPathToDirectory() + "/boot.cfg");
+        s = d.readFile(imageServer.getTftpBootDir() + ci.getPathToDirectory() + "/boot.cfg");
         sb = new StringBuilder(s.trim());
         ImageServerUtils.replaceAll(sb, "/", "/" + ci.getPathToDirectory());
         ImageServerUtils.replaceAll(sb, "runweasel", "runweasel vmkopts=debugLogToSerial:1 mem=512M ks=http://"
@@ -69,19 +69,19 @@ public class PxeIntegrationService {
 
         content = sb.toString();
         log.trace(content);
-        d.writeFile(imageServer.getTftpbootDir() + PXELINUX_CFG_DIR + job.getPxeBootIdentifier() + ".boot.cfg", content);
+        d.writeFile(imageServer.getTftpBootDir() + PXELINUX_CFG_DIR + job.getPxeBootIdentifier() + ".boot.cfg", content);
 
         // create kick-start
         content = generateKickstart(job, ci, imageServer);
-        d.writeFile(imageServer.getTftpbootDir() + HTTP_KICKSTART_DIR + job.getPxeBootIdentifier(), content);
+        d.writeFile(imageServer.getTftpBootDir() + HTTP_KICKSTART_DIR + job.getPxeBootIdentifier(), content);
 
         // create first boot
         content = generateFirstboot(job, ci);
-        d.writeFile(imageServer.getTftpbootDir() + HTTP_FIRSTBOOT_DIR + job.getPxeBootIdentifier(), content);
+        d.writeFile(imageServer.getTftpBootDir() + HTTP_FIRSTBOOT_DIR + job.getPxeBootIdentifier(), content);
 
         // remove these in case there was previous installation that succeeded or failed after we timed out
-        d.rm(imageServer.getTftpbootDir() + HTTP_SUCCESS_DIR + job.getPxeBootIdentifier());
-        d.rm(imageServer.getTftpbootDir() + HTTP_FAILURE_DIR + job.getPxeBootIdentifier());
+        d.rm(imageServer.getTftpBootDir() + HTTP_SUCCESS_DIR + job.getPxeBootIdentifier());
+        d.rm(imageServer.getTftpBootDir() + HTTP_FAILURE_DIR + job.getPxeBootIdentifier());
     }
 
     private String generateKickstart(ComputeImageJob job, ComputeImage ci, ComputeImageServer imageServer) {

@@ -22,7 +22,7 @@ public class ComputeImageServer extends DataObject {
     private String imageServerIp;
     private String imageServerUser;
     private String imageServerPassword;
-    private String tftpbootDir;
+    private String tftpBootDir;
     private String imageDir;
     private String imageServerSecondIp;
     private String imageServerHttpPort="44491";
@@ -32,7 +32,7 @@ public class ComputeImageServer extends DataObject {
     private Integer osInstallTimeoutMs = 3600000;
     private Integer jobPollingIntervalMs = 60000;
 
-    private StringSet computeImage;
+    private StringSet computeImages;
 
     private String computeImageServerStatus = ComputeImageServerStatus.NOT_AVAILABLE.name();
 
@@ -70,19 +70,19 @@ public class ComputeImageServer extends DataObject {
 
     }
 
-    @Name("tftpbootDir")
-    public String getTftpbootDir() {
-        return tftpbootDir;
+    @Name("tftpBootDir")
+    public String getTftpBootDir() {
+        return tftpBootDir;
     }
 
-    public void setTftpbootDir(String tftpbootDir) {
-        String s = tftpbootDir.trim();
+    public void setTftpBootDir(String tftpBootDir) {
+        String s = tftpBootDir.trim();
         if (!s.endsWith("/")) {
-            this.tftpbootDir = s + "/";
+            this.tftpBootDir = s + "/";
         } else {
-            this.tftpbootDir = s;
+            this.tftpBootDir = s;
         }
-        setChanged("tftpbootDir");
+        setChanged("tftpBootDir");
     }
 
     @Name("imageDir")
@@ -175,18 +175,18 @@ public class ComputeImageServer extends DataObject {
      */
     @RelationIndex(cf = "RelationIndex", type = ComputeImage.class)
     @IndexByKey
-    @Name("computeImage")
-    public StringSet getComputeImage() {
-        return computeImage;
+    @Name("computeImages")
+    public StringSet getComputeImages() {
+        return computeImages;
     }
 
     /**
-     * @param computeImage
-     *            the computeImageUri to set
+     * @param computeImages
+     *            the computeImages to set
      */
-    public void setComputeImage(StringSet computeImageUri) {
-        this.computeImage = computeImageUri;
-        setChanged("computeImage");
+    public void setComputeImages(StringSet computeImages) {
+        this.computeImages = computeImages;
+        setChanged("computeImages");
     }
 
     @EnumType(ComputeImageServerStatus.class)

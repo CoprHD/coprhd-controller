@@ -50,8 +50,8 @@ public class ComputeImageCompleter extends TaskCompleter {
                 for (URI imageServerId : ids) {
                     ComputeImageServer imageServer = dbClient.queryObject(
                             ComputeImageServer.class, imageServerId);
-                    if (imageServer.getComputeImage() != null
-                            && imageServer.getComputeImage().contains(
+                    if (imageServer.getComputeImages() != null
+                            && imageServer.getComputeImages().contains(
                                     ci.getId().toString())) {
                         available = true;
                         break;

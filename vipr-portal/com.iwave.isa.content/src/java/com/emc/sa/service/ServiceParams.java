@@ -34,6 +34,8 @@ public interface ServiceParams {
 
     public String SHARE_COMMENT = "shareComment";
 
+    public String COPY_NAME = "copyName";
+
     public String PROJECT = "project";
     public String VIRTUAL_ARRAY = "virtualArray";
     public String VIRTUAL_POOL = "virtualPool";

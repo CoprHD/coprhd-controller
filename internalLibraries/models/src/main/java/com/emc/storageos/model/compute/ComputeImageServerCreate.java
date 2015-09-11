@@ -12,19 +12,13 @@ import org.codehaus.jackson.annotate.JsonProperty;
 @XmlRootElement(name = "compute_imageserver_create")
 public class ComputeImageServerCreate {
     private String imageServerIp;
-
     private String imageServerSecondIp;
-
     private String imageServerUser;
-
     private String imageServerPassword;
-
-    private String tftpbootDir;
-
+    private String tftpBootDir;
     private Integer osInstallTimeoutMs;
 
     public ComputeImageServerCreate() {
-
     }
 
     /**
@@ -33,19 +27,19 @@ public class ComputeImageServerCreate {
      * @param imageServerSecondIp
      * @param imageServerUser
      * @param imageServerPassword
-     * @param tftpbootDir
+     * @param tftpBootDir
      * @param osInstallTimeoutMs
      */
     public ComputeImageServerCreate(String imageServerAddress,
             String imageServerSecondIp, String imageServerUser,
-            String imageServerPassword, String tftpbootDir,
+            String imageServerPassword, String tftpBootDir,
             Integer osInstallTimeoutMs) {
         super();
         this.imageServerIp = imageServerAddress;
         this.imageServerSecondIp = imageServerSecondIp;
         this.imageServerUser = imageServerUser;
         this.imageServerPassword = imageServerPassword;
-        this.tftpbootDir = tftpbootDir;
+        this.tftpBootDir = tftpBootDir;
         this.osInstallTimeoutMs = osInstallTimeoutMs;
     }
 
@@ -118,20 +112,20 @@ public class ComputeImageServerCreate {
     }
 
     /**
-     * @return the tftpbootDir
+     * @return the tftpBootDir
      */
-    @XmlElement(required = true, name = "tftpbootdir")
-    @JsonProperty("tftpbootdir")
-    public String getTftpbootDir() {
-        return tftpbootDir;
+    @XmlElement(required = true, name = "tftpBootDir")
+    @JsonProperty("tftpBootDir")
+    public String getTftpBootDir() {
+        return tftpBootDir;
     }
 
     /**
-     * @param tftpbootDir
-     *            the tftpbootDir to set
+     * @param tftpBootDir
+     *            the tftpBootDir to set
      */
-    public void setTftpbootDir(String tftpbootDir) {
-        this.tftpbootDir = tftpbootDir;
+    public void setTftpBootDir(String tftpBootDir) {
+        this.tftpBootDir = tftpBootDir;
     }
 
     /**

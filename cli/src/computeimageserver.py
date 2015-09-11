@@ -21,7 +21,7 @@ from urihelper import singletonURIHelperInstance
 
 class ComputeImageServers(object):
 
-    URI_COMPUTE_IMAGE_SERVERS = "/compute/compute-imageservers"
+    URI_COMPUTE_IMAGE_SERVERS = "/compute/imageservers"
     URI_COMPUTE_IMAGE_SERVER_ID = URI_COMPUTE_IMAGE_SERVERS + "/{0}"
     URI_COMPUTE_IMAGE_SERVER_DELETE = URI_COMPUTE_IMAGE_SERVER_ID + "/deactivate"
 
@@ -62,15 +62,17 @@ class ComputeImageServers(object):
                 username, password, tftpbootdir, osinstalltimeoutms):
 
         parms = {
-                 'imageServerUser': username,
-                 'imageServerPassword': password,
-                 'imageServerIp': name,
-                 'imageServerSecondIp': imageserversecondip,
-                 'tftpbootDir': tftpbootdir,
-                 'osInstallTimeoutMs': osinstalltimeoutms
+                 'imageserver_user': username,
+                 'imageserver_password': password,
+                 'imageserver_ip': name,
+                 'imageserver_secondip': imageserversecondip,
+                 'tftpBootDir': tftpbootdir,
+                 'osinstalltimeoutms': osinstalltimeoutms
         }
         
+        
         body = json.dumps(parms)
+        print body
         
         (s, h) = common.service_json_request(self.__ipAddr,
                                 self.__port, "POST",
@@ -129,17 +131,17 @@ class ComputeImageServers(object):
         parms = {}
 
         if(label):
-            parms['imageServerIp'] = label
+            parms['imageserver_ip'] = label
         if(username):
-            parms['imageServerUser'] = username
+            parms['imageserver_user'] = username
         if(password):
-            parms['imageServerPassword'] = password
+            parms['imageserver_password'] = password
         if(imageserversecondip):
-            parms['imageServerSecondIp'] = imageserversecondip
+            parms['imageserver_secondip'] = imageserversecondip
         if(tftpbootdir):
-            parms['tftpbootDir'] = tftpbootdir
+            parms['tftpBootDir'] = tftpbootdir
         if(osinstalltimeoutms):
-            parms['osInstallTimeoutMs'] = osinstalltimeoutms            
+            parms['osinstall_timeoutms'] = osinstalltimeoutms            
 
         uri = self.query_computeimageserver(name)
         body = json.dumps(parms)

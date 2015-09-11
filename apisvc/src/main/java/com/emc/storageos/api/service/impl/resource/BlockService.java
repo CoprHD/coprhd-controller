@@ -4052,8 +4052,7 @@ public class BlockService extends TaskResourceService {
         StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storageSystemURI);
         String systemType = storageSystem.getSystemType();
 
-        if (protectionSystemURI != null || (protectionSystemURI == null
-                && VirtualPool.vPoolSpecifiesProtection(vpool))) {
+        if (protectionSystemURI != null || VirtualPool.vPoolSpecifiesProtection(vpool)) {
             // Assume RP for now if the volume is associated with an
             // RP controller regardless of the VirtualPool change.
             // Also if the volume is unprotected currently and the vpool specifies protection.

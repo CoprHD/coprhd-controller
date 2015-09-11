@@ -32,7 +32,7 @@ public class VirtualNasServerDataTable extends DataTable {
         addColumn("storageObjects").hidden();
         addColumn("storageCapacity").hidden();
         addColumn("avgPercentagebusy").hidden();
-        addColumn("avgEmaPercentagebusy").hidden();
+        addColumn("percentLoad").hidden();
         
         sortAll();
         setDefaultSort("name", "asc");
@@ -89,7 +89,7 @@ public class VirtualNasServerDataTable extends DataTable {
         private String storageObjects;
         private String storageCapacity;
         private String avgPercentagebusy;
-        private String avgEmaPercentagebusy;
+        private String percentLoad;
         
         public VirtualNasServerInfo(VirtualNASRestRep vNasRestRep, boolean isProjectAccessible){
            this.id = vNasRestRep.getId().toString();
@@ -114,9 +114,9 @@ public class VirtualNasServerDataTable extends DataTable {
            this.compatibilityStatus = vNasRestRep.getCompatibilityStatus();
            this.discoveryStatus = vNasRestRep.getDiscoveryStatus();
            this.storageObjects = vNasRestRep.getStorageObjects();
-           this.storageCapacity = vNasRestRep.getStorageCapacity();
+           this.storageCapacity = vNasRestRep.getUsedStorageCapacity();
            this.avgPercentagebusy = vNasRestRep.getAvgPercentagebusy();
-           this.avgEmaPercentagebusy = vNasRestRep.getAvgEmaPercentagebusy();
+           this.percentLoad = vNasRestRep.getPercentLoad();
            
         }
     }

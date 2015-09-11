@@ -42,7 +42,6 @@ public class SetStorageIOControl extends VMwareTask<Void> {
         }
         catch (Exception e) {
             cancelTask(task);
-            throw e;
         }
     }
 }

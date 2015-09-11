@@ -97,12 +97,13 @@ class HostInitiator(object):
     Initiator create operation
     """
 
-    def create(self, sync, hostlabel, protocol, initiatorwwn, portwwn):
+    def create(self, sync, hostlabel, protocol, initiatorwwn, portwwn, initname):
 
         hostUri = self.get_host_uri(hostlabel)
 
         request = {'protocol': protocol,
                    'initiator_port': portwwn,
+                   'name': initname
                    }
 
         if(initiatorwwn):
@@ -121,7 +122,7 @@ class HostInitiator(object):
     Initiator update operation
     """
 
-    def update(self, initiatorUri, newprotocol, newinitiatorwwn, newportwwn):
+    def update(self, initiatorUri, newprotocol, newinitiatorwwn, newportwwn, newinitname):
 
         request = dict()
 
@@ -133,6 +134,9 @@ class HostInitiator(object):
 
         if(newportwwn):
             request['initiator_port'] = newportwwn
+            
+        if(newinitname):
+            request['name'] = newinitname    
 
         body = json.dumps(request)
         (s, h) = common.service_json_request(
@@ -442,6 +446,11 @@ def create_parser(subcommand_parsers, common_parser):
                                dest='sync',
                                help='Execute in synchronous mode',
                                action='store_true')
+    
+    create_parser.add_argument('-initiatorname', '-initname',
+                               help='Initiator Alias Name',
+                               dest='initname',
+                               metavar='<initiatorname>' )
 
     mandatory_args.add_argument(
         '-pwwn', '-initiatorportwwn',
@@ -478,7 +487,8 @@ def initiator_create(args):
             args.hostlabel,
             args.protocol,
             args.initiatorwwn,
-            args.initiatorportwwn)
+            args.initiatorportwwn,
+            args.initname)
     except SOSError as e:
         common.format_err_msg_and_raise(
             "create",
@@ -698,6 +708,11 @@ def update_parser(subcommand_parsers, common_parser):
         help='WWN of the initiator node ',
         dest='newinitiatorwwn',
         metavar='<newinitiatorwwn>')
+    
+    update_parser.add_argument('-newinitiatorname', '-newinitname',
+                               help='Initiator Alias Name',
+                               dest='newinitname',
+                               metavar='<newinitiatorname>' )
 
     mandatory_args.add_argument(
         '-npwwn', '-newinitiatorportwwn',
@@ -739,7 +754,8 @@ def initiator_update(args):
             initiatorUri,
             args.newprotocol,
             args.newinitiatorwwn,
-            args.newinitiatorportwwn)
+            args.newinitiatorportwwn,
+            args.newinitname)
 
     except SOSError as e:
         common.format_err_msg_and_raise(

@@ -196,8 +196,7 @@ public class VirtualPoolChangeAnalyzer extends DataObjectChangeAnalyzer {
                     // upgrade it to distributed, and then add it back to the
                     // CG manually if this is required.
                     notSuppReasonBuff
-                            .append("The volume is in a consistency group, and all volumes "
-                                    + " in a consistency group must be of the same type.");
+                            .append("The volume is in a consistency group");
                     return null;
                 } else {
                     if (!isRPVPlex) {

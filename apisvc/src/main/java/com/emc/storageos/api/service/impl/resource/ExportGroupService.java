@@ -124,17 +124,16 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 
 @Path("/block/exports")
-@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-        readAcls = { ACL.OWN, ACL.ALL },
-        writeRoles = { Role.TENANT_ADMIN },
-        writeAcls = { ACL.OWN, ACL.ALL })
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = { ACL.OWN, ACL.ALL }, writeRoles = {
+        Role.TENANT_ADMIN }, writeAcls = { ACL.OWN, ACL.ALL })
 public class ExportGroupService extends TaskResourceService {
+
     private static final String SEARCH_HOST = "host";
     private static final String SEARCH_CLUSTER = "cluster";
     private static final String SEARCH_INITIATOR = "initiator";
     private static final String SEARCH_LEVEL = "self_only";
 
-    private static final Logger _log = LoggerFactory.getLogger(ExportGroupService.class);
+    static final Logger _log = LoggerFactory.getLogger(ExportGroupService.class);
 
     private static final String EVENT_SERVICE_TYPE = "export";
     private static final int MAX_VOLUME_COUNT = 100;
@@ -285,23 +284,22 @@ public class ExportGroupService extends TaskResourceService {
         _log.info("Computed storage map: {} volumes in {} storage systems: {}",
                 new Object[] { volumeMap.size(), storageMap.size(), storageMap.keySet().toArray() });
 
-        // validate clients (initiators, hosts clusters) input and package them
-        List<URI> initiators = validateClientsAndPopulate(exportGroup,
-                project, neighborhood, storageMap.keySet(),
-                param.getClusters(), param.getHosts(), param.getInitiators(),
-                volumeMap.keySet());
-        _log.info("Initiators {} will be used.", initiators);
-
-        // create export groups in the array but only when the export
-        // group has both block objects and initiators.
-        String task = UUID.randomUUID().toString();
-        Operation.Status status = storageMap.isEmpty() || initiators.isEmpty() ?
-                Operation.Status.ready : Operation.Status.pending;
-
         // Validate that there is not already an ExportGroup of the same name, project, and varray.
         // If so, this is like because concurrent operations were in the API at the same time and another created
         // the ExportGroup.
         validateNotSameNameProjectAndVarray(param);
+
+        // COP-14028
+        // Changing the return of a TaskList to return immediately while the underlying tasks are
+        // being built up. Steps:
+        // 1. Create a task object ahead of time and persist it for the export group
+        // 2. Fire off a thread that does the scheduling (planning) of the export operation
+        // 3. Return to the caller the new Task objects that is in the pending state.
+
+        // create export groups in the array but only when the export
+        // group has both block objects and initiators.
+        String task = UUID.randomUUID().toString();
+        Operation.Status status = storageMap.isEmpty() ? Operation.Status.ready : Operation.Status.pending;
 
         _dbClient.createObject(exportGroup);
         Operation op = initTaskStatus(exportGroup, task, status, ResourceOperationTypeEnum.CREATE_EXPORT_GROUP);
@@ -309,13 +307,17 @@ public class ExportGroupService extends TaskResourceService {
         // persist the export group to the database
         auditOp(OperationTypeEnum.CREATE_EXPORT_GROUP, true, AuditLogManager.AUDITOP_BEGIN,
                 param.getName(), neighborhood.getId().toString(), project.getId().toString());
-        if (!storageMap.isEmpty() && !initiators.isEmpty()) {
-            // push it to storage devices
-            BlockExportController exportController = getExportController();
-            _log.info("createExportGroup request is submitted.");
-            exportController.exportGroupCreate(exportGroup.getId(), volumeMap, initiators, task);
-        }
-        return toTask(exportGroup, task, op);
+
+        TaskResourceRep taskRes = toTask(exportGroup, task, op);
+
+        // call thread that does the work.
+        CreateExportGroupSchedulingThread.executeApiTask(this, _asyncTaskService.getExecutorService(), _dbClient, neighborhood, project,
+                exportGroup, storageMap,
+                param.getClusters(), param.getHosts(), param.getInitiators(), volumeMap, task, taskRes);
+
+        _log.info("Kicked off thread to perform placement and scheduling.  Returning task: " + taskRes.getId());
+
+        return taskRes;
     }
 
     /**
@@ -643,8 +645,7 @@ public class ExportGroupService extends TaskResourceService {
                     storageSystemNames.add(storageSystem.getNativeGuid());
                 }
             }
-            throw APIException.badRequests.
-                    storageSystemsNotConnectedForAddVolumes(Joiner.on(',').join(storageSystemNames));
+            throw APIException.badRequests.storageSystemsNotConnectedForAddVolumes(Joiner.on(',').join(storageSystemNames));
         }
         _log.info("Updated list of initiators: {}", Joiner.on(',').join(newInitiators));
     }
@@ -862,7 +863,7 @@ public class ExportGroupService extends TaskResourceService {
      * @param volumes The list of volumes being exported (used to calculate numPaths)
      * @return the aggregate list of initiators needed to export all the hosts and clusters and initiators
      */
-    private List<URI> validateClientsAndPopulate(ExportGroup exportGroup,
+    List<URI> validateClientsAndPopulate(ExportGroup exportGroup,
             Project project, VirtualArray varray, Collection<URI> storageSystems,
             List<URI> clusters, List<URI> hosts,
             List<URI> initiators, Collection<URI> volumes) {
@@ -1556,8 +1557,7 @@ public class ExportGroupService extends TaskResourceService {
         exportGroup.setLabel(param.getName());
         // TODO - For temporary backward compatibility
         String type = param.getType();
-        exportGroup.setType((type == null || type.equals(OLD_INITIATOR_TYPE_NAME)) ?
-                ExportGroupType.Initiator.name() : type);
+        exportGroup.setType((type == null || type.equals(OLD_INITIATOR_TYPE_NAME)) ? ExportGroupType.Initiator.name() : type);
         exportGroup.setId(URIUtil.createId(ExportGroup.class));
         exportGroup.setProject(new NamedURI(project.getId(), exportGroup.getLabel()));
         exportGroup.setVirtualArray(param.getVarray());
@@ -1735,9 +1735,8 @@ public class ExportGroupService extends TaskResourceService {
                 Map<URI, Set<URI>> varrayToVolumes = VPlexUtil.mapBlockObjectsToVarrays(_dbClient,
                         volumes, storageSystemURI, exportGroup);
                 varrays.addAll(varrayToVolumes.keySet());
-                Map<URI, List<URI>> varrayToInitiatorsMap =
-                        VPlexUtil.partitionInitiatorsByVarray(_dbClient, _blockStorageScheduler,
-                                initiatorURIs, varrays, storageSystem);
+                Map<URI, List<URI>> varrayToInitiatorsMap = VPlexUtil.partitionInitiatorsByVarray(_dbClient, _blockStorageScheduler,
+                        initiatorURIs, varrays, storageSystem);
                 int nValidations = 0;
                 for (URI varrayKey : varrays) {
                     if (varrayToInitiatorsMap.get(varrayKey) == null
@@ -1939,8 +1938,7 @@ public class ExportGroupService extends TaskResourceService {
     @Override
     public ExportGroupBulkRep queryBulkResourceReps(List<URI> ids) {
 
-        Iterator<ExportGroup> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        Iterator<ExportGroup> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
 
         BulkList<ExportGroupRestRep> list = new BulkList<ExportGroupRestRep>();
         list.setIterator(new ExportGroupRepIterator(
@@ -1952,8 +1950,7 @@ public class ExportGroupService extends TaskResourceService {
     protected BulkRestRep queryFilteredBulkResourceReps(
             List<URI> ids) {
 
-        Iterator<ExportGroup> _dbIterator =
-                _dbClient.queryIterativeObjects(getResourceClass(), ids);
+        Iterator<ExportGroup> _dbIterator = _dbClient.queryIterativeObjects(getResourceClass(), ids);
 
         BulkList<ExportGroupRestRep> filtered = new BulkList<ExportGroupRestRep>();
         filtered.setIterator(
@@ -2041,7 +2038,7 @@ public class ExportGroupService extends TaskResourceService {
      * 
      * @return
      */
-    private BlockExportController getExportController() {
+    BlockExportController getExportController() {
         return getController(BlockExportController.class, BlockExportController.EXPORT);
     }
 
@@ -2073,7 +2070,8 @@ public class ExportGroupService extends TaskResourceService {
         } else {
             _dbClient.queryByConstraint(
                     ContainmentPrefixConstraint.Factory.getExportGroupUnderProjectConstraint(
-                            projectId, name), resRepList);
+                            projectId, name),
+                    resRepList);
         }
         return resRepList;
     }
@@ -2291,8 +2289,7 @@ public class ExportGroupService extends TaskResourceService {
                 List<NamedElement> initiatorElements = getModelClient().initiators().findIdsByHost(hUri);
                 List<URI> initiators = toURIs(initiatorElements);
                 for (URI iUri : initiators) {
-                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
-                            getExportGroupInitiatorConstraint(iUri.toString()), egUris);
+                    _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportGroupInitiatorConstraint(iUri.toString()), egUris);
 
                     for (URI eUri : egUris) {
                         resultUris.add(eUri);
@@ -2324,8 +2321,7 @@ public class ExportGroupService extends TaskResourceService {
                     _dbClient, ExportGroup.class, AlternateIdConstraint.Factory
                             .getConstraint(ExportGroup.class, "initiators", initiatorId));
         } else {
-            _dbClient.queryByConstraint(AlternateIdConstraint.Factory.
-                    getExportGroupInitiatorConstraint(initiatorId.toString()), egUris);
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getExportGroupInitiatorConstraint(initiatorId.toString()), egUris);
 
             for (URI eUri : egUris) {
                 resultUris.add(eUri);
@@ -2345,7 +2341,8 @@ public class ExportGroupService extends TaskResourceService {
      * @param resRepLists result
      * @param selfOnly true or false
      */
-    private void searchforInitiatorExportByWWN(String wwn, List<SearchResultResourceRep> resRepLists, boolean selfOnly, boolean authorized) {
+    private void searchforInitiatorExportByWWN(String wwn, List<SearchResultResourceRep> resRepLists, boolean selfOnly,
+            boolean authorized) {
         URIQueryResultList initiatorList = new URIQueryResultList();
 
         // find the initiator
@@ -2383,8 +2380,7 @@ public class ExportGroupService extends TaskResourceService {
      */
     private void buildExportGroupSearchResponse(List<ExportGroup> exportGroups, List<SearchResultResourceRep> resRepLists,
             boolean selfOnly, String type, boolean authorized) {
-        PermissionsEnforcingResourceFilter<ExportGroup> filter =
-                new ExportGroupSearchFilter(getUserFromContext(), _permissionsHelper);
+        PermissionsEnforcingResourceFilter<ExportGroup> filter = new ExportGroupSearchFilter(getUserFromContext(), _permissionsHelper);
 
         for (ExportGroup eg : exportGroups) {
             if (!authorized && !filter.isExposed(eg)) {
@@ -2434,8 +2430,7 @@ public class ExportGroupService extends TaskResourceService {
      */
     @Override
     public ResRepFilter<? extends RelatedResourceRep> getPermissionFilter(StorageOSUser user,
-            PermissionsHelper permissionsHelper)
-    {
+            PermissionsHelper permissionsHelper) {
         return new ProjOwnedResRepFilter(user, permissionsHelper, ExportGroup.class);
     }
 

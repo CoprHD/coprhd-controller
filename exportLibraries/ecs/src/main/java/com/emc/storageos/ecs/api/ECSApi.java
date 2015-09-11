@@ -348,8 +348,12 @@ public class ECSApi {
                     }
 
                     if (clientRespOnr.getStatus() != 200) {
+                        if (clientRespOnr.getStatus() == 400) {
+                            _log.warn("Current user and user to be modified are same"); 
+                        } else {
                         throw ECSException.exceptions.storageAccessFailed(_baseUrl.resolve(uriBucketOwner),
                                 clientRespOnr.getStatus(), "add bucket owner");
+                        }
                     }
                 }
 

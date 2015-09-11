@@ -566,7 +566,6 @@ public class BlockService extends TaskResourceService {
      * @param id the URN of a ViPR Source volume
      * @param fullCopyId Full copy URI
      *
-     * @brief Activate full copy
      * @brief Activate full copy. This method is deprecated. Use /block/full-copies/{id}/activate instead with {id} representing full copy
      *        URI id
      * 

@@ -80,8 +80,7 @@ public class StorageScheduler implements Scheduler {
     private CoordinatorClient _coordinator;
     private PortMetricsProcessor _portMetricsProcessor;
 
-    private final Comparator<StoragePool> _storagePoolComparator =
-            new StoragePoolFreeCapacityComparator();
+    private final Comparator<StoragePool> _storagePoolComparator = new StoragePoolFreeCapacityComparator();
     private AttributeMatcherFramework _matcherFramework;
 
     public void setDbClient(DbClient dbClient) {
@@ -773,8 +772,8 @@ public class StorageScheduler implements Scheduler {
                 // can hold 90,89,88,...11 resources. We just want to
                 // see if there is another pool that can hold 10 resources,
                 // then 9,8, and so on.
-                currentCount = (capabilities.getResourceCount() - recommendedCount < currentCount ?
-                        capabilities.getResourceCount() - recommendedCount : currentCount);
+                currentCount = (capabilities.getResourceCount() - recommendedCount < currentCount
+                        ? capabilities.getResourceCount() - recommendedCount : currentCount);
             } else {
                 // If we can't find a pool that can hold the current
                 // count of resources, decrease the count so that we look
@@ -830,10 +829,10 @@ public class StorageScheduler implements Scheduler {
             int result;
 
             // if avg port metrics was not computable, consider its usage is max out for sorting purpose
-            double sp1AvgPortMetrics = sp1.getAvgStorageDevicePortMetrics() == null || sp1.getAvgStorageDevicePortMetrics() <= 0.0 ?
-                    Double.MAX_VALUE : sp1.getAvgStorageDevicePortMetrics();
-            double sp2AvgPortMetrics = sp2.getAvgStorageDevicePortMetrics() == null || sp2.getAvgStorageDevicePortMetrics() <= 0.0 ?
-                    Double.MAX_VALUE : sp2.getAvgStorageDevicePortMetrics();
+            double sp1AvgPortMetrics = sp1.getAvgStorageDevicePortMetrics() == null || sp1.getAvgStorageDevicePortMetrics() <= 0.0
+                    ? Double.MAX_VALUE : sp1.getAvgStorageDevicePortMetrics();
+            double sp2AvgPortMetrics = sp2.getAvgStorageDevicePortMetrics() == null || sp2.getAvgStorageDevicePortMetrics() <= 0.0
+                    ? Double.MAX_VALUE : sp2.getAvgStorageDevicePortMetrics();
 
             if (sp1.getFreeCapacity() > 0 && sp1AvgPortMetrics < sp2AvgPortMetrics) {
                 result = -1;
@@ -895,7 +894,7 @@ public class StorageScheduler implements Scheduler {
                 if (volume != null) {
                     volumePrecreated = true;
                 }
-                
+
                 long size = SizeUtil.translateSize(param.getSize());
                 long thinVolumePreAllocationSize = 0;
                 if (null != vPool.getThinVolumePreAllocationPercentage()) {
@@ -911,7 +910,7 @@ public class StorageScheduler implements Scheduler {
                 addVolumeCapacityToReservedCapacityMap(_dbClient, volume);
 
                 preparedVolumes.add(volume);
-                
+
                 if (!volumePrecreated) {
                     Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(),
                             task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
@@ -921,7 +920,7 @@ public class StorageScheduler implements Scheduler {
                     // It is good to continue to have a task associated with this volume AND store its status in the volume.
                     taskList.getTaskList().add(volumeTask);
                 }
-                
+
             } else if (recommendation.getType().toString().equals(VolumeRecommendation.VolumeType.BLOCK_LOCAL_MIRROR.toString())) {
                 // prepare local mirror based on source volume and storage pool recommendation
                 VolumeRecommendation volumeRecommendation = (VolumeRecommendation) recommendation
@@ -952,7 +951,8 @@ public class StorageScheduler implements Scheduler {
 
     /**
      * Convenience method to return a volume from a task list with a pre-labeled volume number.
-     * @param dbClient dbclient 
+     * 
+     * @param dbClient dbclient
      * @param taskList task list
      * @param label base label
      * @return Volume object
@@ -960,6 +960,9 @@ public class StorageScheduler implements Scheduler {
     public static Volume getPrecreatedVolume(DbClient dbClient, TaskList taskList, String label) {
         // The label we've been given has already been appended with the appropriate volume number
         String volumeLabel = AbstractBlockServiceApiImpl.generateDefaultVolumeLabel(label, 0, 1);
+        if (taskList == null)
+            return null;
+
         for (TaskResourceRep task : taskList.getTaskList()) {
             Volume volume = dbClient.queryObject(Volume.class, task.getResource().getId());
             if (volume.getLabel().equalsIgnoreCase(volumeLabel)) {
@@ -984,8 +987,7 @@ public class StorageScheduler implements Scheduler {
 
             return prepareFullCopyVolumeFromSnapshot(dbClient, name, ((BlockSnapshot) sourceVolume), recommendation, volumeCounter,
                     capabilities, createInactive);
-        }
-        else {
+        } else {
 
             return prepareFullCopyVolumeFromVolume(dbClient, name, ((Volume) sourceVolume), recommendation, volumeCounter, capabilities,
                     createInactive);
@@ -1081,7 +1083,7 @@ public class StorageScheduler implements Scheduler {
      * Prepare a new volume object in the database that can be tracked and overridden as the volume goes through the
      * placement process.
      * 
-     * @param dbClient dbclient 
+     * @param dbClient dbclient
      * @param size size of volume
      * @param project project
      * @param varray virtual array
@@ -1091,7 +1093,8 @@ public class StorageScheduler implements Scheduler {
      * @param volumesRequested how many volumes were requested overall
      * @return a Volume object
      */
-    public static Volume prepareEmptyVolume(DbClient dbClient, long size, Project project, VirtualArray varray, VirtualPool vpool, String label, int volNumber, int volumesRequested) {
+    public static Volume prepareEmptyVolume(DbClient dbClient, long size, Project project, VirtualArray varray, VirtualPool vpool,
+            String label, int volNumber, int volumesRequested) {
 
         Volume volume = new Volume();
         volume.setId(URIUtil.createId(Volume.class));
@@ -1115,9 +1118,10 @@ public class StorageScheduler implements Scheduler {
         dbClient.createObject(volume);
         return volume;
     }
-    
+
     /**
      * Prepare Volume for an unprotected traditional block volume.
+     * 
      * @param volume pre-created volume (optional)
      * @param size volume size
      * @param project project requested
@@ -1156,7 +1160,7 @@ public class StorageScheduler implements Scheduler {
         } else {
             // Reload volume object from DB
             volume = dbClient.queryObject(Volume.class, volume.getId());
-        }        
+        }
 
         volume.setSyncActive(!Boolean.valueOf(createInactive));
         volume.setLabel(label);
@@ -1197,7 +1201,7 @@ public class StorageScheduler implements Scheduler {
         } else {
             dbClient.updateAndReindexObject(volume);
         }
-        
+
         return volume;
     }
 

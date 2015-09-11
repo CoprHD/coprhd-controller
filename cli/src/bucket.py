@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-# Copyright (c) 2012-13 EMC Corporation
+# Copyright (c) 2015 EMC Corporation
 # All Rights Reserved
 #
 # This software contains the intellectual property of EMC Corporation
@@ -24,7 +24,7 @@ class Bucket(object):
     '''
     The class definition for operations on 'Bucket'.
     '''
-    #URI_BUCKET_CREATE = "/object/buckets"
+    URI_BUCKET_CREATE = "/object/buckets"
     URI_BUCKET_SHOW = '/object/buckets/{0}'
     URI_BUCKET_DEACTIVATE = '/object/buckets/{0}/deactivate'
 
@@ -56,7 +56,7 @@ class Bucket(object):
         varray_obj = VirtualArray(self.__ipAddr, self.__port)
         varray_uri = varray_obj.varray_query(varray)
         
-        uri = "/object/buckets" + "?project=" + project_uri
+        uri = Bucket.URI_BUCKET_CREATE + "?project=" + project_uri
         
 
         request = {
@@ -66,22 +66,13 @@ class Bucket(object):
         }
         if(owner):
             request["owner"] = owner
-        
-       
-        
         if(retention):
             request["retention"] = retention
-        
         if(softquota):
             request["soft_quota"] = softquota
         if(hardquota):
             request["hard_quota"] = hardquota
         
-        
-        
-        
-        
-
         body = json.dumps(request)
         
 
@@ -102,14 +93,7 @@ class Bucket(object):
         
         
         if(name):
-            
-            
-                                   
             bucket_uri = self.get_bucket_uri(tenant, project, name)
-            
-             
-            
-            
             
             request = dict()
             if(forceDelete):
@@ -127,9 +111,6 @@ class Bucket(object):
     def bucket_show(self , tenant, project, name , xml=False):
 
         if(name):
-            
-            
-                                   
             bucket_uri = self.get_bucket_uri(tenant, project, name)
             
             
@@ -186,9 +167,6 @@ class Bucket(object):
         '''
         
         parms = {}
-        
-        
-        
         if(softquota):
             parms['soft_quota'] = softquota
             
@@ -197,15 +175,9 @@ class Bucket(object):
             
         if(retention):
             parms['retention'] = retention
-            
-
-        
         if(name):
             bucket_uri = self.get_bucket_uri( tenant, project, name)
             
-            
-
-
         body = json.dumps(parms)
        
         common.service_json_request(self.__ipAddr, self.__port, "PUT",
@@ -259,7 +231,7 @@ def create_parser(subcommand_parsers, common_parser):
                                dest='retention',
                                metavar='<retention_period>')
     mandatory_args.add_argument('-owner', '-own',
-                               help='ECS Owner',
+                               help='Owner',
                                dest='owner',
                                metavar='<owner>')
     create_parser.set_defaults(func=bucket_create)

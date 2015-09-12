@@ -32,7 +32,7 @@
         </property>
         <property name="dbCommonInfo" ref="dbcommoninfo"/>
         <property name="passwordUtils" ref="passwordUtils"/>
-        <property name="onStandby" value="false"/>
+        <property name="onStandby" value="${on_standby}"/>
     </bean>
 
     <bean id="passwordUtils" class="com.emc.storageos.security.password.PasswordUtils">

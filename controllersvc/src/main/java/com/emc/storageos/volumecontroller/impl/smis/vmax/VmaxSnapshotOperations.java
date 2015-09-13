@@ -465,7 +465,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             }
             List<BlockSnapshot> snapshotList = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshotObj, _dbClient);
             CIMArgument[] outArgs = new CIMArgument[5];
-            CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, snapshotGroupName);
+            CIMObjectPath groupSynchronized = getGroupSynchronizedPath(storage, consistencyGroupName, snapshotGroupName);
             if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
 
                 // remove targets from parking SLO group
@@ -480,6 +480,8 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 
                 CIMArgument[] deleteCGSnapInput = _helper.getDeleteSnapshotSynchronousInputArguments(groupSynchronized);
                 _helper.callModifyReplica(storage, deleteCGSnapInput, outArgs);
+            } else {
+                _log.warn("Replication Group {} not found.", consistencyGroupName);
             }
             // Set inactive=true for all snapshots in the snaps set
             Iterator<BlockSnapshot> snapshotIter = snapshotList.iterator();

@@ -294,7 +294,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
 
             String snapshotGroupName = snapshotObj.getReplicationGroupInstance();
             boolean snapshotGroupExists = false;
-            CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, snapshotGroupName);
+            CIMObjectPath groupSynchronized = getGroupSynchronizedPath(storage, consistencyGroupName, snapshotGroupName);
             if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
                 // Delete the snapshot group (not the consistency group). This group is for
                 // the specific snaps that were taken for the consistency group.

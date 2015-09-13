@@ -12,7 +12,6 @@ import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.cim.CIMProperty;
 
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -235,6 +234,7 @@ public abstract class AbstractSnapshotOperations implements SnapshotOperations {
             URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
+
     @Override
     public void resyncSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
@@ -243,5 +243,26 @@ public abstract class AbstractSnapshotOperations implements SnapshotOperations {
     @Override
     public void resyncGroupSnapshots(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
+    /**
+     * Get the Snapshot GroupSynchronized path.
+     * 
+     * @param storage
+     * @param consistencyGroupName
+     * @param snapshotGroupName
+     * @return
+     */
+    protected CIMObjectPath getGroupSynchronizedPath(StorageSystem storage, String consistencyGroupName, String snapshotGroupName) {
+        CIMObjectPath groupSyncPath = null;
+        try {
+            groupSyncPath = _cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, snapshotGroupName);
+        } catch (Exception ex) {
+            // Provider throws exception when there is not GroupSynchronized path.
+            // Catch the exception and proceed silently. It is ugly to catch the Exception class instead of WbemException
+            // CIMObjectPathFactory is throwing general Exception, hence we need to catch it.
+            _log.warn("Not able to find the GroupSynchronized for {}", consistencyGroupName, ex);
+        }
+        return groupSyncPath;
     }
 }

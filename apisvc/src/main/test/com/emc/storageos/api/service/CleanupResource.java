@@ -12,6 +12,7 @@ import org.springframework.util.CollectionUtils;
 
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 
 /**
  * A class that is used to clean up created resources like authnprovider, tenant, etc
@@ -44,9 +45,9 @@ public class CleanupResource {
     // Function that iterates the list in reverse order and cleans up all the registered
     // resources. Doing it in reverse order to make the cleanup success (the first created
     // resource should be cleaned at last).
-    public static void cleanUpTestResources(LinkedList<CleanupResource> cleanupResourcetList) {
+    public static void cleanUpTestResources(List<CleanupResource> cleanupResourcetList) {
         if (!CollectionUtils.isEmpty(cleanupResourcetList)) {
-            Iterator<CleanupResource> reverseItr = cleanupResourcetList.descendingIterator();
+            Iterator<CleanupResource> reverseItr = ((LinkedList<CleanupResource>)cleanupResourcetList).descendingIterator();
             while (reverseItr.hasNext()) {
                 CleanupResource cleanupResource = reverseItr.next();
                 if (cleanupResource._method.equalsIgnoreCase("delete")) {

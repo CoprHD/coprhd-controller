@@ -795,15 +795,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         }
 
         // resync for OpenStack storage system type is not supported
-        if (Type.openstack.name().equalsIgnoreCase(storage.getSystemType()))
-        {
+        if (Type.openstack.name().equalsIgnoreCase(storage.getSystemType())) {
             throw APIException.methodNotAllowed.notSupportedWithReason(
                     String.format("Snapshot resynchronization is not possible on third-party storage systems"));
         }
 
         // resync for VNX storage system type is not supported
-        if (Type.vnxblock.name().equalsIgnoreCase(storage.getSystemType()))
-        {
+        if (Type.vnxblock.name().equalsIgnoreCase(storage.getSystemType())) {
             throw APIException.methodNotAllowed.notSupportedWithReason(
                     "Snapshot resynchronization is not supported on VNX storage systems");
         }
@@ -1107,8 +1105,7 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                     // all volumes should be on the same storage pool
                     if (xivPoolURI == null) {
                         xivPoolURI = volume.getPool();
-                    }
-                    else {
+                    } else {
                         if (!xivPoolURI.equals(volume.getPool())) {
                             throw APIException.badRequests
                                     .invalidParameterIBMXIVConsistencyGroupVolumeNotInPool(volumeURI, xivPoolURI);
@@ -1308,9 +1305,13 @@ public class BlockConsistencyGroupService extends TaskResourceService {
         // volumes in the consistency group.
         List<Volume> cgVolumes = verifyCGForFullCopyRequest(cgURI);
 
-        // Verify the full copy.
-        URI fcSourceURI = verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
-
+        // Get the full copy source.
+        Volume fullCopyVolume = (Volume) BlockFullCopyUtils.queryFullCopyResource(
+                fullCopyURI, uriInfo, false, _dbClient);
+        URI fcSourceURI = fullCopyVolume.getAssociatedSourceVolume();
+        if (!NullColumnValueGetter.isNullURI(fcSourceURI)) {
+            verifyFullCopyForCopyRequest(fullCopyURI, cgVolumes);
+        }
         // Detach the full copy. Note that it will take into account the
         // fact that the volume is in a CG.
         return getFullCopyManager().detachFullCopy(fcSourceURI, fullCopyURI);

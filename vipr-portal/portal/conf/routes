@@ -121,6 +121,9 @@ GET     /blockvirtualpools/edit/{id}            arrays.BlockVirtualPools.edit
 GET     /filevirtualpools/edit/{id}             arrays.FileVirtualPools.edit
 *       /filevirtualpools/{action}              arrays.FileVirtualPools.{action}
 
+GET     /objectvirtualpools/edit/{id}          arrays.ObjectVirtualPools.edit   
+*       /objectvirtualpools/{action}           arrays.ObjectVirtualPools.{action}
+
 GET     /virtualarrays/edit/{id}                VirtualArrays.edit
 *       /virtualarrays/networks/{id}            VirtualArrays.networks
 *       /virtualarrays/networksJson/{id}        VirtualArrays.networksJson

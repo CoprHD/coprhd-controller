@@ -35,6 +35,10 @@ public class CIMArgumentFactory {
         return uint64(name, value.toString());
     }
 
+    public CIMArgument<UnsignedInteger64[]> uint64Array(String name, UnsignedInteger64[] value) {
+        return build(name, value);
+    }
+
     public CIMArgument<String> string(String name, String value) {
         return build(name, value);
     }
@@ -52,6 +56,10 @@ public class CIMArgumentFactory {
     }
 
     public CIMArgument<Boolean> bool(String name, Boolean value) {
+        return build(name, value);
+    }
+
+    public CIMArgument<Boolean[]> boolArray(String name, Boolean[] value) {
         return build(name, value);
     }
 

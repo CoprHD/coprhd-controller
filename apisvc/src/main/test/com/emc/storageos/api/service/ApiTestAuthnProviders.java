@@ -11,12 +11,14 @@ import com.emc.storageos.model.auth.AuthnProviderRestRep;
 import com.emc.storageos.model.auth.AuthnUpdateParam;
 import com.emc.storageos.model.errorhandling.ServiceErrorRestRep;
 import com.sun.jersey.api.client.ClientResponse;
+import org.apache.commons.httpclient.HttpStatus;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -27,8 +29,11 @@ import java.util.LinkedHashSet;
  * ApiTestAuthnProviders class to exercise the core api functionality of Authentication Providers.
  */
 public class ApiTestAuthnProviders extends ApiTestBase {
-    private LinkedList<CleanupResource> _cleanupResourceList = null;
-    ApiTestAuthnProviderUtils apiTestAuthnProviderUtils = new ApiTestAuthnProviderUtils();;
+    private List<CleanupResource> _cleanupResourceList = null;
+    private ApiTestAuthnProviderUtils apiTestAuthnProviderUtils = new ApiTestAuthnProviderUtils();;
+    private final String AUTHN_PROVIDER_ADD_UPDATE_PARTIAL_ERROR = "The authentication provider could not be added or ";
+    private final String TRACE_SUCCESSFUL = "Successful";
+    private final String TRACE_AUTHN_PROVIDER_SUCCESSFUL = "Successful creation of authn provider";
 
     @Before
     public void setUp() throws Exception {
@@ -200,7 +205,7 @@ public class ApiTestAuthnProviders extends ApiTestBase {
         // Since the createParam contains invalid groupAttribute,
         // the post request should fail with the below errors.
         String partialExpectedErrorMsg = "Required parameter group_attribute was missing or empty";
-        validateAuthProviderBadRequest(400, partialExpectedErrorMsg, clientCreateResp);
+        validateAuthProviderBadRequest(HttpStatus.SC_BAD_REQUEST, partialExpectedErrorMsg, clientCreateResp);
 
         // Set the groupAttribute to null (to validate if there is no null pointer exception),
         // so that the create request will fail, as groupAttribute is an mandatory parameter in the API.
@@ -211,9 +216,9 @@ public class ApiTestAuthnProviders extends ApiTestBase {
 
         // Since the createParam contains invalid groupAttribute,
         // the post request should fail with the below errors.
-        partialExpectedErrorMsg = "The authentication provider could not be added or "
+        partialExpectedErrorMsg = AUTHN_PROVIDER_ADD_UPDATE_PARTIAL_ERROR
                 + "modified because of the following error: Could not find group attribute";
-        validateAuthProviderBadRequest(400, partialExpectedErrorMsg, clientCreateResp);
+        validateAuthProviderBadRequest(HttpStatus.SC_BAD_REQUEST, partialExpectedErrorMsg, clientCreateResp);
 
         // Set the groupAttribute to "some" (invalid group attribute. The imported ldap schema does not have an attribute called some),
         // so that the create request will fail, as groupAttribute is an mandatory parameter in the API.
@@ -224,9 +229,9 @@ public class ApiTestAuthnProviders extends ApiTestBase {
 
         // Since the createParam contains invalid groupAttribute,
         // the post request should fail with the below errors.
-        partialExpectedErrorMsg = "The authentication provider could not be added or "
+        partialExpectedErrorMsg = AUTHN_PROVIDER_ADD_UPDATE_PARTIAL_ERROR
                 + "modified because of the following error: Could not find group attribute";
-        validateAuthProviderBadRequest(400, partialExpectedErrorMsg, clientCreateResp);
+        validateAuthProviderBadRequest(HttpStatus.SC_BAD_REQUEST, partialExpectedErrorMsg, clientCreateResp);
 
         // Remove the LDAP Group search properties (Group ObjectClasses and MemberAttributes).
         createParam.setGroupObjectClasses(new HashSet<String>());
@@ -234,7 +239,7 @@ public class ApiTestAuthnProviders extends ApiTestBase {
 
         // Set the groupAttribute to valid groupAttribute to the post to be success.
         createParam.setGroupAttribute(getDefaultGroupAttribute());
-        createParam.setDescription(testName + "Successful");
+        createParam.setDescription(testName + TRACE_SUCCESSFUL);
 
         AuthnProviderRestRep createResp = rSys.path(getTestApi()).post(AuthnProviderRestRep.class, createParam);
 
@@ -245,7 +250,7 @@ public class ApiTestAuthnProviders extends ApiTestBase {
     public void testAuthnProviderCreateWithNullLDAPGroupProperties() {
         final String testName = "testAuthnProviderCreateWithNullLDAPGroupProperties - ";
 
-        AuthnCreateParam createParam = getDefaultAuthnCreateParam(testName + "Successful"
+        AuthnCreateParam createParam = getDefaultAuthnCreateParam(testName + TRACE_SUCCESSFUL
                 + "(null group objectClasses and memberAttributes)");
 
         // Remove the LDAP Group search properties (Group ObjectClasses and MemberAttributes).
@@ -267,13 +272,13 @@ public class ApiTestAuthnProviders extends ApiTestBase {
         AuthnCreateParam createParam = getDefaultAuthnCreateParam(testName + "Invalid group objectClasses and memberAttributes");
 
         // Add some invalid group objectclasses and memberAttributes.
-        createParam.getGroupObjectClasses().add("some");
-        createParam.getGroupObjectClasses().add("some");
+        createParam.getGroupObjectClasses().add("some0");
+        createParam.getGroupObjectClasses().add("some0");
         createParam.getGroupObjectClasses().add("some2");
         createParam.getGroupObjectClasses().add("some3");
 
-        createParam.getGroupMemberAttributes().add("someAttribute");
-        createParam.getGroupMemberAttributes().add("someAttribute");
+        createParam.getGroupMemberAttributes().add("someAttribute0");
+        createParam.getGroupMemberAttributes().add("someAttribute0");
         createParam.getGroupMemberAttributes().add("someAttribute2");
         createParam.getGroupMemberAttributes().add("someAttribute3");
         createParam.getGroupMemberAttributes().add("someAttribute4");
@@ -284,9 +289,9 @@ public class ApiTestAuthnProviders extends ApiTestBase {
         // Since the createParam contains invalid group ObjectClasses and memberAttributes
         // the post request should fail with the below errors. Here the failure will be only for the
         // objectClasses. So validate the error message against only the objectClasses error.
-        String partialExpectedErrorMsg = "The authentication provider could not be added or "
+        String partialExpectedErrorMsg = AUTHN_PROVIDER_ADD_UPDATE_PARTIAL_ERROR
                 + "modified because of the following error: Could not find objectClasses";
-        validateAuthProviderBadRequest(400, partialExpectedErrorMsg, clientCreateResp);
+        validateAuthProviderBadRequest(HttpStatus.SC_BAD_REQUEST, partialExpectedErrorMsg, clientCreateResp);
 
         // Remove the invalid values from group objectClasses and set with default values.
         createParam.getGroupObjectClasses().clear();
@@ -301,13 +306,13 @@ public class ApiTestAuthnProviders extends ApiTestBase {
         // Here the failure will be only for the member attributes.
         // So validate the error message against only the member attributes error.
         partialExpectedErrorMsg = "The authentication provider could not be added or modified because of the following error: Could not find attributes";
-        validateAuthProviderBadRequest(400, partialExpectedErrorMsg, clientCreateResp);
+        validateAuthProviderBadRequest(HttpStatus.SC_BAD_REQUEST, partialExpectedErrorMsg, clientCreateResp);
 
         // Remove the invalid values from group member attributes and set with default values.
         createParam.getGroupMemberAttributes().clear();
         createParam.setGroupMemberAttributes(getDefaultGroupMemberAttributes());
 
-        createParam.setDescription(testName + "Successful");
+        createParam.setDescription(testName + TRACE_SUCCESSFUL);
 
         // Now, all the paramaters in the post payload is valid. So the request should be successful.
         AuthnProviderRestRep createResp = rSys.path(getTestApi()).post(AuthnProviderRestRep.class, createParam);
@@ -319,7 +324,7 @@ public class ApiTestAuthnProviders extends ApiTestBase {
     public void testAuthnProviderCreateDuplicateLDAPGroupProperties() {
         final String testName = "testAuthnProviderCreateDuplicateLDAPGroupProperties - ";
 
-        AuthnCreateParam createParam = getDefaultAuthnCreateParam(testName + "Successful"
+        AuthnCreateParam createParam = getDefaultAuthnCreateParam(testName + TRACE_SUCCESSFUL
                 + "(Duplicate group objectClasses and memberAttributes)");
 
         // Add the same group objectClasses and memberAttributes to the createParam as duplicates.
@@ -331,15 +336,16 @@ public class ApiTestAuthnProviders extends ApiTestBase {
         validateAuthProviderCreateSuccess(createParam, createResp);
 
         // Validate the counts separately to make sure that the counts are removed.
-        Assert.assertEquals(4, createResp.getGroupObjectClasses().size());
-        Assert.assertEquals(4, createResp.getGroupMemberAttributes().size());
+        final int expected = 4;
+        Assert.assertEquals(expected, createResp.getGroupObjectClasses().size());
+        Assert.assertEquals(expected, createResp.getGroupMemberAttributes().size());
     }
 
     @Test
     public void testAuthnProviderCreateWithLDAPGroupObjectClassesOnly() {
         final String testName = "testAuthnProviderCreateWithLDAPGroupObjectClassesOnly - ";
 
-        AuthnCreateParam createParam = getDefaultAuthnCreateParam(testName + "Successful");
+        AuthnCreateParam createParam = getDefaultAuthnCreateParam(testName + TRACE_SUCCESSFUL);
 
         // Remove the memberAttributes from the createParam.
         createParam.getGroupMemberAttributes().clear();
@@ -348,16 +354,16 @@ public class ApiTestAuthnProviders extends ApiTestBase {
 
         // Since the createParam does not contain group member attributes, the request
         // should fail with the below error.
-        String partialExpectedErrorMsg = "The authentication provider could not be added or "
+        String partialExpectedErrorMsg = AUTHN_PROVIDER_ADD_UPDATE_PARTIAL_ERROR
                 + "modified because of the following error: Group member attributes are not provided.";
-        validateAuthProviderBadRequest(400, partialExpectedErrorMsg, clientCreateResp);
+        validateAuthProviderBadRequest(HttpStatus.SC_BAD_REQUEST, partialExpectedErrorMsg, clientCreateResp);
     }
 
     @Test
     public void testAuthnProviderCreateWithLDAPGroupMemberAttributesOnly() {
         final String testName = "testAuthnProviderCreateWithLDAPGroupMemberAttributesOnly - ";
 
-        AuthnCreateParam createParam = getDefaultAuthnCreateParam(testName + "Successful");
+        AuthnCreateParam createParam = getDefaultAuthnCreateParam(testName + TRACE_SUCCESSFUL);
 
         // Remove the group objectClasses from the createParam.
         createParam.getGroupObjectClasses().clear();
@@ -366,9 +372,9 @@ public class ApiTestAuthnProviders extends ApiTestBase {
 
         // Since the createParam does not contain group objectClasses, the request
         // should fail with the below error.
-        String partialExpectedErrorMsg = "The authentication provider could not be added or "
+        String partialExpectedErrorMsg = AUTHN_PROVIDER_ADD_UPDATE_PARTIAL_ERROR
                 + "modified because of the following error: Group object classes are not provided.";
-        validateAuthProviderBadRequest(400, partialExpectedErrorMsg, clientCreateResp);
+        validateAuthProviderBadRequest(HttpStatus.SC_BAD_REQUEST, partialExpectedErrorMsg, clientCreateResp);
     }
 
     @Test
@@ -388,13 +394,13 @@ public class ApiTestAuthnProviders extends ApiTestBase {
         AuthnUpdateParam editParam = getAuthnUpdateParamFromAuthnProviderRestResp(createResp);
 
         // Adding some invalid group objectClasses and memberAttributes at the time of edit.
-        editParam.getGroupObjectClassChanges().getAdd().add("some");
-        editParam.getGroupObjectClassChanges().getAdd().add("some");
+        editParam.getGroupObjectClassChanges().getAdd().add("some1");
+        editParam.getGroupObjectClassChanges().getAdd().add("some1");
         editParam.getGroupObjectClassChanges().getAdd().add("some2");
         editParam.getGroupObjectClassChanges().getAdd().add("some3");
 
-        editParam.getGroupMemberAttributeChanges().getAdd().add("someAttribute");
-        editParam.getGroupMemberAttributeChanges().getAdd().add("someAttribute");
+        editParam.getGroupMemberAttributeChanges().getAdd().add("someAttribute1");
+        editParam.getGroupMemberAttributeChanges().getAdd().add("someAttribute1");
         editParam.getGroupMemberAttributeChanges().getAdd().add("someAttribute2");
         editParam.getGroupMemberAttributeChanges().getAdd().add("someAttribute3");
         editParam.getGroupMemberAttributeChanges().getAdd().add("someAttribute4");
@@ -407,9 +413,9 @@ public class ApiTestAuthnProviders extends ApiTestBase {
         // Since the createParam contains invalid group ObjectClasses and memberAttributes
         // the post request should fail with the below errors. Here the failure will be only for the
         // objectClasses. So validate the error message against only the objectClasses error.
-        String partialExpectedErrorMsg = "The authentication provider could not be added or "
+        String partialExpectedErrorMsg = AUTHN_PROVIDER_ADD_UPDATE_PARTIAL_ERROR
                 + "modified because of the following error: Could not find objectClasses";
-        validateAuthProviderBadRequest(400, partialExpectedErrorMsg, clientEditResp);
+        validateAuthProviderBadRequest(HttpStatus.SC_BAD_REQUEST, partialExpectedErrorMsg, clientEditResp);
 
         // Remove the invalid values from group objectClasses and set with default values.
         editParam.getGroupObjectClassChanges().getAdd().clear();
@@ -424,7 +430,7 @@ public class ApiTestAuthnProviders extends ApiTestBase {
         // Here the failure will be only for the memberAttributes.
         // So validate the error message against only the memberAttributes error.
         partialExpectedErrorMsg = "The authentication provider could not be added or modified because of the following error: Could not find attributes";
-        validateAuthProviderBadRequest(400, partialExpectedErrorMsg, clientEditResp);
+        validateAuthProviderBadRequest(HttpStatus.SC_BAD_REQUEST, partialExpectedErrorMsg, clientEditResp);
 
         // Remove the invalid values from group memberAttributes and set with default values.
         editParam.getGroupMemberAttributeChanges().getAdd().clear();
@@ -442,7 +448,7 @@ public class ApiTestAuthnProviders extends ApiTestBase {
     public void testAuthnProviderEditDuplicateLDAPGroupProperties() {
         final String testName = "testAuthnProviderEditDuplicateLDAPGroupProperties - ";
 
-        AuthnCreateParam createParam = getDefaultAuthnCreateParam(testName + "Successful creation of authn provider");
+        AuthnCreateParam createParam = getDefaultAuthnCreateParam(testName + TRACE_AUTHN_PROVIDER_SUCCESSFUL);
 
         // Add the same group objectClasses and memberAttributes to the createParam as duplicates.
         createParam.getGroupObjectClasses().addAll(getDefaultGroupObjectClasses());
@@ -470,15 +476,16 @@ public class ApiTestAuthnProviders extends ApiTestBase {
         validateAuthProviderEditSuccess(editParam, editResp);
 
         // Validate the counts separately to make sure that the counts are removed.
-        Assert.assertEquals(4, createResp.getGroupObjectClasses().size());
-        Assert.assertEquals(4, createResp.getGroupMemberAttributes().size());
+        final int expected = 4;
+        Assert.assertEquals(expected, createResp.getGroupObjectClasses().size());
+        Assert.assertEquals(expected, createResp.getGroupMemberAttributes().size());
     }
 
     @Test
     public void testAuthnProviderEditWithLDAPGroupObjectClassesOnly() {
         final String testName = "testAuthnProviderEditWithLDAPGroupObjectClassesOnly - ";
 
-        AuthnCreateParam createParam = getDefaultAuthnCreateParam(testName + "Successful creation of authn provider");
+        AuthnCreateParam createParam = getDefaultAuthnCreateParam(testName + TRACE_AUTHN_PROVIDER_SUCCESSFUL);
 
         AuthnProviderRestRep createResp = rSys.path(getTestApi()).post(AuthnProviderRestRep.class, createParam);
 
@@ -503,15 +510,16 @@ public class ApiTestAuthnProviders extends ApiTestBase {
         // Validate the counts separately to make sure that the counts are removed.
         // GroupMemberAttributes wont change here as the edit did not change
         // the GroupMemberAttributes
-        Assert.assertEquals(4, editResp.getGroupObjectClasses().size());
-        Assert.assertEquals(4, editResp.getGroupMemberAttributes().size());
+        final int expected = 4;
+        Assert.assertEquals(expected, editResp.getGroupObjectClasses().size());
+        Assert.assertEquals(expected, editResp.getGroupMemberAttributes().size());
     }
 
     @Test
     public void testAuthnProviderEditWithLDAPGroupMemberAttributesOnly() {
         final String testName = "testAuthnProviderEditWithLDAPGroupMemberAttributesOnly - ";
 
-        AuthnCreateParam createParam = getDefaultAuthnCreateParam(testName + "Successful creation of authn provider");
+        AuthnCreateParam createParam = getDefaultAuthnCreateParam(testName + TRACE_AUTHN_PROVIDER_SUCCESSFUL);
 
         AuthnProviderRestRep createResp = rSys.path(getTestApi()).post(AuthnProviderRestRep.class, createParam);
 
@@ -536,8 +544,9 @@ public class ApiTestAuthnProviders extends ApiTestBase {
         // Validate the counts separately to make sure that the counts are removed.
         // GroupObjectClasses wont change here as the edit did not change
         // the GroupObjectClasses
-        Assert.assertEquals(4, editResp.getGroupObjectClasses().size());
-        Assert.assertEquals(4, editResp.getGroupMemberAttributes().size());
+        final int expected = 4;
+        Assert.assertEquals(expected, editResp.getGroupObjectClasses().size());
+        Assert.assertEquals(expected, editResp.getGroupMemberAttributes().size());
     }
 
     @Test
@@ -560,7 +569,7 @@ public class ApiTestAuthnProviders extends ApiTestBase {
     public void testAuthnProviderEditWithLDAPGroupPropertiesAndNonManagerDN() {
         final String testName = "testAuthnProviderEditWithLDAPGroupPropertiesAndNonManagerDN - ";
 
-        AuthnCreateParam createParam = getDefaultAuthnCreateParam(testName + "Successful creation of authn provider");
+        AuthnCreateParam createParam = getDefaultAuthnCreateParam(testName + TRACE_AUTHN_PROVIDER_SUCCESSFUL);
 
         AuthnProviderRestRep createResp = rSys.path(getTestApi()).post(AuthnProviderRestRep.class, createParam);
 
@@ -589,7 +598,7 @@ public class ApiTestAuthnProviders extends ApiTestBase {
     public void testAuthnProviderEditByRemovingLDAPGroupProperties() {
         final String testName = "testAuthnProviderEditByRemovingLDAPGroupProperties - ";
 
-        AuthnCreateParam createParam = getDefaultAuthnCreateParam(testName + "Successful creation of authn provider");
+        AuthnCreateParam createParam = getDefaultAuthnCreateParam(testName + TRACE_AUTHN_PROVIDER_SUCCESSFUL);
 
         AuthnProviderRestRep createResp = rSys.path(getTestApi()).post(AuthnProviderRestRep.class, createParam);
 
@@ -677,10 +686,10 @@ public class ApiTestAuthnProviders extends ApiTestBase {
 
         // Since the createParam does not contain group object classes, the request
         // should fail with the below error.
-        String partialExpectedErrorMsg = "The authentication provider could not be added or "
+        String partialExpectedErrorMsg = AUTHN_PROVIDER_ADD_UPDATE_PARTIAL_ERROR
                 + "modified because of the following error: Group object classes are not provided.";
 
-        validateAuthProviderBadRequest(400, partialExpectedErrorMsg, clientEditResp);
+        validateAuthProviderBadRequest(HttpStatus.SC_BAD_REQUEST, partialExpectedErrorMsg, clientEditResp);
 
         editParam.getGroupObjectClassChanges().getAdd().clear();
         editParam.getGroupMemberAttributeChanges().getAdd().clear();
@@ -701,9 +710,9 @@ public class ApiTestAuthnProviders extends ApiTestBase {
 
         // Since the createParam does not contain group member attributes, the request
         // should fail with the below error.
-        partialExpectedErrorMsg = "The authentication provider could not be added or "
+        partialExpectedErrorMsg = AUTHN_PROVIDER_ADD_UPDATE_PARTIAL_ERROR
                 + "modified because of the following error: Group member attributes are not provided.";
 
-        validateAuthProviderBadRequest(400, partialExpectedErrorMsg, clientEditResp);
+        validateAuthProviderBadRequest(HttpStatus.SC_BAD_REQUEST, partialExpectedErrorMsg, clientEditResp);
     }
 }

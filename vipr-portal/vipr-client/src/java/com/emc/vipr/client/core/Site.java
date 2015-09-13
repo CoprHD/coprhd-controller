@@ -2,7 +2,11 @@ package com.emc.vipr.client.core;
 
 import java.util.List;
 
+import javax.ws.rs.HeaderParam;
+
 import com.emc.storageos.model.NamedRelatedResourceRep;
+import com.emc.storageos.model.dr.DRNatCheckParam;
+import com.emc.storageos.model.dr.DRNatCheckResponse;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteConfigRestRep;
 import com.emc.storageos.model.dr.SiteList;
@@ -43,7 +47,11 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
     }
     
     public SiteRestRep addPrimary(SiteAddParam input) {
-        return client.post(SiteRestRep.class, input, PathConstants.SITE_URL + "/standby/config");
+        return client.post(SiteRestRep.class, input, PathConstants.SITE_URL + "/internal/standby/config");
+    }
+    
+    public DRNatCheckResponse checkIfBehindNat(DRNatCheckParam checkParam) {
+        return client.post(DRNatCheckResponse.class, checkParam, PathConstants.SITE_URL + "/standby/natcheck");
     }
 
     @Override

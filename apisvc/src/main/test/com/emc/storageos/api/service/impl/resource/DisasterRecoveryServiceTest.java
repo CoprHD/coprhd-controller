@@ -24,9 +24,12 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.Site;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
+import com.emc.storageos.model.dr.DRNatCheckParam;
+import com.emc.storageos.model.dr.DRNatCheckResponse;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
+import com.emc.storageos.services.util.SysUtils;
 
 public class DisasterRecoveryServiceTest {
 
@@ -39,7 +42,8 @@ public class DisasterRecoveryServiceTest {
     private List<URI> uriList;
     private List<Site> standbySites;
     private SiteAddParam standby;
-
+    private DRNatCheckParam natCheckParam;
+    
     @Before
     public void setUp() throws Exception {
         uriList = new LinkedList<URI>();
@@ -79,19 +83,22 @@ public class DisasterRecoveryServiceTest {
 
         // setup local VDC
         VirtualDataCenter localVDC = new VirtualDataCenter();
-        localVDC.getSiteIDs().add(standbySite1.getId().toString());
-        localVDC.getSiteIDs().add(standbySite2.getId().toString());
+        localVDC.getSiteUUIDs().add(standbySite1.getUuid());
+        localVDC.getSiteUUIDs().add(standbySite2.getUuid());
 
         // mock DBClient
         dbClientMock = mock(DbClient.class);
         
         // mock coordinator client
         coordinator = mock(CoordinatorClient.class);
+        
+        natCheckParam = new DRNatCheckParam();
 
         drService = spy(new DisasterRecoveryService());
         drService.setDbClient(dbClientMock);
         drService.setCoordinator(coordinator);
         drService.setSiteMapper(new MockSiteMapper());
+        drService.setSysUtils(new SysUtils());
 
         doReturn(localVDC).when(drService).queryLocalVDC();
         doReturn("123456").when(coordinator).getPrimarySiteId();
@@ -220,7 +227,42 @@ public class DisasterRecoveryServiceTest {
         doReturn("123456").when(coordinator).getSiteId();
         drService.precheckForStandbyAttach(standby);
     }
+    
+    @Test
+    public void testCheckIfBehindNat_Fail() {
+        try {
+            drService.checkIfBehindNat(null, "");
+            fail();
+        } catch (Exception e) {
+            //ignore expected exception
+        }
+        
+        try {
+            natCheckParam.setIPv4Address("10.247.0.1");
+            natCheckParam.setIPv6Address("10.247.0.2");
+            drService.checkIfBehindNat(natCheckParam, null);
+            fail();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    
+    @Test
+    public void testCheckIfBehindNat_NotBehindNAT() {
+        natCheckParam.setIPv4Address("10.247.101.110");
 
+        DRNatCheckResponse response = drService.checkIfBehindNat(natCheckParam, "10.247.101.110");
+        assertEquals(false, response.isBehindNAT());
+    }
+    
+    @Test
+    public void testCheckIfBehindNat_IsBehindNAT() {
+        natCheckParam.setIPv4Address("10.247.101.111");
+
+        DRNatCheckResponse response = drService.checkIfBehindNat(natCheckParam, "10.247.101.110");
+        assertEquals(true, response.isBehindNAT());
+    }
+    
     protected void compareSiteResponse(SiteRestRep response, Site site) {
         assertNotNull(response);
         assertEquals(response.getUuid(), site.getUuid());

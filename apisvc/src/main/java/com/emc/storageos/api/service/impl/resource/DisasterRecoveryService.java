@@ -11,7 +11,6 @@ import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_KIN
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -21,6 +20,7 @@ import javax.crypto.SecretKey;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -42,6 +42,8 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.model.ResourceTypeEnum;
+import com.emc.storageos.model.dr.DRNatCheckParam;
+import com.emc.storageos.model.dr.DRNatCheckResponse;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteConfigRestRep;
 import com.emc.storageos.model.dr.SiteList;
@@ -49,7 +51,9 @@ import com.emc.storageos.model.dr.SiteRestRep;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
 import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.security.authorization.DefaultPermissions;
+import com.emc.storageos.security.authorization.ExcludeLicenseCheck;
 import com.emc.storageos.security.authorization.Role;
+import com.emc.storageos.services.util.SysUtils;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 
 @Path("/site")
@@ -61,6 +65,7 @@ public class DisasterRecoveryService extends TaggedResource {
     private CoordinatorClient coordinator = null;
     private InternalApiSignatureKeyGenerator apiSignatureGenerator;
     private SiteMapper siteMapper;
+    private SysUtils sysUtils;
     
     public DisasterRecoveryService() {
         siteMapper = new SiteMapper();
@@ -69,14 +74,13 @@ public class DisasterRecoveryService extends TaggedResource {
     /**
      * Attach one fresh install site to this primary as standby
      * @param param site detail information
-     * @return return site response information
+     * @return site response information
      */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     public SiteRestRep addStandby(SiteAddParam siteParam) {
-        log.info("Begin to add standby site");
-        log.info(siteParam.toString());
+        log.info("Begin to add standby site {}", siteParam);
             
         precheckForStandbyAttach(siteParam);
         
@@ -84,7 +88,7 @@ public class DisasterRecoveryService extends TaggedResource {
         siteMapper.map(siteParam, standbySite);
         
         VirtualDataCenter vdc = queryLocalVDC();
-        vdc.getSiteIDs().add(standbySite.getId().toString());
+        vdc.getSiteUUIDs().add(standbySite.getUuid());
 
         log.info("Persist standby site to DB");
         _dbClient.createObject(standbySite);
@@ -93,8 +97,6 @@ public class DisasterRecoveryService extends TaggedResource {
         _dbClient.persistObject(vdc);
         
         //TODO post to standby to reconfig
-        
-        //TODO reconfig this primary site itself
 
         return siteMapper.map(standbySite);
     }
@@ -110,13 +112,13 @@ public class DisasterRecoveryService extends TaggedResource {
         SiteList standbyList = new SiteList();
         
         VirtualDataCenter vdc = queryLocalVDC();
-        Collection<String> standbyIds = vdc.getSiteIDs();
+        Collection<String> standbyIds = vdc.getSiteUUIDs();
 
         List<URI> ids = _dbClient.queryByType(Site.class, true);
         Iterator<Site> sites = _dbClient.queryIterativeObjects(Site.class, ids);
         while (sites.hasNext()) {
             Site standby = sites.next();
-            if (standbyIds.contains(standby.getId().toString())) {
+            if (standbyIds.contains(standby.getUuid())) {
                 standbyList.getSites().add(siteMapper.map(standby));
             }
         }
@@ -125,15 +127,15 @@ public class DisasterRecoveryService extends TaggedResource {
     }
     
     /**
-     * Get specified site according site ID
-     * @param id site ID
+     * Get specified site according site UUID
+     * @param uuid site UUID
      * @return site response with detail information
      */
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}")
-    public SiteRestRep getStandby(@PathParam("id") String id) {
-        log.info("Begin to get standby site by uuid {}", id);
+    @Path("/{uuid}")
+    public SiteRestRep getStandby(@PathParam("uuid") String uuid) {
+        log.info("Begin to get standby site by uuid {}", uuid);
         
         VirtualDataCenter vdc = queryLocalVDC();
         
@@ -142,35 +144,35 @@ public class DisasterRecoveryService extends TaggedResource {
         Iterator<Site> sites = _dbClient.queryIterativeObjects(Site.class, ids);
         while (sites.hasNext()) {
             Site standby = sites.next();
-            if (vdc.getSiteIDs().contains(standby.getId().toString())) {
-                if (standby.getUuid().equals(id)) {
+            if (vdc.getSiteUUIDs().contains(standby.getUuid())) {
+                if (standby.getUuid().equals(uuid)) {
                     return siteMapper.map(standby);
                 }
             }
         }
         
-        log.info("Can't find site with specified site ID {}", id);
+        log.info("Can't find site with specified site ID {}", uuid);
         return null;
     }
 
     @DELETE
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/{id}")
-    public SiteRestRep removeStandby(@PathParam("id") String id) {
-        log.info("Begin to remove standby site from local vdc");
+    @Path("/{uuid}")
+    public SiteRestRep removeStandby(@PathParam("uuid") String uuid) {
+        log.info("Begin to remove standby site from local vdc by uuid: {}", uuid);
         
         VirtualDataCenter vdc = queryLocalVDC();
-        Collection<String> standbyIds = getStandbyIds(vdc.getSiteIDs());
+        Collection<String> standbyIds = getStandbyIds(vdc.getSiteUUIDs());
         
         List<URI> ids = _dbClient.queryByType(Site.class, true);
 
         Iterator<Site> sites = _dbClient.queryIterativeObjects(Site.class, ids);
         while (sites.hasNext()) {
             Site standby = sites.next();
-            if (standbyIds.contains(standby.getId().toString())) {
-                if (standby.getUuid().equals(id)) {
+            if (standbyIds.contains(standby.getUuid())) {
+                if (standby.getUuid().equals(uuid)) {
                     log.info("Find standby site in local VDC and remove it");
-                    vdc.getSiteIDs().remove(standby.getId());
+                    vdc.getSiteUUIDs().remove(standby.getUuid());
                     _dbClient.persistObject(vdc);
                     _dbClient.markForDeletion(standby);
                     return siteMapper.map(standby);
@@ -217,7 +219,7 @@ public class DisasterRecoveryService extends TaggedResource {
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @Path("/standby/config")
+    @Path("/internal/standby/config")
     public SiteRestRep addPrimary(SiteAddParam param) {
         log.info("Begin to add primary site");
 
@@ -230,7 +232,7 @@ public class DisasterRecoveryService extends TaggedResource {
         primarySite.getHostIPv6AddressMap().putAll(new StringMap(param.getHostIPv6AddressMap()));
 
         VirtualDataCenter vdc = queryLocalVDC();
-        vdc.getSiteIDs().add(primarySite.getId().toString());
+        vdc.getSiteUUIDs().add(primarySite.getUuid());
 
         log.info("Persist primary site to DB");
         _dbClient.createObject(primarySite);
@@ -239,6 +241,36 @@ public class DisasterRecoveryService extends TaggedResource {
         _dbClient.persistObject(vdc);
 
         return siteMapper.map(primarySite);
+    }
+    
+    @POST
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/standby/natcheck")
+    @ExcludeLicenseCheck
+    public DRNatCheckResponse checkIfBehindNat(DRNatCheckParam checkParam, @HeaderParam("X-Forwarded-For") String clientIp) {
+        if (checkParam == null) {
+            log.error("checkParam is null, X-Forwarded-For is {}", clientIp);
+            throw APIException.internalServerErrors.invalidNatCheckCall("(null)", clientIp);
+        }
+
+        String ipv4Str = checkParam.getIPv4Address();
+        String ipv6Str = checkParam.getIPv6Address();
+        log.info(String.format("Performing NAT check, client address connecting to VIP: %s. Client reports its IPv4 = %s, IPv6 = %s",
+                clientIp, ipv4Str, ipv6Str));
+
+        boolean isBehindNat = false;
+        try {
+            isBehindNat = sysUtils.checkIfBehindNat(ipv4Str, ipv6Str, clientIp);
+        } catch (Exception e) {
+            log.error("Fail to check NAT {}", e);
+            throw APIException.internalServerErrors.invalidNatCheckCall(e.getMessage(), clientIp);
+        }
+
+        DRNatCheckResponse resp = new DRNatCheckResponse();
+        resp.setSeenIp(clientIp);
+        resp.setBehindNAT(isBehindNat);
+
+        return resp;
     }
     
     @Override
@@ -254,16 +286,16 @@ public class DisasterRecoveryService extends TaggedResource {
         return null;
     }
 
-    private Collection<String> getStandbyIds(Set<String> siteIds) {
+    private Set<String> getStandbyIds(Set<String> siteUUIds) {
         Set<String> standbyIds = new HashSet<String>();
         String primarySiteId = this.coordinator.getPrimarySiteId();
 
-        for (String siteId : siteIds){
+        for (String siteId : siteUUIds){
             if (siteId != null && !siteId.equals(primarySiteId)) {
                 standbyIds.add(siteId);
             }
         }
-        return Collections.unmodifiableCollection(standbyIds);
+        return standbyIds;
     }
 
     @Override
@@ -316,10 +348,14 @@ public class DisasterRecoveryService extends TaggedResource {
 
     protected boolean isFreshInstallation() {
         Configuration setupConfig = coordinator.queryConfiguration(CONFIG_KIND, CONFIG_ID);
-        boolean freshInstall = (setupConfig == null) || Boolean.parseBoolean(setupConfig.getConfig(COMPLETE)) == false;
         
+        boolean freshInstall = (setupConfig == null) || Boolean.parseBoolean(setupConfig.getConfig(COMPLETE)) == false;
         log.info("Fresh installation {}", freshInstall);
-        return freshInstall;
+        
+        boolean hasDataInDB = _dbClient.hasUsefulData();
+        log.info("Has useful data in DB {}", hasDataInDB);
+        
+        return freshInstall && !hasDataInDB;
     }
     
     protected boolean isVersionMatchedForStandbyAttach(SoftwareVersion currentSoftwareVersion, SoftwareVersion standbySoftwareVersion) {
@@ -355,5 +391,9 @@ public class DisasterRecoveryService extends TaggedResource {
     
     public void setSiteMapper(SiteMapper siteMapper) {
         this.siteMapper = siteMapper;
+    }
+
+    public void setSysUtils(SysUtils sysUtils) {
+        this.sysUtils = sysUtils;
     }
 }

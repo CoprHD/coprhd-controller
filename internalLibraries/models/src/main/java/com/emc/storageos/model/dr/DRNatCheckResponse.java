@@ -1,15 +1,14 @@
 /*
- * Copyright (c) 2014 EMC Corporation
+ * Copyright (c) 2008-2015 EMC Corporation
  * All Rights Reserved
  */
-
-package com.emc.storageos.geomodel;
+package com.emc.storageos.model.dr;
 
 import javax.xml.bind.annotation.XmlRootElement;
 
 import com.emc.vipr.model.sys.NatCheckResponse;
 
 @XmlRootElement
-public class VdcNatCheckResponse extends NatCheckResponse {
-    
+public class DRNatCheckResponse extends NatCheckResponse {
+
 }

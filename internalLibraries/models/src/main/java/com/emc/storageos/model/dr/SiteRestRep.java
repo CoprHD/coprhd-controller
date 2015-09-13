@@ -23,6 +23,7 @@ public class SiteRestRep extends DataObjectRestRep {
     private Map<String, String> hostIPv4AddressMap;
     private Map<String, String> hostIPv6AddressMap;
     private String secretKey;
+    private Map<String, Object> extraProperties;
 
     @XmlElement(name = "uuid")
     public String getUuid() {
@@ -76,6 +77,15 @@ public class SiteRestRep extends DataObjectRestRep {
 
     public void setSecretKey(String secretKey) {
         this.secretKey = secretKey;
+    }
+
+    @XmlElement(name = "extraProperties")
+    public Map<String, Object> getExtraProperties() {
+        return extraProperties;
+    }
+
+    public void setExtraProperties(Map<String, Object> extraProperties) {
+        this.extraProperties = extraProperties;
     }
 
     @Override

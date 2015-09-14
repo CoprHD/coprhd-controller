@@ -9,6 +9,7 @@ import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_ID;
 import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_KIND;
 
 import java.net.URI;
+import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -26,6 +27,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
+import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -199,6 +201,12 @@ public class DisasterRecoveryService extends TaggedResource {
         SecretKey key = apiSignatureGenerator.getSignatureKey(SignatureKeyType.INTERVDC_API);
         
         Site localSite = new Site();
+        localSite.setUuid(siteId);
+        localSite.setVip(vdc.getApiEndpoint());
+        localSite.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
+        localSite.getHostIPv4AddressMap().putAll(vdc.getHostIPv4AddressesMap());
+        localSite.getHostIPv6AddressMap().putAll(vdc.getHostIPv6AddressesMap());
+        
         SiteConfigRestRep siteConfigRestRep = new SiteConfigRestRep(); 
         siteMapper.map(localSite, siteConfigRestRep);
         

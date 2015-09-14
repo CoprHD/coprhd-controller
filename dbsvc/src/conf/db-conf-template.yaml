@@ -59,7 +59,7 @@ authenticator: org.apache.cassandra.auth.AllowAllAuthenticator
 authorizer: org.apache.cassandra.auth.AllowAllAuthorizer
 
 # authorization backend, implementing IInternodeAuthenticatorAuthority; used to limit node ip access
-internode_authenticator: com.emc.storageos.db.server.impl.BlacklistAuthenticator
+internode_authenticator: org.apache.cassandra.auth.AllowAllInternodeAuthenticator
 
 # The partitioner is responsible for distributing rows (by key) across
 # nodes in the cluster.  Any IPartitioner may be used, including your

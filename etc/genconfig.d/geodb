@@ -54,7 +54,12 @@ _get_geodb_jmx_props() {
 }
 
 _get_rackdc_props() {
-    echo "vdc_myid=${_GENCONFIG_vdc_myid}"
+    local myid="${_GENCONFIG_vdc_myid}"
+    if [ -n "${_GENCONFIG_vdc_is_standby}" ] ; then
+        # TODO support more than 1 standby
+        myid+="-standby"
+    fi
+    echo "vdc_myid=${myid}"
 }
 
 # _gen_template will generate properties based on *-template.xml, replace macro in *-template.*

@@ -77,7 +77,8 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
 
     // Static Load on vNAS
     private String storageObjects;
-    private String storageCapacity;
+    private String usedStorageCapacity;
+    private String percentLoad;
 
     // Dynamic load on vNAS
     private String avgPercentagebusy;
@@ -251,12 +252,12 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
     }
 
     @XmlElement(name = "storage_capacity")
-    public String getStorageCapacity() {
-        return storageCapacity;
+    public String getUsedStorageCapacity() {
+        return usedStorageCapacity;
     }
 
-    public void setStorageCapacity(String storageCapacity) {
-        this.storageCapacity = storageCapacity;
+    public void setUsedStorageCapacity(String storageCapacity) {
+        this.usedStorageCapacity = storageCapacity;
     }
 
     @XmlElement(name = "avg_percentage_busy")
@@ -284,6 +285,15 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
 
     public void setIsOverloaded(Boolean isOverloaded) {
         this.isOverloaded = isOverloaded;
+    }
+
+    @XmlElement(name = "percent_load")
+    public String getPercentLoad() {
+        return percentLoad;
+    }
+
+    public void setPercentLoad(String percentLoad) {
+        this.percentLoad = percentLoad;
     }
 
 }

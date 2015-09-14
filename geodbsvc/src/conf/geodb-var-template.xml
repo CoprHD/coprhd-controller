@@ -29,7 +29,7 @@
                 </foreach>
             </list>
         </property>
-        <property name="onStandby" value="${on_standby}"/>
+        <property name="onStandby" value="${vdc_is_standby}"/>
     </bean>
     
 </beans>

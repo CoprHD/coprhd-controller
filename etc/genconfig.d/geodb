@@ -10,8 +10,7 @@
 # it is provided by or on behalf of EMC.
 
 _get_geodbvar_props() {
-    echo "on_standby=${_GENCONFIG_vdc_is_standby}"
-    _get_props vdc_myid node_id node_index
+    _get_props vdc_myid node_id node_index vdc_is_standby
 }
 
 _get_geodbconf_props() {

@@ -15,9 +15,7 @@ _get_dbvar_props() {
         echo "network_${i}_ipaddr_service=${!var}"
     done
     
-    echo "on_standby=${_GENCONFIG_vdc_is_standby}" 
-
-    _get_props vdc_myid node_id node_index network_vip_service
+    _get_props vdc_myid node_id node_index network_vip_service vdc_is_standby
 }
 
 _get_db_jmx_props() {
@@ -47,6 +45,8 @@ _get_dbconf_props() {
             list+=" ${ipaddr}"
         done
         echo "standby_seeds_ipaddr=$(echo $list | tr ' ' ',')"
+    else
+        echo "standby_seeds_ipaddr="
     fi
 
     _get_props network_ipaddr_effective node_index site_id

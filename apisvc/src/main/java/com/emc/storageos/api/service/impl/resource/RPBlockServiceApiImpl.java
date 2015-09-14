@@ -951,7 +951,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
         boolean rpNonVplexSourceVolume = (Volume.PersonalityTypes.SOURCE.name().equals(rpVolume.getPersonality()) && !vplex);
         boolean addJournalVolume = capabilities.getAddJournalCapacity();
         boolean notAlreadyInTaskList = (StorageScheduler.getPrecreatedVolume(_dbClient, taskList, rpVolume.getLabel()) == null);
-        boolean createTask = rpNonVplexSourceVolume || addJournalVolume || notAlreadyInTaskList;
+        boolean createTask = addJournalVolume || (rpNonVplexSourceVolume && notAlreadyInTaskList);
         return createTask;
     }
 

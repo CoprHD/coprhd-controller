@@ -450,13 +450,11 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
             s_logger.info("Prepared virtual volume {}", volumeId);
             virtualVolumeURIs.add(volumeId);
             allVolumes.add(volumeId);
-             if (createTask) {
-                if (!volumePrecreated) {
-                    Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(),
-                            task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
-                    TaskResourceRep volumeTask = toTask(volume, task, op);
-                    taskList.getTaskList().add(volumeTask);
-                }
+             if (createTask && !volumePrecreated) {
+                Operation op = _dbClient.createTaskOpStatus(Volume.class, volume.getId(),
+                        task, ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME);
+                TaskResourceRep volumeTask = toTask(volume, task, op);
+                taskList.getTaskList().add(volumeTask);                
             }
             VolumeDescriptor descriptor = new VolumeDescriptor(
                     VolumeDescriptor.Type.VPLEX_VIRT_VOLUME, vplexStorageSystemURI, volumeId,

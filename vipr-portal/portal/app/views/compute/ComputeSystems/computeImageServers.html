@@ -1,0 +1,108 @@
+#{set 'moreScripts'}
+#{get 'moreScripts'/}
+<script type="text/javascript">
+var computeImageServers = function() {
+    var queried = false;
+    
+    function isSelectedField(control) {
+        var type = $(control).attr('type');
+        if (type == 'radio' || type == 'checkbox') {
+            return $(control).is(':checked');
+        }
+        else {
+            return true;
+        }
+    }
+
+    function getDataTable() {
+        return $('#computeImageServers table').dataTable({ bRetrieve: true })
+    }
+    
+    function getRowCount() {
+        return getDataTable().fnGetData().length;
+    }
+
+    var my = {};
+    
+    my.addParams = function(aoData) {
+        queried = true;
+
+        $('#computeImageServers .selected input').prop('disabled', true).addClass('disabled');
+    }
+    
+    my.availableComputeImageServers = function(oSettings) {
+        var numComputeImageServers = getRowCount();
+        console.log("  - Found "+numComputeImageServers+" Compute Image Servers");
+        $('#computeImageServersCount').text(numComputeImageServers);
+    }
+    
+    my.render = function(o, val) {
+    	console.log("  - My Render function ");
+        if (o.aData.id) {
+        	console.log("  - My Render function o" + o);
+            var id = o.aData.id;
+        	console.log("  - My Render function id" + id);
+            var available = o.aData.available;
+        	console.log("  - My Render function available" + available);
+            var checkbox = "<input type='checkbox' name='computeSystems.computeImageServers' ";
+        	console.log("  - My Render function checkbox" + checkbox);
+            var ids = $('.computeImageServers[data-ids]').data('ids');
+        	console.log("  - My Render function val " + val);
+            if (ids && ids.indexOf(id) > -1) {
+                checkbox += "checked='checked' ";
+            }
+
+            checkbox += "value='"+id+"'>";
+            
+            return checkbox;
+        }
+        else {
+            return val;
+        }
+    }
+    
+    my.reload = function() {
+        console.log("Reloading compute Image Servers");
+        getDataTable().fnReloadAjax();
+    }
+    return my;    
+}();
+
+$(document).ready(function() {
+    var dataTable = table.computeImageServers.dataTable.getDataTable()
+    var itemsJson = #{jsAction @itemsJson(':ids')/};
+});
+</script>
+#{/set}
+
+#{set 'moreStyles'}
+#{get 'moreStyles'/}
+<style type="text/css">
+/* Negative margin allows the search box to be visible without leaving a huge gap between row above. */
+.dataTables_wrapper {
+    margin-top: -30px;
+}
+</style>
+#{/set}
+
+#{collapse 'computeSystems.computeImageServers', icon:'tasks', badge: 'computeImageServersCount'}
+  #{field 'computeSystems.computeImageServers'}
+    <div class="computeImageServers" data-ids="${flash[field.name] ?: field.value?.join(',')}">
+    %{
+      options = [
+        'bPaginate': 'false',
+        'fnServerParams': 'computeImageServers.addParams',
+        'fnDrawCallback': 'computeImageServers.availableComputeImageServers'
+      ]
+      computeImageServersDataTable.columns.add(0, new util.datatable.RenderedColumn("selected", "computeImageServers.render"))
+      
+    }%
+    #{DataTable.table id:'computeImageServers', 
+                      dataTable:computeImageServersDataTable,
+                      source:@computeImageServersJson(),
+                      options:options /}
+    </div>
+  #{/field}
+  
+
+#{/collapse}

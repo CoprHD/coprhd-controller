@@ -180,6 +180,9 @@ public interface DeviceControllerExceptions {
     public DeviceControllerException fractureFullCopyFailed(final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
+    public DeviceControllerException synchronizationInstanceNull(final String targetLabel);
+
+    @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)
     public DeviceControllerException srdfConsistencyGroupAlreadyExistsWithVolume(final String cgName);
 
     @DeclareServiceCode(ServiceCode.BLOCK_CONTROLLER_ERROR)

@@ -13,6 +13,7 @@ import com.emc.storageos.model.project.ProjectParam;
 import com.emc.storageos.model.tenant.*;
 import com.emc.storageos.model.user.UserInfo;
 import com.sun.jersey.api.client.ClientResponse;
+import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.lang.StringUtils;
 import org.junit.After;
 import org.junit.Assert;
@@ -32,25 +33,29 @@ import java.util.List;
  * ApiTestTenants class to exercise the core api functionality of Tenants Service.
  */
 public class ApiTestTenants extends ApiTestBase {
-    private final String TEST_ROOT_TENANT_BASEURL = "/tenants/" + "%s";
-    private final String TEST_API = "%s" + "/subtenants";
-    private final String TEST_EDIT_API = TEST_ROOT_TENANT_BASEURL;
-    private final String TEST_DELETE_API = TEST_ROOT_TENANT_BASEURL + "/deactivate";
-    private final String TEST_ROLE_ASSIGNMENTS_API = TEST_ROOT_TENANT_BASEURL + "/role-assignments";
-    private final String TEST_CREATE_PROJECT_API = TEST_ROOT_TENANT_BASEURL + "/projects";
-    private final String TEST_GET_PROJECT_API = TEST_ROOT_TENANT_BASEURL + "/projects";
-    private final String TEST_DELETE_PROJECT_API = "/projects/%s/deactivate";
-    private final String TEST_GET_TENANT_API = "/tenant";
-    private final String TEST_USER_WHOAMI_API = "/user/whoami";
+    private static final String TEST_ROOT_TENANT_BASEURL = "/tenants/" + "%s";
+    private static final String TEST_API = "%s" + "/subtenants";
+    private static final String TEST_EDIT_API = TEST_ROOT_TENANT_BASEURL;
+    private static final String TEST_DELETE_API = TEST_ROOT_TENANT_BASEURL + "/deactivate";
+    private static final String TEST_ROLE_ASSIGNMENTS_API = TEST_ROOT_TENANT_BASEURL + "/role-assignments";
+    private static final String TEST_CREATE_PROJECT_API = TEST_ROOT_TENANT_BASEURL + "/projects";
+    private static final String TEST_GET_PROJECT_API = TEST_ROOT_TENANT_BASEURL + "/projects";
+    private static final String TEST_DELETE_PROJECT_API = "/projects/%s/deactivate";
+    private static final String TEST_GET_TENANT_API = "/tenant";
+    private static final String TEST_USER_WHOAMI_API = "/user/whoami";
 
-    private final static String DEFAULT_TEST_TENANT_LABEL = "TestTenant";
+    private static final String ERROR_INVALID_VALUE = "Invalid value";
+    private static final String ERROR_INSUFFICIENT_PERMISSION_FOR_USER = "Insufficient permissions for user %s";
+    private static final String TRACE_SUCCESSFUL_TENANT_CREAETION_WITH_GROUP_ONLY = "Successful creation of tenant with group only";
+
+    private static final String DEFAULT_TEST_TENANT_LABEL = "TestTenant";
     @SuppressWarnings("unused")
-    private final static String DEFAULT_TEST_TENANT_DESCRIPTION = "Tenant Provided by LDAP Authenticate Provider";
-    private final static String DEFAULT_TEST_TENANT_AUTHN_PROVIDER_DESCRIPTION = "Authenticate Provider created for Api Tenant tests";
+    private static final String DEFAULT_TEST_TENANT_DESCRIPTION = "Tenant Provided by LDAP Authenticate Provider";
+    private static final String DEFAULT_TEST_TENANT_AUTHN_PROVIDER_DESCRIPTION = "Authenticate Provider created for Api Tenant tests";
 
-    private final static String[] DEFAULT_TEST_TENANT_ROLES = { "TENANT_ADMIN", "PROJECT_ADMIN", "TENANT_APPROVER" };
+    private static final String[] DEFAULT_TEST_TENANT_ROLES = { "TENANT_ADMIN", "PROJECT_ADMIN", "TENANT_APPROVER" };
 
-    private LinkedList<CleanupResource> _cleanupResourceList = null;
+    private List<CleanupResource> _cleanupResourceList = null;
     private ApiTestAuthnProviderUtils apiTestAuthnProviderUtils = new ApiTestAuthnProviderUtils();
 
     @Before
@@ -129,12 +134,13 @@ public class ApiTestTenants extends ApiTestBase {
 
     private UserMappingAttributeParam getDefaultUserMappingAttributeParam(int index) {
         UserMappingAttributeParam param = new UserMappingAttributeParam();
-        String attr = "Attr" + index;
+        final String preAttr = "Attr";
+        String attr = preAttr + index;
 
         List<String> values = new ArrayList<String>();
-        values.add("Attr" + index + "_Value1");
-        values.add("Attr" + index + "_Value2");
-        values.add("Attr" + index + "_Value1");
+        values.add(preAttr + index + "_Value1");
+        values.add(preAttr + index + "_Value2");
+        values.add(preAttr + index + "_Value1");
 
         param.setKey(attr);
         param.getValues().addAll(values);
@@ -245,7 +251,7 @@ public class ApiTestTenants extends ApiTestBase {
         tenantUpdate.setLabel(getTenantResp.getName());
 
         ClientResponse resp = rSys.path(getTestEditApi(tenantId)).put(ClientResponse.class, tenantUpdate);
-        Assert.assertEquals(200, resp.getStatus());
+        Assert.assertEquals(HttpStatus.SC_OK, resp.getStatus());
     }
 
     private void addUserMappingAndExpectFailure(URI tenantId, String group, BalancedWebResource user) {
@@ -266,7 +272,7 @@ public class ApiTestTenants extends ApiTestBase {
         // Since the tenant creation is done by the provider tenant admin,
         // the operation will fail.
         String partialExpectedErrorMsg = "Only users with SECURITY_ADMIN role can modify user-mapping properties";
-        validateTenantCreateAndEditBadRequest(403, partialExpectedErrorMsg, resp);
+        validateTenantCreateAndEditBadRequest(HttpStatus.SC_FORBIDDEN, partialExpectedErrorMsg, resp);
     }
 
     private void removeUserMapping(URI tenantId, String group) {
@@ -283,7 +289,7 @@ public class ApiTestTenants extends ApiTestBase {
         tenantUpdate.setLabel(getTenantResp.getName());
 
         ClientResponse resp = rSys.path(getTestEditApi(tenantId)).put(ClientResponse.class, tenantUpdate);
-        Assert.assertEquals(200, resp.getStatus());
+        Assert.assertEquals(HttpStatus.SC_OK, resp.getStatus());
     }
 
     private AuthnCreateParam getDefaultAuthnCreateParam(String description) {
@@ -342,7 +348,7 @@ public class ApiTestTenants extends ApiTestBase {
 
     // Function to validate the Authn provider creation and add resource to the cleanup list.
     private void validateAuthnProviderCreateSuccess(ClientResponse clientResp) {
-        Assert.assertEquals(200, clientResp.getStatus());
+        Assert.assertEquals(HttpStatus.SC_OK, clientResp.getStatus());
 
         AuthnProviderRestRep resp = clientResp.getEntity(AuthnProviderRestRep.class);
 
@@ -533,8 +539,8 @@ public class ApiTestTenants extends ApiTestBase {
 
         // Since the createParam contains invalid groupAttribute,
         // the post request should fail with the below errors.
-        String partialExpectedErrorMsg = "Invalid value";
-        validateTenantCreateAndEditBadRequest(400, partialExpectedErrorMsg, clientCreateResp);
+        String partialExpectedErrorMsg = ERROR_INVALID_VALUE;
+        validateTenantCreateAndEditBadRequest(HttpStatus.SC_BAD_REQUEST, partialExpectedErrorMsg, clientCreateResp);
     }
 
     @Test
@@ -563,8 +569,8 @@ public class ApiTestTenants extends ApiTestBase {
 
         // Since the createParam contains invalid groupAttribute,
         // the post request should fail with the below errors.
-        String partialExpectedErrorMsg = "Invalid value";
-        validateTenantCreateAndEditBadRequest(400, partialExpectedErrorMsg, clientCreateResp);
+        String partialExpectedErrorMsg = ERROR_INVALID_VALUE;
+        validateTenantCreateAndEditBadRequest(HttpStatus.SC_BAD_REQUEST, partialExpectedErrorMsg, clientCreateResp);
     }
 
     @Test
@@ -608,8 +614,8 @@ public class ApiTestTenants extends ApiTestBase {
 
         // Since the createParam contains invalid groupAttribute,
         // the post request should fail with the below errors.
-        String partialExpectedErrorMsg = "Invalid value";
-        validateTenantCreateAndEditBadRequest(400, partialExpectedErrorMsg, clientCreateResp);
+        String partialExpectedErrorMsg = ERROR_INVALID_VALUE;
+        validateTenantCreateAndEditBadRequest(HttpStatus.SC_BAD_REQUEST, partialExpectedErrorMsg, clientCreateResp);
     }
 
     @Test
@@ -625,7 +631,7 @@ public class ApiTestTenants extends ApiTestBase {
         // resource to the resource clean up list.
         validateAuthnProviderCreateSuccess(clientAuthnProviderCreateResp);
 
-        TenantCreateParam createParam = this.getDefaultTenantCreateParam(testName + "Successful creation of tenant with group only");
+        TenantCreateParam createParam = this.getDefaultTenantCreateParam(testName + TRACE_SUCCESSFUL_TENANT_CREAETION_WITH_GROUP_ONLY);
         TenantOrgRestRep createResp = rSys.path(getTestApi()).post(TenantOrgRestRep.class, createParam);
 
         validateTenantCreateSuccess(createParam, createResp);
@@ -721,8 +727,8 @@ public class ApiTestTenants extends ApiTestBase {
 
         ClientResponse clientEditResp = rSys.path(testEditApi).put(ClientResponse.class, editParam);
 
-        String partialExpectedErrorMsg = "Invalid value";
-        validateTenantCreateAndEditBadRequest(400, partialExpectedErrorMsg, clientEditResp);
+        String partialExpectedErrorMsg = ERROR_INVALID_VALUE;
+        validateTenantCreateAndEditBadRequest(HttpStatus.SC_BAD_REQUEST, partialExpectedErrorMsg, clientEditResp);
 
         // Remove the valid group and just some invalid group (a group that is not a configured one in the
         // authnprovider).
@@ -734,8 +740,8 @@ public class ApiTestTenants extends ApiTestBase {
 
         clientEditResp = rSys.path(testEditApi).put(ClientResponse.class, editParam);
 
-        partialExpectedErrorMsg = "Invalid value";
-        validateTenantCreateAndEditBadRequest(400, partialExpectedErrorMsg, clientEditResp);
+        partialExpectedErrorMsg = ERROR_INVALID_VALUE;
+        validateTenantCreateAndEditBadRequest(HttpStatus.SC_BAD_REQUEST, partialExpectedErrorMsg, clientEditResp);
     }
 
     @Test
@@ -752,7 +758,7 @@ public class ApiTestTenants extends ApiTestBase {
         // resource to the resource clean up list.
         validateAuthnProviderCreateSuccess(clientAuthnProviderCreateResp);
 
-        TenantCreateParam createParam = this.getDefaultTenantCreateParam(testName + "Successful creation of tenant with group only");
+        TenantCreateParam createParam = this.getDefaultTenantCreateParam(testName + TRACE_SUCCESSFUL_TENANT_CREAETION_WITH_GROUP_ONLY);
         TenantOrgRestRep createResp = rSys.path(getTestApi()).post(TenantOrgRestRep.class, createParam);
 
         validateTenantCreateSuccess(createParam, createResp);
@@ -797,8 +803,8 @@ public class ApiTestTenants extends ApiTestBase {
 
         ClientResponse clientEditResp = rSys.path(testEditApi).put(ClientResponse.class, editParam);
 
-        String partialExpectedErrorMsg = "Invalid value";
-        validateTenantCreateAndEditBadRequest(400, partialExpectedErrorMsg, clientEditResp);
+        String partialExpectedErrorMsg = ERROR_INVALID_VALUE;
+        validateTenantCreateAndEditBadRequest(HttpStatus.SC_BAD_REQUEST, partialExpectedErrorMsg, clientEditResp);
     }
 
     @Test
@@ -849,8 +855,8 @@ public class ApiTestTenants extends ApiTestBase {
 
         ClientResponse clientEditResp = rSys.path(testEditApi).put(ClientResponse.class, editParam);
 
-        String partialExpectedErrorMsg = "Invalid value";
-        validateTenantCreateAndEditBadRequest(400, partialExpectedErrorMsg, clientEditResp);
+        String partialExpectedErrorMsg = ERROR_INVALID_VALUE;
+        validateTenantCreateAndEditBadRequest(HttpStatus.SC_BAD_REQUEST, partialExpectedErrorMsg, clientEditResp);
     }
 
     @Test
@@ -895,8 +901,8 @@ public class ApiTestTenants extends ApiTestBase {
 
         ClientResponse clientCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
 
-        String partialExpectedErrorMsg = "Invalid value";
-        validateTenantCreateAndEditBadRequest(400, partialExpectedErrorMsg, clientCreateResp);
+        String partialExpectedErrorMsg = ERROR_INVALID_VALUE;
+        validateTenantCreateAndEditBadRequest(HttpStatus.SC_BAD_REQUEST, partialExpectedErrorMsg, clientCreateResp);
 
         // Now make both userMappingParams with valid group but thats objectClassName is not supported
         // but the create authnprovider.
@@ -909,8 +915,8 @@ public class ApiTestTenants extends ApiTestBase {
 
         clientCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
 
-        partialExpectedErrorMsg = "Invalid value";
-        validateTenantCreateAndEditBadRequest(400, partialExpectedErrorMsg, clientCreateResp);
+        partialExpectedErrorMsg = ERROR_INVALID_VALUE;
+        validateTenantCreateAndEditBadRequest(HttpStatus.SC_BAD_REQUEST, partialExpectedErrorMsg, clientCreateResp);
 
         // Now make one userMappingParam with valid group and second with
         // invalid group only.
@@ -921,8 +927,8 @@ public class ApiTestTenants extends ApiTestBase {
 
         clientCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
 
-        partialExpectedErrorMsg = "Invalid value";
-        validateTenantCreateAndEditBadRequest(400, partialExpectedErrorMsg, clientCreateResp);
+        partialExpectedErrorMsg = ERROR_INVALID_VALUE;
+        validateTenantCreateAndEditBadRequest(HttpStatus.SC_BAD_REQUEST, partialExpectedErrorMsg, clientCreateResp);
 
         // Now make both userMappingParam with valid group
         createParam.getUserMappings().get(1).getGroups().clear();
@@ -959,16 +965,16 @@ public class ApiTestTenants extends ApiTestBase {
 
         ClientResponse roleAssignmentClientCreateResp = rSys.path(roleAssignmentsApi).put(ClientResponse.class, roleAssignmentEntryParam);
 
-        String partialExpectedErrorMsg = "Invalid role assignments: Search for the following failed for this system, or could not be found for this system:";
-        validateRoleAssignmentBadRequest(400, partialExpectedErrorMsg, roleAssignmentClientCreateResp);
+        String partialExpectedErrorMsg = "Invalid role assignments: Invalid principal:";
+        validateRoleAssignmentBadRequest(HttpStatus.SC_BAD_REQUEST, partialExpectedErrorMsg, roleAssignmentClientCreateResp);
 
         // Modify the roleAssignmentChanges to some invalid group.
         roleAssignmentEntryParam.getAdd().get(0).setGroup("SomeInvalidGroup1@" + getTestDomainName());
 
         roleAssignmentClientCreateResp = rSys.path(roleAssignmentsApi).put(ClientResponse.class, roleAssignmentEntryParam);
 
-        partialExpectedErrorMsg = "Invalid role assignments: Search for the following failed for this system, or could not be found for this system:";
-        validateRoleAssignmentBadRequest(400, partialExpectedErrorMsg, roleAssignmentClientCreateResp);
+        partialExpectedErrorMsg = "Invalid role assignments: Invalid principal:";
+        validateRoleAssignmentBadRequest(HttpStatus.SC_BAD_REQUEST, partialExpectedErrorMsg, roleAssignmentClientCreateResp);
 
         // Modify the roleAssignmentChanges valid group.
         roleAssignmentEntryParam.getAdd().get(0).setGroup(getGroupWithDomain(2));
@@ -989,8 +995,8 @@ public class ApiTestTenants extends ApiTestBase {
 
         roleAssignmentClientCreateResp = rSys.path(roleAssignmentsApi).put(ClientResponse.class, roleAssignmentEntryParam);
 
-        partialExpectedErrorMsg = "Invalid role assignments: Search for the following failed for this system, or could not be found for this system:";
-        validateRoleAssignmentBadRequest(400, partialExpectedErrorMsg, roleAssignmentClientCreateResp);
+        partialExpectedErrorMsg = "Invalid role assignments: Invalid principal:";
+        validateRoleAssignmentBadRequest(HttpStatus.SC_BAD_REQUEST, partialExpectedErrorMsg, roleAssignmentClientCreateResp);
 
         // Create a user who is part of the tenant's group.
         BalancedWebResource ldapUser = getHttpsClient(getUserWithDomain(1), getUserPassword());
@@ -1005,7 +1011,7 @@ public class ApiTestTenants extends ApiTestBase {
 
         // Get the tenant of the ldap user. This should not return any tenant.
         ClientResponse clientTenantGetResp = ldapUser.path(getGetTenantApi()).get(ClientResponse.class);
-        Assert.assertEquals(403, clientTenantGetResp.getStatus());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, clientTenantGetResp.getStatus());
     }
 
     @Test
@@ -1063,11 +1069,11 @@ public class ApiTestTenants extends ApiTestBase {
 
         // Get the tenant of the ldap user. This should not return any tenant.
         ClientResponse clientTenantGetResp = ldapUser.path(getGetTenantApi()).get(ClientResponse.class);
-        Assert.assertEquals(403, clientTenantGetResp.getStatus());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, clientTenantGetResp.getStatus());
 
         ClientResponse clientProjectIdsResp = ldapUser.path(getProjectApi).get(ClientResponse.class);
 
-        Assert.assertEquals(403, clientProjectIdsResp.getStatus());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, clientProjectIdsResp.getStatus());
     }
 
     @Test
@@ -1084,7 +1090,7 @@ public class ApiTestTenants extends ApiTestBase {
         // resource to the resource clean up list.
         validateAuthnProviderCreateSuccess(clientAuthnProviderCreateResp);
 
-        TenantCreateParam createParam = this.getDefaultTenantCreateParam(testName + "Successful creation of tenant with group only");
+        TenantCreateParam createParam = this.getDefaultTenantCreateParam(testName + TRACE_SUCCESSFUL_TENANT_CREAETION_WITH_GROUP_ONLY);
         TenantOrgRestRep createResp = rSys.path(getTestApi()).post(TenantOrgRestRep.class, createParam);
 
         validateTenantCreateSuccess(createParam, createResp);
@@ -1157,7 +1163,7 @@ public class ApiTestTenants extends ApiTestBase {
         // resource to the resource clean up list.
         validateAuthnProviderCreateSuccess(clientAuthnProviderCreateResp);
 
-        TenantCreateParam createParam = this.getDefaultTenantCreateParam(testName + "Successful creation of tenant with group only");
+        TenantCreateParam createParam = this.getDefaultTenantCreateParam(testName + TRACE_SUCCESSFUL_TENANT_CREAETION_WITH_GROUP_ONLY);
         TenantOrgRestRep createResp = rSys.path(getTestApi()).post(TenantOrgRestRep.class, createParam);
 
         validateTenantCreateSuccess(createParam, createResp);
@@ -1203,7 +1209,8 @@ public class ApiTestTenants extends ApiTestBase {
                 .set(0, getGroup(0) + "@" + editParam.getUserMappingChanges().getAdd().get(0).getDomain());
         editParam.getUserMappingChanges().getAdd().get(0).getGroups()
                 .set(1, getGroup(1) + "@" + editParam.getUserMappingChanges().getAdd().get(0).getDomain());
-        editParam.setDescription(testName + "Editing the tenant by Adding the domain component in the groups");
+        String editingTrace = "Editing the tenant by Adding the domain component in the groups";
+        editParam.setDescription(testName + editingTrace);
 
         editResp = rSys.path(testEditApi).put(TenantOrgRestRep.class, editParam);
 
@@ -1216,7 +1223,7 @@ public class ApiTestTenants extends ApiTestBase {
                 .add(getGroup(0) + "@" + editParam.getUserMappingChanges().getAdd().get(0).getDomain());
         editParam.getUserMappingChanges().getAdd().get(0).getGroups()
                 .add(getGroup(1) + "@" + editParam.getUserMappingChanges().getAdd().get(0).getDomain());
-        editParam.setDescription(testName + "Editing the tenant by Adding the domain component in the groups");
+        editParam.setDescription(testName + editingTrace);
 
         editResp = rSys.path(testEditApi).put(TenantOrgRestRep.class, editParam);
 
@@ -1229,7 +1236,7 @@ public class ApiTestTenants extends ApiTestBase {
                 .add(getGroup(2) + "@" + editParam.getUserMappingChanges().getAdd().get(0).getDomain());
         editParam.getUserMappingChanges().getAdd().get(0).getGroups()
                 .add(getGroup(3) + "@" + editParam.getUserMappingChanges().getAdd().get(0).getDomain());
-        editParam.setDescription(testName + "Editing the tenant by Adding the domain component in the groups");
+        editParam.setDescription(testName + editingTrace);
 
         editResp = rSys.path(testEditApi).put(TenantOrgRestRep.class, editParam);
 
@@ -1284,9 +1291,9 @@ public class ApiTestTenants extends ApiTestBase {
         ClientResponse clientCreateResp = ldapViPRUser1.path(getTestApi()).post(ClientResponse.class, createParam);
 
         // Only sec admin can create sub tenants, the operation will fail.
-        String partialExpectedErrorMsg = "Insufficient permissions for user %s";
+        String partialExpectedErrorMsg = ERROR_INSUFFICIENT_PERMISSION_FOR_USER;
         partialExpectedErrorMsg = String.format(partialExpectedErrorMsg, ldapViPRUser1Name.toLowerCase());
-        validateTenantCreateAndEditBadRequest(403, partialExpectedErrorMsg, clientCreateResp);
+        validateTenantCreateAndEditBadRequest(HttpStatus.SC_FORBIDDEN, partialExpectedErrorMsg, clientCreateResp);
 
         // Logout the user.
         logoutUser(ldapViPRUser1);
@@ -1356,9 +1363,9 @@ public class ApiTestTenants extends ApiTestBase {
         ClientResponse clientCreateResp = ldapViPRUser1.path(getTestApi()).post(ClientResponse.class, createParam);
 
         // Only sec admin can create sub tenants, the operation will fail.
-        String partialExpectedErrorMsg = "Insufficient permissions for user %s";
+        String partialExpectedErrorMsg = ERROR_INSUFFICIENT_PERMISSION_FOR_USER;
         partialExpectedErrorMsg = String.format(partialExpectedErrorMsg, ldapViPRUser1Name.toLowerCase());
-        validateTenantCreateAndEditBadRequest(403, partialExpectedErrorMsg, clientCreateResp);
+        validateTenantCreateAndEditBadRequest(HttpStatus.SC_FORBIDDEN, partialExpectedErrorMsg, clientCreateResp);
 
         // Logout the user.
         logoutUser(ldapViPRUser1);
@@ -1420,7 +1427,7 @@ public class ApiTestTenants extends ApiTestBase {
 
         // Provider tenant edits the provider tenant by changing its description.
         ClientResponse clientEditResp = ldapViPRUser1.path(rootTenantEditApi).put(ClientResponse.class, editParam);
-        Assert.assertEquals(200, clientEditResp.getStatus());
+        Assert.assertEquals(HttpStatus.SC_OK, clientEditResp.getStatus());
 
         // Add the user mapping to the provider tenant.
         // Only sec admin can create sub tenants, the operation will fail.
@@ -1494,9 +1501,9 @@ public class ApiTestTenants extends ApiTestBase {
         // as only the tenant admin or sec admin can edit the tenant.
         ClientResponse clientEditResp = ldapViPRUser1.path(subTenantEditApi).put(ClientResponse.class, editParam);
 
-        String partialExpectedErrorMsg = "Insufficient permissions for user %s";
+        String partialExpectedErrorMsg = ERROR_INSUFFICIENT_PERMISSION_FOR_USER;
         partialExpectedErrorMsg = String.format(partialExpectedErrorMsg, ldapViPRUser1Name.toLowerCase());
-        validateTenantCreateAndEditBadRequest(403, partialExpectedErrorMsg, clientEditResp);
+        validateTenantCreateAndEditBadRequest(HttpStatus.SC_FORBIDDEN, partialExpectedErrorMsg, clientEditResp);
 
         // Logout the user.
         logoutUser(ldapViPRUser1);
@@ -1566,7 +1573,7 @@ public class ApiTestTenants extends ApiTestBase {
         editParam.setDescription(testName + "SubTenant - Set by subtenant admin");
 
         ClientResponse clientEditResp = ldapViPRUser1.path(subTenantEditApi).put(ClientResponse.class, editParam);
-        Assert.assertEquals(200, clientEditResp.getStatus());
+        Assert.assertEquals(HttpStatus.SC_OK, clientEditResp.getStatus());
 
         // Add the user mapping to it. It should fail as this is done by provider tenant admin.
         // Only sec admin can edit sub tenants, the operation will fail.
@@ -1630,9 +1637,9 @@ public class ApiTestTenants extends ApiTestBase {
         // Delete the provider tenant. It should fail. Deleting provider tenant can't be done.
         ClientResponse clientEditResp = ldapViPRUser1.path(rootTenantDeleteApi).post(ClientResponse.class);
 
-        String partialExpectedErrorMsg = "Insufficient permissions for user %s";
+        String partialExpectedErrorMsg = ERROR_INSUFFICIENT_PERMISSION_FOR_USER;
         partialExpectedErrorMsg = String.format(partialExpectedErrorMsg, ldapViPRUser1Name.toLowerCase());
-        validateTenantCreateAndEditBadRequest(403, partialExpectedErrorMsg, clientEditResp);
+        validateTenantCreateAndEditBadRequest(HttpStatus.SC_FORBIDDEN, partialExpectedErrorMsg, clientEditResp);
 
         // Logout the user.
         logoutUser(ldapViPRUser1);
@@ -1700,9 +1707,9 @@ public class ApiTestTenants extends ApiTestBase {
         // Only sec admin can create sub tenants, the operation will fail.
         ClientResponse clientDeleteResp = ldapViPRUser1.path(subTenantDeleteApi).post(ClientResponse.class);
 
-        String partialExpectedErrorMsg = "Insufficient permissions for user %s";
+        String partialExpectedErrorMsg = ERROR_INSUFFICIENT_PERMISSION_FOR_USER;
         partialExpectedErrorMsg = String.format(partialExpectedErrorMsg, ldapViPRUser1Name.toLowerCase());
-        validateTenantCreateAndEditBadRequest(403, partialExpectedErrorMsg, clientDeleteResp);
+        validateTenantCreateAndEditBadRequest(HttpStatus.SC_FORBIDDEN, partialExpectedErrorMsg, clientDeleteResp);
 
         // Logout the user.
         logoutUser(ldapViPRUser1);
@@ -1770,9 +1777,9 @@ public class ApiTestTenants extends ApiTestBase {
         // Only sec admin can create sub tenants, the operation will fail.
         ClientResponse clientDeleteResp = ldapViPRUser1.path(subTenantDeleteApi).post(ClientResponse.class);
 
-        String partialExpectedErrorMsg = "Insufficient permissions for user %s";
+        String partialExpectedErrorMsg = ERROR_INSUFFICIENT_PERMISSION_FOR_USER;
         partialExpectedErrorMsg = String.format(partialExpectedErrorMsg, ldapViPRUser1Name.toLowerCase());
-        validateTenantCreateAndEditBadRequest(403, partialExpectedErrorMsg, clientDeleteResp);
+        validateTenantCreateAndEditBadRequest(HttpStatus.SC_FORBIDDEN, partialExpectedErrorMsg, clientDeleteResp);
 
         // Logout the user.
         logoutUser(ldapViPRUser1);

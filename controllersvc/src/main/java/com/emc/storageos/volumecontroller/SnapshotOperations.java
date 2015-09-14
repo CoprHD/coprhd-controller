@@ -203,6 +203,18 @@ public interface SnapshotOperations {
             throws DeviceControllerException;
 
     /**
+     * Establish group relation between volume group and snapshot group.
+     * 
+     * @param storage the storage
+     * @param sourceVolume the source volume
+     * @param snapshot the snapshot
+     * @param taskCompleter the task completer
+     * @throws DeviceControllerException the device controller exception
+     */
+    void establishVolumeSnapshotGroupRelation(StorageSystem storage, URI sourceVolume,
+            URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException;
+
+    /**
      * Should implement creation of a block snapshot session for a single source object.
      * This is the case where the source object is not in a consistency group.
      * 

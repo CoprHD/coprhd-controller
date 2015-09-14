@@ -8,7 +8,9 @@
   #{breadcrumb.item @arrays.StorageSystems.edit(storageSystem.id)}${storageSystem.name}#{/breadcrumb.item}
   #{breadcrumb.dropdown currentPage:'StorageSystems.listPorts.title'}
     #{breadcrumb.item @arrays.StorageSystems.pools(storageSystem.id)}&{'StorageSystems.pools.title'}#{/breadcrumb.item}
+  #{if storageSystem.getSystemType() == 'vnxfile'}
     #{breadcrumb.item @arrays.StorageSystems.virtualNasServers(storageSystem.id)}&{'StorageSystems.vnas.title'}#{/breadcrumb.item}
+  #{/if}
   #{/breadcrumb.dropdown}
 #{/breadcrumb.container}
 
@@ -16,7 +18,7 @@
 #{DataTable.table id:'storageArrayPorts', 
                   dataTable:dataTable,
                   source:@arrayPortsJson(storageSystem.id),
-                  expandable:true,
+                  expandable:storageSystem.systemType != 'ecs',
                   selectable:true}
   #{DataTable.buttonBar}
     #{if storageSystem.getSystemType() == 'openstack'}

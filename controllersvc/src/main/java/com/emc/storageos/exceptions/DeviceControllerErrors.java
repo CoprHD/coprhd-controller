@@ -112,8 +112,9 @@ public interface DeviceControllerErrors {
     public ServiceError expandVolumeFailed(final String volUri, final String operationName, final Throwable cause);
 
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
-    public ServiceError restoreVolumeFromSnapshotFailed(final String volUri, final String snapshotUri, final String operationName, final Throwable cause);    
-    
+    public ServiceError restoreVolumeFromSnapshotFailed(final String volUri, final String snapshotUri, final String operationName,
+            final Throwable cause);
+
     @DeclareServiceCode(ServiceCode.CONTROLLER_JOB_ERROR)
     public ServiceError deleteVolumesFailed(final String volUris, final String operationName, final Throwable cause);
 

@@ -258,6 +258,17 @@ public interface BlockController extends BlockStorageManagementController {
             throws ControllerException;
 
     /**
+     * Establishes group relation between volume group and mirror group.
+     *
+     * @param storage the storage
+     * @param sourceVolume the source volume
+     * @param snapshot the snapshot
+     * @param opId the op id
+     * @throws ControllerException the controller exception
+     */
+    public void establishVolumeAndSnapshotGroupRelation(URI storage, URI sourceVolume, URI snapshot, String opId) throws ControllerException;
+
+    /**
      * Detach a mirror or mirrors of a volume or volumes.
      * 
      * @param storage URI of storage controller.

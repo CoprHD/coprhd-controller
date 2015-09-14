@@ -180,4 +180,10 @@ public class ScaleIOSnapshotOperations extends DefaultSnapshotOperations {
             taskCompleter.error(dbClient, code);
         }
     }
+
+    @Override
+    public void establishVolumeSnapshotGroupRelation(StorageSystem storage, URI sourceVolume,
+            URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
 }

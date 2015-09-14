@@ -97,7 +97,10 @@
             <list>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.VcenterTenantsSharingMigration"/>
                 <bean class="com.emc.storageos.db.client.upgrade.callbacks.XtremioStorageSystemToStorageProviderMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.ComputeImageServerMigration"/>
+                <bean class="com.emc.storageos.db.client.upgrade.callbacks.FullCopyVolumeDetachedStateMigration"/>
             </list>
         </entry>
+
     </util:map>
 </beans>

@@ -49,6 +49,7 @@ public enum OperationTypeEnum {
     RESYNCHRONIZE_VOLUME_SNAPSHOT("VolumeSnapshotResynchronized", "VolumeSnapshotResynchronizeFailed", "VolumeSnapshot Resynchronize"),
     ACTIVATE_VOLUME_SNAPSHOT("VolumeSnapshotActivated", "VolumeSnapshotActivateFailed", "VolumeSnapshot Activate"),
     DEACTIVATE_VOLUME_SNAPSHOT("VolumeSnapshotDeactivated", "VolumeSnapshotDeactivateFailed", "VolumeSnapshot Deactivate"),
+    ESTABLISH_VOLUME_SNAPSHOT("VolumeSnapshotGroupEstablished", "VolumeSnapshotGroupEstablishFailed", "VolumeSnapshot GroupEstablish"),
     CHANGE_VOLUME_VPOOL("VolumeVPoolChanged", "VolumeVPoolChangeFailed", "Volume VirtualPool Change"),
     CHANGE_VOLUME_AUTO_TIERING_POLICY("VolumeAutoTieringPolicyChanged", "VolumeAutoTieringPolicyChangeFailed",
             "Volume Auto-tiering Policy Change"),
@@ -137,6 +138,10 @@ public enum OperationTypeEnum {
     ASSIGN_FILE_SNAPSHOT_TAG("TAG A FILESYSTEM SNAPSHOT", "", "tag a fileshare snapshot"),
     DELETE_FILE_SNAPSHOT_SHARE("FileSystemSnapshotShareDeleted", "FileSystemSnapshotShareDeleteFailed", "FileSystem snapshot share deleted"),
     RESTORE_FILE_SNAPSHOT("FileSystemRestored", "FileSystemRestoreFailed", "FileSystem restored"),
+
+    CREATE_BUCKET("BucketCreated", "BucketCreateFailed", "Bucket created"),
+    DELETE_BUCKET("BucketDeleted", "BucketDeleteFailed", "Bucket deleted"),
+    UPDATE_BUCKET("BucketUpdated", "BucketUpdateFailed", "Bucket updated"),
 
     STORAGE_PORT_REGISTER("StoragePortRegistered", "", "Storage Port Registered"),
     STORAGE_PORT_DEREGISTER("StoragePortUnregistered", "", "Storage Port Unregistered"),
@@ -384,7 +389,13 @@ public enum OperationTypeEnum {
     CREATE_USERGROUP("CREATE USER GROUP", "", "operation to create a user group."),
     UPDATE_USERGROUP("UPDATE USER GROUP", "", "operation to update a user group."),
     DELETE_USERGROUP("DELETE USER GROUP", "", "operation to delete a user group."),
-
+    ADD_JOURNAL_VOLUME("ADD JOURNAL VOLUME", "", "operation to add a journal volume"),
+    ArrayGeneric("", "", ""),
+    IMAGESERVER_VERIFY_IMPORT_IMAGES("IMAGESERVER_VERIFY_IMPORT_IMAGES", "",
+            "operation to verify a compute image server and import images."),
+    UPDATE_VERIFY_COMPUTE_IMAGESERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER", "",
+            "operation to update and verify a compute image server."),
+    DELETE_COMPUTE_IMAGESERVER("DELETE COMPUTE IMAGE SERVER", "", "operation to delete a compute image server."),
     CREATE_SNAPSHOT_SESSION("BlockSnapshotSessionCreated", "BlockSnapshotSessionCreateFailed", "BlockSnapshotSession Create"),
     RESTORE_SNAPSHOT_SESSION("BlockSnapshotSessionRestored", "BlockSnapshotSessionRestoreFailed", "BlockSnapshotSession Restore"),
     DELETE_SNAPSHOT_SESSION("BlockSnapshotSessionDeleted", "BlockSnapshotSessionDeleteFailed", "BlockSnapshotSession Delete"),
@@ -393,9 +404,7 @@ public enum OperationTypeEnum {
     RELINK_SNAPSHOT_SESSION_TARGET("RelinkBlockSnapshotSessionTargets", "RelinkBlockSnapshotSessionTargetsFailed",
             "Re-link targets to BlockSnapshotSession"),
     UNLINK_SNAPSHOT_SESSION_TARGET("UnlinkBlockSnapshotSessionTargets", "UnlinkBlockSnapshotSessionTargetsFailed",
-            "Unlink targets from BlockSnapshotSession"),
-
-    ArrayGeneric("", "", "");
+            "Unlink targets from BlockSnapshotSession");
 
     private final String _evType;
     private final String _fail_evType;

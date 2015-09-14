@@ -30,7 +30,7 @@ public class MapVirtualNas implements Function<VirtualNAS, VirtualNASRestRep> {
 
     @Override
     public VirtualNASRestRep apply(VirtualNAS resource) {
-        return SystemsMapper.map(resource);
+        return SystemsMapper.map(resource, dbClient);
     }
 
     /**

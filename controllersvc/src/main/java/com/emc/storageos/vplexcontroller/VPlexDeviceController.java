@@ -26,7 +26,6 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 
-import com.emc.storageos.volumecontroller.impl.block.ExportMaskPlacementDescriptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,6 +69,7 @@ import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.model.VplexMirror;
 import com.emc.storageos.db.client.model.util.BlockConsistencyGroupUtils;
 import com.emc.storageos.db.client.util.CommonTransformerFunctions;
@@ -100,6 +100,7 @@ import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.ControllerUtils;
 import com.emc.storageos.volumecontroller.impl.block.AbstractDefaultMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.BlockDeviceController;
+import com.emc.storageos.volumecontroller.impl.block.ExportMaskPlacementDescriptor;
 import com.emc.storageos.volumecontroller.impl.block.ExportWorkflowEntryPoints;
 import com.emc.storageos.volumecontroller.impl.block.ExportWorkflowUtils;
 import com.emc.storageos.volumecontroller.impl.block.MaskingOrchestrator;
@@ -122,6 +123,7 @@ import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VolumeWorkflo
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VplexMirrorDeactivateCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.VplexMirrorTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
+import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 import com.emc.storageos.volumecontroller.placement.BlockStorageScheduler;
@@ -162,20 +164,20 @@ import com.google.common.collect.Collections2;
  * VPlex operation that needs to be orchestrated. When operating on a VPlex
  * Metro with two clusters, operations on the underlying arrays for cluster-1
  * and cluster-2 are done in parallel if possible.
- *
+ * 
  * NOTE RP+VPLEX/MetroPoint SnapShots (aka Bookmarks):
- *
+ * 
  * 1. RP Snapshots (aka Bookmarks) are stored in the ExportGroup as URIs for BlockSnaphots
  * instead of Volumes. This is because RP uses the Target volume to create the snap, not the
  * source. But in the ExportMask it references the actual Target Volume URI. This causes
  * issues and we need to be aware of it this. Using Volume.fetchExportMaskBlockObject() will
  * do the translation from BlockSnap to the correct Target Volume.
- *
+ * 
  * 2. The RP Initiators do not have a valid Host URI. They do however have a Host Name.
  * This is accounted for in VPlexUtil.getExportMaskHost() and VPlexUtil.getInitiatorHost().
- *
+ * 
  * @author Watson
- *
+ * 
  */
 public class VPlexDeviceController implements VPlexController, BlockOrchestrationInterface, MaskingOrchestrator {
 
@@ -329,7 +331,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Gets the ConsistencyGroupManager implementation based on implementation type.
-     *
+     * 
      * @param type The implementation type, includes rp, vplex, etc.
      * @return
      */
@@ -340,7 +342,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Gets the ConsistencyGroupManager implementation based on the Volume being
      * RP or not.
-     *
+     * 
      * @param volume
      * @return
      */
@@ -354,7 +356,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Gets the ConsistencyGroupManager implementation based on the BlockConsistencyGroup
      * types.
-     *
+     * 
      * @param cg The BlockConsistencyGroup object.
      * @return
      */
@@ -372,8 +374,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * A VPlexTaskCompleter.
-     *
-     *
+     * 
+     * 
      */
     static class VPlexTaskCompleter extends TaskCompleter {
 
@@ -506,7 +508,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Build a map of URI to cached StorageSystem for the underlying arrays.
-     *
+     * 
      * @param vplexSystem Only return Storage Systems connected this VPlex
      * @param descriptors
      * @param VolmeDescriptor.Type used to filter descriptors
@@ -544,7 +546,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Build a map of URI to cached Volumes for the underlying Storage Volumes that
      * should be already present (and created).
-     *
+     * 
      * @param vplexSystem Only return Volume associated with this VPlex
      * @param descriptors VolumeDescriptors
      * @param VolmeDescriptor.Type used to filter descriptors
@@ -593,7 +595,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Build a map of URI to cached StorageSystem for the underlying arrays.
-     *
+     * 
      * @param descriptors
      * @param VolmeDescriptor.Type used to filter descriptors
      * @return Map<arrayURI, StorageSystem>
@@ -619,7 +621,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Build a map of URI to cached Volumes for the underlying Storage Volumes that
      * should be already present (and created).
-     *
+     * 
      * @param descriptors VolumeDescriptors
      * @param VolmeDescriptor.Type used to filter descriptors
      * @return Map<volumeURI, Volume>
@@ -644,7 +646,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Returns a Workflow.Method for creating Virtual Volumes.
-     *
+     * 
      * @param vplexURI
      * @param vplexVolumeURIs
      * @return
@@ -656,7 +658,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Do the creation of a VPlex Virtual Volume. This is called as a Workflow Step.
      * NOTE NOTE: The parameters here must match createVirtualVolumesMethod above (except stepId).
-     *
+     * 
      * @param vplexURI -- URI of the VPlex StorageSystem
      * @param vplexVolumeURIs -- URI of the VPlex volumes to be created. They must contain
      *            associatedVolumes (URI of the underlying Storage Volumes).
@@ -724,7 +726,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     List<String> itls = VPlexControllerUtils.getVolumeITLs(storageVolume);
                     VolumeInfo info = new VolumeInfo(storage.getNativeGuid(), storage.getSystemType(),
                             storageVolume.getWWN().toUpperCase().replaceAll(":", ""),
-                            storageVolume.getNativeId(), storageVolume.getThinlyProvisioned().booleanValue(), itls);                    
+                            storageVolume.getNativeId(), storageVolume.getThinlyProvisioned().booleanValue(), itls);
 
                     if (storageVolume.getVirtualArray().equals(vplexVolumeVarrayURI)) {
                         // We always want the source backend volume identified first. It
@@ -739,15 +741,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // Update rollback information.
                 rollbackData.add(vinfos);
                 _workflowService.storeStepData(stepId, rollbackData);
-                
+
                 // Make a call to get cluster info
-                if(null == clusterInfoList) {
-                    
+                if (null == clusterInfoList) {
+
                     boolean isItlFetch = VPlexApiUtils.isITLBasedSearch(vinfos.get(0));
                     clusterInfoList = client.getClusterInfo(false, isItlFetch);
                 }
-                
-                
+
                 // Make the call to create a virtual volume. It is distributed if there are two (or more?)
                 // physical volumes.
                 boolean isDistributed = (vinfos.size() >= 2);
@@ -771,6 +772,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     buf.append(vvInfo.getName() + " ");
                     _log.info(String.format("Created virtual volume: %s path: %s", vvInfo.getName(), vvInfo.getPath()));
                     vplexVolume.setNativeId(vvInfo.getPath());
+                    vplexVolume.setNativeGuid(vvInfo.getPath());
                     vplexVolume.setDeviceLabel(vvInfo.getName());
                     // CTRL-2534: allocatedCapacity should equal provisionedCapacity on VPLEX volumes
                     vplexVolume.setAllocatedCapacity(vvInfo.getCapacityBytes());
@@ -828,7 +830,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Records a VPLEX volume event.
-     *
+     * 
      * @param volumeId The id of the VPLEX volume.
      * @param evtType The event type.
      * @param status The operation status
@@ -847,7 +849,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Records a VPLEX mirror event.
-     *
+     * 
      * @param mirrorUri The id of the VPLEX mirror.
      * @param evtType The event type.
      * @param status The operation status
@@ -871,7 +873,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Rollback any virtual volumes previously created.
-     *
+     * 
      * @param vplexURI
      * @param vplexVolumeURIs
      * @param executeStepId - step Id of the execute step; used to retrieve rollback data.
@@ -908,7 +910,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#deleteVolumes(java.net.URI, java.util.List, java.lang.String)
      * <p>
      * NOTE: The VolumeDescriptor list will not include the underlying Volumes. These have to be
@@ -1060,7 +1062,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Add step to Workflow for post - delete clean of Virtual Volumes (i.e. marking them inactive).
-     *
+     * 
      * @param workflow -- Workflow
      * @param waitFor -- String waitFor of previous step, we wait on this to complete
      * @param volumes -- List of VolumeDescriptors
@@ -1103,7 +1105,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * A workflow step that marks Volumes inactive after all the delete volume
      * workflow steps have completed.
-     *
+     * 
      * @param volumes -- List<URI> of volumes
      * @param stepId -- Workflow Step Id.
      */
@@ -1153,7 +1155,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Adds a step in the passed workflow to tell the VPLEX system with the
      * passed URI to forget about the storage volumes with the passed URIs.
-     *
+     * 
      * @param workflow A reference to the workflow.
      * @param vplexSystemURI The URI of the VPLEX storage system.
      * @param volumeURIs The URIs of the volumes to be forgotten.
@@ -1177,7 +1179,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * Adds a null provisioning step, but a forgetVolumes rollback step.
      * Useful when we're exporting volumes but if some goes awry we want to forget them
      * after unexporting them.
-     *
+     * 
      * @param workflow A reference to the workflow.
      * @param vplexSystemURI The URI of the VPLEX storage system.
      * @param volumeURIs The URIs of the volumes to be forgotten.
@@ -1201,10 +1203,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Creates the workflow execute method for forgetting storage volumes.
-     *
+     * 
      * @param vplexSystemURI The URI of the VPLEX storage system.
      * @param volumeURIs The URIs of the volumes to be forgotten.
-     *
+     * 
      * @return A reference to the created workflow method.
      */
     private Workflow.Method createForgetVolumesMethod(URI vplexSystemURI,
@@ -1215,7 +1217,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Uses the VPLREX client for the VPLEX storage system with the passed URI to
      * tell the VPLERX system to forget the volumes with the passed URIs.
-     *
+     * 
      * @param vplexSystemURI The URI of the VPLEX storage system.
      * @param volumeURIs The URIs of the volumes to be forgotten.
      * @param stepId The id of the workflow step that invoked this method.
@@ -1236,11 +1238,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             for (URI volumeURI : volumeURIs) {
                 Volume volume = getDataObject(Volume.class, volumeURI, _dbClient);
                 StorageSystem volumeSystem = getDataObject(StorageSystem.class,
-                    volume.getStorageController(), _dbClient);
+                        volume.getStorageController(), _dbClient);
                 List<String> itls = VPlexControllerUtils.getVolumeITLs(volume);
                 VolumeInfo vInfo = new VolumeInfo(volumeSystem.getNativeGuid(), volumeSystem.getSystemType(), volume
-                    .getWWN().toUpperCase().replaceAll(":", ""), volume.getNativeId(),
-                    volume.getThinlyProvisioned().booleanValue(), itls);
+                        .getWWN().toUpperCase().replaceAll(":", ""), volume.getNativeId(),
+                        volume.getThinlyProvisioned().booleanValue(), itls);
                 nativeVolumeInfoList.add(vInfo);
             }
 
@@ -1265,7 +1267,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * A workflow Step to delete VPLex Virtual volumes.
      * This Step is also used to rollback create virtual volumes.
      * NOTE NOTE: The parameters here must match deleteVirtualVolumesMethod above (except stepId).
-     *
+     * 
      * @param vplexURI
      * @param volumeURIs
      * @param stepId
@@ -1385,7 +1387,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Method to assemble to find or create VPLEX storage views (export masks) workflow for the given
      * ExportGroup, Initiators, and Volume Map.
-     *
+     * 
      * @param storageURI The URI of the storage system
      * @param exportGroupURI The URI of the export group
      * @param volumeMap Volume-lun map to be part of the export mask
@@ -1410,7 +1412,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#exportGroupCreate(java.net.URI, java.net.URI, java.util.Map,
      * java.util.List, java.lang.String)
      */
@@ -1520,7 +1522,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Filter out any initiators that do not have storage port assignments.
-     *
+     * 
      * @param initiators
      * @param exportMask
      * @return
@@ -1541,7 +1543,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Method to assemble the find or create VPLEX storage views (export masks) workflow for the given
      * ExportGroup, Initiators, and the block object Map.
-     *
+     * 
      * @param vplexURI the URI of the VPLEX StorageSystem object
      * @param export the ExportGroup in question
      * @param varrayUri -- NOTE! The varrayURI may NOT be the same as the exportGroup varray!.
@@ -1649,7 +1651,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             // storage ports as needed and volumes requested to add if not already present.
                             setupExistingExportMaskWithNewHost(blockObjectMap, vplexSystem, exportGroup, varrayUri,
                                     exportMasksToUpdateOnDevice, exportMasksToUpdateOnDeviceWithInitiators,
-                                    exportMasksToUpdateOnDeviceWithStoragePorts, inits, sharedVplexExportMask);
+                                    exportMasksToUpdateOnDeviceWithStoragePorts, inits, sharedVplexExportMask, opId);
                             foundMatchingStorageView = true;
                             break;
                         } else {
@@ -1687,11 +1689,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                                     initiatorWwnToNameMap, vplexSystem, vplexClusterName, inits, exportGroup,
                                     varrayUri, blockObjectMap,
                                     exportMasksToUpdateOnDevice, exportMasksToUpdateOnDeviceWithInitiators,
-                                    exportMasksToUpdateOnDeviceWithStoragePorts);
+                                    exportMasksToUpdateOnDeviceWithStoragePorts, opId);
                             long elapsed = new Date().getTime() - start;
                             _log.info("TIMER: finding an existing storage view took {} ms and returned {}",
                                     elapsed, foundMatchingStorageView);
-
                             break;
                         }
                     case 1:
@@ -1704,7 +1705,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         reuseExistingExportMask(blockObjectMap, vplexSystem, exportGroup,
                                 varrayUri, exportMasksToUpdateOnDevice,
                                 exportMasksToUpdateOnDeviceWithStoragePorts, inits,
-                                allPortsFromMaskMatchForVarray, viprExportMask);
+                                allPortsFromMaskMatchForVarray, viprExportMask, opId);
 
                         foundMatchingStorageView = true;
 
@@ -1734,12 +1735,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                         // If sharedExportMask is found then then new host will be added to that exportMask
                         setupExistingExportMaskWithNewHost(blockObjectMap, vplexSystem, exportGroup, varrayUri,
                                 exportMasksToUpdateOnDevice, exportMasksToUpdateOnDeviceWithInitiators,
-                                exportMasksToUpdateOnDeviceWithStoragePorts, inits, sharedVplexExportMask);
+                                exportMasksToUpdateOnDeviceWithStoragePorts, inits, sharedVplexExportMask, opId);
                     } else {
                         _log.info("did not find a matching existing storage view anywhere, so ViPR "
                                 + "will initialize a new one and push it to the VPLEX device");
                         setupNewExportMask(blockObjectMap, vplexSystem, exportGroup, varrayUri,
-                                exportMasksToCreateOnDevice, inits, vplexCluster);
+                                exportMasksToCreateOnDevice, inits, vplexCluster, opId);
                     }
                 }
             }
@@ -1791,7 +1792,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * host initiators are included. Also, returns a flag indicating whether
      * or not the storage ports in the export mask belong to the same vplex
      * cluster as the varray.
-     *
+     * 
      * @param vplexExportMasks an out collection
      * @param inits the initiators for the host in question
      * @param varrayUri virtual array URI
@@ -1856,7 +1857,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * Checks for the existence of an existing Storage View on the VPLEX device based
      * on the host's initiator ports. Returns a flag indicating whether or not a
      * storage view was actually found on the device.
-     *
+     * 
      * @param client a VPLEX API client instance
      * @param targetPortToPwwnMap cached storage port data from the VPLEX API
      * @param initiatorWwnToNameMap cached initiator data from the VPLEX API
@@ -1869,6 +1870,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param exportMasksToUpdateOnDevice collection of ExportMasks to update
      * @param exportMasksToUpdateOnDeviceWithInitiators a map of ExportMasks to initiators
      * @param exportMasksToUpdateOnDeviceWithStoragePorts a map of ExportMasks to storage ports
+     * @param opId the workflow step id used to find the workflow to store/load zoning map
      * @return whether or not a storage view was actually found on the device
      */
     private boolean checkForExistingStorageViews(VPlexApiClient client,
@@ -1877,7 +1879,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             ExportGroup exportGroup, URI varrayUri, Map<URI, Integer> blockObjectMap,
             List<ExportMask> exportMasksToUpdateOnDevice,
             Map<URI, List<Initiator>> exportMasksToUpdateOnDeviceWithInitiators,
-            Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts) throws Exception {
+            Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts, String opId) throws Exception {
         boolean foundMatchingStorageView = false;
 
         List<String> initiatorNames = new ArrayList<String>();
@@ -1995,9 +1997,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     blockObjectMap.keySet(), exportGroup.getNumPaths());
 
             // Try to assign new ports by passing in existingMap
-            Map<URI, List<URI>> assignments =
-                    _blockScheduler.assignStoragePorts(vplexSystem, varrayUri, inits,
-                            pathParams, exportMask.getZoningMap(), null);
+            Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplexSystem, exportGroup,
+                    initsToAdd, exportMask.getZoningMap(), pathParams, null, _networkDeviceController, varrayUri, opId);
+            // Consolidate the prezoned ports with the new assignments to get the total ports needed in the mask
             if (assignments != null && !assignments.isEmpty()) {
                 // Update zoningMap if there are new assignments
                 exportMask = ExportUtils.updateZoningMap(_dbClient, exportMask, assignments,
@@ -2022,7 +2024,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Handles re-using an existing ViPR ExportMask for a volume export process.
-     *
+     * 
      * @param blockObjectMap the map of URIs to block volumes for export
      * @param vplexSystem a StorageSystem object representing the VPLEX system
      * @param exportGroup the ViPR export group
@@ -2032,13 +2034,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param inits the host initiators of the host in question
      * @param allPortsFromMaskMatchForVarray a flag indicating the storage port networking status
      * @param viprExportMask the ExportMask in the ViPR database to re-use
+     * @param opId the workflow step id
      */
     private void reuseExistingExportMask(Map<URI, Integer> blockObjectMap,
             StorageSystem vplexSystem, ExportGroup exportGroup, URI varrayUri,
             List<ExportMask> exportMasksToUpdateOnDevice,
             Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts,
             List<Initiator> inits, boolean allPortsFromMaskMatchForVarray,
-            ExportMask viprExportMask) {
+            ExportMask viprExportMask, String opId) {
 
         exportMasksToUpdateOnDevice.add(viprExportMask);
         exportGroup.addExportMask(viprExportMask.getId());
@@ -2054,9 +2057,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         // there is already exportmask in database but the storageports in that exportmask are not
         // in the passed in varray (varrayUri)
         if (!allPortsFromMaskMatchForVarray) {
-            Map<URI, List<URI>> assignments =
-                    _blockScheduler.assignStoragePorts(vplexSystem, varrayUri, inits,
-                            pathParams, viprExportMask.getZoningMap(), null);
+            Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplexSystem, exportGroup,
+                    inits, viprExportMask.getZoningMap(), pathParams, null, _networkDeviceController, varrayUri, opId);
+            // Consolidate the prezoned ports with the new assignments to get the total ports needed in the mask
             if (assignments != null && !assignments.isEmpty()) {
                 // Update zoning Map with these new assignments
                 viprExportMask = ExportUtils.updateZoningMap(_dbClient, viprExportMask, assignments,
@@ -2067,7 +2070,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Handles setting up a new ExportMask for creation on the VPLEX device.
-     *
+     * 
      * @param blockObjectMap the map of URIs to block volumes for export
      * @param vplexSystem a StorageSystem object representing the VPLEX system
      * @param exportGroup the ViPR export group
@@ -2075,19 +2078,20 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param exportMasksToCreateOnDevice collection of ExportMasks to create
      * @param inits the host initiators of the host in question
      * @param vplexCluster String representing the VPLEX cluster in question
+     * @param opId the workflow step id
      * @throws Exception
      */
     private void setupNewExportMask(Map<URI, Integer> blockObjectMap,
             StorageSystem vplexSystem, ExportGroup exportGroup,
             URI varrayUri, List<ExportMask> exportMasksToCreateOnDevice,
-            List<Initiator> inits, String vplexCluster) throws Exception {
+            List<Initiator> inits, String vplexCluster, String opId) throws Exception {
         List<URI> hostInits = new ArrayList<URI>();
         for (Initiator init : inits) {
             hostInits.add(init.getId());
         }
 
         ExportMask exportMask = initializeExportMask(
-                vplexSystem, exportGroup, varrayUri, hostInits, blockObjectMap);
+                vplexSystem, exportGroup, varrayUri, hostInits, blockObjectMap, opId);
 
         // CQ:614511 This is a check to ensure that the ExportMask name
         // starts with only a letter, hyphen, or underscore.
@@ -2118,6 +2122,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param exportMasksToUpdateOnDeviceWithStoragePorts Out Param to track exportMasks that needs to be updated with the storageports
      * @param inits List of initiators that needs to be added
      * @param sharedVplexExportMask ExportMask which represents multiple host.
+     * @param opId the workflow step id used to find the workflow to locate the zoning map stored in ZK
      * @throws Exception
      */
     private void setupExistingExportMaskWithNewHost(Map<URI, Integer> blockObjectMap,
@@ -2125,7 +2130,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             URI varrayUri, List<ExportMask> exportMasksToUpdateOnDevice,
             Map<URI, List<Initiator>> exportMasksToUpdateOnDeviceWithInitiators,
             Map<URI, List<URI>> exportMasksToUpdateOnDeviceWithStoragePorts,
-            List<Initiator> inits, ExportMask sharedVplexExportMask) throws Exception {
+            List<Initiator> inits, ExportMask sharedVplexExportMask, String opId) throws Exception {
         List<URI> hostInits = new ArrayList<URI>();
         for (Initiator init : inits) {
             hostInits.add(init.getId());
@@ -2149,9 +2154,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 blockObjectMap.keySet(), exportGroup.getNumPaths());
 
         // Try to assign new ports by passing in existingMap
-        Map<URI, List<URI>> assignments =
-                _blockScheduler.assignStoragePorts(vplexSystem, varrayUri, inits,
-                        pathParams, sharedVplexExportMask.getZoningMap(), null);
+        Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplexSystem, exportGroup,
+                inits, sharedVplexExportMask.getZoningMap(), pathParams, null, _networkDeviceController, varrayUri, opId);
         if (assignments != null && !assignments.isEmpty()) {
             // Update zoningMap if there are new assignments
             sharedVplexExportMask = ExportUtils.updateZoningMap(_dbClient, sharedVplexExportMask, assignments,
@@ -2178,7 +2182,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Handles creating a workflow method for updating the zoning for
      * both the new ExportMasks being created and those being updated.
-     *
+     * 
      * @param export the ViPR ExportGroup in question
      * @param initiators the initiators of all the hosts in this export
      * @param blockObjectMap the map of URIs to block volumes for export
@@ -2215,7 +2219,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Handles adding ExportMask creation into the export workflow.
-     *
+     * 
      * @param blockObjectMap the map of URIs to block volumes for export
      * @param workflow the controller Workflow
      * @param vplexSystem a StorageSystem objet representing the VPLEX
@@ -2262,7 +2266,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Handles adding ExportMask updates into the export workflow.
-     *
+     * 
      * @param export the ViPR ExportGroup in question
      * @param blockObjectMap the map of URIs to block volumes for export
      * @param workflow the controller Workflow
@@ -2330,7 +2334,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * A Workflow Step to create a Storage View on the VPlex.
-     *
+     * 
      * @param vplexURI
      * @param exportURI
      * @param blockObjectMap - A list of Volume/Snapshot URIs to LUN ids.
@@ -2445,9 +2449,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Gets the VPLEX initiator type for the passed initiator.
-     *
+     * 
      * @param initiator A reference to an initiator.
-     *
+     * 
      * @return The VPLEX initiator type.
      */
     private String getVPlexInitiatorType(Initiator initiator) {
@@ -2476,7 +2480,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#exportGroupDelete(java.net.URI, java.net.URI, java.lang.String)
      */
     @Override
@@ -2636,7 +2640,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Create a Workflow Method for deleteStorageView(). Args must match deleteStorageView
      * except for extra stepId arg.
-     *
+     * 
      * @param vplexURI
      * @param exportMaskURI
      * @return
@@ -2647,7 +2651,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * A Workflow Step do delete a VPlex Storage View.
-     *
+     * 
      * @param vplexURI
      * @param exportMaskURI
      * @param stepId
@@ -2713,7 +2717,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#exportAddVolume(java.net.URI, java.net.URI, java.net.URI,
      * java.lang.Integer, java.lang.String)
      */
@@ -2816,7 +2820,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Method for adding volumes to a single ExportMask.
-     *
+     * 
      * @param vplexURI
      * @param exportGroupURI
      * @param exportMaskURI
@@ -2938,7 +2942,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#exportRemoveVolume(java.net.URI, java.net.URI, java.net.URI,
      * java.lang.String)
      */
@@ -3175,7 +3179,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Remove the specified volumes from the VPlex Storage View.
      * If that is successful, remove the volumes from the ExportMask and persist it.
-     *
+     * 
      * @param client -- VPlexApiClient used for communication
      * @param exportMask -- ExportMask corresonding to the StorageView
      * @param volumeURIList -- URI of virtual volumes
@@ -3218,7 +3222,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#exportAddInitiator(java.net.URI, java.net.URI, java.net.URI,
      * java.lang.String)
      */
@@ -3318,7 +3322,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Add workflow steps for adding Initiators to a specific varray for the given VPlex.
-     *
+     * 
      * @param workflow -- Workflow steps go into
      * @param vplex -- Storage system
      * @param exportGroup -- ExportGroup operation invoked on
@@ -3391,9 +3395,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
 
             // Assign additional StoragePorts if needed.
-            Map<URI, List<URI>> assignments =
-                    _blockScheduler.assignStoragePorts(vplex, varrayURI, initiators,
-                            pathParams, exportMask.getZoningMap(), null);
+            Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplex, exportGroup,
+                    initiators, exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, varrayURI, opId);
             List<URI> newTargetURIs = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
             exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments));
             _dbClient.persistObject(exportMask);
@@ -3433,7 +3436,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Workflow step to add an initiator. Calls NetworkDeviceController.
-     *
+     * 
      * @param exportURI
      * @param initiatorURIs
      * @throws WorkflowException
@@ -3484,7 +3487,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * TODO: Remove - it's in NetworkDeviceController
-     *
+     * 
      * @param exportGroupURI
      * @param contextKey
      * @param taskId
@@ -3511,7 +3514,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Workflow Step to add initiator to Storage View.
      * Note arguments (except stepId) must match storageViewAddInitiatorsMethod above.
-     *
+     * 
      * @param vplexURI -- URI of VPlex StorageSystem
      * @param exportURI -- ExportGroup URI
      * @param maskURI -- ExportMask URI. Optional.
@@ -3642,7 +3645,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Workflow Step to add storage port(s) to Storage View.
      * Note arguments (except stepId) must match storageViewAddStoragePortsMethod above.
-     *
+     * 
      * @param vplexURI -- URI of VPlex StorageSystem
      * @param exportURI -- ExportGroup URI
      * @param maskURI -- ExportMask URI.
@@ -3748,7 +3751,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Workflow Step to remove storage ports from Storage View.
      * Note arguments (except stepId) must match storageViewRemoveStoragePortsMethod above.
-     *
+     * 
      * @param vplexURI -- URI of VPlex StorageSystem
      * @param exportURI -- ExportGroup URI
      * @param maskURI -- ExportMask URI.
@@ -3820,7 +3823,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /*
      * (non-Javadoc)
-     *
+     * 
      * @see com.emc.storageos.volumecontroller.impl.vplex.VplexController#exportRemoveInitiator(java.net.URI, java.net.URI, java.net.URI,
      * java.lang.String)
      */
@@ -3906,7 +3909,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * Add steps necessary for Export removeInitiators.
      * This routine may be called multiple times for an Export Group on each
      * exportMask that needs to be adjusted.
-     *
+     * 
      * @param vplex -- StorageSystem VPLEX
      * @param workflow -- Workflow steps being added to
      * @param exportGroup -- ExportGroup
@@ -4144,7 +4147,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Method for handling the final removal of a set of Initiators
      * from a given ExportMask (Storage View) on the VPLEX.
-     *
+     * 
      * @param vplex the VPLEX system
      * @param workflow the current Workflow
      * @param exportGroup the ExportGroup from which these initiators have been removed
@@ -4262,7 +4265,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * Note it will not be fired if operations are rolled back, so this
      * cannot be the top-level completer the user sees unless the rollback
      * is handled.
-     *
+     * 
      * @param completer TaskCompleter
      * @param stepId Workflow step id -- assumed to be in the completer!
      */
@@ -4272,11 +4275,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Creates the workflow execute method to remove zone for the initiators.
-     *
+     * 
      * @param vplexURI URI of the VPlex storage system
      * @param exportURI URI of the export group
      * @param initiatorURIs The list of initiators URI
-     *
+     * 
      * @return A reference to the created workflow method.
      */
     private Workflow.Method zoneRemoveInitiatorsMethod(URI vplexURI, URI exportURI,
@@ -4288,7 +4291,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Workflow step to remove zones for an initiator. Calls NetworkDeviceController.
      * TODO: This will be moved there.
-     *
+     * 
      * @param exportURI
      * @param initiatorURIs
      * @throws WorkflowException
@@ -4314,7 +4317,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Returns the workflow method for storageViewRemoveInitiators.
-     *
+     * 
      * @see storageViewRemoveInitiators
      * @param vplexURI
      * @param exportGroupURI
@@ -4333,7 +4336,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * Workflow step to remove an initiator from a single Storage View as given by the ExportMask URI.
      * Note there is a dependence on ExportMask name equaling the Storage View name.
      * Note that arguments must match storageViewRemoveInitiatorsMethod above (except stepId).
-     *
+     * 
      * @param vplexURI -- URI of Vplex Storage System.
      * @param exportGroupURI -- URI of Export Group.
      * @param exportMaskURI -- URI of one ExportMask. Call only processes indicaated mask.
@@ -4463,16 +4466,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Create a descriptor for the passed volume.
-     *
+     * 
      * @param storagePoolURI URI of the storage pool.
      * @param volumeURI URI of the volume.
      * @param storageSystemMap An OUT parameters specifying the list of storage
      *            systems on which volumes are created.
      * @param volumeMap An OUT parameter specifying the full list volumes to be
      *            created.
-     *
+     * 
      * @return The descriptor for the pool volume.
-     *
+     * 
      * @throws IOException When an error occurs.
      * @throws WorkflowException
      */
@@ -4522,7 +4525,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * front end ports of the passed storage systems to the backend ports of the
      * passed VPlex storage system for the purpose of exposing volumes on these
      * storage system to the VPlex.
-     *
+     * 
      * @param workflow The workflow to which the export steps are added.
      * @param vplexSystem A reference to the VPlex storage system.
      * @param storageSystemMap The list of storage systems to export.
@@ -4530,7 +4533,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param projectURI The project reference.
      * @param tenantURI The tenant reference.
      * @param dependantStepId The dependent step if, typically a volume creation step.
-     *
+     * 
      * @throws IOException When an error occurs.
      * @throws ControllerException
      */
@@ -4578,7 +4581,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             }
 
             // Select from an existing ExportMask if possible
-            ExportMaskPlacementDescriptor descriptor = backendMgr.chooseBackendExportMask(vplexSystem, storageSystem, varray, volumeMap);
+            ExportMaskPlacementDescriptor descriptor = backendMgr.chooseBackendExportMask(vplexSystem, storageSystem, varray, volumeMap,
+                    lastStep);
             // For every ExportMask in the descriptor ...
             for (URI exportMaskURI : descriptor.getPlacedMasks()) {
                 // Create steps to place each set of volumes into its assigned ExportMask
@@ -4596,7 +4600,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     }
 
     /**
-     *
+     * 
      * @param exportGroup
      * @param volumeMap
      * @return
@@ -4618,7 +4622,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Returns a list of Initiator URIs in the ExportGroup
-     *
+     * 
      * @param exportGroup
      * @return
      */
@@ -4640,7 +4644,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Return a list of ExportGroups for a BlockObject on an array.
      * This is used by deleteVolumes to find the ExportGroup(s) on the underlying array.
-     *
+     * 
      * @param volume BlockObject - Volume
      * @return List<ExportGroup>
      * @throws Exception
@@ -4662,9 +4666,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Gets the end for to communicate with the passed VPlex.
-     *
+     * 
      * @param vplex The VPlex storage system.
-     *
+     * 
      * @return The URI for the VPlex management server.
      * @throws URISyntaxException
      */
@@ -4692,7 +4696,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Deprecating this for now, should be using the migrateVolumes call with the WF passed in from
      * the BlockOrchestrator.
-     *
+     * 
      * {@inheritDoc}
      */
     @Override
@@ -4856,7 +4860,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Adds steps in the passed workflow to migrate a volume.
-     *
+     * 
      * @param workflow
      * @param vplexURI
      * @param virtualVolumeURI
@@ -4996,7 +5000,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * a migration job to monitor the progress of the migration. The workflow
      * step will complete when the migration completes, at which point the
      * migration is automatically committed.
-     *
+     * 
      * @param vplexURI The URI of the VPlex storage system.
      * @param virtualVolumeURI The URI of the virtual volume.
      * @param targetVolumeURI The URI of the migration target.
@@ -5030,11 +5034,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             StorageSystem targetStorageSystem = getDataObject(StorageSystem.class,
                     migrationTarget.getStorageController(), _dbClient);
             _log.info("Storage system for migration target is {}",
-                migrationTarget.getStorageController());
+                    migrationTarget.getStorageController());
             List<String> itls = VPlexControllerUtils.getVolumeITLs(migrationTarget);
             VolumeInfo nativeVolumeInfo = new VolumeInfo(
-                targetStorageSystem.getNativeGuid(), targetStorageSystem.getSystemType(), migrationTarget.getWWN()
-                    .toUpperCase().replaceAll(":", ""), migrationTarget.getNativeId(),
+                    targetStorageSystem.getNativeGuid(), targetStorageSystem.getSystemType(), migrationTarget.getWWN()
+                            .toUpperCase().replaceAll(":", ""), migrationTarget.getNativeId(),
                     migrationTarget.getThinlyProvisioned().booleanValue(), itls);
 
             // Get the migration associated with the target.
@@ -5122,7 +5126,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * migration is terminated prior to completing successfully. The function
      * tries to cancel the migration and cleanup the remnants of the migration
      * on the VPLEX.
-     *
+     * 
      * @param vplexURI The URI of the VPLex storage system.
      * @param migrationURI The URI of the migration.
      * @param migrateStepId The migration step id.
@@ -5180,14 +5184,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Invoked by the migration workflow to commit the migration after it has
      * been completed.
-     *
+     * 
      * @param vplexURI The URI of the VPlex storage system.
      * @param virtualVolumeURI The URI of the virtual volume.
      * @param migrationURI The URI of the data migration.
      * @param rename Indicates if the volume should be renamed after commit to
      *            conform to ViPR standard naming conventions.
      * @param stepId The workflow step identifier.
-     *
+     * 
      * @throws WorkflowException
      */
     public void commitMigration(URI vplexURI, URI virtualVolumeURI, URI migrationURI,
@@ -5235,6 +5239,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             updatedVirtualVolumeInfo.getName());
                     virtualVolume.setDeviceLabel(updatedVirtualVolumeInfo.getName());
                     virtualVolume.setNativeId(updatedVirtualVolumeInfo.getPath());
+                    virtualVolume.setNativeGuid(updatedVirtualVolumeInfo.getPath());
                 }
                 // Note that for ingested volumes, there will be no associated volumes
                 // at first.
@@ -5306,7 +5311,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Rollback when a migration commit fails.
-     *
+     * 
      * @param migrationURIs The URIs for all migrations.
      * @param commitStepId The commit step id.
      * @param stepId The rollback step id.
@@ -5352,12 +5357,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * task. We do this in a sub workflow because we don't want any of the steps
      * required to delete the sources to initiate rollback in the main workflow
      * if it fails.
-     *
+     * 
      * We also update the class of service, if required, for the virtual
      * volume when the migration is the result of a CoS change. When this
      * step is executed we know that the migrations have been committed and
      * the new CoS now applies to the virtual volume.
-     *
+     * 
      * @param vplexURI The URI of the VPlex storage system.
      * @param virtualVolumeURI The URI of the virtual volume.
      * @param newVpoolURI The CoS to be assigned to the virtual volume
@@ -5465,7 +5470,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         /**
          * {@inheritDoc}
-         *
+         * 
          * @throws WorkflowException
          */
         @Override
@@ -5483,7 +5488,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Updated importVolume code to create underlying volumes using other controllers.
-     *
+     * 
      * @param volumeDescriptors -- Contains the VPLEX_VIRTUAL vololume, and optionally,
      *            a protection BLOCK_DATA volume to be created.
      * @param vplexSystemProject
@@ -5669,7 +5674,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Handles completion of an import Rollback.
-     *
+     * 
      * @param args -- Object[] that must match importRollbackHandlerArgs above.
      */
     public void importRollbackHandler(Object[] args) {
@@ -5704,7 +5709,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * In this case, both existingVolume and newVolume are non-null.
      * 3. We had an existing Virtual volume, and we only want to upgrade it
      * to a distributed Virtual Volume (existingVolumeURI == null).
-     *
+     * 
      * @param vplexURI
      * @param vplexVolumeURI
      * @param existingVolumeURI
@@ -5766,6 +5771,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // not set.
                 if (newVolume != null) {
                     vplexVolume.setNativeId(virtvinfo.getPath());
+                    vplexVolume.setNativeGuid(virtvinfo.getPath());
                     vplexVolume.setDeviceLabel(virtvinfo.getName());
                     _dbClient.persistObject(vplexVolume);
 
@@ -5798,6 +5804,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Update the virtual volume device label and native Id.
             vplexVolume.setNativeId(virtvinfo.getPath());
+            vplexVolume.setNativeGuid(virtvinfo.getPath());
             vplexVolume.setDeviceLabel(virtvinfo.getName());
 
             // If we are importing, we need to move the existing import volume to
@@ -5884,7 +5891,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Creates a workflow step in the passed workflow to wait for
      * the VPLEX distributed volume with the passed URI to rebuild.
-     *
+     * 
      * @param workflow A reference to a workflow.
      * @param vplexSystem A reference to a VPLEX storage system.
      * @param vplexVolumeURI The URI of the distributed virtual volume.
@@ -5905,10 +5912,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Creates the waitOnRebuild workflow step execution method.
-     *
+     * 
      * @param vplexURI The URI of the VPLEX system.
      * @param vplexVolumeURI The URI of the VPLEX volume.
-     *
+     * 
      * @return A reference to the workflow step execution method.
      */
     private Workflow.Method createWaitOnRebuildMethod(URI vplexURI, URI vplexVolumeURI) {
@@ -5918,11 +5925,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Waits for the rebuild to complete when a non-VPLEX volume is imported to a VPLEX
      * distribute volume or a local VPLEX volume is upgraded to distributed.
-     *
+     * 
      * @param vplexURI The URI of the VPLEX system.
      * @param vplexVolumeURI The URI of the VPLEX volume.
      * @param stepId The workflow step identifier.
-     *
+     * 
      * @throws WorkflowException
      */
     public void waitOnRebuild(URI vplexURI, URI vplexVolumeURI, String stepId)
@@ -5973,8 +5980,8 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * This method will add unexport steps to the passed in workflow. It will create
      * the workflow under the specified group ID and if not null,
      * it will be run after the the 'waitFor' workflow completes.
-     *
-     *
+     * 
+     * 
      * @param subWorkflow [in] - Workflow to which the unexport steps will be added.
      * @param wfGroupId [in] - Workflow group ID
      * @param waitFor [in] - Workflow group ID to wait on before the unexport is run
@@ -5985,7 +5992,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            found to be associated with any of the volumes
      * @return boolean - true if there were any remove-volumes-from-export steps added
      *         to the workflow
-     *
+     * 
      */
     private boolean vplexAddUnexportVolumeWfSteps(Workflow subWorkflow,
             String waitFor, List<URI> uris, List<URI> exportGroupTracker)
@@ -6141,7 +6148,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Creates the workflow step to expand the virtual volume.
-     *
+     * 
      * @param workflow The workflow.
      * @param vplexSystem The VPlex storage system.
      * @param vplexVolumeURI The URI of the VPlex volume
@@ -6149,7 +6156,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param systemNativeGuids The URIs of the backend storage systems, or
      *            null.
      * @param waitFor The step to wait for.
-     *
+     * 
      * @throws WorkflowException When an error occurs creating the workflow
      *             step.
      */
@@ -6169,13 +6176,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Expands the virtual volume with the passed URI to it full expandable capacity.
-     *
+     * 
      * @param vplexSystemURI The URI of the VPlex system.
      * @param vplexVolumeURI The URI of the VPlex volume to expand.
      * @param newSize The new requested volume size.
      * @param systemNativeGuids The URIs of the backend storage systems, or null
      * @param stepId The workflow step identifier.
-     *
+     * 
      * @throws WorkflowException When an error occurs updating the work step state.
      */
     public void expandVirtualVolume(URI vplexSystemURI, URI vplexVolumeURI, Long newSize,
@@ -6298,7 +6305,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Migrate volumes to new targets for the purpose of expanding the volumes.
-     *
+     * 
      * @param vplexSystemURI The URI of the VPlex storage system.
      * @param vplexVolumeURI The URI of the VPlex volume.
      * @param targetVolumeURIs The URIs of the volume(s) to which the data is
@@ -6309,7 +6316,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            specify the target volumes to be created on a given pool.
      * @param opid The task operation id.
      * @param stepId The workflow step id.
-     *
+     * 
      * @throws ControllerException When an error occurs migrating the volumes.
      */
     public void migrateVolumeForExpansion(URI vplexSystemURI, URI vplexVolumeURI,
@@ -6524,9 +6531,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Finds the volume descriptors in the passed list of volume descriptors that
      * represents the VPLEX volumes to be copied.
-     *
+     * 
      * @param volumeDescriptors A list of volume descriptors.
-     *
+     * 
      * @return The volume descriptors that represents the VPLEX volumes to be
      *         copied.
      */
@@ -6560,9 +6567,9 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * For the VPLEX volume with the passed URI, find the associated volume
      * that is the primary backend volume for the VPLEX volume. This will
      * be the backend volume in the same virtual array as the VPLEX volume.
-     *
+     * 
      * @param vplexVolumeURI The URI of the VPLEX volume.
-     *
+     * 
      * @return A reference to the primary volume for the VPLEX volume.
      */
     private Volume getPrimaryForFullCopySrcVolume(URI vplexVolumeURI) {
@@ -6579,14 +6586,14 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Create a step in the passed workflow to create native full copies for
      * the volumes represented by the passed volume descriptors.
-     *
+     * 
      * @param workflow A reference to the workflow to which the step is added.
      * @param srcVolume A reference to a backend source volume to be copied.
      * @param copyVolumeDescriptors The descriptors representing the backend
      *            full copy volumes.
      * @param waitFor The step in the passed workflow for which this step should
      *            wait to complete successfully before executing.
-     *
+     * 
      * @return The id of the step, for which subsequent steps in the workflow
      *         should wait.
      */
@@ -6624,7 +6631,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Creates a step in the passed workflow to import each copy of the passed
      * primary backend volume to a VPLEX virtual volume.
-     *
+     * 
      * @param workflow A reference to the workflow.
      * @param vplexURI The URI of the VPLEX storage system.
      * @param vplexSrcPrimaryVolume The primary backend volume that was copied.
@@ -6636,7 +6643,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      *            volumes of the VPLEX volume copies.
      * @param waitFor The step in to workflow for which these steps should wait
      *            to successfully complete before executing.
-     *
+     * 
      * @return The step for which any subsequent steps in the workflow should
      *         wait.
      */
@@ -6687,10 +6694,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * From the passed list of descriptors, finds the descriptors for the
      * associated volumes of the VPLEX volume with the passed URI.
-     *
+     * 
      * @param vplexVolumeURI The URI of the VPLEX volume.
      * @param descriptors The list of volume descriptors.
-     *
+     * 
      * @return A list containing the volume descriptors representing the
      *         associated volumes for the VPLEX volume.
      */
@@ -6724,12 +6731,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * A method the creates the method to import a natively copied volume to a
      * VPLEX virtual volume.
-     *
+     * 
      * @param vplexURI The URI of the VPLEX storage system.
      * @param cgURI The list of volume descriptors.
      * @param projectURI The VPLEX system project URI.
      * @param tenantURI The VPLEX system tenant URI.
-     *
+     * 
      * @return A reference to the import copy workflow method.
      */
     private Workflow.Method createImportCopyMethod(URI vplexURI,
@@ -6741,13 +6748,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Creates and starts the import workflow to import the volume to a VPLEX
      * virtual volume.
-     *
+     * 
      * @param vplexSystemURI The URI of the VPLEX system.
      * @param volumeDescriptors The list of volume descriptors.
      * @param projectURI The URI of the VPLEX project.
      * @param tenantURI The URI of the VPLEX tenant.
      * @param stepId The workflow step id.
-     *
+     * 
      * @throws ControllerException When an error occurs configuring the import
      *             workflow.
      */
@@ -6775,10 +6782,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Rollback when a failure occurs importing a full copy.
-     *
+     * 
      * @param vplexVolumeDescriptor The descriptor for the VPLEX copy volume
      * @param assocVolumeDescrs The descriptors for its backend volumes.
-     *
+     * 
      * @return A reference to the rollback import copy workflow method.
      */
     public Workflow.Method rollbackImportCopyMethod(
@@ -6790,7 +6797,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * If a failure occurs during an import of a full copy, make sure
      * the volume is torn back down.
-     *
+     * 
      * @param vplexVolumeDescriptor The descriptor for the VPLEX copy volume
      * @param assocVolumeDescrs The descriptors for its backend volumes.
      * @param stepId The rollback step id.
@@ -6965,7 +6972,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
         /**
          * {@inheritDoc}
-         *
+         * 
          * @throws WorkflowException
          */
         @SuppressWarnings("unchecked")
@@ -6986,7 +6993,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * When a full copy operation completes make sure the replica state of the
      * VPLEX full copy volumes reflect the replica state of their corresponding
      * native full copy volume.
-     *
+     * 
      * @param fullCopyVolumeURIs The URIs of the VPLEX full copy volumes.
      */
     public void fullCopyOperationComplete(List<URI> fullCopyVolumeURIs) {
@@ -6996,7 +7003,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 Volume nativeFullCopyVolume = VPlexUtil.getVPLEXBackendVolume(fullCopyVolume,
                         true, _dbClient, false);
                 if (nativeFullCopyVolume != null) {
-                    fullCopyVolume.setReplicaState(nativeFullCopyVolume.getReplicaState());
+                    String nativeFCReplicaState = nativeFullCopyVolume.getReplicaState();
+                    if (ReplicationState.DETACHED.name().equals(nativeFCReplicaState)) {
+                        ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(fullCopyVolume, _dbClient);
+                        fullCopyVolume.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
+                    }
+                    fullCopyVolume.setReplicaState(nativeFCReplicaState);
                     _dbClient.persistObject(fullCopyVolume);
                 } else {
                     _log.warn("Can't find native full copy volume");
@@ -7010,13 +7022,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Create a step in the passed workflow to restore the backend
      * full copy volumes with the passed URIs.
-     *
+     * 
      * @param workflow A reference to a workflow.
      * @param nativeSystem A reference to the native storage system.
      * @param nativeFullCopyURIs The URIs of the native full copies.
      * @param waitFor The step to wait for or null.
      * @param rollbackMethod A reference to a rollback method or null.
-     *
+     * 
      * @return RESTORE_VOLUME_STEP
      */
     private String createWorkflowStepForRestoreNativeFullCopy(Workflow workflow,
@@ -7039,13 +7051,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Create a step in the passed workflow to invalidate the read cache
      * for the passed volume on the passed VPLEX system.
-     *
+     * 
      * @param workflow A reference to a workflow.
      * @param vplexSystem A reference to a VPLEX storage system.
      * @param vplexVolumeURI The URI of the virtual volume.
      * @param waitFor The step to wait for or null.
      * @param rollbackMethod A reference to a rollback method or null.
-     *
+     * 
      * @return INVALIDATE_CACHE_STEP
      */
     private String createWorkflowStepForInvalidateCache(Workflow workflow,
@@ -7067,10 +7079,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * A method that creates the workflow method to invalidate the read cache
      * for a VPLEX virtual volume.
-     *
+     * 
      * @param vplexURI The URI of the VPLEX system.
      * @param vplexVolumeURI The URI of a VPLEX volume.
-     *
+     * 
      * @return A reference to the invalidate cache workflow method.
      */
     private Workflow.Method createInvalidateCacheMethod(URI vplexURI, URI vplexVolumeURI) {
@@ -7080,7 +7092,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Called to invalidate the read cache for a VPLEX volume when
      * restoring a snapshot.
-     *
+     * 
      * @param vplexURI The URI of the VPLEX system.
      * @param vplexVolumeURI The URI of a VPLEX volume.
      * @param stepId The workflow step identifier.
@@ -7135,7 +7147,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Creates a workflow step to detach the mirror with the passed
      * URI from the passed VPLEX volume.
-     *
+     * 
      * @param workflow A reference to a workflow.
      * @param vplexSystem A reference to a VPLEX storage system.
      * @param vplexVolume A reference to the virtual volume.
@@ -7143,7 +7155,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param stepId The step id for this step or null.
      * @param waitFor The step to wait for or null.
      * @param rollbackMethod A reference to a rollback method or null.
-     *
+     * 
      * @return DETACH_MIRROR_STEP
      */
     private String createWorkflowStepForDetachMirror(Workflow workflow,
@@ -7167,12 +7179,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * A method that creates the workflow method to detach the remote mirror
      * for a VPLEX distributed virtual volume.
-     *
+     * 
      * @param vplexURI The URI of the VPLEX system.
      * @param vplexVolumeURI The URI of the distributed VPLEX volume.
      * @param mirrorVolumeURI The URI of the remote backend volume.
      * @param cgURI The URI of the volume's CG or null.
-     *
+     * 
      * @return A reference to the detach mirror workflow method.
      */
     private Workflow.Method createDetachMirrorMethod(URI vplexURI, URI vplexVolumeURI, URI mirrorVolumeURI, URI cgURI) {
@@ -7182,7 +7194,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Called to detach the remote mirror for a distributed VPLEX volume prior
      * to restoring a native snapshot of the backend source volume.
-     *
+     * 
      * @param vplexURI The URI of the VPLEX system.
      * @param vplexVolumeURI The URI of the distributed VPLEX volume.
      * @param mirrorVolumeURI The URI of the remote backend volume.
@@ -7230,11 +7242,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             // Get the native volume info for the mirror volume.
             Volume mirrorVolume = getDataObject(Volume.class, mirrorVolumeURI, _dbClient);
             StorageSystem mirrorVolumeSystem = getDataObject(StorageSystem.class,
-                mirrorVolume.getStorageController(), _dbClient);
+                    mirrorVolume.getStorageController(), _dbClient);
             List<String> itls = VPlexControllerUtils.getVolumeITLs(mirrorVolume);
             VolumeInfo mirrorInfo = new VolumeInfo(mirrorVolumeSystem.getNativeGuid(), mirrorVolumeSystem.getSystemType(),
-                mirrorVolume.getWWN().toUpperCase().replaceAll(":", ""),
-                mirrorVolume.getNativeId(), mirrorVolume.getThinlyProvisioned().booleanValue(), itls);
+                    mirrorVolume.getWWN().toUpperCase().replaceAll(":", ""),
+                    mirrorVolume.getNativeId(), mirrorVolume.getThinlyProvisioned().booleanValue(), itls);
             _log.info("Prepared mirror volume info");
 
             // Get the cluster id for this storage volume.
@@ -7264,7 +7276,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Creates a workflow step to reattach a mirror that was previously
      * detached to the passed distributed vplex volume.
-     *
+     * 
      * @param workflow A reference to a workflow.
      * @param vplexSystem A reference to a VPLEX storage system.
      * @param vplexVolume A reference to the virtual volume.
@@ -7272,7 +7284,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * @param detachStepId The step id for the step that detached the mirror.
      * @param waitFor The step to wait for or null.
      * @param rollbackMethod A reference to a rollback method or null.
-     *
+     * 
      * @return ATTACH_MIRROR_STEP
      */
     private String createWorkflowStepForAttachMirror(Workflow workflow,
@@ -7297,13 +7309,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * A method that creates the workflow method to reattach the remote mirror
      * for a VPLEX distributed virtual volume.
-     *
+     * 
      * @param vplexURI The URI of the VPLEX system.
      * @param vplexVolumeURI The URI of the distributed VPLEX volume.
      * @param mirrorVolumeURI The URI of the remote backend volume.
      * @param cgURI The URI of the volume's CG or null.
      * @param detachStepId The Id of the detach mirror step.
-     *
+     * 
      * @return A reference to the attach mirror workflow method.
      */
     private Workflow.Method createAttachMirrorMethod(URI vplexURI, URI vplexVolumeURI,
@@ -7315,7 +7327,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Called to reattach the remote mirror for a distributed VPLEX volume upon
      * successfully restoring a native snapshot of the backend source volume.
-     *
+     * 
      * @param vplexURI The URI of the VPLEX system.
      * @param vplexVolumeURI The URI of the distributed VPLEX volume.
      * @param mirrorVolumeURI The URI of the remote backend volume.
@@ -7517,13 +7529,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Create a step in the passed workflow to resynchronize the
      * backend full copy volumes with the passed URIs.
-     *
+     * 
      * @param workflow A reference to a workflow.
      * @param nativeSystem A reference to the native storage system.
      * @param nativeFullCopyURIs The URIs of the native full copies.
      * @param waitFor The step to wait for or null.
      * @param rollbackMethod A reference to a rollback method or null.
-     *
+     * 
      * @return RESYNC_FULL_COPY_STEP
      */
     private String createWorkflowStepForResyncNativeFullCopy(Workflow workflow,
@@ -7601,13 +7613,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Create a step in the passed workflow to detach the
      * backend full copy volumes with the passed URIs.
-     *
+     * 
      * @param workflow A reference to a workflow.
      * @param nativeSystem A reference to the native storage system.
      * @param nativeFullCopyURIs The URIs of the native full copies.
      * @param waitFor The step to wait for or null.
      * @param rollbackMethod A reference to a rollback method or null.
-     *
+     * 
      * @return DETACH_FULL_COPY_STEP
      */
     private String createWorkflowStepForDetachNativeFullCopy(Workflow workflow,
@@ -7628,7 +7640,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Returns the Varray that are hosting a set of Volumes.
-     *
+     * 
      * @param volumes Collection of volume URIs
      * @return Varray of these volumes
      */
@@ -7715,11 +7727,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 varrayURI = altVarrayURI;
             }
         }
+
         // Assign additional storage port(s).
-        Map<URI, List<URI>> assignments =
-                _blockScheduler.
-                        assignStoragePorts(vplex, varrayURI, initiators,
-                                pathParams, exportMask.getZoningMap(), null);
+        Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(vplex, exportGroup,
+                initiators, exportMask.getZoningMap(), pathParams, volumeURIs, _networkDeviceController, varrayURI, token);
         List<URI> newTargets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
         exportMask.addZoningMap(BlockStorageScheduler.getZoneMapFromAssignments(assignments));
         _dbClient.persistObject(exportMask);
@@ -7972,7 +7983,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Create a step in the passed workflow to do a native restore of
      * the backend snapshot with the passed URI.
-     *
+     * 
      * @param workflow A reference to a workflow.
      * @param waitFor The step to wait for or null.
      * @param rollbackMethod A reference to a rollback method or null.
@@ -8002,13 +8013,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * A method that creates the workflow method to rollback when
      * a volume is restored or resynchronized.
-     *
+     * 
      * @param vplexURI The URI of the VPLEX system.
      * @param vplexVolumeURI The URI of the distributed VPLEX volume.
      * @param mirrorVolumeURI The URI of the remote backend volume.
      * @param cgURI The URI of the volume's CG or null.
      * @param detachStepId The step id of the detach mirror step.
-     *
+     * 
      * @return A reference to the workflow method.
      */
     private Workflow.Method createRestoreResyncRollbackMethod(URI vplexURI,
@@ -8019,7 +8030,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Called if the restore/resync volume operation fails
-     *
+     * 
      * @param vplexURI The URI of the VPLEX system.
      * @param vplexVolumeURI The URI of the distributed VPLEX volume.
      * @param mirrorVolumeURI The URI of the remote backend volume.
@@ -8090,7 +8101,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Refreshes the connection status for all VPLEX management servers.
-     *
+     * 
      * @return The list of those to which a connection was successful.
      */
     public List<URI> refreshConnectionStatusForAllVPlexManagementServers() {
@@ -8120,7 +8131,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Given an ExportGroup and a hostURI, finds all the ExportMasks in the ExportGroup (if any)
      * corresponding to that host.
-     *
+     * 
      * @param exportGroup -- ExportGroup object
      * @param hostURI -- URI of host
      * @param vplexURI -- URI of VPLEX StorageSystem
@@ -8164,11 +8175,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
         }
         return results;
     }
-    
+
     /**
      * Given a list of Initiators, generates a string for logging of all
      * the port WWNs.
-     *
+     * 
      * @param initiators
      * @return String of WWNs
      */
@@ -8182,10 +8193,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Determines if the controller can support migration for the passed VPLEX volume.
-     *
+     * 
      * @param volume A reference to a VPLEX volume.
      * @param varrayURI A reference to a varray or null.
-     *
+     * 
      * @return true if migration is supported, false otherwise.
      */
     public static boolean migrationSupportedForVolume(Volume volume, URI varrayURI, DbClient dbClient) {
@@ -8250,7 +8261,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * <p>
      * Here we should have already created any underlying volumes. What remains to be done: 1. Export the underlying Storage Volumes from
      * the array to the VPlex. 2. Create the mirror device and attach it as a mirror to the source virtual volume
-     *
+     * 
      * @param workflow The workflow to which the steps are added.
      * @param waitFor The previous workflow step for which these steps will wait
      * @param volumes The volume descriptors representing the mirror and the its associated backend volume.
@@ -8330,16 +8341,16 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Here for each mirror(normally there will be only one) we add a step to detach mirror
      * from virtual volume and a step to promote detach mirror to an independent vplex volume.
-     *
+     * 
      * @param workflow The workflow to which the steps are added.
      * @param waitFor The previous workflow step for which these steps will wait.
      * @param vplexURI The vplex storage system URI.
      * @param mirrors The mirrors that needs to be promoted to independent volumes.
      * @param promotees The volume objects that will be used for the mirrors that will be promoted.
      * @param taskId The workflow taskId.
-     *
+     * 
      * @return The workflow step for which any additional steps should wait.
-     *
+     * 
      * @throws ControllerException When an error occurs configuring the
      *             promote mirror workflow steps.
      */
@@ -8394,12 +8405,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * This method creates the virtual volume from the detached mirror device.
-     *
+     * 
      * @param vplexURI The vplex storage system URI
      * @param vplexMirrorURI The URI of the vplex mirror that needs to be promoted to the virtual volume
      * @param promoteVolumeURI The URI of the volume will be used as a promoted vplex volume
      * @param stepId The worflow stepId
-     *
+     * 
      * @throws WorkflowException When an error occurs updating the workflow step
      *             state.
      */
@@ -8431,6 +8442,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String promotedLabel = String.format("%s-%s", sourceVplexVolume.getLabel(), vplexMirror.getLabel());
             promoteVolume.setLabel(promotedLabel);
             promoteVolume.setNativeId(vvInfo.getPath());
+            promoteVolume.setNativeGuid(vvInfo.getPath());
             promoteVolume.setDeviceLabel(vvInfo.getName());
             // CTRL-2534: allocatedCapacity should equal provisionedCapacity on VPLEX volumes
             promoteVolume.setAllocatedCapacity(vplexMirror.getProvisionedCapacity());
@@ -8476,11 +8488,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * Here we try to delete the virtual volume thats created from the mirror and then try to
      * reattach the mirror so as to leave the original state. This is only going to be best effort.
      * Delete the volume objects that were created as promotees.
-     *
+     * 
      * @param promotees The URIs of the volumes that were supposed to be promoted from mirror.
      * @param executeStepId step Id of the execute step
      * @param stepId The stepId used for completion.
-     *
+     * 
      * @throws WorkflowException When an error occurs updating the workflow step
      *             state.
      */
@@ -8548,7 +8560,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Here we detach the mentioned mirror device from the source device and
      * dismantle mirror device.
-     *
+     * 
      * @param workflow The workflow to which the steps are added.
      * @param waitFor The previous workflow step for which these steps will wait
      * @param vplexURI The vplex storage system URI
@@ -8633,13 +8645,13 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * This is called only during promote mirror. Here the third argument
      * for detachMirrorDeviceMethod is set to false which will be used to
      * not to discard device and is converted into virtual volume.
-     *
+     * 
      * @param workflow The workflow to which the steps are added.
      * @param waitFor The previous workflow step for which these steps will wait
      * @param vplexURI The vplex storage system URI
      * @param mirrorURI The URI of the mirror that needs to be detached
      * @param taskId The workflow taskId
-     *
+     * 
      */
     public String addStepsForDetachMirror(Workflow workflow, String waitFor,
             URI vplexURI, URI mirrorURI, URI promotedVolumeURI, String taskId) throws ControllerException {
@@ -8762,7 +8774,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Returns a Workflow.Method for creating Mirrors.
-     *
+     * 
      * @param vplexURI URI of the VPlex StorageSystem
      * @param vplexVolumeURIs URI of the mirrors to be created.
      * @param workflowTaskId The workflow taskId.
@@ -8776,12 +8788,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * Do the creation of a VPlex Mirror device and attach it as a mirror to the Virtual Volume.
      * This is called as a Workflow Step.
      * NOTE: The parameters here must match createMirrorsMethod above (except stepId).
-     *
+     * 
      * @param vplexURI URI of the VPlex StorageSystem
      * @param vplexMirrorURIs URI of the mirrors to be created.
      * @param workflowTaskId The workflow taskId.
      * @param stepId The stepId used for completion.
-     *
+     * 
      * @throws WorkflowException When an error occurs updating the workflow step
      *             state.
      */
@@ -8901,7 +8913,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Returns a Workflow.Method for deactivating Mirror
-     *
+     * 
      * @param vplexURI URI of the VPlex StorageSystem
      * @param vplexMirrorURI URI of the mirror to be deleted
      * @return A reference to the workflow method to delete mirror device
@@ -8914,11 +8926,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * Do the delete of a VPlex mirror device .
      * This is called as a Workflow Step.
      * NOTE: The parameters here must match deleteMirrorDeviceMethod above (except stepId).
-     *
+     * 
      * @param vplexURI URI of the VPlex StorageSystem
      * @param vplexMirrorURI URI of the mirror to be deleted
      * @param stepId The stepId used for completion.
-     *
+     * 
      * @throws WorkflowException When an error occurs updating the workflow step
      *             state.
      */
@@ -8964,7 +8976,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Returns a Workflow.Method for deactivating Mirror
-     *
+     * 
      * @param vplexURI URI of the VPlex StorageSystem
      * @param vplexMirrorURI URI of the mirror to be deleted
      * @return A reference to the workflow method to delete mirror device
@@ -8976,11 +8988,11 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Here we will try to reattach mirror device. If we cannot reattach then the mirror
      * is already detached and mirror related objects will be removed from the database.
-     *
+     * 
      * @param vplexURI URI of the VPlex StorageSystem
      * @param mirrorURI URI of the mirror to be deleted
      * @param stepId The stepId used for completion.
-     *
+     * 
      * @throws WorkflowException When an error occurs updating the workflow step
      *             state.
      */
@@ -9038,7 +9050,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Returns a Workflow.Method for detaching Mirror
-     *
+     * 
      * @param vplexURI URI of the VPlex StorageSystem
      * @param vplexMirrorURI URI of the mirror to be detached
      * @param discard true or false value, whether to discard device or not.
@@ -9055,12 +9067,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * If discared is false it will convert the detached mirror into virtual volume with
      * the same name as the mirror device. False is used in the context of promoting mirror
      * to a vplex volume.
-     *
+     * 
      * @param vplexURI URI of the VPlex StorageSystem
      * @param vplexMirrorURI URI of the mirror to be detached.
      * @param discard true or false value, whether to discard device or not.
      * @param stepId The stepId used for completion.
-     *
+     * 
      * @throws WorkflowException When an error occurs updating the workflow step
      *             state.
      */
@@ -9130,12 +9142,12 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Rollback any mirror device previously created.
-     *
+     * 
      * @param vplexURI URI of the VPlex StorageSystem
      * @param vplexMirrorURIs URI of the mirrors
      * @param executeStepId step Id of the execute step; used to retrieve rollback data.
      * @param stepId The stepId used for completion.
-     *
+     * 
      * @throws WorkflowException When an error occurs updating the workflow step
      *             state.
      */
@@ -9215,7 +9227,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * This method deletes the export mask and remove it from export group as part of rollback.
-     *
+     * 
      * @param vplex URI of the VPLex storage system
      * @param exportGroupURI URI of the exportGroup
      * @param initiatorURIs URIs of the initiators
@@ -9276,7 +9288,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * This method returns export mask for the host.
-     *
+     * 
      * @param exportGroupURI URI of the export group.
      * @param hostInitiatorMap Map of host to initiators
      * @param vplex URI of the VPlex storage system
@@ -9316,7 +9328,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * Determine the targets we should remove for the initiators being removed.
      * Normally one or more targets will be removed for each initiator that
      * is removed according to the zoning map.
-     *
+     * 
      * @param exportMask The export mask
      * @param hostInitiatorURIs Initiaror URI list
      */
@@ -9358,7 +9370,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * or contained in the ExportMask's ExistingVolumes collection. Basically it
      * results in a list of volumes that are in the ExportGroup, but should
      * no longer be in the ExportMask.
-     *
+     * 
      * @param exportGroup the ExportGroup for the source volumes
      * @param exportMask the ExportMask
      * @param otherExportGroups a list of other ExportGroups referencing the ExportMask
@@ -9459,7 +9471,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
     /**
      * Returns a list of ExportGroups that reference the given ExportMask,
      * minus the given ExportGroup
-     *
+     * 
      * @param exportGroup the ExportGroup to exclude
      * @param exportMask the ExportMask to locate in other ExportGroups
      * @return a list of other ExportGroups containing the ExportMask
@@ -9490,10 +9502,10 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
     /**
      * Validate a VPLEX Storage Provider connection.
-     *
+     * 
      * @param ipAddress the Storage Provider's IP address
      * @param portNumber the Storage Provider's IP port
-     *
+     * 
      * @return true if the Storage Provider connection is valid
      */
     @Override
@@ -9779,27 +9791,28 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
      * 1. Select the Storage Ports.
      * 2. Create and persist the ExportMask.
      * 3. Save our targets and exportMaskURI in the ExportGroupCreateData.
-     *
+     * 
      * @param storage - Storage System
      * @param exportGroup
      * @param varrayURI
      * @param initiatorURIs
      * @param volumeMap
+     * @param opId
      * @param targets - OUT parameter containing list of StoragePort target URIs
      * @return an Initialized ExportMask
      * @throws Exception
      */
     private ExportMask initializeExportMask(
             StorageSystem storage, ExportGroup exportGroup, URI varrayURI,
-            List<URI> initiatorURIs, Map<URI, Integer> volumeMap) throws Exception {
+            List<URI> initiatorURIs, Map<URI, Integer> volumeMap, String opId) throws Exception {
         List<Initiator> initiators = _dbClient
                 .queryObject(Initiator.class, initiatorURIs);
         ExportPathParams pathParams = _blockScheduler.calculateExportPathParmForVolumes(volumeMap.keySet(), 0);
         if (exportGroup.getType() != null) {
             pathParams.setExportGroupType(ExportGroupType.valueOf(exportGroup.getType()));
         }
-        Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts
-                (storage, varrayURI, initiators, pathParams, null, volumeMap.keySet());
+        Map<URI, List<URI>> assignments = _blockScheduler.assignStoragePorts(storage, exportGroup,
+                initiators, null, pathParams, volumeMap.keySet(), _networkDeviceController, varrayURI, opId);
         List<URI> targets = BlockStorageScheduler.getTargetURIsFromAssignments(assignments);
         String maskName = getComputedExportMaskName(storage, varrayURI, initiators,
                 CustomConfigConstants.VPLEX_STORAGE_VIEW_NAME);

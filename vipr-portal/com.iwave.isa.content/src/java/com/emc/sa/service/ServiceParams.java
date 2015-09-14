@@ -34,6 +34,8 @@ public interface ServiceParams {
 
     public String SHARE_COMMENT = "shareComment";
 
+    public String COPY_NAME = "copyName";
+
     public String PROJECT = "project";
     public String VIRTUAL_ARRAY = "virtualArray";
     public String VIRTUAL_POOL = "virtualPool";
@@ -102,4 +104,12 @@ public interface ServiceParams {
     public String OPLOCK = "oplock";
     public String SECURITY_STYLE = "securityStyle";
     public String QUOTA_DIRECTORIES = "quotaDirectories";
+    
+    public String SOFT_QUOTA = "softQuota";
+    public String HARD_QUOTA = "hardQuota";
+    public String RETENTION = "retention";
+    public String NAMESPACE = "namespace";
+    public String TENANT = "tenant";
+    public String OWNER = "owner";
+    public String BUCKET = "bucket";
 }

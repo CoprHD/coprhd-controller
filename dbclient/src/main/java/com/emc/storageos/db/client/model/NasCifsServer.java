@@ -8,83 +8,117 @@ package com.emc.storageos.db.client.model;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.xml.bind.annotation.XmlElement;
+
 public class NasCifsServer extends AbstractSerializableNestedObject {
 
-    private String _name;
-    private int _id;
-    private String _type;
-    private boolean _moverIdIsVdm;
-    private List<String> _interfaces = new ArrayList();
-    private String _domain;
-
-    public String getDomain() {
-        return _domain;
-    }
-
-    public void setDomain(String domain) {
-        this._domain = domain;
-    }
+    private static final String NAME = "name";
+    private static final String ID = "id";
+    private static final String TYPE = "type";
+    private static final String MOVER_ID_IS_VDM = "moverIdIsVdm";
+    private static final String INTERFACES = "interfaces";
+    private static final String DOMAIN = "domain";
 
     public NasCifsServer() {
     }
 
-    public NasCifsServer(String name) {
-        _name = name;
+    public NasCifsServer(String name, int id, String type, boolean isMoverIsVdm, List<String> interfaces, String domain) {
+        setName(name);
+        setId(id);
+        setType(type);
+        setMoverIdIsVdm(isMoverIsVdm);
+        setInterfaces(interfaces);
+        setDomain(domain);
     }
 
-    public NasCifsServer(String name, String id, String type, boolean isMoverIsVdm, List<String> interfaces) {
-        _name = name;
-        _interfaces = interfaces;
-        _type = type;
-        _id = Integer.valueOf(id);
-        _moverIdIsVdm = isMoverIsVdm;
+    /**
+     * @return the name
+     */
+    @XmlElement
+    public String getName() {
+        return getStringField(NAME);
     }
 
     public void setName(String name) {
-        _name = name;
+        if (name == null) {
+            name = "";
+        }
+        setField(NAME, name);
     }
 
-    public String getName() {
-        return _name;
+    /**
+     * @return the id
+     */
+    @XmlElement
+    public String getId() {
+        return getStringField(ID);
     }
 
     public void setId(int id) {
-        _id = id;
+        setField(ID, id);
     }
 
-    public int getId() {
-        return _id;
+    /**
+     * @return the type
+     */
+    @XmlElement
+    public String getType() {
+        return getStringField(TYPE);
     }
 
     public void setType(String type) {
-        _type = type;
+        if (type == null) {
+            type = "";
+        }
+        setField(TYPE, type);
     }
 
-    public String getType() {
-        return _type;
+    /**
+     * @return the moverIdIsVdm
+     */
+    @XmlElement
+    public String getMoverIdIsVdm() {
+        return getStringField(MOVER_ID_IS_VDM);
     }
 
     public void setMoverIdIsVdm(boolean moverIdIsVdm) {
-        _moverIdIsVdm = moverIdIsVdm;
+        setField(MOVER_ID_IS_VDM, moverIdIsVdm);
     }
 
-    public boolean getMoverIdIsVdm() {
-        return _moverIdIsVdm;
-    }
-
+    /**
+     * @return the interfaces
+     */
+    @XmlElement
     public List<String> getInterfaces() {
-        return _interfaces;
+        return getListOfStringsField(INTERFACES);
     }
 
-    public void setInterfaces(List interfaces) {
-        _interfaces = interfaces;
+    public void setInterfaces(List<String> interfaces) {
+        if (interfaces == null) {
+            interfaces = new ArrayList<String>();
+        }
+        setListOfStringsField(INTERFACES, interfaces);
+    }
+
+    /**
+     * @return the domain
+     */
+    @XmlElement
+    public String getDomain() {
+        return getStringField(DOMAIN);
+    }
+
+    public void setDomain(String domain) {
+        if (domain == null) {
+            domain = "";
+        }
+        setField(DOMAIN, domain);
     }
 
     @Override
     public String toString() {
-
-        return new StringBuilder().append("name : ").append(_name).append("interfaces : ").append(_interfaces.toString()).toString();
-
+        return new StringBuilder().append("name : ").append(getName()).append(" domain : ").append(getDomain()).append(" interfaces : ")
+                .append(getInterfaces()).toString();
     }
 
 }

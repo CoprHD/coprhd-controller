@@ -2753,7 +2753,7 @@ recoverpoint_tests()
             # MP
             mp_active_tgt_varray=$RECOVERPOINT_VARRAY1
             mp_standby_tgt_varray=$RECOVERPOINT_VARRAY2
-			mp_tgt_varrays=($RECOVERPOINT_VARRAY1,$RECOVERPOINT_VARRAY2)
+			mp_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2)
             mp_tgt_vpool='rp_targets'
         fi
 
@@ -2787,20 +2787,20 @@ recoverpoint_tests()
 
             # RP
             rp_tgt_varray=$RECOVERPOINT_VARRAY3
-			rp_tgt_varrays=($RECOVERPOINT_VARRAY1,$RECOVERPOINT_VARRAY3)
+			rp_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY3)
             rp_tgt_vpool='rp_targets'
             rp_base_cvp='rp_regular'
 
             # RP+VPLEX
             rpvplex_tgt_varray=$RECOVERPOINT_VARRAY1
-			rpvplex_tgt_varrays=($RECOVERPOINT_VARRAY1,$RECOVERPOINT_VARRAY3)
+			rpvplex_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY3)
             rpvplex_tgt_vpool='rpvplex_targets'
             rpvplex_base_cvp1='rpvplex_local_regular'
             rpvplex_base_cvp2='rpvplex_dist_regular'
 
             # MP
             mp_active_tgt_varray=$RECOVERPOINT_VARRAY3
-			mp_tgt_varrays=($RECOVERPOINT_VARRAY1,$RECOVERPOINT_VARRAY2,$RECOVERPOINT_VARRAY3)
+			mp_tgt_varrays=($RECOVERPOINT_VARRAY1 $RECOVERPOINT_VARRAY2 $RECOVERPOINT_VARRAY3)
             mp_standby_tgt_varray=''
             mp_tgt_vpool='rp_targets'
         fi
@@ -2913,7 +2913,7 @@ recoverpoint_tests()
                 recoverpoint_auto_snapshot_cleanup_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier} ${rpvplex_src_varray}
 
                 # Failover Test
-                recoverpoint_failover_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier}
+               	recoverpoint_failover_test ${rpvplexvolume}${volume_name_modifier} ${rpvplexvolumetarget}${volume_name_modifier}
 				
 				# CG Failover/Swap Test
 				recoverpoint_cg_failover_test ${RP_VPLEX_CONSISTENCY_GROUP} ${rpvplexvolume}${volume_name_modifier} ${rpvplex_src_varray} ${rp_vplex_tgt_volumes} ${rp_tgt_varrays}

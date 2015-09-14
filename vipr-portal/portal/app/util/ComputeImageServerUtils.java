@@ -20,11 +20,6 @@ import com.emc.vipr.client.exceptions.ViPRHttpException;
 public class ComputeImageServerUtils {
     private static final String NAME_NOT_AVAILABLE = "ComputeImageServer.nameNotAvailable";
 
-    /*
-     * public static CachedResources<ComputeImageServerRestRep> createCache() {
-     * return new CachedResources<ComputeImageServerRestRep>(getViprClient().computeImageServers());
-     * }
-     */
     public static ComputeImageServerRestRep getComputeImageServer(String id) {
         return getComputeImageServer(uri(id));
     }
@@ -48,19 +43,7 @@ public class ComputeImageServerUtils {
         return getViprClient().computeImageServers().getByIds(ids);
     }
 
-    /*
-     * public static String getName(ComputeImageServerRestRep computeImageServer) {
-     * if (StringUtils.isNotBlank(computeImageServer.getName())) {
-     * return computeImageServer.getName();
-     * }
-     * else {
-     * return MessagesUtils.get(NAME_NOT_AVAILABLE);
-     * }
-     * }
-     */
     public static Task<ComputeImageServerRestRep> create(ComputeImageServerCreate param) {
-        System.out.println("ComputeImageServerCreate param " + param.getTftpbootDir());
-
         return getViprClient().computeImageServers().create(param);
     }
 

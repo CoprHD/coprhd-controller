@@ -115,26 +115,29 @@ public class FileStorageUtils {
     }
 
     public static void deleteFileSystem(URI fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
+        
         // Remove snapshots for the volume
         for (FileSnapshotRestRep snapshot : getFileSnapshots(fileSystemId)) {
             deleteFileSnapshot(snapshot.getId());
         }
-
-        // Deactivate CIFS Shares
-        for (SmbShareResponse share : getCifsShares(fileSystemId)) {
-            deactivateCifsShare(fileSystemId, share.getShareName());
+        
+        if (FileControllerConstants.DeleteTypeEnum.FULL == fileDeletionType) {
+            // Deactivate CIFS Shares
+            for (SmbShareResponse share : getCifsShares(fileSystemId)) {
+                deactivateCifsShare(fileSystemId, share.getShareName());
+            }
+    
+            // Delete all export rules for filesystem and all sub-directories
+            if (!getFileSystemExportRules(fileSystemId, true, null).isEmpty()) {
+                deactivateFileSystemExport(fileSystemId, true, null);
+            }
+    
+            // Deactivate NFS Exports
+            for (FileSystemExportParam export : getNfsExports(fileSystemId)) {
+                deactivateExport(fileSystemId, export);
+            }
         }
-
-        // Delete all export rules for filesystem and all sub-directories
-        if (!getFileSystemExportRules(fileSystemId, true, null).isEmpty()) {
-            deactivateFileSystemExport(fileSystemId, true, null);
-        }
-
-        // Deactivate NFS Exports
-        for (FileSystemExportParam export : getNfsExports(fileSystemId)) {
-            deactivateExport(fileSystemId, export);
-        }
-
+        
         // Remove the FileSystem
         deactivateFileSystem(fileSystemId, fileDeletionType);
     }

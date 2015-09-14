@@ -23,6 +23,7 @@ import java.util.Calendar;
 public class SysSvcTask {
 
     private String opId;
+    private String taskId;
     private NamedRelatedResourceRep resource;
     private String message;
     private String state;
@@ -37,7 +38,7 @@ public class SysSvcTask {
     public SysSvcTask(String opId, NamedRelatedResourceRep resource,
             String message, String state, String description,
             Calendar startTime, Calendar endTime,
-            ServiceErrorRestRep serviceError) {
+            ServiceErrorRestRep serviceError, String taskId) {
         this.opId = opId;
         this.resource = resource;
         this.message = message;
@@ -46,6 +47,16 @@ public class SysSvcTask {
         this.startTime = startTime;
         this.endTime = endTime;
         this.serviceError = serviceError;
+        this.taskId = taskId;
+    }
+
+    @XmlElement(name = "task_id")
+    public String getTaskId() {
+        return taskId;
+    }
+
+    public void setTaskId(String taskId) {
+        this.taskId = taskId;
     }
 
     @XmlElement(name = "op_id")

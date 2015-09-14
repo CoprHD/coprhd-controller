@@ -15,6 +15,8 @@ import java.util.concurrent.Executors;
 
 import javax.ws.rs.core.Response;
 
+import com.emc.storageos.db.client.model.*;
+import com.emc.storageos.db.client.model.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,9 +25,6 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient.LicenseTyp
 import com.emc.storageos.coordinator.common.impl.ServiceImpl;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.model.OpStatusMap;
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.SysEvent;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.event.EventParameters;
@@ -227,6 +226,15 @@ public class CallHomeServiceImpl extends BaseLogSvcResource implements CallHomeS
         sysSvcTask.setStartTime(operation.getStartTime());
         sysSvcTask.setEndTime(operation.getEndTime());
 
+        Task task = TaskUtils.findTaskForRequestId(dbClient, sysEventId, opId);
+        if (task != null) {
+            sysSvcTask.setTaskId(task.getId().toString());
+        }
+        else {
+            throw new IllegalStateException(String.format(
+                    "Task not found for resource %s, op %s in either the operation or the database", sysEventId, opId));
+        }
+        
         // Setting message
         if (operation.getServiceCode() != null) {
             sysSvcTask.setServiceError(ServiceErrorFactory.toServiceErrorRestRep(

@@ -34,6 +34,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
@@ -816,7 +817,7 @@ public class NetworkDeviceController implements NetworkController {
             if (ref.getInactive() == false) {
                 // Here is an apparent live reference; look up the volume and make
                 // sure it's still active too.
-                Volume vol = _dbClient.queryObject(Volume.class, ref.getVolumeUri());
+                BlockObject vol = BlockObject.fetch(_dbClient, ref.getVolumeUri());
                 if (vol != null && vol.getInactive() == false) {
                     remainingRefs++;
                 } else {
@@ -829,6 +830,13 @@ public class NetworkDeviceController implements NetworkController {
         return removeZone(volUri, fabricInfo, true);
     }
 
+    /**
+     * TODO - This code is not used anywhere I can see [hala] - Candidate for removal
+     * 
+     * @param exportGroupURI
+     * @param zoningTargets
+     * @throws Exception
+     */
     public void rollbackZones(URI exportGroupURI,
             Map<URI, List<NetworkFCZoneInfo>> zoningTargets) throws Exception {
         ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class,

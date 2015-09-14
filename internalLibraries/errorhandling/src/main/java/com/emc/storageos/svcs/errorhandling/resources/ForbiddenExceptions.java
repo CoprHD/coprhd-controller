@@ -112,4 +112,7 @@ public interface ForbiddenExceptions {
 
     @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
     public ForbiddenException tenantAdminCannotDeleteVcenter(final String tenantAdminName, final String vCenterName);
+
+    @DeclareServiceCode(ServiceCode.SECURITY_INSUFFICIENT_PERMISSIONS)
+    public ForbiddenException tenantAdminCannotModifyCascadeTenancy(final String tenantAdminName, final String vCenterName);
 }

@@ -614,13 +614,14 @@ vCenter.statusMessage=Details
 vCenter.error.notVCenter=%s is not a vCenter (Type: %s)
 vCenter.enableTenants=Grant Access to Tenants
 vCenter.tenant=Tenant
-vCenter.tenant.description=Exclusive access to the selected tenant only
+vCenter.tenant.description=Exclusive access to the selected tenant only. If the option 'None' selected, vCenter and its resources will not be added to any tenant.
 vCenter.tenants=Tenants
-vCenter.tenants.description=Shared access to all the selected tenants
+vCenter.tenants.description=Shared access to all the selected tenants. If none of the tenants selected, the vCenter and its resources will not be added to any tenant.
 vCenter.dataCenter.updateTenant=Update vCenter DataCenter Tenant
 vCenter.dataCenter.updateTenant.description=Updates the vCenter DataCenter tenant. If the vCenter DataCenter or its clusters or hosts contain any exports then the update will not be successful.
 vCenter.dataCenter.updateTenant.help=Update tenant for Datacenter
-vCenter.shared=Share Across Tenants
+vCenter.cascadeTenancy=Cascade Tenancy
+vCenter.cascadeTenancy.description=Cascades the vCenter tenancy to all its Datacenters, Clusters and Hosts. While cascading the vCenter tenancy, it can not be shared with multiple tenants.
 
 VCenters.list.title=vCenters
 VCenters.edit.title=Edit vCenter

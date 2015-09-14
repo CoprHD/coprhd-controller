@@ -76,14 +76,18 @@ public class CallHomeServiceImpl extends BaseLogSvcResource implements CallHomeS
     }
 
     @Override
-    public TaskResourceRep sendInternalAlert(String source,int eventId,List<String> nodeIds,List<String> nodeNames,List<String> logNames,int severity,String start,String end,String msgRegex,int maxCount,EventParameters eventParameters) throws Exception {
+    public TaskResourceRep sendInternalAlert(String source, int eventId, List<String> nodeIds, List<String> nodeNames,
+            List<String> logNames, int severity, String start, String end, String msgRegex, int maxCount,
+            EventParameters eventParameters) throws Exception {
         _log.info("Sending internal alert for id: {} and source: {}", eventId, source);
         return sendAlert(source, eventId, nodeIds, nodeNames, logNames, severity, start, end
                 , msgRegex, maxCount, true, 1, eventParameters);
     }
 
     @Override
-    public TaskResourceRep sendAlert(String source,int eventId,List<String> nodeIds,List<String> nodeNames,List<String> logNames,int severity,String start,String end,String msgRegex,int maxCount,boolean forceAttachLogs,int force,EventParameters eventParameters) throws Exception {
+    public TaskResourceRep sendAlert(String source, int eventId, List<String> nodeIds, List<String> nodeNames,
+            List<String> logNames, int severity, String start, String end, String msgRegex, int maxCount,
+            boolean forceAttachLogs, int force, EventParameters eventParameters) throws Exception {
         if (LogService.runningRequests.get() >= LogService.MAX_THREAD_COUNT) {
             _log.info("Current running requests: {} vs maximum allowed {}",
                     LogService.runningRequests, LogService.MAX_THREAD_COUNT);

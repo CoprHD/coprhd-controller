@@ -275,6 +275,23 @@ public class NativeGUIDGenerator {
     }
 
     /**
+     * Generates the native guid format as ProtectionSystem+InstallationId+<<TYPE>>+UNIQUE_ID for port, adapter & pool Objects.
+     * 
+     * @param device : storage system.
+     * @param uniqueId : unique name.
+     * @param type : type of the object to generated nativeGuid.
+     * @return nativeGuid.
+     * @throws IOException
+     */
+    public static String generateNativeGuid(ProtectionSystem device, String uniqueId, String type) {
+        String typeStr = "UNKNOWN";
+        if (OBJECT_TYPE_SET.contains(type)) {
+            typeStr = type;
+        }
+        return String.format("%s+%s+%s+%s", _deviceTypeMap.get(device.getSystemType()), device.getInstallationId(), typeStr, uniqueId);
+    }
+
+    /**
      * Generates the native guid format as StorageSystem+SerialNumber+ADAPTER+ADAPTER_NAME for StorgePort Objects
      * 
      * @param dbClient

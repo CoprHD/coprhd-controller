@@ -25,7 +25,9 @@ import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Initiator;
@@ -38,6 +40,8 @@ import com.emc.storageos.db.client.model.ProtectionSystem;
 import com.emc.storageos.db.client.model.RPSiteArray;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StoragePort;
+import com.emc.storageos.db.client.model.StoragePort.OperationalStatus;
+import com.emc.storageos.db.client.model.StoragePort.PortType;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringMap;
 import com.emc.storageos.db.client.model.StringSet;
@@ -637,6 +641,37 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                         initiator.setIsManualCreation(false);
                         initiator = getOrCreateNewInitiator(initiator);
                         
+                        // Create the storage port object (if it doesn't exist)
+                        String nativeGuid = NativeGUIDGenerator.generateNativeGuid(system,
+                                wwn, NativeGUIDGenerator.PORT);
+                        StoragePort port = checkPortExistsInDB(nativeGuid);
+                        boolean isNew = false;
+                        if (null == port) {
+                            isNew = true;
+                            port = new StoragePort();
+                            port.setId(URIUtil.createId(StoragePort.class));
+                            port.setStorageDevice(system.getId());
+                            port.setStorageHADomain(null);
+                            port.setNativeGuid(nativeGuid);
+                            port.setRegistrationStatus(DiscoveredDataObject.RegistrationStatus.REGISTERED
+                                    .toString());
+                        }
+                        port.setPortSpeed(Long.MAX_VALUE);
+                        port.setPortNetworkId(wwn);
+                        port.setPortType(PortType.Unknown.name());
+                        port.setOperationalStatus(OperationalStatus.OK.toString());
+                        port.setTransportType(StoragePort.TransportType.FC.name());
+                        port.setPortGroup(null);
+                        port.setLabel(site + "+" + wwn);
+                        port.setPortName(port.getLabel());
+                        port.setCompatibilityStatus(CompatibilityStatus.COMPATIBLE.name());
+                        port.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
+                        if (isNew) {
+                            _dbClient.createObject(port);
+                        } else {
+                            _dbClient.persistObject(port);
+                        }
+
                         if (discoveredEndpoints.containsKey(wwn.toUpperCase())) {
                             _log.info("WWN " + wwn + " is in Network : " + network.getLabel());
                             isNetworkSystemConfigured = true; // Set this to true as we found the RP initiators in a Network on the Network
@@ -890,6 +925,22 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
 
         }
         _log.info("END RecoverPointProtection.discoveryProtectionSystem()");
+    }
+
+    /**
+     * Check to see if this storageport already exists
+     * 
+     * @param nativeGuid native guid of the storage port
+     * @return StoragePort object
+     */
+    protected StoragePort checkPortExistsInDB(String nativeGuid) {
+        StoragePort port = null;
+        // use NativeGuid to lookup Pools in DB
+        List<StoragePort> portInDB = CustomQueryUtility.getActiveStoragePortByNativeGuid(_dbClient, nativeGuid);
+        if (portInDB != null && !portInDB.isEmpty()) {
+            port = portInDB.get(0);
+        }
+        return port;
     }
 
     /**

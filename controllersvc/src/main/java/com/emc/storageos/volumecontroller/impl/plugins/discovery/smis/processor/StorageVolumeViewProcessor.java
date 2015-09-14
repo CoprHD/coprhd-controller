@@ -27,8 +27,6 @@ import com.emc.storageos.plugins.BaseCollectionException;
 import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.plugins.common.PartitionManager;
 import com.emc.storageos.plugins.common.domainmodel.Operation;
-import com.emc.storageos.volumecontroller.impl.smis.CIMPropertyFactory;
-import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 
 public class StorageVolumeViewProcessor extends StorageProcessor {
 
@@ -74,12 +72,12 @@ public class StorageVolumeViewProcessor extends StorageProcessor {
 
             CIMObjectPath storagePoolPath = getObjectPathfromCIMArgument(_args);
             volumeInstances = volumeInstanceChunks.getResponses();
-            processVolumes(volumeInstances, keyMap, client);
+            processVolumes(volumeInstances, keyMap);
             while (!volumeInstanceChunks.isEnd()) {
                 _logger.info("Processing Next Volume Chunk of size {}", BATCH_SIZE);
                 volumeInstanceChunks = client.getInstancesWithPath(storagePoolPath,
                         volumeInstanceChunks.getContext(), new UnsignedInteger32(BATCH_SIZE));
-                processVolumes(volumeInstanceChunks.getResponses(), keyMap, client);
+                processVolumes(volumeInstanceChunks.getResponses(), keyMap);
             }
 
             // if list empty, this method returns back immediately.
@@ -106,7 +104,7 @@ public class StorageVolumeViewProcessor extends StorageProcessor {
     }
 
     private void processVolumes(CloseableIterator<CIMInstance> volumeInstances,
-            Map<String, Object> keyMap, WBEMClient client) throws IOException {
+            Map<String, Object> keyMap) throws IOException {
 
         List<CIMObjectPath> metaVolumes = new ArrayList<>();
         while (volumeInstances.hasNext()) {
@@ -126,13 +124,12 @@ public class StorageVolumeViewProcessor extends StorageProcessor {
                     _updateSnapShots.clear();
                 }
             } else if (isMirror(volumeViewInstance)) {
-                CIMInstance syncObject = getSyncElement(volumeViewInstance, client);
                 BlockMirror mirror = checkBlockMirrorExistsInDB(nativeGuid, _dbClient);
                 if (null == mirror || mirror.getInactive()) {
                     _logger.debug("Skipping Mirror, as its not being managed in Bourne");
                     continue;
                 }
-                updateBlockMirror(volumeViewInstance, mirror, keyMap, syncObject);
+                updateBlockMirror(volumeViewInstance, mirror, keyMap);
                 if (_updateMirrors.size() > BATCH_SIZE) {
                     _partitionManager.updateInBatches(_updateMirrors, getPartitionSize(keyMap),
                             _dbClient, BLOCK_MIRROR);
@@ -202,14 +199,11 @@ public class StorageVolumeViewProcessor extends StorageProcessor {
     }
 
     private void updateBlockMirror(CIMInstance volumeInstance,
-            BlockMirror mirror, Map<String, Object> keyMap, CIMInstance syncObject) {
+            BlockMirror mirror, Map<String, Object> keyMap) {
         mirror.setAllocatedCapacity(Long.parseLong(getCIMPropertyValue(
                 volumeInstance, EMC_ALLOCATED_CAPACITY)));
         mirror.setProvisionedCapacity(returnProvisionedCapacity(volumeInstance,
                 keyMap));
-        if (null != syncObject) {
-            mirror.setSyncState(CIMPropertyFactory.getPropertyValue(syncObject, SmisConstants.CP_SYNC_STATE));
-        }
         _updateMirrors.add(mirror);
     }
 

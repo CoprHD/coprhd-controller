@@ -67,12 +67,15 @@ public class BlockSnapshotSessionUnlinkTargetCompleter extends TaskLockingComple
                         dbClient.persistObject(snapSession);
                     }
 
-                    // If a target is deleted, mark the associated BlockSnapshot inactive.
-                    if (_deleteTarget) {
-                        BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotURI);
-                        snapshot.setInactive(true);
-                        dbClient.persistObject(snapshot);
-                    }
+                    // Note that even if the target is not deleted, mark the associated
+                    // BlockSnapshot inactive. Since the target is no longer associated
+                    // with an array snapshot, it is really no longer a BlockSnapshot
+                    // instance in ViPR. In the unlink job we have created a ViPR Volume
+                    // to represent the former snapshot target volume. So here we mark the
+                    // BlcokSnapshot inactive so it is garbage collected.
+                    BlockSnapshot snapshot = dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+                    snapshot.setInactive(true);
+                    dbClient.persistObject(snapshot);
                     break;
                 default:
                     String errMsg = String.format("Unexpected status %s for completer for step %s", status.name(), getOpId());

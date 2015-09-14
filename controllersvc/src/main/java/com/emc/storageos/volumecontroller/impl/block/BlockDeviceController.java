@@ -1775,9 +1775,9 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         }
     }
 
-
     @Override
-    public void establishVolumeAndSnapshotGroupRelation(URI storage, URI sourceVolume, URI snapshot, String opId) throws ControllerException {
+    public void establishVolumeAndSnapshotGroupRelation(URI storage, URI sourceVolume, URI snapshot, String opId)
+            throws ControllerException {
         _log.info("START establishVolumeAndSnapshotGroupRelation workflow");
 
         Workflow workflow = _workflowService.getNewWorkflow(this, ESTABLISH_VOLUME_SNAPSHOT_GROUP_WF_NAME, false, opId);
@@ -1785,7 +1785,8 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
         StorageSystem storageObj = _dbClient.queryObject(StorageSystem.class, storage);
 
         try {
-            workflow.createStep("establishStep", "create group relation between Volume group and Snapshot group", null, storage, storageObj.getSystemType(),
+            workflow.createStep("establishStep", "create group relation between Volume group and Snapshot group", null, storage,
+                    storageObj.getSystemType(),
                     this.getClass(), establishVolumeAndSnapshotGroupRelationMethod(storage, sourceVolume, snapshot), null, null);
 
             taskCompleter = new BlockSnapshotEstablishGroupTaskCompleter(snapshot, opId);
@@ -2714,7 +2715,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 detachStep = addStepsForDetachMirror(workflow, waitFor, "deactivate", mirrorList, isCG);
             }
             else {
-                Workflow.Method detach = detachMirrorMethod(storage, mirrorList);
+                Workflow.Method detach = new Workflow.Method("detachMirror", storage, mirrorList, isCG);
                 workflow.createStep("deactivate", "detaching mirror volume: " + mirrorStr, null, storage,
                         storageSystem.getSystemType(), getClass(), detach, null, detachStep);
             }

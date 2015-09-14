@@ -53,16 +53,16 @@ public interface BlockServiceApi {
      * @param varray source VirtualArray
      * @param vpool VirtualPool requested
      * @param recommendations Placement recommendation object
+     * @param taskList list of tasks for source volumes
      * @param task task ID
      * @param vpoolCapabilities wrapper for vpool params
-     * 
      * @return TaskList
      * 
      * @throws InternalException
      */
     public TaskList createVolumes(VolumeCreate param, Project project,
             VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations,
-            String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
+            TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
             throws InternalException;
 
     /**
@@ -168,6 +168,20 @@ public interface BlockServiceApi {
     public TaskResourceRep establishVolumeAndNativeContinuousCopyGroupRelation(
             StorageSystem storageSystem, Volume sourceVolume,
             BlockMirror blockMirror, String taskId) throws ControllerException;
+
+    /**
+     * Establish group relation between volume group and snapshot group.
+     *
+     * @param storageSystem the storage system
+     * @param sourceVolume the source volume
+     * @param snapshot the block snapshot
+     * @param taskId the task id
+     * @return the task resource rep
+     * @throws ControllerException the controller exception
+     */
+    public TaskResourceRep establishVolumeAndSnapshotGroupRelation(
+            StorageSystem storageSystem, Volume sourceVolume,
+            BlockSnapshot snapshot, String taskId) throws ControllerException;
 
     /**
      * Deactivate a volume mirror This operation will attempt to both detach and

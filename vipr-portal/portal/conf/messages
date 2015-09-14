@@ -68,6 +68,7 @@ nav.file.filesystems=File Systems
 nav.file.snapshots=File Snapshots
 nav.file.vnasservers=vNas Servers
 nav.file.virtualPools=File Virtual Pools
+nav.object.virtualPools=Object Virtual Pools
 nav.computeVirtualPools=Compute Virtual Pools
 nav.system=System
 nav.tenant=Tenant
@@ -133,6 +134,7 @@ nav.computeSystems=Vblock Compute Systems
 nav.computeImages=Compute Images
 nav.sites=Sites
 nav.userGroups=User Groups
+nav.object.buckets=Buckets
 # Override messages in the Secure plugin
 secure.title=
 secure.username=Username:
@@ -205,6 +207,8 @@ DefaultStorageArrayPortMap.scaleioapi=80
 DefaultStorageArrayPortMap.scaleioapi_useSSL=443
 DefaultStorageArrayPortMap.datadomain=3009
 DefaultStorageArrayPortMap.datadomain_useSSL=3009
+DefaultStorageArrayPortMap.ecs=4443
+DefaultStorageArrayPortMap.ecs_useSSL=4443
 
 DefaultStorageProviderPortMap.hicommand_useSSL=2001
 DefaultStorageProviderPortMap.hicommand=2001
@@ -274,6 +278,7 @@ StorageSystemType.scaleioapi=ScaleIO Gateway
 StorageSystemType.xtremio=EMC XtremIO
 StorageSystemType.vnxe=EMC VNXe
 StorageSystemType.datadomain=Data Domain
+StorageSystemType.ecs=EMC Elastic Cloud Storage
 StorageSystemType.STORAGE_PROVIDER.vmax=Storage Provider for EMC VMAX, VNX Block
 StorageSystemType.STORAGE_PROVIDER.scaleioapi=ScaleIO Gateway
 StorageSystemType.STORAGE_PROVIDER.hds=Storage Provider for Hitachi storage systems
@@ -319,6 +324,10 @@ BlockStorageProtocol.ScaleIO=ScaleIO
 FileStorageProtocol.NFS=NFS
 FileStorageProtocol.NFSv4=NFSv4
 FileStorageProtocol.CIFS=CIFS
+
+ObjectStorageProtocol.SWIFT=SWIFT
+ObjectStorageProtocol.ATMOS=ATMOS
+ObjectStorageProtocol.S3=S3
 
 CoSType.block=Block
 CoSType.file=File
@@ -1178,7 +1187,7 @@ tenants.name=Name
 tenant.name=Name
 tenants.description=Description
 tenant.description=Description
-tenants.deleted=Tenents(s) deleted successfully.
+tenants.deleted=Tenant(s) deleted successfully.
 tenants.delete.root=Deleting the Root Provider Tenant is not allowed.
 tenants.saved=Tenant '%s' saved successfully.
 tenants.unknown=Unknown Tenant ID '%s'
@@ -1189,6 +1198,9 @@ tenant.attribute.help=One Value per line
 tenant.removeDomain=Remove Domain
 tenant.enableQuota=Enable Quota
 tenant.quota=Quota
+tenant.enableNamespace=Object Namespace
+tenant.namespace=Namespace
+tenant.namespace.help=Specify namespace for object storage only
 tenant.noDomains=No Authentication Providers have been configured
 tenant.userMappingRequired=A Domain Authentication User Mapping is required
 tenant.quota.error.required=A quota must be supplied if quotas enabled
@@ -1691,6 +1703,7 @@ storageArray.errorDetails=Error Details
 storageArray.dataProtectionConnectivity=Data Protection
 storageArray.host=Host
 storageArray.type=Type
+storageArray.actions=Edit
 storageArray.version=Version
 storageArray.ipAddress=IP Address
 storageArray.ipAddress.help=Enter the IP address of the system.
@@ -1874,6 +1887,14 @@ BlockVirtualPools.edit.description=Edit an existing block virtual pool.
 BlockVirtualPools.create.title=Create Block Virtual Pool
 BlockVirtualPools.create.description=Enter the information needed to create a Block Virtual Pool.
 
+# Object Virtual Pools
+ObjectVirtualPools.list.title=Object Virtual Pools
+ObjectVirtualPools.edit.title=Edit Object Virtual Pool
+ObjectVirtualPools.edit.description=Edit an existing object virtual pool.
+ObjectVirtualPools.create.title=Create Object Virtual Pool
+ObjectVirtualPools.create.description=Enter the information needed to create a Object Virtual Pool.
+ObjectVirtualPools.name=Object Virtual Pool
+
 VirtualPools.locked=This virtual pool has associated resources.  Only a limited number of fields may be changed.
 VirtualPools.save.success=Saved '%s'
 VirtualPools.save.error=Failed to save '%s'
@@ -1923,6 +1944,10 @@ vpool.protocols.help=Matching storage pools will be limited to those that can su
 vpool.systemType=System Type
 vpool.poolAssignment=Pool Assignment
 vpool.poolAssignment.help=Choosing manual pool assignment allows selection of a subset of the storage pools matching the criteria
+
+#Object Specefic
+vpool.maxRetention=Maximum Retention (Days)
+vpool.objectProtocols=Protocols
 
 # Block Specific
 vpool.minPaths=Minimum Paths
@@ -2324,6 +2349,7 @@ adminDashboard.virtualStorageArrays=Virtual Arrays
 adminDashboard.blockVirtualPools=Block Virtual Pools
 adminDashboard.fileVirtualPools=File Virtual Pools
 adminDashboard.computeVirtualPools=Compute Virtual Pools
+adminDashboard.objectVirtualPools=Object Virtual Pools
 adminDashboard.storageArrays=Storage Systems
 adminDashboard.smisProviders=Storage Providers
 adminDashboard.fabricManagers=Fabric Managers
@@ -2348,7 +2374,8 @@ adminDashboard.confirm.poweroff=Are you sure you want to shutdown the ViPR Virtu
 adminDashboard.capacity=Arrays Capacity
 adminDashboard.fileCapacity=File
 adminDashboard.blockCapacity=Block
-adminDashboard.blockFileFreeCapacity=Free Block/File
+adminDashboard.object=Object
+adminDashboard.blockFileFreeCapacity=Free Block/File/Object
 
 license.model.ViPR_Controller=ViPR Controller
 license.model.ViPR_Object=ViPR Object
@@ -2700,6 +2727,14 @@ affectedResources.volume.mountPoint=Mount Point
 affectedResources.volume.datastore=Datastore
 affectedResources.volume.wwn=WWN
 affectedResources.volume.lun=LUN
+
+ resources.buckets=Buckets
+ resources.bucket=Bucket
+ resources.bucket.protocols=Protocols
+ resources.bucket.varray=Virtual Array
+ resources.bucket.vpool=Virtual Pool
+ resources.bucket.project=Project
+ 
 
 affectedResources.host=Host
 affectedResources.host.image=assets/Host.png
@@ -3089,6 +3124,24 @@ resources.migration.name=Name
 resources.varray=Virtual Array
 resources.vpool=Virtual Pool
 
+resources.bucket.deleteLink=Delete Bucket
+resources.bucket.deleteLink.FULL=Full
+resources.bucket.deleteLink.VIPR_ONLY=Inventory Only
+resources.bucket.notfound=Bucket Not Found
+resources.buckets.deactivate=Created %s tasks to delete buckets.
+resources.bucket.deactivate=Created task to delete bucket.
+resources.buckets.unknown=Unknown Bucket with ID '%s'
+resources.bucket.deleteConfirm=Are you sure you want to delete this bucket?
+resources.buckets.deleteConfirm=Are you sure you want to delete the selected buckets?
+resources.buckets.deleteConfirm.FULL=Are you sure you want to delete the selected buckets fully?
+resources.buckets.deleteConfirm.VIPR_ONLY=Are you sure you want to delete the selected buckets from the inventory?
+resources.bucket.image=assets/Bucket.png
+resources.bucket.path=Path
+resources.bucket.owner=Owner
+resources.bucket.hardQuota=Hard Quota
+resources.bucket.softQuota=Soft Quota
+resources.bucket.retention=Retention
+
 resources.exports.none=No Exports
 resources.exportgroups.deleteConfirm=Are you sure you want to delete the selected export groups?
 resources.snapshots.deleteConfirm=Are you sure you want to delete the selected snapshots?
@@ -3247,6 +3300,12 @@ secretKeys.noNamespaceConfigured.short=Tenant Namespace is not configured.
 volumes.lun=LUN
 volumes.actions=Actions
 
+buckets.name=Bucket Name
+buckets.softquota=Soft Quota
+buckets.hardquota=Hard Quota
+buckets.vpool=Object Virtual Pool
+buckets.varray=Virtual Array
+buckets.protocols=Protocols
 
 ###########################################################
 # Common Module Messages

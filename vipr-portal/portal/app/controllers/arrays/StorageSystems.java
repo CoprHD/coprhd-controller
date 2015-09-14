@@ -119,8 +119,15 @@ public class StorageSystems extends ViprResourceController {
     }
 
     public static void list() {
-        renderArgs.put("dataTable", new StorageSystemDataTable());
+        renderArgs.put("dataTable", new StorageSystemsDataTable());
         render();
+    }
+    
+    public static class StorageSystemsDataTable extends StorageSystemDataTable {
+        public StorageSystemsDataTable() {
+            addColumn("actions").setRenderFunction("renderButtonBar");
+            sortAllExcept("actions");
+        }
     }
 
     public static void listJson() {
@@ -286,7 +293,6 @@ public class StorageSystems extends ViprResourceController {
             flash.error(MessagesUtils.get(UNKNOWN, id));
             list();
         }
-
         StorageArrayPortDataTable dataTable = new StorageArrayPortDataTable(storageSystem);
 
         render("@listPorts", storageSystem, dataTable);
@@ -375,6 +381,9 @@ public class StorageSystems extends ViprResourceController {
         StorageArrayPoolDataTable dataTable = new StorageArrayPoolDataTable();
         if (StorageSystemTypes.isFileStorageSystem(storageSystem.getSystemType())) {
             dataTable.configureForFile();
+        }
+        if (StorageSystemTypes.isECS(storageSystem.getSystemType())) {
+        	dataTable.configureForECS();
         }
         render("@listPools", storageSystem, dataTable);
     }
@@ -1029,6 +1038,11 @@ public class StorageSystems extends ViprResourceController {
         public void configureForFile() {
             alterColumns("driveTypes", "subscribedCapacity").hidden();
         }
+        
+        public void configureForECS() {
+        	alterColumns("registrationStatus", "storageSystem", "volumeTypes", "driveTypes").hidden();
+        	alterColumn("status").setVisible(true);
+        }
     }
 
     public static class StorageArrayPortDataTable extends StoragePortDataTable {
@@ -1036,6 +1050,9 @@ public class StorageSystems extends ViprResourceController {
             alterColumn("name").setRenderFunction("renderStorageArrayPortEditLink");
             if (StorageSystemTypes.isBlockStorageSystem(storageSystem.getSystemType())) {
                 alterColumn("iqn").hidden();
+            }
+            if (StorageSystemTypes.isECS(storageSystem.getSystemType())) {
+            	alterColumns("portGroup", "iqn", "alias").hidden();
             }
         }
     }

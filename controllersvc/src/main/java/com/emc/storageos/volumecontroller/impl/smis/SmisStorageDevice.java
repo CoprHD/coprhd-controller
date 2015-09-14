@@ -189,25 +189,24 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 storagePool.getNativeGuid()));
         // volumeGroupObjectPath is required for VMAX3
         CIMObjectPath volumeGroupObjectPath = _helper.getVolumeGroupPath(storageSystem, volumes.get(0), storagePool);
+        List<String> volumeLabels = new ArrayList<>();
 
         for (Volume volume : volumes) {
             logMsgBuilder.append(String.format("%nVolume:%s , IsThinlyProvisioned: %s",
                     volume.getLabel(), volume.getThinlyProvisioned()));
-            // We don't need a label when we are to create more than
-            // one volume. In fact we can't set the label in this
-            // case for VMAX, else the request will fail.
-            if (label == null && volumes.size() == 1) {
-                String tenantName = "";
-                try {
-                    TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, volume.getTenant()
-                            .getURI());
-                    tenantName = tenant.getLabel();
-                } catch (DatabaseException e) {
-                    _log.error("Error lookup TenantOrb object", e);
-                }
-                label = _nameGenerator.generate(tenantName, volume.getLabel(), volume.getId()
-                        .toString(), '-', SmisConstants.MAX_VOLUME_NAME_LENGTH);
+
+            String tenantName = "";
+            try {
+                TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, volume.getTenant()
+                        .getURI());
+                tenantName = tenant.getLabel();
+            } catch (DatabaseException e) {
+                _log.error("Error lookup TenantOrb object", e);
             }
+            label = _nameGenerator.generate(tenantName, volume.getLabel(), volume.getId()
+                    .toString(), '-', SmisConstants.MAX_VOLUME_NAME_LENGTH);
+            volumeLabels.add(label);
+
             if (capacity == null) {
                 capacity = volume.getCapacity();
             }
@@ -230,7 +229,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                     autoTierPolicyName = null;
                 }
                 inArgs = _helper.getCreateVolumesInputArgumentsOnFastEnabledPool(storageSystem,
-                        storagePool, label, capacity, volumes.size(), isThinlyProvisioned,
+                        storagePool, volumeLabels, capacity, volumes.size(), isThinlyProvisioned,
                         autoTierPolicyName);
             } else {
                 if (!storageSystem.checkIfVmax3() && isThinlyProvisioned && null != thinVolumePreAllocationSize) {
@@ -238,18 +237,18 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                             storageSystem, storagePool, thinVolumePreAllocationSize);
                 }
                 if (storageSystem.checkIfVmax3() && volumeGroupObjectPath != null) {
-                    inArgs = _helper.getCreateVolumesInputArguments(storageSystem, storagePool, label,
+                    inArgs = _helper.getCreateVolumesInputArguments(storageSystem, storagePool, volumeLabels,
                             capacity, volumes.size(), isThinlyProvisioned, true, volumeGroupObjectPath,
                             (null != thinVolumePreAllocationSize));
                 } else {
-                    inArgs = _helper.getCreateVolumesInputArguments(storageSystem, storagePool, label,
+                    inArgs = _helper.getCreateVolumesInputArguments(storageSystem, storagePool, volumeLabels,
                             capacity, volumes.size(), isThinlyProvisioned, poolSetting, true);
                 }
             }
             CIMArgument[] outArgs = new CIMArgument[5];
             StorageSystem forProvider = _helper.getStorageSystemForProvider(storageSystem, volumes.get(0));
             _helper.invokeMethod(forProvider, configSvcPath,
-                    SmisConstants.CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL, inArgs, outArgs);
+                    _helper.createVolumesMethodName(forProvider), inArgs, outArgs);
             CIMObjectPath job = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
             if (job != null) {
                 SmisJob createSmisJob = volumes.size() > 1 ? new SmisCreateMultiVolumeJob(job,
@@ -1532,7 +1531,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                 taskCompleter.ready(_dbClient);
             }
         } catch (Exception e) {
-            _log.info("Failed to create consistency group: " + e);
+            _log.error("Failed to create consistency group: " + e);
             ServiceError error = DeviceControllerErrors.smis.methodFailed(
                     "doCreateConsistencyGroup", e.getMessage());
             // Set task to error
@@ -1926,17 +1925,19 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
                                 return;
                             }
                         } else {
-                            storage = storageSystem;                    
-                            cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
-                            cgPathInstance = _helper.checkExists(storage, cgPath, false, false);
-                            // If there is no consistency group with the given name, set the
-                            // operation to error
-                            if (cgPathInstance == null) {
-                                taskCompleter.error(_dbClient, DeviceControllerException.exceptions
+                            forProvider = storageSystem;
+                        }
+                    }
+                    if (!createCG) {
+                        cgPath = _cimPath.getReplicationGroupPath(forProvider, storage.getSerialNumber(), groupName);
+                        cgPathInstance = _helper.checkExists(forProvider, cgPath, false, false);
+                        // If there is no consistency group with the given name, set the
+                        // operation to error
+                        if (cgPathInstance == null) {
+                            taskCompleter.error(_dbClient, DeviceControllerException.exceptions
                                     .consistencyGroupNotFound(consistencyGroup.getLabel(),
                                             consistencyGroup.getCgNameOnStorageSystem(storage.getId())));
-                                return;
-                            }
+                            return;
                         }
                     }
                 }
@@ -1979,6 +1980,7 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
             }
             taskCompleter.ready(_dbClient);
         } catch (Exception e) {
+            _log.error("Problem in adding volumes to Consistency Group {}", consistencyGroupId, e);
             // Remove any references to the consistency group
             for (URI volume : volumes) {
                 BlockObject volumeObject = uriToBlockObjectMap.get(volume);
@@ -2253,6 +2255,12 @@ public class SmisStorageDevice extends DefaultBlockStorageDevice {
     public void doEstablishVolumeNativeContinuousCopyGroupRelation(final StorageSystem storage, final URI sourceVolume,
             final URI mirror, final TaskCompleter taskCompleter) throws DeviceControllerException {
         _mirrorOperations.establishVolumeNativeContinuousCopyGroupRelation(storage, sourceVolume, mirror, taskCompleter);
+    }
+
+    @Override
+    public void doEstablishVolumeSnapshotGroupRelation(final StorageSystem storage, final URI sourceVolume,
+            final URI snapshot, final TaskCompleter taskCompleter) throws DeviceControllerException {
+        _snapshotOperations.establishVolumeSnapshotGroupRelation(storage, sourceVolume, snapshot, taskCompleter);
     }
 
     @Override

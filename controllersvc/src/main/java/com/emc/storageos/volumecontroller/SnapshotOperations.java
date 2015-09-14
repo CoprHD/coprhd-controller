@@ -201,4 +201,18 @@ public interface SnapshotOperations {
      */
     void resyncGroupSnapshots(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
             throws DeviceControllerException;
+
+
+    /**
+     * Establish group relation between volume group and snapshot group.
+     *
+     * @param storage the storage
+     * @param sourceVolume the source volume
+     * @param snapshot the snapshot
+     * @param taskCompleter the task completer
+     * @throws DeviceControllerException the device controller exception
+     */
+    void establishVolumeSnapshotGroupRelation(StorageSystem storage, URI sourceVolume,
+            URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException;
+
 }

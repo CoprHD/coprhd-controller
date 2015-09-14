@@ -182,12 +182,21 @@ public class CoordinatorClientImpl implements CoordinatorClient {
                 byte[] data = siteId.getBytes();
                 zkConnection.curator().setData().forPath(primarySitePointer, data);
             }
-        }catch(Exception e) {
+        } catch(Exception e) {
             log.error("Failed to persist {} to {}", siteId, primarySitePointer);
             throw e;
         }
 
-
+        String siteStatePath = String.format("%1$s/%2$s", sitePath, Constants.SITE_STATE);
+        try {
+            EnsurePath ePath = new EnsurePath(siteStatePath);
+            log.info("init site state to {}", SiteState.ACTIVE.name());
+            ePath.ensure(zkConnection.curator().getZookeeperClient());
+            zkConnection.curator().setData().forPath(siteStatePath, SiteState.ACTIVE.name().getBytes());
+        } catch (Exception e) {
+            log.error("Failed to init site state {}", SiteState.ACTIVE.name());
+            throw e;
+        }
     }
 
     /**
@@ -1557,4 +1566,17 @@ public class CoordinatorClientImpl implements CoordinatorClient {
         }
         return primarySiteId;
 	}  
+	
+	@Override
+    public SiteState getSiteState() {
+        String path = String.format("%1$s/%2$s", this.getSitePrefix(), Constants.SITE_STATE);
+        SiteState state = null;
+        try {
+            byte[] data = _zkConnection.curator().getData().forPath(path);
+            state = SiteState.valueOf(new String(data, "UTF-8"));
+        } catch (Exception e) {
+            throw CoordinatorException.retryables.errorWhileFindingNode(path, e);
+        }
+        return state;
+    }
 }

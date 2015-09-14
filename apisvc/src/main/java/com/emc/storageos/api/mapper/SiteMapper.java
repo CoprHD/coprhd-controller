@@ -15,8 +15,10 @@ public class SiteMapper {
         SiteRestRep to = new SiteRestRep();
         mapDataObjectFields(from, to);
         to.setUuid(from.getUuid());
+        to.setVdcId(from.getVdc());
         to.setName(from.getName());
         to.setVip(from.getVip());
+        to.setSecretKey(from.getSecretKey());
         to.setHostIPv4AddressMap(from.getHostIPv4AddressMap());
         to.setHostIPv6AddressMap(from.getHostIPv6AddressMap());
         return to;

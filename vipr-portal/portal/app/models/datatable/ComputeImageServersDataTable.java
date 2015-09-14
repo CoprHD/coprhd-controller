@@ -11,7 +11,7 @@ import com.emc.storageos.model.compute.ComputeImageServerRestRep;
 public class ComputeImageServersDataTable extends DataTable {
 
     public ComputeImageServersDataTable() {
-        addColumn("name").setRenderFunction("renderLink");
+        addColumn("name").setRenderFunction("renderBoolean");
         addColumn("imageServerIp");
         addColumn("osInstallNetworkAddress");
         addColumn("computeImageServerStatus");
@@ -38,7 +38,7 @@ public class ComputeImageServersDataTable extends DataTable {
             this.name = computeImageServer.getName();
             this.imageServerIp = computeImageServer.getImageServerIp();
             this.computeImageServerStatus = computeImageServer.getComputeImageServerStatus();
-            this.tftpbootDir = computeImageServer.getTftpbootDir();
+            this.tftpbootDir = computeImageServer.getTftpBootDir();
             this.osInstallNetworkAddress = computeImageServer.getImageServerSecondIp();
         }
     }

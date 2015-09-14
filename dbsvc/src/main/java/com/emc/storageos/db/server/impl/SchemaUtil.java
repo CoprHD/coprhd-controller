@@ -328,7 +328,7 @@ public class SchemaUtil {
      * @param replicas
      * @return true to indicate keyspace strategy option is changed
      */
-    private boolean setStrategyOptions(KeyspaceDefinition keyspace, int replicas) {
+    protected boolean setStrategyOptions(KeyspaceDefinition keyspace, int replicas) {
         boolean changed = false;
         keyspace.setName(_keyspaceName);
 

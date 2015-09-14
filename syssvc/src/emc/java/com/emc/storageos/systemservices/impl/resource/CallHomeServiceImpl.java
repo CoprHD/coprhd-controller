@@ -9,7 +9,6 @@ import java.net.URI;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.Collections;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -17,6 +16,8 @@ import javax.ws.rs.core.Response;
 
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.model.util.*;
+import com.emc.storageos.model.*;
+import com.emc.vipr.model.sys.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,8 +26,6 @@ import com.emc.storageos.coordinator.client.service.CoordinatorClient.LicenseTyp
 import com.emc.storageos.coordinator.common.impl.ServiceImpl;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.model.NamedRelatedResourceRep;
-import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.model.event.EventParameters;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
@@ -45,8 +44,7 @@ import com.emc.storageos.systemservices.impl.licensing.LicenseInfoExt;
 import com.emc.storageos.systemservices.impl.licensing.LicenseInfoListExt;
 import com.emc.storageos.systemservices.impl.licensing.LicenseManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
-import com.emc.vipr.model.sys.SysSvcTask;
-import com.emc.vipr.model.sys.SysSvcTaskList;
+import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 public class CallHomeServiceImpl extends BaseLogSvcResource implements CallHomeService {
 
@@ -81,18 +79,14 @@ public class CallHomeServiceImpl extends BaseLogSvcResource implements CallHomeS
     }
 
     @Override
-    public SysSvcTask sendInternalAlert(String source, int eventId, List<String> nodeIds, List<String> nodeNames, List<String> logNames,
-                                        int severity, String start, String end, String msgRegex, int maxCount,
-                                        EventParameters eventParameters) throws Exception {
+    public TaskResourceRep sendInternalAlert(String source,int eventId,List<String> nodeIds,List<String> nodeNames,List<String> logNames,int severity,String start,String end,String msgRegex,int maxCount,EventParameters eventParameters) throws Exception {
         _log.info("Sending internal alert for id: {} and source: {}", eventId, source);
         return sendAlert(source, eventId, nodeIds, nodeNames, logNames, severity, start, end
                 , msgRegex, maxCount, true, 1, eventParameters);
     }
 
     @Override
-    public SysSvcTask sendAlert(String source, int eventId, List<String> nodeIds, List<String> nodeNames, List<String> logNames, int severity,
-                                String start, String end, String msgRegex, int maxCount, boolean forceAttachLogs,
-                                int force, EventParameters eventParameters) throws Exception {
+    public TaskResourceRep sendAlert(String source,int eventId,List<String> nodeIds,List<String> nodeNames,List<String> logNames,int severity,String start,String end,String msgRegex,int maxCount,boolean forceAttachLogs,int force,EventParameters eventParameters) throws Exception {
         if (LogService.runningRequests.get() >= LogService.MAX_THREAD_COUNT) {
             _log.info("Current running requests: {} vs maximum allowed {}",
                     LogService.runningRequests, LogService.MAX_THREAD_COUNT);
@@ -170,10 +164,10 @@ public class CallHomeServiceImpl extends BaseLogSvcResource implements CallHomeS
 
         // Persisting this operation
         Operation op = new Operation();
-        op.setName("SEND ALERT " + eventId);
-        op.setDescription("SEND ALERT EVENT code:" + eventId + ", severity:" + severity);
+        op.setName("SEND ALERT "+eventId);
+        op.setDescription("SEND ALERT EVENT code:"+eventId+", severity:"+severity);
         op.setResourceType(ResourceOperationTypeEnum.SYS_EVENT);
-        createSysEventRecord(sysEventId, opID, op, force);
+        SysEvent sysEvent = createSysEventRecord(sysEventId, opID, op, force);
 
         // Starting send event job
         getExecutorServiceInstance().submit(sendAlertEvent);
@@ -182,14 +176,14 @@ public class CallHomeServiceImpl extends BaseLogSvcResource implements CallHomeS
                 AuditLogManager.AUDITOP_BEGIN,
                 null, nodeIds, logNames, start, end);
 
-        return toSysSvcTask(sysEventId, opID, op);
+        return toTask(sysEvent, opID, op);
     }
 
     /**
      * Creates sysevent record after checking if there are any existing records.
      * If force is 1 will not check for existing records.
      */
-    private synchronized void createSysEventRecord(URI sysEventId, String opID,
+    private synchronized SysEvent createSysEventRecord(URI sysEventId, String opID,
             Operation op, int force) {
         if (force != 1) {
             List sysEvents = dbClient.queryByType(SysEvent.class, true);
@@ -198,7 +192,7 @@ public class CallHomeServiceImpl extends BaseLogSvcResource implements CallHomeS
             }
         }
 
-        _log.info("Event id is {} and operation id is {}", sysEventId, opID);
+        _log.info("Event id is {} and operation id is {}",sysEventId,opID);
 
         SysEvent sysEvent = new SysEvent();
         sysEvent.setId(sysEventId);
@@ -206,91 +200,7 @@ public class CallHomeServiceImpl extends BaseLogSvcResource implements CallHomeS
         dbClient.createObject(sysEvent);
 
         dbClient.createTaskOpStatus(SysEvent.class, sysEventId, opID, op);
-    }
-
-    /**
-     * Creates and returns syssvc task for the passed information.
-     */
-    private SysSvcTask toSysSvcTask(URI sysEventId, String opId,
-            Operation operation) {
-        SysSvcTask sysSvcTask = new SysSvcTask();
-        sysSvcTask.setOpId(opId);
-
-        // Setting resource
-        NamedRelatedResourceRep resource = new NamedRelatedResourceRep();
-        resource.setId(sysEventId);
-        sysSvcTask.setResource(resource);
-
-        sysSvcTask.setState(operation.getStatus());
-        sysSvcTask.setDescription(operation.getDescription());
-        sysSvcTask.setStartTime(operation.getStartTime());
-        sysSvcTask.setEndTime(operation.getEndTime());
-
-        Task task = TaskUtils.findTaskForRequestId(dbClient, sysEventId, opId);
-        if (task != null) {
-            sysSvcTask.setTaskId(task.getId().toString());
-        }
-        else {
-            throw new IllegalStateException(String.format(
-                    "Task not found for resource %s, op %s in either the operation or the database", sysEventId, opId));
-        }
-        
-        // Setting message
-        if (operation.getServiceCode() != null) {
-            sysSvcTask.setServiceError(ServiceErrorFactory.toServiceErrorRestRep(
-                    ServiceError.buildServiceError(ServiceCode.toServiceCode(operation
-                            .getServiceCode()), operation.getMessage())));
-        } else {
-            sysSvcTask.setMessage(operation.getMessage());
-        }
-        return sysSvcTask;
-    }
-
-    @Override
-    public SysSvcTaskList getTasks(URI id) {
-
-        // test validity of alert event id(id)
-        if (!URIUtil.isValid(id)) {
-            // this won't print id if invalid to avoid XSS issues
-            throw APIException.badRequests.invalidURI("alert event id");
-        }
-
-        SysEvent sysEvent = permissionsHelper.getObjectById(id, SysEvent.class);
-        if (sysEvent == null) {
-            throw APIException.badRequests.parameterIsNotValid(id.toString());
-        }
-        SysSvcTaskList tasks = new SysSvcTaskList();
-        OpStatusMap opStatusMap = sysEvent.getOpStatus();
-        for (Map.Entry<String, Operation> entry : opStatusMap.entrySet()) {
-            tasks.addTask(toSysSvcTask(id, entry.getKey(), entry.getValue()));
-        }
-        return tasks;
-    }
-
-    @Override
-    public SysSvcTask getTask(URI id, String opId) {
-
-        // test validity of alert event id(id)
-        if (!URIUtil.isValid(id)) {
-            // this won't print id if invalid to avoid XSS issues
-            throw APIException.badRequests.parameterIsNotValid("alert event id");
-        }
-        // test validity of task id (opId)
-        if (!opId.matches("(?i)([A-F0-9]{8}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{12})")) {
-            // this won't print id if invalid to avoid XSS issues
-            throw APIException.badRequests.parameterIsNotValid("task id");
-        }
-
-        SysEvent sysEvent = permissionsHelper.getObjectById(id, SysEvent.class);
-        if (sysEvent == null) {
-            throw APIException.badRequests.parameterIsNotValid(id.toString());
-        }
-
-        Operation op = sysEvent.getOpStatus().get(opId);
-        if (op == null) {
-            throw APIException.badRequests.parameterIsNotValid(opId);
-        }
-        return toSysSvcTask(id, opId, op);
+        return sysEvent;
     }
 
     @Override

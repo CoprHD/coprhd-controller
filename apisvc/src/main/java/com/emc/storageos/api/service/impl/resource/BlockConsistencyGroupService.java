@@ -1787,7 +1787,16 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 targetVolume.getStorageController());
         SRDFController controller = getController(SRDFController.class,
                 system.getSystemType());
-        controller.performProtectionOperation(system.getId(), copy, op, task);
+
+        // Create a new duplicate copy of the original copy. Update the copyId field to be the
+        // ID of the target volume. Existing SRDF controller logic needs the target volume
+        // to operate off of.
+        Copy updatedCopy = new Copy(copy.getType(), copy.getSync(), targetVolume.getId(),
+                copy.getName(), copy.getCount());
+        updatedCopy.setCopyMode(copy.getCopyMode());
+        updatedCopy.setSyncDirection(copy.getSyncDirection());
+
+        controller.performProtectionOperation(system.getId(), updatedCopy, op, task);
 
         return toTask(consistencyGroup, task, status);
     }

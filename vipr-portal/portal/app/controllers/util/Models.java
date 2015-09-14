@@ -223,8 +223,8 @@ public class Models extends Controller {
 
     private static String validateSessionTenantForVcenter(String sessionTenant) {
         try{
-            if (!(TenantUtils.NO_TENANT_SELECTOR.equalsIgnoreCase(sessionTenant) ||
-                    TenantUtils.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(sessionTenant)) &&
+            if (!(TenantUtils.getNoTenantSelector().equalsIgnoreCase(sessionTenant) ||
+                    TenantUtils.getTenantSelectorForUnassigned().equalsIgnoreCase(sessionTenant)) &&
                     getViprClient().tenants().get(uri(sessionTenant)).getInactive()) {
                 Models.resetAdminTenantId();
                 sessionTenant = Models.currentAdminTenantForVcenter();
@@ -237,8 +237,8 @@ public class Models extends Controller {
     }
 
     private static String validateSessionTenant(String sessionTenant) {
-        if (TenantUtils.NO_TENANT_SELECTOR.equalsIgnoreCase(sessionTenant) ||
-                TenantUtils.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(sessionTenant) ||
+        if (TenantUtils.getNoTenantSelector().equalsIgnoreCase(sessionTenant) ||
+                TenantUtils.getTenantSelectorForUnassigned().equalsIgnoreCase(sessionTenant) ||
                 getViprClient().tenants().get(uri(sessionTenant)).getInactive()) {
             Models.resetAdminTenantId();
             sessionTenant = Models.currentAdminTenantForVcenter();

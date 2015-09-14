@@ -81,16 +81,16 @@ public class RemoteMirrorProtectionMatcher extends AttributeMatcher {
                 copies.retainAll(remotestorageToPoolMap.asMap().keySet());
                 _logger.info("Remotely Connected Systems Matched with Remote VArray : {}", Joiner.on("\t").join(copies));
                 if (!copies.isEmpty() && isRemotelyConnectedViaExpectedCopyMode(system, remoteCopySettings)) {
-                    _logger.info("Adding Pools {} , as associated Storage System {} is connected to any remote Storage System",
-                            Joiner.on("\t").join(storageToPoolsEntry.getValue()));
+                    _logger.info(String.format("Adding Pools %s, as associated Storage System %s is connected to any remote Storage System",
+                            Joiner.on("\t").join(storageToPoolsEntry.getValue()), system.getNativeGuid()));
                     matchedPools.addAll(storageToPoolsEntry.getValue());
                 } else {
-                    _logger.info("Skipping Pools {} , as associated Storage System {} is not connected to any remote Storage System",
-                            Joiner.on("\t").join(storageToPoolsEntry.getValue()));
+                    _logger.info(String.format("Skipping Pools %s, as associated Storage System %s is not connected to any remote Storage System",
+                            Joiner.on("\t").join(storageToPoolsEntry.getValue()), system.getNativeGuid()));
                 }
             } else {
                 _logger.info(
-                        "Skipping Pools {} , as associated Storage System is not SRDF supported or there are no available active RA Groups",
+                        "Skipping Pools {}, as associated Storage System is not SRDF supported or there are no available active RA Groups",
                         Joiner.on("\t").join(storageToPoolsEntry.getValue()));
             }
         }

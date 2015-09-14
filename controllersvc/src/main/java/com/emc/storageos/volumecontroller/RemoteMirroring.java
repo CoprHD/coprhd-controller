@@ -43,6 +43,16 @@ public interface RemoteMirroring {
     void doCreateLink(StorageSystem system, URI source, URI target, TaskCompleter completer);
 
     /**
+     * Create and establish replication links from a list of source and target volumes.
+     *
+     * @param system
+     * @param sources
+     * @param targets
+     * @param completer
+     */
+    void doCreateListReplicas(StorageSystem system, List<URI> sources, List<URI> targets, TaskCompleter completer);
+
+    /**
      * Detach a source and target from their replication link.
      * 
      * @param system

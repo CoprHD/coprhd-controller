@@ -583,7 +583,7 @@ public class PropertiesConfigurationValidator {
         }
 
         String[] hostLabels = hostName.split("\\.",-1);
-        if (hostLabels.length == 0 || hostLabels.length > 4) {
+        if (hostLabels.length == 0) {
             return false;
         }
         Pattern labelPattern = Pattern.compile(VALID_HOST_NAME_LABEL_PATTERN);

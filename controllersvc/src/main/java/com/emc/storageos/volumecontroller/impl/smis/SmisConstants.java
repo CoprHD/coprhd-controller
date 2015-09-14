@@ -126,6 +126,7 @@ public interface SmisConstants {
     static final String CREATE_ELEMENT_REPLICA = "CreateElementReplica";
     static final String CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL = "CreateOrModifyElementFromStoragePool";
     static final String CREATE_OR_MODIFY_ELEMENTS_FROM_STORAGE_POOL = "CreateOrModifyElementsFromStoragePool";
+    static final String EMC_CREATE_MULTIPLE_TYPE_ELEMENTS_FROM_STORAGE_POOL = "EMCCreateMultipleTypeElementsFromStoragePool";
     static final String JOB = "Job";
     static final String CREATE_GROUP = "CreateGroup";
     static final String SE_REPLICATION_GROUP = "SE_ReplicationGroup";
@@ -271,10 +272,10 @@ public interface SmisConstants {
     static final String CP_DELETE_WHEN_BECOMES_UNASSOCIATED = "DeleteWhenBecomesUnassociated";
     static final String CP_MASKING_GROUP = "MaskingGroup";
     static final String CP_ELEMENT_NAME = "ElementName";
+    static final String CP_ELEMENT_NAMES = "ElementNames";
     static final String CP_ASSOCIATED_TO_VIEW = "EMCAssociatedToView";
     static final String CP_FAST_SETTING = "EMCFastSetting";
     static final String CP_DISK_DRIVE_TYPE = "EMCDiskDriveType";
-    static final String CP_ELEMENT_NAMES = "ElementNames";
     static final String CP_DEVICE_MASKING_GROUP = "DeviceMaskingGroup";
     static final String CP_SOURCE_MASKING_GROUP = "SourceMaskingGroup";
     static final String CP_TARGET_MASKING_GROUP = "TargetMaskingGroup";
@@ -319,6 +320,7 @@ public interface SmisConstants {
     static final String CP_REMOVE_ELEMENTS = "RemoveElements";
     static final String CP_THINLY_PROVISIONED = "ThinlyProvisioned";
     static final String CP_EMC_NUMBER_OF_DEVICES = "EMCNumberOfDevices";
+    static final String CP_EMC_NUMBER_OF_DEVICE_FOR_EACH_CONFIG = "EMCNumberOfDeviceForEachConfig";
     static final String CP_WAIT_FOR_COPY_STATE = "WaitForCopyState";
     static final String CP_SYSTEMS = "Systems";
     static final String CP_EMC_SKIP_REFRESH = "EMCSkipRefresh";

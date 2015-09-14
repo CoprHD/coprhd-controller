@@ -38,6 +38,19 @@ public class ConsistencyGroupProvider extends BaseAssetOptionsProvider {
         }
     }
 
+    @Asset("consistencyGroupByProject")
+    @AssetDependencies({ "project" })
+    public List<AssetOption> getConsistencyGroupsByProject(AssetOptionsContext ctx, URI projectId) {
+        return createBaseResourceOptions(api(ctx).blockConsistencyGroups().search().byProject(projectId).run());
+    }
+
+    @Asset("rpConsistencyGroupByProject")
+    @AssetDependencies({ "project" })
+    public List<AssetOption> getRPConsistencyGroupsByProject(AssetOptionsContext ctx, URI projectId) {
+        return createBaseResourceOptions(api(ctx).blockConsistencyGroups().search().byProject(projectId)
+                .filter(new ConsistencyGroupFilter(BlockConsistencyGroup.Types.RP.toString(), false)).run());
+    }
+
     @Asset("consistencyGroup")
     @AssetDependencies({ "project" })
     public List<AssetOption> getConsistencyGroups(AssetOptionsContext ctx, URI projectId) {

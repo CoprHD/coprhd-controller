@@ -37,7 +37,7 @@ import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.impl.monitoring.RecordableEventManager;
 
 /**
- * StoragePort resource implementation
+ * VirtualNasService resource implementation
  */
 @Path("/vdc/vnas-servers")
 @DefaultPermissions(readRoles = { Role.SYSTEM_ADMIN, Role.SYSTEM_MONITOR },

@@ -84,11 +84,11 @@ public class BlockMirrorServiceApiImpl extends AbstractBlockServiceApiImpl<Stora
      */
     @Override
     public TaskList createVolumes(VolumeCreate param, Project project, VirtualArray neighborhood, VirtualPool cos,
-            List<Recommendation> volRecommendations, String task, VirtualPoolCapabilityValuesWrapper cosCapabilities)
+            List<Recommendation> volRecommendations, TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper cosCapabilities)
             throws ControllerException {
 
-        return _defaultBlockServiceApi.createVolumes(param, project, neighborhood, cos, volRecommendations, task,
-                cosCapabilities);
+        return _defaultBlockServiceApi.createVolumes(param, project, neighborhood, cos, volRecommendations, taskList,
+                task, cosCapabilities);
     }
 
     /**

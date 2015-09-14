@@ -318,15 +318,14 @@ public class XtremIOCommunicationInterface extends
                 scPorts.add(targetPort);
             }
 
+            portMap.put(NEW, new ArrayList<StoragePort>());
+            portMap.put(EXISTING, new ArrayList<StoragePort>());
+            Long portSpeed = 0L;
+            StoragePort port = null;
+
             for (String scName : storageControllerPortMap.keySet()) {
                 List<XtremIOPort> scPorts = storageControllerPortMap.get(scName);
                 StorageHADomain haDomain = createStorageHADomain(system, scName, scPorts.size());
-
-                Long portSpeed = 0L;
-                StoragePort port = null;
-                portMap.put(NEW, new ArrayList<StoragePort>());
-                portMap.put(EXISTING, new ArrayList<StoragePort>());
-
                 for (XtremIOPort targetPort : scPorts) {
                     String portSpeedStr = targetPort.getPortSpeed().split("G")[0];
                     try {

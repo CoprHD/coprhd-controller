@@ -755,6 +755,18 @@ public interface BlockStorageDevice {
      */
     public void doEstablishVolumeNativeContinuousCopyGroupRelation(StorageSystem storage, URI sourceVolume,
             URI mirror, TaskCompleter taskCompleter) throws DeviceControllerException;
+    
+    /**
+     * Creates group relation between volume group and snapshot group.
+     *
+     * @param storage the storage
+     * @param sourceVolume the source volume
+     * @param snapshot the snapshot
+     * @param taskCompleter the task completer
+     * @throws DeviceControllerException the device controller exception
+     */
+    public void doEstablishVolumeSnapshotGroupRelation(StorageSystem storage, URI sourceVolume,
+            URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException;
 
     /**
      * For mirrors associated with SRDF volumes, remove the mirrors

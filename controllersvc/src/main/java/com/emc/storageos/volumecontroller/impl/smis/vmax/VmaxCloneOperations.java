@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.cim.CIMArgument;
+import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 
 import org.slf4j.Logger;
@@ -338,7 +339,7 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
             /**
              * get groupPath for source volume
              * get groupPath for clone
-             * get mirrors belonging to the same Replication Group
+             * get clones belonging to the same Replication Group
              * get Element synchronizations between volumes and clones
              * call CreateGroupReplicaFromElementSynchronizations
              */
@@ -349,27 +350,34 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
             CIMObjectPath volumeGroupPath = _cimPath.getReplicationGroupPath(storage, volumeGroupName);
             CIMObjectPath cloneGroupPath = _cimPath.getReplicationGroupPath(storage, cloneObj.getReplicationGroupInstance());
 
-            // get all clones belonging to a Replication Group. There may be multiple clones available for a Volume
-            List<Volume> fullCopies = ControllerUtils.
-                    getFullCopiesPartOfReplicationGroup(cloneObj.getReplicationGroupInstance(), _dbClient);
+            CIMObjectPath groupSynchronizedPath = _cimPath.getGroupSynchronized(volumeGroupPath, cloneGroupPath);
+            CIMInstance syncInstance = _helper.checkExists(storage, groupSynchronizedPath, false, false);
+            if (syncInstance == null) {
+                // get all clones belonging to a Replication Group. There may be multiple clones available for a Volume
+                List<Volume> fullCopies = ControllerUtils.
+                        getFullCopiesPartOfReplicationGroup(cloneObj.getReplicationGroupInstance(), _dbClient);
 
-            List<CIMObjectPath> elementSynchronizations = new ArrayList<CIMObjectPath>();
-            for (Volume fullCopy : fullCopies) {
-                URI sourceVolumeURI = fullCopy.getAssociatedSourceVolume();
-                if (!NullColumnValueGetter.isNullURI(sourceVolumeURI)) {
-                    Volume volume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
-                    elementSynchronizations.add(_cimPath.getStorageSynchronized(storage, volume,
-                            storage, fullCopy));
+                List<CIMObjectPath> elementSynchronizations = new ArrayList<CIMObjectPath>();
+                for (Volume fullCopy : fullCopies) {
+                    URI sourceVolumeURI = fullCopy.getAssociatedSourceVolume();
+                    if (!NullColumnValueGetter.isNullURI(sourceVolumeURI)) {
+                        Volume volume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
+                        elementSynchronizations.add(_cimPath.getStorageSynchronized(storage, volume,
+                                storage, fullCopy));
+                    }
                 }
+
+                _log.info("Creating Group synchronization between volume group and clone group");
+                CIMArgument[] inArgs = _helper.getCreateGroupReplicaFromElementSynchronizationsForSRDFInputArguments(volumeGroupPath,
+                        cloneGroupPath, elementSynchronizations);
+                CIMArgument[] outArgs = new CIMArgument[5];
+                _helper.invokeMethod(storage, srcRepSvcPath,
+                        SmisConstants.CREATE_GROUP_REPLICA_FROM_ELEMENT_SYNCHRONIZATIONS, inArgs, outArgs);
+                // No Job returned
+            } else {
+                _log.info("Link already established..");
             }
 
-            _log.info("Creating Group synchronization between volume group and clone group");
-            CIMArgument[] inArgs = _helper.getCreateGroupReplicaFromElementSynchronizationsForSRDFInputArguments(volumeGroupPath,
-                    cloneGroupPath, elementSynchronizations);
-            CIMArgument[] outArgs = new CIMArgument[5];
-            _helper.invokeMethod(storage, srcRepSvcPath,
-                    SmisConstants.CREATE_GROUP_REPLICA_FROM_ELEMENT_SYNCHRONIZATIONS, inArgs, outArgs);
-            // No Job returned
             completer.ready(_dbClient);
         } catch (Exception e) {
             _log.error(

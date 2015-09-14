@@ -575,29 +575,53 @@ public class ComputeSystemHelper {
             throw APIException.badRequests.cannotRemoveTenant("vCenterDataCenter", dataCenter.getLabel(), tenants);
         }
 
-        if (tenantId == null || tenantId.equals(NullColumnValueGetter.getNullURI())) {
-            tenantId = NullColumnValueGetter.getNullURI();
+        URI localTenantId = tenantId;
+        if (localTenantId == null || localTenantId.equals(NullColumnValueGetter.getNullURI())) {
+            localTenantId = NullColumnValueGetter.getNullURI();
         }
 
-        List<NamedElementQueryResultList.NamedElement> hostUris = listChildren(dbClient, dataCenter.getId(),
-                Host.class, "label", "vcenterDataCenter");
-        for (NamedElementQueryResultList.NamedElement hostUri : hostUris) {
-            Host host = dbClient.queryObject(Host.class, hostUri.getId());
-            if (host != null) {
-                host.setTenant(tenantId);
-                dbClient.persistObject(host);
-            }
-        }
-        List<NamedElementQueryResultList.NamedElement> clustersUris = listChildren(dbClient, dataCenter.getId(),
+        upateHostTenant(dbClient, dataCenter.getId(), localTenantId);
+        updateClusterTenant(dbClient, dataCenter.getId(), localTenantId);
+
+        dataCenter.setTenant(localTenantId);
+    }
+
+    /**
+     * Updates the Cluster's tenant.
+     *
+     * @param dbClient DBClient for the database operations.
+     * @param dataCenterId data center URI.
+     * @param tenantId tenant id to be updated.
+     */
+    private static void updateClusterTenant(DbClient dbClient, URI dataCenterId, URI tenantId) {
+        List<NamedElement> clustersUris = listChildren(dbClient, dataCenterId,
                 Cluster.class, "label", "vcenterDataCenter");
-        for (NamedElementQueryResultList.NamedElement clusterUri : clustersUris) {
+        for (NamedElement clusterUri : clustersUris) {
             Cluster cluster = dbClient.queryObject(Cluster.class, clusterUri.getId());
             if (cluster != null) {
                 cluster.setTenant(tenantId);
                 dbClient.persistObject(cluster);
             }
         }
-        dataCenter.setTenant(tenantId);
+    }
+
+    /**
+     * Updates the Host's tenant.
+     *
+     * @param dbClient DBClient for the database operations.
+     * @param dataCenterId data center URI.
+     * @param tenantId tenant id to be updated.
+     */
+    private static void upateHostTenant(DbClient dbClient, URI dataCenterId, URI tenantId) {
+        List<NamedElement> hostUris = listChildren(dbClient, dataCenterId,
+                Host.class, "label", "vcenterDataCenter");
+        for (NamedElement hostUri : hostUris) {
+            Host host = dbClient.queryObject(Host.class, hostUri.getId());
+            if (host != null) {
+                host.setTenant(tenantId);
+                dbClient.persistObject(host);
+            }
+        }
     }
 
     /**
@@ -612,11 +636,10 @@ public class ComputeSystemHelper {
                 VcenterDataCenter.class, "label", "vcenter");
         for (NamedElementQueryResultList.NamedElement datacenterUri : datacenterUris) {
             VcenterDataCenter vcenterDataCenter = dbClient.queryObject(VcenterDataCenter.class, datacenterUri.getId());
-            if (vcenterDataCenter != null) {
-                if (URIUtil.identical(tenantId, vcenterDataCenter.getTenant()) &&
-                        isDataCenterInUse(dbClient, datacenterUri.getId())) {
-                    return true;
-                }
+            if (vcenterDataCenter != null &&
+                    URIUtil.identical(tenantId, vcenterDataCenter.getTenant()) &&
+                    isDataCenterInUse(dbClient, datacenterUri.getId())) {
+                return true;
             }
         }
         return false;

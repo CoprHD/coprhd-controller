@@ -1,0 +1,14 @@
+{
+  baseKey:"ObjectStorageService.DeleteBucket",
+  serviceId:"DeleteBucket",
+  fields:{
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    },
+    
+    bucket:{
+      type:"assetType.vipr.sourceBuckets"
+    }
+  }
+}

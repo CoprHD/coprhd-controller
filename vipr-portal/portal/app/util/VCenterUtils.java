@@ -18,6 +18,7 @@ import com.emc.vipr.client.exceptions.TimeoutException;
 import com.emc.vipr.client.exceptions.ViPRException;
 import com.emc.vipr.client.exceptions.ViPRHttpException;
 import controllers.security.Security;
+import org.apache.commons.httpclient.HttpStatus;
 import org.springframework.util.CollectionUtils;
 
 import java.net.URI;
@@ -39,7 +40,7 @@ public class VCenterUtils {
         try {
             return (id != null) ? getViprClient().vcenters().get(id) : null;
         } catch (ViPRHttpException e) {
-            if (e.getHttpCode() == 404) {
+            if (e.getHttpCode() == HttpStatus.SC_NOT_FOUND) {
                 return null;
             }
             throw e;
@@ -50,7 +51,7 @@ public class VCenterUtils {
         try {
             return (id != null) ? getViprClient().vcenterDataCenters().get(id) : null;
         } catch (ViPRHttpException e) {
-            if (e.getHttpCode() == 404) {
+            if (e.getHttpCode() == HttpStatus.SC_NOT_FOUND) {
                 return null;
             }
             throw e;

@@ -192,14 +192,15 @@ public class SystemsMapper {
         to.setMaxStorageObjects(MetricsKeys.getLong(MetricsKeys.maxStorageObjects, from.getMetrics()).toString());
 
         to.setStorageObjects(MetricsKeys.getLong(MetricsKeys.storageObjects, from.getMetrics()).toString());
-        to.setStorageCapacity(MetricsKeys.getLong(MetricsKeys.storageCapacity, from.getMetrics()).toString());
+        to.setUsedStorageCapacity(MetricsKeys.getLong(MetricsKeys.usedStorageCapacity, from.getMetrics()).toString());
+        to.setPercentLoad(MetricsKeys.getLong(MetricsKeys.percentLoad, from.getMetrics()).toString());
         to.setIsOverloaded(MetricsKeys.getBoolean(MetricsKeys.overLoaded, from.getMetrics()));
 
         Double percentBusy = MetricsKeys.getDoubleOrNull(MetricsKeys.emaPercentBusy, from.getMetrics());
         if (percentBusy != null) {
             to.setAvgEmaPercentagebusy(percentBusy.toString());
         }
-        percentBusy = MetricsKeys.getDoubleOrNull(MetricsKeys.avgPercentBusy, from.getMetrics());
+        percentBusy = MetricsKeys.getDoubleOrNull(MetricsKeys.avgPortPercentBusy, from.getMetrics());
         if (percentBusy != null) {
             to.setAvgPercentagebusy(percentBusy.toString());
         }

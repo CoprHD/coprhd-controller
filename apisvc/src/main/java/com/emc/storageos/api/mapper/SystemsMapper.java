@@ -12,6 +12,7 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.toRelatedResource;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.text.DecimalFormat;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +49,7 @@ import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.CapacityMatche
 
 public class SystemsMapper {
     private static final String MINUS_ONE_LONG = "-1";
+    private static final Long GBsINKB = 1048576L;
 
     @Deprecated
     public static SMISProviderRestRep mapStorageProviderToSMISRep(StorageProvider from) {
@@ -199,26 +201,29 @@ public class SystemsMapper {
         to.setTaggedVirtualArrays(from.getTaggedVirtualArrays());
 
         to.setStorageDeviceURI(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageDeviceURI()));
-
+        DecimalFormat df = new DecimalFormat("0.00");
         // Set the metrics!!!
-        to.setMaxStorageCapacity(MetricsKeys.getLong(MetricsKeys.maxStorageCapacity, from.getMetrics()).toString());
+        Double maxStorageCapacity = MetricsKeys.getDouble(MetricsKeys.maxStorageCapacity, from.getMetrics()) / GBsINKB;
+        to.setMaxStorageCapacity(df.format(maxStorageCapacity));
         to.setMaxStorageObjects(MetricsKeys.getLong(MetricsKeys.maxStorageObjects, from.getMetrics()).toString());
 
         to.setStorageObjects(MetricsKeys.getLong(MetricsKeys.storageObjects, from.getMetrics()).toString());
-        to.setUsedStorageCapacity(MetricsKeys.getLong(MetricsKeys.usedStorageCapacity, from.getMetrics()).toString());
+        Double usedStorageCapacity = MetricsKeys.getDouble(MetricsKeys.usedStorageCapacity, from.getMetrics()) / GBsINKB;
+        to.setUsedStorageCapacity(usedStorageCapacity.toString());
         Double percentLoad = MetricsKeys.getDoubleOrNull(MetricsKeys.percentLoad, from.getMetrics());
         if (percentLoad != null) {
-            to.setPercentLoad(percentLoad.toString());
+            to.setPercentLoad(df.format(percentLoad));
         }
         to.setIsOverloaded(MetricsKeys.getBoolean(MetricsKeys.overLoaded, from.getMetrics()));
 
         Double percentBusy = MetricsKeys.getDoubleOrNull(MetricsKeys.emaPercentBusy, from.getMetrics());
         if (percentBusy != null) {
-            to.setAvgEmaPercentagebusy(percentBusy.toString());
+
+            to.setAvgEmaPercentagebusy(df.format(percentBusy));
         }
         percentBusy = MetricsKeys.getDoubleOrNull(MetricsKeys.avgPortPercentBusy, from.getMetrics());
         if (percentBusy != null) {
-            to.setAvgPercentagebusy(percentBusy.toString());
+            to.setAvgPercentagebusy(df.format(percentBusy));
         }
 
         return to;

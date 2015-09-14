@@ -103,8 +103,6 @@ public class ComputeImageServers extends AbstractCoreBulkResources<ComputeImageS
      * @return a task for monitoring the progress of the operation.
      */
     public Task<ComputeImageServerRestRep> create(ComputeImageServerCreate input) {
-        System.out.println("ComputeImageServerCreate input " + input.getTftpbootDir());
-
         return postTask(input, baseUrl);
     }
 

@@ -113,6 +113,7 @@ public class ExportProcessor extends Processor {
             _rpPortInitiators = RPHelper.getBackendPortInitiators(_dbClient);
             _keyMap.put(Constants.UNMANAGED_EXPORT_MASKS_RECOVERPOINT_INITS_SET, _rpPortInitiators);
         }
+    }
 
     /*
      * (non-Javadoc)

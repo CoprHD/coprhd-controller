@@ -5,6 +5,8 @@
 
 package com.emc.storageos.db.client.model;
 
+import java.net.URI;
+
 import com.emc.storageos.model.valid.EnumType;
 
 /**

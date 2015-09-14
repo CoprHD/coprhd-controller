@@ -23,6 +23,7 @@ import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DataObject.Flag;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
@@ -626,19 +627,15 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
                         Network network = _dbClient.queryObject(Network.class, networkURI);
                         StringMap discoveredEndpoints = network.getEndpointsMap();
 
-                        // Create an initiator object (if it does not already exist) for this initiator
-        				List<Initiator> initiators = new ArrayList<Initiator>();
-        				for (String wwn : wwns.keySet()) {
-        					Initiator initiator = new Initiator();
-        					initiator.addInternalFlags(Flag.RECOVERPOINT);
-        					initiator.setHostName(rpSiteName);
-        					initiator.setInitiatorPort(wwn);
-        					initiator.setInitiatorNode(wwns.get(wwn));
-        					initiator.setProtocol("FC");
-        					initiator.setIsManualCreation(false);                    
-        					initiator = getInitiator(initiator);
-        					initiators.add(initiator);
-        				}
+                        // Insert the initiator into the database and mark as RP
+                        Initiator initiator = new Initiator();
+                        initiator.addInternalFlags(Flag.RECOVERPOINT);
+                        initiator.setHostName(site.getInternalSiteName());
+                        initiator.setInitiatorPort(wwn);
+                        initiator.setInitiatorNode(sitesInitiatorWWNS.get(wwn).replaceAll("[^A-Za-z0-9_]", ""));
+                        initiator.setProtocol("FC");
+                        initiator.setIsManualCreation(false);
+                        initiator = getOrCreateNewInitiator(initiator);
                         
                         if (discoveredEndpoints.containsKey(wwn.toUpperCase())) {
                             _log.info("WWN " + wwn + " is in Network : " + network.getLabel());
@@ -683,6 +680,42 @@ public class RPCommunicationInterface extends ExtendedCommunicationInterfaceImpl
         returnList.add(rpSiteArrays);
         result.setObjectList(returnList);
         return result;
+    }
+
+    /**
+     * Get an initiator as specified by the passed initiator data. First checks
+     * if an initiator with the specified port already exists in the database,
+     * and simply returns that initiator, otherwise creates a new initiator.
+     *
+     * @param initiatorParam The data for the initiator.
+     *
+     * @return A reference to an initiator.
+     *
+     * @throws InternalException When an error occurs querying the database.
+     */
+    private Initiator getOrCreateNewInitiator(Initiator initiatorParam)
+            throws InternalException {
+        Initiator initiator = null;
+        URIQueryResultList resultsList = new URIQueryResultList();
+        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(
+                initiatorParam.getInitiatorPort()), resultsList);
+        Iterator<URI> resultsIter = resultsList.iterator();
+        if (resultsIter.hasNext()) {
+            initiator = _dbClient.queryObject(Initiator.class, resultsIter.next());
+            // If the hostname has been changed then we need to update the
+            // Initiator object to reflect that change.
+            if (NullColumnValueGetter.isNotNullValue(initiator.getHostName())
+                    && !initiator.getHostName().equals(initiatorParam.getHostName())) {
+                initiator.setHostName(initiatorParam.getHostName());
+                _dbClient.persistObject(initiator);
+            }
+        } else {
+            initiatorParam.setId(URIUtil.createId(Initiator.class));
+            _dbClient.createObject(initiatorParam);
+            initiator = initiatorParam;
+        }
+
+        return initiator;
     }
 
     /**

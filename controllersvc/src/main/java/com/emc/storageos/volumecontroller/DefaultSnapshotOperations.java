@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.volumecontroller;
 
 import java.net.URI;
@@ -6,11 +10,6 @@ import java.util.List;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.DeviceControllerException;
-
-/*
- * Copyright (c) 2015 EMC Corporation
- * All Rights Reserved
- */
 
 /*
  * Default implementation of SnapshotOperations, so that subclass can just overwrite necessary methods.

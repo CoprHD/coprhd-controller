@@ -1509,7 +1509,8 @@ class Bourne:
 
     def cos_match(self, type, useMatchedPools,
                    protocols, numpaths, highavailability, haNhUri, haCosUri, activeProtectionAtHASite, metropoint, file_cos, provisionType,
-                   mirrorCosUri, neighborhoods, expandable, sourceJournalSize, protectionCoS,
+                   mirrorCosUri, neighborhoods, expandable, sourceJournalSize, journalVarray, journalVpool, standbyJournalVarray, 
+                   standbyJournalVpool, rp_copy_mode, rp_rpo_value, rp_rpo_type, protectionCoS,
                    multiVolumeConsistency, max_snapshots, max_mirrors, thin_volume_preallocation_percentage,
                    system_type, srdf):
 

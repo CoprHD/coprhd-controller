@@ -400,20 +400,20 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 && (accessProfile.getnamespace()
                         .equals(StorageSystem.Discovery_Namespaces.UNMANAGED_VOLUMES
                                 .toString()))) {
-            
+
             try {
                 VPlexApiClient client = getVPlexAPIClient(accessProfile);
 
                 long timer = System.currentTimeMillis();
                 UnmanagedDiscoveryPerformanceTracker tracker = new UnmanagedDiscoveryPerformanceTracker();
-                
+
                 tracker.discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(
                         _coordinator, VplexBackendIngestionContext.DISCOVERY_MODE);
-                
+
                 Map<String, VPlexVirtualVolumeInfo> vvolMap = client.getVirtualVolumes(true);
                 tracker.virtualVolumeFetch = System.currentTimeMillis() - timer;
                 tracker.totalVolumesFetched = vvolMap.size();
-                
+
                 timer = System.currentTimeMillis();
                 Map<String, Set<UnManagedExportMask>> volumeToExportMasksMap = new HashMap<String, Set<UnManagedExportMask>>();
                 discoverUnmanagedStorageViews(accessProfile, client, vvolMap, volumeToExportMasksMap);
@@ -422,7 +422,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 timer = System.currentTimeMillis();
                 discoverUnmanagedVolumes(accessProfile, client, vvolMap, volumeToExportMasksMap, tracker);
                 tracker.unmanagedVolumeProcessing = System.currentTimeMillis() - timer;
-                
+
                 s_logger.info(tracker.getPerformanceReport());
             } catch (URISyntaxException ex) {
                 s_logger.error(ex.getLocalizedMessage());
@@ -571,7 +571,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                     String discoveryFilter = ControllerUtils
                             .getPropertyValueFromCoordinator(
                                     _coordinator, VplexBackendIngestionContext.DISCOVERY_FILTER);
-                    if ((discoveryFilter != null && !discoveryFilter.isEmpty()) 
+                    if ((discoveryFilter != null && !discoveryFilter.isEmpty())
                             && !(name.matches(discoveryFilter))) {
                         s_logger.warn("name {} doesn't match discovery filter {}", name, discoveryFilter);
                         continue;
@@ -654,11 +654,11 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                         s_logger.info("Virtual Volume {} is already managed by "
                                 + "ViPR as Volume URI {}", name, managedVolume.getId());
                     }
-                    
+
                     tracker.volumeTimeResults.put(name, System.currentTimeMillis() - timer);
                     tracker.totalVolumesDiscovered++;
-                    
-                    s_logger.info("estimated discovery time remaining: " + 
+
+                    s_logger.info("estimated discovery time remaining: " +
                             tracker.getDiscoveryTimeRemaining());
                 }
             } else {
@@ -908,7 +908,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
         // add this info to the unmanaged volume object
         volume.setVolumeCharacterstics(unManagedVolumeCharacteristics);
         volume.addVolumeInformation(unManagedVolumeInformation);
-        
+
         String discoveryMode = ControllerUtils.getPropertyValueFromCoordinator(
                 _coordinator, VplexBackendIngestionContext.DISCOVERY_MODE);
         if (!VplexBackendIngestionContext.DISCOVERY_MODE_INGESTION_ONLY.equals(discoveryMode)) {
@@ -917,10 +917,10 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 context.discover();
                 s_logger.info(context.getPerformanceReport());
             } catch (Exception ex) {
-                s_logger.warn("error discovering backend structure for {}: ", 
+                s_logger.warn("error discovering backend structure for {}: ",
                         volume.getNativeGuid(), ex);
                 // no need to throw further
-    }
+            }
         }
     }
 
@@ -1172,9 +1172,13 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
                 }
 
                 s_logger.info("now discovering storage volumes in storage view " + storageView.getName());
-                for (String volumeName : storageView.getVirtualVolumes()) {
+                for (String volumeNameStr : storageView.getVirtualVolumes()) {
+                    s_logger.info("found volume " + volumeNameStr);
+                    // volumeNameStr contains value like
+                    // (161,dd_V000195701573-00D57_VAPM00140801303-00614_vol,VPD83T3:6000144000000010f07dc46a0717e61d,2G)
+                    String[] tokens = volumeNameStr.split(",");
+                    String volumeName = tokens[1];
 
-                    s_logger.info("found volume " + volumeName);
                     VPlexVirtualVolumeInfo vvol = vvolMap.get(volumeName);
                     Volume volume = findVirtualVolumeManagedByVipr(vvol);
 
@@ -1884,7 +1888,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
 
         /**
          * Returns an estimate of the time remaining for discovery based on the total
-         * number of volumes to be discovered and the average single volume discovery 
+         * number of volumes to be discovered and the average single volume discovery
          * time to the point this method is called.
          * 
          * @return an estimate of time remaining for discovery
@@ -1925,7 +1929,7 @@ public class VPlexCommunicationInterface extends ExtendedCommunicationInterfaceI
             for (Map.Entry<K, V> entry : listOfEntries) {
                 sortedMap.put(entry.getKey(), entry.getValue());
             }
-            
+
             return sortedMap;
         }
     }

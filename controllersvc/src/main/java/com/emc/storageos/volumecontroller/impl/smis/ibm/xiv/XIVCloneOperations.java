@@ -29,6 +29,7 @@ import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.volumecontroller.CloneOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.CloneCreateCompleter;
+import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.smis.SmisConstants;
 import com.emc.storageos.volumecontroller.impl.smis.SmisException;
 import com.emc.storageos.volumecontroller.impl.smis.ibm.IBMCIMObjectPathFactory;
@@ -148,6 +149,7 @@ public class XIVCloneOperations implements CloneOperations {
         _log.info("START detachSingleClone operation");
         // no operation, set to ready
         Volume clone = _dbClient.queryObject(Volume.class, cloneVolume);
+        ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(clone, _dbClient);
         clone.setReplicaState(ReplicationState.DETACHED.name());
         clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
         _dbClient.persistObject(clone);

@@ -17,6 +17,7 @@ import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.ComputeBootDef;
 import com.emc.storageos.db.client.model.ComputeBootPolicy;
@@ -79,6 +80,7 @@ public interface ContainmentConstraint extends Constraint {
         private static final String FILE_SYSTEM_ID = "fileSystemId";
         private static final String PROJECT = "project";
         private static final String STORAGE_DEVICE = "storageDevice";
+        private static final String COMPUTE_IMAGESERVER_ID = "computeImageServerId";
 
         public static ContainmentConstraint getTenantOrgProjectConstraint(URI tenantOrg) {
             DataObjectType doType = TypeMap.getDoType(Project.class);
@@ -128,6 +130,11 @@ public interface ContainmentConstraint extends Constraint {
             return new ContainmentConstraintImpl(project, FileShare.class, field);
         }
 
+        public static ContainmentConstraint getProjectBucketConstraint(URI project) {
+            DataObjectType doType = TypeMap.getDoType(Bucket.class);
+            ColumnField field = doType.getColumnField(PROJECT);
+            return new ContainmentConstraintImpl(project, Bucket.class, field);
+        }
         public static ContainmentConstraint getStoragePoolFileshareConstraint(URI pool) {
             DataObjectType doType = TypeMap.getDoType(FileShare.class);
             ColumnField field = doType.getColumnField("pool");
@@ -668,6 +675,18 @@ public interface ContainmentConstraint extends Constraint {
             DataObjectType doType = TypeMap.getDoType(FileShare.class);
             ColumnField field = doType.getColumnField("storagePort");
             return new ContainmentConstraintImpl(storagePort, FileShare.class, field);
+        }
+
+        /**
+         * method to return ContainmentConstraint between {@link ComputeImageJob} and {@link ComputeImageServer}
+         * 
+         * @param imageServerURI {@link URI} imagerServer URI
+         * @return {@link ContainmentConstraint}
+         */
+        public static ContainmentConstraint getComputeImageJobsByComputeImageServerConstraint(URI imageServerURI) {
+            DataObjectType doType = TypeMap.getDoType(ComputeImageJob.class);
+            ColumnField field = doType.getColumnField(COMPUTE_IMAGESERVER_ID);
+            return new ContainmentConstraintImpl(imageServerURI, ComputeImageJob.class, field);
         }
     }
 }

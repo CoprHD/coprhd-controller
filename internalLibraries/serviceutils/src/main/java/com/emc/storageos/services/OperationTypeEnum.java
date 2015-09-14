@@ -138,6 +138,10 @@ public enum OperationTypeEnum {
     ASSIGN_FILE_SNAPSHOT_TAG("TAG A FILESYSTEM SNAPSHOT", "", "tag a fileshare snapshot"),
     DELETE_FILE_SNAPSHOT_SHARE("FileSystemSnapshotShareDeleted", "FileSystemSnapshotShareDeleteFailed", "FileSystem snapshot share deleted"),
     RESTORE_FILE_SNAPSHOT("FileSystemRestored", "FileSystemRestoreFailed", "FileSystem restored"),
+    
+    CREATE_BUCKET("BucketCreated", "BucketCreateFailed", "Bucket created"),
+    DELETE_BUCKET("BucketDeleted", "BucketDeleteFailed", "Bucket deleted"),
+    UPDATE_BUCKET("BucketUpdated", "BucketUpdateFailed", "Bucket updated"),
 
     STORAGE_PORT_REGISTER("StoragePortRegistered", "", "Storage Port Registered"),
     STORAGE_PORT_DEREGISTER("StoragePortUnregistered", "", "Storage Port Unregistered"),
@@ -386,7 +390,10 @@ public enum OperationTypeEnum {
     UPDATE_USERGROUP("UPDATE USER GROUP", "", "operation to update a user group."),
     DELETE_USERGROUP("DELETE USER GROUP", "", "operation to delete a user group."),
     ADD_JOURNAL_VOLUME("ADD JOURNAL VOLUME", "", "operation to add a journal volume"),
-    ArrayGeneric("", "", "");
+    ArrayGeneric("", "", ""),
+    IMAGESERVER_VERIFY_IMPORT_IMAGES("IMAGESERVER_VERIFY_IMPORT_IMAGES", "", "operation to verify a compute image server and import images."),
+    UPDATE_VERIFY_COMPUTE_IMAGESERVER("UPDATE AND VERIFY COMPUTE IMAGE SERVER", "", "operation to update and verify a compute image server."),
+    DELETE_COMPUTE_IMAGESERVER("DELETE COMPUTE IMAGE SERVER", "", "operation to delete a compute image server."),;
 
     private final String _evType;
     private final String _fail_evType;

@@ -13,6 +13,7 @@ import static com.emc.storageos.model.ResourceTypeEnum.BLOCK_VPOOL;
 import static com.emc.storageos.model.ResourceTypeEnum.CLUSTER;
 import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_ELEMENT;
 import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_IMAGE;
+import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_IMAGESERVER;
 import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_SYSTEM;
 import static com.emc.storageos.model.ResourceTypeEnum.COMPUTE_VPOOL;
 import static com.emc.storageos.model.ResourceTypeEnum.CUSTOM_CONFIG;
@@ -55,6 +56,8 @@ import static com.emc.storageos.model.ResourceTypeEnum.VPLEX_MIRROR;
 import static com.emc.storageos.model.ResourceTypeEnum.VPOOL;
 import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW;
 import static com.emc.storageos.model.ResourceTypeEnum.WORKFLOW_STEP;
+import static com.emc.storageos.model.ResourceTypeEnum.BUCKET;
+import static com.emc.storageos.model.ResourceTypeEnum.OBJECT_VPOOL;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -67,9 +70,11 @@ import com.emc.storageos.db.client.model.AutoTieringPolicy;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.Cluster;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeImage;
+import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeSystem;
 import com.emc.storageos.db.client.model.ComputeVirtualPool;
 import com.emc.storageos.db.client.model.CustomConfig;
@@ -124,12 +129,14 @@ public class ResourceTypeMapping {
     static {
         classMapping.put(FILE, FileShare.class);
         classMapping.put(VOLUME, Volume.class);
+        classMapping.put(BUCKET, Bucket.class);
         classMapping.put(PROJECT, Project.class);
         classMapping.put(TENANT, TenantOrg.class);
         // TODO: Conflict between VPOOL types
         classMapping.put(VPOOL, VirtualPool.class);
         classMapping.put(BLOCK_VPOOL, VirtualPool.class);
         classMapping.put(FILE_VPOOL, VirtualPool.class);
+        classMapping.put(OBJECT_VPOOL, VirtualPool.class);
         classMapping.put(VARRAY, VirtualArray.class);
         classMapping.put(STORAGE_SYSTEM, StorageSystem.class);
         classMapping.put(STORAGE_POOL, StoragePool.class);
@@ -174,6 +181,7 @@ public class ResourceTypeMapping {
         classMapping.put(SYS_EVENT, SysEvent.class);
         classMapping.put(USER_GROUP, UserGroup.class);
         classMapping.put(VIRTUAL_NAS, VirtualNAS.class);
+        classMapping.put(COMPUTE_IMAGESERVER, ComputeImageServer.class);
 
         for (Map.Entry<ResourceTypeEnum, Class<? extends DataObject>> entry : classMapping.entrySet()) {
             resourceMapping.put(entry.getValue(), entry.getKey());

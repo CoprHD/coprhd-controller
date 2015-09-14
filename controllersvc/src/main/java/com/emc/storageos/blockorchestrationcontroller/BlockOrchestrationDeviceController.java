@@ -214,8 +214,7 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         } catch (Exception ex) {
             s_logger.error("Could not expand volume: " + volUris, toString(), ex);
             String opName = ResourceOperationTypeEnum.EXPAND_BLOCK_VOLUME.getName();
-            ServiceError serviceError =
-                    DeviceControllerException.errors.expandVolumeFailed(volUris.toString(), opName, ex);
+            ServiceError serviceError = DeviceControllerException.errors.expandVolumeFailed(volUris.toString(), opName, ex);
             completer.error(s_dbClient, _locker, serviceError);
         }
     }
@@ -398,26 +397,26 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
         // Get the list of descriptors needed for post change virtual pool operations on RP.
         List<VolumeDescriptor> rpVolumeDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
                 new VolumeDescriptor.Type[] {
-                VolumeDescriptor.Type.RP_EXISTING_SOURCE,
+                        VolumeDescriptor.Type.RP_EXISTING_SOURCE,
                 }, null);
 
         // If no volume descriptors match, just return
         if (rpVolumeDescriptors.isEmpty()) {
             return waitFor;
         }
-        
+
         // We could be performing a change vpool for RP+VPLEX / MetroPoint. This means
         // we could potentially have migrations that need to be done on the backend
         // volumes. If migration info exists we need to collect that ahead of time.
-        List<URI> volumesWithMigration = new ArrayList<URI>(); 
-        if (volumeDescriptors != null) {        
+        List<URI> volumesWithMigration = new ArrayList<URI>();
+        if (volumeDescriptors != null) {
             List<VolumeDescriptor> migrateDescriptors = VolumeDescriptor.filterByType(volumeDescriptors,
-                    new VolumeDescriptor.Type[] { VolumeDescriptor.Type.VPLEX_MIGRATE_VOLUME }, null );
-            
+                    new VolumeDescriptor.Type[] { VolumeDescriptor.Type.VPLEX_MIGRATE_VOLUME }, null);
+
             if (migrateDescriptors != null && !migrateDescriptors.isEmpty()) {
                 s_logger.info("Data Migration detected, this is due to a change virtual pool operation on RP+VPLEX or MetroPoint.");
                 // Load the migration objects for use later
-                Iterator<VolumeDescriptor> migrationIter = migrateDescriptors.iterator();                
+                Iterator<VolumeDescriptor> migrationIter = migrateDescriptors.iterator();
                 while (migrationIter.hasNext()) {
                     Migration migration = s_dbClient.queryObject(Migration.class, migrationIter.next().getMigrationId());
                     volumesWithMigration.add(migration.getSource());
@@ -448,19 +447,19 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
                 // This is OK.
                 for (String assocVolumeId : rpExistingSource.getAssociatedVolumes()) {
                     Volume assocVolume = s_dbClient.queryObject(Volume.class, URI.create(assocVolumeId));
-                    
-                    // If there is a migration for this backing volume, we don't have to 
-                    // do any extra steps for ensuring that this volume gets gets added to the backing array CG 
-                    // because the migration volume will trump this volume. This volume will eventually be 
+
+                    // If there is a migration for this backing volume, we don't have to
+                    // do any extra steps for ensuring that this volume gets gets added to the backing array CG
+                    // because the migration volume will trump this volume. This volume will eventually be
                     // deleted so let's skip it.
                     if (volumesWithMigration.contains(assocVolume.getId())) {
                         s_logger.info(String.format("Migration exists for [%s] so no need to add this volume to a backing array CG.",
                                 assocVolume.getLabel()));
                         continue;
                     }
-                    
+
                     // Create the BLOCK_DATA descriptor with the correct info
-                    // for creating the CG and adding the backing volume to it.                    
+                    // for creating the CG and adding the backing volume to it.
                     VolumeDescriptor blockDataDesc = new VolumeDescriptor(VolumeDescriptor.Type.BLOCK_DATA,
                             assocVolume.getStorageController(), assocVolume.getId(), null,
                             rpExistingSource.getConsistencyGroup(), descr.getCapabilitiesValues());
@@ -480,7 +479,8 @@ public class BlockOrchestrationDeviceController implements BlockOrchestrationCon
 
         if (!blockDataDescriptors.isEmpty()) {
             // Add a step to create the local array consistency group
-            waitFor = _blockDeviceController.addStepsForCreateConsistencyGroup(workflow, waitFor, blockDataDescriptors, "postRPChangeVpoolCreateCG");
+            waitFor = _blockDeviceController.addStepsForCreateConsistencyGroup(workflow, waitFor, blockDataDescriptors,
+                    "postRPChangeVpoolCreateCG");
 
             // Add a step to update the local array consistency group with the volumes to add
             waitFor = _blockDeviceController.addStepsForAddToConsistencyGroup(workflow, waitFor, blockDataDescriptors);

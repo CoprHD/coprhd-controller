@@ -209,7 +209,7 @@ public class SystemsMapper {
 
         to.setStorageObjects(MetricsKeys.getLong(MetricsKeys.storageObjects, from.getMetrics()).toString());
         Double usedStorageCapacity = MetricsKeys.getDouble(MetricsKeys.usedStorageCapacity, from.getMetrics()) / GBsINKB;
-        to.setUsedStorageCapacity(usedStorageCapacity.toString());
+        to.setUsedStorageCapacity(df.format(usedStorageCapacity));
         Double percentLoad = MetricsKeys.getDoubleOrNull(MetricsKeys.percentLoad, from.getMetrics());
         if (percentLoad != null) {
             to.setPercentLoad(df.format(percentLoad));

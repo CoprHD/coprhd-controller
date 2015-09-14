@@ -1,0 +1,58 @@
+{
+  baseKey:"ObjectStorageService.CreateBucket",
+  serviceId:"CreateBucket",
+  fields:{
+
+    virtualArray:{
+      type:"assetType.vipr.virtualArray",
+      lockable:true
+    },
+    
+    virtualPool:{
+      type:"assetType.vipr.objectVirtualPool",
+      lockable:true
+    },
+    
+    project:{
+      type:"assetType.vipr.project",
+      lockable: true
+    }, 
+    
+    name:{
+        type:"text",
+        validation:{
+            min:2,
+            max:128
+        }
+    },
+    
+    softQuota:{
+        type:"number",
+        validation:{
+            min:1
+        }
+    },
+    
+    hardQuota:{
+        type:"number",
+        validation:{
+            min:1
+        }
+    },
+    
+    retention:{
+        type:"number",
+        validation:{
+            min:0
+        }
+    },
+    
+    owner:{
+        type:"text",
+        validation:{
+            min:2,
+            max:128
+        }
+    }
+  }
+}

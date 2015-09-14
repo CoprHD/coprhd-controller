@@ -2381,6 +2381,15 @@ public interface BadRequestExceptions {
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException storagePoolsRequireVplexForProtection(final String personality, final String vpoolName);
 
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException invalidQuotaRequestForObjectStorage(String type);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException virtualPoolNotForObjectStorage(String type);
+
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException insufficientRetentionForVirtualPool(final String label, final String type);
+
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException consistencyGroupContainsNoVolumes(final URI id);
 
@@ -2427,6 +2436,9 @@ public interface BadRequestExceptions {
     public BadRequestException vNasServersNotAssociatedToProject();
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cannotDeleteOrUpdateImageServerWhileInUse();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException noExistingVolumesInCG(final String cgName);
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
@@ -2446,4 +2458,17 @@ public interface BadRequestExceptions {
 
     @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
     public BadRequestException fullCopyNotAllowedWhenCGAcrossMultipleSystems();
+
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException cantAddMixVolumesToIngestedCG(final String cgName);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException notAllVolumesAddedToIngestedCG(final String cgName);
+    
+    @DeclareServiceCode(ServiceCode.API_BAD_REQUEST)
+    public BadRequestException fullCopyNotAllowedForIngestedCG(final String uri);
+
+    
+    @DeclareServiceCode(ServiceCode.API_PARAMETER_INVALID)
+    public BadRequestException imageNotPresentOnComputeImageServer(final String computeImage, final String computeImageServer);
 }

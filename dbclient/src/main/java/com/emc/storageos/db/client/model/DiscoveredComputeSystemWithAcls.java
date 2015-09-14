@@ -24,7 +24,7 @@ import java.util.Set;
 public abstract class DiscoveredComputeSystemWithAcls extends AbstractDiscoveredTenantResource implements Serializable {
     private static final long serialVersionUID = 2131442061913781875L;
 
-    protected final static Logger _log = LoggerFactory.getLogger(DiscoveredComputeSystemWithAcls.class);
+    protected static final Logger _log = LoggerFactory.getLogger(DiscoveredComputeSystemWithAcls.class);
 
     @Deprecated
     private URI _tenant;

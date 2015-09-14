@@ -14,10 +14,10 @@ public class XtremIOTag {
     @SerializedName("num-of-vols")
     @JsonProperty(value = "num-of-vols")
     private String numberOfVolumes;
-    
+
     @SerializedName("num-of-direct-objs")
     @JsonProperty(value = "num-of-direct-objs")
-    private String numberOfIGs;
+    private String numberOfDirectObjs;
 
     public String getNumberOfVolumes() {
         return numberOfVolumes;
@@ -26,12 +26,12 @@ public class XtremIOTag {
     public void setNumberOfVolumes(String numberOfVolumes) {
         this.numberOfVolumes = numberOfVolumes;
     }
-    
-    public String getNumberOfIGs() {
-        return numberOfIGs;
+
+    public String getNumberOfDirectObjs() {
+        return numberOfDirectObjs;
     }
 
-    public void setNumberOfIGs(String numberOfIGs) {
-        this.numberOfIGs = numberOfIGs;
+    public void setNumberOfDirectObjs(String numberOfDirectObjs) {
+        this.numberOfDirectObjs = numberOfDirectObjs;
     }
 }

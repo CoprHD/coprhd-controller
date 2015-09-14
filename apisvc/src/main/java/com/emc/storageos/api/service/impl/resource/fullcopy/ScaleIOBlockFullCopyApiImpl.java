@@ -107,8 +107,7 @@ public class ScaleIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     protected void verifyCGVolumeRequestCount(int count) {
-        // Do nothing here. scaleio only supports clone of single volume,
-        // thus no full copy count restriction in ViPR.
+        super.verifyCGVolumeRequestCount(count);
     }
 
     /**
@@ -116,7 +115,6 @@ public class ScaleIOBlockFullCopyApiImpl extends DefaultBlockFullCopyApiImpl {
      */
     @Override
     protected void verifyCGSnapshotRequest() {
-        // Do nothing here. scaleIO only supports clone of single volume,
-        // this includes clone of snapshot of volume in a CG.
+        super.verifyCGSnapshotRequest();
     }
 }

@@ -17,6 +17,7 @@ import com.emc.storageos.model.tenant.*;
 import com.emc.storageos.model.user.UserInfo;
 import com.emc.storageos.model.usergroup.*;
 import com.sun.jersey.api.client.ClientResponse;
+import org.apache.commons.httpclient.HttpStatus;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -37,25 +38,32 @@ import java.util.Iterator;
  * ApiTestUserGroup class to exercise the core api functionality of User Group.
  */
 public class ApiTestUserGroup extends ApiTestBase {
-    private final String TEST_API = "/vdc/admin/user-groups";
-    private final String TEST_EDIT_API = TEST_API + "/%s";
-    private final String TEST_BULK_API = TEST_API + "/bulk";
-    private final String TEST_TAGS_API = TEST_API + "/tags";
-    private final String TEST_VDC_ROLE_ASSIGNMENT_API = "/vdc/role-assignments";
-    private final String TEST_USER_WHOAMI_API = "/user/whoami";
-    private final String TEST_GET_PROJECT_API = "/projects/%s";
-    private final String TEST_PROJECT_ACL_ASSIGNMENTS_API = "/projects/%s/acl";
-    private final String TEST_PROJECT_DELETE_API = "/projects/%s/deactivate";
+    private static final String TEST_API = "/vdc/admin/user-groups";
+    private static final String TEST_EDIT_API = TEST_API + "/%s";
+    private static final String TEST_BULK_API = TEST_API + "/bulk";
+    private static final String TEST_VDC_ROLE_ASSIGNMENT_API = "/vdc/role-assignments";
+    private static final String TEST_USER_WHOAMI_API = "/user/whoami";
+    private static final String TEST_GET_PROJECT_API = "/projects/%s";
+    private static final String TEST_PROJECT_ACL_ASSIGNMENTS_API = "/projects/%s/acl";
+    private static final String TEST_PROJECT_DELETE_API = "/projects/%s/deactivate";
 
-    private final String TEST_DEFAULT_USER_GROUP_NAME = "Depart_Dev";
-    private final String[] TEST_DEFAULT_VDC_ROLES = { "SYSTEM_ADMIN", "SECURITY_ADMIN", "SYSTEM_MONITOR", "SYSTEM_AUDITOR" };
-    private final String[] TEST_DEFAULT_TENANT_ROLES = { "TENANT_ADMIN", "PROJECT_ADMIN", "TENANT_APPROVER" };
-    private final String[] TEST_DEFAULT_ACLS = { "ALL", "BACKUP", "USE", "OWN" };
+    private static final String TEST_DEFAULT_USER_GROUP_NAME = "Depart_Dev";
+    private static final String[] TEST_DEFAULT_VDC_ROLES = { "SYSTEM_ADMIN", "SECURITY_ADMIN", "SYSTEM_MONITOR", "SYSTEM_AUDITOR" };
+    private static final String[] TEST_DEFAULT_TENANT_ROLES = { "TENANT_ADMIN", "PROJECT_ADMIN", "TENANT_APPROVER" };
+    private static final String[] TEST_DEFAULT_ACLS = { "ALL", "BACKUP", "USE", "OWN" };
+
+    private static final String DEFAULT_AUTH_PROVIDER_CREATION = "Default Authn Provider creation";
+    private static final String NEW_NAME = "NewName";
+    private static final String OPERATION_NOT_ALLOWED = "Operation not allowed. Overlapping attributes found between %s and [%s]";
+    private static final String RANDOM_KEY = "RandomKey";
+    private static final String RANDOM_VALUE_1 = "RandomValue1";
+    private static final String RANDOM_VALUE_2 = "RandomValue2";
+    private static final String ERROR_INSUFFICIENT_PERMISSION_FOR_USER = "Insufficient permissions for user %s";
 
     private String authnProviderDomain = null;
     private ApiTestAuthnProviderUtils apiTestAuthnProviderUtils = new ApiTestAuthnProviderUtils();;
     private ApiTestTenants apiTestTenants = new ApiTestTenants();
-    private LinkedList<CleanupResource> _cleanupResourceList = null;
+    private List<CleanupResource> _cleanupResourceList = null;
 
     @Before
     public void setUp() throws Exception {
@@ -158,7 +166,7 @@ public class ApiTestUserGroup extends ApiTestBase {
         String userGroupDeleteApi = getTestEditApi(id);
         ClientResponse clientResponseUserGroupDelete = rSys.path(userGroupDeleteApi).delete(ClientResponse.class);
 
-        Assert.assertEquals(400, clientResponseUserGroupDelete.getStatus());
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, clientResponseUserGroupDelete.getStatus());
 
         final String partialExpectedErrorString = "Deleting or editing the domain of an user group is not allowed because";
         final ServiceErrorRestRep actualErrorMsg = clientResponseUserGroupDelete.getEntity(ServiceErrorRestRep.class);
@@ -175,7 +183,7 @@ public class ApiTestUserGroup extends ApiTestBase {
 
         ClientResponse clientResponseUserGroupEdit = rSys.path(editApi).put(ClientResponse.class, updateParam);
 
-        Assert.assertEquals(400, clientResponseUserGroupEdit.getStatus());
+        Assert.assertEquals(HttpStatus.SC_BAD_REQUEST, clientResponseUserGroupEdit.getStatus());
 
         final String partialExpectedErrorString = "Deleting or editing the domain of an user group is not allowed because";
         final ServiceErrorRestRep actualErrorMsg = clientResponseUserGroupEdit.getEntity(ServiceErrorRestRep.class);
@@ -190,7 +198,7 @@ public class ApiTestUserGroup extends ApiTestBase {
 
         ClientResponse clientResponseUserGroupEdit = rSys.path(editApi).put(ClientResponse.class, updateParam);
 
-        Assert.assertEquals(200, clientResponseUserGroupEdit.getStatus());
+        Assert.assertEquals(HttpStatus.SC_OK, clientResponseUserGroupEdit.getStatus());
     }
 
     UserGroup buildUserGroupFromRestRep(UserGroupRestRep restRep) {
@@ -223,7 +231,7 @@ public class ApiTestUserGroup extends ApiTestBase {
 
     // Function to validate the Authn provider creation and add resource to the cleanup list.
     private void validateAuthnProviderCreateSuccess(AuthnProviderRestRep resp, int status) {
-        Assert.assertEquals(200, status);
+        Assert.assertEquals(HttpStatus.SC_OK, status);
 
         // Add the created authnprovider to cleanup list, so that at the end of this test
         // the resource will be destroyed.
@@ -234,7 +242,7 @@ public class ApiTestUserGroup extends ApiTestBase {
     }
 
     private UserGroupRestRep validateUserGroupCreateSuccess(UserGroupCreateParam expected, ClientResponse actual) {
-        Assert.assertEquals(200, actual.getStatus());
+        Assert.assertEquals(HttpStatus.SC_OK, actual.getStatus());
 
         UserGroupRestRep resp = actual.getEntity(UserGroupRestRep.class);
         Assert.assertNotNull(resp);
@@ -258,7 +266,7 @@ public class ApiTestUserGroup extends ApiTestBase {
     private void validateUserGroupEditSuccess(UserGroup userGroup,
             UserGroupUpdateParam expected,
             ClientResponse actual) {
-        Assert.assertEquals(200, actual.getStatus());
+        Assert.assertEquals(HttpStatus.SC_OK, actual.getStatus());
 
         UserGroupRestRep resp = actual.getEntity(UserGroupRestRep.class);
         Assert.assertNotNull(resp);
@@ -271,7 +279,7 @@ public class ApiTestUserGroup extends ApiTestBase {
     }
 
     private BulkIdParam validateUserGroupBulkGetSuccess(ClientResponse actual, long expectedIDCount) {
-        Assert.assertEquals(200, actual.getStatus());
+        Assert.assertEquals(HttpStatus.SC_OK, actual.getStatus());
 
         BulkIdParam resp = actual.getEntity(BulkIdParam.class);
         Assert.assertNotNull(resp);
@@ -282,7 +290,7 @@ public class ApiTestUserGroup extends ApiTestBase {
     }
 
     private void validateUserGroupBulkPostSuccess(ClientResponse actual, long expectedIDCount) {
-        Assert.assertEquals(200, actual.getStatus());
+        Assert.assertEquals(HttpStatus.SC_OK, actual.getStatus());
 
         UserGroupBulkRestRep resp = actual.getEntity(UserGroupBulkRestRep.class);
         Assert.assertNotNull(resp);
@@ -298,8 +306,7 @@ public class ApiTestUserGroup extends ApiTestBase {
         Assert.assertTrue(actualErrorMsg.getDetailedMessage().contains(expectedErrorMsg));
     }
 
-    private void validateVDCRoleAssignmentsSuccess(RoleAssignments actual, String expectedEntity,
-            List<String> expectedRoles, boolean isGroup) {
+    private void validateVDCRoleAssignmentsSuccess(RoleAssignments actual, String expectedEntity, boolean isGroup) {
         Assert.assertNotNull(actual);
         Assert.assertFalse(CollectionUtils.isEmpty(actual.getAssignments()));
 
@@ -339,8 +346,7 @@ public class ApiTestUserGroup extends ApiTestBase {
         Assert.assertFalse(found);
     }
 
-    private void validateACLAssignmentsSuccess(ACLAssignments actual, String expectedEntity,
-            List<String> expectedRoles, boolean isGroup) {
+    private void validateACLAssignmentsSuccess(ACLAssignments actual, String expectedEntity, boolean isGroup) {
         Assert.assertNotNull(actual);
         Assert.assertFalse(CollectionUtils.isEmpty(actual.getAssignments()));
 
@@ -414,10 +420,6 @@ public class ApiTestUserGroup extends ApiTestBase {
         return TEST_BULK_API;
     }
 
-    private String getTestTagsApi() {
-        return TEST_TAGS_API;
-    }
-
     private String getAuthnProviderCreateApi() {
         return apiTestAuthnProviderUtils.getAuthnProviderBaseURL();
     }
@@ -470,28 +472,12 @@ public class ApiTestUserGroup extends ApiTestBase {
         return TEST_DEFAULT_USER_GROUP_NAME;
     }
 
-    private Set<String> getDefaultAttributeKeys() {
-        return apiTestAuthnProviderUtils.getDefaultAttributeKeys();
-    }
-
-    private Set<String> getDefaultAttributeDepartmentValues() {
-        return apiTestAuthnProviderUtils.getDefaultAttributeDepartmentValues();
-    }
-
-    private Set<String> getDefaultAttributeLocalityValues() {
-        return apiTestAuthnProviderUtils.getDefaultAttributeLocalityValues();
-    }
-
     private List<String> getDefaultVDCRoles() {
         return new ArrayList<>(Arrays.asList(TEST_DEFAULT_VDC_ROLES));
     }
 
     private List<String> getDefaultTenantRoles() {
         return new ArrayList<>(Arrays.asList(TEST_DEFAULT_TENANT_ROLES));
-    }
-
-    private List<String> getDefaultACLs() {
-        return new ArrayList<>(Arrays.asList(TEST_DEFAULT_ACLS));
     }
 
     private String getAttributeKey(int index) {
@@ -583,7 +569,7 @@ public class ApiTestUserGroup extends ApiTestBase {
         tenantUpdate.setLabel(getTenantResp.getName());
 
         ClientResponse resp = rSys.path(getTenantEditApi(tenantId)).put(ClientResponse.class, tenantUpdate);
-        Assert.assertEquals(200, resp.getStatus());
+        Assert.assertEquals(HttpStatus.SC_OK, resp.getStatus());
     }
 
     private void removeTenantUserMapping(URI tenantId, String group) {
@@ -600,7 +586,7 @@ public class ApiTestUserGroup extends ApiTestBase {
         tenantUpdate.setLabel(getTenantResp.getName());
 
         ClientResponse resp = rSys.path(getTenantEditApi(tenantId)).put(ClientResponse.class, tenantUpdate);
-        Assert.assertEquals(200, resp.getStatus());
+        Assert.assertEquals(HttpStatus.SC_OK, resp.getStatus());
     }
 
     private void removeUserMappingGroups(URI tenantId, String group) {
@@ -622,7 +608,7 @@ public class ApiTestUserGroup extends ApiTestBase {
         tenantUpdate.setLabel(getTenantResp.getName());
 
         ClientResponse resp = rSys.path(getTenantEditApi(tenantId)).put(ClientResponse.class, tenantUpdate);
-        Assert.assertEquals(200, resp.getStatus());
+        Assert.assertEquals(HttpStatus.SC_OK, resp.getStatus());
     }
 
     private URI createTestTenant() {
@@ -711,8 +697,7 @@ public class ApiTestUserGroup extends ApiTestBase {
     }
 
     private RoleAssignmentChanges getDefaultVDCRoleAssignmentChanges() {
-        RoleAssignmentChanges roleAssignmentChanges = new RoleAssignmentChanges();
-        return roleAssignmentChanges;
+        return new RoleAssignmentChanges();
     }
 
     private ACLEntry getACLAssignmentEntry(String entity, List<String> acls, boolean isGroup) {
@@ -728,14 +713,13 @@ public class ApiTestUserGroup extends ApiTestBase {
     }
 
     private ACLAssignmentChanges getDefaultACLAssignmentChanges() {
-        ACLAssignmentChanges aclAssignmentChanges = new ACLAssignmentChanges();
-        return aclAssignmentChanges;
+        return new ACLAssignmentChanges();
     }
 
     @Test
     public void testUserGroupCreationWithOutName() {
         final String testName = "testUserGroupCreationWithOutName - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -745,13 +729,13 @@ public class ApiTestUserGroup extends ApiTestBase {
         ClientResponse clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
         String partialErrorString = "Required parameter label was missing or empty";
 
-        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupCreateResp);
+        validateUserGroupBadRequest(HttpStatus.SC_BAD_REQUEST, partialErrorString, clientUserGroupCreateResp);
     }
 
     @Test
     public void testUserGroupCreationWithInvalidName() {
         final String testName = "testUserGroupCreationWithInvalidName - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -763,13 +747,13 @@ public class ApiTestUserGroup extends ApiTestBase {
         String partialErrorString = "Invalid value %s for parameter label";
         partialErrorString = String.format(partialErrorString, nameWithAt);
 
-        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupCreateResp);
+        validateUserGroupBadRequest(HttpStatus.SC_BAD_REQUEST, partialErrorString, clientUserGroupCreateResp);
     }
 
     @Test
     public void testUserGroupCreationWithOutDomain() {
         final String testName = "testUserGroupCreationWithOutDomain - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -779,13 +763,13 @@ public class ApiTestUserGroup extends ApiTestBase {
         ClientResponse clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
         String partialErrorString = "Required parameter domain was missing or empty";
 
-        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupCreateResp);
+        validateUserGroupBadRequest(HttpStatus.SC_BAD_REQUEST, partialErrorString, clientUserGroupCreateResp);
     }
 
     @Test
     public void testUserGroupCreationWithInvalidDomain() {
         final String testName = "testUserGroupCreationWithInvalidDomain - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -798,13 +782,13 @@ public class ApiTestUserGroup extends ApiTestBase {
         String partialErrorString = "Invalid value %s for parameter domain";
         partialErrorString = String.format(partialErrorString, createParam.getDomain());
 
-        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupCreateResp);
+        validateUserGroupBadRequest(HttpStatus.SC_BAD_REQUEST, partialErrorString, clientUserGroupCreateResp);
     }
 
     @Test
     public void testUserGroupCreationWithOutAttributes() {
         final String testName = "testUserGroupCreationWithOutAttributes - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -814,13 +798,13 @@ public class ApiTestUserGroup extends ApiTestBase {
         ClientResponse clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
         String partialErrorString = "Required parameter attributes was missing or empty";
 
-        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupCreateResp);
+        validateUserGroupBadRequest(HttpStatus.SC_BAD_REQUEST, partialErrorString, clientUserGroupCreateResp);
     }
 
     @Test
     public void testUserGroupCreationWithOutAttributeKey() {
         final String testName = "testUserGroupCreationWithOutAttributeKey - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -837,13 +821,13 @@ public class ApiTestUserGroup extends ApiTestBase {
         ClientResponse clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
         String partialErrorString = "Required parameter key was missing or empty";
 
-        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupCreateResp);
+        validateUserGroupBadRequest(HttpStatus.SC_BAD_REQUEST, partialErrorString, clientUserGroupCreateResp);
     }
 
     @Test
     public void testUserGroupCreationWithOutAttributeValues() {
         final String testName = "testUserGroupCreationWithOutAttributeValues - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -860,13 +844,13 @@ public class ApiTestUserGroup extends ApiTestBase {
         ClientResponse clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
         String partialErrorString = "Required parameter values was missing or empty";
 
-        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupCreateResp);
+        validateUserGroupBadRequest(HttpStatus.SC_BAD_REQUEST, partialErrorString, clientUserGroupCreateResp);
     }
 
     @Test
     public void testUserGroupCreationSuccess() {
         final String testName = "testUserGroupCreationSuccess - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -877,7 +861,7 @@ public class ApiTestUserGroup extends ApiTestBase {
     @Test
     public void testUserGroupCreationWithOneLetterDomainNameSuccess() {
         final String testName = "testUserGroupCreationWithOneLetterDomainNameSuccess - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
         createParam.setDomain(getOneLetterDomain());
@@ -889,7 +873,7 @@ public class ApiTestUserGroup extends ApiTestBase {
     @Test
     public void testDeleteAuthnProviderWithUserGroup() {
         final String testName = "testDeleteAuthnProviderWithUserGroup - ";
-        URI authProviderId = createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        URI authProviderId = createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -899,13 +883,13 @@ public class ApiTestUserGroup extends ApiTestBase {
         String authProviderDeleteApi = getAuthnProviderDeleteApi(authProviderId);
         ClientResponse authProviderDeleteResp = rSys.path(authProviderDeleteApi).delete(ClientResponse.class);
         String partialErrorMessage = "user groups are using the domains of the authentication provider";
-        validateUserGroupBadRequest(400, partialErrorMessage, authProviderDeleteResp);
+        validateUserGroupBadRequest(HttpStatus.SC_BAD_REQUEST, partialErrorMessage, authProviderDeleteResp);
     }
 
     @Test
     public void testUserGroupCreationWithSameName() {
         final String testName = "testUserGroupCreationWithSameName - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -919,13 +903,13 @@ public class ApiTestUserGroup extends ApiTestBase {
 
         String partialErrorString = "A component/resource with the label %s already exists";
         partialErrorString = String.format(partialErrorString, createParam.getLabel());
-        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupCreateResp);
+        validateUserGroupBadRequest(HttpStatus.SC_BAD_REQUEST, partialErrorString, clientUserGroupCreateResp);
     }
 
     @Test
     public void testUserGroupCreationWithMatchingPropertiesAndDifferentName() {
         final String testName = "testUserGroupCreationWithMatchingPropertiesAndDifferentName - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -939,20 +923,20 @@ public class ApiTestUserGroup extends ApiTestBase {
         // so that other properties (domain and attributes) will be same.
         // And this should give error back, saying existing user group
         // with same domain and attributes.
-        createParam.setLabel("NewName");
+        createParam.setLabel(NEW_NAME);
 
         clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
 
-        String partialErrorString = "Operation not allowed. Overlapping attributes found between %s and [%s]";
+        String partialErrorString = OPERATION_NOT_ALLOWED;
         partialErrorString = String.format(partialErrorString, createParam.getLabel(), oldName);
 
-        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupCreateResp);
+        validateUserGroupBadRequest(HttpStatus.SC_BAD_REQUEST, partialErrorString, clientUserGroupCreateResp);
     }
 
     @Test
     public void testUserGroupCreationToTestNewSubGroup() {
         final String testName = "testUserGroupCreationToTestNewSubGroup - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -966,7 +950,7 @@ public class ApiTestUserGroup extends ApiTestBase {
         // so that other properties (domain and attributes) will be same.
         // And this should give error back, saying existing user group
         // with same domain and attributes.
-        createParam.setLabel("NewName");
+        createParam.setLabel(NEW_NAME);
 
         createParam.getAttributes().clear();
 
@@ -980,16 +964,16 @@ public class ApiTestUserGroup extends ApiTestBase {
 
         clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
 
-        String partialErrorString = "Operation not allowed. Overlapping attributes found between %s and [%s]";
+        String partialErrorString = OPERATION_NOT_ALLOWED;
         partialErrorString = String.format(partialErrorString, createParam.getLabel(), oldName);
 
-        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupCreateResp);
+        validateUserGroupBadRequest(HttpStatus.SC_BAD_REQUEST, partialErrorString, clientUserGroupCreateResp);
     }
 
     @Test
     public void testUserGroupCreationToTestExistingSubGroup() {
         final String testName = "testUserGroupCreationToTestExistingSubGroup - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -1003,7 +987,7 @@ public class ApiTestUserGroup extends ApiTestBase {
         // so that other properties (domain and attributes) will be same.
         // And this should give error back, saying existing user group
         // with same domain and attributes.
-        createParam.setLabel("NewName");
+        createParam.setLabel(NEW_NAME);
 
         createParam.getAttributes().clear();
 
@@ -1019,16 +1003,16 @@ public class ApiTestUserGroup extends ApiTestBase {
 
         clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
 
-        String partialErrorString = "Operation not allowed. Overlapping attributes found between %s and [%s]";
+        String partialErrorString = OPERATION_NOT_ALLOWED;
         partialErrorString = String.format(partialErrorString, createParam.getLabel(), oldName);
 
-        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupCreateResp);
+        validateUserGroupBadRequest(HttpStatus.SC_BAD_REQUEST, partialErrorString, clientUserGroupCreateResp);
     }
 
     @Test
     public void testUserGroupOverlapCombinationTests1() {
         final String testName = "testUserGroupOverlapCombinationTests1 - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -1036,13 +1020,12 @@ public class ApiTestUserGroup extends ApiTestBase {
         validateUserGroupCreateSuccess(createParam, clientUserGroupCreateResp);
 
         createParam = getDefaultUserGroupCreateParam();
-        String oldName = createParam.getLabel();
 
         // Change the name something different,
         // so that other properties (domain and attributes) will be same.
         // And this should give error back, saying existing user group
         // with same domain and attributes.
-        createParam.setLabel("NewName");
+        createParam.setLabel(NEW_NAME);
 
         createParam.getAttributes().clear();
 
@@ -1060,10 +1043,10 @@ public class ApiTestUserGroup extends ApiTestBase {
         // Now add some random attributes that are not part of existing
         // group. This should make the edit successful.
         UserAttributeParam attributeParam1 = new UserAttributeParam();
-        attributeParam1.setKey("RandomKey");
+        attributeParam1.setKey(RANDOM_KEY);
         attributeParam1.getValues().clear();
-        attributeParam1.getValues().add("RandomValue1");
-        attributeParam1.getValues().add("RandomValue2");
+        attributeParam1.getValues().add(RANDOM_VALUE_1);
+        attributeParam1.getValues().add(RANDOM_VALUE_2);
 
         createParam.getAttributes().add(attributeParam1);
 
@@ -1074,7 +1057,7 @@ public class ApiTestUserGroup extends ApiTestBase {
     @Test
     public void testUserGroupOverlapCombinationTests2() {
         final String testName = "testUserGroupOverlapCombinationTests2 - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -1088,31 +1071,31 @@ public class ApiTestUserGroup extends ApiTestBase {
         // so that other properties (domain and attributes) will be same.
         // And this should give error back, saying existing user group
         // with same domain and attributes.
-        createParam.setLabel("NewName");
+        createParam.setLabel(NEW_NAME);
 
         // Now add some random attributes that are not part of existing
         // group. Since, we kept all the existing attributes as it is
         // and adding this new RandomKey attribute, the existing
         // group will be overlapping with this NewName group.
         UserAttributeParam attributeParam1 = new UserAttributeParam();
-        attributeParam1.setKey("RandomKey");
-        attributeParam1.getValues().add("RandomValue1");
-        attributeParam1.getValues().add("RandomValue2");
+        attributeParam1.setKey(RANDOM_KEY);
+        attributeParam1.getValues().add(RANDOM_VALUE_1);
+        attributeParam1.getValues().add(RANDOM_VALUE_2);
 
         createParam.getAttributes().add(attributeParam1);
 
         clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
 
-        String partialErrorString = "Operation not allowed. Overlapping attributes found between %s and [%s]";
+        String partialErrorString = OPERATION_NOT_ALLOWED;
         partialErrorString = String.format(partialErrorString, createParam.getLabel(), oldName);
 
-        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupCreateResp);
+        validateUserGroupBadRequest(HttpStatus.SC_BAD_REQUEST, partialErrorString, clientUserGroupCreateResp);
     }
 
     @Test
     public void testUserGroupOverlapCombinationTests3() {
         final String testName = "testUserGroupOverlapCombinationTests3 - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -1120,13 +1103,12 @@ public class ApiTestUserGroup extends ApiTestBase {
         validateUserGroupCreateSuccess(createParam, clientUserGroupCreateResp);
 
         createParam = getDefaultUserGroupCreateParam();
-        String oldName = createParam.getLabel();
 
         // Change the name something different,
         // so that other properties (domain and attributes) will be same.
         // And this should give error back, saying existing user group
         // with same domain and attributes.
-        createParam.setLabel("NewName");
+        createParam.setLabel(NEW_NAME);
 
         createParam.getAttributes().clear();
 
@@ -1144,10 +1126,10 @@ public class ApiTestUserGroup extends ApiTestBase {
         // Now add some random attributes that are not part of existing
         // group. This should make the edit successful.
         UserAttributeParam attributeParam1 = new UserAttributeParam();
-        attributeParam1.setKey("RandomKey");
+        attributeParam1.setKey(RANDOM_KEY);
         attributeParam1.getValues().clear();
-        attributeParam1.getValues().add("RandomValue1");
-        attributeParam1.getValues().add("RandomValue2");
+        attributeParam1.getValues().add(RANDOM_VALUE_1);
+        attributeParam1.getValues().add(RANDOM_VALUE_2);
 
         createParam.getAttributes().add(attributeParam1);
 
@@ -1169,8 +1151,8 @@ public class ApiTestUserGroup extends ApiTestBase {
 
         // Now add the second attribute that matches with the second group.
         UserAttributeParam secondAttribute = new UserAttributeParam();
-        secondAttribute.setKey("RandomKey");
-        secondAttribute.getValues().add("RandomValue1");
+        secondAttribute.setKey(RANDOM_KEY);
+        secondAttribute.getValues().add(RANDOM_VALUE_1);
         newCreateParam.getAttributes().add(secondAttribute);
 
         clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, newCreateParam);
@@ -1178,13 +1160,13 @@ public class ApiTestUserGroup extends ApiTestBase {
         String partialErrorString = "Operation not allowed. Overlapping attributes found between %s";
         partialErrorString = String.format(partialErrorString, newCreateParam.getLabel());
 
-        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupCreateResp);
+        validateUserGroupBadRequest(HttpStatus.SC_BAD_REQUEST, partialErrorString, clientUserGroupCreateResp);
     }
 
     @Test
     public void testUserGroupCreationWithOneLetterDomainNameAndMatchingPropertiesAndDifferentName() {
         final String testName = "testUserGroupCreationWithOneLetterDomainNameAndMatchingPropertiesAndDifferentName - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -1201,23 +1183,23 @@ public class ApiTestUserGroup extends ApiTestBase {
         // so that other properties (domain and attributes) will be same.
         // And this should give error back, saying existing user group
         // with same domain and attributes.
-        createParam.setLabel("NewName");
+        createParam.setLabel(NEW_NAME);
 
         // Change to one letter domain name.
         createParam.setDomain(getOneLetterDomain());
 
         clientUserGroupCreateResp = rSys.path(getTestApi()).post(ClientResponse.class, createParam);
 
-        String partialErrorString = "Operation not allowed. Overlapping attributes found between %s and [%s]";
+        String partialErrorString = OPERATION_NOT_ALLOWED;
         partialErrorString = String.format(partialErrorString, createParam.getLabel(), oldName);
 
-        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupCreateResp);
+        validateUserGroupBadRequest(HttpStatus.SC_BAD_REQUEST, partialErrorString, clientUserGroupCreateResp);
     }
 
     @Test
     public void testUserGroupCreationWithMatchingKeyAndDifferentValues() {
         final String testName = "testUserGroupCreationWithMatchingKeyAndDifferentValues - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -1229,7 +1211,7 @@ public class ApiTestUserGroup extends ApiTestBase {
         // Change the name something different and keep the same
         // attributes key but with different values for each key.
         // This should be successful.
-        createParam.setLabel("NewName");
+        createParam.setLabel(NEW_NAME);
         Iterator<UserAttributeParam> it = createParam.getAttributes().iterator();
         while (it.hasNext()) {
             UserAttributeParam userAttributeParam = it.next();
@@ -1246,7 +1228,7 @@ public class ApiTestUserGroup extends ApiTestBase {
     @Test
     public void testUserGroupCreationWithMatchingValuesAndDifferentKeys() {
         final String testName = "testUserGroupCreationWithMatchingValuesAndDifferentKeys - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -1258,7 +1240,7 @@ public class ApiTestUserGroup extends ApiTestBase {
         // Change the name something different and keep the same
         // attributes key but with different values for each key.
         // This should be successful.
-        createParam.setLabel("NewName");
+        createParam.setLabel(NEW_NAME);
         Iterator<UserAttributeParam> it = createParam.getAttributes().iterator();
         while (it.hasNext()) {
             UserAttributeParam userAttributeParam = it.next();
@@ -1274,7 +1256,7 @@ public class ApiTestUserGroup extends ApiTestBase {
     @Test
     public void testUserGroupEditWithoutName() {
         final String testName = "testUserGroupEditWithoutName - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -1291,13 +1273,13 @@ public class ApiTestUserGroup extends ApiTestBase {
 
         String partialErrorString = "Required parameter label was missing or empty";
 
-        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupEditResp);
+        validateUserGroupBadRequest(HttpStatus.SC_BAD_REQUEST, partialErrorString, clientUserGroupEditResp);
     }
 
     @Test
     public void testUserGroupEditWithDifferentName() {
         final String testName = "testUserGroupEditWithDifferentName - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -1307,7 +1289,7 @@ public class ApiTestUserGroup extends ApiTestBase {
         UserGroupUpdateParam updateParam = getUserGroupUpdateParamFromRestRep(userGroupCreateResp);
 
         // Change the name in the update request. This is also not supported.
-        updateParam.setLabel("NewName");
+        updateParam.setLabel(NEW_NAME);
 
         String testEditAPI = getTestEditApi(userGroupCreateResp.getId());
         ClientResponse clientUserGroupEditResp = rSys.path(testEditAPI).put(ClientResponse.class, updateParam);
@@ -1315,13 +1297,13 @@ public class ApiTestUserGroup extends ApiTestBase {
         String partialErrorString = "Cannot rename the User group %s";
         partialErrorString = String.format(partialErrorString, userGroupCreateResp.getName());
 
-        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupEditResp);
+        validateUserGroupBadRequest(HttpStatus.SC_BAD_REQUEST, partialErrorString, clientUserGroupEditResp);
     }
 
     @Test
     public void testUserGroupEditWithoutDomain() {
         final String testName = "testUserGroupEditWithoutDomain - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -1338,13 +1320,13 @@ public class ApiTestUserGroup extends ApiTestBase {
 
         String partialErrorString = "Required parameter domain was missing or empty";
 
-        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupEditResp);
+        validateUserGroupBadRequest(HttpStatus.SC_BAD_REQUEST, partialErrorString, clientUserGroupEditResp);
     }
 
     @Test
     public void testUserGroupEditWithInvalidDomain() {
         final String testName = "testUserGroupEditWithInvalidDomain - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -1362,13 +1344,13 @@ public class ApiTestUserGroup extends ApiTestBase {
         String partialErrorString = "Invalid value %s for parameter domain";
         partialErrorString = String.format(partialErrorString, updateParam.getDomain());
 
-        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupEditResp);
+        validateUserGroupBadRequest(HttpStatus.SC_BAD_REQUEST, partialErrorString, clientUserGroupEditResp);
     }
 
     @Test
     public void testUserGroupEditWithoutAttributeKey() {
         final String testName = "testUserGroupEditWithoutAttributeKey - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -1392,13 +1374,13 @@ public class ApiTestUserGroup extends ApiTestBase {
 
         String partialErrorString = "Required parameter key was missing or empty";
 
-        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupEditResp);
+        validateUserGroupBadRequest(HttpStatus.SC_BAD_REQUEST, partialErrorString, clientUserGroupEditResp);
     }
 
     @Test
     public void testUserGroupEditWithoutAttributeValues() {
         final String testName = "testUserGroupEditWithoutAttributeValues - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -1422,13 +1404,13 @@ public class ApiTestUserGroup extends ApiTestBase {
 
         String partialErrorString = "Required parameter values was missing or empty";
 
-        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupEditResp);
+        validateUserGroupBadRequest(HttpStatus.SC_BAD_REQUEST, partialErrorString, clientUserGroupEditResp);
     }
 
     @Test
     public void testUserGroupEditWithoutAttributes() {
         final String testName = "testUserGroupEditWithoutAttributes - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -1452,7 +1434,7 @@ public class ApiTestUserGroup extends ApiTestBase {
     @Test
     public void testUserGroupEditByChangingDomain() {
         final String testName = "testUserGroupEditByChangingDomain - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -1479,7 +1461,7 @@ public class ApiTestUserGroup extends ApiTestBase {
     @Test
     public void testUserGroupEditByAddingAttributes() {
         final String testName = "testUserGroupEditByAddingAttributes - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -1513,7 +1495,7 @@ public class ApiTestUserGroup extends ApiTestBase {
     @Test
     public void testUserGroupEditByRemovingAllAttributes() {
         final String testName = "testUserGroupEditByRemovingAllAttributes - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -1536,13 +1518,13 @@ public class ApiTestUserGroup extends ApiTestBase {
 
         String partialErrorString = "Attempt to remove the last attribute is not allowed.  At least one attribute must be in the user group.";
 
-        validateUserGroupBadRequest(400, partialErrorString, clientUserGroupEditResp);
+        validateUserGroupBadRequest(HttpStatus.SC_BAD_REQUEST, partialErrorString, clientUserGroupEditResp);
     }
 
     @Test
     public void testInvalidUserGroupWithVDCRoleAssignment() throws NoSuchAlgorithmException {
         final String testName = "testInvalidUserGroupWithVDCRoleAssignment - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -1565,9 +1547,9 @@ public class ApiTestUserGroup extends ApiTestBase {
         roleAssignmentChanges.getAdd().add(roleAssignmentEntry1);
 
         ClientResponse clientResponseRoleAssignments = rSys.path(roleAssignmentsApi).put(ClientResponse.class, roleAssignmentChanges);
-        String partialErrorMsg = "Search for the following failed for this system, or could not be found for this system: %s";
+        String partialErrorMsg = "Invalid role assignments: Invalid principal: %s";
         partialErrorMsg = String.format(partialErrorMsg, roleAssignmentEntry1.getGroup().toUpperCase());
-        validateUserGroupBadRequest(400, partialErrorMsg, clientResponseRoleAssignments);
+        validateUserGroupBadRequest(HttpStatus.SC_BAD_REQUEST, partialErrorMsg, clientResponseRoleAssignments);
 
         // Now remove the user group from the
         // provider tenant user mappings.
@@ -1577,7 +1559,7 @@ public class ApiTestUserGroup extends ApiTestBase {
     @Test
     public void testUserGroupWithVDCRoleAssignment() throws NoSuchAlgorithmException {
         final String testName = "testUserGroupWithVDCRoleAssignment - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -1600,7 +1582,7 @@ public class ApiTestUserGroup extends ApiTestBase {
         roleAssignmentChanges.getAdd().add(roleAssignmentEntry1);
 
         RoleAssignments roleAssignments = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentChanges);
-        validateVDCRoleAssignmentsSuccess(roleAssignments, userGroupCreateResp.getName(), getDefaultVDCRoles(), isGroup);
+        validateVDCRoleAssignmentsSuccess(roleAssignments, userGroupCreateResp.getName(), isGroup);
 
         // Create a user whose attributes matches with the above created
         // user group "Depart_Dev". Matching LDAP user is ldapViPRUser5.
@@ -1645,7 +1627,7 @@ public class ApiTestUserGroup extends ApiTestBase {
     @Test
     public void testInvalidUserGroupWithTenantRoleAssignment() throws NoSuchAlgorithmException {
         final String testName = "testInvalidUserGroupWithTenantRoleAssignment - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -1670,9 +1652,9 @@ public class ApiTestUserGroup extends ApiTestBase {
         roleAssignmentChanges.getAdd().add(roleAssignmentEntry1);
 
         ClientResponse clientResponseRoleAssignments = rSys.path(roleAssignmentsApi).put(ClientResponse.class, roleAssignmentChanges);
-        String partialErrorMsg = "Search for the following failed for this system, or could not be found for this system: %s";
+        String partialErrorMsg = "Invalid role assignments: Invalid principal: %s";
         partialErrorMsg = String.format(partialErrorMsg, roleAssignmentEntry1.getGroup().toUpperCase());
-        validateUserGroupBadRequest(400, partialErrorMsg, clientResponseRoleAssignments);
+        validateUserGroupBadRequest(HttpStatus.SC_BAD_REQUEST, partialErrorMsg, clientResponseRoleAssignments);
 
         // Now remove the user group from the provider tenant user mappings.
         removeTenantUserMapping(testTenantId, userGroupCreateResp.getName());
@@ -1681,7 +1663,7 @@ public class ApiTestUserGroup extends ApiTestBase {
     @Test
     public void testUserGroupWithTenantUserMappings() throws NoSuchAlgorithmException {
         final String testName = "testUserGroupWithTenantUserMappings - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -1726,7 +1708,7 @@ public class ApiTestUserGroup extends ApiTestBase {
     @Test
     public void testUserGroupWithTenantRoleAssignment() throws NoSuchAlgorithmException {
         final String testName = "testUserGroupWithTenantRoleAssignment - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -1751,7 +1733,7 @@ public class ApiTestUserGroup extends ApiTestBase {
         roleAssignmentChanges.getAdd().add(roleAssignmentEntry1);
 
         RoleAssignments roleAssignments = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentChanges);
-        validateVDCRoleAssignmentsSuccess(roleAssignments, userGroupCreateResp.getName(), getDefaultTenantRoles(), isGroup);
+        validateVDCRoleAssignmentsSuccess(roleAssignments, userGroupCreateResp.getName(), isGroup);
 
         // Create a user whose attributes matches with the above created
         // user group "Depart_Dev". Matching LDAP user is ldapViPRUser5.
@@ -1795,7 +1777,7 @@ public class ApiTestUserGroup extends ApiTestBase {
     @Test
     public void testUserGroupWithProjectACLAssignment() throws NoSuchAlgorithmException {
         final String testName = "testUserGroupWithProjectACLAssignment - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -1824,7 +1806,7 @@ public class ApiTestUserGroup extends ApiTestBase {
         aclAssignmentChanges.getAdd().add(aclAssignmentEntry1);
 
         ACLAssignments aclAssignments = rSys.path(aclAssignmentsApi).put(ACLAssignments.class, aclAssignmentChanges);
-        validateACLAssignmentsSuccess(aclAssignments, userGroupCreateResp.getName(), acls, isGroup);
+        validateACLAssignmentsSuccess(aclAssignments, userGroupCreateResp.getName(), isGroup);
 
         // Create a user whose attributes matches with the above created
         // user group "Depart_Dev". Matching LDAP user is ldapViPRUser5.
@@ -1861,7 +1843,7 @@ public class ApiTestUserGroup extends ApiTestBase {
         // does not have any project role or tenant roles, the request
         // will fail.
         ClientResponse clientResponseProjectInfo = ldapViPRUser5.path(getProjectApi(projectId)).get(ClientResponse.class);
-        Assert.assertEquals(403, clientResponseProjectInfo.getStatus());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, clientResponseProjectInfo.getStatus());
 
         // Now remove the user group from the tenant user mappings.
         removeTenantUserMapping(testTenantId, userGroupCreateResp.getName());
@@ -1870,7 +1852,7 @@ public class ApiTestUserGroup extends ApiTestBase {
     @Test
     public void testUserGroupCreateByNonSecurityAdmin() throws NoSuchAlgorithmException {
         final String testName = "testUserGroupCreateByNonSecurityAdmin - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         // Update one of the provider tenant user mapping with the
         // with null group.
@@ -1889,7 +1871,7 @@ public class ApiTestUserGroup extends ApiTestBase {
         String roleAssignmentsApi = getVDCRoleAssignmentsApi();
 
         RoleAssignments roleAssignments = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentChanges);
-        validateVDCRoleAssignmentsSuccess(roleAssignments, userNameWithDomain, roles, isGroup);
+        validateVDCRoleAssignmentsSuccess(roleAssignments, userNameWithDomain, isGroup);
 
         // Create a user ldpaViPRUser5.
         BalancedWebResource ldapViPRUser5 = getHttpsClient(userNameWithDomain, getLDAPUserPassword());
@@ -1903,16 +1885,16 @@ public class ApiTestUserGroup extends ApiTestBase {
         // Try to create a user group by non security admin user (ldapViPRUser5).
         ClientResponse clientResponseUserGroupCreate = ldapViPRUser5.path(getTestApi()).post(ClientResponse.class, createParam);
 
-        String partialErrorMessage = "Insufficient permissions for user %s";
+        String partialErrorMessage = ERROR_INSUFFICIENT_PERMISSION_FOR_USER;
         partialErrorMessage = String.format(partialErrorMessage, userNameWithDomain.toLowerCase());
-        validateUserGroupBadRequest(403, partialErrorMessage, clientResponseUserGroupCreate);
+        validateUserGroupBadRequest(HttpStatus.SC_FORBIDDEN, partialErrorMessage, clientResponseUserGroupCreate);
 
         // Try to get a list of user groups by non security/tenant admin or project owner (ldapViPRUser5).
         clientResponseUserGroupCreate = ldapViPRUser5.path(getTestApi()).get(ClientResponse.class);
 
-        partialErrorMessage = "Insufficient permissions for user %s";
+        partialErrorMessage = ERROR_INSUFFICIENT_PERMISSION_FOR_USER;
         partialErrorMessage = String.format(partialErrorMessage, userNameWithDomain.toLowerCase());
-        validateUserGroupBadRequest(403, partialErrorMessage, clientResponseUserGroupCreate);
+        validateUserGroupBadRequest(HttpStatus.SC_FORBIDDEN, partialErrorMessage, clientResponseUserGroupCreate);
 
         // Test the bulk api. Here expecting true as ldapViPRUser5 is a sysadmin
         testUserGroupBulkApi(ldapViPRUser5, true, true);
@@ -1931,7 +1913,7 @@ public class ApiTestUserGroup extends ApiTestBase {
     @Test
     public void testUserGroupCreateByTenantAdmin() throws NoSuchAlgorithmException {
         final String testName = "testUserGroupCreateByTenantAdmin - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         // Create a test tenant.
         URI testTenantId = createTestTenant();
@@ -1955,7 +1937,7 @@ public class ApiTestUserGroup extends ApiTestBase {
         roleAssignmentChanges.getAdd().add(roleAssignmentEntry1);
 
         RoleAssignments roleAssignments = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentChanges);
-        validateVDCRoleAssignmentsSuccess(roleAssignments, userNameWithDomain, roles, isGroup);
+        validateVDCRoleAssignmentsSuccess(roleAssignments, userNameWithDomain, isGroup);
 
         // Create a user ldapViPRUser5.
         BalancedWebResource ldapViPRUser5 = getHttpsClient(userNameWithDomain, getLDAPUserPassword());
@@ -1969,13 +1951,13 @@ public class ApiTestUserGroup extends ApiTestBase {
         // Try to create a user group by non security admin user (ldapViPRUser5).
         ClientResponse clientResponseUserGroupCreate = ldapViPRUser5.path(getTestApi()).post(ClientResponse.class, createParam);
 
-        String partialErrorMessage = "Insufficient permissions for user %s";
+        String partialErrorMessage = ERROR_INSUFFICIENT_PERMISSION_FOR_USER;
         partialErrorMessage = String.format(partialErrorMessage, userNameWithDomain.toLowerCase());
-        validateUserGroupBadRequest(403, partialErrorMessage, clientResponseUserGroupCreate);
+        validateUserGroupBadRequest(HttpStatus.SC_FORBIDDEN, partialErrorMessage, clientResponseUserGroupCreate);
 
         // Tenant Admin and Project owner has a readonly access.
         clientResponseUserGroupCreate = ldapViPRUser5.path(getTestApi()).get(ClientResponse.class);
-        Assert.assertEquals(200, clientResponseUserGroupCreate.getStatus());
+        Assert.assertEquals(HttpStatus.SC_OK, clientResponseUserGroupCreate.getStatus());
 
         // Test the bulk api. Here expecting false for get, as ldapViPRUser5
         // is not a sysadmin or sysmonitor and expecting true for post, as
@@ -1997,7 +1979,7 @@ public class ApiTestUserGroup extends ApiTestBase {
     @Test
     public void testUserGroupCreateByNonTenantAdmin() throws NoSuchAlgorithmException {
         final String testName = "testUserGroupCreateByNonTenantAdmin - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         // Create a test tenant.
         URI testTenantId = createTestTenant();
@@ -2021,7 +2003,7 @@ public class ApiTestUserGroup extends ApiTestBase {
         roleAssignmentChanges.getAdd().add(roleAssignmentEntry1);
 
         RoleAssignments roleAssignments = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentChanges);
-        validateVDCRoleAssignmentsSuccess(roleAssignments, userNameWithDomain, roles, isGroup);
+        validateVDCRoleAssignmentsSuccess(roleAssignments, userNameWithDomain, isGroup);
 
         // Create a user ldapViPRUser5.
         BalancedWebResource ldapViPRUser5 = getHttpsClient(userNameWithDomain, getLDAPUserPassword());
@@ -2035,13 +2017,13 @@ public class ApiTestUserGroup extends ApiTestBase {
         // Try to create a user group by non security admin user (ldapViPRUser5).
         ClientResponse clientResponseUserGroupCreate = ldapViPRUser5.path(getTestApi()).post(ClientResponse.class, createParam);
 
-        String partialErrorMessage = "Insufficient permissions for user %s";
+        String partialErrorMessage = ERROR_INSUFFICIENT_PERMISSION_FOR_USER;
         partialErrorMessage = String.format(partialErrorMessage, userNameWithDomain.toLowerCase());
-        validateUserGroupBadRequest(403, partialErrorMessage, clientResponseUserGroupCreate);
+        validateUserGroupBadRequest(HttpStatus.SC_FORBIDDEN, partialErrorMessage, clientResponseUserGroupCreate);
 
         // Only tenant Admin and Project owner has a readonly access.
         clientResponseUserGroupCreate = ldapViPRUser5.path(getTestApi()).get(ClientResponse.class);
-        validateUserGroupBadRequest(403, partialErrorMessage, clientResponseUserGroupCreate);
+        validateUserGroupBadRequest(HttpStatus.SC_FORBIDDEN, partialErrorMessage, clientResponseUserGroupCreate);
 
         // Test the bulk api. Here expecting false as ldapViPRUser5
         // is not a sysadmin, project owner, tenant admin.
@@ -2062,7 +2044,7 @@ public class ApiTestUserGroup extends ApiTestBase {
     @Test
     public void testUserGroupCreateWithProjectOwner() throws NoSuchAlgorithmException {
         final String testName = "testUserGroupCreateWithProjectOwner - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         // Create a test tenant.
         URI testTenantId = createTestTenant();
@@ -2083,7 +2065,7 @@ public class ApiTestUserGroup extends ApiTestBase {
         ProjectUpdateParam updateParam = new ProjectUpdateParam();
         updateParam.setOwner(userNameWithDomain);
         ClientResponse clientResponseProjectEdit = rSys.path(projectEditApi).put(ClientResponse.class, updateParam);
-        Assert.assertEquals(200, clientResponseProjectEdit.getStatus());
+        Assert.assertEquals(HttpStatus.SC_OK, clientResponseProjectEdit.getStatus());
 
         // Create a user ldapViPRUser5.
         BalancedWebResource ldapViPRUser5 = getHttpsClient(userNameWithDomain, getLDAPUserPassword());
@@ -2096,13 +2078,13 @@ public class ApiTestUserGroup extends ApiTestBase {
         // Try to create a user group by non security admin user (ldapViPRUser5).
         ClientResponse clientResponseUserGroupCreate = ldapViPRUser5.path(getTestApi()).post(ClientResponse.class, createParam);
 
-        String partialErrorMessage = "Insufficient permissions for user %s";
+        String partialErrorMessage = ERROR_INSUFFICIENT_PERMISSION_FOR_USER;
         partialErrorMessage = String.format(partialErrorMessage, userNameWithDomain.toLowerCase());
-        validateUserGroupBadRequest(403, partialErrorMessage, clientResponseUserGroupCreate);
+        validateUserGroupBadRequest(HttpStatus.SC_FORBIDDEN, partialErrorMessage, clientResponseUserGroupCreate);
 
         // Tenant Admin and Project owner has a readonly access.
         clientResponseUserGroupCreate = ldapViPRUser5.path(getTestApi()).get(ClientResponse.class);
-        Assert.assertEquals(200, clientResponseUserGroupCreate.getStatus());
+        Assert.assertEquals(HttpStatus.SC_OK, clientResponseUserGroupCreate.getStatus());
 
         // Test the bulk api. Here expecting false for get, as ldapViPRUser5
         // is not a sysadmin or sysmonitor and expecting true for post, as
@@ -2116,7 +2098,7 @@ public class ApiTestUserGroup extends ApiTestBase {
     @Test
     public void testUserGroupCreateWithProjectAclALL() throws NoSuchAlgorithmException {
         final String testName = "testUserGroupCreateWithProjectAclALL - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         // Create a test tenant.
         URI testTenantId = createTestTenant();
@@ -2143,7 +2125,7 @@ public class ApiTestUserGroup extends ApiTestBase {
         aclAssignmentChanges.getAdd().add(aclAssignmentEntry1);
 
         ACLAssignments aclAssignments = rSys.path(aclAssignmentsApi).put(ACLAssignments.class, aclAssignmentChanges);
-        validateACLAssignmentsSuccess(aclAssignments, userNameWithDomain, acls, isGroup);
+        validateACLAssignmentsSuccess(aclAssignments, userNameWithDomain, isGroup);
 
         // Create a user ldapViPRUser5.
         BalancedWebResource ldapViPRUser5 = getHttpsClient(userNameWithDomain, getLDAPUserPassword());
@@ -2156,13 +2138,13 @@ public class ApiTestUserGroup extends ApiTestBase {
         // Try to create a user group by non security admin user (ldapViPRUser5).
         ClientResponse clientResponseUserGroupCreate = ldapViPRUser5.path(getTestApi()).post(ClientResponse.class, createParam);
 
-        String partialErrorMessage = "Insufficient permissions for user %s";
+        String partialErrorMessage = ERROR_INSUFFICIENT_PERMISSION_FOR_USER;
         partialErrorMessage = String.format(partialErrorMessage, userNameWithDomain.toLowerCase());
-        validateUserGroupBadRequest(403, partialErrorMessage, clientResponseUserGroupCreate);
+        validateUserGroupBadRequest(HttpStatus.SC_FORBIDDEN, partialErrorMessage, clientResponseUserGroupCreate);
 
         // Only Tenant Admin and Project owner has a readonly access.
         clientResponseUserGroupCreate = ldapViPRUser5.path(getTestApi()).get(ClientResponse.class);
-        validateUserGroupBadRequest(403, partialErrorMessage, clientResponseUserGroupCreate);
+        validateUserGroupBadRequest(HttpStatus.SC_FORBIDDEN, partialErrorMessage, clientResponseUserGroupCreate);
 
         // Test the bulk api. Here expecting false for get, as ldapViPRUser5
         // is not a sysadmin or sysmonitor and expecting true for post, as
@@ -2178,13 +2160,13 @@ public class ApiTestUserGroup extends ApiTestBase {
 
         // Now the user should not have any acls.
         ClientResponse clientResponseProjectInfo = ldapViPRUser5.path(getProjectApi(projectId)).get(ClientResponse.class);
-        Assert.assertEquals(403, clientResponseProjectInfo.getStatus());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, clientResponseProjectInfo.getStatus());
     }
 
     @Test
     public void testUserGroupCreateWithProjectAclBACKUP() throws NoSuchAlgorithmException {
         final String testName = "testUserGroupCreateWithProjectAclBACKUP - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         // Create a test tenant.
         URI testTenantId = createTestTenant();
@@ -2211,7 +2193,7 @@ public class ApiTestUserGroup extends ApiTestBase {
         aclAssignmentChanges.getAdd().add(aclAssignmentEntry1);
 
         ACLAssignments aclAssignments = rSys.path(aclAssignmentsApi).put(ACLAssignments.class, aclAssignmentChanges);
-        validateACLAssignmentsSuccess(aclAssignments, userNameWithDomain, acls, isGroup);
+        validateACLAssignmentsSuccess(aclAssignments, userNameWithDomain, isGroup);
 
         // Create a user ldapViPRUser5.
         BalancedWebResource ldapViPRUser5 = getHttpsClient(userNameWithDomain, getLDAPUserPassword());
@@ -2224,13 +2206,13 @@ public class ApiTestUserGroup extends ApiTestBase {
         // Try to create a user group by non security admin user (ldapViPRUser5).
         ClientResponse clientResponseUserGroupCreate = ldapViPRUser5.path(getTestApi()).post(ClientResponse.class, createParam);
 
-        String partialErrorMessage = "Insufficient permissions for user %s";
+        String partialErrorMessage = ERROR_INSUFFICIENT_PERMISSION_FOR_USER;
         partialErrorMessage = String.format(partialErrorMessage, userNameWithDomain.toLowerCase());
-        validateUserGroupBadRequest(403, partialErrorMessage, clientResponseUserGroupCreate);
+        validateUserGroupBadRequest(HttpStatus.SC_FORBIDDEN, partialErrorMessage, clientResponseUserGroupCreate);
 
         // Only Tenant Admin and Project owner has a readonly access.
         clientResponseUserGroupCreate = ldapViPRUser5.path(getTestApi()).get(ClientResponse.class);
-        validateUserGroupBadRequest(403, partialErrorMessage, clientResponseUserGroupCreate);
+        validateUserGroupBadRequest(HttpStatus.SC_FORBIDDEN, partialErrorMessage, clientResponseUserGroupCreate);
 
         // Test the bulk api. Here expecting false for get, as ldapViPRUser5
         // is not a sysadmin or sysmonitor and expecting false for post, as
@@ -2246,13 +2228,13 @@ public class ApiTestUserGroup extends ApiTestBase {
 
         // Now the user should not have any acls.
         ClientResponse clientResponseProjectInfo = ldapViPRUser5.path(getProjectApi(projectId)).get(ClientResponse.class);
-        Assert.assertEquals(403, clientResponseProjectInfo.getStatus());
+        Assert.assertEquals(HttpStatus.SC_FORBIDDEN, clientResponseProjectInfo.getStatus());
     }
 
     @Test
     public void testSingleValueUserGroupWithTenantRoleAssignment() throws NoSuchAlgorithmException {
         final String testName = "testSingleValueUserGroupWithTenantRoleAssignment - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         UserGroupCreateParam createParam = getDefaultUserGroupCreateParam();
 
@@ -2289,7 +2271,7 @@ public class ApiTestUserGroup extends ApiTestBase {
         roleAssignmentChanges.getAdd().add(roleAssignmentEntry1);
 
         RoleAssignments roleAssignments = rSys.path(roleAssignmentsApi).put(RoleAssignments.class, roleAssignmentChanges);
-        validateVDCRoleAssignmentsSuccess(roleAssignments, userGroupCreateResp.getName(), getDefaultTenantRoles(), isGroup);
+        validateVDCRoleAssignmentsSuccess(roleAssignments, userGroupCreateResp.getName(), isGroup);
 
         // Create a user whose attributes matches with the above created
         // user group "Depart_QE". Matching LDAP user is ldapViPRUser5.
@@ -2333,7 +2315,7 @@ public class ApiTestUserGroup extends ApiTestBase {
     @Test
     public void testUserGroupBulkAPI() {
         final String testName = "testUserGroupBulkAPI - ";
-        createDefaultAuthnProvider(testName + "Default Authn Provider creation");
+        createDefaultAuthnProvider(testName + DEFAULT_AUTH_PROVIDER_CREATION);
 
         // Test the bulk api.
         testUserGroupBulkApi(rSys, true, true);
@@ -2355,7 +2337,7 @@ public class ApiTestUserGroup extends ApiTestBase {
         // Change the name something different and keep the same
         // attributes key but with different values for each key.
         // This should be successful.
-        createParam.setLabel("NewName");
+        createParam.setLabel(NEW_NAME);
         Iterator<UserAttributeParam> it = createParam.getAttributes().iterator();
         while (it.hasNext()) {
             UserAttributeParam userAttributeParam = it.next();
@@ -2373,7 +2355,7 @@ public class ApiTestUserGroup extends ApiTestBase {
         // Get all the ids of UserGroup configured in the system.
         ClientResponse clientUserGroupBulkResp = user.path(testBulkApi).get(ClientResponse.class);
         if (!expectGetSuccess) {
-            Assert.assertEquals(403, clientUserGroupBulkResp.getStatus());
+            Assert.assertEquals(HttpStatus.SC_FORBIDDEN, clientUserGroupBulkResp.getStatus());
             return;
         }
 

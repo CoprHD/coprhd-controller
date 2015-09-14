@@ -227,7 +227,7 @@ public class XtremIOV2Client extends XtremIOClient {
             log.info("Calling tag object with URI: {} and parameters: {}", uriString, tagRequest.toString());
             ClientResponse response = put(URI.create(uriString), getJsonForEntity(tagRequest));
         } catch (Exception ex) {
-            log.error("Error tagging object.", ex);
+            log.warn("Error tagging object {} with tag {}", entity, tagName);
         }
     }
 

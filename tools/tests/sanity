@@ -443,6 +443,7 @@ COS_MIRROR_WITH_2_MIRRORS=cosmirror_max_2
 COS_MIRROR_BEFORE_CHANGE=cosmirror_before_change
 COS_MIRROR_AFTER_CHANGE=cosmirror_after_change
 COS_MIRROR_VNX=cosmirror_vnx
+COS_VMAX_CG_MIRROR=cosvmax_cg_mirror
 
 #
 # Export group configuration
@@ -1448,6 +1449,18 @@ mirrorblock_cos_setup()
 	                    --system_type vmax \
                             --expandable false \
 			    --neighborhoods $NH
+
+    cos create block $COS_VMAX_CG_MIRROR \
+                            --description 'CoS for VMAX block FC' true \
+                            --protocols FC \
+                            --numpaths 2 \
+                            --max_snapshots 10 \
+                            --max_mirrors 10 \
+                            --system_type vmax \
+                            --expandable false \
+                            --provisionType 'Thin' \
+                            --neighborhoods $NH \
+                            --multiVolumeConsistency
 }
 
 consistencygroup_block_cos_setup()
@@ -3426,6 +3439,9 @@ mirrorblock_setup()
 
     #cos allow $COS_MIRROR_VNX block $TENANT
     #cos update block $COS_MIRROR_VNX --storage $VNXB_NATIVEGUID    
+
+    cos allow $COS_VMAX_CG_MIRROR block $TENANT
+    cos update block $COS_VMAX_CG_MIRROR --storage $VMAX_NATIVEGUID
 }
 
 #
@@ -5486,6 +5502,73 @@ blockmirror_vnx()
     run volume delete $PROJECT/${mirrortest_vol} --wait
 }
 
+blockmirror_group_mirrors()
+{
+    mirrortest_vol="${MIRROR_VOLUME}-group"
+    consistency_group=`openssl passwd "$RANDOM" | cut -c1-8`
+    group_mirror="sanitytest"
+    run blockconsistencygroup create $PROJECT $consistency_group
+
+    # Create source volumes
+    echo "Creating source volumes"
+    run volume create ${mirrortest_vol}1 $PROJECT $NH $COS_VMAX_CG_MIRROR 1073741825 --thinVolume true --consistencyGroup $consistency_group
+    run volume create ${mirrortest_vol}2 $PROJECT $NH $COS_VMAX_CG_MIRROR 1073741825 --thinVolume true --consistencyGroup $consistency_group
+
+    run blockconsistencygroup show $consistency_group
+    run volume list $PROJECT
+
+    echo "Attaching group mirrors"
+    run blockmirror attach $PROJECT/${mirrortest_vol}1 $group_mirror 1
+
+    echo "Listing active mirrors"
+    run blockmirror list $PROJECT/${mirrortest_vol}1
+    run blockmirror list $PROJECT/${mirrortest_vol}2
+
+    echo "Pausing group mirrors"
+    run blockmirror pause $PROJECT/${mirrortest_vol}1
+
+    echo "Listing group mirrors"
+    run blockmirror list $PROJECT/${mirrortest_vol}1
+    run blockmirror list $PROJECT/${mirrortest_vol}2
+
+    echo "Resuming group mirrors"
+    run blockmirror resume $PROJECT/${mirrortest_vol}1
+
+    echo "Listing group mirrors"
+    run blockmirror list $PROJECT/${mirrortest_vol}1
+    run blockmirror list $PROJECT/${mirrortest_vol}2
+
+    echo "Deactivating group mirrors"
+    run blockmirror deactivate $PROJECT/${mirrortest_vol}1 ${mirrortest_vol}1-${group_mirror}
+
+    echo "Listing group mirrors"
+    run blockmirror list $PROJECT/${mirrortest_vol}1
+    run blockmirror list $PROJECT/${mirrortest_vol}2
+
+    echo "Attaching group mirrors"
+    run blockmirror attach $PROJECT/${mirrortest_vol}1 ${group_mirror}1 1
+
+    echo "Listing group mirrors"
+    run blockmirror list $PROJECT/${mirrortest_vol}1
+    run blockmirror list $PROJECT/${mirrortest_vol}2
+
+    echo "Detaching group mirrors"
+    run blockmirror detach $PROJECT/${mirrortest_vol}1
+
+    echo "Listing group mirrors"
+    run blockmirror list $PROJECT/${mirrortest_vol}1
+    run blockmirror list $PROJECT/${mirrortest_vol}2
+
+    echo "Deleting promoted volumes"
+    run volume delete $PROJECT/${mirrortest_vol}1-${group_mirror}1 --wait
+    run volume delete $PROJECT/${mirrortest_vol}2-${group_mirror}1 --wait
+
+    echo "Deactivating source volumes"
+    run volume delete $PROJECT/${mirrortest_vol}1 --wait
+    echo "delete $PROJECT/${mirrortest_vol}2"
+    run volume delete $PROJECT/${mirrortest_vol}2 --wait
+}
+
 blockmirror_tests()
 {
     # quick_file_tests $COS_VNXFILE default
@@ -5499,6 +5582,7 @@ blockmirror_tests()
     blockmirror_vpool_change
 
     #blockmirror_vnx
+    blockmirror_group_mirrors
 }
 
 #### end of blockmirror test section

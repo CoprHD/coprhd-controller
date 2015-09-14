@@ -300,6 +300,10 @@ public class TenantsService extends TaggedResource {
         if (param.getDescription() != null) {
             tenant.setDescription(param.getDescription());
         }
+        
+        if (param.getNamespace() != null) {
+            tenant.setNamespace(param.getNamespace());
+        }
 
         if (!isUserMappingEmpty(param)) {
             // only SecurityAdmin can modify user-mapping
@@ -395,6 +399,9 @@ public class TenantsService extends TaggedResource {
         subtenant.setParentTenant(new NamedURI(parent.getId(), param.getLabel()));
         subtenant.setLabel(param.getLabel());
         subtenant.setDescription(param.getDescription());
+        if (param.getNamespace() != null) {
+            subtenant.setNamespace(param.getNamespace());
+        }
 
         if (null == param.getUserMappings() || param.getUserMappings().isEmpty()) {
             throw APIException.badRequests

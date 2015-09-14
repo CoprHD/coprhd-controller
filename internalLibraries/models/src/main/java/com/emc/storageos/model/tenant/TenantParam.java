@@ -13,15 +13,17 @@ import java.net.URI;
 public abstract class TenantParam {
 
     private String description;
+    private String namespace;
     private URI webStorageDefaultProject;
     private URI webStorageDefaultVpool;
 
     public TenantParam() {
     }
 
-    public TenantParam(String description, URI webStorageDefaultProject,
+    public TenantParam(String description, String namespace, URI webStorageDefaultProject,
             URI webStorageDefaultVpool) {
         this.description = description;
+        this.namespace = namespace;
         this.webStorageDefaultProject = webStorageDefaultProject;
         this.webStorageDefaultVpool = webStorageDefaultVpool;
     }
@@ -40,6 +42,25 @@ public abstract class TenantParam {
         this.description = description;
     }
 
+    /**
+     * Namespace associated to a tenant.
+     * 
+     * @valid any string
+     */
+    @XmlElement(required = false)
+    public String getNamespace() {
+        return namespace;
+    }
+
+    /**
+     * Sets namespace for a Tenant.
+     * 
+     * @param namespace
+     */
+    public void setNamespace(String namespace) {
+        this.namespace = namespace;
+    }
+    
     /**
      * Default project URI for this tenant
      * 

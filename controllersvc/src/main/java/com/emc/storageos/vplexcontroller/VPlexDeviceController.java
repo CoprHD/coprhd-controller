@@ -772,6 +772,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                     buf.append(vvInfo.getName() + " ");
                     _log.info(String.format("Created virtual volume: %s path: %s", vvInfo.getName(), vvInfo.getPath()));
                     vplexVolume.setNativeId(vvInfo.getPath());
+                    vplexVolume.setNativeGuid(vvInfo.getPath());
                     vplexVolume.setDeviceLabel(vvInfo.getName());
                     // CTRL-2534: allocatedCapacity should equal provisionedCapacity on VPLEX volumes
                     vplexVolume.setAllocatedCapacity(vvInfo.getCapacityBytes());
@@ -5238,6 +5239,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                             updatedVirtualVolumeInfo.getName());
                     virtualVolume.setDeviceLabel(updatedVirtualVolumeInfo.getName());
                     virtualVolume.setNativeId(updatedVirtualVolumeInfo.getPath());
+                    virtualVolume.setNativeGuid(updatedVirtualVolumeInfo.getPath());
                 }
                 // Note that for ingested volumes, there will be no associated volumes
                 // at first.
@@ -5769,6 +5771,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
                 // not set.
                 if (newVolume != null) {
                     vplexVolume.setNativeId(virtvinfo.getPath());
+                    vplexVolume.setNativeGuid(virtvinfo.getPath());
                     vplexVolume.setDeviceLabel(virtvinfo.getName());
                     _dbClient.persistObject(vplexVolume);
 
@@ -5801,6 +5804,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
 
             // Update the virtual volume device label and native Id.
             vplexVolume.setNativeId(virtvinfo.getPath());
+            vplexVolume.setNativeGuid(virtvinfo.getPath());
             vplexVolume.setDeviceLabel(virtvinfo.getName());
 
             // If we are importing, we need to move the existing import volume to
@@ -8438,6 +8442,7 @@ public class VPlexDeviceController implements VPlexController, BlockOrchestratio
             String promotedLabel = String.format("%s-%s", sourceVplexVolume.getLabel(), vplexMirror.getLabel());
             promoteVolume.setLabel(promotedLabel);
             promoteVolume.setNativeId(vvInfo.getPath());
+            promoteVolume.setNativeGuid(vvInfo.getPath());
             promoteVolume.setDeviceLabel(vvInfo.getName());
             // CTRL-2534: allocatedCapacity should equal provisionedCapacity on VPLEX volumes
             promoteVolume.setAllocatedCapacity(vplexMirror.getProvisionedCapacity());

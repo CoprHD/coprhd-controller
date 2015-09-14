@@ -31,7 +31,6 @@ import com.emc.fapiclient.ws.FunctionalAPIActionFailedException_Exception;
 import com.emc.fapiclient.ws.FunctionalAPIInternalError_Exception;
 import com.emc.storageos.blockorchestrationcontroller.BlockOrchestrationInterface;
 import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor;
-import com.emc.storageos.blockorchestrationcontroller.VolumeDescriptor.Type;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.exceptions.CoordinatorException;
 import com.emc.storageos.db.client.DbClient;
@@ -81,7 +80,6 @@ import com.emc.storageos.model.ResourceOperationTypeEnum;
 import com.emc.storageos.protectioncontroller.RPController;
 import com.emc.storageos.recoverpoint.exceptions.RecoverPointException;
 import com.emc.storageos.recoverpoint.impl.RecoverPointClient;
-import com.emc.storageos.recoverpoint.impl.RecoverPointClient.RecoverPointCGCopyType;
 import com.emc.storageos.recoverpoint.objectmodel.RPBookmark;
 import com.emc.storageos.recoverpoint.objectmodel.RPConsistencyGroup;
 import com.emc.storageos.recoverpoint.objectmodel.RPSite;
@@ -109,6 +107,7 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.util.ConnectivityUtil;
+import com.emc.storageos.util.ExportUtils;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.BlockController;
@@ -1023,17 +1022,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                 // Convert to initiator object
                 List<Initiator> initiators = new ArrayList<Initiator>();
                 for (String wwn : wwns.keySet()) {
-                    Initiator initiator = new Initiator();
-                    initiator.addInternalFlags(Flag.RECOVERPOINT);
-                    // Remove all non alpha-numeric characters, excluding "_", from the hostname
-                    initiator.setHostName(rpSiteName.replaceAll("[^A-Za-z0-9_]", ""));
-                    initiator.setInitiatorPort(wwn);
-                    initiator.setInitiatorNode(wwns.get(wwn));
-                    initiator.setProtocol("FC");
-                    initiator.setIsManualCreation(false);
-
-                    // Either get the existing initiator or create a new if needed
-                    initiator = getOrCreateNewInitiator(initiator);
+                    Initiator initiator = ExportUtils.getInitiator(wwn, _dbClient);
                     initiators.add(initiator);
                 }
 
@@ -3402,42 +3391,6 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
         }
         _log.info("Export Group does NOT already exist in database.");
         return null;
-    }
-
-    /**
-     * Get an initiator as specified by the passed initiator data. First checks
-     * if an initiator with the specified port already exists in the database,
-     * and simply returns that initiator, otherwise creates a new initiator.
-     *
-     * @param initiatorParam The data for the initiator.
-     *
-     * @return A reference to an initiator.
-     *
-     * @throws InternalException When an error occurs querying the database.
-     */
-    private Initiator getOrCreateNewInitiator(Initiator initiatorParam)
-            throws InternalException {
-        Initiator initiator = null;
-        URIQueryResultList resultsList = new URIQueryResultList();
-        _dbClient.queryByConstraint(AlternateIdConstraint.Factory.getInitiatorPortInitiatorConstraint(
-                initiatorParam.getInitiatorPort()), resultsList);
-        Iterator<URI> resultsIter = resultsList.iterator();
-        if (resultsIter.hasNext()) {
-            initiator = _dbClient.queryObject(Initiator.class, resultsIter.next());
-            // If the hostname has been changed then we need to update the
-            // Initiator object to reflect that change.
-            if (NullColumnValueGetter.isNotNullValue(initiator.getHostName())
-                    && !initiator.getHostName().equals(initiatorParam.getHostName())) {
-                initiator.setHostName(initiatorParam.getHostName());
-                _dbClient.persistObject(initiator);
-            }
-        } else {
-            initiatorParam.setId(URIUtil.createId(Initiator.class));
-            _dbClient.createObject(initiatorParam);
-            initiator = initiatorParam;
-        }
-
-        return initiator;
     }
 
     /*

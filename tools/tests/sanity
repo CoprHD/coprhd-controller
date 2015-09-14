@@ -1938,7 +1938,7 @@ rpvplex_crr()
         --provisionType 'Thin' \
         --neighborhoods $RECOVERPOINT_VARRAY1 \
         --multiVolumeConsistency \
-        --protectionCoS $targets \
+        --protectionCoS $RECOVERPOINT_VARRAY3':rp_targets'$1':min' \
         --rp_copy_mode ASYNCHRONOUS \
         --rp_rpo_value 5 \
         --rp_rpo_type MINUTES \

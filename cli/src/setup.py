@@ -60,6 +60,7 @@ distutils.core.setup(
                       'sanfabrics.py',
 		      'computeimage.py',
 		      'computelement.py',
+                      'bucket.py',		      
 		      'computesystem.py',
 		      'computevpool.py',
                       'vnasserver.py',

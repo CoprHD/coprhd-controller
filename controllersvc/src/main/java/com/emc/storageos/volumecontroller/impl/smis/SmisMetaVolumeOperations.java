@@ -128,7 +128,7 @@ public class SmisMetaVolumeOperations implements MetaVolumeOperations {
                     new SmisCreateMetaVolumeHeadJob(null, forProvider.getId(), metaVolumeTaskCompleter, metaHead.getId());
 
             _helper.invokeMethodSynchronously(forProvider, configSvcPath,
-                    SmisConstants.CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL, inArgs,
+                    _helper.createVolumesMethodName(forProvider), inArgs,
                     outArgs, smisJobCompleter);
         } catch (WBEMException e) {
             _log.error("Problem making SMI-S call: ", e);

@@ -443,6 +443,7 @@ COS_MIRROR_WITH_2_MIRRORS=cosmirror_max_2
 COS_MIRROR_BEFORE_CHANGE=cosmirror_before_change
 COS_MIRROR_AFTER_CHANGE=cosmirror_after_change
 COS_MIRROR_VNX=cosmirror_vnx
+COS_VMAX_CG_MIRROR=cosvmax_cg_mirror
 
 #
 # Export group configuration
@@ -1175,7 +1176,7 @@ srdf_cos_setup()
 			 --protocols FC 		          \
 			 --numpaths 1				  \
 			 --max_snapshots 10 			  \
-			 --provisionType 'Thin'		          \
+			 --provisionType 'Thick'	          \
 			 --neighborhoods $NH                      \
                          --multiVolumeConsistency                  \
                          --system_type vmax			
@@ -1190,7 +1191,7 @@ srdf_cos_setup()
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
-	                 --provisionType 'Thin'		        \
+	                 --provisionType 'Thick'	        \
                          --system_type vmax                     \
 			 --neighborhoods $NH                    \
 			 --srdf "${NH}:${COS_VMAXBLOCK_SRDF_TARGET}:SYNCHRONOUS"
@@ -1205,7 +1206,7 @@ srdf_cos_setup()
 			 --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
-	                 --provisionType 'Thin'		        \
+	                 --provisionType 'Thick'	        \
                          --system_type vmax                     \
 			 --neighborhoods $NH                    \
                          --multiVolumeConsistency               \
@@ -1224,7 +1225,7 @@ srdf_cos_matcher_test()
     run cos match block true --protocols FC 		        \
 			 --numpaths 1				\
 			 --max_snapshots 10			\
-	                 --provisionType 'Thin'		        \
+	                 --provisionType 'Thick'	        \
 			 --neighborhoods $NH                    \
                          --multiVolumeConsistency               \
 			 --srdf "${NH}:${COS_VMAXBLOCK_SRDF_TARGET}:ASYNCHRONOUS"
@@ -1448,6 +1449,18 @@ mirrorblock_cos_setup()
 	                    --system_type vmax \
                             --expandable false \
 			    --neighborhoods $NH
+
+    cos create block $COS_VMAX_CG_MIRROR \
+                            --description 'CoS for VMAX block FC' true \
+                            --protocols FC \
+                            --numpaths 2 \
+                            --max_snapshots 10 \
+                            --max_mirrors 10 \
+                            --system_type vmax \
+                            --expandable false \
+                            --provisionType 'Thin' \
+                            --neighborhoods $NH \
+                            --multiVolumeConsistency
 }
 
 consistencygroup_block_cos_setup()
@@ -1671,14 +1684,14 @@ vplex_tests()
 
 	echo "**** Creating VPLEX local volumes"
 	run volume create $localVolume1 $PROJECT $NH cosvplexlocal $BLK_SIZE
-	run volume create $localVolume2 $PROJECT $NH cosvplexlocal $BLK_SIZE
+	run volume create $localVolume2 $PROJECT $NH cosvplexlocal $BLK_SIZE --count=2
 	
 	echo "**** Creating VPLEX local mirrors"
 	run blockmirror attach  $PROJECT/$localVolume1 $localMirror1 1
-	run blockmirror attach  $PROJECT/$localVolume2 $localMirror2 1
+	run blockmirror attach  $PROJECT/$localVolume2-1 $localMirror2 1
 
 	echo "**** Deleting VPLEX local mirror"
-	run blockmirror deactivate  $PROJECT/$localVolume2 $localMirror2$sourceSideSuffix
+	run blockmirror deactivate  $PROJECT/$localVolume2-1 $localMirror2$sourceSideSuffix
 
 	echo "**** Creating VPLEX distributed volumes"
 	run volume create $distVolume1 $PROJECT $NH cosvplexdist $BLK_SIZE
@@ -1706,7 +1719,7 @@ vplex_tests()
 	run export_group create $PROJECT $hname-1$host $NH --volspec "$PROJECT/$distVolume1+1" --inits "$hostLbl/$PWWN1","$hostLbl/$PWWN2"
 	run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$distVolume2+2
 	run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume1+3
-	run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume2+4
+	run export_group update $PROJECT/$hname-1$host --addVolspec $PROJECT/$localVolume2-1+4
 	
 	echo "**** Exporting VPLEX volumes to host in varray " $NH2
         # run export_group create $PROJECT $hname-2$host $NH2 --volspec "$PROJECT/$distVolume1+1" --inits "$hostLbl/$PWWN2"
@@ -1716,7 +1729,7 @@ vplex_tests()
 	volume exports "$PROJECT/$distVolume2" --v
 	echo "Exports for $localVolume1"
 	volume exports "$PROJECT/$localVolume1" --v
-	echo "Exports for $localVolume2"
+	echo "Exports for $localVolume2-1"
 	volume exports "$PROJECT/$localVolume1" --v
 
 	echo "**** Creating VPLEX volume snapshots"
@@ -1744,7 +1757,9 @@ vplex_tests()
 
 	echo "**** Deleting VPLEX volumes"
 	run volume delete $PROJECT/$localVolume1 --wait
-	run volume delete $PROJECT/$localVolume2 --wait
+	run volume delete $PROJECT/$localVolume2-1 --wait
+        run volume delete $PROJECT/$localVolume2-2 --wait
+
 	run volume delete $PROJECT/$distVolume1 --wait
 	run volume delete $PROJECT/$distVolume2 --wait
 
@@ -3424,6 +3439,9 @@ mirrorblock_setup()
 
     #cos allow $COS_MIRROR_VNX block $TENANT
     #cos update block $COS_MIRROR_VNX --storage $VNXB_NATIVEGUID    
+
+    cos allow $COS_VMAX_CG_MIRROR block $TENANT
+    cos update block $COS_VMAX_CG_MIRROR --storage $VMAX_NATIVEGUID
 }
 
 #
@@ -5085,7 +5103,6 @@ security_tests()
 ##### full_copy tests 
 #######################
 
-VMAX3_FC_NATIVEGUID=SYMMETRIX+000196700567
 VMAX3_FC_SMIS_DEV=VMAX3_FC_SMIS_DEV
 VMAX3_FC_PORTS_A="FA-1D FA-3D"
 VMAX3_FC_PORTS_B="FA-2D FA-4D"
@@ -5179,11 +5196,14 @@ full_copy_single_volume_vnx()
     echo "Listing all full copies for source volume"
     run volume full_copy_list $PROJECT/${full_copy_source}
 
-    echo "Restoring source from full copy"
+    echo "Resynchronizing full copy from source"
     run volume full_copy_resync $PROJECT/${full_copy_clone}
 
-    echo "Resynchronizing full copy from source"
+    echo "Restoring source from full copy"
     run volume full_copy_restore $PROJECT/${full_copy_clone}
+
+    echo "Detaching full copy..."
+    run volume detach ${PROJECT}/${full_copy_source} ${PROJECT}/${full_copy_clone}
 
     echo "Deactivating full copy volume"
     run volume delete $PROJECT/${full_copy_clone} --wait
@@ -5211,11 +5231,14 @@ full_copy_single_volume_vmax()
     echo "Listing all full copies for source volume"
     run volume full_copy_list $PROJECT/${full_copy_source}
 
-    echo "Restoring source from full copy"
+    echo "Resynchronizing full copy from source"
     run volume full_copy_resync $PROJECT/${full_copy_clone}
 
-    echo "Resynchronizing full copy from source"
+    echo "Restoring source from full copy"
     run volume full_copy_restore $PROJECT/${full_copy_clone}
+
+    echo "Detaching full copy..."
+    run volume detach ${PROJECT}/${full_copy_source} ${PROJECT}/${full_copy_clone}
 
     echo "Deactivating full copy volume"
     run volume delete $PROJECT/${full_copy_clone} --wait
@@ -5287,11 +5310,14 @@ full_copy_single_volume_vmax3()
     echo "Listing all full copies for source volume"
     run volume full_copy_list $PROJECT/${full_copy_source}
 
-    echo "Restoring source from full copy"
+    echo "Resynchronizing full copy from source"
     run volume full_copy_resync $PROJECT/${full_copy_clone}
 
-    echo "Resynchronizing full copy from source"
+    echo "Restoring source from full copy"
     run volume full_copy_restore $PROJECT/${full_copy_clone}
+
+    echo "Detaching full copy..."
+    run volume detach ${PROJECT}/${full_copy_source} ${PROJECT}/${full_copy_clone}
 
     echo "Deactivating full copy volume"
     run volume delete $PROJECT/${full_copy_clone} --wait
@@ -5476,6 +5502,73 @@ blockmirror_vnx()
     run volume delete $PROJECT/${mirrortest_vol} --wait
 }
 
+blockmirror_group_mirrors()
+{
+    mirrortest_vol="${MIRROR_VOLUME}-group"
+    consistency_group=`openssl passwd "$RANDOM" | cut -c1-8`
+    group_mirror="sanitytest"
+    run blockconsistencygroup create $PROJECT $consistency_group
+
+    # Create source volumes
+    echo "Creating source volumes"
+    run volume create ${mirrortest_vol}1 $PROJECT $NH $COS_VMAX_CG_MIRROR 1073741825 --thinVolume true --consistencyGroup $consistency_group
+    run volume create ${mirrortest_vol}2 $PROJECT $NH $COS_VMAX_CG_MIRROR 1073741825 --thinVolume true --consistencyGroup $consistency_group
+
+    run blockconsistencygroup show $consistency_group
+    run volume list $PROJECT
+
+    echo "Attaching group mirrors"
+    run blockmirror attach $PROJECT/${mirrortest_vol}1 $group_mirror 1
+
+    echo "Listing active mirrors"
+    run blockmirror list $PROJECT/${mirrortest_vol}1
+    run blockmirror list $PROJECT/${mirrortest_vol}2
+
+    echo "Pausing group mirrors"
+    run blockmirror pause $PROJECT/${mirrortest_vol}1
+
+    echo "Listing group mirrors"
+    run blockmirror list $PROJECT/${mirrortest_vol}1
+    run blockmirror list $PROJECT/${mirrortest_vol}2
+
+    echo "Resuming group mirrors"
+    run blockmirror resume $PROJECT/${mirrortest_vol}1
+
+    echo "Listing group mirrors"
+    run blockmirror list $PROJECT/${mirrortest_vol}1
+    run blockmirror list $PROJECT/${mirrortest_vol}2
+
+    echo "Deactivating group mirrors"
+    run blockmirror deactivate $PROJECT/${mirrortest_vol}1 ${mirrortest_vol}1-${group_mirror}
+
+    echo "Listing group mirrors"
+    run blockmirror list $PROJECT/${mirrortest_vol}1
+    run blockmirror list $PROJECT/${mirrortest_vol}2
+
+    echo "Attaching group mirrors"
+    run blockmirror attach $PROJECT/${mirrortest_vol}1 ${group_mirror}1 1
+
+    echo "Listing group mirrors"
+    run blockmirror list $PROJECT/${mirrortest_vol}1
+    run blockmirror list $PROJECT/${mirrortest_vol}2
+
+    echo "Detaching group mirrors"
+    run blockmirror detach $PROJECT/${mirrortest_vol}1
+
+    echo "Listing group mirrors"
+    run blockmirror list $PROJECT/${mirrortest_vol}1
+    run blockmirror list $PROJECT/${mirrortest_vol}2
+
+    echo "Deleting promoted volumes"
+    run volume delete $PROJECT/${mirrortest_vol}1-${group_mirror}1 --wait
+    run volume delete $PROJECT/${mirrortest_vol}2-${group_mirror}1 --wait
+
+    echo "Deactivating source volumes"
+    run volume delete $PROJECT/${mirrortest_vol}1 --wait
+    echo "delete $PROJECT/${mirrortest_vol}2"
+    run volume delete $PROJECT/${mirrortest_vol}2 --wait
+}
+
 blockmirror_tests()
 {
     # quick_file_tests $COS_VNXFILE default
@@ -5489,6 +5582,7 @@ blockmirror_tests()
     blockmirror_vpool_change
 
     #blockmirror_vnx
+    blockmirror_group_mirrors
 }
 
 #### end of blockmirror test section

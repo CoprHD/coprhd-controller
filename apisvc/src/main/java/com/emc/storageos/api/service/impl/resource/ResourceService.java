@@ -15,12 +15,10 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 
-import com.emc.storageos.db.client.model.*;
-import com.emc.storageos.security.authorization.PermissionsKey;
-import com.emc.storageos.security.geo.GeoDependencyChecker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.CollectionUtils;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.api.service.authorization.PermissionsHelper;
@@ -28,7 +26,20 @@ import com.emc.storageos.api.service.impl.resource.utils.AsynchJobExecutorServic
 import com.emc.storageos.api.service.impl.resource.utils.BlockServiceUtils;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.constraint.*;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.Constraint;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentPermissionsConstraint;
+import com.emc.storageos.db.client.constraint.ContainmentPrefixConstraint;
+import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
+import com.emc.storageos.db.client.constraint.PrefixConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.AbstractDiscoveredTenantResource;
+import com.emc.storageos.db.client.model.AbstractTenantResource;
+import com.emc.storageos.db.client.model.DataObject;
+import com.emc.storageos.db.client.model.DiscoveredComputeSystemWithAcls;
+import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.Vcenter;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.db.client.util.DataObjectUtils;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -36,15 +47,16 @@ import com.emc.storageos.db.common.DbDependencyPurger;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RestLinkRep;
+import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authentication.InterNodeHMACAuthFilter;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
+import com.emc.storageos.security.authorization.PermissionsKey;
 import com.emc.storageos.security.authorization.Role;
-import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import com.emc.storageos.security.geo.GeoDependencyChecker;
 import com.emc.storageos.services.OperationTypeEnum;
-import com.emc.storageos.security.audit.AuditLogManager;
+import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.sun.jersey.api.NotFoundException;
-import org.springframework.util.CollectionUtils;
 
 /**
  * Base resource with common dependencies and convenience methods
@@ -218,7 +230,7 @@ public abstract class ResourceService {
         }
         if ((_permissionsHelper.userHasGivenRole(user, project.getTenantOrg().getURI(),
                 Role.SYSTEM_MONITOR, Role.TENANT_ADMIN) || _permissionsHelper.userHasGivenACL(user,
-                projectUri, ACL.ANY))) {
+                        projectUri, ACL.ANY))) {
             return true;
         } else {
             return false;
@@ -281,8 +293,8 @@ public abstract class ResourceService {
                 ContainmentConstraint.Factory.getContainedObjectsConstraint(id, clzz, linkField));
         if (uris != null && !uris.isEmpty()) {
             List<T> dataObjects = _dbClient.queryObjectField(clzz, nameField, uris);
-            List<NamedElementQueryResultList.NamedElement> elements =
-                    new ArrayList<NamedElementQueryResultList.NamedElement>(dataObjects.size());
+            List<NamedElementQueryResultList.NamedElement> elements = new ArrayList<NamedElementQueryResultList.NamedElement>(
+                    dataObjects.size());
             for (T dataObject : dataObjects) {
                 Object name = DataObjectUtils.getPropertyValue(clzz, dataObject, nameField);
                 elements.add(NamedElementQueryResultList.NamedElement.createElement(
@@ -478,9 +490,9 @@ public abstract class ResourceService {
      * @return a name and id list of a given class
      */
     protected <T extends DataObject> List<NamedElementQueryResultList.NamedElement> listDataObjects(Class<T> clazz,
-                                                                                                    String nameField) {
+            String nameField) {
         List<T> dataObjects = getDataObjects(clazz);
-        if(!CollectionUtils.isEmpty(dataObjects)) {
+        if (!CollectionUtils.isEmpty(dataObjects)) {
             return getNamedElementsList(clazz, nameField, dataObjects);
         } else {
             return new ArrayList<NamedElementQueryResultList.NamedElement>();
@@ -496,14 +508,14 @@ public abstract class ResourceService {
      *            field because, objects for which this field is null will not be returned by
      *            this function.
      * @param dataObjects all the data objects of the class to which the name and id pair list
-     *                    is created.
+     *            is created.
      * @return a name and id list of a given class.
      */
-    protected  <T extends DataObject> List<NamedElementQueryResultList.NamedElement> getNamedElementsList(Class<T> clazz,
-                                                                                                          String nameField,
-                                                                                                          List<T> dataObjects) {
-        List<NamedElementQueryResultList.NamedElement> elements =
-                new ArrayList<NamedElementQueryResultList.NamedElement>(dataObjects.size());
+    protected <T extends DataObject> List<NamedElementQueryResultList.NamedElement> getNamedElementsList(Class<T> clazz,
+            String nameField,
+            List<T> dataObjects) {
+        List<NamedElementQueryResultList.NamedElement> elements = new ArrayList<NamedElementQueryResultList.NamedElement>(
+                dataObjects.size());
         for (T dataObject : dataObjects) {
             Object name = DataObjectUtils.getPropertyValue(clazz, dataObject, nameField);
             elements.add(NamedElementQueryResultList.NamedElement.createElement(
@@ -521,11 +533,12 @@ public abstract class ResourceService {
      * @param dataObjects list of data objects to be filtered with no acls.
      * @return a name and id list of a given class with no acls.
      */
-    protected  <T extends DiscoveredComputeSystemWithAcls> List<NamedElementQueryResultList.NamedElement> getNamedElementsWithNoAcls(Class<T> clazz,
-                                                                                                                                     String nameField,
-                                                                                                                                     List<T> dataObjects) {
-        List<NamedElementQueryResultList.NamedElement> elements =
-                new ArrayList<NamedElementQueryResultList.NamedElement>(dataObjects.size());
+    protected <T extends DiscoveredComputeSystemWithAcls> List<NamedElementQueryResultList.NamedElement> getNamedElementsWithNoAcls(
+            Class<T> clazz,
+            String nameField,
+            List<T> dataObjects) {
+        List<NamedElementQueryResultList.NamedElement> elements = new ArrayList<NamedElementQueryResultList.NamedElement>(
+                dataObjects.size());
         for (T dataObject : dataObjects) {
             if (CollectionUtils.isEmpty(dataObject.getAcls())) {
                 Object name = DataObjectUtils.getPropertyValue(clazz, dataObject, nameField);
@@ -564,11 +577,12 @@ public abstract class ResourceService {
      *            this function.
      * @return a list of NamedElements filtered by tenant.
      */
-    protected  <T extends DiscoveredComputeSystemWithAcls> List<NamedElementQueryResultList.NamedElement> listChildrenWithAcls (URI tenantId,
-                                                                                                                                Class<T> clzz,
-                                                                                                                                String nameField) {
+    protected <T extends DiscoveredComputeSystemWithAcls> List<NamedElementQueryResultList.NamedElement> listChildrenWithAcls(URI tenantId,
+            Class<T> clzz,
+            String nameField) {
         List<T> dataObjects = getDiscoveredComputeObjects(tenantId, clzz);
-        List<NamedElementQueryResultList.NamedElement> elements = new ArrayList<NamedElementQueryResultList.NamedElement>(dataObjects.size());
+        List<NamedElementQueryResultList.NamedElement> elements = new ArrayList<NamedElementQueryResultList.NamedElement>(
+                dataObjects.size());
         for (T dataObject : dataObjects) {
             Object name = DataObjectUtils.getPropertyValue(Vcenter.class, dataObject, nameField);
             elements.add(NamedElementQueryResultList.NamedElement.createElement(
@@ -584,7 +598,7 @@ public abstract class ResourceService {
      * @param clzz class of objects.
      * @return the filtered list of objects with acls.
      */
-    protected  <T extends DiscoveredComputeSystemWithAcls> List<T> getDiscoveredComputeObjects(URI tenantId, Class<T> clzz) {
+    protected <T extends DiscoveredComputeSystemWithAcls> List<T> getDiscoveredComputeObjects(URI tenantId, Class<T> clzz) {
         PermissionsKey permissionKey = new PermissionsKey(PermissionsKey.Type.TENANT, tenantId.toString());
 
         URIQueryResultList resultURIs = new URIQueryResultList();
@@ -609,12 +623,12 @@ public abstract class ResourceService {
      *
      * @param tenantId will be filtered based on this tenantId.
      * @param elements List of named elements of all the active abstract tenant
-     *                 resources to be filtered based on the tenant.
+     *            resources to be filtered based on the tenant.
      * @return returns the filtered element list based on the tenant.
      */
-    protected  <T extends AbstractTenantResource> List<NamedElementQueryResultList.NamedElement>
-    filterTenantResourcesByTenant(URI tenantId, Class<T> clazz,
-                                  List<NamedElementQueryResultList.NamedElement> elements) {
+    protected <T extends AbstractTenantResource> List<NamedElementQueryResultList.NamedElement>
+            filterTenantResourcesByTenant(URI tenantId, Class<T> clazz,
+                    List<NamedElementQueryResultList.NamedElement> elements) {
         if (CollectionUtils.isEmpty(elements)) {
             return elements;
         }
@@ -643,7 +657,7 @@ public abstract class ResourceService {
                 continue;
             }
 
-            //The vCenters tenant
+            // The vCenters tenant
             if (areEqual(localTenantId, dataCenter.getTenant())) {
                 continue;
             }
@@ -659,24 +673,24 @@ public abstract class ResourceService {
      *
      * @param tenantId will be filtered based on this tenantId.
      * @param elements List of named elements of all the active abstract discovered,
-     *                 tenant resources to be filtered based on the tenant.
+     *            tenant resources to be filtered based on the tenant.
      * @return returns the filtered element list based on the tenant.
      */
-    protected  <T extends AbstractDiscoveredTenantResource> List<NamedElementQueryResultList.NamedElement>
-    filterDiscoveredTenantResourcesByTenant(URI tenantId, Class<T> clazz,
-                                            List<NamedElementQueryResultList.NamedElement> elements) {
+    protected <T extends AbstractDiscoveredTenantResource> List<NamedElementQueryResultList.NamedElement>
+            filterDiscoveredTenantResourcesByTenant(URI tenantId, Class<T> clazz,
+                    List<NamedElementQueryResultList.NamedElement> elements) {
         if (CollectionUtils.isEmpty(elements)) {
             return elements;
         }
 
         URI localTenantId = tenantId;
-        //The the requested tenant is null or ALL, return all the vCenters.
+        // The the requested tenant is null or ALL, return all the vCenters.
         if (NullColumnValueGetter.isNullURI(localTenantId) ||
                 AbstractDiscoveredTenantResource.NO_TENANT_SELECTOR.equalsIgnoreCase(localTenantId.toString())) {
             return elements;
         }
 
-        //If the filter tenantId is "NONE" modify the search tenantId to null.
+        // If the filter tenantId is "NONE" modify the search tenantId to null.
         if (AbstractDiscoveredTenantResource.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(localTenantId.toString())) {
             localTenantId = NullColumnValueGetter.getNullURI();
         }
@@ -693,7 +707,7 @@ public abstract class ResourceService {
                 continue;
             }
 
-            //The vCenters tenant
+            // The vCenters tenant
             if (areEqual(localTenantId, dataCenter.getTenant())) {
                 continue;
             }
@@ -713,20 +727,20 @@ public abstract class ResourceService {
      * @param linkField name of the parent link field.
      * @return returns the filtered element list based on the tenant.
      */
-    protected  <T extends DataObject> List<NamedElementQueryResultList.NamedElement>
-    filterTenantResourcesByTenant(URI tenantId, Class<T> clazz, String nameField, String linkField) {
+    protected <T extends DataObject> List<NamedElementQueryResultList.NamedElement>
+            filterTenantResourcesByTenant(URI tenantId, Class<T> clazz, String nameField, String linkField) {
 
         List<NamedElementQueryResultList.NamedElement> elements;
 
         URI localTenantId = tenantId;
-        //The the requested tenant is null or ALL, return all the vCenters.
+        // The the requested tenant is null or ALL, return all the vCenters.
         if (NullColumnValueGetter.isNullURI(localTenantId) ||
                 AbstractDiscoveredTenantResource.NO_TENANT_SELECTOR.equalsIgnoreCase(localTenantId.toString())) {
             elements = listDataObjects(clazz, nameField);
             return elements;
         }
 
-        //If the filter tenantId is "NONE" modify the search tenantId to null.
+        // If the filter tenantId is "NONE" modify the search tenantId to null.
         if (AbstractDiscoveredTenantResource.TENANT_SELECTOR_FOR_UNASSIGNED.equalsIgnoreCase(localTenantId.toString())) {
             localTenantId = NullColumnValueGetter.getNullURI();
         }

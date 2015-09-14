@@ -16,7 +16,7 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.emc.storageos.model.*;
+import com.emc.storageos.model.TaskResourceRep;
 import com.emc.vipr.model.sys.logging.LogSeverity;
 
 import com.emc.storageos.model.event.EventParameters;
@@ -34,7 +34,26 @@ public interface CallHomeService {
     @POST
     @Path("internal/alert/")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public TaskResourceRep sendInternalAlert(@QueryParam("source") String source,@DefaultValue(CallHomeConstants.SYMPTOM_CODE_REQUEST_LOGS) @QueryParam("event_id") int eventId,@QueryParam(LogRequestParam.NODE_ID) List<String> nodeIds,@QueryParam(LogRequestParam.NODE_NAME) List<String> nodeNames,@QueryParam(LogRequestParam.LOG_NAME) List<String> logNames,@DefaultValue(LogSeverity.DEFAULT_VALUE_AS_STR) @QueryParam(LogRequestParam.SEVERITY) int severity,@QueryParam(LogRequestParam.START_TIME) String start,@QueryParam(LogRequestParam.END_TIME) String end,@QueryParam(LogRequestParam.MSG_REGEX) String msgRegex,@QueryParam(LogRequestParam.MAX_COUNT) int maxCount,EventParameters eventParameters) throws Exception;
+    public TaskResourceRep sendInternalAlert(
+            @QueryParam("source") String source,
+            @DefaultValue(CallHomeConstants
+                    .SYMPTOM_CODE_REQUEST_LOGS)
+            @QueryParam("event_id") int eventId,
+            @QueryParam(LogRequestParam.NODE_ID) List<String>
+                    nodeIds,
+            @QueryParam(LogRequestParam.NODE_NAME) List<String>
+                    nodeNames,
+            @QueryParam(LogRequestParam.LOG_NAME)
+            List<String> logNames,
+            @DefaultValue(LogSeverity.DEFAULT_VALUE_AS_STR)
+            @QueryParam(LogRequestParam.SEVERITY) int severity,
+            @QueryParam(LogRequestParam.START_TIME) String
+                    start,
+            @QueryParam(LogRequestParam.END_TIME) String end,
+            @QueryParam(LogRequestParam.MSG_REGEX) String
+                    msgRegex,
+            @QueryParam(LogRequestParam.MAX_COUNT) int maxCount,
+            EventParameters eventParameters) throws Exception;
 
     /**
      * Create an alert event with error logs attached, which aid in
@@ -86,7 +105,20 @@ public interface CallHomeService {
     @Path("alert/")
     @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN, Role.SYSTEM_MONITOR })
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    public TaskResourceRep sendAlert(@Deprecated @QueryParam("source") String source,@DefaultValue(CallHomeConstants.SYMPTOM_CODE_REQUEST_LOGS) @QueryParam("event_id") int eventId,@QueryParam(LogRequestParam.NODE_ID) List<String> nodeIds,@QueryParam(LogRequestParam.NODE_NAME) List<String> nodeNames,@QueryParam(LogRequestParam.LOG_NAME) List<String> logNames,@DefaultValue(LogSeverity.DEFAULT_VALUE_AS_STR) @QueryParam(LogRequestParam.SEVERITY) int severity,@QueryParam(LogRequestParam.START_TIME) String start,@QueryParam(LogRequestParam.END_TIME) String end,@QueryParam(LogRequestParam.MSG_REGEX) String msgRegex,@QueryParam(LogRequestParam.MAX_COUNT) int maxCount,@DefaultValue("false") @QueryParam("forceAttachLogs") boolean forceAttachLogs,@QueryParam("force") int force,EventParameters eventParameters) throws Exception;
+    public TaskResourceRep sendAlert(
+            @Deprecated @QueryParam("source") String source,
+            @DefaultValue(CallHomeConstants.SYMPTOM_CODE_REQUEST_LOGS) @QueryParam("event_id") int eventId,
+            @QueryParam(LogRequestParam.NODE_ID) List<String> nodeIds,
+            @QueryParam(LogRequestParam.NODE_NAME) List<String> nodeNames,
+            @QueryParam(LogRequestParam.LOG_NAME) List<String> logNames,
+            @DefaultValue(LogSeverity.DEFAULT_VALUE_AS_STR) @QueryParam(LogRequestParam.SEVERITY) int severity,
+            @QueryParam(LogRequestParam.START_TIME) String start,
+            @QueryParam(LogRequestParam.END_TIME) String end,
+            @QueryParam(LogRequestParam.MSG_REGEX) String msgRegex,
+            @QueryParam(LogRequestParam.MAX_COUNT) int maxCount,
+            @DefaultValue("false") @QueryParam("forceAttachLogs") boolean forceAttachLogs,
+            @QueryParam("force") int force,
+            EventParameters eventParameters) throws Exception;
 
     /**
      * Send a registration event to ConnectEMC with configuration properties

@@ -7,7 +7,6 @@ package com.emc.storageos.systemservices.impl.resource;
 
 import java.net.URI;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -17,7 +16,9 @@ import javax.ws.rs.core.Response;
 import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.model.util.*;
 import com.emc.storageos.model.*;
-import com.emc.vipr.model.sys.*;
+import static com.emc.storageos.svcs.errorhandling.resources.ServiceCode.toServiceCode;
+import static com.emc.storageos.svcs.errorhandling.resources.ServiceErrorFactory.toServiceErrorRestRep;
+import org.apache.commons.lang.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,11 +31,8 @@ import com.emc.storageos.model.event.EventParameters;
 import com.emc.storageos.security.audit.AuditLogManager;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.services.OperationTypeEnum;
-import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.svcs.errorhandling.resources.ForbiddenException;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
-import com.emc.storageos.svcs.errorhandling.resources.ServiceErrorFactory;
 import com.emc.storageos.systemservices.impl.eventhandler.connectemc.BuildEsrsDevice;
 import com.emc.storageos.systemservices.impl.eventhandler.connectemc.CallHomeConstants;
 import com.emc.storageos.systemservices.impl.eventhandler.connectemc.CallHomeEventManager;
@@ -44,7 +42,6 @@ import com.emc.storageos.systemservices.impl.licensing.LicenseInfoExt;
 import com.emc.storageos.systemservices.impl.licensing.LicenseInfoListExt;
 import com.emc.storageos.systemservices.impl.licensing.LicenseManager;
 import com.emc.storageos.systemservices.impl.upgrade.CoordinatorClientExt;
-import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 public class CallHomeServiceImpl extends BaseLogSvcResource implements CallHomeService {
 
@@ -177,6 +174,56 @@ public class CallHomeServiceImpl extends BaseLogSvcResource implements CallHomeS
                 null, nodeIds, logNames, start, end);
 
         return toTask(sysEvent, opID, op);
+    }
+
+    private TaskResourceRep toTask(DataObject resource, String taskId, Operation operation) {
+        // If the Operation has been serialized in this request, then it should have the corresponding task embedded in it
+        Task task = operation.getTask(resource.getId());
+        if (task != null) {
+            return toTask(task);
+        }
+        else {
+            // It wasn't recently serialized, so fallback to looking for the task in the DB
+            task = TaskUtils.findTaskForRequestId(dbClient, resource.getId(), taskId);
+            if (task != null) {
+                return toTask(task);
+            }
+            else {
+                throw new IllegalStateException(String.format(
+                        "Task not found for resource %s, op %s in either the operation or the database", resource.getId(), taskId));
+            }
+        }
+    }
+
+    private TaskResourceRep toTask(Task task) {
+        TaskResourceRep taskResourceRep = new TaskResourceRep();
+
+        taskResourceRep.setId(task.getId());
+        NamedURI resource = task.getResource();
+        NamedRelatedResourceRep namedRelatedResourceRep = new NamedRelatedResourceRep(resource.getURI(),
+                new RestLinkRep("self",URI.create("/"+resource.getURI())),resource.getName());
+        taskResourceRep.setResource(namedRelatedResourceRep);
+
+        if (!StringUtils.isBlank(task.getRequestId())) {
+            taskResourceRep.setOpId(task.getRequestId());
+        }
+
+        // Operation
+        taskResourceRep.setState(task.getStatus());
+        if (task.getServiceCode() != null) {
+            taskResourceRep.setServiceError(toServiceErrorRestRep(toServiceCode(task.getServiceCode()),
+                    task.getMessage()));
+        } else {
+            taskResourceRep.setMessage(task.getMessage());
+        }
+        taskResourceRep.setDescription(task.getDescription());
+        taskResourceRep.setStartTime(task.getStartTime());
+        taskResourceRep.setEndTime(task.getEndTime());
+        taskResourceRep.setProgress(task.getProgress() != null ? task.getProgress() : 0);
+        taskResourceRep.setQueuedStartTime(task.getQueuedStartTime());
+        taskResourceRep.setQueueName(task.getQueueName());
+
+        return taskResourceRep;
     }
 
     /**

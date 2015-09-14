@@ -165,6 +165,17 @@
         <property name="fileScheduler" ref="filescheduler"/>
         <property name="nameGenerator" ref="defaultNameGenerator"/>
     </bean>
+    
+    <bean id="bucketService" class="com.emc.storageos.api.service.impl.resource.BucketService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="bucketScheduler" ref="bucketScheduler"/>
+    </bean>
+    
+    <bean id="bucketScheduler" class="com.emc.storageos.api.service.impl.placement.BucketScheduler">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="scheduleUtils" ref="storagescheduler" />
+    </bean>
 
     <bean id="tenantService" class="com.emc.storageos.api.service.impl.resource.TenantService">
         <property name="dbClient" ref="dbclient"/>
@@ -182,6 +193,12 @@
         <property name="matcherFramework" ref="matcherFramework"/>
     </bean>
     
+    <bean id="objectVirtualPoolService" class="com.emc.storageos.api.service.impl.resource.ObjectVirtualPoolService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+        <property name="matcherFramework" ref="matcherFramework"/>
+    </bean>
+
     <bean id="virtualArrayService" class="com.emc.storageos.api.service.impl.resource.VirtualArrayService">
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
@@ -325,6 +342,11 @@
         <property name="dbClient" ref="dbclient"/>
         <property name="coordinator" ref="coordinator"/>
     </bean>
+    
+    <bean id="computeImageServerService" class="com.emc.storageos.api.service.impl.resource.ComputeImageServerService">
+        <property name="dbClient" ref="dbclient"/>
+        <property name="coordinator" ref="coordinator"/>
+    </bean>
 
     <bean id="userGroupService" class="com.emc.storageos.api.service.impl.resource.UserGroupService">
         <property name="dbClient" ref="dbclient"/>
@@ -371,6 +393,7 @@
                 <ref bean="computeVirtualPoolService"/>
                 <ref bean="computeElementService"/>
                 <ref bean="computeImageService"/>
+                <ref bean="computeImageServerService"/>
                 <ref bean="vcenterService"/>
                 <ref bean="vcenterDataCenterService"/>
                 <ref bean="clusterService"/>
@@ -386,6 +409,7 @@
                     <property name="coordinator" ref="coordinator"/>
                 </bean>
                 <ref bean="fileService"/>
+                <ref bean="bucketService"/>
                 <bean class="com.emc.storageos.api.service.impl.resource.InternalFileResource">
                     <property name="dbClient" ref="dbclient"/>
                     <property name="coordinator" ref="coordinator"/>
@@ -404,6 +428,7 @@
                 </bean>
                     
                 <ref bean="fileVirtualPoolService"/>
+                <ref bean="objectVirtualPoolService"/>
                 <bean class="com.emc.storageos.api.service.impl.resource.BlockVirtualPoolService">
                   <property name="dbClient" ref="dbclient"/>
                   <property name="coordinator" ref="coordinator"/>
@@ -677,6 +702,10 @@
 
     <bean id="asynchExecutor" class="com.emc.storageos.api.service.impl.resource.utils.AsynchJobExecutorService" init-method="start" destroy-method="stop">
         <property name="asynchJobThreads" value="5"/>
+    </bean>
+
+    <bean id="asyncTaskExecutor" class="com.emc.storageos.api.service.impl.resource.utils.AsyncTaskExecutorService" init-method="start" destroy-method="stop">
+        <property name="asyncTaskThreads" value="5"/>
     </bean>
 
 	<bean id="defaultCapacityCalculator" class="com.emc.storageos.api.service.impl.resource.utils.DefaultCapacityCalculator" />

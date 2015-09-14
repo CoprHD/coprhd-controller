@@ -7,7 +7,6 @@ package com.emc.storageos.volumecontroller.impl.smis;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_REPLICATION_GROUP;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_GROUP;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_NEW_TARGET_VALUE;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DEFAULT_INSTANCE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DELETE_GROUP;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DESIRED_COPY_METHODOLOGY;
@@ -17,6 +16,7 @@ import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.MIRROR_
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.RETURN_ELEMENTS_TO_STORAGE_POOL;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.SNAPSHOT_REPLICATION_TYPE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.TARGET_ELEMENT_SUPPLIER;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.VP_SNAP_VALUE;
 import static java.text.MessageFormat.format;
 import static javax.cim.CIMDataType.UINT16_T;
 
@@ -93,7 +93,7 @@ public class ReplicationUtils {
 
         public ReplicationSettingBuilder addVPSnap() {
             return addProperty(new CIMProperty<Object>(DESIRED_COPY_METHODOLOGY, UINT16_T,
-                    new UnsignedInteger16(2/* VP_SNAP_VALUE */)));
+                    new UnsignedInteger16(VP_SNAP_VALUE)));
         }
 
         public ReplicationSettingBuilder addCreateNewTarget() {
@@ -169,7 +169,6 @@ public class ReplicationUtils {
     /**
      * Refresh the given storagesystem.
      *
-     * @param dbClient
      * @param helper
      * @param storage
      */
@@ -363,8 +362,8 @@ public class ReplicationUtils {
             if (storageSystem.checkIfVmax3()) {
                 CIMObjectPath volumeGroupPath = helper.getVolumeGroupPath(storageSystem, sourceVolume, storagePool);
                 CIMObjectPath poolPath = helper.getPoolPath(storageSystem, storagePool);
-                inArgs = helper.getCreateVolumesBasedOnVolumeGroupInputArguments(storageSystem, poolPath, volumeGroupPath, label, count,
-                        capacity);
+                inArgs = helper.getCreateVolumesBasedOnVolumeGroupInputArguments(storageSystem, poolPath,
+                        volumeGroupPath, label, count, capacity);
             } else {
                 inArgs = helper.getCreateVolumesInputArguments(storageSystem, storagePool, label, capacity, count, isThinlyProvisioned,
                         null, true);
@@ -374,13 +373,15 @@ public class ReplicationUtils {
             SmisCreateVmaxCGTargetVolumesJob job = new SmisCreateVmaxCGTargetVolumesJob(null, storageSystem.getId(), sourceGroupName,
                     label, createInactive, taskCompleter);
 
-            helper.invokeMethodSynchronously(storageSystem, configSvcPath, CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL, inArgs, outArgs, job);
+            helper.invokeMethodSynchronously(storageSystem, configSvcPath,
+                    helper.createVolumesMethodName(storageSystem), inArgs, outArgs, job);
 
             return job.getTargetDeviceIds();
         } catch (Exception e) {
             final String errMsg = format("An error occurred when creating target devices VMAX system {0}", storageSystem.getId());
             _log.error(errMsg, e);
-            taskCompleter.error(dbClient, SmisException.errors.methodFailed(CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL, e.getMessage()));
+            taskCompleter.error(dbClient,
+                    SmisException.errors.methodFailed(helper.createVolumesMethodName(storageSystem), e.getMessage()));
             throw new SmisException(errMsg, e);
         }
     }
@@ -482,7 +483,7 @@ public class ReplicationUtils {
             if (storageSystem.deviceIsType(Type.vmax)) {
 
                 final CIMObjectPath[] theElements = cimPath.getVolumePaths(storageSystem, deviceIds);
-                inArgs = helper.getReturnElementsToStoragePoolArguments(storageSystem, theElements,
+                inArgs = helper.getReturnElementsToStoragePoolArguments(theElements,
                         SmisConstants.CONTINUE_ON_NONEXISTENT_ELEMENT);
                 method = RETURN_ELEMENTS_TO_STORAGE_POOL;
             } else {
@@ -515,7 +516,7 @@ public class ReplicationUtils {
      *
      * @param storage StorageSystem
      * @param groupName replication group to be deleted
-     * @param dbCLient
+     * @param dbClient
      * @param helper
      * @param cimPath
      *

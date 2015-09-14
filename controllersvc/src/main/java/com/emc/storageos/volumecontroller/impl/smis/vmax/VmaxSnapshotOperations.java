@@ -9,7 +9,6 @@ import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_ST
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_STATE_RESTORED_INT_VALUE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_EMC_UNIQUE_ID;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_STORAGE_EXTENT_INITIAL_USAGE;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_SETTING;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DELETE_GROUP;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DELTA_REPLICA_TARGET_VALUE;
@@ -875,13 +874,15 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             SmisCreateVmaxCGTargetVolumesJob job = new SmisCreateVmaxCGTargetVolumesJob(null, storage.getId(), sourceGroupName,
                     label, createInactive, taskCompleter);
 
-            _helper.invokeMethodSynchronously(storage, configSvcPath, CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL, inArgs, outArgs, job);
+            _helper.invokeMethodSynchronously(storage, configSvcPath,
+                    _helper.createVolumesMethodName(storage), inArgs, outArgs, job);
 
             return job.getTargetDeviceIds();
         } catch (Exception e) {
             final String errMsg = format("An error occurred when creating target devices on storage system {0}", storage.getId());
             _log.error(errMsg, e);
-            taskCompleter.error(_dbClient, SmisException.errors.methodFailed(CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL, e.getMessage()));
+            taskCompleter.error(_dbClient,
+                    SmisException.errors.methodFailed(_helper.createVolumesMethodName(storage), e.getMessage()));
             throw new SmisException(errMsg, e);
         }
 
@@ -912,7 +913,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 
             final CIMObjectPath[] theElements = _cimPath.getVolumePaths(storageSystem, deviceIds);
 
-            final CIMArgument[] inArgs = _helper.getReturnElementsToStoragePoolArguments(storageSystem, theElements,
+            final CIMArgument[] inArgs = _helper.getReturnElementsToStoragePoolArguments(theElements,
                     SmisConstants.CONTINUE_ON_NONEXISTENT_ELEMENT);
             final CIMArgument[] outArgs = new CIMArgument[5];
 

@@ -1667,8 +1667,8 @@ public class BlockConsistencyGroupService extends TaskResourceService {
      * Since all of the protection operations are very similar, this method does all of the work.
      * We keep the actual REST methods separate mostly for the purpose of documentation generators.
      *
-     * @param id the URN of a ViPR source volume
-     * @param copyID id of the target volume
+     * @param consistencyGroupId the URI of the BlockConsistencyGroup to perform the protection action against.
+     * @param targetVarrayId the target virtual array.
      * @param op operation to perform (pause, stop, failover, etc)
      * @return task resource rep
      * @throws InternalException
@@ -1725,12 +1725,12 @@ public class BlockConsistencyGroupService extends TaskResourceService {
     }
 
     /**
-     * perform SRDF Protection APIs
+     * Performs the SRDF Protection operation.
      *
-     * @param id the URN of a ViPR volume associated
-     * @param copy
-     * @param op
-     * @return
+     * @param consistencyGroupId the URI of the BlockConsistencyGroup to perform the protection action against.
+     * @param copy the copy to operate on
+     * @param op operation to perform (pause, stop, failover, etc)
+     * @return task resource rep
      * @throws InternalException
      */
     private TaskResourceRep performSRDFProtectionAction(URI consistencyGroupId, Copy copy, String op)
@@ -1830,13 +1830,19 @@ public class BlockConsistencyGroupService extends TaskResourceService {
                 throw APIException.badRequests.consistencyGroupContainsNoVolumes(consistencyGroup.getId());
             }
 
-            // Verify that the supplied target Virtual Array is being referenced by at least one target volume in the CG.
+            // Find all target volumes in the CG that match the specified target virtual array.
             for (Volume volume : volumeList) {
                 if (volume.getPersonality() != null &&
                         volume.getPersonality().equals(PersonalityTypes.TARGET.name()) &&
                         volume.getVirtualArray() != null && volume.getVirtualArray().equals(targetVarrayId)) {
                     targetVolumes.add(volume);
                 }
+            }
+
+            if (targetVolumes.isEmpty()) {
+                _log.info(String
+                        .format("Unable to find any target volumes in consistency group %s.  There are no target volumes matching target virtual array %s.",
+                                consistencyGroup.getId(), targetVarrayId));
             }
         }
 

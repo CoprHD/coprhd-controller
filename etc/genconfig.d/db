@@ -15,7 +15,7 @@ _get_dbvar_props() {
         echo "network_${i}_ipaddr_service=${!var}"
     done
     
-    _get_props vdc_myid node_id node_index network_vip_service vdc_is_standby
+    _get_props vdc_myid node_id node_index network_vip_service site_is_standby
 }
 
 _get_db_jmx_props() {
@@ -35,7 +35,7 @@ _get_dbconf_props() {
         echo "network_${i}_ipaddr_service=${!var}"
     done
 
-    if [ "${_GENCONFIG_vdc_is_standby}" == "true" ]; then
+    if [ "${_GENCONFIG_site_is_standby}" == "true" ]; then
         local list=''
         local var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_node_count"
         for i in $(seq ${!var}); do

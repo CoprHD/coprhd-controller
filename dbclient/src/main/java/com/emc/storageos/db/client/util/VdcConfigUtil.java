@@ -40,7 +40,7 @@ public class VdcConfigUtil {
     public static final String VDC_STANDBY_IPADDR_PTN = "vdc_%s_standby_network_%d_ipaddr";
     public static final String VDC_VIP_PTN = "vdc_%s_network_vip";
     public static final String VDC_VIP6_PTN = "vdc_%s_network_vip6";
-    public static final String VDC_IS_STANDBY="vdc_is_standby";
+    public static final String SITE_IS_STANDBY="site_is_standby";
 
     private DbClient dbclient;
     private CoordinatorClient coordinator;
@@ -189,7 +189,7 @@ public class VdcConfigUtil {
         String primarySiteId = coordinator.getPrimarySiteId();
         String currentSiteId = coordinator.getSiteId();
         boolean isStandby = !currentSiteId.equals(primarySiteId);
-        vdcConfig.put(VDC_IS_STANDBY, String.valueOf(isStandby));
+        vdcConfig.put(SITE_IS_STANDBY, String.valueOf(isStandby));
     }
 
     private List<String> getHostsFromIPAddrMap(StringMap IPv4Addresses, StringMap IPv6Addresses) {

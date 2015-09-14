@@ -10,7 +10,7 @@
 # it is provided by or on behalf of EMC.
 
 _get_geodbvar_props() {
-    _get_props vdc_myid node_id node_index vdc_is_standby
+    _get_props vdc_myid node_id node_index site_is_standby
 }
 
 _get_geodbconf_props() {
@@ -55,7 +55,7 @@ _get_geodb_jmx_props() {
 
 _get_rackdc_props() {
     local myid="${_GENCONFIG_vdc_myid}"
-    if [ -n "${_GENCONFIG_vdc_is_standby}" ] ; then
+    if [ "${_GENCONFIG_site_is_standby}" == "true" ] ; then
         # TODO support more than 1 standby
         myid+="-standby"
     fi

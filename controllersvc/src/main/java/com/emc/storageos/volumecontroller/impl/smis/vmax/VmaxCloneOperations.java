@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.cim.CIMArgument;
+import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 
 import org.slf4j.Logger;
@@ -200,8 +201,8 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
             CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, replicationGroupName);
             if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
                 CIMObjectPath cimJob = null;
-                CIMArgument[] restoreCGSnapInput = _helper.getRestoreFromReplicaInputArgumentsWithForce(groupSynchronized);
-                cimJob = _helper.callModifyReplica(storage, restoreCGSnapInput);
+                CIMArgument[] restoreCGCloneInput = _helper.getRestoreFromReplicaInputArgumentsWithForce(groupSynchronized);
+                cimJob = _helper.callModifyReplica(storage, restoreCGCloneInput);
 
                 ControllerServiceImpl.enqueueJob(new QueueJob(new SmisCloneRestoreJob(cimJob, storage.getId(), taskCompleter)));
             } else {
@@ -228,7 +229,7 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
     @Override
     @SuppressWarnings("rawtypes")
     public void resyncGroupClones(StorageSystem storage, List<URI> clones, TaskCompleter taskCompleter) throws DeviceControllerException {
-        _log.info("START restore group clone operation");
+        _log.info("START resync group clone operation");
         try {
             callEMCRefreshIfRequired(_dbClient, _helper, storage, clones);
             Volume clone = _dbClient.queryObject(Volume.class, clones.get(0));
@@ -264,7 +265,13 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
             CIMObjectPath groupSynchronized = ReplicationUtils.getCloneGroupSynchronizedPath(storage, clones.get(0),
                     _dbClient, _helper, _cimPath);
             if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
-                CIMObjectPath cimJob = null;
+                if (_helper.groupHasReplicasInSplitState(storage, clones, Volume.class)) {
+                    SmisCloneResyncJob job = new SmisCloneResyncJob(null, storage.getId(), completer);
+                    CIMArgument[] resyncCGCloneInput = _helper.getResyncReplicaInputArguments(groupSynchronized);
+                    _log.info("Resync group clones with mixed states");
+                    _helper.callModifyReplicaSynchronously(storage, resyncCGCloneInput, job);
+                }
+
                 CIMArgument[] fractureCGCloneInput = _helper.getFractureMirrorInputArguments(groupSynchronized, null);
                 _helper.callModifyReplica(storage, fractureCGCloneInput);
                 List<Volume> cloneVolumes = _dbClient.queryObject(Volume.class, clones);
@@ -332,7 +339,7 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
             /**
              * get groupPath for source volume
              * get groupPath for clone
-             * get mirrors belonging to the same Replication Group
+             * get clones belonging to the same Replication Group
              * get Element synchronizations between volumes and clones
              * call CreateGroupReplicaFromElementSynchronizations
              */
@@ -343,27 +350,34 @@ public class VmaxCloneOperations extends AbstractCloneOperations {
             CIMObjectPath volumeGroupPath = _cimPath.getReplicationGroupPath(storage, volumeGroupName);
             CIMObjectPath cloneGroupPath = _cimPath.getReplicationGroupPath(storage, cloneObj.getReplicationGroupInstance());
 
-            // get all clones belonging to a Replication Group. There may be multiple clones available for a Volume
-            List<Volume> fullCopies = ControllerUtils.
-                    getFullCopiesPartOfReplicationGroup(cloneObj.getReplicationGroupInstance(), _dbClient);
+            CIMObjectPath groupSynchronizedPath = _cimPath.getGroupSynchronized(volumeGroupPath, cloneGroupPath);
+            CIMInstance syncInstance = _helper.checkExists(storage, groupSynchronizedPath, false, false);
+            if (syncInstance == null) {
+                // get all clones belonging to a Replication Group. There may be multiple clones available for a Volume
+                List<Volume> fullCopies = ControllerUtils.
+                        getFullCopiesPartOfReplicationGroup(cloneObj.getReplicationGroupInstance(), _dbClient);
 
-            List<CIMObjectPath> elementSynchronizations = new ArrayList<CIMObjectPath>();
-            for (Volume fullCopy : fullCopies) {
-                URI sourceVolumeURI = fullCopy.getAssociatedSourceVolume();
-                if (!NullColumnValueGetter.isNullURI(sourceVolumeURI)) {
-                    Volume volume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
-                    elementSynchronizations.add(_cimPath.getStorageSynchronized(storage, volume,
-                            storage, fullCopy));
+                List<CIMObjectPath> elementSynchronizations = new ArrayList<CIMObjectPath>();
+                for (Volume fullCopy : fullCopies) {
+                    URI sourceVolumeURI = fullCopy.getAssociatedSourceVolume();
+                    if (!NullColumnValueGetter.isNullURI(sourceVolumeURI)) {
+                        Volume volume = _dbClient.queryObject(Volume.class, sourceVolumeURI);
+                        elementSynchronizations.add(_cimPath.getStorageSynchronized(storage, volume,
+                                storage, fullCopy));
+                    }
                 }
+
+                _log.info("Creating Group synchronization between volume group and clone group");
+                CIMArgument[] inArgs = _helper.getCreateGroupReplicaFromElementSynchronizationsForSRDFInputArguments(volumeGroupPath,
+                        cloneGroupPath, elementSynchronizations);
+                CIMArgument[] outArgs = new CIMArgument[5];
+                _helper.invokeMethod(storage, srcRepSvcPath,
+                        SmisConstants.CREATE_GROUP_REPLICA_FROM_ELEMENT_SYNCHRONIZATIONS, inArgs, outArgs);
+                // No Job returned
+            } else {
+                _log.info("Link already established..");
             }
 
-            _log.info("Creating Group synchronization between volume group and clone group");
-            CIMArgument[] inArgs = _helper.getCreateGroupReplicaFromElementSynchronizationsForSRDFInputArguments(volumeGroupPath,
-                    cloneGroupPath, elementSynchronizations);
-            CIMArgument[] outArgs = new CIMArgument[5];
-            _helper.invokeMethod(storage, srcRepSvcPath,
-                    SmisConstants.CREATE_GROUP_REPLICA_FROM_ELEMENT_SYNCHRONIZATIONS, inArgs, outArgs);
-            // No Job returned
             completer.ready(_dbClient);
         } catch (Exception e) {
             _log.error(

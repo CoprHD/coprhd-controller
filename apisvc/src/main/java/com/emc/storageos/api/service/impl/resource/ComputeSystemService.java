@@ -47,6 +47,7 @@ import com.emc.storageos.db.client.model.ComputeBootDef;
 import com.emc.storageos.db.client.model.ComputeBootPolicy;
 import com.emc.storageos.db.client.model.ComputeElement;
 import com.emc.storageos.db.client.model.ComputeElementHBA;
+import com.emc.storageos.db.client.model.ComputeImageServer;
 import com.emc.storageos.db.client.model.ComputeLanBoot;
 import com.emc.storageos.db.client.model.ComputeLanBootImagePath;
 import com.emc.storageos.db.client.model.ComputeSanBoot;
@@ -169,7 +170,7 @@ public class ComputeSystemService extends TaskResourceService {
                 _log.info(" updating service profile template:" + serviceProfileTemplate.getLabel() + " id:"
                         + serviceProfileTemplate.getId().toString());
                 boolean valid = isUpdatingSPTValid(serviceProfileTemplate, dbClient);
-                ;
+
                 if (valid) {
                     NamedRelatedResourceRep sptNamedRelatedResource = new NamedRelatedResourceRep();
                     sptNamedRelatedResource.setId(serviceProfileTemplate.getId());
@@ -450,7 +451,7 @@ public class ComputeSystemService extends TaskResourceService {
     private boolean isUpdatingSPTValidForVarrays(StringSet varrayIds, UCSServiceProfileTemplate serviceProfileTemplate) {
         boolean isValid = true;
         _log.debug("Is uSPT:" + serviceProfileTemplate.getLabel() + " valid for varrays");
-        ;
+
         URIQueryResultList uriBootPolicies = new URIQueryResultList();
         _dbClient.queryByConstraint(
                 ContainmentConstraint.Factory.getComputeSystemBootPolicyConstraint(serviceProfileTemplate.getComputeSystem()),
@@ -494,7 +495,6 @@ public class ComputeSystemService extends TaskResourceService {
 
         }
         _log.info("SPT:" + serviceProfileTemplate.getLabel() + "isValid:" + isValid);
-        ;
         return isValid;
     }
 
@@ -700,6 +700,15 @@ public class ComputeSystemService extends TaskResourceService {
         if (param.getOsInstallNetwork() != null) {
             cs.setOsInstallNetwork(param.getOsInstallNetwork());
         }
+        if (param.getComputeImageServer() != null) {
+        	ComputeImageServer imageServer = _dbClient.queryObject(ComputeImageServer.class, param.getComputeImageServer());
+        	if (imageServer!=null){
+        		cs.setComputeImageServer(param.getComputeImageServer());
+        	}else{
+        		throw APIException.badRequests.
+        			invalidParameter("compute image server", param.getComputeImageServer().toString());
+        	}
+        }
         cs.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(cs));
         cs.setRegistrationStatus(DiscoveredDataObject.RegistrationStatus.REGISTERED.name());
 
@@ -795,6 +804,16 @@ public class ComputeSystemService extends TaskResourceService {
                     cs.setOsInstallNetwork(param.getOsInstallNetwork()); // allow vlan to be set without successful discovery
                 }
             }
+        }
+        
+        if (param.getComputeImageServer() != null) {
+        	ComputeImageServer imageServer = _dbClient.queryObject(ComputeImageServer.class, param.getComputeImageServer());
+        	if (imageServer!=null){
+        		cs.setComputeImageServer(param.getComputeImageServer());
+        	}else{
+        		throw APIException.badRequests.
+        			invalidParameter("compute image server", param.getComputeImageServer().toString());
+        	}        	        	
         }
 
         cs.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(cs));

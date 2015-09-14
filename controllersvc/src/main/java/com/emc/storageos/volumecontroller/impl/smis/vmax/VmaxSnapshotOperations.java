@@ -9,7 +9,6 @@ import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_ST
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_STATE_RESTORED_INT_VALUE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_EMC_UNIQUE_ID;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CP_STORAGE_EXTENT_INITIAL_USAGE;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_SETTING;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DELETE_GROUP;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DELTA_REPLICA_TARGET_VALUE;
@@ -875,13 +874,15 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             SmisCreateVmaxCGTargetVolumesJob job = new SmisCreateVmaxCGTargetVolumesJob(null, storage.getId(), sourceGroupName,
                     label, createInactive, taskCompleter);
 
-            _helper.invokeMethodSynchronously(storage, configSvcPath, CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL, inArgs, outArgs, job);
+            _helper.invokeMethodSynchronously(storage, configSvcPath,
+                    _helper.createVolumesMethodName(storage), inArgs, outArgs, job);
 
             return job.getTargetDeviceIds();
         } catch (Exception e) {
             final String errMsg = format("An error occurred when creating target devices on storage system {0}", storage.getId());
             _log.error(errMsg, e);
-            taskCompleter.error(_dbClient, SmisException.errors.methodFailed(CREATE_OR_MODIFY_ELEMENT_FROM_STORAGE_POOL, e.getMessage()));
+            taskCompleter.error(_dbClient,
+                    SmisException.errors.methodFailed(_helper.createVolumesMethodName(storage), e.getMessage()));
             throw new SmisException(errMsg, e);
         }
 
@@ -912,7 +913,7 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
 
             final CIMObjectPath[] theElements = _cimPath.getVolumePaths(storageSystem, deviceIds);
 
-            final CIMArgument[] inArgs = _helper.getReturnElementsToStoragePoolArguments(storageSystem, theElements,
+            final CIMArgument[] inArgs = _helper.getReturnElementsToStoragePoolArguments(theElements,
                     SmisConstants.CONTINUE_ON_NONEXISTENT_ELEMENT);
             final CIMArgument[] outArgs = new CIMArgument[5];
 
@@ -1277,6 +1278,61 @@ public class VmaxSnapshotOperations extends AbstractSnapshotOperations {
             _log.error(message, e);
             ServiceError error = DeviceControllerErrors.smis.methodFailed("restoreGroupSnapshots", e.getMessage());
             taskCompleter.error(_dbClient, error);
+        }
+    }
+
+    @Override
+    public void establishVolumeSnapshotGroupRelation(StorageSystem storage, URI sourceVolume,
+            URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {
+
+        _log.info("establishVolumeSnapshotGroupRelation operation START");
+        try {
+            /**
+             * get groupPath for source volume
+             * get groupPath for snapshot
+             * get snapshots belonging to the same Replication Group
+             * get Element synchronizations between volumes and snapshots
+             * call CreateGroupReplicaFromElementSynchronizations
+             */
+            BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
+            Volume volumeObj = _dbClient.queryObject(Volume.class, sourceVolume);
+            CIMObjectPath srcRepSvcPath = _cimPath.getControllerReplicationSvcPath(storage);
+            String volumeGroupName = _helper.getConsistencyGroupName(volumeObj, storage);
+            CIMObjectPath volumeGroupPath = _cimPath.getReplicationGroupPath(storage, volumeGroupName);
+            CIMObjectPath snapshotGroupPath = _cimPath.getReplicationGroupPath(storage, snapshotObj.getReplicationGroupInstance());
+
+            CIMObjectPath groupSynchronizedPath = _cimPath.getGroupSynchronized(volumeGroupPath, snapshotGroupPath);
+            CIMInstance syncInstance = _helper.checkExists(storage, groupSynchronizedPath, false, false);
+            if (syncInstance == null) {
+                // get all snapshots belonging to a Replication Group. There may be multiple snapshots available for a Volume
+                List<BlockSnapshot> snapshots = ControllerUtils.
+                        getSnapshotsPartOfReplicationGroup(snapshotObj.getReplicationGroupInstance(), _dbClient);
+
+                List<CIMObjectPath> elementSynchronizations = new ArrayList<CIMObjectPath>();
+                for (BlockSnapshot snapshotObject : snapshots) {
+                    Volume volume = _dbClient.queryObject(Volume.class, snapshotObject.getParent());
+                    elementSynchronizations.add(_cimPath.getStorageSynchronized(storage, volume,
+                            storage, snapshotObject));
+                }
+
+                _log.info("Creating Group synchronization between volume group and snapshot group");
+                CIMArgument[] inArgs = _helper.getCreateGroupReplicaFromElementSynchronizationsForSRDFInputArguments(volumeGroupPath,
+                        snapshotGroupPath, elementSynchronizations);
+                CIMArgument[] outArgs = new CIMArgument[5];
+                _helper.invokeMethod(storage, srcRepSvcPath,
+                        SmisConstants.CREATE_GROUP_REPLICA_FROM_ELEMENT_SYNCHRONIZATIONS, inArgs, outArgs);
+                // No Job returned
+            } else {
+                _log.info("Link already established..");
+            }
+
+            taskCompleter.ready(_dbClient);
+        } catch (Exception e) {
+            _log.error(
+                    "Failed to establish group relation between volume group and snapshot group. Volume: {}, Snapshot: {}",
+                    sourceVolume, snapshot);
+            ServiceError serviceError = DeviceControllerException.errors.jobFailed(e);
+            taskCompleter.error(_dbClient, serviceError);
         }
     }
 }

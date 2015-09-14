@@ -90,7 +90,8 @@ def cos_match(args):
                             haCosUri, args.activeProtectionAtHASite, args.metropoint, file_cos_uri, args.provisionType,
                             mirrorCosUri, args.neighborhoods, args.expandable,
                             args.sourceJournalSize, args.journalVarray, args.journalVpool, 
-			    args.standbyJournalVarray, args.standbyJournalVpoolargs.protectionCoS, args.multiVolumeConsistency,
+			    args.standbyJournalVarray, args.standbyJournalVpool, args.rp_copy_mode, args.rp_rpo_value, args.rp_rpo_type,
+			    args.protectionCoS, args.multiVolumeConsistency,
                             args.max_snapshots, args.max_mirrors, args.thin_volume_preallocation_percentage,
                             args.system_type, args.srdf)
 
@@ -398,6 +399,8 @@ match.add_argument('--journalVpool', help = 'Virtual Pool of the source (primary
 match.add_argument('--standbyJournalVarray', help = 'Virtual Array of the source (standby/secondary) RP volume')
 match.add_argument('--standbyJournalVpool', help = 'Virtual Pool of the source (standby/secondary) RP volume')
 match.add_argument('--rp_copy_mode', help = 'RP Copy Mode: asynchronous or synchronous allowed')
+match.add_argument('--rp_rpo_value', help = 'RP RPO Value')
+match.add_argument('--rp_rpo_type', help = 'RP RPO Type: bytes-TB, seconds-days, or writes')
 match.add_argument('--protectionCoS', help = 'Protection CoS per neighborhood "nh1:cos1:jrnalSize1,nh2:cos2:jrnalSize2"')
 match.add_argument('--srdf', help = 'SRDF parameters per neighborhood "varray1:varray1:policy"')
 match.add_argument('--multiVolumeConsistency', dest='multiVolumeConsistency',action='store_true')

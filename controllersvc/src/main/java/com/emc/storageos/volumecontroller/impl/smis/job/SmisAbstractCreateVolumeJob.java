@@ -166,16 +166,22 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
     }
 
     /**
-     * This method is abstract and should be implemented by the derived class for
+     * This method can be implemented by the derived class for
      * specific updates or processing for a derived class.
-     * 
+     *
+     * Default behavior simply updates the deviceLabel name for the single volume that was created.
+     *
+     * @param storageSystem [in] - StorageSystem for the Volume
      * @param dbClient [in] - Client for reading/writing from/to database.
      * @param client [in] - WBEMClient for accessing SMI-S provider data
      * @param volume [in] - Reference to Bourne's Volume object
      * @param volumePath [in] - Name reference to the SMI-S side volume object
      */
-    abstract void specificProcessing(DbClient dbClient, WBEMClient client, Volume volume, CIMInstance volumeInstance,
-            CIMObjectPath volumePath);
+    protected void specificProcessing(StorageSystem storageSystem, DbClient dbClient, WBEMClient client, Volume volume, CIMInstance volumeInstance,
+            CIMObjectPath volumePath) {
+        String elementName = CIMPropertyFactory.getPropertyValue(volumeInstance, SmisConstants.CP_ELEMENT_NAME);
+        volume.setDeviceLabel(elementName);
+    }
 
     /**
      * Processes a newly created volume.
@@ -196,9 +202,10 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
             StringBuilder logMsgBuilder, Calendar creationTime) throws Exception, IOException, DeviceControllerException, WBEMException {
         Volume volume = dbClient.queryObject(Volume.class, volumeId);
         CIMInstance volumeInstance = commonVolumeUpdate(dbClient, client, volume, volumePath, nativeID, creationTime);
-        String alternateName =
-                CIMPropertyFactory.getPropertyValue(volumeInstance,
-                        SmisConstants.CP_NAME);
+        URI storageSystemURI = volume.getStorageController();
+        StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemURI);
+
+        String alternateName = CIMPropertyFactory.getPropertyValue(volumeInstance, SmisConstants.CP_NAME);
         volume.setAlternateName(alternateName);
 
         if (volume.getIsComposite() && _cimPath != null) {
@@ -219,10 +226,6 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
             inArgs = list.toArray(inArgs);
 
             CIMArgument[] outArgs = new CIMArgument[5];
-
-            // Have to get volume's own storage system in order to build correct object path.
-            URI storageSystemURI = volume.getStorageController();
-            StorageSystem storageSystem = dbClient.queryObject(StorageSystem.class, storageSystemURI);
             CIMObjectPath elementCompositionServicePath = _cimPath.getElementCompositionSvcPath(storageSystem);
 
             SmisCommandHelper helper = jobContext.getSmisCommandHelper();
@@ -250,7 +253,7 @@ public abstract class SmisAbstractCreateVolumeJob extends SmisReplicaCreationJob
                     blockSize.getValue().toString(), size));
         }
 
-        specificProcessing(dbClient, client, volume, volumeInstance, volumePath);
+        specificProcessing(storageSystem, dbClient, client, volume, volumeInstance, volumePath);
         dbClient.persistObject(volume);
         if (logMsgBuilder.length() != 0) {
             logMsgBuilder.append("\n");

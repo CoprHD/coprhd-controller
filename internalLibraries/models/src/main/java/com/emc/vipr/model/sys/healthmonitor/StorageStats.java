@@ -26,14 +26,16 @@ public class StorageStats {
         private double fileCapacityKB;
         private double blockCapacityKB;
         private double freeManagedCapacityKB;
+        private double objectCapacityKB;
 
         public ControllerStorageStats() {
         }
 
-        public ControllerStorageStats(double blockCapacityKB, double fileCapacityKB,
+        public ControllerStorageStats(double blockCapacityKB, double fileCapacityKB, double objectCapacityKB,
                 double freeManagedCapacityKB) {
             this.blockCapacityKB = blockCapacityKB;
             this.fileCapacityKB = fileCapacityKB;
+            this.objectCapacityKB = objectCapacityKB;
             this.freeManagedCapacityKB = freeManagedCapacityKB;
         }
 
@@ -53,6 +55,15 @@ public class StorageStats {
 
         public void setBlockCapacityKB(double blockCapacityKB) {
             this.blockCapacityKB = blockCapacityKB;
+        }
+        
+        @XmlElement(name = "object_managed_capacity_kb")
+        public double getObjectCapacityKB() {
+            return objectCapacityKB;
+        }
+
+        public void setObjectCapacityKB(double objectCapacityKB) {
+            this.objectCapacityKB = objectCapacityKB;
         }
 
         @XmlElement(name = "free_managed_capacity_kb")

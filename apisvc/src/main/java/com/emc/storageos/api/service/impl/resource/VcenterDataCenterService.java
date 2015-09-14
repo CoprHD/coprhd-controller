@@ -511,7 +511,6 @@ public class VcenterDataCenterService extends TaskResourceService {
      * if the user is in another tenant org
      *
      * @param tenantId the tenant organization URI
-     * @param user the user to validated for tenant org privileges.
      */
     protected void verifyAuthorizedSystemOrTenantOrgUser(URI tenantId) {
         if (isSystemAdmin() || isSecurityAdmin()) {
@@ -533,15 +532,20 @@ public class VcenterDataCenterService extends TaskResourceService {
         Vcenter vcenter = _dbClient.queryObject(Vcenter.class, dataCenter.getVcenter());
         ArgValidator.checkEntity(vcenter, dataCenter.getVcenter(), isIdEmbeddedInURL(dataCenter.getVcenter()));
 
+        //Set the current tenant of the datacenter to the updateParam if
+        //updateParam does not contain the tenant information.
+        //To set the null tenant for the datacenter, use the string "null".
+        if (updateParam.getTenant() == null) {
+            updateParam.setTenant(dataCenter.getTenant());
+        }
+
         Set<URI> vcenterTenants = _permissionsHelper.getUsageURIsFromAcls(vcenter.getAcls());
-        if (!NullColumnValueGetter.isNullURI(updateParam.getTenant())) {
-            if (CollectionUtils.isEmpty(vcenterTenants) ||
-                    !vcenterTenants.contains(updateParam.getTenant())) {
-                //Since, the given tenant in the update param is not a null URI
-                //and it is not sharing the vCenter, return the error.
-                TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, updateParam.getTenant());
-                throw APIException.badRequests.tenantDoesNotShareTheVcenter(tenant.getLabel(), vcenter.getLabel());
-            }
+        if (!NullColumnValueGetter.isNullURI(updateParam.getTenant()) &&
+                (CollectionUtils.isEmpty(vcenterTenants) || !vcenterTenants.contains(updateParam.getTenant()))) {
+            //Since, the given tenant in the update param is not a null URI
+            //and it is not sharing the vCenter, return the error.
+            TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, updateParam.getTenant());
+            throw APIException.badRequests.tenantDoesNotShareTheVcenter(tenant.getLabel(), vcenter.getLabel());
         }
     }
 

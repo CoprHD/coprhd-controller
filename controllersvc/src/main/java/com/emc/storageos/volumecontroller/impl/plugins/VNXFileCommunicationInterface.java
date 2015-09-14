@@ -1184,6 +1184,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     nasCifsServer.setMoverIdIsVdm(cifsServer.getMoverIdIsVdm());
                     nasCifsServer.setName(cifsServer.getName());
                     nasCifsServer.setType(cifsServer.getType());
+                    nasCifsServer.setDomain(cifsServer.getDomain());
                     cifsServersMap.put(cifsServer.getName(), nasCifsServer);
                 }
             }

@@ -16,6 +16,11 @@
                 <span style="font-size: 2em;vertical-align: middle;">${storageStats.controllerStorageStats?.fileCapacityKB?.formatKBValueOnly()}</span>
                 <span style="vertical-align: middle;">${storageStats.controllerStorageStats?.fileCapacityKB?.formatKBUnits()}</span>
               </dd> 
+              <dt class="text-muted">&{'adminDashboard.object'}</dt>
+              <dd>
+                <span style="font-size: 2em;vertical-align: middle;">${storageStats.controllerStorageStats?.objectCapacityKB?.formatKBValueOnly()}</span>
+                <span style="vertical-align: middle;">${storageStats.controllerStorageStats?.objectCapacityKB?.formatKBUnits()}</span>
+              </dd>
               <dt class="text-muted">&{'adminDashboard.blockFileFreeCapacity'}</dt>
               <dd>
                 <span style="font-size: 2em;vertical-align: middle;">${storageStats.controllerStorageStats?.freeManagedCapacityKB?.formatKBValueOnly()}</span>

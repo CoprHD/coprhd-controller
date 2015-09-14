@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models;
@@ -19,20 +19,28 @@ public class StorageProviderTypes {
     public static final String VPLEX = "vplex";
     public static final String CINDER = "cinder";
     public static final String SCALEIO = "scaleio";
+    public static final String SCALEIOAPI = "scaleioapi";
     public static final String DATA_DOMAIN = "ddmc";
     public static final String IBMXIV = "ibmxiv";
+    public static final String XTREMIO = "xtremio";
 
-    public static final StringOption[] OPTIONS = { 
-        option(SMIS),
-        option(HITACHI),
-        option(VPLEX),
-        option(CINDER),
-        option(SCALEIO),
-        option(DATA_DOMAIN),
-        option(IBMXIV)
+    public static final StringOption[] OPTIONS = {
+            option(SMIS),
+            option(HITACHI),
+            option(VPLEX),
+            option(CINDER),
+            option(SCALEIOAPI),
+            option(DATA_DOMAIN),
+            option(IBMXIV),
+            option(XTREMIO)
     };
     
-    public static final StringOption[] SSL_DEFAULT_OPTIONS = StringOption.options(new String[]{SMIS, VPLEX, IBMXIV}, OPTION_PREFIX);
+    public static final StringOption[] optionSIO = {
+    	option(SCALEIO),
+    	option(SCALEIOAPI)
+    };
+
+    public static final StringOption[] SSL_DEFAULT_OPTIONS = StringOption.options(new String[] { SMIS, SCALEIOAPI, VPLEX, IBMXIV }, OPTION_PREFIX);
 
     private static final Map<String, String> fromStorageArrayTypeMap = new HashMap<String, String>() {
         private static final long serialVersionUID = -8628274587467033626L;
@@ -44,10 +52,16 @@ public class StorageProviderTypes {
             put(StorageSystemTypes.VPLEX, VPLEX);
             put(StorageSystemTypes.OPENSTACK, CINDER);
             put(StorageSystemTypes.SCALEIO, SCALEIO);
+            put(StorageSystemTypes.SCALEIOAPI, SCALEIOAPI);
             put(StorageSystemTypes.DATA_DOMAIN, DATA_DOMAIN);
             put(StorageSystemTypes.IBMXIV, IBMXIV);
+            put(StorageSystemTypes.XTREMIO, XTREMIO);
         }
     };
+
+    public static boolean isScaleIOApi(String type) {
+    	return SCALEIOAPI.equals(type);
+    }
     
     public static String fromStorageArrayType(String storageArrayType) {
         return fromStorageArrayTypeMap.get(storageArrayType);

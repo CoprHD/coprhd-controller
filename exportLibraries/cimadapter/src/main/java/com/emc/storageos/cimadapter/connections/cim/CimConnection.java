@@ -1,13 +1,7 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
  */
-// Copyright 2012 by EMC Corporation ("EMC").
-//
-// UNPUBLISHED  CONFIDENTIAL  AND  PROPRIETARY  PROPERTY OF EMC. The copyright
-// notice above does not evidence any actual  or  intended publication of this
-// software. Disclosure and dissemination are pursuant to separate agreements.
-// Unauthorized use, distribution or dissemination are strictly prohibited.
 
 package com.emc.storageos.cimadapter.connections.cim;
 
@@ -75,7 +69,7 @@ public class CimConnection {
     // Indication consumers can be configured to use the default processor, a
     // custom processor, or no processor at all.
     protected CimIndicationProcessor _dfltIndicationProcessor = null;
-    
+
     // A reference to a logger.
     protected static final Logger s_logger = LoggerFactory.getLogger(CimConnection.class);
 
@@ -85,10 +79,10 @@ public class CimConnection {
      * @param connectionInfo The bean containing the connection information.
      * @param listener The CIM indication listener for this connection.
      * @param filterMap The indication filters to be subscribed for this
-     *        connection.
+     *            connection.
      */
-    public CimConnection(CimConnectionInfo connectionInfo, 
-        CimListener listener, CimFilterMap filterMap) throws Exception {
+    public CimConnection(CimConnectionInfo connectionInfo,
+            CimListener listener, CimFilterMap filterMap) throws Exception {
         _host = connectionInfo.getConnectionParameter(CimConstants.CIM_HOST);
         _port = Integer.parseInt(connectionInfo.getConnectionParameter(CimConstants.CIM_PORT));
         _user = connectionInfo.getConnectionParameter(CimConstants.CIM_USER);
@@ -102,7 +96,7 @@ public class CimConnection {
         // connection the generated the indication. Be sure to create
         // the name after the connection info has been extracted.
         _connectionName = createConnectionName();
-        
+
         // Keep a reference to the listener for when indications are enabled.
         _listener = listener;
         if (_listener == null) {
@@ -142,6 +136,15 @@ public class CimConnection {
      */
     public String getHost() {
         return _host;
+    }
+
+    /**
+     * Getter for the connection port.
+     * 
+     * @return The connection port
+     */
+    public int getPort() {
+        return _port;
     }
 
     /**
@@ -197,7 +200,7 @@ public class CimConnection {
     public CimListener getIndicationListener() {
         return _listener;
     }
-    
+
     /**
      * Opens the connection and sets up indication subscriptions on the CIMOM.
      * Call is synchronized by the caller {@link ConnectionManager}. If the
@@ -210,12 +213,12 @@ public class CimConnection {
      * Also registers this connection with the indication listener.
      * 
      * @param subscriptionsIdentifier The identifier to be used to identify
-     *        subscriptions on the provider.
+     *            subscriptions on the provider.
      * @param deleteStaleSubscriptions true to delete stale subscriptions on the
-     *        provider to which the connection is being made.
+     *            provider to which the connection is being made.
      * 
      * @throws Exception if the connection cannot be established or if there is
-     *         a problem setting up subscriptions.
+     *             a problem setting up subscriptions.
      */
     public void connect(String subscriptionsIdentifier, boolean deleteStaleSubscriptions) throws Exception {
         s_logger.info("Establising connection for {}", _connectionName);
@@ -230,25 +233,25 @@ public class CimConnection {
 
             // Operations block by default, so a timeout must be set in case the
             // CIM server becomes unreachable.
-            // Commenting out, as timeout had been moved to cimom.properties file 
-           // _cimClient.setProperty(WBEMClientConstants.PROP_TIMEOUT, CimConstants.CIM_CLIENT_TIMEOUT);
+            // Commenting out, as timeout had been moved to cimom.properties file
+            // _cimClient.setProperty(WBEMClientConstants.PROP_TIMEOUT, CimConstants.CIM_CLIENT_TIMEOUT);
             _cimClient.initialize(path, subject, null);
-                  
-            
+
         } catch (Exception e) {
-            s_logger.error("Could not establish connection for {}",_host,e);
+            s_logger.error("Could not establish connection for {}", _host, e);
             _cimClient.close();
             throw e;
         }
     }
-    
+
     /**
      * Make new subscription to active SMIS provider to get indications for monitoring
+     * 
      * @param subscriptionsIdentifier {@link String} subscriptionIdentifer to make subscription
      * @throws Exception
      */
-    public void subscribeForIndications(String subscriptionsIdentifier) throws Exception{
-        s_logger.debug("Entering {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+    public void subscribeForIndications(String subscriptionsIdentifier) throws Exception {
+        s_logger.debug("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
         s_logger.info("Initiating subscrption for monitoring use cases");
         try {
             // Register the connection with the listener if indications are enabled
@@ -260,43 +263,45 @@ public class CimConnection {
             _subscriptionManager = new CimSubscriptionManager(this, subscriptionsIdentifier);
             _subscriptionManager.subscribe();
         } catch (Exception e) {
-            s_logger.error("Error occurred while making subscription",e);
+            s_logger.error("Error occurred while making subscription", e);
             _subscriptionManager.unsubscribe();
             throw e;
         }
-        s_logger.info("Subscription for the {} is completed",subscriptionsIdentifier);
-        s_logger.debug("Exiting {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+        s_logger.info("Subscription for the {} is completed", subscriptionsIdentifier);
+        s_logger.debug("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
     }
-    
+
     /**
      * Un-subscribe monitoring connection with passive SMIS provider
+     * 
      * @param subscriptionsIdentifier {@link String} subscriptionIdentifer to make Un-Subscription
      */
-    public void unsubscribeForIndications(String subscriptionsIdentifier){
-        s_logger.debug("Entering {}",Thread.currentThread().getStackTrace()[1].getMethodName());
-        s_logger.info("Initiating unsubscription of passive provider {}",subscriptionsIdentifier);
+    public void unsubscribeForIndications(String subscriptionsIdentifier) {
+        s_logger.debug("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
+        s_logger.info("Initiating unsubscription of passive provider {}", subscriptionsIdentifier);
 
         _subscriptionManager = new CimSubscriptionManager(this, subscriptionsIdentifier);
         _listener.unregister(this);
         _subscriptionManager.unsubscribe();
-        s_logger.info("unsubscription of passive provider {} completed",subscriptionsIdentifier);
-        s_logger.debug("Exiting {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+        s_logger.info("unsubscription of passive provider {} completed", subscriptionsIdentifier);
+        s_logger.debug("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
     }
-    
+
     /**
      * Deletes Stale subscriptions
-     * @param subscriptionsIdentifier {@link String}  subscriptionIdentifer to delete stale subscriptions
+     * 
+     * @param subscriptionsIdentifier {@link String} subscriptionIdentifer to delete stale subscriptions
      */
-    public void deleteStaleSubscriptions(String subscriptionsIdentifier){
-        s_logger.debug("Entering {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+    public void deleteStaleSubscriptions(String subscriptionsIdentifier) {
+        s_logger.debug("Entering {}", Thread.currentThread().getStackTrace()[1].getMethodName());
         _subscriptionManager = new CimSubscriptionManager(this, subscriptionsIdentifier);
         try {
             _subscriptionManager.deleteStaleSubscriptions();
         } catch (WBEMException e) {
-            s_logger.error("Unable to delete Stale Subscriptions",e);
-            //throw e;
+            s_logger.error("Unable to delete Stale Subscriptions", e);
+            // throw e;
         }
-        s_logger.debug("Exiting {}",Thread.currentThread().getStackTrace()[1].getMethodName());
+        s_logger.debug("Exiting {}", Thread.currentThread().getStackTrace()[1].getMethodName());
     }
 
     /**
@@ -312,7 +317,7 @@ public class CimConnection {
             // Simple operation that should always succeed if the
             // connection is up.
             _cimClient.getClass(CimObjectPathCreator.createInstance(CimConstants.CIM_INDICATION_OBJ_PATH, getInteropNamespace()), true,
-                true, false, null);
+                    true, false, null);
             connected = true;
         } catch (Exception e) {
             s_logger.error("Failed checking the CIM client connection", e);

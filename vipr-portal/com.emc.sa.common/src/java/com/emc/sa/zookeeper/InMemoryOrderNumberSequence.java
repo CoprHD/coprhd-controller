@@ -1,11 +1,10 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.zookeeper;
 
 import java.util.concurrent.atomic.AtomicLong;
-
 import com.emc.sa.model.dao.ModelClient;
 
 /**
@@ -23,6 +22,6 @@ public class InMemoryOrderNumberSequence implements OrderNumberSequence {
 
     @Override
     public long nextOrderNumber() {
-    	return currentOrderNumber.getAndIncrement();
+        return currentOrderNumber.getAndIncrement();
     }
 }

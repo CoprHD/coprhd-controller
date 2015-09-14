@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) 2012. EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 
@@ -35,11 +25,11 @@ public class DataCollectionDiscoverJob extends DataCollectionJob implements Seri
     private final DataCollectionTaskCompleter _completer;
     private String _namespace;
 
-    public  DataCollectionDiscoverJob(DiscoverTaskCompleter completer, String namespace){
-        this(completer, JobOrigin.USER_API,  namespace);
+    public DataCollectionDiscoverJob(DiscoverTaskCompleter completer, String namespace) {
+        this(completer, JobOrigin.USER_API, namespace);
     }
 
-    DataCollectionDiscoverJob(DiscoverTaskCompleter completer, JobOrigin origin, String namespace){
+    DataCollectionDiscoverJob(DiscoverTaskCompleter completer, JobOrigin origin, String namespace) {
         super(origin);
         _completer = completer;
         _namespace = namespace;
@@ -51,36 +41,36 @@ public class DataCollectionDiscoverJob extends DataCollectionJob implements Seri
     }
 
     @Override
-    public void ready(DbClient dbClient) throws DeviceControllerException{
-    	_completer.ready(dbClient);
+    public void ready(DbClient dbClient) throws DeviceControllerException {
+        _completer.ready(dbClient);
     }
 
     @Override
-    public void error(DbClient dbClient, ServiceCoded serviceCoded) throws DeviceControllerException{
+    public void error(DbClient dbClient, ServiceCoded serviceCoded) throws DeviceControllerException {
         _completer.error(dbClient, serviceCoded);
     }
 
     @Override
-    public void schedule(DbClient dbClient){
+    public void schedule(DbClient dbClient) {
         _completer.schedule(dbClient);
     }
 
     @Override
-    final public void setTaskError(DbClient dbClient,ServiceCoded code) {
-        _completer.statusError(dbClient,code);
+    final public void setTaskError(DbClient dbClient, ServiceCoded code) {
+        _completer.statusError(dbClient, code);
     }
 
     @Override
-    final public void setTaskReady(DbClient dbClient,String message){
-        _completer.statusReady(dbClient,message);
+    final public void setTaskReady(DbClient dbClient, String message) {
+        _completer.statusReady(dbClient, message);
     }
 
     @Override
-    final public void updateTask(DbClient dbClient, String message){
-        _completer.statusPending(dbClient,message);
+    final public void updateTask(DbClient dbClient, String message) {
+        _completer.statusPending(dbClient, message);
     }
 
-    public String getType(){
+    public String getType() {
         return _completer.getJobType();
     }
 
@@ -88,8 +78,7 @@ public class DataCollectionDiscoverJob extends DataCollectionJob implements Seri
         String sys = null;
         try {
             sys = getCompleter().getId().toString();
-        }
-        catch (Exception ex) {
+        } catch (Exception ex) {
             logger.error("Exception occurred while geting system id from completer", ex);
         }
         return sys;
@@ -99,8 +88,8 @@ public class DataCollectionDiscoverJob extends DataCollectionJob implements Seri
         return _namespace;
     }
 
-    public boolean isActiveJob(DbClient dbClient){
-        DataObject dbObject = dbClient.queryObject(_completer.getType(),_completer.getId());
+    public boolean isActiveJob(DbClient dbClient) {
+        DataObject dbObject = dbClient.queryObject(_completer.getType(), _completer.getId());
         return (dbObject != null && !dbObject.getInactive()) ? true : false;
     }
 

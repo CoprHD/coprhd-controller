@@ -1,17 +1,21 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.mapper;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import com.emc.storageos.model.file.FileObjectRestRep;
 import com.emc.storageos.model.file.FileShareRestRep;
 import com.emc.storageos.model.file.FileSnapshotRestRep;
 import com.emc.storageos.model.file.QuotaDirectoryRestRep;
 import com.emc.storageos.model.file.UnManagedFileSystemRestRep;
-import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.ResourceTypeEnum;
 import com.emc.storageos.api.service.impl.resource.utils.CapacityUtils;
 import com.emc.storageos.db.client.model.FileObject;
@@ -21,10 +25,12 @@ import com.emc.storageos.db.client.model.Snapshot;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
 import com.emc.storageos.model.adapters.StringMapAdapter;
 import com.emc.storageos.model.adapters.StringSetMapAdapter;
+
 import static com.emc.storageos.api.mapper.DbObjectMapper.*;
 
 public class FileMapper {
     private static final Logger _log = LoggerFactory.getLogger(FileMapper.class);
+
     public static FileShareRestRep map(FileShare from) {
         if (from == null) {
             return null;
@@ -67,7 +73,7 @@ public class FileMapper {
         mapDataObjectFields(from, to);
         to.setMountPath(from.getMountPath());
     }
-    
+
     public static UnManagedFileSystemRestRep map(UnManagedFileSystem from) {
         if (from == null) {
             return null;
@@ -77,16 +83,20 @@ public class FileMapper {
         to.setNativeGuid(from.getNativeGuid());
         try {
             to.setFileSystemInformation(new StringSetMapAdapter().marshal(from.getFileSystemInformation()));
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             _log.error("Exception while setting FileSystem information ", e);
         }
         to.setFileSystemCharacteristics(new StringMapAdapter().marshal(from.getFileSystemCharacterstics()));
         to.setStorageSystem(toRelatedResource(ResourceTypeEnum.STORAGE_SYSTEM, from.getStorageSystemUri()));
         to.setStoragePool(toRelatedResource(ResourceTypeEnum.STORAGE_POOL, from.getStoragePoolUri()));
+        if (null != from.getSupportedVpoolUris() && !from.getSupportedVpoolUris().isEmpty()) {
+            List<String> supportedVPoolList = new ArrayList<String>(from.getSupportedVpoolUris());
+            to.setSupportedVPoolUris(supportedVPoolList);
+        }
+        
         return to;
     }
-    
+
     public static QuotaDirectoryRestRep map(QuotaDirectory from) {
         if (from == null) {
             return null;
@@ -101,15 +111,15 @@ public class FileMapper {
             to.setProject(toRelatedResource(ResourceTypeEnum.PROJECT, from.getProject().getURI()));
         }
         to.setNativeId(from.getNativeId());
-        if(from.getSize() != null){
-        	to.setQuotaSize(CapacityUtils.convertBytesToGBInStr(from.getSize()));
+        if (from.getSize() != null) {
+            to.setQuotaSize(CapacityUtils.convertBytesToGBInStr(from.getSize()));
         }
-        if(from.getSecurityStyle() != null){
-        	to.setSecurityStyle(from.getSecurityStyle());
+        if (from.getSecurityStyle() != null) {
+            to.setSecurityStyle(from.getSecurityStyle());
         }
-        if(from.getOpLock() != null){
-        	to.setOpLock(from.getOpLock());
-        }        
+        if (from.getOpLock() != null) {
+            to.setOpLock(from.getOpLock());
+        }
         return to;
     }
 }

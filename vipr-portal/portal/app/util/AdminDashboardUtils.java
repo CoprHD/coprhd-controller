@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -17,7 +17,6 @@ import play.libs.F.Promise;
 
 import com.emc.vipr.client.ViPRSystemClient;
 import com.emc.vipr.client.core.BulkResources;
-import com.emc.vipr.client.exceptions.ViPRHttpException;
 import com.emc.vipr.model.sys.ClusterInfo;
 import com.emc.vipr.model.sys.healthmonitor.NodeHealth;
 import com.emc.vipr.model.sys.healthmonitor.NodeStats;
@@ -33,10 +32,10 @@ public class AdminDashboardUtils {
 
     private static String NODE_HEALTH_LIST_KEY = "NODE_HEALTH_LIST_KEY";
     private static String NODE_HEALTH_LIST_EXPIRES = "15s";
-    
+
     private static String NODE_STATS_LIST_KEY = "NODE_STATS_LIST_KEY";
-    private static String NODE_STATS_LIST_EXPIRES = "3mn";    
-    
+    private static String NODE_STATS_LIST_EXPIRES = "3mn";
+
     private static String CLUSTER_INFO_KEY = "CLUSTER_INFO_KEY";
 
     private static String LICENSE_KEY = "LICENSE_KEY";
@@ -62,9 +61,9 @@ public class AdminDashboardUtils {
     private static String COMPUTE_VIRTUAL_POOL_COUNT_KEY = "COMPUTE_VIRTUAL_POOL_COUNT_KEY";
     private static String DATASTORE_COUNT_KEY = "DATASTORE_COUNT_KEY";
     private static String NETWORKS_COUNT_KEY = "NETWORKS_COUNT_KEY";
-    
+
     private static final String LAST_UPDATED_SUFFIX = "LU";
-    
+
     private static <T> T cacheValue(String key, T value, String expiry) {
         Cache.set(key, value, expiry);
         Cache.set(key + LAST_UPDATED_SUFFIX, new Date());
@@ -90,20 +89,20 @@ public class AdminDashboardUtils {
 
     public static Promise<List<NodeStats>> nodeStatsList(ViPRSystemClient client) {
         return new NodeStatsList(getSysClient()).asPromise();
-    }    
+    }
 
     public static ClusterInfo getClusterInfo() {
         return BourneUtil.getSysClient().upgrade().getClusterInfo();
     }
-    
+
     public static DbRepairStatus gethealthdb() {
-    	return BourneUtil.getSysClient().control().getdbhealth();
+        return BourneUtil.getSysClient().control().getdbhealth();
     }
 
     public static Promise<ClusterInfo> clusterInfo() {
         return CallableHelper.createPromise(new ClusterInfoCall(getSysClient()));
     }
-    
+
     public static License getLicense() {
         return LicenseUtils.getLicense();
     }
@@ -127,10 +126,11 @@ public class AdminDashboardUtils {
     public static Promise<Integer> computeSystemCount() {
         return new BulkResourceCount(COMPUTE_SYSTEM_COUNT_KEY, getViprClient().computeSystems()).asPromise();
     }
-    
+
     public static Promise<Integer> computeImageCount() {
         return new BulkResourceCount(COMPUTE_IMAGE_COUNT_KEY, getViprClient().computeImages()).asPromise();
     }
+
     public static Promise<Integer> hostCount() {
         return new BulkResourceCount(HOST_COUNT_KEY, getViprClient().hosts()).asPromise();
     }
@@ -154,10 +154,14 @@ public class AdminDashboardUtils {
     public static Promise<Integer> fileVirtualPoolCount() {
         return new BulkResourceCount(FILE_VIRTUAL_POOL_COUNT_KEY, getViprClient().fileVpools()).asPromise();
     }
+    
+    public static Promise<Integer> objectVirtualPoolCount() {
+    	return new BulkResourceCount(OBJECT_VIRTUAL_POOL_COUNT_KEY, getViprClient().objectVpools()).asPromise();
+    }
 
     public static Promise<Integer> computeVirtualPoolCount() {
         return new BulkResourceCount(COMPUTE_VIRTUAL_POOL_COUNT_KEY, getViprClient().computeVpools()).asPromise();
-    }    
+    }
 
     public static Promise<Integer> networksCount() {
         return new BulkResourceCount(NETWORKS_COUNT_KEY, getViprClient().networks()).asPromise();
@@ -166,35 +170,35 @@ public class AdminDashboardUtils {
     public static Date getNodeHealthListLastUpdated() {
         return getLastUpdated(NODE_HEALTH_LIST_KEY);
     }
-    
+
     public static Date getNodeStatsListLastUpdated() {
         return getLastUpdated(NODE_STATS_LIST_KEY);
     }
-    
+
     public static Date getClusterInfoLastUpdated() {
         return getLastUpdated(CLUSTER_INFO_KEY);
     }
-    
+
     public static Date getLicenseLastUpdated() {
         return getLastUpdated(LICENSE_KEY);
     }
-    
+
     public static Date getStorageArrayCountLastUpdated() {
         return getLastUpdated(STORAGE_ARRAY_COUNT_KEY);
     }
-    
+
     public static Date getVirtualStorageArrayCountLastUpdated() {
         return getLastUpdated(VIRTUAL_STORAGE_ARRAY_COUNT_KEY);
     }
-    
+
     public static void clearNodeHealthListCache() {
         clearValue(NODE_HEALTH_LIST_KEY);
     }
-    
+
     public static void clearClusterInfoCache() {
         clearValue(CLUSTER_INFO_KEY);
     }
-    
+
     public static void clearLicenseCache() {
         clearValue(LICENSE_KEY);
     }
@@ -241,7 +245,7 @@ public class AdminDashboardUtils {
             return CallableHelper.createPromise(this);
         }
     }
-    
+
     public static class BulkResourceCount extends CachingCallable<Integer> {
         private BulkResources<?> resources;
 
@@ -255,7 +259,6 @@ public class AdminDashboardUtils {
             return resources.listBulkIds().size();
         }
     }
-
 
     public static class NodeHealthList extends CachingCallable<List<NodeHealth>> {
         private ViPRSystemClient client;
@@ -284,7 +287,7 @@ public class AdminDashboardUtils {
             return MonitorUtils.getNodeStats(client);
         }
     }
-    
+
     public static class ClusterInfoCall implements Callable<ClusterInfo> {
         private ViPRSystemClient client;
 

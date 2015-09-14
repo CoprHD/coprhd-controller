@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -19,11 +9,12 @@ import static com.emc.storageos.api.mapper.HostMapper.map;
 import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.List;
 import java.util.UUID;
+import java.util.Collection;
+import java.util.Set;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Iterator;
 
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
@@ -36,12 +27,12 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 
+import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.NamedElementQueryResultList;
-import com.emc.storageos.db.client.model.ExportGroup;
-import com.emc.storageos.db.client.model.StringMap;
-import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.db.client.model.*;
 import com.emc.storageos.db.client.util.CustomQueryUtility;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
 import com.emc.storageos.model.compute.VcenterClusterParam;
 import com.emc.storageos.vcentercontroller.VcenterController;
 import com.emc.storageos.volumecontroller.AsyncTask;
@@ -56,11 +47,6 @@ import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.computesystemcontroller.ComputeSystemController;
 import com.emc.storageos.computesystemcontroller.impl.ComputeSystemHelper;
-import com.emc.storageos.db.client.model.Cluster;
-import com.emc.storageos.db.client.model.Host;
-import com.emc.storageos.db.client.model.Operation;
-import com.emc.storageos.db.client.model.Vcenter;
-import com.emc.storageos.db.client.model.VcenterDataCenter;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -78,17 +64,19 @@ import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.Role;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
+import org.springframework.util.CollectionUtils;
 
 /**
  * Service providing APIs for vcenterdatacenter.
  */
 @Path("/compute/vcenter-data-centers")
-@DefaultPermissions( read_roles = {Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN}, 
-                                    write_roles = {Role.TENANT_ADMIN})
+@DefaultPermissions(readRoles = { Role.TENANT_ADMIN, Role.SYSTEM_MONITOR, Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN },
+        writeRoles = { Role.TENANT_ADMIN, Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN })
 public class VcenterDataCenterService extends TaskResourceService {
     private static Logger _log = LoggerFactory.getLogger(VcenterDataCenter.class);
 
     private static final String EVENT_SERVICE_TYPE = "vcenterdatacenter";
+
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
     }
@@ -98,18 +86,18 @@ public class VcenterDataCenterService extends TaskResourceService {
 
     @Override
     protected URI getTenantOwner(URI id) {
-    	VcenterDataCenter vcenterDataCenter = queryObject(VcenterDataCenter.class, id, false);
+        VcenterDataCenter vcenterDataCenter = queryObject(VcenterDataCenter.class, id, false);
         return vcenterDataCenter.getTenant();
     }
 
     @Override
     protected VcenterDataCenter queryResource(URI id) {
-    	return queryObject(VcenterDataCenter.class, id, false);
+        return queryObject(VcenterDataCenter.class, id, false);
     }
 
-    /**     
+    /**
      * Shows the data for a vCenter data center
-     *
+     * 
      * @param id the URN of a ViPR vCenter data center
      * @prereq none
      * @brief Show vCenter data center
@@ -122,34 +110,44 @@ public class VcenterDataCenterService extends TaskResourceService {
     public VcenterDataCenterRestRep getVcenterDataCenter(@PathParam("id") URI id) {
         VcenterDataCenter vcenterdatacenter = queryResource(id);
         // check the user permissions
-        verifyAuthorizedInTenantOrg(vcenterdatacenter.getTenant(), getUserFromContext());
+        verifyAuthorizedSystemOrTenantOrgUser(vcenterdatacenter.getTenant());
         return HostMapper.map(vcenterdatacenter);
     }
 
     /**
      * Update a vCenter data center.
+     * 
      * @param id the URN of a ViPR vCenter data center
      * @param updateParam the details of the vCenter data center
      * @prereq none
      * @brief Update vCenter data center
      * @return the details of the vCenter data center, including its id and link,
-     * when update completes successfully.
+     *         when update completes successfully.
      * @throws DatabaseException when a database error occurs.
      */
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.SECURITY_ADMIN, Role.TENANT_ADMIN })
     @Path("/{id}")
     public VcenterDataCenterRestRep updateVcenterDataCenter(@PathParam("id") URI id,
             VcenterDataCenterUpdate updateParam) throws DatabaseException {
         VcenterDataCenter dataCenter = queryResource(id);
-        if (updateParam.getName()!= null && !dataCenter.getLabel().equals(updateParam.getName())) {
+        ArgValidator.checkEntity(dataCenter, id, isIdEmbeddedInURL(id));
+
+        if (updateParam.getName() != null && !dataCenter.getLabel().equals(updateParam.getName())) {
             checkDuplicateChildName(dataCenter.getVcenter(), VcenterDataCenter.class, "label",
                     "vcenter", updateParam.getName(), _dbClient);
             dataCenter.setLabel(updateParam.getName());
-            _dbClient.persistObject(dataCenter);
         }
+
+        checkUserPrivileges(updateParam, dataCenter);
+
+        validateTenant(updateParam, dataCenter);
+
+        ComputeSystemHelper.updateVcenterDataCenterTenant(_dbClient, dataCenter, updateParam.getTenant());
+
+        _dbClient.persistObject(dataCenter);
         auditOp(OperationTypeEnum.UPDATE_VCENTER_DATACENTER, true, null,
                 dataCenter.auditParameters());
         return map(dataCenter);
@@ -157,6 +155,7 @@ public class VcenterDataCenterService extends TaskResourceService {
 
     /**
      * Deactivates the vCenter data center, all its clusters and hosts
+     * 
      * @param id the URN of a ViPR vCenter data center to be deactivated
      * @prereq none
      * @brief Delete vCenter data center
@@ -166,42 +165,43 @@ public class VcenterDataCenterService extends TaskResourceService {
     @POST
     @Path("/{id}/deactivate")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = {Role.TENANT_ADMIN})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN })
     public TaskResourceRep deactivateVcenterDataCenter(@PathParam("id") URI id,
-    		@DefaultValue("false") @QueryParam("detach-storage") boolean detachStorage) throws DatabaseException {
-    	if (ComputeSystemHelper.isDataCenterInUse(_dbClient, id) && !detachStorage) {
-        	throw APIException.badRequests.resourceHasActiveReferences(VcenterDataCenter.class.getSimpleName(), id);
+            @DefaultValue("false") @QueryParam("detach-storage") boolean detachStorage) throws DatabaseException {
+        if (ComputeSystemHelper.isDataCenterInUse(_dbClient, id) && !detachStorage) {
+            throw APIException.badRequests.resourceHasActiveReferences(VcenterDataCenter.class.getSimpleName(), id);
         } else {
-        	VcenterDataCenter dataCenter = queryResource(id);
+            VcenterDataCenter dataCenter = queryResource(id);
             ArgValidator.checkEntity(dataCenter, id, isIdEmbeddedInURL(id));
-            
+
             String taskId = UUID.randomUUID().toString();
             Operation op = _dbClient.createTaskOpStatus(VcenterDataCenter.class, dataCenter.getId(), taskId,
                     ResourceOperationTypeEnum.DELETE_VCENTER_DATACENTER_STORAGE);
             ComputeSystemController controller = getController(ComputeSystemController.class, null);
             controller.detachDataCenterStorage(dataCenter.getId(), true, taskId);
-            
+
             auditOp(OperationTypeEnum.DELETE_VCENTER_DATACENTER, true, null,
                     dataCenter.auditParameters());
-            return toTask(dataCenter, taskId, op);	
+            return toTask(dataCenter, taskId, op);
         }
     }
-    
+
     /**
      * Detaches storage from the datacenter.
+     * 
      * @param id the URN of a ViPR datacenter
      * @brief Detach storage from datacenter
      * @return the task used for tracking the detach-storage
-     * @throws DatabaseException when a DB error occurs     
+     * @throws DatabaseException when a DB error occurs
      */
     @POST
     @Path("/{id}/detach-storage")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = { Role.TENANT_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.TENANT_ADMIN })
     public TaskResourceRep detachStorage(@PathParam("id") URI id) throws DatabaseException {
         VcenterDataCenter dataCenter = queryObject(VcenterDataCenter.class, id, true);
         ArgValidator.checkEntity(dataCenter, id, true);
-        
+
         String taskId = UUID.randomUUID().toString();
         Operation op = _dbClient.createTaskOpStatus(Vcenter.class, dataCenter.getId(), taskId,
                 ResourceOperationTypeEnum.DETACH_VCENTER_DATACENTER_STORAGE);
@@ -210,8 +210,9 @@ public class VcenterDataCenterService extends TaskResourceService {
         return toTask(dataCenter, taskId, op);
     }
 
-    /**     
+    /**
      * List the clusters in a vCenter data center.
+     * 
      * @param id the URN of a ViPR vCenter data center
      * @prereq none
      * @brief List vCenter data center clusters
@@ -230,8 +231,9 @@ public class VcenterDataCenterService extends TaskResourceService {
         return list;
     }
 
-    /**     
+    /**
      * List the hosts in a vCenter data center.
+     * 
      * @param id the URN of a ViPR vCenter data center
      * @prereq none
      * @brief List vCenter data center hosts
@@ -251,10 +253,9 @@ public class VcenterDataCenterService extends TaskResourceService {
         return list;
     }
 
-
-    /**     
+    /**
      * List data of specified vCenter data centers.
-     *
+     * 
      * @param param POST data containing the id list.
      * @prereq none
      * @brief List data of specified vCenter data centers
@@ -262,8 +263,8 @@ public class VcenterDataCenterService extends TaskResourceService {
      */
     @POST
     @Path("/bulk")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public VcenterDataCenterBulkRep getBulkResources(BulkIdParam param) {
         return (VcenterDataCenterBulkRep) super.getBulkResources(param);
@@ -279,7 +280,7 @@ public class VcenterDataCenterService extends TaskResourceService {
     public VcenterDataCenterBulkRep queryBulkResourceReps(List<URI> ids) {
 
         Iterator<VcenterDataCenter> _dbIterator =
-            _dbClient.queryIterativeObjects(getResourceClass(), ids);
+                _dbClient.queryIterativeObjects(getResourceClass(), ids);
         return new VcenterDataCenterBulkRep(BulkList.wrapping(_dbIterator, MapVcenterDataCenter.getInstance()));
     }
 
@@ -307,7 +308,7 @@ public class VcenterDataCenterService extends TaskResourceService {
     }
 
     public static class VcenterDataCenterResRepFilter<E extends RelatedResourceRep>
-    extends ResRepFilter<E> {
+            extends ResRepFilter<E> {
         public VcenterDataCenterResRepFilter(StorageOSUser user,
                 PermissionsHelper permissionsHelper) {
             super(user, permissionsHelper);
@@ -316,13 +317,16 @@ public class VcenterDataCenterService extends TaskResourceService {
         @Override
         public boolean isAccessible(E resrep) {
             boolean ret = false;
-            URI id = resrep.getId(); 
+            URI id = resrep.getId();
 
             VcenterDataCenter obj = _permissionsHelper.getObjectById(id, VcenterDataCenter.class);
-            if (obj == null)
+            if (obj == null) {
                 return false;
-            if (obj.getTenant().toString().equals(_user.getTenantId()))
+            }
+            if (obj.getTenant().toString().equals(_user.getTenantId()) ||
+                    isSecurityAdmin() || isSystemAdmin()) {
                 return true;
+            }
             ret = isTenantAccessible(obj.getTenant());
             return ret;
         }
@@ -339,8 +343,9 @@ public class VcenterDataCenterService extends TaskResourceService {
     }
 
     private boolean isHostCompatibleForVcenterCluster(Host host) {
-        if(host.getType().equalsIgnoreCase(Host.HostType.Esx.name())) {
-            _log.info("Host " + host.getLabel() + " is compatible for vCenter cluster operation due to type " + host.getType() + " and OS version " + host.getOsVersion());
+        if (host.getType().equalsIgnoreCase(Host.HostType.Esx.name())) {
+            _log.info("Host " + host.getLabel() + " is compatible for vCenter cluster operation due to type " + host.getType()
+                    + " and OS version " + host.getOsVersion());
             return true;
         } else {
             _log.info("Host " + host.getLabel() + " is not compatible for vCenter cluster operation due to type " + host.getType());
@@ -349,60 +354,67 @@ public class VcenterDataCenterService extends TaskResourceService {
     }
 
     /*
-    @param create - Whether to create a new cluster vs update an existing
+     * @param create - Whether to create a new cluster vs update an existing
      */
-    private TaskResourceRep createOrUpdateVcenterCluster(boolean createCluster, URI id, URI clusterId, List<URI> addHosts, List<URI> removeHosts) {
+    private TaskResourceRep createOrUpdateVcenterCluster(boolean createCluster, URI id, URI clusterId, List<URI> addHosts,
+            List<URI> removeHosts) {
         _log.info("createOrUpdateVcenterCluster " + createCluster + " " + id + " " + clusterId);
 
         ArgValidator.checkFieldUriType(id, VcenterDataCenter.class, "id");
         VcenterDataCenter vcenterDataCenter = queryObject(VcenterDataCenter.class, id, false);
-        ArgValidator.checkEntityNotNull(vcenterDataCenter, id, isIdEmbeddedInURL(id));
-
+        ArgValidator.checkEntity(vcenterDataCenter, id, isIdEmbeddedInURL(id));
 
         ArgValidator.checkFieldUriType(clusterId, Cluster.class, "clusterId");
         Cluster cluster = queryObject(Cluster.class, clusterId, false);
-        ArgValidator.checkEntityNotNull(cluster, clusterId, isIdEmbeddedInURL(clusterId));
+        ArgValidator.checkEntity(cluster, clusterId, isIdEmbeddedInURL(clusterId));
 
         verifyAuthorizedInTenantOrg(cluster.getTenant(), getUserFromContext());
 
         /*
-         Check if explicit add host or remove hosts are specified
-         If one or both are, only execute whats specified
-         If nothing is specified, do automatic host selection and import all hosts in cluster
+         * Check if explicit add host or remove hosts are specified
+         * If one or both are, only execute whats specified
+         * If nothing is specified, do automatic host selection and import all hosts in cluster
          */
         Collection<URI> addHostUris = new ArrayList<URI>();
         Collection<URI> removeHostUris = new ArrayList<URI>();
 
         boolean manualHostSpecification = false;
-        if(addHosts != null  && !addHosts.isEmpty()) {
+        if (addHosts != null && !addHosts.isEmpty()) {
             _log.info("Request to explicitly add hosts " + addHosts);
             manualHostSpecification = true;
         }
-        if(removeHosts != null  && !removeHosts.isEmpty()) {
+        if (removeHosts != null && !removeHosts.isEmpty()) {
             _log.info("Request to explicitly remove hosts " + removeHosts);
             manualHostSpecification = true;
         }
 
-        if(manualHostSpecification) {
-            for(URI uri : addHosts) {
+        if (manualHostSpecification) {
+            for (URI uri : addHosts) {
                 Host host = queryObject(Host.class, uri, false);
-                if(isHostCompatibleForVcenterCluster(host)) addHostUris.add(uri);
+                if (isHostCompatibleForVcenterCluster(host)) {
+                    addHostUris.add(uri);
+                }
             }
-            for(URI uri : removeHosts) {
+            for (URI uri : removeHosts) {
                 Host host = queryObject(Host.class, uri, false);
-                if(isHostCompatibleForVcenterCluster(host)) removeHostUris.add(uri);
+                if (isHostCompatibleForVcenterCluster(host)) {
+                    removeHostUris.add(uri);
+                }
             }
 
         } else {
             // If no hosts specified by default add all hosts within cluster
             Collection<URI> hostUris = new ArrayList<URI>();
             List<NamedElementQueryResultList.NamedElement> hostNamedElements = listChildren(clusterId, Host.class, "label", "cluster");
-            for(NamedElementQueryResultList.NamedElement hostNamedElement : hostNamedElements) {
+            for (NamedElementQueryResultList.NamedElement hostNamedElement : hostNamedElements) {
                 Host host = queryObject(Host.class, hostNamedElement.getId(), false);
-                if(isHostCompatibleForVcenterCluster(host)) addHostUris.add(host.getId());
+                if (isHostCompatibleForVcenterCluster(host)) {
+                    addHostUris.add(host.getId());
+                }
             }
-            if(addHostUris.isEmpty()) { // Require at least a single compatible host for automatic mode, do not create empty cluster
-                _log.error("Cluster " + cluster.getLabel() + " does not contain any ESX/ESXi hosts and is thus incompatible for vCenter operations");
+            if (addHostUris.isEmpty()) { // Require at least a single compatible host for automatic mode, do not create empty cluster
+                _log.error("Cluster " + cluster.getLabel()
+                        + " does not contain any ESX/ESXi hosts and is thus incompatible for vCenter operations");
                 throw APIException.badRequests.clusterContainsNoCompatibleHostsForVcenter();
             }
         }
@@ -410,15 +422,17 @@ public class VcenterDataCenterService extends TaskResourceService {
         // Find all shared volumes in the cluster
         List<URI> volumeUris = new ArrayList<URI>();
         try {
-            List<ExportGroup> exportGroups = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, ExportGroup.class, AlternateIdConstraint.Factory.getConstraint(ExportGroup.class, "clusters", cluster.getId().toString()));
+            List<ExportGroup> exportGroups = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient, ExportGroup.class,
+                    AlternateIdConstraint.Factory.getConstraint(ExportGroup.class, "clusters", cluster.getId().toString()));
             _log.info("Found " + exportGroups.size() + " export groups for cluster " + cluster.getLabel());
-            for(ExportGroup exportGroup : exportGroups) {
-                _log.info("Cluster " + cluster.getLabel() + " has export group " + exportGroup.getLabel() + " of type " + exportGroup.getType());
-                if(exportGroup.forCluster()) {
+            for (ExportGroup exportGroup : exportGroups) {
+                _log.info("Cluster " + cluster.getLabel() + " has export group " + exportGroup.getLabel() + " of type "
+                        + exportGroup.getType());
+                if (exportGroup.forCluster()) {
                     _log.info("Export group " + exportGroup.getLabel() + " is cluster/shared type");
                     StringMap volumes = exportGroup.getVolumes();
                     _log.info("Export group " + exportGroup.getLabel() + " has " + volumes.size() + " volumes");
-                    for(String volumeUriString : volumes.keySet()) {
+                    for (String volumeUriString : volumes.keySet()) {
                         _log.info("Volume URI " + volumeUriString + " found in export group " + exportGroup.getLabel());
                         URI uri = URI.create(volumeUriString);
                         volumeUris.add(uri);
@@ -426,26 +440,28 @@ public class VcenterDataCenterService extends TaskResourceService {
                 }
 
             }
-        } catch(Exception e) {
+        } catch (Exception e) {
             _log.error("Exception navigating cluster export groups for shared volumes " + e);
             // for time being just ignore
         }
         Collection<Volume> volumes = _dbClient.queryObject(Volume.class, volumeUris);
-        for(Volume volume : volumes) {
+        for (Volume volume : volumes) {
             _log.info("Volume " + volume.getLabel() + " " + volume.getWWN() + " is shared and compatible for VMFS datastore");
         }
 
         String taskId = UUID.randomUUID().toString();
         Operation op = new Operation();
-        op.setResourceType(createCluster ? ResourceOperationTypeEnum.CREATE_VCENTER_CLUSTER : ResourceOperationTypeEnum.UPDATE_VCENTER_CLUSTER);
+        op.setResourceType(createCluster ? ResourceOperationTypeEnum.CREATE_VCENTER_CLUSTER
+                : ResourceOperationTypeEnum.UPDATE_VCENTER_CLUSTER);
         _dbClient.createTaskOpStatus(VcenterDataCenter.class, vcenterDataCenter.getId(), taskId, op);
         AsyncTask task = new AsyncTask(VcenterDataCenter.class, vcenterDataCenter.getId(), taskId);
 
         VcenterController vcenterController = getController(VcenterController.class, null);
-        if(createCluster) {
+        if (createCluster) {
             vcenterController.createVcenterCluster(task, clusterId, addHostUris.toArray(new URI[0]), volumeUris.toArray(new URI[0]));
         } else {
-            vcenterController.updateVcenterCluster(task, clusterId, addHostUris.toArray(new URI[0]), removeHostUris.toArray(new URI[0]), volumeUris.toArray(new URI[0]));
+            vcenterController.updateVcenterCluster(task, clusterId, addHostUris.toArray(new URI[0]), removeHostUris.toArray(new URI[0]),
+                    volumeUris.toArray(new URI[0]));
         }
         auditOp(OperationTypeEnum.CREATE_UPDATE_VCENTER_CLUSTER, true, null, vcenterDataCenter.auditParameters());
         return toTask(vcenterDataCenter, taskId, op);
@@ -453,32 +469,106 @@ public class VcenterDataCenterService extends TaskResourceService {
 
     /**
      * Create a new vCenter cluster with all hosts and datastores
+     * 
      * @param id the URN of a discovered vCenter datacenter
      * @param vcenterClusterParam the URN of the ViPR cluster
      * @brief Create a new vCenter cluster with all hosts and datastores
-     * @return  task representation
+     * @return task representation
      */
     @POST
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/create-vcenter-cluster")
-    public TaskResourceRep createVcenterCluster(@PathParam("id")URI id, VcenterClusterParam vcenterClusterParam) {
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    public TaskResourceRep createVcenterCluster(@PathParam("id") URI id, VcenterClusterParam vcenterClusterParam) {
         return createOrUpdateVcenterCluster(true, id, vcenterClusterParam.getId(), null, null);
     }
 
     /**
      * Updates an existing vCenter cluster with new hosts and datastores
+     * 
      * @param id the URN of a discovered vCenter datacenter
      * @param vcenterClusterParam the URN of the ViPR cluster
      * @brief Updates an existing vCenter cluster with new hosts and datastores
-     * @return  task representation
+     * @return task representation
      */
     @POST
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/update-vcenter-cluster")
-    public TaskResourceRep updateVcenterCluster(@PathParam("id")URI id, VcenterClusterParam vcenterClusterParam) {
+    @CheckPermission(roles = { Role.TENANT_ADMIN })
+    public TaskResourceRep updateVcenterCluster(@PathParam("id") URI id, VcenterClusterParam vcenterClusterParam) {
         List<URI> addHosts = vcenterClusterParam.getAddHosts();
         List<URI> removeHosts = vcenterClusterParam.getRemoveHosts();
         return createOrUpdateVcenterCluster(false, id, vcenterClusterParam.getId(), addHosts, removeHosts);
     }
-}
 
+    /**
+     * Checks if the user is authorized to view resources in a tenant organization.
+     * The user can see resources if:
+     *
+     * The user is in the tenant organization.
+     * The user has SysAdmin, SysMonitor, SecAdmin role.
+     * The user has TenantAdmin role to this tenant organization even
+     * if the user is in another tenant org
+     *
+     * @param tenantId the tenant organization URI
+     */
+    protected void verifyAuthorizedSystemOrTenantOrgUser(URI tenantId) {
+        if (isSystemAdmin() || isSecurityAdmin()) {
+            return;
+        }
+
+        StorageOSUser user = getUserFromContext();
+        verifyAuthorizedInTenantOrg(tenantId, user);
+    }
+
+    /**
+     * Validates if the tenant in the update param is sharing the
+     * vCenter or not.
+     *
+     * @param updateParam input to update the vCenterDataCenter.
+     * @param dataCenter the vCenterDataCenter resource to be updated.
+     */
+    private void validateTenant(VcenterDataCenterUpdate updateParam, VcenterDataCenter dataCenter) {
+        Vcenter vcenter = _dbClient.queryObject(Vcenter.class, dataCenter.getVcenter());
+        ArgValidator.checkEntity(vcenter, dataCenter.getVcenter(), isIdEmbeddedInURL(dataCenter.getVcenter()));
+
+        //Set the current tenant of the datacenter to the updateParam if
+        //updateParam does not contain the tenant information.
+        //To set the null tenant for the datacenter, use the string "null".
+        if (updateParam.getTenant() == null) {
+            updateParam.setTenant(dataCenter.getTenant());
+        }
+
+        Set<URI> vcenterTenants = _permissionsHelper.getUsageURIsFromAcls(vcenter.getAcls());
+        if (!NullColumnValueGetter.isNullURI(updateParam.getTenant()) &&
+                (CollectionUtils.isEmpty(vcenterTenants) || !vcenterTenants.contains(updateParam.getTenant()))) {
+            //Since, the given tenant in the update param is not a null URI
+            //and it is not sharing the vCenter, return the error.
+            TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, updateParam.getTenant());
+            throw APIException.badRequests.tenantDoesNotShareTheVcenter(tenant.getLabel(), vcenter.getLabel());
+        }
+    }
+
+    /**
+     * Check if the user has a privilege to update the
+     * vCenterDataCenter's tenant or not.
+     *
+     * @param updateParam
+     * @param dataCenter
+     */
+    private void checkUserPrivileges(VcenterDataCenterUpdate updateParam, VcenterDataCenter dataCenter) {
+        if(!(isSecurityAdmin() || isSystemAdmin())) {
+            if(updateParam.getTenant() != null &&
+                    dataCenter.getTenant() != null &&
+                    !URIUtil.identical(updateParam.getTenant(), dataCenter.getTenant())) {
+                throw APIException.forbidden.insufficientPermissionsForUser(getUserFromContext().getName());
+            } else if(updateParam.getTenant() == null &&
+                    dataCenter.getTenant() != null) {
+                throw APIException.forbidden.insufficientPermissionsForUser(getUserFromContext().getName());
+            } else if(updateParam.getTenant() != null &&
+                    dataCenter.getTenant() == null) {
+                throw APIException.forbidden.insufficientPermissionsForUser(getUserFromContext().getName());
+            }
+        }
+    }
+}

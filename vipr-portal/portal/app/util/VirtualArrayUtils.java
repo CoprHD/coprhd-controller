@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -66,8 +66,7 @@ public class VirtualArrayUtils {
     public static VirtualArrayRestRep getVirtualArray(URI id) {
         try {
             return getViprClient().varrays().get(id);
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }
@@ -100,9 +99,9 @@ public class VirtualArrayUtils {
      * Determines if the resource is assigned to the given virtual array.
      * 
      * @param resource
-     *        the resource.
+     *            the resource.
      * @param virtualArrayId
-     *        the virtual array ID.
+     *            the virtual array ID.
      * @return true if the resource is assigned to the virtual array.
      */
     public static boolean isAssigned(VirtualArrayResourceRestRep resource, String virtualArrayId) {
@@ -163,10 +162,11 @@ public class VirtualArrayUtils {
     }
 
     public static Map<String, Set<String>> getAvailableAttributes(List<URI> varrayIds) {
-        
+
         // get the available attributes for the given virtual arrays
-        Map<URI, List<VirtualPoolAvailableAttributesResourceRep>> availableAttributes = getViprClient().varrays().getAvailableAttributes(varrayIds);
-        
+        Map<URI, List<VirtualPoolAvailableAttributesResourceRep>> availableAttributes = getViprClient().varrays().getAvailableAttributes(
+                varrayIds);
+
         // cycle through the available attributes, adding them to the allAttributes list
         Map<String, Set<String>> allAttributes = Maps.newTreeMap();
         for (Entry<URI, List<VirtualPoolAvailableAttributesResourceRep>> varrayId : availableAttributes.entrySet()) {
@@ -179,21 +179,21 @@ public class VirtualArrayUtils {
                     values = Sets.newTreeSet();
                     allAttributes.put(attributesName, values);
                 }
-                
-                // if we have some values for this attribute type, add them to the values list 
+
+                // if we have some values for this attribute type, add them to the values list
                 if (CollectionUtils.size(attribute.getAttributeValues()) > 0) {
                     values.addAll(attribute.getAttributeValues());
                 }
-            } 
+            }
         }
-        
+
         // ensure all attributes have a valid set in the map
         for (String name : ATTRIBUTES) {
             if (!allAttributes.containsKey(name)) {
                 allAttributes.put(name, new TreeSet<String>());
             }
         }
-        
+
         return allAttributes;
     }
 
@@ -209,7 +209,7 @@ public class VirtualArrayUtils {
      * Checks whether a virtual array supports high availability.
      * 
      * @param varray
-     *        the virtual array.
+     *            the virtual array.
      * @return true if the virtual array supports high availability.
      */
     public static boolean isHighAvailability(VirtualArrayRestRep varray) {
@@ -220,7 +220,7 @@ public class VirtualArrayUtils {
      * Checks whether a virtual array supports high availability.
      * 
      * @param id
-     *        the virtual array ID.
+     *            the virtual array ID.
      * @return true if the virtual array supports high availability.
      */
     public static boolean isHighAvailability(String id) {
@@ -231,8 +231,8 @@ public class VirtualArrayUtils {
         }
         return false;
     }
-    
-    public static List<ComputeSystemRestRep> getComputeSystems(URI id){
+
+    public static List<ComputeSystemRestRep> getComputeSystems(URI id) {
         return getViprClient().varrays().getComputeSystems(id);
-    }    
+    }
 }

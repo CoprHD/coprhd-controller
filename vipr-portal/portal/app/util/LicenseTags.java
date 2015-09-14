@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -13,12 +13,13 @@ import java.util.Map;
 
 /**
  * Tags to support different licensing options.
- *
+ * 
  * @author Chris Dail
  */
 @FastTags.Namespace("license")
 public class LicenseTags extends FastTags {
-    public static void _ifController(Map<?, ?> args, Closure body, PrintWriter out, GroovyTemplate.ExecutableTemplate template, int fromLine) {
+    public static void
+            _ifController(Map<?, ?> args, Closure body, PrintWriter out, GroovyTemplate.ExecutableTemplate template, int fromLine) {
         doIf(LicenseUtils.isControllerLicensed(), body);
     }
 

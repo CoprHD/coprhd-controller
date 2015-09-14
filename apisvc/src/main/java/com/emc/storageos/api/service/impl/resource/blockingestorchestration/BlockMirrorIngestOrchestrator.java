@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2015 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2015 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource.blockingestorchestration;
 
@@ -41,10 +31,13 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
     private static final Logger logger = LoggerFactory.getLogger(BlockMirrorIngestOrchestrator.class);
 
     @Override
-    public <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache, StorageSystem system, UnManagedVolume unManagedVolume, 
-            VirtualPool vPool,VirtualArray virtualArray, Project project, TenantOrg tenant, List<UnManagedVolume> unManagedVolumesIngestedSuccessfully, 
-            Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported, Class<T> clazz, 
-            Map<String, StringBuffer> taskStatusMap) throws IngestionException {
+    public <T extends BlockObject> T ingestBlockObjects(List<URI> systemCache, List<URI> poolCache, StorageSystem system,
+            UnManagedVolume unManagedVolume,
+            VirtualPool vPool, VirtualArray virtualArray, Project project, TenantOrg tenant,
+            List<UnManagedVolume> unManagedVolumesIngestedSuccessfully,
+            Map<String, BlockObject> createdObjectMap, Map<String, List<DataObject>> updatedObjectMap, boolean unManagedVolumeExported,
+            Class<T> clazz,
+            Map<String, StringBuffer> taskStatusMap, String vplexIngestionMethod) throws IngestionException {
 
         // Validate the unManagedVolume properties
         validateUnManagedVolume(unManagedVolume, vPool);
@@ -61,11 +54,12 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
             mirrorObj = createBlockMirror(mirrorNativeGuid, system, unManagedVolume, vPool, virtualArray, project);
         }
         // Run this always when the volume is NO_PUBLIC_ACCESS
-        if (markUnManagedVolumeInactive(unManagedVolume, mirrorObj, unManagedVolumesIngestedSuccessfully, createdObjectMap, updatedObjectMap, taskStatusMap)) {
+        if (markUnManagedVolumeInactive(unManagedVolume, mirrorObj, unManagedVolumesIngestedSuccessfully, createdObjectMap,
+                updatedObjectMap, taskStatusMap)) {
             logger.info("Marking UnManaged Volume {} as inactive, all the related replicas and parent has been ingested",
                     unManagedVolume.getNativeGuid());
-            //mark inactive if this is not to be exported. Else, mark as inactive after successful export
-            if(!unManagedVolumeExported){
+            // mark inactive if this is not to be exported. Else, mark as inactive after successful export
+            if (!unManagedVolumeExported) {
                 unManagedVolume.setInactive(true);
                 unManagedVolumesIngestedSuccessfully.add(unManagedVolume);
             }
@@ -74,7 +68,7 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
                     unManagedVolume.getNativeGuid());
             mirrorObj.addInternalFlags(INTERNAL_VOLUME_FLAGS);
         }
-        
+
         return clazz.cast(mirrorObj);
     }
 
@@ -83,11 +77,12 @@ public class BlockMirrorIngestOrchestrator extends BlockIngestOrchestrator {
      */
     @Override
     protected void validateAutoTierPolicy(String autoTierPolicyId, UnManagedVolume unManagedVolume, VirtualPool vPool) {
-       return;
+        return;
     }
 
     /**
      * Create block Mirror object from the UnManagedVolume object.
+     * 
      * @param unManagedVolume
      * @param system
      * @param volume

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.iwave.ext.windows.winrm.wmi;
@@ -17,7 +17,7 @@ import java.util.List;
 
 /**
  */
-public class ListClustersQuery   extends WinRMEnumerateOperation<MSCluster> {
+public class ListClustersQuery extends WinRMEnumerateOperation<MSCluster> {
     public static final String CLUSTERS_SERVICES_URI = WinRMConstants.WMI_BASE_URI + "root/mscluster/MSCluster_Cluster";
 
     private static final XPath XPATH = XmlUtils.createXPath("ns=" + CLUSTERS_SERVICES_URI);
@@ -48,4 +48,3 @@ public class ListClustersQuery   extends WinRMEnumerateOperation<MSCluster> {
     }
 
 }
-

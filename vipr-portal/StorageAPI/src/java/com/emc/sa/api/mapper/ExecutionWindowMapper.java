@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.api.mapper;
@@ -16,14 +16,14 @@ import com.emc.vipr.model.catalog.ExecutionWindowCreateParam;
 import com.emc.vipr.model.catalog.ExecutionWindowRestRep;
 import com.google.common.base.Function;
 
-public class ExecutionWindowMapper implements Function<ExecutionWindow,ExecutionWindowRestRep>{
-    
+public class ExecutionWindowMapper implements Function<ExecutionWindow, ExecutionWindowRestRep> {
+
     public static final ExecutionWindowMapper instance = new ExecutionWindowMapper();
-    
+
     public static ExecutionWindowMapper getInstance() {
         return instance;
     }
-    
+
     private ExecutionWindowMapper() {
     }
 
@@ -33,7 +33,7 @@ public class ExecutionWindowMapper implements Function<ExecutionWindow,Execution
         }
         ExecutionWindowRestRep to = new ExecutionWindowRestRep();
         mapDataObjectFields(from, to);
-        
+
         to.setDayOfMonth(from.getDayOfMonth());
         to.setDayOfWeek(from.getDayOfWeek());
         to.setExecutionWindowLength(from.getExecutionWindowLength());
@@ -46,20 +46,20 @@ public class ExecutionWindowMapper implements Function<ExecutionWindow,Execution
 
         return to;
     }
-    
+
     public ExecutionWindowRestRep apply(ExecutionWindow resource) {
         return map(resource);
     }
-    
+
     public static ExecutionWindow createNewObject(ExecutionWindowCreateParam param) {
         ExecutionWindow newObject = new ExecutionWindow();
         newObject.setTenant(asString(param.getTenant()));
-        
+
         updateObject(newObject, param);
-        
+
         return newObject;
-    }        
-    
+    }
+
     public static void updateObject(ExecutionWindow object, ExecutionWindowCommonParam param) {
         if (param.getLastDayOfMonth() != null) {
             object.setLastDayOfMonth(param.getLastDayOfMonth());
@@ -89,12 +89,12 @@ public class ExecutionWindowMapper implements Function<ExecutionWindow,Execution
             object.setLabel(param.getName());
         }
     }
-    
+
     public static ExecutionWindow writeToTempWindow(ExecutionWindowCommonParam param) {
         ExecutionWindow newObject = new ExecutionWindow();
         updateObject(newObject, param);
-        
+
         return newObject;
     }
-    
+
 }

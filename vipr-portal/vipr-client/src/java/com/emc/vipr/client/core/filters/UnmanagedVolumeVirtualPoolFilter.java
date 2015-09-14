@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core.filters;
@@ -24,7 +24,7 @@ public class UnmanagedVolumeVirtualPoolFilter extends DefaultResourceFilter<UnMa
             return false;
         }
 
-        Set<URI> vpools = getVpoolsForUnmanaged(item.getVolumeInformation(), item.getVolumeCharacteristics());
+        Set<URI> vpools = getVpoolsForUnmanaged(item.getVolumeCharacteristics(), item.getSupportedVPoolUris());
         return vpools.contains(virtualPoolId);
     }
 }

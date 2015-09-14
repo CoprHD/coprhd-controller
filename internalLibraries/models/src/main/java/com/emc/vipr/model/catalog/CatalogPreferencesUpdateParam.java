@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -12,8 +12,8 @@ public class CatalogPreferencesUpdateParam {
 
     private String tenantId;
     private String approverEmail;
-    private String approvalUrl;    
-    
+    private String approvalUrl;
+
     @XmlElement(name = "approver_email", required = false, nillable = true)
     public String getApproverEmail() {
         return approverEmail;
@@ -39,6 +39,6 @@ public class CatalogPreferencesUpdateParam {
 
     public void setTenantId(String tenantId) {
         this.tenantId = tenantId;
-    }        
-    
+    }
+
 }

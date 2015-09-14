@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.services.util;
@@ -8,15 +8,20 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FilenameFilter;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.RandomAccessFile;
 import java.io.FileReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Properties;
+import java.util.regex.Pattern;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +30,7 @@ public class FileUtils {
 
     /**
      * Read serialized object from a file
+     * 
      * @param name
      * @return
      * @throws ClassNotFoundException
@@ -38,6 +44,7 @@ public class FileUtils {
 
     /**
      * Write serialized object into a file
+     * 
      * @param obj
      * @param name
      * @throws IOException
@@ -59,11 +66,11 @@ public class FileUtils {
             fop.flush();
             fop.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            log.error(e.getMessage(), e);
         }
     }
 
-    private static byte[] readDataFromFile(String name) throws IOException {
+    public static byte[] readDataFromFile(String name) throws IOException {
         Path path = Paths.get(name);
         return Files.readAllBytes(path);
     }
@@ -94,6 +101,7 @@ public class FileUtils {
 
     /**
      * Write byte array into a regular file
+     * 
      * @param filePath
      * @param content
      * @throws IOException
@@ -106,12 +114,13 @@ public class FileUtils {
 
     /**
      * check if a file exists.
+     * 
      * @param filepath
      * @return
      */
     public static boolean exists(String filepath) {
         File f = new File(filepath);
-        if(f.exists()) {
+        if (f.exists()) {
             return true;
         }
         return false;
@@ -119,6 +128,7 @@ public class FileUtils {
 
     /**
      * Delete a file
+     * 
      * @param filePath
      * @throws IOException
      */
@@ -133,6 +143,7 @@ public class FileUtils {
 
     /**
      * Get the value of property with specific key
+     * 
      * @param file
      * @param key
      * @return value of the key
@@ -154,20 +165,45 @@ public class FileUtils {
     }
 
     public static void chmod(File file, String perms) {
-        if (file == null || file.exists() == false)
+        if (file == null || file.exists() == false) {
             return;
-        String[] cmds = {"/bin/chmod", "-R", perms, file.getAbsolutePath()};
+        }
+        String[] cmds = { "/bin/chmod", "-R", perms, file.getAbsolutePath() };
         Exec.Result result = Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
-        if (result.execFailed() || result.getExitValue() != 0)
+        if (result.execFailed() || result.getExitValue() != 0) {
             throw new IllegalStateException(String.format("Execute command failed: %s", result));
+        }
     }
 
     public static void chown(File file, String owner, String group) {
-        if(file == null || file.exists() == false)
+        if (file == null || file.exists() == false) {
             return;
-        String[] cmds = {"/bin/chown", "-R", owner + ":" + group, file.getAbsolutePath()};
+        }
+        String[] cmds = { "/bin/chown", "-R", owner + ":" + group, file.getAbsolutePath() };
         Exec.Result result = Exec.exec(Exec.DEFAULT_CMD_TIMEOUT, cmds);
-        if (result.execFailed() || result.getExitValue() != 0)
+        if (result.execFailed() || result.getExitValue() != 0) {
             throw new IllegalStateException(String.format("Execute command failed: %s", result));
+        }
+    }
+
+    /**
+     * Get file by regEx under dir.
+     * 
+     * @param dir the directory which file resides in
+     * @param regEx the regular expression of file name
+     * @throws IOException
+     */
+    public static List<File> getFileByRegEx(File dir, String regEx) {
+        final Pattern pattern = Pattern.compile(regEx);
+        File[] files = dir.listFiles(new FilenameFilter() {
+
+            @Override
+            public boolean accept(File dir, String filename) {
+                return pattern.matcher(filename).matches();
+            }
+
+        });
+
+        return Collections.unmodifiableList(Arrays.asList(files));
     }
 }

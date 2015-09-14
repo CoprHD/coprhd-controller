@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.aix.command;
@@ -10,14 +10,14 @@ package com.emc.aix.command;
  * 
  */
 public class AddToFilesystemsCommand extends AixCommand {
-	
+
     public AddToFilesystemsCommand() {
         setCommand("echo");
         setRunAsRoot(true);
     }
-    
-    private String newline(){
-    	return "\\n";
+
+    private String newline() {
+        return "\\n";
     }
 
     public void setOptions(String device, String mountPoint, String fsType) {
@@ -30,7 +30,7 @@ public class AddToFilesystemsCommand extends AixCommand {
         sb.append(newline()).append("\\t").append("log\\t\\t= ").append("INLINE");
         sb.append(newline()).append("\\t").append("account\\t\\t= ").append("false");
 
-        addArguments("'"+sb.toString()+"'", ">>", "/etc/filesystems");
+        addArguments("'" + sb.toString() + "'", ">>", "/etc/filesystems");
     }
 
 }

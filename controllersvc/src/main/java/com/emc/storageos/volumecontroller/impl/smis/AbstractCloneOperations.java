@@ -1,27 +1,17 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
- */
-/*
- * Copyright (c) $today_year. EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis;
 
 import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefreshIfRequired;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_BEFORE_ACTIVATE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_STATE_RESTORED_INT_VALUE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.CREATE_NEW_TARGET_VALUE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.DIFFERENTIAL_CLONE_VALUE;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.COPY_BEFORE_ACTIVATE;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.GET_DEFAULT_REPLICATION_SETTING_DATA;
-import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.TARGET_ELEMENT_SUPPLIER;
 import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.PROVISIONING_TARGET_SAME_AS_SOURCE;
+import static com.emc.storageos.volumecontroller.impl.smis.SmisConstants.TARGET_ELEMENT_SUPPLIER;
 import static javax.cim.CIMDataType.UINT16_T;
 
 import java.net.URI;
@@ -42,13 +32,13 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.NamedURI;
 import com.emc.storageos.db.client.model.Operation;
 import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
 import com.emc.storageos.db.client.model.Volume.ReplicationState;
 import com.emc.storageos.db.client.util.NameGenerator;
 import com.emc.storageos.db.client.util.NullColumnValueGetter;
@@ -65,7 +55,6 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockResyncSnapshotJ
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCloneRestoreJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCloneResyncJob;
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisCloneVolumeJob;
-
 
 public class AbstractCloneOperations implements CloneOperations {
     private static final Logger _log = LoggerFactory.getLogger(AbstractCloneOperations.class);
@@ -100,7 +89,7 @@ public class AbstractCloneOperations implements CloneOperations {
     @Override
     @SuppressWarnings("rawtypes")
     public void createSingleClone(StorageSystem storageSystem, URI sourceVolume, URI cloneVolume,
-                                  Boolean createInactive, TaskCompleter taskCompleter) {
+            Boolean createInactive, TaskCompleter taskCompleter) {
         _log.info("START createSingleClone operation");
         try {
             BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceVolume);
@@ -109,14 +98,14 @@ public class AbstractCloneOperations implements CloneOperations {
             boolean isSourceSnap = false;
             if (sourceObj instanceof BlockSnapshot) {
                 // In case of snapshot, get the tenant from its parent volume
-            	NamedURI parentVolUri = ((BlockSnapshot)sourceObj).getParent();
+                NamedURI parentVolUri = ((BlockSnapshot) sourceObj).getParent();
                 Volume parentVolume = _dbClient.queryObject(Volume.class, parentVolUri);
                 tenantUri = parentVolume.getTenant().getURI();
                 baseVolume = parentVolume;
                 isSourceSnap = true;
             } else {
                 // This is a default flow
-            	tenantUri = ((Volume)sourceObj).getTenant().getURI();
+                tenantUri = ((Volume) sourceObj).getTenant().getURI();
                 baseVolume = (Volume) sourceObj;
             }
 
@@ -137,10 +126,10 @@ public class AbstractCloneOperations implements CloneOperations {
                             instance.getPropertyValue(SmisConstants.
                                     EMC_COPY_STATE_DESC).toString();
                     String syncType = instance.getPropertyValue(SmisConstants.CP_SYNC_TYPE).
-                                        toString();
+                            toString();
                     _log.info(String.format("Sync %s has copyState %s (%s) syncType %s",
                             path.toString(), copyState, copyStateDesc, syncType));
-                    if (copyState.equals(COPY_STATE_RESTORED_INT_VALUE) && 
+                    if (copyState.equals(COPY_STATE_RESTORED_INT_VALUE) &&
                             syncType.equals(Integer.toString(SmisConstants.SNAPSHOT_VALUE))) {
                         // This snapshot is in the 'Restored' state, need to
                         // resync it, before we can create a full copy
@@ -151,9 +140,9 @@ public class AbstractCloneOperations implements CloneOperations {
                                         new TaskCompleter() {
                                             @Override
                                             protected void
-                                            complete(DbClient dbClient,
-                                                     Operation.Status status,
-                                                     ServiceCoded coded) throws DeviceControllerException {
+                                                    complete(DbClient dbClient,
+                                                            Operation.Status status,
+                                                            ServiceCoded coded) throws DeviceControllerException {
 
                                             }
                                         });
@@ -186,8 +175,8 @@ public class AbstractCloneOperations implements CloneOperations {
             CIMObjectPath replicationSvcPath = _cimPath.getControllerReplicationSvcPath(storageSystem);
             CIMArgument[] inArgs = null;
             CIMInstance repSettingData = null;
-            if (storageSystem.deviceIsType(Type.vmax)) {               
-                if (createInactive  && storageSystem.getUsingSmis80()) {
+            if (storageSystem.deviceIsType(Type.vmax)) {
+                if (createInactive && storageSystem.getUsingSmis80()) {
                     repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageSystem, COPY_BEFORE_ACTIVATE);
                 } else {
                     repSettingData = getReplicationSettingDataInstanceForDesiredCopyMethod(storageSystem, DIFFERENTIAL_CLONE_VALUE);
@@ -196,14 +185,15 @@ public class AbstractCloneOperations implements CloneOperations {
                         targetPool, createInactive, repSettingData);
             } else if (storageSystem.deviceIsType(Type.vnxblock)) {
                 if (!isSourceSnap) {
-                    repSettingData = getReplicationSettingDataInstanceForThinProvisioningPolicy(storageSystem, PROVISIONING_TARGET_SAME_AS_SOURCE);
-                    //don't supply target pool when using thinlyProvisioningPolicy=PROVISIONING_TARGET_SAME_AS_SOURCE
+                    repSettingData = getReplicationSettingDataInstanceForThinProvisioningPolicy(storageSystem,
+                            PROVISIONING_TARGET_SAME_AS_SOURCE);
+                    // don't supply target pool when using thinlyProvisioningPolicy=PROVISIONING_TARGET_SAME_AS_SOURCE
                     inArgs = _helper.getCreateElementReplicaMirrorInputArgumentsWithReplicationSettingData(storageSystem, sourceObj, null,
                             false, repSettingData, cloneLabel);
                     cloneObj.setPool(baseVolume.getPool());
                     _dbClient.persistObject(cloneObj);
                 } else {
-                    //when source is snapshot, create clone instead of mirror, since creating mirror from a snap is not supported.
+                    // when source is snapshot, create clone instead of mirror, since creating mirror from a snap is not supported.
                     inArgs = _helper.getCloneInputArguments(cloneLabel, sourceVolumePath, volumeGroupPath, storageSystem,
                             targetPool, createInactive, null);
                 }
@@ -232,7 +222,7 @@ public class AbstractCloneOperations implements CloneOperations {
     @Override
     @SuppressWarnings("rawtypes")
     public void detachSingleClone(StorageSystem storageSystem, URI cloneVolume,
-                                  TaskCompleter taskCompleter) {
+            TaskCompleter taskCompleter) {
         _log.info("START detachSingleClone operation");
         Volume clone = null;
         try {
@@ -244,10 +234,10 @@ public class AbstractCloneOperations implements CloneOperations {
                 BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceUri);
                 if (sourceObj != null) {
                     StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class, sourceObj.getStorageController());
-                    CIMObjectPath syncObject = _cimPath.getStorageSynchronized(sourceSystem, sourceObj, storageSystem, clone); 
+                    CIMObjectPath syncObject = _cimPath.getStorageSynchronized(sourceSystem, sourceObj, storageSystem, clone);
                     CIMInstance instance = _helper.checkExists(storageSystem, syncObject, false, false);
                     if (instance != null) {
-                        CIMArgument[] inArgs = _helper.getDetachCloneSynchronizationInputArguments(syncObject);
+                        CIMArgument[] inArgs = _helper.getDetachSynchronizationInputArguments(syncObject);
                         CIMArgument[] outArgs = new CIMArgument[5];
                         _helper.callModifyReplica(storageSystem, inArgs, outArgs);
                     } else {
@@ -264,9 +254,11 @@ public class AbstractCloneOperations implements CloneOperations {
             /**
              * cq:609984 - No need to reset sync active flag as its caused problem
              * when check for activated target volume.
+             * 
              * @see <code>BlockService#activateFullCopy
              * volume.setSyncActive(false);
              */
+            ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(clone, _dbClient);
             clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
             clone.setReplicaState(ReplicationState.DETACHED.name());
             _dbClient.persistObject(clone);
@@ -281,7 +273,6 @@ public class AbstractCloneOperations implements CloneOperations {
             }
         }
     }
-    
 
     @Override
     @SuppressWarnings("rawtypes")
@@ -306,7 +297,7 @@ public class AbstractCloneOperations implements CloneOperations {
             completer.error(_dbClient, DeviceControllerException.exceptions.activateVolumeFullCopyFailed(e));
         }
     }
-    
+
     @Override
     @SuppressWarnings("rawtypes")
     public void fractureSingleClone(StorageSystem storageSystem, URI source, URI cloneVolume,
@@ -322,7 +313,7 @@ public class AbstractCloneOperations implements CloneOperations {
                 BlockObject sourceObj = BlockObject.fetch(_dbClient, sourceUri);
                 if (sourceObj != null) {
                     StorageSystem sourceSystem = _dbClient.queryObject(StorageSystem.class, sourceObj.getStorageController());
-                    CIMObjectPath syncObject = _cimPath.getStorageSynchronized(sourceSystem, sourceObj, storageSystem, clone); 
+                    CIMObjectPath syncObject = _cimPath.getStorageSynchronized(sourceSystem, sourceObj, storageSystem, clone);
                     CIMInstance instance = _helper.checkExists(storageSystem, syncObject, false, false);
                     if (instance != null) {
                         fractureReplica(storageSystem, syncObject);
@@ -336,7 +327,7 @@ public class AbstractCloneOperations implements CloneOperations {
                     String errorMsg = "The clone's source volume cannot be found in the database. Fractrure will not be performed.";
                     _log.info(errorMsg);
                     ServiceError error = DeviceControllerErrors.smis.methodFailed("fractureSingleClone", errorMsg);
-                    taskCompleter.error(_dbClient, error);                   
+                    taskCompleter.error(_dbClient, error);
                 }
             } else {
                 String errorMsg = "The clone does not have a source volume. Fracture will not be performed.";
@@ -354,7 +345,7 @@ public class AbstractCloneOperations implements CloneOperations {
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions.fractureFullCopyFailed(e));
         }
     }
-    
+
     @Override
     @SuppressWarnings("rawtypes")
     public void resyncSingleClone(StorageSystem storageSystem, URI cloneVolume,
@@ -371,14 +362,14 @@ public class AbstractCloneOperations implements CloneOperations {
             CIMObjectPath syncObject = _cimPath.getStorageSynchronized(sourceSystem, sourceObj, storageSystem, clone);
             CIMInstance instance = _helper.checkExists(storageSystem, syncObject, false, false);
             if (instance != null) {
-               CIMArgument[] inArgs = _helper.getResyncReplicaInputArguments(syncObject);
-               CIMArgument[] outArgs = new CIMArgument[5];
-               _helper.callModifyReplica(storageSystem, inArgs, outArgs);
-               CIMObjectPath job = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
-               if (job != null) {
-                   ControllerServiceImpl.enqueueJob(new QueueJob(new SmisCloneResyncJob(job, storageSystem.getId(),
-                                   taskCompleter)));
-               }
+                CIMArgument[] inArgs = _helper.getResyncReplicaInputArguments(syncObject);
+                CIMArgument[] outArgs = new CIMArgument[5];
+                _helper.callModifyReplica(storageSystem, inArgs, outArgs);
+                CIMObjectPath job = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
+                if (job != null) {
+                    ControllerServiceImpl.enqueueJob(new QueueJob(new SmisCloneResyncJob(job, storageSystem.getId(),
+                            taskCompleter)));
+                }
             } else {
                 String errorMsg = "The clone is already detached. resync will not be performed.";
                 _log.info(errorMsg);
@@ -391,22 +382,22 @@ public class AbstractCloneOperations implements CloneOperations {
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions.resynchronizeFullCopyFailed(e));
         }
     }
-    
+
     @Override
     public void createGroupClone(StorageSystem storage, List<URI> cloneList,
-                                  Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
+            Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
-            
+
     protected String generateLabel(TenantOrg tenantOrg, Volume cloneObj) {
         return _nameGenerator.generate(tenantOrg.getLabel(), cloneObj.getLabel(), cloneObj.getId().toString(), '-',
                 SmisConstants.MAX_VOLUME_NAME_LENGTH);
     }
-    
+
     @SuppressWarnings("rawtypes")
     private CIMInstance getReplicationSettingDataInstanceForDesiredCopyMethod(final StorageSystem storageSystem, int desiredValue) {
         CIMInstance modifiedInstance = null;
-        //only for vmax, otherwise, return null
+        // only for vmax, otherwise, return null
         if (!storageSystem.deviceIsType(Type.vmax)) {
             return modifiedInstance;
         }
@@ -418,8 +409,9 @@ public class AbstractCloneOperations implements CloneOperations {
             _helper.invokeMethod(storageSystem, replicationSettingCapabilities,
                     GET_DEFAULT_REPLICATION_SETTING_DATA, inArgs, outArgs);
             for (CIMArgument<?> outArg : outArgs) {
-                if (null == outArg)
+                if (null == outArg) {
                     continue;
+                }
                 if (outArg.getName().equalsIgnoreCase(SmisConstants.DEFAULT_INSTANCE)) {
                     CIMInstance repInstance = (CIMInstance) outArg.getValue();
                     if (null != repInstance) {
@@ -438,11 +430,11 @@ public class AbstractCloneOperations implements CloneOperations {
         }
         return modifiedInstance;
     }
-    
+
     @SuppressWarnings("rawtypes")
     private CIMInstance getReplicationSettingDataInstanceForThinProvisioningPolicy(final StorageSystem storageSystem, int desiredValue) {
         CIMInstance modifiedInstance = null;
-        
+
         try {
             CIMObjectPath replicationSettingCapabilities = _cimPath
                     .getReplicationServiceCapabilitiesPath(storageSystem);
@@ -451,8 +443,9 @@ public class AbstractCloneOperations implements CloneOperations {
             _helper.invokeMethod(storageSystem, replicationSettingCapabilities,
                     GET_DEFAULT_REPLICATION_SETTING_DATA, inArgs, outArgs);
             for (CIMArgument<?> outArg : outArgs) {
-                if (null == outArg)
+                if (null == outArg) {
                     continue;
+                }
                 if (outArg.getName().equalsIgnoreCase(SmisConstants.DEFAULT_INSTANCE)) {
                     CIMInstance repInstance = (CIMInstance) outArg.getValue();
                     if (null != repInstance) {
@@ -475,26 +468,31 @@ public class AbstractCloneOperations implements CloneOperations {
     @Override
     public void activateGroupClones(StorageSystem storage, List<URI> clone, TaskCompleter taskCompleter) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-        
+
     }
 
     @Override
     public void fractureGroupClones(StorageSystem storage, List<URI> clones, TaskCompleter completer) {
-        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();       
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
 
     @Override
-    public void detachGroupClones(StorageSystem storage, List<URI> clones,TaskCompleter completer) {
+    public void detachGroupClones(StorageSystem storage, List<URI> clones, TaskCompleter completer) {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
-        
+
     }
-    
+
+    @Override
+    public void establishVolumeCloneGroupRelation(StorageSystem storage, URI sourceVolume, URI clone, TaskCompleter completer) {
+        throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
+    }
+
     /**
-     * Implementation for restoring of a single volume clone restore. 
-     *
-     * @param storage       [required] - StorageSystem object representing the array
-     * @param volume        [required] - Volume URI for the volume to be restored
-     * @param clone         [required] - URI representing the previously created clone
+     * Implementation for restoring of a single volume clone restore.
+     * 
+     * @param storage [required] - StorageSystem object representing the array
+     * @param volume [required] - Volume URI for the volume to be restored
+     * @param clone [required] - URI representing the previously created clone
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      */
     @Override
@@ -505,7 +503,7 @@ public class AbstractCloneOperations implements CloneOperations {
             callEMCRefreshIfRequired(_dbClient, _helper, storage, Arrays.asList(clone));
             Volume cloneVol = _dbClient.queryObject(Volume.class, clone);
             Volume originalVol = _dbClient.queryObject(Volume.class, cloneVol.getAssociatedSourceVolume());
-            CIMObjectPath syncObjectPath = _cimPath.getStorageSynchronized(storage, originalVol, storage, cloneVol); 
+            CIMObjectPath syncObjectPath = _cimPath.getStorageSynchronized(storage, originalVol, storage, cloneVol);
             if (_helper.checkExists(storage, syncObjectPath, false, false) != null) {
                 CIMArgument[] outArgs = new CIMArgument[5];
                 CIMArgument[] inArgs = _helper.getRestoreFromReplicaInputArgumentsWithForce(syncObjectPath);
@@ -513,9 +511,9 @@ public class AbstractCloneOperations implements CloneOperations {
                 CIMObjectPath job = _cimPath.getCimObjectPathFromOutputArgs(outArgs, SmisConstants.JOB);
                 if (job != null) {
                     ControllerServiceImpl.enqueueJob(new QueueJob(new SmisCloneRestoreJob(job,
-                                    storage.getId(), taskCompleter)));
+                            storage.getId(), taskCompleter)));
                 }
-                
+
             } else {
                 ServiceError error = DeviceControllerErrors.smis.unableToFindSynchPath(storage.getLabel());
                 taskCompleter.error(_dbClient, error);
@@ -533,23 +531,21 @@ public class AbstractCloneOperations implements CloneOperations {
             taskCompleter.error(_dbClient, DeviceControllerException.exceptions.restoreVolumeFromFullCopyFailed(e));
         }
     }
-    
-    
+
     @Override
     public void restoreGroupClones(StorageSystem storage, List<URI> clones, TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
-    
 
     @Override
     public void resyncGroupClones(StorageSystem storage, List<URI> clones, TaskCompleter taskCompleter) throws DeviceControllerException {
         throw DeviceControllerException.exceptions.blockDeviceOperationNotSupported();
     }
-    
+
     protected void fractureReplica(StorageSystem storageSystem, CIMObjectPath syncObject) throws WBEMException {
         CIMArgument[] inArgs = _helper.getFractureMirrorInputArgumentsWithCopyState(syncObject, null);
         CIMArgument[] outArgs = new CIMArgument[5];
         _helper.callModifyReplica(storageSystem, inArgs, outArgs);
     }
-    
+
 }

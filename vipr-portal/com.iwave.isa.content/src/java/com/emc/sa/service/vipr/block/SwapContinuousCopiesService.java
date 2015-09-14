@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block;
@@ -30,7 +30,6 @@ public class SwapContinuousCopiesService extends ViPRService {
     private BlockObjectRestRep sourceVolume;
     private BlockObjectRestRep targetVolume;
     private String type;
-
 
     @Override
     public void precheck() throws Exception {

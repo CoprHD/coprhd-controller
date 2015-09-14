@@ -1,15 +1,16 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client;
 
 import com.emc.vipr.client.catalog.*;
 import com.emc.vipr.client.impl.RestClient;
+
 /**
  * The Catalog APIs have been moved from the portal to the a back end ViPR service.
  * 
- * @deprecated Replaced by 
+ * @deprecated Replaced by
  * @see ViPRCatalogClient2
  */
 @Deprecated
@@ -18,7 +19,7 @@ public class ViPRCatalogClient {
 
     /**
      * Convenience method for calling constructor with new ClientConfig().withHost(host)
-     *
+     * 
      * @param host Hostname or IP address for the Virtual IP of the target environment.
      */
     public ViPRCatalogClient(String host) {
@@ -27,7 +28,7 @@ public class ViPRCatalogClient {
 
     /**
      * Convenience method for calling constructor with new ClientConfig().withHost(host).withIgnoringCertificates(ignoreCertificates)
-     *
+     * 
      * @param host Hostname or IP address for the Virtual IP of the target environment.
      * @param ignoreCertificates True if SSL certificates should be ignored.
      */
@@ -41,7 +42,7 @@ public class ViPRCatalogClient {
 
     /**
      * Sets the authentication token to be used for this client.
-     *
+     * 
      * @param authToken The authentication token to set.
      */
     public void setAuthToken(String authToken) {
@@ -50,7 +51,7 @@ public class ViPRCatalogClient {
 
     /**
      * Sets the authentication token and returns the updated client.
-     *
+     * 
      * @see #setAuthToken(String)
      * @param token The authentication token to set.
      * @return The updated client.

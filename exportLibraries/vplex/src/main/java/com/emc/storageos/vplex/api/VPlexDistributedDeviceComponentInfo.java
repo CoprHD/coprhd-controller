@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.vplex.api;
 
@@ -18,18 +8,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class VPlexDistributedDeviceComponentInfo extends VPlexResourceInfo {
-    
+
     // Enumerates the distributed device component attributes we are interested
     // in and parse from the VPlex local device component response. There
     // must be a setter method for each attribute specified. The format of
     // the setter method must be as specified by the base class method
     // getAttributeSetterMethodName.
     public static enum ComponentAttribute {
-        CLUSTER("cluster");       
-        
+        CLUSTER("cluster");
+
         // The VPlex name for the attribute.
         private String _name;
-        
+
         /**
          * Constructor.
          * 
@@ -38,16 +28,16 @@ public class VPlexDistributedDeviceComponentInfo extends VPlexResourceInfo {
         ComponentAttribute(String name) {
             _name = name;
         }
-        
+
         /**
          * Getter for the VPlex name for the attribute.
          * 
          * @return The VPlex name for the attribute.
          */
         public String getAttributeName() {
-             return _name;
+            return _name;
         }
-               
+
         /**
          * Returns the enum whose name matches the passed name, else null when
          * not found.
@@ -67,7 +57,7 @@ public class VPlexDistributedDeviceComponentInfo extends VPlexResourceInfo {
             return null;
         }
     };
-    
+
     // The component type.
     private String clusterId;
 
@@ -89,7 +79,7 @@ public class VPlexDistributedDeviceComponentInfo extends VPlexResourceInfo {
     public void setCluster(String id) {
         clusterId = id;
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -110,9 +100,9 @@ public class VPlexDistributedDeviceComponentInfo extends VPlexResourceInfo {
         StringBuilder str = new StringBuilder();
         str.append("DistributedDeviceComponentInfo ( ");
         str.append(super.toString());
-        str.append(", clusterId: " + clusterId);
+        str.append(", clusterId: ").append(clusterId);
         str.append(" )");
-        
+
         return str.toString();
     }
 }

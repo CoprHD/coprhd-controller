@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.project;
@@ -14,14 +14,16 @@ public class ProjectParam {
 
     private String name;
 
-    public ProjectParam() {}
-    
+    public ProjectParam() {
+    }
+
     public ProjectParam(String name) {
         this.name = name;
     }
 
     /**
      * Name of the project
+     * 
      * @valid any string within length limits
      */
     @XmlElement(required = true)
@@ -33,6 +35,5 @@ public class ProjectParam {
     public void setName(String name) {
         this.name = name;
     }
-    
-    
+
 }

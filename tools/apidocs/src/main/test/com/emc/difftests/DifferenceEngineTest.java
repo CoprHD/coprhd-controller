@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.difftests;
@@ -18,13 +18,14 @@ import java.util.Map;
 
 public class DifferenceEngineTest {
 
-    public static void main(String[] args)throws Exception {
+    public static void main(String[] args) throws Exception {
         List<ApiService> oldApi = MetaData.load(EncunciationReaderTests.class.getResourceAsStream("MetaData-1.1.json"));
         List<ApiService> newApi = MetaData.load(EncunciationReaderTests.class.getResourceAsStream("MetaData-2.0.json"));
 
         ApiDifferences differences = DifferenceEngine.calculateDifferences(oldApi, newApi);
 
-        ApiReferenceTocOrganizer organizer = new ApiReferenceTocOrganizer(new File("/Users/maddid/SourceCode/bourne/vipr-controller/tools/apidocs/src/content/reference/ApiReferenceGrouping.txt"));
+        ApiReferenceTocOrganizer organizer = new ApiReferenceTocOrganizer(new File(
+                "/Users/maddid/SourceCode/bourne/vipr-controller/tools/apidocs/src/content/reference/ApiReferenceGrouping.txt"));
         Map<String, List<ApiService>> newServicesToc = organizer.organizeServices(differences.newServices);
         Map<String, List<ApiService>> removedServicesToc = organizer.organizeServices(differences.removedServices);
 
@@ -37,14 +38,14 @@ public class DifferenceEngineTest {
             if (!changes.newMethods.isEmpty()) {
                 System.out.println("---- NEW METHODS");
                 for (ApiMethod apiMethod : changes.newMethods) {
-                    System.out.println("-- "+apiMethod.httpMethod+" "+apiMethod.path);
+                    System.out.println("-- " + apiMethod.httpMethod + " " + apiMethod.path);
                 }
             }
 
             if (!changes.removedMethods.isEmpty()) {
                 System.out.println("---- REMOVED METHODS");
                 for (ApiMethod apiMethod : changes.removedMethods) {
-                    System.out.println("-- "+apiMethod.httpMethod+" "+apiMethod.path);
+                    System.out.println("-- " + apiMethod.httpMethod + " " + apiMethod.path);
                 }
             }
 
@@ -55,7 +56,7 @@ public class DifferenceEngineTest {
         for (Map.Entry<String, List<ApiService>> toc : tocs.entrySet()) {
             System.out.println(toc.getKey().toUpperCase());
             for (ApiService newService : toc.getValue()) {
-                System.out.println(" - "+newService.getFqJavaClassName()+"  "+newService.getTitle()+" "+newService.path);
+                System.out.println(" - " + newService.getFqJavaClassName() + "  " + newService.getTitle() + " " + newService.path);
             }
         }
     }

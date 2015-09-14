@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.host.cluster;
@@ -17,15 +17,17 @@ import java.util.List;
 @XmlRootElement(name = "clusters")
 public class ClusterList {
     private List<NamedRelatedResourceRep> clusters;
-    
-    public ClusterList() {}
-    
+
+    public ClusterList() {
+    }
+
     public ClusterList(List<NamedRelatedResourceRep> clusters) {
         this.clusters = clusters;
     }
 
     /**
      * Represents a host cluster within ViPR
+     * 
      * @valid none
      */
     @XmlElement(name = "cluster")

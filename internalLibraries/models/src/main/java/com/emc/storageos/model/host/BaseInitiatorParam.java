@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.host;
@@ -16,9 +16,10 @@ public class BaseInitiatorParam {
     private String node;
     private String port;
     private String name;
-    
-    public BaseInitiatorParam() {}
-    
+
+    public BaseInitiatorParam() {
+    }
+
     public BaseInitiatorParam(String protocol, String node, String port, String name) {
         this.protocol = protocol;
         this.node = node;
@@ -26,11 +27,13 @@ public class BaseInitiatorParam {
         this.name = name;
     }
 
-    /** The protocols supported by the initiator which should be FC or iSCSI 
+    /**
+     * The protocols supported by the initiator which should be FC or iSCSI
+     * 
      * @valid FC = Fibre Channel
-     * @valid iSCSI 
+     * @valid iSCSI
      */
-    //@EnumType(HostInterface.Protocol.class)
+    // @EnumType(HostInterface.Protocol.class)
     @XmlElement()
     public String getProtocol() {
         return protocol;
@@ -40,11 +43,13 @@ public class BaseInitiatorParam {
         this.protocol = protocol;
     }
 
-    /** The FC (Fibre Channel) initiator WWN (World Wide Name) of the initiator node 
-     * @valid none 
+    /**
+     * The FC (Fibre Channel) initiator WWN (World Wide Name) of the initiator node
+     * 
+     * @valid none
      */
     @XmlElement(name = "initiator_node")
-    @Endpoint(type= Endpoint.EndpointType.SAN)
+    @Endpoint(type = Endpoint.EndpointType.SAN)
     public String getNode() {
         return node;
     }
@@ -53,11 +58,13 @@ public class BaseInitiatorParam {
         this.node = node;
     }
 
-    /** The initiator port which can be the WWN of an FC port or the IQN or EUI of an iSCSI port 
+    /**
+     * The initiator port which can be the WWN of an FC port or the IQN or EUI of an iSCSI port
+     * 
      * @valid none
      */
-    @XmlElement(name = "initiator_port",required=true)
-    @Endpoint(type= Endpoint.EndpointType.SAN)
+    @XmlElement(name = "initiator_port", required = true)
+    @Endpoint(type = Endpoint.EndpointType.SAN)
     public String getPort() {
         return port;
     }
@@ -65,8 +72,10 @@ public class BaseInitiatorParam {
     public void setPort(String port) {
         this.port = port;
     }
-    
-    /** The label of the initiator
+
+    /**
+     * The label of the initiator
+     * 
      * @valid none
      */
     @XmlElement()
@@ -77,5 +86,5 @@ public class BaseInitiatorParam {
     public void setName(String name) {
         this.name = name;
     }
-    
+
 }

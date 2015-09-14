@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block;
@@ -25,7 +25,7 @@ public class UnManagedExportMaskRestRep extends DataObjectRestRep {
     private RelatedResourceRep storageSystem;
     private String maskName;
     private String nativeId;
-    
+
     private List<RelatedResourceRep> knownInitiatorUris;
     private Set<String> unmanagedInitiatorNetworkIds;
     private List<RelatedResourceRep> knownStoragePortUris;
@@ -33,8 +33,9 @@ public class UnManagedExportMaskRestRep extends DataObjectRestRep {
     private List<RelatedResourceRep> knownStorageVolumeUris;
     private List<RelatedResourceRep> unmanagedVolumeUris;
 
-    public UnManagedExportMaskRestRep() {}
-    
+    public UnManagedExportMaskRestRep() {
+    }
+
     @XmlElement(name = "known_initiators")
     public List<RelatedResourceRep> getKnownInitiatorUris() {
         if (knownInitiatorUris == null) {

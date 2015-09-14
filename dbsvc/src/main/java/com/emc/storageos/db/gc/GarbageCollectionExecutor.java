@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.gc;
 
@@ -33,8 +23,8 @@ public class GarbageCollectionExecutor {
     private static final int DEFAULT_GC_RUN_INTERVAL_MIN = 10;
     private int _gcRunInterval = DEFAULT_GC_RUN_INTERVAL_MIN;
 
-    //Pool name
-    private static final String POOL_NAME="GCThreadPool";
+    // Pool name
+    private static final String POOL_NAME = "GCThreadPool";
     private static final Logger _log = LoggerFactory.getLogger(GarbageCollectionExecutor.class);
     private DataObjectScanner _dataObjectScanner;
 
@@ -46,16 +36,18 @@ public class GarbageCollectionExecutor {
     }
 
     /**
-     * Set dataObjectScanner 
+     * Set dataObjectScanner
+     * 
      * @param scanner
      */
     public void setDataObjectScanner(DataObjectScanner scanner) {
         _dataObjectScanner = scanner;
-        
+
     }
 
     /**
      * Set for overwriting the GC run interval
+     * 
      * @param mins
      */
     public void setGCRunInterval(int mins) {
@@ -101,4 +93,3 @@ public class GarbageCollectionExecutor {
         _executor.shutdownNow();
     }
 }
-

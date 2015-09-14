@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.vnxe.job;
@@ -36,20 +26,20 @@ import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.NativeGUIDGenerator;
 
-
 public class VNXeCreateVolumesJob extends VNXeJob {
 
     private static final long serialVersionUID = 485930354573814000L;
     private static final Logger _logger = LoggerFactory.getLogger(VNXeCreateFileSystemJob.class);
-    private URI storagePool;
-    private boolean isConsistencyGroup;
-    public VNXeCreateVolumesJob(List<String> jobIds, URI storageSystemUri, TaskCompleter taskCompleter, 
+    private final URI storagePool;
+    private final boolean isConsistencyGroup;
+
+    public VNXeCreateVolumesJob(List<String> jobIds, URI storageSystemUri, TaskCompleter taskCompleter,
             URI storagePoolUri, boolean isConsistencyGroup) {
         super(jobIds, storageSystemUri, taskCompleter, "createVolumes");
         this.storagePool = storagePoolUri;
         this.isConsistencyGroup = isConsistencyGroup;
     }
-    
+
     /**
      * Called to update the job status when the volumes create job completes.
      *
@@ -66,18 +56,18 @@ public class VNXeCreateVolumesJob extends VNXeJob {
 
             String opId = getTaskCompleter().getOpId();
             StringBuilder logMsgBuilder = new StringBuilder(String.format("Updating status of job %s to %s", opId, _status.name()));
-            
-            VNXeApiClient vnxeApiClient = getVNXeClient(jobContext);
-            
-            //VNXeCommandJob job = vnxeApiClient.getJob(getJobIds().get(0));
 
-            // If terminal state update storage pool capacity 
+            VNXeApiClient vnxeApiClient = getVNXeClient(jobContext);
+
+            // VNXeCommandJob job = vnxeApiClient.getJob(getJobIds().get(0));
+
+            // If terminal state update storage pool capacity
             if (_status == JobStatus.SUCCESS || _status == JobStatus.FAILED) {
                 VNXeJob.updateStoragePoolCapacity(dbClient, vnxeApiClient, storagePool);
             }
             Calendar now = Calendar.getInstance();
             int volumeCount = 0;
-            if (_status == JobStatus.SUCCESS) {     
+            if (_status == JobStatus.SUCCESS) {
                 if (!isConsistencyGroup) {
                     for (String jobId : getJobIds()) {
                         VNXeCommandJob vnxeJob = vnxeApiClient.getJob(jobId);
@@ -91,14 +81,14 @@ public class VNXeCreateVolumesJob extends VNXeJob {
                             }
                         }
                         processVolume(vnxeApiClient, nativeId, volumeId, dbClient, logMsgBuilder, now);
-                        
+
                         volumeCount++;
                     }
                 } else {
                     List<URI> volIds = getTaskCompleter().getIds();
-                    processVolumesinConsistencyGroup(vnxeApiClient, volIds, dbClient,logMsgBuilder, now);
+                    processVolumesinConsistencyGroup(vnxeApiClient, volIds, dbClient, logMsgBuilder, now);
                 }
-    
+
             } else if (_status == JobStatus.FAILED) {
                 List<URI> volIds = getTaskCompleter().getIds();
                 for (URI volId : volIds) {
@@ -111,26 +101,25 @@ public class VNXeCreateVolumesJob extends VNXeJob {
                     logMsgBuilder.append(String.format(
                             "Task %s failed to create volume: %s", opId, volId));
                 }
-               
-                
-            }  
+
+            }
             _logger.info(logMsgBuilder.toString());
         } catch (Exception e) {
             _logger.error("Caught an exception while trying to updateStatus for VNXeCreateVolumesJob", e);
             setErrorStatus("Encountered an internal error during volume create job status processing : " + e.getMessage());
         } finally {
             super.updateStatus(jobContext);
-            
+
         }
     }
-    
-    private void processVolume(VNXeApiClient apiClient, String nativeId, URI volumeId, 
+
+    private void processVolume(VNXeApiClient apiClient, String nativeId, URI volumeId,
             DbClient dbClient, StringBuilder logMsgBuilder, Calendar creationTime) throws IOException, DeviceControllerException {
         Volume volume = dbClient.queryObject(Volume.class, volumeId);
         volume.setCreationTime(creationTime);
         VNXeLun vnxeLun = apiClient.getLun(nativeId);
 
-        if (vnxeLun != null ) {
+        if (vnxeLun != null) {
             updateVolume(volume, vnxeLun, dbClient);
             if (logMsgBuilder.length() != 0) {
                 logMsgBuilder.append("\n");
@@ -140,11 +129,11 @@ public class VNXeCreateVolumesJob extends VNXeJob {
         } else {
             _logger.error("Could not find the lun: {} in the array", nativeId);
         }
-        
+
     }
-    
+
     private void processVolumesinConsistencyGroup(VNXeApiClient apiClient, List<URI> volIds,
-                    DbClient dbClient, StringBuilder logMsgBuilder, Calendar creationTime) throws IOException {
+            DbClient dbClient, StringBuilder logMsgBuilder, Calendar creationTime) throws IOException {
         BlockConsistencyGroup group = null;
         for (URI volId : volIds) {
             Volume volume = dbClient.queryObject(Volume.class, volId);
@@ -152,22 +141,22 @@ public class VNXeCreateVolumesJob extends VNXeJob {
             if (group == null) {
                 group = dbClient.queryObject(BlockConsistencyGroup.class, volume.getConsistencyGroup());
             }
-            String deviceName = group.fetchArrayCgName(volume.getStorageController());
+            String deviceName = group.getCgNameOnStorageSystem(volume.getStorageController());
             VNXeLun vnxeLun = apiClient.getLunByLunGroup(deviceName, volume.getNativeGuid());
             if (vnxeLun != null) {
-            updateVolume(volume, vnxeLun, dbClient);
-            
-            if (logMsgBuilder.length() != 0) {
-                logMsgBuilder.append("\n");
-            }
-            logMsgBuilder.append(String.format(
-                    "Created volume successfully .. NativeId: %s, URI: %s", vnxeLun.getId(), volId.toString()));
+                updateVolume(volume, vnxeLun, dbClient);
+
+                if (logMsgBuilder.length() != 0) {
+                    logMsgBuilder.append("\n");
+                }
+                logMsgBuilder.append(String.format(
+                        "Created volume successfully .. NativeId: %s, URI: %s", vnxeLun.getId(), volId.toString()));
             } else {
                 _logger.error("Could not find the lun:{} in the array", volume.getNativeGuid());
             }
         }
     }
-    
+
     private void updateVolume(Volume volume, VNXeLun vnxeLun, DbClient dbClient) throws IOException {
         volume.setWWN(vnxeLun.getWwn());
         volume.setInactive(false);

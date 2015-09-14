@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -18,8 +8,11 @@ import static com.emc.storageos.api.mapper.DbObjectMapper.map;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 
 import javax.ws.rs.Consumes;
@@ -32,7 +25,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
-import com.emc.storageos.db.common.VdcUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,9 +38,18 @@ import com.emc.storageos.api.service.impl.response.BulkList;
 import com.emc.storageos.api.service.impl.response.ResRepFilter;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.QueryResultList;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.AbstractChangeTrackingSet;
+import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.NamedURI;
+import com.emc.storageos.db.client.model.NasCifsServer;
 import com.emc.storageos.db.client.model.Project;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
+import com.emc.storageos.db.client.model.VirtualNAS;
+import com.emc.storageos.db.client.model.VirtualNAS.VirtualNasState;
+import com.emc.storageos.db.client.util.NullColumnValueGetter;
+import com.emc.storageos.db.common.VdcUtil;
 import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.BulkIdParam;
 import com.emc.storageos.model.RelatedResourceRep;
@@ -62,10 +63,13 @@ import com.emc.storageos.model.project.ProjectBulkRep;
 import com.emc.storageos.model.project.ProjectRestRep;
 import com.emc.storageos.model.project.ProjectUpdateParam;
 import com.emc.storageos.model.project.ResourceList;
+import com.emc.storageos.model.project.VirtualNasParam;
 import com.emc.storageos.model.quota.QuotaInfo;
 import com.emc.storageos.model.quota.QuotaUpdateParam;
+import com.emc.storageos.model.tenant.UserMappingParam;
 import com.emc.storageos.security.authentication.StorageOSUser;
 import com.emc.storageos.security.authorization.ACL;
+import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.security.authorization.CheckPermission;
 import com.emc.storageos.security.authorization.DefaultPermissions;
 import com.emc.storageos.security.authorization.PermissionsKey;
@@ -82,10 +86,10 @@ import com.emc.storageos.volumecontroller.impl.monitoring.cim.enums.RecordType;
  * Project resource implementation
  */
 @Path("/projects")
-@DefaultPermissions( read_roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
-read_acls = {ACL.OWN, ACL.ALL},
-write_roles = { Role.TENANT_ADMIN },
-write_acls = {ACL.OWN, ACL.ALL})
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN },
+        readAcls = { ACL.OWN, ACL.ALL },
+        writeRoles = { Role.TENANT_ADMIN },
+        writeAcls = { ACL.OWN, ACL.ALL })
 public class ProjectService extends TaggedResource {
     private static final Logger _log = LoggerFactory.getLogger(ProjectService.class);
     // Constants for Events
@@ -100,9 +104,9 @@ public class ProjectService extends TaggedResource {
     @Autowired
     private RecordableEventManager _evtMgr;
 
-
-    /**     
+    /**
      * Get info for project including owner, parent project, and child projects
+     * 
      * @param id the URN of a ViPR Project
      * @prereq none
      * @brief Show project
@@ -111,7 +115,7 @@ public class ProjectService extends TaggedResource {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    @CheckPermission( roles = {Role.SYSTEM_MONITOR, Role.TENANT_ADMIN}, acls = {ACL.ANY})
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public ProjectRestRep getProject(@PathParam("id") URI id) {
         Project project = queryResource(id);
         return map(project);
@@ -119,8 +123,8 @@ public class ProjectService extends TaggedResource {
 
     @Override
     protected Project queryResource(URI id) {
-        Project project = getProjectById(id, false);
-        return project;
+        return getProjectById(id, false);
+
     }
 
     @Override
@@ -129,8 +133,9 @@ public class ProjectService extends TaggedResource {
         return project.getTenantOrg().getURI();
     }
 
-    /**     
+    /**
      * Update info for project including project name and owner
+     * 
      * @param projectUpdate Project update parameters
      * @param id the URN of a ViPR Project
      * @prereq none
@@ -141,7 +146,7 @@ public class ProjectService extends TaggedResource {
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}")
-    @CheckPermission( roles = { Role.TENANT_ADMIN }, acls = {ACL.OWN})
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN })
     public Response updateProject(@PathParam("id") URI id, ProjectUpdateParam projectUpdate) {
         Project project = getProjectById(id, true);
 
@@ -150,7 +155,7 @@ public class ProjectService extends TaggedResource {
             checkForDuplicateName(projectUpdate.getName(), Project.class, project.getTenantOrg()
                     .getURI(), "tenantOrg", _dbClient);
             project.setLabel(projectUpdate.getName());
-            NamedURI tenant  = project.getTenantOrg();
+            NamedURI tenant = project.getTenantOrg();
             if (tenant != null) {
                 tenant.setName(projectUpdate.getName());
                 project.setTenantOrg(tenant);
@@ -161,7 +166,7 @@ public class ProjectService extends TaggedResource {
                 && !projectUpdate.getOwner().isEmpty()
                 && !projectUpdate.getOwner().equalsIgnoreCase(project.getOwner())) {
             StringBuilder error = new StringBuilder();
-            if(!Validator.isValidPrincipal(new StorageOSPrincipal(projectUpdate.getOwner(),
+            if (!Validator.isValidPrincipal(new StorageOSPrincipal(projectUpdate.getOwner(),
                     StorageOSPrincipal.Type.User), project.getTenantOrg().getURI(), error)) {
                 throw APIException.forbidden
                         .specifiedOwnerIsNotValidForProjectTenant(error.toString());
@@ -169,12 +174,12 @@ public class ProjectService extends TaggedResource {
 
             // in GEO scenario, root can't be assigned as project owner
             boolean isRootInGeo = (projectUpdate.getOwner().equalsIgnoreCase("root")
-                && !VdcUtil.isLocalVdcSingleSite());
+                    && !VdcUtil.isLocalVdcSingleSite());
 
             if (isRootInGeo) {
                 throw APIException.forbidden.specifiedOwnerIsNotValidForProjectTenant(
                         "in GEO scenario, root can't be assigned as project owner"
-                );
+                        );
             }
 
             // set owner acl
@@ -193,8 +198,9 @@ public class ProjectService extends TaggedResource {
         return Response.ok().build();
     }
 
-    /**     
+    /**
      * List resources in project
+     * 
      * @param id the URN of a ViPR Project
      * @prereq none
      * @brief List project resources
@@ -204,7 +210,7 @@ public class ProjectService extends TaggedResource {
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/resources")
-    @CheckPermission( roles = {Role.SYSTEM_MONITOR, Role.TENANT_ADMIN}, acls = {ACL.ANY})
+    @CheckPermission(roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, acls = { ACL.ANY })
     public ResourceList getResourceList(@PathParam("id") URI id) {
         Project project = getProjectById(id, false);
 
@@ -228,7 +234,7 @@ public class ProjectService extends TaggedResource {
 
             @Override
             public TypedRelatedResourceRep createQueryHit(URI uri, Object entry) {
-               return  createQueryHit(uri);
+                return createQueryHit(uri);
             }
 
         };
@@ -253,7 +259,31 @@ public class ProjectService extends TaggedResource {
 
             @Override
             public TypedRelatedResourceRep createQueryHit(URI uri, Object entry) {
-                return  createQueryHit(uri);
+                return createQueryHit(uri);
+            }
+        };
+
+        QueryResultList<TypedRelatedResourceRep> bucket = new QueryResultList<TypedRelatedResourceRep>() {
+            @Override
+            public TypedRelatedResourceRep createQueryHit(URI uri) {
+                TypedRelatedResourceRep resource = new TypedRelatedResourceRep();
+                resource.setId(uri);
+                resource.setType(ResourceTypeEnum.BUCKET);
+                return resource;
+            }
+
+            @Override
+            public TypedRelatedResourceRep createQueryHit(URI uri, String name, UUID timestamp) {
+                TypedRelatedResourceRep resource = new TypedRelatedResourceRep();
+                resource.setId(uri);
+                resource.setType(ResourceTypeEnum.BUCKET);
+                resource.setName(name);
+                return resource;
+            }
+
+            @Override
+            public TypedRelatedResourceRep createQueryHit(URI uri, Object entry) {
+                return createQueryHit(uri);
             }
         };
 
@@ -277,7 +307,7 @@ public class ProjectService extends TaggedResource {
 
             @Override
             public TypedRelatedResourceRep createQueryHit(URI uri, Object entry) {
-                return  createQueryHit(uri);
+                return createQueryHit(uri);
             }
 
         };
@@ -302,7 +332,7 @@ public class ProjectService extends TaggedResource {
 
             @Override
             public TypedRelatedResourceRep createQueryHit(URI uri, Object entry) {
-                return  createQueryHit(uri);
+                return createQueryHit(uri);
             }
         };
 
@@ -326,7 +356,7 @@ public class ProjectService extends TaggedResource {
 
             @Override
             public TypedRelatedResourceRep createQueryHit(URI uri, Object entry) {
-                return  createQueryHit(uri);
+                return createQueryHit(uri);
             }
         };
 
@@ -350,7 +380,7 @@ public class ProjectService extends TaggedResource {
 
             @Override
             public TypedRelatedResourceRep createQueryHit(URI uri, Object entry) {
-                return  createQueryHit(uri);
+                return createQueryHit(uri);
             }
         };
 
@@ -374,13 +404,15 @@ public class ProjectService extends TaggedResource {
 
             @Override
             public TypedRelatedResourceRep createQueryHit(URI uri, Object entry) {
-                return  createQueryHit(uri);
+                return createQueryHit(uri);
             }
         };
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getProjectVolumeConstraint(project.getId()), volume);
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getProjectFileshareConstraint(project.getId()), file);
+        _dbClient.queryByConstraint(ContainmentConstraint.Factory
+                .getProjectBucketConstraint(project.getId()), bucket);
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
                 .getProjectExportGroupConstraint(project.getId()), exportgroup);
         _dbClient.queryByConstraint(ContainmentConstraint.Factory
@@ -396,18 +428,19 @@ public class ProjectService extends TaggedResource {
 
         ResourceList list = new ResourceList();
         list.setResources(new ChainedList<TypedRelatedResourceRep>(file.iterator(),
-                volume.iterator(), exportgroup.iterator(), blockSnapshot.iterator(),
+                volume.iterator(), bucket.iterator(), exportgroup.iterator(), blockSnapshot.iterator(),
                 fileSnapshot.iterator(), file.iterator(), volume.iterator(),
                 exportgroup.iterator(), protectionSet.iterator(), blockConsistencySet.iterator()));
         return list;
     }
 
-    /**     
+    /**
      * Deactivates the project.
-     * When a project is deleted it will move to a "marked for deletion" state.  Once in this state,
+     * When a project is deleted it will move to a "marked for deletion" state. Once in this state,
      * new resources or child projects may no longer be created in the project.
      * The project will be permanently deleted once all its references of type
      * ExportGroup, FileSystem, KeyPool, KeyPoolInfo, Volume are deleted.
+     * 
      * @prereq none
      * @param id the URN of a ViPR Project
      * @brief Deactivate project
@@ -416,7 +449,7 @@ public class ProjectService extends TaggedResource {
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/deactivate")
-    @CheckPermission( roles = {Role.TENANT_ADMIN}, acls = {ACL.OWN})
+    @CheckPermission(roles = { Role.TENANT_ADMIN }, acls = { ACL.OWN })
     public Response deactivateProject(@PathParam("id") URI id) {
         Project project = getProjectById(id, true);
         ArgValidator.checkReference(Project.class, id, checkForDelete(project));
@@ -445,11 +478,11 @@ public class ProjectService extends TaggedResource {
             StorageOSPrincipal principal = new StorageOSPrincipal();
             if (entry.getGroup() != null) {
                 String group = entry.getGroup();
-                key = new PermissionsKey (PermissionsKey.Type.GROUP, group, _tenant.getId());
+                key = new PermissionsKey(PermissionsKey.Type.GROUP, group, _tenant.getId());
                 principal.setName(group);
                 principal.setType(StorageOSPrincipal.Type.Group);
             } else if (entry.getSubjectId() != null) {
-                key = new PermissionsKey (PermissionsKey.Type.SID, entry.getSubjectId(), _tenant.getId());
+                key = new PermissionsKey(PermissionsKey.Type.SID, entry.getSubjectId(), _tenant.getId());
                 principal.setName(entry.getSubjectId());
                 principal.setType(StorageOSPrincipal.Type.User);
             } else {
@@ -461,8 +494,7 @@ public class ProjectService extends TaggedResource {
 
         @Override
         public boolean isValidACL(String ace) {
-            return (_permissionsHelper.isProjectACL(ace) &&
-                    !ace.equalsIgnoreCase(ACL.OWN.toString()));
+            return (_permissionsHelper.isProjectACL(ace) && !ace.equalsIgnoreCase(ACL.OWN.toString()));
         }
 
         @Override
@@ -497,11 +529,12 @@ public class ProjectService extends TaggedResource {
             _groups = new ArrayList<String>();
             _users = new ArrayList<String>();
         }
-    
+
     }
 
-    /**     
+    /**
      * Get project ACL
+     * 
      * @param id the URN of a ViPR Project
      * @prereq none
      * @brief Show project ACL
@@ -510,13 +543,14 @@ public class ProjectService extends TaggedResource {
     @GET
     @Path("/{id}/acl")
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = {Role.SECURITY_ADMIN, Role.TENANT_ADMIN}, acls = {ACL.OWN})
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.TENANT_ADMIN }, acls = { ACL.OWN })
     public ACLAssignments getRoleAssignments(@PathParam("id") URI id) {
         return getRoleAssignmentsResponse(id);
     }
 
-    /**     
+    /**
      * Add or remove individual ACL entry(s)
+     * 
      * @param changes ACL assignment changes. Request body must include at least one add or remove operation
      * @param id the URN of a ViPR Project
      * @prereq none
@@ -526,7 +560,7 @@ public class ProjectService extends TaggedResource {
     @PUT
     @Path("/{id}/acl")
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
-    @CheckPermission( roles = {Role.SECURITY_ADMIN, Role.TENANT_ADMIN}, acls = {ACL.OWN} , block_proxies = true)
+    @CheckPermission(roles = { Role.SECURITY_ADMIN, Role.TENANT_ADMIN }, acls = { ACL.OWN }, blockProxies = true)
     public ACLAssignments updateRoleAssignments(@PathParam("id") URI id,
             ACLAssignmentChanges changes) {
         Project project = getProjectById(id, true);
@@ -548,25 +582,27 @@ public class ProjectService extends TaggedResource {
         return response;
     }
 
-    /**     
+    /**
      * Retrieve resource representations based on input ids.
+     * 
      * @prereq none
      * @param param POST data containing the id list.
      * @brief List data of project resources
-     * @return list of representations.     
+     * @return list of representations.
      * @throws DatabaseException When an error occurs querying the database.
      */
     @POST
     @Path("/bulk")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public ProjectBulkRep getBulkResources(BulkIdParam param) {
         return (ProjectBulkRep) super.getBulkResources(param);
     }
 
     /**
-     * Show quota and available capacity before quota is exhausted     
+     * Show quota and available capacity before quota is exhausted
+     * 
      * @prereq none
      * @param id the URN of a ViPR project.
      * @brief Show quota and available capacity
@@ -579,13 +615,14 @@ public class ProjectService extends TaggedResource {
     @Path("/{id}/quota")
     public QuotaInfo getQuota(@PathParam("id") URI id) throws DatabaseException {
         Project project = getProjectById(id, true);
-        return  getQuota(project);
+        return getQuota(project);
     }
 
     /**
-     * Updates quota and available capacity before quota is exhausted     
+     * Updates quota and available capacity before quota is exhausted
+     * 
      * @param id the URN of a ViPR Project.
-     * @param param   new values for the quota
+     * @param param new values for the quota
      * @prereq none
      * @brief Updates quota and available capacity
      * @return QuotaInfo Quota metrics.
@@ -601,17 +638,17 @@ public class ProjectService extends TaggedResource {
         Project project = getProjectById(id, true);
 
         project.setQuotaEnabled(param.getEnable());
-        if( param.getEnable())  {
+        if (param.getEnable()) {
             long quota_gb = (param.getQuotaInGb() != null) ? param.getQuotaInGb() : project.getQuota();
-            ArgValidator.checkFieldMinimum(quota_gb, 0, "quota_gb","GB");
+            ArgValidator.checkFieldMinimum(quota_gb, 0, "quota_gb", "GB");
 
-            // Verify that the quota of this project does not exit quota for its tenant;
-            TenantOrg  tenant = _dbClient.queryObject(TenantOrg.class,project.getTenantOrg().getURI());
-            if(tenant.getQuotaEnabled()){
-                long totalProjects =  CapacityUtils.totalProjectQuota(_dbClient,tenant.getId()) -
+            // Verify that the quota of this project does not exit quota for its tenant
+            TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, project.getTenantOrg().getURI());
+            if (tenant.getQuotaEnabled()) {
+                long totalProjects = CapacityUtils.totalProjectQuota(_dbClient, tenant.getId()) -
                         project.getQuota() +
                         quota_gb;
-                if(totalProjects > tenant.getQuota()) {
+                if (totalProjects > tenant.getQuota()) {
                     throw APIException.badRequests.invalidParameterProjectQuotaInvalidatesTenantQuota(tenant.getQuota());
                 }
             }
@@ -620,21 +657,22 @@ public class ProjectService extends TaggedResource {
         }
         _dbClient.persistObject(project);
 
-        return  getQuota(project);
+        return getQuota(project);
     }
 
     private QuotaInfo getQuota(Project project) {
-        QuotaInfo quotaInfo = new  QuotaInfo();
-        double capacity = CapacityUtils.getProjectCapacity(_dbClient,project.getId());
+        QuotaInfo quotaInfo = new QuotaInfo();
+        double capacity = CapacityUtils.getProjectCapacity(_dbClient, project.getId());
         quotaInfo.setQuotaInGb(project.getQuota());
         quotaInfo.setEnabled(project.getQuotaEnabled());
         quotaInfo.setCurrentCapacityInGb((long) Math.ceil(capacity / CapacityUtils.GB));
-        quotaInfo.setLimitedResource( DbObjectMapper.toNamedRelatedResource(project) );
+        quotaInfo.setLimitedResource(DbObjectMapper.toNamedRelatedResource(project));
         return quotaInfo;
     }
 
     /**
      * Get project object from id
+     * 
      * @param id the URN of a ViPR Project
      * @return
      */
@@ -651,6 +689,7 @@ public class ProjectService extends TaggedResource {
 
     /**
      * Create an event based on the project
+     * 
      * @param project for which the event is about
      * @param opType Type of event such as ProjectCreated, ProjectDeleted
      * @param opStatus
@@ -671,7 +710,7 @@ public class ProjectService extends TaggedResource {
                 project.getId(),
                 description,
                 System.currentTimeMillis(),
-                "" , // extensions
+                "", // extensions
                 "",
                 RecordType.Event.name(),
                 EVENT_SERVICE_SOURCE,
@@ -680,11 +719,10 @@ public class ProjectService extends TaggedResource {
                 );
         try {
             _evtMgr.recordEvents(event);
-        } catch(Exception ex ) {
-            _log.error("Failed to record event. Event description: {}. Error: {}.",  description, ex);
+        } catch (Exception ex) {
+            _log.error("Failed to record event. Event description: {}. Error: {}.", description, ex);
         }
     }
-
 
     public void recordOperation(OperationTypeEnum opType, boolean opStatus,
             Project project) {
@@ -714,7 +752,6 @@ public class ProjectService extends TaggedResource {
         return Project.class;
     }
 
-
     @Override
     public ProjectBulkRep queryBulkResourceReps(List<URI> ids) {
 
@@ -742,12 +779,12 @@ public class ProjectService extends TaggedResource {
     }
 
     @Override
-    protected ResourceTypeEnum getResourceType(){
+    protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.PROJECT;
     }
 
     public static class ProjectResRepFilter<E extends RelatedResourceRep>
-    extends ResRepFilter<E> {
+            extends ResRepFilter<E> {
         public ProjectResRepFilter(StorageOSUser user,
                 PermissionsHelper permissionsHelper) {
             super(user, permissionsHelper);
@@ -781,4 +818,191 @@ public class ProjectService extends TaggedResource {
     {
         return new ProjectResRepFilter(user, permissionsHelper);
     }
+
+    /**
+     * Assign VNAS Servers to a project
+     * 
+     * @param id the URN of a ViPR Project
+     * @param vnasParam Assign virtual NAS server parameters
+     * @prereq none
+     * @brief Assign VNAS Servers to a project
+     * @return No data returned in response body
+     * @throws BadRequestException
+     */
+    @PUT
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/assign-vnas-servers")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ALL, ACL.OWN })
+    public Response assignVNasServersToProject(@PathParam("id") URI id, VirtualNasParam vnasParam) {
+        Project project = getProjectById(id, true);
+        StringBuilder errorMsg = new StringBuilder();
+        StringSet validVNasServers = validateVNasServers(project, vnasParam, errorMsg);
+        if (validVNasServers != null && !validVNasServers.isEmpty()) {
+            for (String validNas : validVNasServers) {
+                URI vnasURI = URI.create(validNas);
+                VirtualNAS vnas = _permissionsHelper.getObjectById(vnasURI, VirtualNAS.class);
+                vnas.setProject(project.getId());
+                _dbClient.persistObject(vnas);
+            }
+            project.setAssignedVNasServers(validVNasServers);
+            _dbClient.persistObject(project);
+            _log.info("Successfully assigned the virtual NAS Servers to project : {} ", project.getLabel());
+        } else {
+            _log.error("Failed to assigned the virtual NAS Servers to project due to {} ", errorMsg.toString());
+            throw APIException.badRequests.failedToAssignVNasToProject(errorMsg.toString());
+        }
+        return Response.ok().build();
+    }
+
+    /**
+     * Validate VNAS Servers before assign to a project
+     * 
+     * @param project to which VANS servers will be assigned
+     * @param param Assign virtual NAS server parameters
+     * @param error message
+     * @brief Validate VNAS Servers
+     * @return List of valid NAS servers
+     * @throws BadRequestException
+     */
+    public StringSet validateVNasServers(Project project, VirtualNasParam param, StringBuilder errorMsg) {
+        Set<String> vNasIds = param.getVnasServers();
+        StringSet validNas = new StringSet();
+        if (vNasIds != null && !vNasIds.isEmpty() && project != null) {
+
+            // Get list of domains associated with the project
+            Set<String> projectDomains = new HashSet<String>();
+            NamedURI tenantUri = project.getTenantOrg();
+            TenantOrg tenant = _permissionsHelper.getObjectById(tenantUri, TenantOrg.class);
+            if (tenant != null && tenant.getUserMappings() != null) {
+                for (AbstractChangeTrackingSet<String> userMappingSet : tenant.getUserMappings().values()) {
+                    for (String existingMapping : userMappingSet) {
+                        UserMappingParam userMap = BasePermissionsHelper.UserMapping.toParam(
+                                BasePermissionsHelper.UserMapping.fromString(existingMapping));
+                        projectDomains.add(userMap.getDomain());
+                    }
+                }
+            }
+
+            for (String id : vNasIds) {
+                URI vnasURI = URI.create(id);
+                VirtualNAS vnas = _permissionsHelper.getObjectById(vnasURI, VirtualNAS.class);
+                ArgValidator.checkEntity(vnas, vnasURI, isIdEmbeddedInURL(vnasURI));
+
+                // Validate the VNAS is assigned to project!!!
+                if (!vnas.isNotAssignedToProject()) {
+                    errorMsg.append(" vNas " + vnas.getNasName() + " is associated to project " + project.getLabel());
+                    _log.info(errorMsg.toString());
+                    return null;
+                }
+
+                // Validate the VNAS state should be in loaded state !!!
+                if (!vnas.getVNasState().equalsIgnoreCase(VirtualNasState.LOADED.getNasState())) {
+                    errorMsg.append(" vNas " + vnas.getNasName() + " is not in Loaded state");
+                    _log.info(errorMsg.toString());
+                    return null;
+                }
+
+                // Get list of domains associated with a VNAS server and validate with project's domain
+                boolean domainMatched = false;
+                if (projectDomains != null && !projectDomains.isEmpty()) {
+                    Set<Entry<String, NasCifsServer>> nasCifsServers = vnas.getCifsServersMap().entrySet();
+                    for (Entry<String, NasCifsServer> nasCifsServer : nasCifsServers) {
+                        NasCifsServer cifsServer = nasCifsServer.getValue();
+                        if (projectDomains.contains(cifsServer.getDomain())) {
+                            domainMatched = true;
+                            break;
+                        }
+                    }
+                } else {
+                    domainMatched = true;
+                }
+                if (!domainMatched) {
+                    errorMsg.append(" vNas " + vnas.getNasName() + " domain is not matched with project domain");
+                    _log.info(errorMsg.toString());
+                    return null;
+                }
+
+                // Get list of file systems and associated project of VNAS server and validate with Project
+                URIQueryResultList fsList = new URIQueryResultList();
+                boolean projectMatched = true;
+                for (String storagePort : vnas.getStoragePorts()) {
+                    _dbClient.queryByConstraint(
+                            ContainmentConstraint.Factory.getStoragePortFileshareConstraint(URI.create(storagePort)), fsList);
+                    Iterator<URI> fsItr = fsList.iterator();
+                    while (fsItr.hasNext()) {
+                        FileShare fileShare = _dbClient.queryObject(FileShare.class, fsItr.next());
+                        if (fileShare != null && !fileShare.getInactive() &&
+                                !fileShare.getProject().getURI().toString().equals(project.getId().toString())) {
+                            projectMatched = false;
+                            break;
+                        }
+                    }
+                    if (!projectMatched) {
+                        break;
+                    }
+                }
+                if (!projectMatched) {
+                    errorMsg.append(" vNas " + vnas.getNasName() + " has file systems belongs to other project");
+                    _log.info(errorMsg.toString());
+                    return null;
+                }
+
+                validNas.add(id);
+            }
+        } else {
+            throw APIException.badRequests.invalidEntryForProjectVNAS();
+        }
+
+        return validNas;
+    }
+
+    /**
+     * Unassigns VNAS server from project.
+     * 
+     * @param id the URN of a ViPR Project
+     * @param param Assign virtual NAS server parameters
+     * @prereq none
+     * @brief Unassigns VNAS servers from project
+     * @return No data returned in response body
+     * @throws BadRequestException
+     */
+    @PUT
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Path("/{id}/unassign-vnas-servers")
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN }, acls = { ACL.ALL, ACL.OWN })
+    public Response unassignVNasServersFromProject(@PathParam("id") URI id, VirtualNasParam param) {
+        Project project = getProjectById(id, true);
+        Set<String> vNasIds = param.getVnasServers();
+        if (vNasIds != null && !vNasIds.isEmpty()) {
+
+            StringSet vnasServers = project.getAssignedVNasServers();
+            if (!vnasServers.containsAll(vNasIds)) {
+                throw APIException.badRequests.vNasServersNotAssociatedToProject();
+            }
+
+            if (vnasServers != null && !vnasServers.isEmpty()) {
+                for (String vId : vNasIds) {
+                    URI vnasURI = URI.create(vId);
+                    VirtualNAS vnas = _permissionsHelper.getObjectById(vnasURI, VirtualNAS.class);
+                    ArgValidator.checkEntity(vnas, vnasURI, isIdEmbeddedInURL(vnasURI));
+                    if (vnasServers.contains(vId)) {
+                        vnas.setProject(NullColumnValueGetter.getNullURI());
+                        _dbClient.persistObject(vnas);
+                        project.getAssignedVNasServers().remove(vId);
+                    }
+                }
+
+                _dbClient.persistObject(project);
+                _log.info("Successfully unassigned the VNAS servers from project : {} ", project.getLabel());
+            } else {
+                throw APIException.badRequests.noVNasServersAssociatedToProject(project.getLabel());
+            }
+        } else {
+            throw APIException.badRequests.invalidEntryForProjectVNAS();
+        }
+        return Response.ok().build();
+    }
+
 }

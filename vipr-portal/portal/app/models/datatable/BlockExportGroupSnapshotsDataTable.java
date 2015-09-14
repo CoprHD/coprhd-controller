@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package models.datatable;
@@ -24,8 +24,8 @@ import com.google.common.collect.Lists;
 import controllers.resources.BlockSnapshots;
 
 public class BlockExportGroupSnapshotsDataTable extends DataTable {
-    
-    public BlockExportGroupSnapshotsDataTable(){
+
+    public BlockExportGroupSnapshotsDataTable() {
         addColumn("name").setRenderFunction("renderSnapshotLink");
         addColumn("volume");
         addColumn("createdDate").setRenderFunction("render.localDate");
@@ -34,18 +34,18 @@ public class BlockExportGroupSnapshotsDataTable extends DataTable {
         setDefaultSort("name", "asc");
         setRowCallback("createRowLink");
     }
-    
-    public static List<ExportBlockSnapshot> fetch(URI exportGroupId){
-        if(exportGroupId == null) {
+
+    public static List<ExportBlockSnapshot> fetch(URI exportGroupId) {
+        if (exportGroupId == null) {
             return Collections.emptyList();
         }
-        
-        ViPRCoreClient client =  BourneUtil.getViprClient();
-        
+
+        ViPRCoreClient client = BourneUtil.getViprClient();
+
         ExportGroupRestRep exportGroup = client.blockExports().get(exportGroupId);
         List<ExportBlockSnapshot> snapshots = Lists.newArrayList();
-        for(ExportBlockParam exportBlockParam : exportGroup.getVolumes()){
-            if(ResourceType.isType(BLOCK_SNAPSHOT, exportBlockParam.getId())) {
+        for (ExportBlockParam exportBlockParam : exportGroup.getVolumes()) {
+            if (ResourceType.isType(BLOCK_SNAPSHOT, exportBlockParam.getId())) {
                 BlockSnapshotRestRep snapshot = client.blockSnapshots().get(exportBlockParam.getId());
                 VolumeRestRep volume = client.blockVolumes().get(snapshot.getParent().getId());
                 snapshots.add(new ExportBlockSnapshot(snapshot, volume.getName()));
@@ -53,8 +53,8 @@ public class BlockExportGroupSnapshotsDataTable extends DataTable {
         }
         return snapshots;
     }
-    
-    public static class ExportBlockSnapshot{
+
+    public static class ExportBlockSnapshot {
         public String rowLink;
         public URI id;
         public String name;
@@ -70,8 +70,7 @@ public class BlockExportGroupSnapshotsDataTable extends DataTable {
             this.volume = volumeName;
             this.rowLink = createLink(BlockSnapshots.class, "snapshotDetails", "snapshotId", id);
         }
-        
+
     }
-    
-    
+
 }

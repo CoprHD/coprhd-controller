@@ -3,12 +3,12 @@
 
 <breadcrumb-container>
   <breadcrumb url="@{systemHealth()}" title-key="system.healthdashboard.title" ></breadcrumb>
-  <breadcrumb url="@{details(nodeId)}" title-val="{{nodeId}}"></breadcrumb>
+  <breadcrumb url="@{details(nodeId)}" title-val="{{nodeName}}"></breadcrumb>
   <breadcrumb title-key="system.stats.services"></breadcrumb>
 </breadcrumb-container>
 
 <div class="page-header">
-  <h3>{{'system.stats.services.title' | t:nodeId }}</h3>
+  <h3>{{'system.stats.services.title' | t:nodeName }}</h3>
 </div>
 
 #{alerts/}

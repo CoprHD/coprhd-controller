@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package render;
@@ -45,10 +45,10 @@ import javax.net.ssl.X509TrustManager;
 /**
  * Renders a proxied HTTP request, streaming back the content directly to the client.
  * <p>
- * NOTE: Any requests that use this result will appear to hang in the browser if they go directly to the play server
- * (instead through NGINX).  If the client requests a keep-alive connection (which seems to be default) then play doesn't
- * ever close the channel when all the content is written out.  When the connections go through NGINX it changes those
- * Connection: keep-alive to Connection: close (in our configuration) and everything works fine.
+ * NOTE: Any requests that use this result will appear to hang in the browser if they go directly to the play server (instead through
+ * NGINX). If the client requests a keep-alive connection (which seems to be default) then play doesn't ever close the channel when all the
+ * content is written out. When the connections go through NGINX it changes those Connection: keep-alive to Connection: close (in our
+ * configuration) and everything works fine.
  */
 public class RenderProxy extends Result {
     private String url;
@@ -100,8 +100,7 @@ public class RenderProxy extends Result {
 
             response.status = httpResponse.getStatusLine().getStatusCode();
             response.direct = new HttpClientInputStream(client, entity.getContent());
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
             Logger.error(e, "Failed to execute Proxy URL [%s]", url);
             client.getConnectionManager().shutdown();
             throw new UnexpectedException(e);
@@ -114,11 +113,11 @@ public class RenderProxy extends Result {
         SSLSocketFactory sf;
         if (StorageOsPlugin.isEnabled()) {
             try {
-                //initialize an SSLContext with the vipr keystore and trustmanager.
-                //This is basically a dup of most of the ViPRSSLSocketFactory constructor,
-                //and could be extracted
+                // initialize an SSLContext with the vipr keystore and trustmanager.
+                // This is basically a dup of most of the ViPRSSLSocketFactory constructor,
+                // and could be extracted
                 X509TrustManager[] trustManagers = { BourneUtil.getTrustManager() };
-                KeyManagerFactory kmf =  KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+                KeyManagerFactory kmf = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
                 kmf.init(BourneUtil.getKeyStore(), "".toCharArray());
 
                 SSLContext context = SSLContext.getInstance("TLS");
@@ -150,8 +149,7 @@ public class RenderProxy extends Result {
         public void close() throws IOException {
             try {
                 super.close();
-            }
-            finally {
+            } finally {
                 client.getConnectionManager().shutdown();
             }
         }

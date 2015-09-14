@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl;
@@ -25,8 +15,9 @@ import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 
 /**
  * Base command result to describe success/failure plus error codes/messages
+ * 
  * @author burckb
- *
+ * 
  */
 public class BiosCommandResult {
 
@@ -35,7 +26,7 @@ public class BiosCommandResult {
     protected boolean _commandPending = false;
     protected String _commandStatus;
     protected List<Object> _objectList;
-    //TODO: Only required while migrating the code to use the non-deprecated methods
+    // TODO: Only required while migrating the code to use the non-deprecated methods
     protected String _message;
 
     public BiosCommandResult() {
@@ -43,8 +34,7 @@ public class BiosCommandResult {
     }
 
     /**
-     * @deprecated use {@link #BiosCommandResult()} then
-     *             {@link #error(ServiceCoded)} or {@link #success()}
+     * @deprecated use {@link #BiosCommandResult()} then {@link #error(ServiceCoded)} or {@link #success()}
      */
     @Deprecated
     public BiosCommandResult(boolean success, String status, String message) {
@@ -52,8 +42,7 @@ public class BiosCommandResult {
     }
 
     /**
-     * @deprecated use {@link #BiosCommandResult()} then
-     *             {@link #error(ServiceCoded)} or {@link #success()}
+     * @deprecated use {@link #BiosCommandResult()} then {@link #error(ServiceCoded)} or {@link #success()}
      */
     @Deprecated
     public BiosCommandResult(boolean success, String status, ServiceCode code, String message) {
@@ -67,6 +56,7 @@ public class BiosCommandResult {
 
     /**
      * Creates a command result with error status and the given message
+     * 
      * @param message
      * @return BiosCommandResult
      * @deprecated use {@link #createErrorResult(ServiceCoded)}
@@ -79,7 +69,7 @@ public class BiosCommandResult {
     /**
      * Creates a command result with error status, the specified service code
      * and the given message
-     *
+     * 
      * @param code
      * @param message
      * @return BiosCommandResult
@@ -98,7 +88,7 @@ public class BiosCommandResult {
     /**
      * Creates a command result with error status using the service code and
      * message from the {@link ServiceCoded}
-     *
+     * 
      * @param coded
      * @return
      */
@@ -110,7 +100,7 @@ public class BiosCommandResult {
 
     /**
      * Creates a command result with ready status and the the specified message
-     *
+     * 
      * @return
      */
     public static BiosCommandResult createSuccessfulResult() {
@@ -121,7 +111,7 @@ public class BiosCommandResult {
 
     /**
      * Creates a command result with ready status and the the specified message
-     *
+     * 
      * @return
      */
     public static BiosCommandResult createPendingResult() {
@@ -129,7 +119,7 @@ public class BiosCommandResult {
         result.pending();
         return result;
     }
-    
+
     public ServiceCoded getServiceCoded() {
         return _serviceCoded;
     }
@@ -139,7 +129,7 @@ public class BiosCommandResult {
     }
 
     public void error(ServiceCoded coded) {
-    	//TODO: Once this methods are not use outside this class, we need to make them private
+        // TODO: Once this methods are not use outside this class, we need to make them private
         setCommandStatus(Operation.Status.error.name());
         _commandSuccess = false;
         setServiceCoded(coded);
@@ -147,7 +137,7 @@ public class BiosCommandResult {
     }
 
     public void success() {
-    	//TODO: Once this methods are not use outside this class, we need to make them private
+        // TODO: Once this methods are not use outside this class, we need to make them private
         setCommandStatus(Operation.Status.ready.name());
         _commandSuccess = true;
     }
@@ -156,7 +146,7 @@ public class BiosCommandResult {
         setCommandStatus(Operation.Status.pending.name());
         _commandPending = true;
     }
-    
+
     public boolean isCommandSuccess() {
         return _commandSuccess;
     }
@@ -166,13 +156,14 @@ public class BiosCommandResult {
      */
     @Deprecated
     public void setCommandSuccess(boolean commandSuccess) {
-    	//TODO: Once this method is not use outside this class, we need to make it private
+        // TODO: Once this method is not use outside this class, we need to make it private
         _commandSuccess = commandSuccess;
     }
 
     public boolean getCommandSuccess() {
-    	return _commandSuccess;
+        return _commandSuccess;
     }
+
     public boolean getCommandPending() {
         return _commandPending;
     }
@@ -186,7 +177,7 @@ public class BiosCommandResult {
      */
     @Deprecated
     public void setCommandStatus(String commandStatus) {
-    	//TODO: Once this method is not use outside this class, we need to make it private
+        // TODO: Once this method is not use outside this class, we need to make it private
         _commandStatus = commandStatus;
         _commandSuccess = commandStatus.toLowerCase().equals(Status.ready.name());
     }
@@ -211,12 +202,12 @@ public class BiosCommandResult {
         _message = message;
     }
 
-    public Operation toOperation(){
+    public Operation toOperation() {
         Operation operation = new Operation();
 
-        if (_commandSuccess){
-        	operation.ready();
-        } else if(!_commandPending){
+        if (_commandSuccess) {
+            operation.ready();
+        } else if (!_commandPending) {
             operation.error(_serviceCoded);
         }
         return operation;

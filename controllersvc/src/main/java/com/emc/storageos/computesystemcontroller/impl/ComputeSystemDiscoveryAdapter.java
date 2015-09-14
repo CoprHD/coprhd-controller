@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.computesystemcontroller.impl;
@@ -16,10 +16,10 @@ public interface ComputeSystemDiscoveryAdapter {
     public String getErrorMessage(Throwable t);
 
     public void setModelClient(ModelClient modelClient);
-    
+
     public void setDbClient(DbClient dbClient);
-    
+
     public void setCoordinator(CoordinatorClient coordinator);
-    
+
     public ComputeSystemDiscoveryVersionValidator getVersionValidator();
 }

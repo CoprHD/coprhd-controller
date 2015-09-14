@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.vnxe;
@@ -18,12 +8,13 @@ package com.emc.storageos.volumecontroller.impl.vnxe;
 import java.net.URI;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.slf4j.Logger;
@@ -31,36 +22,33 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
-import com.emc.storageos.db.client.constraint.ContainmentConstraint;
-import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.ExportGroup;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Host;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StorageSystem;
-import com.emc.storageos.db.client.util.WWNUtility;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
 import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
-import com.emc.storageos.volumecontroller.impl.block.AbstractDefaultMaskingOrchestrator;
+import com.emc.storageos.volumecontroller.impl.block.AbstractBasicMaskingOrchestrator;
 import com.emc.storageos.volumecontroller.impl.block.MaskingWorkflowEntryPoints;
-import com.emc.storageos.volumecontroller.impl.block.AbstractDefaultMaskingOrchestrator.GenExportMaskCreateWorkflowResult;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportOrchestrationTask;
 import com.emc.storageos.volumecontroller.impl.block.taskcompleter.ExportTaskCompleter;
 import com.emc.storageos.volumecontroller.impl.utils.ExportMaskUtils;
 import com.emc.storageos.workflow.Workflow;
 import com.google.common.base.Joiner;
 
-public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator {
+public class VNXeMaskingOrchestrator extends AbstractBasicMaskingOrchestrator {
     private static final Logger _log = LoggerFactory.getLogger(VNXeMaskingOrchestrator.class);
 
     private static final AtomicReference<BlockStorageDevice> VNXE_BLOCK_DEVICE = new AtomicReference<BlockStorageDevice>();
     public static final String VNXE_DEVICE = "vnxeDevice";
     public static final String DEFAULT_LABEL = "Default";
 
-    private BlockStorageDevice getDevice() {
+    @Override
+    public BlockStorageDevice getDevice() {
         BlockStorageDevice device = VNXE_BLOCK_DEVICE.get();
         synchronized (VNXE_BLOCK_DEVICE) {
             if (device == null) {
@@ -70,7 +58,7 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
         }
         return device;
     }
-    
+
     /**
      * Create storage level masking components to support the requested
      * ExportGroup object. ExportMask will be created for each host.
@@ -108,8 +96,8 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
                         null, volumeMap);
 
                 boolean createdSteps =
-                determineExportGroupCreateSteps(workflow, zoningStep, device, storage, exportGroup,
-                        initiatorURIs, volumeMap, token);
+                        determineExportGroupCreateSteps(workflow, zoningStep, device, storage, exportGroup,
+                                initiatorURIs, volumeMap, token);
 
                 if (createdSteps) {
                     // Execute the plan and allow the WorkflowExecutor to fire the
@@ -131,11 +119,11 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
             }
         }
     }
-    
+
     @Override
     public void exportGroupDelete(URI storageURI,
-                                  URI exportGroupURI,
-                                  String token) throws Exception {
+            URI exportGroupURI,
+            String token) throws Exception {
         try {
             _log.info(String.format("exportGroupDelete start - Array: %s ExportMask: %s",
                     storageURI.toString(), exportGroupURI.toString()));
@@ -158,7 +146,7 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
              */
             List<ExportMask> exportMasks = ExportMaskUtils.getExportMasks(_dbClient,
                     exportGroup, storageURI);
-            
+
             Workflow workflow = _workflowService.getNewWorkflow(
                     MaskingWorkflowEntryPoints.getInstance(),
                     "exportGroupDelete", true, token);
@@ -168,16 +156,16 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
             for (ExportMask exportMask : exportMasks) {
                 if (deleteStep == null) {
                     deleteStep = generateExportMaskDeleteWorkflow(workflow, zoningStep,
-                        storage, exportGroup, exportMask, null);
-                }else {
-                    deleteStep = generateExportMaskDeleteWorkflow(workflow,deleteStep,
+                            storage, exportGroup, exportMask, null);
+                } else {
+                    deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep,
                             storage, exportGroup, exportMask, null);
                 }
                 String successMessage = String.format(
                         "Export was successfully removed from StorageArray %s",
                         storage.getLabel());
                 workflow.executePlan(taskCompleter, successMessage);
-            
+
             }
 
             _log.info(String.format("exportGroupDelete end - Array: %s ExportMask: %s",
@@ -186,11 +174,11 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
             throw DeviceControllerException.exceptions.exportGroupDeleteFailed(e);
         }
     }
-    
+
     @Override
     public void exportGroupAddInitiators(URI storageURI, URI exportGroupURI,
-                                         List<URI> initiatorURIs,
-                                         String token) throws Exception {
+            List<URI> initiatorURIs,
+            String token) throws Exception {
         TaskCompleter taskCompleter = null;
         try {
             _log.info(String.format("exportAddInitiator start - Array: %s ExportMask: " +
@@ -201,15 +189,14 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
             ExportGroup exportGroup = _dbClient.queryObject(ExportGroup.class,
                     exportGroupURI);
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
-            
+
             _log.info("export_initiator_add:  creating a new export");
 
-            
             Map<URI, Integer> volumes = selectExportMaskVolumes(exportGroup,
-                        storageURI);
+                    storageURI);
 
             exportGroupCreate(storageURI, exportGroupURI, initiatorURIs, volumes, token);
- 
+
             _log.info(String.format("exportAddInitiator end - Array: %s ExportMask: %s " +
                     "Initiator: %s",
                     storageURI.toString(), exportGroupURI.toString(),
@@ -223,12 +210,12 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
             }
         }
     }
-    
+
     @Override
     public void exportGroupRemoveInitiators(URI storageURI,
-                                            URI exportGroupURI,
-                                            List<URI> initiatorURIs,
-                                            String token) throws Exception {
+            URI exportGroupURI,
+            List<URI> initiatorURIs,
+            String token) throws Exception {
         ExportTaskCompleter taskCompleter = null;
         try {
             List<Initiator> initiators = _dbClient.queryObject(Initiator.class,
@@ -243,7 +230,7 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
             StorageSystem storage = _dbClient.queryObject(StorageSystem.class,
                     storageURI);
             taskCompleter = new ExportOrchestrationTask(exportGroupURI, token);
-         // Set up workflow steps.
+            // Set up workflow steps.
             Workflow workflow = _workflowService.getNewWorkflow(
                     MaskingWorkflowEntryPoints.getInstance(),
                     "exportGroupRemoveInitiators", true, token);
@@ -267,32 +254,30 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
             String deleteStep = null;
             for (ExportMask exportMask : exportMasksMap.keySet()) {
                 List<Initiator> inits = exportMasksMap.get(exportMask);
-                
+
                 if (exportMask.getInitiators().size() == inits.size() &&
-                        exportMask.getVolumes() != null  &&
-                        exportMask.getStoragePorts() != null ) {
-                    _log.info(String.format("deleting the exportMask: %s", 
+                        exportMask.getVolumes() != null &&
+                        exportMask.getStoragePorts() != null) {
+                    _log.info(String.format("deleting the exportMask: %s",
                             exportMask.getId().toString()));
                     if (deleteStep == null) {
                         deleteStep = generateExportMaskDeleteWorkflow(workflow, zoningStep, storage,
-                            exportGroup, exportMask, null);
+                                exportGroup, exportMask, null);
                     } else {
                         deleteStep = generateExportMaskDeleteWorkflow(workflow, deleteStep, storage,
                                 exportGroup, exportMask, null);
                     }
 
                 }
-                _log.info(String.format("exportRemoveInitiator end - Array: %s ExportMask: %s", 
+                _log.info(String.format("exportRemoveInitiator end - Array: %s ExportMask: %s",
                         storageURI.toString(), exportGroupURI.toString()));
             }
-                
+
             String successMessage = String.format(
-                        "Initiators successfully removed from export StorageArray %s",
-                        storage.getLabel());
+                    "Initiators successfully removed from export StorageArray %s",
+                    storage.getLabel());
             workflow.executePlan(taskCompleter, successMessage);
-    
-            
-        
+
         } catch (Exception e) {
             if (taskCompleter != null) {
                 ServiceError serviceError = DeviceControllerException.errors.jobFailedMsg(e.getMessage(), e);
@@ -302,11 +287,11 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
             }
         }
     }
-    
+
     @Override
     public void exportGroupAddVolumes(URI storageURI, URI exportGroupURI,
-                                      Map<URI, Integer> volumeMap,
-                                      String token) throws Exception {
+            Map<URI, Integer> volumeMap,
+            String token) throws Exception {
         ExportTaskCompleter taskCompleter = null;
         try {
             _log.info(
@@ -330,9 +315,8 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
                 List<URI> volumeURIs = new ArrayList<URI>();
                 volumeURIs.addAll(volumeMap.keySet());
 
-
                 String zoningStep = generateZoningAddVolumesWorkflow(workflow, null,
-                        exportGroup,  exportMasks, volumeURIs);
+                        exportGroup, exportMasks, volumeURIs);
                 String exportStep = null;
                 for (ExportMask exportMask : exportMasks) {
                     if (exportStep == null) {
@@ -348,7 +332,7 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
                         storage.getLabel());
                 workflow.executePlan(taskCompleter, successMessage);
             } else {
-                //This is the case when exportGroup exists, but no volume is added before.
+                // This is the case when exportGroup exists, but no volume is added before.
                 if (exportGroup.getInitiators() != null && !exportGroup.getInitiators().isEmpty()) {
                     _log.info("export_volume_add: adding volume, creating a new export");
 
@@ -356,9 +340,9 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
                     for (String initiatorId : exportGroup.getInitiators()) {
                         initiatorURIs.add(URI.create(initiatorId));
                     }
-                    
+
                     exportGroupCreate(storageURI, exportGroupURI, initiatorURIs, volumeMap, token);
-                    
+
                 } else {
                     _log.info("export_volume_add: adding volume, no initiators yet");
                     taskCompleter.ready(_dbClient);
@@ -377,12 +361,11 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
             }
         }
     }
-    
-    
+
     @Override
     public void exportGroupRemoveVolumes(URI storageURI, URI exportGroupURI,
-                                         List<URI> volumes,
-                                         String token) throws Exception {
+            List<URI> volumes,
+            String token) throws Exception {
         ExportTaskCompleter taskCompleter = null;
         try {
             _log.info(
@@ -403,24 +386,23 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
                 Workflow workflow = _workflowService.getNewWorkflow(
                         MaskingWorkflowEntryPoints.getInstance(),
                         "exportGroupRemoveVolumes", true, token);
-                
-                
+
                 List<ExportMask> deleteMasks = new ArrayList<ExportMask>();
                 List<ExportMask> updateMasks = new ArrayList<ExportMask>();
                 for (ExportMask mask : exportMasks) {
-                	 // Determine if we're deleting the last volume.
+                    // Determine if we're deleting the last volume.
                     Set<String> remainingVolumes = new HashSet<String>();
                     if (mask.getVolumes() != null) {
-                    	remainingVolumes.addAll(mask.getVolumes().keySet());
+                        remainingVolumes.addAll(mask.getVolumes().keySet());
                     }
                     for (URI volume : volumes) {
                         remainingVolumes.remove(volume.toString());
                     }
                     // If so, delete the ExportMask.
                     if (remainingVolumes.isEmpty()) {
-                    	deleteMasks.add(mask);
+                        deleteMasks.add(mask);
                     } else {
-                    	updateMasks.add(mask);
+                        updateMasks.add(mask);
                     }
                 }
                 if (!deleteMasks.isEmpty()) {
@@ -475,7 +457,7 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
             }
         }
     }
-    
+
     /**
      * Routine contains logic to create an export mask on the array
      * 
@@ -508,7 +490,6 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
         queryHostInitiatorsAndAddToList(portNames, portNameToInitiatorURI,
                 initiatorURIs, hostURIs);
 
-        
         // Bogus URI for those initiators without a host object, helps maintain a good map.
         // We want to put bunch up the non-host initiators together.
         URI fillerHostURI = URIUtil.createId(Host.class); // could just be NullColumnValueGetter.getNullURI()
@@ -516,12 +497,12 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
             Map<URI, List<URI>> hostInitiatorMap = new HashMap<URI, List<URI>>();
             for (URI newExportMaskInitiator : initiatorURIs) {
                 Initiator initiator = _dbClient.queryObject(Initiator.class, newExportMaskInitiator);
-               // Not all initiators have hosts, be sure to handle either case.
-               URI hostURI = initiator.getHost();
-               if (hostURI == null) {
+                // Not all initiators have hosts, be sure to handle either case.
+                URI hostURI = initiator.getHost();
+                if (hostURI == null) {
                     hostURI = fillerHostURI;
                 }
-                    
+
                 List<URI> initiatorSet = hostInitiatorMap.get(hostURI);
                 if (initiatorSet == null) {
                     initiatorSet = new ArrayList<URI>();
@@ -529,7 +510,7 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
                 }
                 initiatorSet.add(initiator.getId());
 
-                _log.info(String.format("host = %s, " 
+                _log.info(String.format("host = %s, "
                         + "initiators to add: %d, ",
                         hostURI,
                         hostInitiatorMap.get(hostURI).size()));
@@ -540,85 +521,39 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
                     _log.info(String.format("new export masks %s",
                             Joiner.on(",").join(hostInitiatorMap.get(hostID))));
                     if (exportStep == null) {
-                        GenExportMaskCreateWorkflowResult result = generateExportMaskCreateWorkflow(workflow, previousStep, storage, exportGroup,
-                            hostInitiatorMap.get(hostID), volumeMap, token);
+                        GenExportMaskCreateWorkflowResult result = generateExportMaskCreateWorkflow(workflow, previousStep, storage,
+                                exportGroup,
+                                hostInitiatorMap.get(hostID), volumeMap, token);
                         exportStep = result.getStepId();
                     } else {
-                        GenExportMaskCreateWorkflowResult result = generateExportMaskCreateWorkflow(workflow, exportStep, storage, exportGroup,
+                        GenExportMaskCreateWorkflowResult result = generateExportMaskCreateWorkflow(workflow, exportStep, storage,
+                                exportGroup,
                                 hostInitiatorMap.get(hostID), volumeMap, token);
                         exportStep = result.getStepId();
                     }
                 }
             }
-       }
-
+        }
 
         return true;
     }
-    
-    /**
-     * Routine will update 'portNames' based on the hosts. Each host referenced by the
-     * hostURIs list will be looked up and its initiators queried. If the initiator is
-     * not in the list of initiators to export, its portname will be added to the
-     * portName list
-     *
-     * @param portNames          [out] - List or initiator.initiatorPortNames. The list
-     *                           will include new members if there are any host initiators
-     *                           that are not already part of the export request.
-     * @param portNamesToInitiatorURI [out] - Map of portName to initiator URI. This
-     *                                map should contain all the port names in
-     *                                'portNames'.
-     * @param initiatorsToExport [in] - List of Initiator URIs that are passed in the
-     *                           export request call.
-     * @param hostURIs           [in] - List of Host URIs applicable to the
-     *                                  initiatorsToExport list
-     */
-    private void queryHostInitiatorsAndAddToList(List<String> portNames,
-                                                 Map<String, URI> portNamesToInitiatorURI,
-                                                 Collection<URI> initiatorsToExport,
-                                                 List<URI> hostURIs) {
-        for (URI hostURI : hostURIs) {
-            URIQueryResultList results = new URIQueryResultList();
-            _dbClient.queryByConstraint(ContainmentConstraint.Factory.
-                    getContainedObjectsConstraint(hostURI, Initiator.class, "host"),
-                    results);
-            while (results.iterator().hasNext()) {
-                URI uri = results.iterator().next();
-                if (!initiatorsToExport.contains(uri)) {
-                    Initiator initiator = _dbClient.queryObject(Initiator.class, uri);
-                    if (initiator.getInactive()) {
-                        continue;
-                    }
-                    String normalizedName = initiator.getInitiatorPort();
-                    if (WWNUtility.isValidWWN(normalizedName)) {
-                        normalizedName = WWNUtility.getUpperWWNWithNoColons(initiator
-                                .getInitiatorPort());
-                    }
-                    if (!portNames.contains(normalizedName)) {
-                        portNames.add(normalizedName);
-                        portNamesToInitiatorURI.put(normalizedName, uri);
-                    }
-                }
-            }
-        }
-    }
-    
+
     private Map<ExportMask, List<Initiator>> getInitiatorExportMasks(
             List<Initiator> initiators, DbClient dbClient, ExportGroup exportGroup) {
         Map<ExportMask, List<Initiator>> exportMasksMap = new HashMap<ExportMask, List<Initiator>>();
-        
+
         Collection<String> exportMaskUris = exportGroup.getExportMasks();
         for (String exportMaskUri : exportMaskUris) {
-            List<Initiator> maskInitiators= new ArrayList<Initiator>();
+            List<Initiator> maskInitiators = new ArrayList<Initiator>();
             ExportMask exportMask = dbClient.queryObject(ExportMask.class, URI.create(exportMaskUri));
             for (Initiator initiator : initiators) {
                 _log.info("initiator to be removed: {}", initiator.getId().toString());
-                if (exportMask != null && 
-                    !exportMask.getInactive() &&
-                    exportMask.hasInitiator(initiator.getId().toString()) ) {
-                        _log.info("initiator is in the mask: {}", exportMask.getId().toString());
-                        maskInitiators.add(initiator);
-                    
+                if (exportMask != null &&
+                        !exportMask.getInactive() &&
+                        exportMask.hasInitiator(initiator.getId().toString())) {
+                    _log.info("initiator is in the mask: {}", exportMask.getId().toString());
+                    maskInitiators.add(initiator);
+
                 }
             }
             if (!maskInitiators.isEmpty()) {
@@ -632,7 +567,6 @@ public class VNXeMaskingOrchestrator extends AbstractDefaultMaskingOrchestrator 
     @Override
     protected Map<String, List<URI>> mapInitiatorsToComputeResource(
             ExportGroup exportGroup, Collection<URI> initiatorURIs) {
-        // TODO Auto-generated method stub
-        return null;
+        return Collections.EMPTY_MAP; // Better to return something instead of null
     }
 }

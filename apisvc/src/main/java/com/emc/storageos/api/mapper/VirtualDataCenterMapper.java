@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.api.mapper;
@@ -24,6 +24,6 @@ public class VirtualDataCenterMapper {
         to.setGeoCommandEndpoint(from.getGeoCommandEndpoint());
         to.setGeoDataEndpoint(from.getGeoDataEndpoint());
         to.setLastSeenTimeInMillis(from.getLastSeenTimeInMillis());
-        return to;        
-    }    
+        return to;
+    }
 }

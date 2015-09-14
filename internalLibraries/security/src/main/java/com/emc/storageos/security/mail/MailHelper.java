@@ -1,9 +1,8 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.security.mail;
-
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
@@ -38,13 +37,18 @@ public class MailHelper {
     public static final String ZERO_PORT = "0";
     public static final String DEFAULT_SMTP_TLS_PORT = "465";
     public static final String DEFAULT_SMTP_PORT = "25";
+    
+    public static final String SMTP_CONNECTION_TIMEOUT = "10000"; // 10 seconds
+    public static final String SMTP_WRITE_TIMEOUT = "5000"; // 5 seconds
+    public static final String SMTP_READ_TIMEOUT = "5000"; //5 seconds
 
     public static final String SMTP_SERVER = "system_connectemc_smtp_server";
     public static final String SMTP_PORT = "system_connectemc_smtp_port";
     public static final String SMTP_ENABLE_TLS = "system_connectemc_smtp_enabletls";
     public static final String SMTP_AUTH_TYPE = "system_connectemc_smtp_authtype";
     public static final String SMTP_USERNAME = "system_connectemc_smtp_username";
-    public static final String SMTP_PASSWORD = "system_connectemc_smtp_password"; // NOSONAR ("Suppressing: removing this hard-coded password since it's just the name of attribute")
+    public static final String SMTP_PASSWORD = "system_connectemc_smtp_password"; // NOSONAR
+                                                                                  // ("Suppressing: removing this hard-coded password since it's just the name of attribute")
     public static final String SMTP_FROM_ADDRESS = "system_connectemc_smtp_from";
 
     private String smtpServer;
@@ -60,7 +64,7 @@ public class MailHelper {
     }
 
     public void sendMailMessage(String to, String subject, String html) {
-        try{
+        try {
             JavaMailSender mailSender = getMailSender();
             if (mailSender != null) {
                 MimeMessage mimeMessage = mailSender.createMimeMessage();
@@ -81,8 +85,7 @@ public class MailHelper {
             else {
                 log.warn("Unable to send notification email.  Email settings not configured.");
             }
-        }
-        catch (MailException|MessagingException ex) {
+        } catch (MailException | MessagingException ex) {
             String message = String.format("Failed to notify user by email");
             log.error(message, ex);
             throw APIException.internalServerErrors.genericApisvcError(message, ex);
@@ -153,6 +156,9 @@ public class MailHelper {
 
         Properties javaMailProperties = new Properties();
         javaMailProperties.setProperty("mail.smtp.host", smtpServer);
+        javaMailProperties.setProperty("mail.smtp.connectiontimeout", SMTP_CONNECTION_TIMEOUT);
+        javaMailProperties.setProperty("mail.smtp.timeout", SMTP_READ_TIMEOUT);
+        javaMailProperties.setProperty("mail.smtp.writetimeout", SMTP_WRITE_TIMEOUT);
 
         if (enableTls) {
             javaMailProperties.setProperty("mail.smtp.channel", "starttls");
@@ -175,11 +181,10 @@ public class MailHelper {
         mailSender.setHost(smtpServer);
         try {
             mailSender.setPort(Integer.parseInt(smtpPort));
-        }
-        catch (NumberFormatException e) {
+        } catch (NumberFormatException e) {
             log.error(String.format("Failed to parse smtp port [%s]", smtpPort), e);
         }
-//        this.mailSender.setProtocol(protocol);
+        // this.mailSender.setProtocol(protocol);
         if (authEnabled) {
             mailSender.setUsername(username);
             mailSender.setPassword(password);
@@ -222,7 +227,7 @@ public class MailHelper {
 
     /**
      * read template html
-     *
+     * 
      * @param resource
      * @return
      */
@@ -230,15 +235,14 @@ public class MailHelper {
         InputStream in = MailHelper.class.getResourceAsStream(resource);
         try {
             return IOUtils.toString(in, "UTF-8");
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             throw new Error(e);
         }
     }
 
     /**
      * substitute parameters into template
-     *
+     * 
      * @param parameters
      * @param input
      * @return

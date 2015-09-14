@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.db.common.diff;
@@ -48,12 +38,12 @@ public class DbSchemasDiff extends Diff {
         List<DbSchema> tgtSchemas = tgt.getSchemas();
 
         if (ignoredPkgs != null) {
-            //remove the schemas that should not be checked
+            // remove the schemas that should not be checked
             removeIgnoredSchemas(srcSchemas, ignoredPkgs);
             removeIgnoredSchemas(tgtSchemas, ignoredPkgs);
         }
 
-        schemaCT = CollectionChangeTracker.<DbSchema, DbSchemaDiff>newInstance(
+        schemaCT = CollectionChangeTracker.<DbSchema, DbSchemaDiff> newInstance(
                 DbSchema.class, DbSchemaDiff.class, srcSchemas, tgtSchemas);
     }
 
@@ -62,7 +52,7 @@ public class DbSchemasDiff extends Diff {
         boolean found = false;
         while (iterator.hasNext()) {
             DbSchema schema = iterator.next();
-            found = false;    
+            found = false;
             for (String pkg : ignoredPkgs) {
                 if (schema.getType().startsWith(pkg)) {
                     found = true;
@@ -70,8 +60,10 @@ public class DbSchemasDiff extends Diff {
                 }
             }
 
-            if (found) 
-                iterator.remove(); // remove the schema that should not be checked 
+            if (found)
+            {
+                iterator.remove(); // remove the schema that should not be checked
+            }
         }
     }
 
@@ -88,19 +80,20 @@ public class DbSchemasDiff extends Diff {
         return schemaCT != null && schemaCT.isChanged();
     }
 
-    /** 
+    /**
      * Return a list of new CF schemas from the target schemas
      */
     public List<DbSchema> getNewClasses() {
-        if (schemaCT != null) 
+        if (schemaCT != null) {
             return schemaCT.getNewList();
+        }
 
         return new ArrayList<DbSchema>();
     }
 
-    /** 
+    /**
      * Return a list of new fields from the target schemas with parent CF information
-     *
+     * 
      * Note that it only includes new fields of EXISITING CF schemas, not fields of
      * new CF schemas
      */
@@ -116,10 +109,10 @@ public class DbSchemasDiff extends Diff {
         return fieldList;
     }
 
-    /** 
-     * Return a list of new class annotations from the target schemas with parent CF 
+    /**
+     * Return a list of new class annotations from the target schemas with parent CF
      * information
-     *
+     * 
      * Note that it only includes new annotations of EXISITING CF schemas, not annotations
      * of new CF schemas
      */
@@ -135,10 +128,10 @@ public class DbSchemasDiff extends Diff {
         return annoList;
     }
 
-    /** 
+    /**
      * Return a list of new field annotations from the target schemas with parent CF/field
      * information
-     *
+     * 
      * Note that it only includes new annotations of EXISITING fields, not annotations of
      * new fields
      */
@@ -154,11 +147,11 @@ public class DbSchemasDiff extends Diff {
         return annoList;
     }
 
-    /** 
-     * Return a list of new annotation values from the target schemas with parent 
+    /**
+     * Return a list of new annotation values from the target schemas with parent
      * CF/field/annotation information
-     *
-     * Note that it only includes new annotation values of EXISITING annotations, not 
+     * 
+     * Note that it only includes new annotation values of EXISITING annotations, not
      * annotation values of new annotations
      */
     public List<AnnotationValue> getNewAnnotationValues() {

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor;
 
@@ -27,7 +17,6 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
-import com.emc.storageos.db.client.model.DiscoveredDataObject.RegistrationStatus;
 import com.emc.storageos.db.client.model.StorageHADomain.HADomainType;
 import com.emc.storageos.db.client.model.StorageHADomain;
 import com.emc.storageos.db.client.model.StorageSystem;
@@ -94,7 +83,7 @@ public class StorageAdapterProcessor extends Processor {
      * @param adapter
      * @param adapterInstance
      * @throws URISyntaxException
-     * @throws IOException 
+     * @throws IOException
      */
     private void createStorageAdapter(
             StorageHADomain adapter, CIMInstance adapterInstance, AccessProfile profile)
@@ -113,11 +102,9 @@ public class StorageAdapterProcessor extends Processor {
         adapter.setSlotNumber(getCIMPropertyValue(adapterInstance, EMCSLOTNUMBER));
         String[] roles = (String[]) adapterInstance.getPropertyValue(ROLES);
         adapter.setAdapterType(HADomainType.getHADomainTypeName(roles[0]));
-        
+
         _storageAdapterList.add(adapter);
     }
-    
-    
 
     /**
      * Check if Adapter exists in DB.

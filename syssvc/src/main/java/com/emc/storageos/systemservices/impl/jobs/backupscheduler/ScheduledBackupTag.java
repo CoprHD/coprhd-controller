@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.jobs.backupscheduler;
 
@@ -32,10 +22,13 @@ import org.slf4j.LoggerFactory;
  * Class to manage backup file names (tags) using by Backup Scheduler
  */
 public class ScheduledBackupTag {
-	
-	private static final Logger log = LoggerFactory.getLogger(ScheduledBackupTag.class);
-	
+
+    private static final Logger log = LoggerFactory.getLogger(ScheduledBackupTag.class);
+
     private static final String DATE_PATTERN = "yyyyMMddHHmmss";
+    private static final String BACKUP_TAG_TEMPLATE = "%s-%d-%s";
+    private static final String UPLOAD_ZIP_FILENAME_FORMAT = "%s-%s-%s%s";
+    private static final String SCHEDULED_BACKUP_TAG_REGEX_PATTERN = "^%s-(\\w+|\\.)*\\d+-\\d+-\\d{%d}$";
     private static final ThreadLocal<SimpleDateFormat> dateFormat = new ThreadLocal<SimpleDateFormat>() {
         @Override
         protected SimpleDateFormat initialValue() {
@@ -55,32 +48,31 @@ public class ScheduledBackupTag {
 
     public static String toBackupTag(Date dt, String ver, int nodeCount) {
         String timestamp = toTimestamp(dt);
-        return String.format("%s-%s-%d-%s", ProductName.getName(), ver, nodeCount, timestamp);
+        return String.format(BACKUP_TAG_TEMPLATE, ver, nodeCount, timestamp);
     }
 
     public static Date parseBackupTag(String tag) throws ParseException {
-    	if (tag == null) {
-    		throw new ParseException("Can't parse backup date because tag is null", -1);
-    	}
-    	
-    	int beginIndex = tag.length() - DATE_PATTERN.length();
-		if (beginIndex < 0) {
-    		throw new ParseException("Can't parse backup date from wrong begin index for tag: " + tag, beginIndex);
-    	}
-		
+        if (tag == null) {
+            throw new ParseException("Can't parse backup date because tag is null", -1);
+        }
+
+        int beginIndex = tag.length() - DATE_PATTERN.length();
+        if (beginIndex < 0) {
+            throw new ParseException("Can't parse backup date from wrong begin index for tag: " + tag, beginIndex);
+        }
+
         return parseTimestamp(tag.substring(beginIndex));
     }
 
     public static List<String> pickScheduledBackupTags(Collection<String> tags) {
         ArrayList<String> scheduledTags = new ArrayList<>();
-        StringBuilder backupNamePatternString = new StringBuilder();
         // Typically, this pattern String could match all tags produced by toBackupTag method
         // also in consideration of extension, version part could be longer and node count could bigger
-        backupNamePatternString.append('^').append(ProductName.getName())
-        .append("-(\\d+\\.)*\\d+-\\d+-\\d{").append(DATE_PATTERN.length()).append("}$");
-        Pattern backupNamePattern = Pattern.compile(backupNamePatternString.toString());
+        String regex = String.format(SCHEDULED_BACKUP_TAG_REGEX_PATTERN, ProductName.getName(),
+                DATE_PATTERN.length());
+        Pattern backupNamePattern = Pattern.compile(regex);
         for (String tag : tags) {
-            if(backupNamePattern.matcher(tag).find()) {
+            if (backupNamePattern.matcher(tag).find()) {
                 scheduledTags.add(tag);
             }
         }
@@ -90,13 +82,13 @@ public class ScheduledBackupTag {
 
     public static class TagComparator implements Comparator<String> {
         private Date parseTagFallback(String tag) {
-        	// If we cannot extract timestamp from tag, it must be non-scheduled backup. We
+            // If we cannot extract timestamp from tag, it must be non-scheduled backup. We
             // just treat all manual backups as MIN_DATE, anyway they will be further ordered
             // by raw string value if the timestamps are equal.
             try {
                 return ScheduledBackupTag.parseBackupTag(tag);
             } catch (ParseException e) {
-            	log.warn("{}, errorOffset is at {}, set backup date as minimal for comparison", e.getMessage(), e.getErrorOffset());
+                log.warn("{}, errorOffset is at {}, set backup date as minimal for comparison", e.getMessage(), e.getErrorOffset());
                 return MIN_DATE;
             }
         }
@@ -112,6 +104,6 @@ public class ScheduledBackupTag {
     }
 
     public static String toZipFileName(String tag, int totalNodes, int backupNodes) {
-        return String.format("%s-%s-%s%s", tag, totalNodes, backupNodes, ZIP_FILE_SURFIX);
+        return String.format(UPLOAD_ZIP_FILENAME_FORMAT, tag, totalNodes, backupNodes, ZIP_FILE_SURFIX);
     }
 }

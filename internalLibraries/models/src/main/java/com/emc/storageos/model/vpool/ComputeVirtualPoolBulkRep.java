@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.vpool;
@@ -16,7 +16,7 @@ import com.emc.storageos.model.BulkRestRep;
 
 @XmlRootElement(name = "bulk_compute_vpools")
 public class ComputeVirtualPoolBulkRep extends BulkRestRep {
-	
+
     private List<ComputeVirtualPoolRestRep> virtualPools;
 
     /**

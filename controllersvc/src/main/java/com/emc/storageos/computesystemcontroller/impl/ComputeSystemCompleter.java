@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.computesystemcontroller.impl;
@@ -26,7 +26,7 @@ public class ComputeSystemCompleter extends TaskCompleter {
         super(clazz, id, opId);
         this.deactivateOnComplete = deactivateOnComplete;
     }
-    
+
     public ComputeSystemCompleter(Class clazz, List<URI> ids, boolean deactivateOnComplete, String opId) {
         super(clazz, ids, opId);
         this.deactivateOnComplete = deactivateOnComplete;

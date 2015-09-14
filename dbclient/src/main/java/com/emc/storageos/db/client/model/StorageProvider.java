@@ -1,23 +1,11 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.client.model;
 
-
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,13 +26,13 @@ import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.valid.EnumType;
 
 /**
- * StorageProvider data object 
+ * StorageProvider data object
  */
 @Cf("StorageProvider")
 public class StorageProvider extends DataObject {
-	
-	private static final Logger logger = LoggerFactory.getLogger(StorageProvider.class);
-	
+
+    private static final Logger logger = LoggerFactory.getLogger(StorageProvider.class);
+
     private StringSet _storageSystems;
     // provider IP address
     private String _ipAddress;
@@ -58,40 +46,40 @@ public class StorageProvider extends DataObject {
     private String _password;
     // flag indicates whether or not to use SSL protocol.
     private Boolean _useSSL;
-    //IPAddress alternateID is already used inStorageDevice,
-    //hence used provider ID : IPAddress:portNumber as ID
+    // IPAddress alternateID is already used inStorageDevice,
+    // hence used provider ID : IPAddress:portNumber as ID
     private String _providerID;
-    //Provider Description.
+    // Provider Description.
     private String _description;
-    //Provider manfacturer.
+    // Provider manfacturer.
     private String _manufacturer;
-    //Provider version.
+    // Provider version.
     private String _versionString;
     // ConnectionStatus tells whether provider is connected to Bourne or not.
     private String _connectionStatus = ConnectionStatus.NOTCONNECTED.toString();
 
-    //Status of a Scan Job
+    // Status of a Scan Job
     private String _scanStatus;
 
-    //Status Message of a Last Scan Job
+    // Status Message of a Last Scan Job
     private String _lastScanStatusMessage;
 
-    //Last Scan Time of a Scan Job
+    // Last Scan Time of a Scan Job
     private Long _lastScanTime = 0L;
 
-    //Next Scan Time of a Scan Job
+    // Next Scan Time of a Scan Job
     private Long _nextScanTime = 0L;
-    
+
     private Long _successScanTime = 0L;
 
     private String _registrationStatus = RegistrationStatus.UNREGISTERED.toString();
 
-    //used in finding out whether or not the Provider is Compatible
+    // used in finding out whether or not the Provider is Compatible
     private String _compatibilityStatus = CompatibilityStatus.UNKNOWN.name();
-    
+
     private String _interfaceType;
-    
-    //list of decommissioned Systems
+
+    // list of decommissioned Systems
     private StringSet _decommissionedSystems;
 
     /*
@@ -99,7 +87,7 @@ public class StorageProvider extends DataObject {
      * to be fetched during provisioning.
      * 
      * Adding this map to store cinder end point information required
-     * during the provisioning. During the cinder discovery, the end 
+     * during the provisioning. During the cinder discovery, the end
      * point information will be fetched and kept as key value pairs.
      */
     private StringMap keys;
@@ -152,11 +140,12 @@ public class StorageProvider extends DataObject {
     public static enum InterfaceType {
         hicommand,
         smis,
-		ddmc,
+        ddmc,
         vplex,
         cinder,
-        scaleio,
-        ibmxiv;
+        ibmxiv,
+        scaleioapi,
+        xtremio;
 
         /**
          * Gets the supported system types for the given interface type.
@@ -172,12 +161,14 @@ public class StorageProvider extends DataObject {
                 systemTypes.add(Type.vplex.name());
             } else if (cinder.equals(interfaceType)) {
                 systemTypes.add(Type.openstack.name());
-            } else if (scaleio.equals(interfaceType)) {
-                systemTypes.add(Type.scaleio.name());
             } else if (ibmxiv.equals(interfaceType)) {
                 systemTypes.add(Type.ibmxiv.name());
             } else if (ddmc.equals(interfaceType)) {
                 systemTypes.add(Type.datadomain.name());
+            } else if (scaleioapi.equals(interfaceType)) {
+                systemTypes.add(Type.scaleio.name());
+            } else if (xtremio.equals(interfaceType)) {
+                systemTypes.add(Type.xtremio.name());
             }
             return systemTypes;
         }
@@ -193,8 +184,8 @@ public class StorageProvider extends DataObject {
     }
 
     /*********************************************************
-     * AlternateIDIndex - ProviderID (IPAddress-portNumber)  *
-     * RelationIndex - Empty                                 *
+     * AlternateIDIndex - ProviderID (IPAddress-portNumber) *
+     * RelationIndex - Empty *
      *********************************************************/
 
     @CustomMigrationCallback(callback = SMISProviderToStorageProviderMigration.class)
@@ -205,7 +196,9 @@ public class StorageProvider extends DataObject {
 
     public void setIPAddress(String ipAddress) {
         _ipAddress = ipAddress;
-        if(null != _portNumber ) setProviderID(_ipAddress+"-"+_portNumber);
+        if (null != _portNumber) {
+            setProviderID(_ipAddress + "-" + _portNumber);
+        }
         setChanged("ipAddress");
     }
 
@@ -229,7 +222,9 @@ public class StorageProvider extends DataObject {
 
     public void setPortNumber(Integer portNumber) {
         _portNumber = portNumber;
-        if(null != _ipAddress ) setProviderID(_ipAddress+"-"+_portNumber);
+        if (null != _ipAddress) {
+            setProviderID(_ipAddress + "-" + _portNumber);
+        }
         setChanged("portNumber");
     }
 
@@ -269,22 +264,21 @@ public class StorageProvider extends DataObject {
         setChanged("storageSystems");
     }
 
-
     @Name("storageSystems")
     @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
     @IndexByKey
     public StringSet getStorageSystems() {
         return _storageSystems;
     }
-    
+
     public void setDecommissionedSystems(StringSet decommissionedSystems) {
         _decommissionedSystems = decommissionedSystems;
         setChanged("decommissionedSystems");
     }
 
     @Name("decommissionedSystems")
-    public StringSet getDecommissionedSystems( ) { 
-    	return _decommissionedSystems; 
+    public StringSet getDecommissionedSystems() {
+        return _decommissionedSystems;
     }
 
     @Name("description")
@@ -325,19 +319,19 @@ public class StorageProvider extends DataObject {
     /**
      * AlternateIDIndex - ProviderID (IPAddress-portNumber)
      * RelationIndex - Empty
-     *
+     * 
      * The reason why IPAddress is not used :
      * IPAddress is being used as a AltId in StorageSystem.
      * If we use IPAddress again in SMISProvider, we would
      * end up having the below Rowkey in AltIdIndex ColumnFamily
-     *
+     * 
      * 10.24.54.32 - RowKey(IPAddress)
      * Column : urn:SMISProvider:8178828323..
      * Column : urn:StorageSystem:898341992..
-     *
+     * 
      * Same key , includes both SMISProvider and StorageSystem, and we
      * don't want this.
-     *
+     * 
      */
 
     @Name("providerID")
@@ -356,8 +350,7 @@ public class StorageProvider extends DataObject {
         _connectionStatus = connectionStatus;
         setChanged("connectionStatus");
     }
-    
-    
+
     @EnumType(InterfaceType.class)
     @Name("interfaceType")
     @AlternateId("AltIdIndex")
@@ -385,6 +378,7 @@ public class StorageProvider extends DataObject {
         _lastScanStatusMessage = statusMessage;
         setChanged("lastScanStatusMessage");
     }
+
     @Name("lastScanStatusMessage")
     public String getLastScanStatusMessage() {
         return _lastScanStatusMessage;
@@ -431,11 +425,12 @@ public class StorageProvider extends DataObject {
         _compatibilityStatus = compatibilityStatus;
         setChanged("compatibilityStatus");
     }
-    
+
     @Name("successScanTime")
     public Long getSuccessScanTime() {
         return _successScanTime;
     }
+
     public void setSuccessScanTime(Long time) {
         _successScanTime = time;
         setChanged("successScanTime");
@@ -444,7 +439,7 @@ public class StorageProvider extends DataObject {
     public enum GlobalKeys {
         SIO_CLI
     }
-    
+
     @Name("keys")
     public StringMap getKeys() {
         return keys;
@@ -452,7 +447,7 @@ public class StorageProvider extends DataObject {
 
     public String getKeyValue(String key) {
         String value = null;
-        if (keys != null ) {
+        if (keys != null) {
             value = keys.get(key);
         }
         return (value == null) ? NullColumnValueGetter.getNullStr() : value;
@@ -467,10 +462,10 @@ public class StorageProvider extends DataObject {
         if (getKeys() == null) {
             setKeys(new StringMap());
         }
-       
+
         getKeys().put(key, value);
         setChanged("keys");
-       
+
     }
 
     public void removeKey(String key) {
@@ -479,16 +474,16 @@ public class StorageProvider extends DataObject {
             setChanged("keys");
         }
     }
-    
+
     public void removeKeys(String[] keyArray) {
         if (keys != null) {
-        	
-        	for(String key : keyArray)
-        	{
-        		getKeys().remove(key);
-        	}
-        	setChanged("keys");
-            
+
+            for (String key : keyArray)
+            {
+                getKeys().remove(key);
+            }
+            setChanged("keys");
+
         }
     }
 
@@ -507,7 +502,7 @@ public class StorageProvider extends DataObject {
         storage.getProviders().add(getId().toString());
         dbClient.persistObject(storage);
 
-        if (getStorageSystems() == null)  {
+        if (getStorageSystems() == null) {
             setStorageSystems(new StringSet());
         }
         getStorageSystems().add(storage.getId().toString());
@@ -519,14 +514,13 @@ public class StorageProvider extends DataObject {
         if (storage.getProviders() != null) {
             storage.getProviders().remove(getId().toString());
         }
-        if (storage.getActiveProviderURI().equals(getId()) ) {
+        if (storage.getActiveProviderURI().equals(getId())) {
             if (null != storage.getProviders() && !storage.getProviders().isEmpty()) {
                 Iterator<String> iter = storage.getProviders().iterator();
 	            if (iter.hasNext())  {
 	                try {
 	                    storage.setActiveProviderURI(new URI(iter.next()));
-	                }
-	                catch (URISyntaxException ex)  {
+	                } catch (URISyntaxException ex) {
 	                	logger.error("URISyntaxException occurred: {}", ex.getMessage());
 	                }
 	            }
@@ -537,16 +531,17 @@ public class StorageProvider extends DataObject {
         }
         dbClient.persistObject(storage);
 
-        if (getStorageSystems() != null)  {
+        if (getStorageSystems() != null) {
             getStorageSystems().remove(storage.getId().toString());
         }
         dbClient.persistObject(this);
     }
-    
+
     public void removeDecommissionedSystem(DbClient dbClient, String systemNativeGuid) {
-        List<URI> oldResources = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getDecommissionedResourceNativeGuidConstraint(systemNativeGuid) );
+        List<URI> oldResources = dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                .getDecommissionedResourceNativeGuidConstraint(systemNativeGuid));
         if (oldResources != null) {
-            for (URI decomObj : oldResources)  {
+            for (URI decomObj : oldResources) {
                 _decommissionedSystems.remove(decomObj.toString());
             }
             dbClient.persistObject(this);
@@ -554,11 +549,11 @@ public class StorageProvider extends DataObject {
 
     }
 
-    public boolean connected(){
-        return ConnectionStatus.valueOf(_connectionStatus)==ConnectionStatus.CONNECTED;
+    public boolean connected() {
+        return ConnectionStatus.valueOf(_connectionStatus) == ConnectionStatus.CONNECTED;
     }
 
     public boolean initializing() {
-        return ConnectionStatus.valueOf(_connectionStatus)==ConnectionStatus.INITIALIZING;
+        return ConnectionStatus.valueOf(_connectionStatus) == ConnectionStatus.INITIALIZING;
     }
 }

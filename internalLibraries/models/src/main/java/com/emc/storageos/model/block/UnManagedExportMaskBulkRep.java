@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block;
@@ -14,15 +14,16 @@ import com.emc.storageos.model.BulkRestRep;
 
 @XmlRootElement(name = "bulk_unmanaged_export_masks")
 public class UnManagedExportMaskBulkRep extends BulkRestRep {
-    
+
     private List<UnManagedExportMaskRestRep> unManagedExportMasks;
 
-    public UnManagedExportMaskBulkRep() {}
-    
+    public UnManagedExportMaskBulkRep() {
+    }
+
     public UnManagedExportMaskBulkRep(List<UnManagedExportMaskRestRep> unManagedExportMasks) {
         this.unManagedExportMasks = unManagedExportMasks;
     }
-    
+
     @XmlElement(name = "unmanaged_export_mask")
     public List<UnManagedExportMaskRestRep> getUnManagedExportMasks() {
         if (unManagedExportMasks == null) {

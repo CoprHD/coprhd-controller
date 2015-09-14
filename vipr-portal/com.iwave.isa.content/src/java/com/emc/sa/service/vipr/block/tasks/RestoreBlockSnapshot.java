@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.block.tasks;
@@ -20,7 +20,7 @@ public class RestoreBlockSnapshot extends WaitForTask<BlockSnapshotRestRep> {
     public RestoreBlockSnapshot(URI snapshotId) {
         super();
         this.snapshotId = snapshotId;
-        
+
         provideDetailArgs(snapshotId);
     }
 

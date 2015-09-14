@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.util;
@@ -13,6 +13,8 @@ import java.net.URI;
 import java.net.URL;
 import java.util.List;
 
+import com.emc.storageos.security.authorization.ACL;
+import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang.StringUtils;
 
@@ -43,8 +45,8 @@ public class AssetLoader {
 
     public void loadAssets(InputStream in) throws IOException {
         loadAssets(null, in);
-    }    
-    
+    }
+
     public void loadAssets(String tenant, URL resource) throws IOException {
         Assets assets = readAssets(resource.openStream());
         saveAssets(tenant, assets);
@@ -65,8 +67,7 @@ public class AssetLoader {
             Gson gson = new GsonBuilder().create();
             Assets assets = gson.fromJson(new InputStreamReader(in), Assets.class);
             return assets;
-        }
-        finally {
+        } finally {
             IOUtils.closeQuietly(in);
         }
     }
@@ -121,7 +122,10 @@ public class AssetLoader {
 
     public Vcenter saveVCenter(String tenant, VCenterDef def) {
         Vcenter vcenter = new Vcenter();
-        vcenter.setTenant(URI.create(tenant));
+        if (StringUtils.isNotBlank(tenant)) {
+            vcenter.addAcl(BasePermissionsHelper.getTenantUsePermissionKey(tenant), ACL.USE.name());
+        }
+
         vcenter.setLabel(def.name);
         vcenter.setIpAddress(def.hostname);
         vcenter.setPortNumber(def.port);
@@ -131,7 +135,6 @@ public class AssetLoader {
         client.save(vcenter);
         return vcenter;
     }
-
 
     public static class Assets {
         public List<HostDef> hosts;

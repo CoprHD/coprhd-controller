@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/*
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis.vmax;
 
@@ -26,88 +16,95 @@ import com.emc.storageos.workflow.WorkflowService;
 
 /**
  * This object contains status information about export operations that occur
- * within a single workflow step.  It benefits rollback operations by indicating
+ * within a single workflow step. It benefits rollback operations by indicating
  * exactly what substeps occurred during creation that need to be rolled back.
  */
 public class ExportOperationContext implements Serializable {
 
-	private static final long serialVersionUID = 3452808872942655033L;
-	private static final Logger _log = LoggerFactory.getLogger(VmaxExportOperationContext.class);
-	List<ExportOperationContextOperation> operations;
+    private static final long serialVersionUID = 3452808872942655033L;
+    private static final Logger _log = LoggerFactory.getLogger(VmaxExportOperationContext.class);
+    List<ExportOperationContextOperation> operations;
 
-	public ExportOperationContext() {
-		super();
-	}
+    public ExportOperationContext() {
+        super();
+    }
 
-	class ExportOperationContextOperation implements Serializable {
-		private static final long serialVersionUID = -4135846269841199964L;
-		private String operation;
-		public String getOperation() {
-			return operation;
-		}
-		public void setOperation(String operation) {
-			this.operation = operation;
-		}
-		public List<Object> getArgs() {
-			return args;
-		}
-		public void setArgs(List<Object> args) {
-			this.args = args;
-		}
-		private List<Object> args;
+    class ExportOperationContextOperation implements Serializable {
+        private static final long serialVersionUID = -4135846269841199964L;
+        private String operation;
 
-		@Override
-		public String toString() {
-			return "Operation [operation="
-					+ operation + ", args=" + args + "]";
-		}
-	}
-	
-	public void insertOperation(String operation, Object... args) {
-		// Order is important, put this at the end of the list.
-		ExportOperationContextOperation op = new ExportOperationContextOperation();
-		op.setOperation(operation);
-		List<Object> opArgs = new ArrayList<>();
-		if (args != null) {
-			for (Object arg : args) {
-				opArgs.add(arg);
-			}
-		}
-		op.setArgs(opArgs);
-		if (operations == null) {
-			operations = new ArrayList<>();
-		}
-		operations.add(op);
-		_log.info("Operation " + operation + " (" + operations.size() + ") has been recorded for the benefit of potential rollback in the event of overall failure.");
-	}
+        public String getOperation() {
+            return operation;
+        }
 
-	public List<ExportOperationContextOperation> getOperations() {
-		return operations;
-	}
+        public void setOperation(String operation) {
+            this.operation = operation;
+        }
 
-	public void setOperations(List<ExportOperationContextOperation> operations) {
-		this.operations = operations;
-	}
+        public List<Object> getArgs() {
+            return args;
+        }
 
-	@Override
-	public String toString() {
-		return "ExportOperationContext [operations=" + operations + "]";
-	}
+        public void setArgs(List<Object> args) {
+            this.args = args;
+        }
 
-	/**
-	 * Inserts an operation into the step context so rollback will be done properly.
-	 * @param taskCompleter task completer
-	 * @param args arguments needed to perform rollback for this individual operation.
-	 */
-	public static void insertContextOperation(TaskCompleter taskCompleter, String operation, Object... args) {
-		if (taskCompleter != null) {
-		    ExportOperationContext context = (ExportOperationContext)WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
-		    if (context != null) {
-		    	context.insertOperation(operation, args);                    
-		    	WorkflowService.getInstance().storeStepData(taskCompleter.getOpId(), context);
-		    } else {
-		    	_log.warn("Rollback context was not found for op: " + taskCompleter.getOpId());
-		    }
-		}
-	}
+        private List<Object> args;
+
+        @Override
+        public String toString() {
+            return "Operation [operation="
+                    + operation + ", args=" + args + "]";
+        }
+    }
+
+    public void insertOperation(String operation, Object... args) {
+        // Order is important, put this at the end of the list.
+        ExportOperationContextOperation op = new ExportOperationContextOperation();
+        op.setOperation(operation);
+        List<Object> opArgs = new ArrayList<>();
+        if (args != null) {
+            for (Object arg : args) {
+                opArgs.add(arg);
+            }
+        }
+        op.setArgs(opArgs);
+        if (operations == null) {
+            operations = new ArrayList<>();
+        }
+        operations.add(op);
+        _log.info("Operation " + operation + " (" + operations.size()
+                + ") has been recorded for the benefit of potential rollback in the event of overall failure.");
+    }
+
+    public List<ExportOperationContextOperation> getOperations() {
+        return operations;
+    }
+
+    public void setOperations(List<ExportOperationContextOperation> operations) {
+        this.operations = operations;
+    }
+
+    @Override
+    public String toString() {
+        return "ExportOperationContext [operations=" + operations + "]";
+    }
+
+    /**
+     * Inserts an operation into the step context so rollback will be done properly.
+     * 
+     * @param taskCompleter task completer
+     * @param args arguments needed to perform rollback for this individual operation.
+     */
+    public static void insertContextOperation(TaskCompleter taskCompleter, String operation, Object... args) {
+        if (taskCompleter != null) {
+            ExportOperationContext context = (ExportOperationContext) WorkflowService.getInstance().loadStepData(taskCompleter.getOpId());
+            if (context != null) {
+                context.insertOperation(operation, args);
+                WorkflowService.getInstance().storeStepData(taskCompleter.getOpId(), context);
+            } else {
+                _log.warn("Rollback context was not found for op: " + taskCompleter.getOpId());
+            }
+        }
+    }
 }

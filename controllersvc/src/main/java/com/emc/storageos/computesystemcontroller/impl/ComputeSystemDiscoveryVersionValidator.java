@@ -1,9 +1,8 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.computesystemcontroller.impl;
-
 
 import java.util.Map;
 
@@ -19,7 +18,7 @@ import com.iwave.ext.vmware.VcenterVersion;
 import com.iwave.ext.windows.model.wmi.WindowsVersion;
 
 @Component
-public class ComputeSystemDiscoveryVersionValidator {   
+public class ComputeSystemDiscoveryVersionValidator {
     private static final String WINDOWS_MIN_PROP = "compute_windows_version";
     private static final String REDHAT_MIN_PROP = "compute_redhat_linux_version";
     private static final String SUSE_MIN_PROP = "compute_suse_linux_version";
@@ -27,7 +26,7 @@ public class ComputeSystemDiscoveryVersionValidator {
     private static final String AIX_MIN_PROP = "compute_aix_version";
     private static final String AIXVIO_MIN_PROP = "compute_aixvio_version";
     private static final String VMWARE_ESX_MIN_PROP = "compute_vmware_esx_version";
-    
+
     private CoordinatorClient coordinatorClient;
 
     private WindowsVersion windowsVersion;
@@ -37,16 +36,16 @@ public class ComputeSystemDiscoveryVersionValidator {
     private AixVersion aixVersion;
     private AixVersion aixVioVersion;
     private EsxVersion esxVersion;
-    
+
     public boolean isValidVersionNumber(String versionNumber) {
         boolean result = false;
-       
+
         if (!StringUtils.isEmpty(versionNumber)) {
             String testVersionNumber = versionNumber.trim();
             if (testVersionNumber.endsWith(".")) {
                 return false;
             }
-               
+
             String[] parts = testVersionNumber.split("\\.");
             for (String part : parts) {
                 if (StringUtils.isEmpty(part) || !StringUtils.isNumeric(part)) {
@@ -57,6 +56,7 @@ public class ComputeSystemDiscoveryVersionValidator {
         }
         return result;
     }
+
     private String getSysProperty(String property) {
 
         String result = null;
@@ -68,6 +68,7 @@ public class ComputeSystemDiscoveryVersionValidator {
         }
         return result;
     }
+
     public WindowsVersion getWindowsMinimumVersion(boolean forceLookup) {
         if (forceLookup || windowsVersion == null) {
             String versionProp = this.getSysProperty(WINDOWS_MIN_PROP);
@@ -76,84 +77,89 @@ public class ComputeSystemDiscoveryVersionValidator {
             }
             else {
                 windowsVersion = null;
-                throw new IllegalStateException(String.format("System property for Windows Version Number(%s) is invalid - value is '%s'", WINDOWS_MIN_PROP, versionProp));
+                throw new IllegalStateException(String.format("System property for Windows Version Number(%s) is invalid - value is '%s'",
+                        WINDOWS_MIN_PROP, versionProp));
             }
-            
+
         }
         return windowsVersion;
     }
-    
+
     public AixVersion getAixMinimumVersion(boolean forceLookup) {
-        if (forceLookup || aixVersion == null ){
+        if (forceLookup || aixVersion == null) {
             String versionProp = this.getSysProperty(AIX_MIN_PROP);
-            if (isValidVersionNumber(versionProp) ){
+            if (isValidVersionNumber(versionProp)) {
                 aixVersion = new AixVersion(versionProp);
             }
             else {
                 aixVersion = null;
-                throw new IllegalStateException(String.format("System property for AIX Version Number(%s) is invalid - value is '%s'", AIX_MIN_PROP, versionProp));
-            } 
+                throw new IllegalStateException(String.format("System property for AIX Version Number(%s) is invalid - value is '%s'",
+                        AIX_MIN_PROP, versionProp));
+            }
         }
         return aixVersion;
     }
-    
+
     public AixVersion getAixVioMinimumVersion(boolean forceLookup) {
-        if (forceLookup || aixVioVersion == null ){
+        if (forceLookup || aixVioVersion == null) {
             String versionProp = this.getSysProperty(AIXVIO_MIN_PROP);
-            if (isValidVersionNumber(versionProp) ){
+            if (isValidVersionNumber(versionProp)) {
                 aixVioVersion = new AixVersion(versionProp);
             }
             else {
                 aixVioVersion = null;
-                throw new IllegalStateException(String.format("System property for AIX VIO Version Number(%s) is invalid - value is '%s'", AIXVIO_MIN_PROP, versionProp));
-            } 
+                throw new IllegalStateException(String.format("System property for AIX VIO Version Number(%s) is invalid - value is '%s'",
+                        AIXVIO_MIN_PROP, versionProp));
+            }
         }
         return aixVioVersion;
     }
-    
+
     public LinuxVersion getRedhatLinuxMinimumVersion(boolean forceLookup) {
-        if (forceLookup || redhatVersion == null ){
+        if (forceLookup || redhatVersion == null) {
             String versionProp = this.getSysProperty(REDHAT_MIN_PROP);
-            if (isValidVersionNumber(versionProp) ){
+            if (isValidVersionNumber(versionProp)) {
                 redhatVersion = new LinuxVersion(LinuxVersion.LinuxDistribution.REDHAT, versionProp);
             }
             else {
                 redhatVersion = null;
-                throw new IllegalStateException(String.format("System property for Redhat Linux Version Number(%s) is invalid - value is '%s'", REDHAT_MIN_PROP, versionProp));
+                throw new IllegalStateException(String.format(
+                        "System property for Redhat Linux Version Number(%s) is invalid - value is '%s'", REDHAT_MIN_PROP, versionProp));
             }
-                
-            
-            
+
         }
         return redhatVersion;
     }
-    
+
     public LinuxVersion getSuSELinuxMinimumVersion(boolean forceLookup) {
-        if (forceLookup || suseVersion == null ) {
+        if (forceLookup || suseVersion == null) {
             String versionProp = this.getSysProperty(SUSE_MIN_PROP);
             if (isValidVersionNumber(versionProp)) {
                 suseVersion = new LinuxVersion(LinuxVersion.LinuxDistribution.SUSE, versionProp);
             }
             else {
                 suseVersion = null;
-                throw new IllegalStateException(String.format("System property for SuSE Enterprise Linux Version Number(%s) is invalid - value is '%s'", SUSE_MIN_PROP, versionProp));
+                throw new IllegalStateException(String.format(
+                        "System property for SuSE Enterprise Linux Version Number(%s) is invalid - value is '%s'", SUSE_MIN_PROP,
+                        versionProp));
             }
-                
+
         }
         return suseVersion;
     }
-    
+
     public VcenterVersion getVcenterMinimumVersion(boolean forceLookup) {
         if (forceLookup || vcenterVersion == null) {
             String versionProp = this.getSysProperty(VCENTER_MIN_PROP);
             if (isValidVersionNumber(versionProp)) {
-                vcenterVersion = new VcenterVersion(versionProp); 
+                vcenterVersion = new VcenterVersion(versionProp);
             }
             else {
                 vcenterVersion = null;
-                throw new IllegalStateException(String.format("System property for VMware vCenter Version Number(%s) is invalid - value is '%s'", VCENTER_MIN_PROP, versionProp));
+                throw new IllegalStateException(String.format(
+                        "System property for VMware vCenter Version Number(%s) is invalid - value is '%s'", VCENTER_MIN_PROP, versionProp));
             }
-           
+
         }
         return vcenterVersion;
     }
@@ -166,7 +172,8 @@ public class ComputeSystemDiscoveryVersionValidator {
             }
             else {
                 esxVersion = null;
-                throw new IllegalStateException(String.format("System property for VMware ESX Version Number(%s) is invalid - value is '%s'", VMWARE_ESX_MIN_PROP, versionProp));
+                throw new IllegalStateException(String.format(
+                        "System property for VMware ESX Version Number(%s) is invalid - value is '%s'", VMWARE_ESX_MIN_PROP, versionProp));
             }
         }
         return esxVersion;
@@ -175,7 +182,7 @@ public class ComputeSystemDiscoveryVersionValidator {
     public ComputeSystemDiscoveryVersionValidator() {
         super();
     }
-       
+
     public boolean isValidAixVersion(AixVersion version) {
         return (VersionChecker.verifyVersionDetails(
                 getAixMinimumVersion(true).getVersion(), version.getVersion()) >= 0) ? true : false;
@@ -187,8 +194,8 @@ public class ComputeSystemDiscoveryVersionValidator {
     }
 
     public boolean isValidVcenterVersion(VcenterVersion version) {
-    return (VersionChecker.verifyVersionDetails(
-            getVcenterMinimumVersion(true).getVersion(), version.getVersion()) >= 0) ? true : false;
+        return (VersionChecker.verifyVersionDetails(
+                getVcenterMinimumVersion(true).getVersion(), version.getVersion()) >= 0) ? true : false;
     }
 
     public boolean isValidWindowsVersion(WindowsVersion version) {
@@ -203,7 +210,7 @@ public class ComputeSystemDiscoveryVersionValidator {
         }
         else if (LinuxVersion.LinuxDistribution.SUSE.equals(version.getDistribution())) {
             return (VersionChecker.verifyVersionDetails(
-                   getSuSELinuxMinimumVersion(true).getVersion(), version.getVersion()) >= 0) ? true : false;
+                    getSuSELinuxMinimumVersion(true).getVersion(), version.getVersion()) >= 0) ? true : false;
         }
         else {
             return false;

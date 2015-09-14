@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.compute;
@@ -39,7 +39,6 @@ import com.emc.storageos.model.host.HostRestRep;
 import com.emc.storageos.model.host.cluster.ClusterRestRep;
 import com.emc.storageos.model.vpool.ComputeVirtualPoolRestRep;
 import com.google.common.collect.Lists;
-
 
 @Service("CreateComputeCluster")
 public class CreateComputeClusterService extends ViPRService {
@@ -82,7 +81,7 @@ public class CreateComputeClusterService extends ViPRService {
 
     @Param(HOST_PASSWORD)
     protected String rootPassword;
-    
+
     @Bindable(itemType = FqdnToIpTable.class)
     protected FqdnToIpTable[] fqdnToIps;
 
@@ -95,7 +94,7 @@ public class CreateComputeClusterService extends ViPRService {
     Cluster cluster = null;
     List<String> hostNames = null;
     List<String> hostIps = null;
-    
+
     @Override
     public void precheck() throws Exception {
 
@@ -111,10 +110,10 @@ public class CreateComputeClusterService extends ViPRService {
             preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.empty.cluster.exists"));
         }
 
-        if((cluster != null) && !hostNames.containsAll(hostNamesInCluster)){
+        if ((cluster != null) && !hostNames.containsAll(hostNamesInCluster)) {
             preCheckErrors.append(ExecutionUtils.getMessage("compute.cluster.unknown.host"));
         }
-        
+
         if (hostNames == null || hostNames.isEmpty() || hostIps == null || hostIps.isEmpty()) {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.osinstall.host.required") + "  ");
@@ -124,25 +123,25 @@ public class CreateComputeClusterService extends ViPRService {
         for (String hostName : hostNames) {
             if (!ComputeUtils.isValidHostIdentifier(hostName)) {
                 preCheckErrors.append(
-                        ExecutionUtils.getMessage("compute.cluster.hostname.invalid",hostName) + "  ");
+                        ExecutionUtils.getMessage("compute.cluster.hostname.invalid", hostName) + "  ");
             }
         }
 
         for (String hostIp : hostIps) {
             if (!ComputeUtils.isValidIpAddress(hostIp)) {
                 preCheckErrors.append(
-                        ExecutionUtils.getMessage("compute.cluster.ip.invalid",hostIp) + "  ");
-            }            
+                        ExecutionUtils.getMessage("compute.cluster.ip.invalid", hostIp) + "  ");
+            }
         }
 
         if (!ComputeUtils.isCapacityAvailable(getClient(), virtualPool,
-                virtualArray, size, hostNames.size()-existingHostNames.size())) {
+                virtualArray, size, hostNames.size() - existingHostNames.size())) {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.insufficient.storage.capacity") + "  ");
         }
 
         if (!ComputeUtils.isComputePoolCapacityAvailable(getClient(), computeVirtualPool,
-                hostNames.size()-existingHostNames.size())) {
+                hostNames.size() - existingHostNames.size())) {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.insufficient.compute.capacity") + "  ");
         }
@@ -161,29 +160,29 @@ public class CreateComputeClusterService extends ViPRService {
             ntpServer = null;
         }
         else if (ntpServer != null && ntpServer.trim().length() > 0) {
-        	//allowing user to specify comma separated list - use only use the first valid one
-        	String [] ntpServerList = ntpServer.split(",");
-        	String validServer = null;
-        	for (String ntpServerx : ntpServerList) {
-        		if (ComputeUtils.isValidHostIdentifier(ntpServerx.trim())) {
-        			validServer = ntpServerx.trim();
-        		}
-        		break;
-        	}
-        	if (validServer == null) {
-        		preCheckErrors.append(
+            // allowing user to specify comma separated list - use only use the first valid one
+            String[] ntpServerList = ntpServer.split(",");
+            String validServer = null;
+            for (String ntpServerx : ntpServerList) {
+                if (ComputeUtils.isValidHostIdentifier(ntpServerx.trim())) {
+                    validServer = ntpServerx.trim();
+                }
+                break;
+            }
+            if (validServer == null) {
+                preCheckErrors.append(
                         ExecutionUtils.getMessage("compute.cluster.invalid.ntp") + "  ");
-        	}
-        	else {
-        		ntpServer = validServer;
-        	}
+            }
+            else {
+                ntpServer = validServer;
+            }
         }
 
         if (dnsServers != null && dnsServers.trim().length() == 0) {
             dnsServers = null;
         }
         else if (dnsServers != null && dnsServers.trim().length() > 0) {
-            String [] dnsServerList = dnsServers.split(",");
+            String[] dnsServerList = dnsServers.split(",");
             for (String dnsServer : dnsServerList) {
                 if (!ComputeUtils.isValidIpAddress(dnsServer.trim()) && !ComputeUtils.isValidHostIdentifier(dnsServer.trim())) {
                     preCheckErrors.append(
@@ -199,21 +198,21 @@ public class CreateComputeClusterService extends ViPRService {
                                 existingHostName) + "  ");
             }
         }
-        
+
         if (vcenterId != null && datacenterId == null) {
             preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.datacenter.id.null") + "  ");
         }
-        
-        ComputeVirtualPoolRestRep cvp = ComputeUtils.getComputeVirtualPool(getClient(),computeVirtualPool);
+
+        ComputeVirtualPoolRestRep cvp = ComputeUtils.getComputeVirtualPool(getClient(), computeVirtualPool);
         if (cvp.getServiceProfileTemplates().isEmpty()) {
-        	preCheckErrors.append(
+            preCheckErrors.append(
                     ExecutionUtils.getMessage("compute.cluster.service.profile.templates.null", cvp.getName()) + "  ");
-        } 
+        }
 
         if (preCheckErrors.length() > 0) {
             throw new IllegalStateException(preCheckErrors.toString());
-        }        
+        }
     }
 
     @Override
@@ -238,7 +237,7 @@ public class CreateComputeClusterService extends ViPRService {
 
         if (cluster == null) {
             cluster = ComputeUtils.createCluster(name);
-            logInfo("compute.cluster.created",name);
+            logInfo("compute.cluster.created", name);
         }
         else {
             // If the hostName already exists, we remove it from the hostnames list.
@@ -251,15 +250,15 @@ public class CreateComputeClusterService extends ViPRService {
 
         List<URI> bootVolumeIds = ComputeUtils.makeBootVolumes(project,
                 virtualArray, virtualPool, size, hosts, getClient());
-        logInfo("compute.cluster.boot.volumes.created", 
+        logInfo("compute.cluster.boot.volumes.created",
                 ComputeUtils.nonNull(bootVolumeIds).size());
         hosts = ComputeUtils.deactivateHostsWithNoBootVolume(hosts,
                 bootVolumeIds);
 
         List<URI> exportIds = ComputeUtils.exportBootVols(bootVolumeIds, hosts,
-                project, virtualArray,false);
+                project, virtualArray, false);
         logInfo("compute.cluster.exports.created", ComputeUtils.nonNull(exportIds).size());
-        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts,exportIds);
+        hosts = ComputeUtils.deactivateHostsWithNoExport(hosts, exportIds);
 
         if (ComputeUtils.findHostNamesInCluster(cluster).isEmpty()) {
             logInfo("compute.cluster.removing.empty.cluster");
@@ -267,21 +266,21 @@ public class CreateComputeClusterService extends ViPRService {
         }
         else {
             logInfo("compute.cluster.exports.installing.os");
-            List<HostRestRep> hostsWithOs = installOSForHosts(hostToIPs,ComputeUtils.getHostNameBootVolume(hosts));
-            logInfo("compute.cluster.exports.installed.os", 
+            List<HostRestRep> hostsWithOs = installOSForHosts(hostToIPs, ComputeUtils.getHostNameBootVolume(hosts));
+            logInfo("compute.cluster.exports.installed.os",
                     ComputeUtils.nonNull(hostsWithOs).size());
 
             pushToVcenter();
         }
-        
-        String orderErrors = ComputeUtils.getOrderErrors(cluster, hostNames,computeImage,vcenterId);
+
+        String orderErrors = ComputeUtils.getOrderErrors(cluster, hostNames, computeImage, vcenterId);
         if (orderErrors.length() > 0) { // fail order so user can resubmit
             if (ComputeUtils.nonNull(hosts).isEmpty()) {
                 throw new IllegalStateException(
-                        ExecutionUtils.getMessage("compute.cluster.order.incomplete",orderErrors));
+                        ExecutionUtils.getMessage("compute.cluster.order.incomplete", orderErrors));
             }
             else {
-                logError("compute.cluster.order.incomplete",orderErrors);
+                logError("compute.cluster.order.incomplete", orderErrors);
                 setPartialSuccess();
             }
         }
@@ -295,16 +294,16 @@ public class CreateComputeClusterService extends ViPRService {
         this.rootPassword = rootPassword;
     }
 
-    private List<HostRestRep> installOSForHosts(Map<String, String> hostToIps,Map<String,URI> hostNameToBootVolumeMap) {
+    private List<HostRestRep> installOSForHosts(Map<String, String> hostToIps, Map<String, URI> hostNameToBootVolumeMap) {
         List<HostRestRep> hosts = ComputeUtils.getHostsInCluster(cluster.getId());
 
         List<OsInstallParam> osInstallParams = Lists.newArrayList();
         for (HostRestRep host : hosts) {
             if ((host != null) && (
-                    (host.getType() == null) || 
-                    host.getType().isEmpty() || 
-                    host.getType().equals(Host.HostType.No_OS.name())  
-                    )){
+                    (host.getType() == null) ||
+                            host.getType().isEmpty() ||
+                    host.getType().equals(Host.HostType.No_OS.name())
+                    )) {
                 OsInstallParam param = new OsInstallParam();
                 String hostIp = hostToIps.get(host.getHostName());
                 param.setComputeImage(computeImage);
@@ -318,22 +317,21 @@ public class CreateComputeClusterService extends ViPRService {
                 param.setNtpServer(ntpServer);
                 param.setRootPassword(rootPassword);
                 osInstallParams.add(param);
-            } 
+            }
             else {
                 osInstallParams.add(null);
             }
         }
         List<HostRestRep> installedHosts = Lists.newArrayList();
         try {
-            installedHosts = ComputeUtils.installOsOnHosts(hosts,osInstallParams);
-        }
-        catch(Exception e) {
+            installedHosts = ComputeUtils.installOsOnHosts(hosts, osInstallParams);
+        } catch (Exception e) {
             logError(e.getMessage());
         }
         return installedHosts;
     }
 
-    private void pushToVcenter(){
+    private void pushToVcenter() {
         if (vcenterId != null) {
             boolean isVCenterUpdate = false;
             List<ClusterRestRep> clusters = getClient().clusters().getByDataCenter(datacenterId);
@@ -348,13 +346,12 @@ public class CreateComputeClusterService extends ViPRService {
                 if (isVCenterUpdate) {
                     logInfo("compute.cluster.update.vcenter.cluster", vcenterId, datacenterId);
                     ComputeUtils.updateVcenterCluster(cluster, datacenterId);
-                } 
+                }
                 else {
                     logInfo("compute.cluster.create.vcenter.cluster", vcenterId, datacenterId);
                     ComputeUtils.createVcenterCluster(cluster, datacenterId);
                 }
-            }
-            catch(Exception e) {
+            } catch (Exception e) {
                 logError("compute.cluster.vcenter.push.failed", e.getMessage());
             }
         }

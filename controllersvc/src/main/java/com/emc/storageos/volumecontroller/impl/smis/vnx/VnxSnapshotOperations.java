@@ -1,18 +1,10 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis.vnx;
+
+import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils.callEMCRefreshIfRequired;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -24,17 +16,16 @@ import javax.cim.CIMInstance;
 import javax.cim.CIMObjectPath;
 import javax.wbem.WBEMException;
 
-import com.emc.storageos.db.client.model.BlockObject;
-import com.emc.storageos.db.client.model.StoragePool;
-import com.emc.storageos.exceptions.DeviceControllerErrors;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.StoragePool;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.Volume;
+import com.emc.storageos.exceptions.DeviceControllerErrors;
 import com.emc.storageos.exceptions.DeviceControllerException;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -51,14 +42,11 @@ import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockCreateCGSnapsho
 import com.emc.storageos.volumecontroller.impl.smis.job.SmisBlockRestoreSnapshotJob;
 import com.emc.storageos.workflow.WorkflowException;
 
-import static com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils
-        .callEMCRefreshIfRequired;
-
 public class VnxSnapshotOperations extends AbstractSnapshotOperations {
     private static final Logger _log = LoggerFactory.getLogger(VnxSnapshotOperations.class);
 
     private FindProviderFactory findProviderFactory;
-    
+
     public void setFindProviderFactory(final FindProviderFactory findProviderFactory) {
         this.findProviderFactory = findProviderFactory;
     }
@@ -68,14 +56,15 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
      * whatever is necessary to setup the snapshot for this call. The goal is to
      * make this a quick operation and the create operation has already done a lot
      * of the "heavy lifting".
-     *
-     * @param storage       [required] - StorageSystem object representing the array
-     * @param snapshot      [required] - BlockSnapshot URI representing the previously created
-     *                      snap for the volume
+     * 
+     * @param storage [required] - StorageSystem object representing the array
+     * @param snapshot [required] - BlockSnapshot URI representing the previously created
+     *            snap for the volume
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      */
     @Override
-    public void activateSingleVolumeSnapshot(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void activateSingleVolumeSnapshot(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         BlockSnapshot snapshotObj = null;
         try {
             snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
@@ -118,10 +107,10 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
      * whatever is necessary to setup the snapshot for this call. The goal is to
      * make this a quick operation and the create operation has already done a lot
      * of the "heavy lifting".
-     *
-     * @param storage       [required] - StorageSystem object representing the array
-     * @param snapshot      [required] - BlockSnapshot URI representing the previously created
-     *                      snap for the volume
+     * 
+     * @param storage [required] - StorageSystem object representing the array
+     * @param snapshot [required] - BlockSnapshot URI representing the previously created
+     *            snap for the volume
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      */
     @Override
@@ -171,7 +160,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
             _log.info("Problem making SMI-S call: ", e);
             ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
             taskCompleter.error(_dbClient, error);
-        }  finally {
+        } finally {
             _log.info("activateGroupSnapshots operation END");
         }
     }
@@ -179,14 +168,15 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
     /**
      * Should implement deletion of single volume snapshot. That is, deleting a snap that was
      * created independent of other volumes.
-     *
-     * @param storage       [required] - StorageSystem object representing the array
-     * @param snapshot      [required] - BlockSnapshot URI representing the previously created
-     *                      snap for the volume
+     * 
+     * @param storage [required] - StorageSystem object representing the array
+     * @param snapshot [required] - BlockSnapshot URI representing the previously created
+     *            snap for the volume
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      */
     @Override
-    public void deleteSingleVolumeSnapshot(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void deleteSingleVolumeSnapshot(StorageSystem storage, URI snapshot, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         try {
             callEMCRefreshIfRequired(_dbClient, _helper, storage,
                     Arrays.asList(snapshot));
@@ -226,22 +216,27 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
     /**
      * Should implement create of a snapshot from a source volume that is part of a
      * consistency group.
-     *
-     * @param storage       [required] - StorageSystem object representing the array
-     * @param snapshot      [required] - BlockSnapshot URI representing the previously created
-     *                      snap for the volume
+     * 
+     * @param storage [required] - StorageSystem object representing the array
+     * @param snapshot [required] - BlockSnapshot URI representing the previously created
+     *            snap for the volume
+     * @param createInactive - Indicates if the snapshots should be created but not
+     *            activated
+     * @param readOnly - Indicates if the snapshot should be read only.
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
-     * @throws DeviceControllerException 
+     * @throws DeviceControllerException
      */
     @Override
-    public void createGroupSnapshots(StorageSystem storage, List<URI> snapshotList, Boolean createInactive, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void createGroupSnapshots(StorageSystem storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly,
+            TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         try {
-        	URI snapshot = snapshotList.get(0);
+            URI snapshot = snapshotList.get(0);
             BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshot);
 
             // CTRL-5640: ReplicationGroup may not be accessible after provider fail-over.
             ReplicationUtils.checkReplicationGroupAccessibleOrFail(storage, snapshotObj, _dbClient, _helper, _cimPath);
-            
+
             Volume volume = _dbClient.queryObject(Volume.class, snapshotObj.getParent());
             TenantOrg tenant = _dbClient.queryObject(TenantOrg.class, volume.getTenant().getURI());
             String tenantName = tenant.getLabel();
@@ -251,8 +246,8 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
             String groupName = _helper.getConsistencyGroupName(snapshotObj, storage);
             CIMObjectPath cgPath = _cimPath.getReplicationGroupPath(storage, groupName);
             CIMObjectPath replicationSvc = _cimPath.getControllerReplicationSvcPath(storage);
-            CIMArgument[] inArgs = _helper.getCreateGroupReplicaInputArgumentsForVNX(storage, cgPath, 
-                                            createInactive, snapLabelToUse, SYNC_TYPE.SNAPSHOT.getValue());
+            CIMArgument[] inArgs = _helper.getCreateGroupReplicaInputArgumentsForVNX(storage, cgPath,
+                    createInactive, snapLabelToUse, SYNC_TYPE.SNAPSHOT.getValue());
             CIMArgument[] outArgs = new CIMArgument[5];
 
             _helper.invokeMethod(storage, replicationSvc, SmisConstants.CREATE_GROUP_REPLICA, inArgs, outArgs);
@@ -266,18 +261,18 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
             _log.info("Problem making SMI-S call: ", e);
             ServiceError error = DeviceControllerErrors.smis.unableToCallStorageProvider(e.getMessage());
             taskCompleter.error(_dbClient, error);
-            setInactive(((BlockSnapshotCreateCompleter)taskCompleter).getSnapshotURIs(), true);
+            setInactive(((BlockSnapshotCreateCompleter) taskCompleter).getSnapshotURIs(), true);
         }
     }
-    
+
     /**
      * Should implement clean up of all the snapshots in a volume consistency
      * group 'snap-set'. The 'snap-set' is a set of block snapshots created for a
      * set of volumes in a consistency group.
-     *
-     * @param storage       [required] - StorageSystem object representing the array
-     * @param snapshot      [required] - BlockSnapshot object representing the previously created
-     *                      snap for the volume
+     * 
+     * @param storage [required] - StorageSystem object representing the array
+     * @param snapshot [required] - BlockSnapshot object representing the previously created
+     *            snap for the volume
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      */
     @Override
@@ -297,7 +292,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
                 // Don't return, let the below code do its clean-up.
             } // else - storage will have right Provider to use.
 
-            String snapshotGroupName = snapshotObj.getReplicationGroupInstance();            
+            String snapshotGroupName = snapshotObj.getReplicationGroupInstance();
             boolean snapshotGroupExists = false;
             CIMObjectPath groupSynchronized = _cimPath.getGroupSynchronizedPath(storage, consistencyGroupName, snapshotGroupName);
             if (_helper.checkExists(storage, groupSynchronized, false, false) != null) {
@@ -307,12 +302,12 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
                 CIMArgument[] returnSnapGroupInput = _helper.getReturnGroupSyncToPoolInputArguments(groupSynchronized);
                 _helper.callModifyReplica(storage, returnSnapGroupInput);
             }
-            
+
             // Individually delete each snap in the snapshot group
             boolean hadDeleteFailure = false;
             List<BlockSnapshot> snaps = ControllerUtils.getBlockSnapshotsBySnapsetLabelForProject(snapshotObj, _dbClient);
             if (snapshotGroupExists) {
-                for(BlockSnapshot snap : snaps) {
+                for (BlockSnapshot snap : snaps) {
                     _log.info(String.format("vnxDeleteGroupSnapshots -- deleting snapshot %s", snap.getId().toString()));
                     if (!deleteConsistencyGroupSnapshot(storage, snap, taskCompleter)) {
                         // Delete has failed, it would have called complete task
@@ -322,7 +317,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
             }
             if (!hadDeleteFailure) {
                 // Set inactive=true for all snapshots in the snaps set
-                for(BlockSnapshot snap : snaps) {
+                for (BlockSnapshot snap : snaps) {
                     snap.setInactive(true);
                     snap.setIsSyncActive(false);
                     _dbClient.persistObject(snap);
@@ -343,15 +338,16 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
      * Implementation for restoring of a single volume snapshot restore. That is, this
      * volume is independent of other volumes and a snapshot was taken previously, and
      * now we want to restore that snap to the original volume.
-     *
-     * @param storage       [required] - StorageSystem object representing the array
-     * @param volume        [required] - Volume URI for the volume to be restored
-     * @param snapshot      [required] - BlockSnapshot URI representing the previously created
-     *                      snap for the volume
+     * 
+     * @param storage [required] - StorageSystem object representing the array
+     * @param volume [required] - Volume URI for the volume to be restored
+     * @param snapshot [required] - BlockSnapshot URI representing the previously created
+     *            snap for the volume
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      */
     @Override
-    public void restoreSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void restoreSingleVolumeSnapshot(StorageSystem storage, URI volume, URI snapshot, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         try {
             callEMCRefreshIfRequired(_dbClient, _helper, storage,
                     Arrays.asList(snapshot));
@@ -361,9 +357,12 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
             if (_helper.checkExists(storage, syncObjectPath, false, false) != null) {
                 CIMObjectPath cimJob;
                 if (_helper.isThinlyProvisioned(storage, to) || isBasedOnVNXThinStoragePool(to)) {
-                    _log.info("Volume {} is thinly provisioned or based on a Thin StoragePool, need to deactivate the volume before restore", to.getLabel());
+                    _log.info(
+                            "Volume {} is thinly provisioned or based on a Thin StoragePool, need to deactivate the volume before restore",
+                            to.getLabel());
                     deactivateSnapshot(storage, from, syncObjectPath);
-                    cimJob = _helper.callModifySettingsDefineState(storage, _helper.getRestoreFromSnapshotInputArguments(storage, to, from));
+                    cimJob = _helper
+                            .callModifySettingsDefineState(storage, _helper.getRestoreFromSnapshotInputArguments(storage, to, from));
                 } else {
                     // Thick volumes do not need to be deactivated prior to restore.
                     // The can be restored directly.
@@ -397,19 +396,20 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
      * belong to a "snap-set". This restore operation, will restore the volumes in the
      * consistency group from this snap-set. Any snapshot from the snap-set can be
      * provided to restore the whole snap-set.
-     *
-     * @param storage       [required] - StorageSystem object representing the array
-     * @param snapshotURI      [required] - BlockSnapshot URI representing the previously created
-     *                      snap for the volume
+     * 
+     * @param storage [required] - StorageSystem object representing the array
+     * @param snapshotURI [required] - BlockSnapshot URI representing the previously created
+     *            snap for the volume
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      */
     @Override
-    public void restoreGroupSnapshots(StorageSystem storage, URI volume, URI snapshotURI, TaskCompleter taskCompleter) throws DeviceControllerException {
+    public void restoreGroupSnapshots(StorageSystem storage, URI volume, URI snapshotURI, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         try {
             callEMCRefreshIfRequired(_dbClient, _helper, storage,
                     Arrays.asList(snapshotURI));
-        	final BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
-            
+            final BlockSnapshot snapshotObj = _dbClient.queryObject(BlockSnapshot.class, snapshotURI);
+
             // Check if the consistency group exists
             final String consistencyGroupName = _helper.getConsistencyGroupName(snapshotObj, storage);
             storage = findProviderFactory.withGroup(storage, consistencyGroupName).find();
@@ -435,13 +435,13 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
                     _log.info("Consistency group {} snapshots require copy-to-target",
                             consistencyGroupName);
                     List<URI> snapshotList = new ArrayList<URI>();
-                    for(BlockSnapshot snapshot : snapshots) {
+                    for (BlockSnapshot snapshot : snapshots) {
                         snapshotList.add(snapshot.getId());
                     }
                     internalGroupSnapCopyToTarget(storage, snapshotObj, snapshotList);
                 }
                 CIMObjectPath settingsPathFromOutputArg = null;
-            	// Deactivate Synchronization if not already deactivated
+                // Deactivate Synchronization if not already deactivated
                 String copyState = groupSynchronizedInstance.getPropertyValue(SmisConstants.CP_COPY_STATE).toString();
                 if (!String.valueOf(SmisConstants.INACTIVE_VALUE).equalsIgnoreCase(copyState)) {
                     CIMArgument[] deactivateGroupInput = _helper.getDeactivateSnapshotSynchronousInputArguments(groupSynchronized);
@@ -449,24 +449,24 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
                     _helper.callModifyReplica(storage, deactivateGroupInput, outArgs);
                     settingsPathFromOutputArg = (CIMObjectPath) outArgs[0].getValue();
                 }
-                
+
                 final boolean isSynchronizationAspectSet = snapshotObj.getSettingsGroupInstance() != null;
-                
+
                 // Get the Clar_SettingsDefineState_RG_SAFS path
-				final CIMObjectPath settingsPath = isSynchronizationAspectSet ? 
-						_helper.getSettingsDefineStateForSourceGroup(storage, snapshotObj.getSettingsGroupInstance()): 
-						settingsPathFromOutputArg;
-               
+                final CIMObjectPath settingsPath = isSynchronizationAspectSet ?
+                        _helper.getSettingsDefineStateForSourceGroup(storage, snapshotObj.getSettingsGroupInstance()) :
+                        settingsPathFromOutputArg;
+
                 // If the Clar_SynchronizationAspectForSourceGroup hasn't been set in the snapshots, then set it.
-                if(!isSynchronizationAspectSet){
-	                CIMObjectPath syncPath = (CIMObjectPath) settingsPath.getKey(SmisConstants.CP_SETTING_DATA).getValue();
-	                String instanceId = (String) syncPath.getKey(SmisConstants.CP_INSTANCE_ID).getValue();
-	                for (BlockSnapshot it : snapshots) {
-	                    it.setSettingsGroupInstance(instanceId);
-	                }
-	                _dbClient.persistObject(snapshots);
+                if (!isSynchronizationAspectSet) {
+                    CIMObjectPath syncPath = (CIMObjectPath) settingsPath.getKey(SmisConstants.CP_SETTING_DATA).getValue();
+                    String instanceId = (String) syncPath.getKey(SmisConstants.CP_INSTANCE_ID).getValue();
+                    for (BlockSnapshot it : snapshots) {
+                        it.setSettingsGroupInstance(instanceId);
+                    }
+                    _dbClient.persistObject(snapshots);
                 }
-                
+
                 // Restore snapshot
                 CIMArgument[] restoreInput = _helper.getRestoreFromSettingsStateInputArguments(settingsPath);
                 CIMObjectPath cimJob = _helper.callModifySettingsDefineState(storage, restoreInput);
@@ -486,7 +486,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
 
     @Override
     public void copySnapshotToTarget(StorageSystem storage, URI snapshot,
-                                     TaskCompleter taskCompleter)
+            TaskCompleter taskCompleter)
             throws DeviceControllerException {
         try {
             _log.info("copySnapshotToTarget operation START");
@@ -524,17 +524,17 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
     /**
      * This operation will make the call to copy the source information to the target
      * volumes of the snap.
-     *
-     * @param storage       [required] - StorageSystem object representing the array
-     * @param snapshotList  [required] - List of URIs pointing to BlockSnapshots
+     * 
+     * @param storage [required] - StorageSystem object representing the array
+     * @param snapshotList [required] - List of URIs pointing to BlockSnapshots
      * @param taskCompleter [required] - TaskCompleter to update with status.
-     *
+     * 
      * @throws DeviceControllerException
      */
     @Override
     public void copyGroupSnapshotsToTarget(StorageSystem storage,
-                                           List<URI> snapshotList,
-                                           TaskCompleter taskCompleter)
+            List<URI> snapshotList,
+            TaskCompleter taskCompleter)
             throws DeviceControllerException {
         try {
             _log.info("copyGroupSnapshotsToTarget operation START");
@@ -562,15 +562,16 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
     /**
      * This method will delete a snapshot that was created as part of volume consistency
      * group 'snap-set'.
-     *
-     * @param storage       [required] - StorageSystem object representing the array
-     * @param snapshot      [required] - BlockSnapshot URI representing the previously created
-     *                      snap for the volume
+     * 
+     * @param storage [required] - StorageSystem object representing the array
+     * @param snapshot [required] - BlockSnapshot URI representing the previously created
+     *            snap for the volume
      * @param taskCompleter - TaskCompleter object used for the updating operation status.
      * @return true - All the snaps in the 'snap-set' where deleted successfully.
      * @throws WorkflowException
      */
-    private boolean deleteConsistencyGroupSnapshot(StorageSystem storage, BlockSnapshot snap, TaskCompleter taskCompleter) throws DeviceControllerException {
+    private boolean deleteConsistencyGroupSnapshot(StorageSystem storage, BlockSnapshot snap, TaskCompleter taskCompleter)
+            throws DeviceControllerException {
         boolean wasSuccess = false;
         try {
             callEMCRefreshIfRequired(_dbClient, _helper, storage,
@@ -583,7 +584,8 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
                 if (snap.getSettingsInstance() != null) {
                     Volume volume = _dbClient.queryObject(Volume.class, snap.getParent());
                     outArgs = new CIMArgument[5];
-                    _helper.callModifySettingsDefineState(storage, _helper.getDeleteSettingsForSnapshotInputArguments(storage, volume, snap), outArgs);
+                    _helper.callModifySettingsDefineState(storage,
+                            _helper.getDeleteSettingsForSnapshotInputArguments(storage, volume, snap), outArgs);
                 }
             }
             wasSuccess = true;
@@ -605,16 +607,16 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
 
     /**
      * Internal function to call SMI-S to run Copy-to-Target for CG snapshot
-     *
-     * @param storage      [in] - StorageSystem object
-     * @param snapshot     [in] - BlockSnapshot object. One of the snaps in the CG
+     * 
+     * @param storage [in] - StorageSystem object
+     * @param snapshot [in] - BlockSnapshot object. One of the snaps in the CG
      * @param snapshotList [in] - List of BlockSnapshot URIs. These are all the snaps in
-     *                     CG snap set.
+     *            CG snap set.
      * @throws Exception
      */
     private void internalGroupSnapCopyToTarget(StorageSystem storage,
-                                               BlockSnapshot snapshot,
-                                               List<URI> snapshotList)
+            BlockSnapshot snapshot,
+            List<URI> snapshotList)
             throws Exception {
         String snapGroupName = snapshot.getReplicationGroupInstance();
         CIMObjectPath targetGroup =
@@ -637,7 +639,7 @@ public class VnxSnapshotOperations extends AbstractSnapshotOperations {
 
     /**
      * Check if 'volume' is based on a ThinPool
-     *
+     * 
      * @param volume [in] Volume object used for checking the StoragePool
      * @return true iff 'volume' is based of a StoragePool that supports Thin volumes.
      */

@@ -422,7 +422,7 @@ function updateLocalDateTime(context) {
         var node = $(this);
         var format = $(node).data('format');
         if (format == null) {
-            format = 'MMM Do YYYY, h:mm:ss a';
+            format = 'MMM Do YYYY, h:mm:ss A';
         }
         var value = $(node).text();
         if ($.isNumeric(value)) {
@@ -544,7 +544,7 @@ function formatDateTime(date) {
  * @returns the formatted date time.
  */
 function formatLocalDateTime(date) {
-    return formatDate(date, 'MMM Do YYYY, h:mm:ss a');
+    return formatDate(date, 'MMM Do YYYY, h:mm:ss A');
 }
 
 /**

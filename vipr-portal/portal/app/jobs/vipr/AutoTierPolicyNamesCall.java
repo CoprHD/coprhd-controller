@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package jobs.vipr;
@@ -46,10 +46,10 @@ public class AutoTierPolicyNamesCall extends ViPRCall<List<String>> {
         if (systemType != null) {
             filter = new SystemTypeFilter();
         }
-        
-        Collection<AutoTieringPolicyRestRep> policies = 
+
+        Collection<AutoTieringPolicyRestRep> policies =
                 client.autoTierPolicies().getByVirtualArrays(varrayIds, provisioningType, Boolean.valueOf(namesOnly), filter);
-         
+
         if (namesOnly) {
             names.addAll(ResourceUtils.names(policies));
         }
@@ -58,10 +58,10 @@ public class AutoTierPolicyNamesCall extends ViPRCall<List<String>> {
                 names.add(policy.getNativeGuid());
             }
         }
-        
+
         return names;
     }
-    
+
     class SystemTypeFilter extends DefaultResourceFilter<AutoTieringPolicyRestRep> {
         @Override
         public boolean accept(AutoTieringPolicyRestRep item) {

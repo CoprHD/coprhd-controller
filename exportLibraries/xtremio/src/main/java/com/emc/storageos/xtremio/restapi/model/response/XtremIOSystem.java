@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.xtremio.restapi.model.response;
 
@@ -20,30 +10,30 @@ import org.codehaus.jackson.map.annotate.JsonRootName;
 import com.google.gson.Gson;
 import com.google.gson.annotations.SerializedName;
 
-@JsonRootName(value="xtremio_system_info")
+@JsonRootName(value = "xtremio_system_info")
 public class XtremIOSystem {
-	
-	@SerializedName("name")
-	@JsonProperty(value="name")
-	private String name;
 
-	@SerializedName("sys-sw-version")
-	@JsonProperty(value="sys-sw-version")
-	private String version;
-	
-	@SerializedName("sys-psnt-serial-number")
-	@JsonProperty(value="sys-psnt-serial-number")
-	private String serialNumber;
-	
-	@SerializedName("ud-ssd-space")
-	@JsonProperty(value="ud-ssd-space")
-	private Long totalCapacity; //KB
-	
-	@SerializedName("ud-ssd-space-in-use")
-    @JsonProperty(value="ud-ssd-space-in-use")
-    private Long usedCapacity; //KB
-	
-	public String getName() {
+    @SerializedName("name")
+    @JsonProperty(value = "name")
+    private String name;
+
+    @SerializedName("sys-sw-version")
+    @JsonProperty(value = "sys-sw-version")
+    private String version;
+
+    @SerializedName("sys-psnt-serial-number")
+    @JsonProperty(value = "sys-psnt-serial-number")
+    private String serialNumber;
+
+    @SerializedName("ud-ssd-space")
+    @JsonProperty(value = "ud-ssd-space")
+    private Long totalCapacity; // KB
+
+    @SerializedName("ud-ssd-space-in-use")
+    @JsonProperty(value = "ud-ssd-space-in-use")
+    private Long usedCapacity; // KB
+
+    public String getName() {
         return name;
     }
 
@@ -84,6 +74,6 @@ public class XtremIOSystem {
     }
 
     public String toString() {
-		return new Gson().toJson(this).toString();
-	}
+        return new Gson().toJson(this).toString();
+    }
 }

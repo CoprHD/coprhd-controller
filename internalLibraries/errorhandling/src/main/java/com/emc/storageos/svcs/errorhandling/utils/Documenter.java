@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.svcs.errorhandling.utils;
@@ -75,7 +65,7 @@ public class Documenter {
             "com.emc.storageos.security.exceptions",
             "com.emc.storageos.systemservices.exceptions",
             "com.emc.storageos.volumecontroller.placement",
-	        "com.emc.storageos.vnxe"};
+            "com.emc.storageos.vnxe" };
 
     public static Collection<DocumenterEntry> createEntries() {
         final List<Class<?>> list = getMessageBundleClasses();

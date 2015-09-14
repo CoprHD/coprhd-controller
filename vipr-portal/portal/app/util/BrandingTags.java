@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -14,12 +14,13 @@ import java.util.Map;
 
 /**
  * Tags to support Branding.
- *
+ * 
  * @author Chris Dail
  */
 @FastTags.Namespace("Branding")
 public class BrandingTags extends FastTags {
-    public static void _applicationName(Map<?, ?> args, Closure body, PrintWriter out, GroovyTemplate.ExecutableTemplate template, int fromLine) {
+    public static void _applicationName(Map<?, ?> args, Closure body, PrintWriter out, GroovyTemplate.ExecutableTemplate template,
+            int fromLine) {
         out.write(getApplicationName());
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.model.dao;
@@ -12,7 +12,7 @@ import com.emc.storageos.db.client.model.Host;
 
 public class ESXHostFinder extends HostFinder {
     private static final String DATACENTER_COLUMN_NAME = "vcenterDataCenter";
-    
+
     public ESXHostFinder(DBClientWrapper client) {
         super(client);
     }
@@ -21,7 +21,7 @@ public class ESXHostFinder extends HostFinder {
         List<NamedElement> esxHosts = findIdsByDatacenter(datacenterId);
         return findByIds(toURIs(esxHosts));
     }
-    
+
     public List<NamedElement> findIdsByDatacenter(URI datacenterId) {
         return client.findBy(Host.class, DATACENTER_COLUMN_NAME, datacenterId);
     }

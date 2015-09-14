@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.security.keystore.impl;
@@ -21,8 +11,6 @@ import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.curator.framework.recipes.locks.InterProcessLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-
 import java.io.*;
 import java.security.KeyStore;
 import java.security.cert.CertificateFactory;
@@ -74,8 +62,9 @@ public class TrustStoreLoader {
 
         try {
 
-            /* the lock and version check to make sure, within one vdc only one service which uses truststore (like authsvc)
-               fill up zk truststore at same time.
+            /*
+             * the lock and version check to make sure, within one vdc only one service which uses truststore (like authsvc)
+             * fill up zk truststore at same time.
              */
             log.info("To load the trust store, trying to get the lock: {} ", CA_CERTS_LOCK);
             tsLock = coordHelper.acquireLock(CA_CERTS_LOCK);
@@ -107,7 +96,7 @@ public class TrustStoreLoader {
                     DistributedKeyStoreImpl.CA_CERTIFICATES_CONFIG_KIND,
                     DistributedKeyStoreImpl.CA_CERTIFICATES_CONFIG_ID,
                     DistributedKeyStoreImpl.CA_CERTIFICATES_CONFIG_KEY_VERSION
-            );
+                    );
             log.info("saved the new version of ca certs to ZK: {}", version);
         } catch (Exception e) {
             throw new RuntimeException(e);

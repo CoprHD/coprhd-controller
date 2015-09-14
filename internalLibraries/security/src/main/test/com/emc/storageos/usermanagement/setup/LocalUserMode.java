@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.usermanagement.setup;
@@ -15,23 +15,23 @@ import org.slf4j.LoggerFactory;
 
 import java.util.Properties;
 
-
 public class LocalUserMode {
     private static Logger logger = LoggerFactory.getLogger(LocalUserMode.class);
 
-    protected static String rootPassword = "ChangeMe"; // NOSONAR ("Suppressing: removing this hard-coded password since it's default vipr's password")
+    protected static String rootPassword = "ChangeMe"; // NOSONAR
+                                                       // ("Suppressing: removing this hard-coded password since it's default vipr's password")
     protected static String controllerNodeEndpoint;
     protected static String dataNodeEndpoint;
     protected static ViPRSystemClient systemClient;
     protected static ViPRCoreClient coreClient;
 
     @BeforeClass
-    public synchronized static void setup_LocalUserModeBaseClass() throws Exception {
-        //get the Bourne IP from parameter
-        String  param_IP = System.getProperty("APP_HOST_NAMES");
-        if(param_IP != null){
+    public synchronized static void setupLocalUserModeBaseClass() throws Exception {
+        // get the Bourne IP from parameter
+        String param_IP = System.getProperty("APP_HOST_NAMES");
+        if (param_IP != null) {
             controllerNodeEndpoint = param_IP;
-        }else{
+        } else {
             Properties properties = new Properties();
             properties.load(ClassLoader.class.getResourceAsStream("/test-env.conf"));
             controllerNodeEndpoint = properties.getProperty("APP_HOST_NAMES");
@@ -51,7 +51,7 @@ public class LocalUserMode {
     }
 
     @AfterClass
-    public static void teardown_LocalUserModeBaseClass() throws Exception {
+    public static void teardownLocalUserModeBaseClass() throws Exception {
         if (systemClient != null) {
             systemClient.auth().logout();
         }
@@ -61,16 +61,15 @@ public class LocalUserMode {
         }
     }
 
-
     protected static void waitForClusterStable() throws Exception {
         Long timeout = 1200L;
         String state = systemClient.upgrade().getClusterState();
 
-        Long startTime= System.currentTimeMillis();
+        Long startTime = System.currentTimeMillis();
         Long timeoutInMilliSeconds = timeout * 1000;
 
-        while(true){
-            if(systemClient.upgrade().getClusterState().contains("STABLE")){
+        while (true) {
+            if (systemClient.upgrade().getClusterState().contains("STABLE")) {
 
                 // Wait an extra 10 seconds before returning...
                 // Thread.sleep(10000);
@@ -82,8 +81,8 @@ public class LocalUserMode {
             logger.info("Cluster is " + state + ", retry after 10 seconds");
             Thread.sleep(10000);
 
-            //  No need to try further...
-            if((System.currentTimeMillis() - startTime) > timeoutInMilliSeconds){
+            // No need to try further...
+            if ((System.currentTimeMillis() - startTime) > timeoutInMilliSeconds) {
                 logger.info("Cluster is still not stable after waiting for " + timeout + " seconds");
                 break;
             }

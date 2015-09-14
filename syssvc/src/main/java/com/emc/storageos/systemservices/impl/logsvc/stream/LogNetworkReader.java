@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.logsvc.stream;
 
@@ -22,7 +12,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.systemservices.impl.logsvc.LogACKCode;
-import com.emc.storageos.systemservices.impl.logsvc.LogConstants;
 import com.emc.storageos.systemservices.impl.logsvc.LogMessage;
 import com.emc.storageos.systemservices.impl.logsvc.LogStatusInfo;
 import com.emc.storageos.systemservices.impl.logsvc.util.LogUtil;
@@ -35,10 +24,12 @@ public class LogNetworkReader implements LogStream {
     private LogStatusInfo status;
     private boolean isFinished;  // record is the logs and status chucks are all finished
     private String nodeId;
+    private String nodeName;
     private int logMessageCount = 0;
     
-    public LogNetworkReader(String nodeId, InputStream inputStream, LogStatusInfo status) {
+    public LogNetworkReader(String nodeId, String nodeName, InputStream inputStream, LogStatusInfo status) {
         this.nodeId = nodeId;
+        this.nodeName = nodeName;
         this.dis = new DataInputStream(inputStream);
         this.status = status;
         this.isFinished = false;
@@ -47,7 +38,7 @@ public class LogNetworkReader implements LogStream {
     @Override
     public LogMessage readNextLogMessage() {
         try {
-            while(true) {
+            while (true) {
                 byte flag = (byte) dis.read();
                 if (flag == LogACKCode.ACK_FIN) {
                     logger.debug("received FIN");
@@ -60,6 +51,7 @@ public class LogNetworkReader implements LogStream {
                     LogMessage log = LogMessage.read(dis);
                     logMessageCount++;
                     log.setNodeId(LogUtil.nodeIdToBytes(nodeId));
+                    log.setNodeName(LogUtil.nodeNameToBytes(nodeName));
                     if (logMessageCount % 100000 == 0) {
                         logger.debug("processing the {}th log messages", logMessageCount);
                     }
@@ -69,19 +61,24 @@ public class LogNetworkReader implements LogStream {
                 }
             }
         } catch (IOException e) {
-            //TODO: generate a dynamic error log message
+            // TODO: generate a dynamic error log message
             logger.error("IOException:", e);
             return null;
         }
     }
+
     public String getNodeId() {
         return this.nodeId;
+    }
+
+    public String getNodeName() {
+        return this.nodeName;
     }
     
     public LogStatusInfo getStatus() {
         return this.status;
     }
-    
+
     public boolean isFinished() {
         return this.isFinished;
     }

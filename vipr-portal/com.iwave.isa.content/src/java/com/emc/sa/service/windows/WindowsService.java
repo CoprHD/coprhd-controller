@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.windows;
@@ -56,9 +56,9 @@ public abstract class WindowsService extends ViPRService {
         }
         windowsSystems = Lists.newArrayList();
         for (Host mhost : hosts) {
-        	if (mhost == null) {
-        	    ExecutionUtils.fail("failTask.WindowsService.hostNotFound", hostId, hostId);
-        	}
+            if (mhost == null) {
+                ExecutionUtils.fail("failTask.WindowsService.hostNotFound", hostId, hostId);
+            }
             windowsSystems.add(WindowsUtils.createWindowsSystem(mhost, cluster));
         }
     }

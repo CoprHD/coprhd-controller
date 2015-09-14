@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core;
@@ -69,9 +69,9 @@ public class FileVirtualPools extends AbstractCoreBulkResources<FileVirtualPoolR
      * Gets a list of virtual pools from the given URL.
      * 
      * @param url
-     *        the URL to get.
+     *            the URL to get.
      * @param args
-     *        the URL arguments.
+     *            the URL arguments.
      * @return the list of virtual pool references.
      */
     protected List<NamedRelatedVirtualPoolRep> getList(String url, Object... args) {
@@ -101,10 +101,10 @@ public class FileVirtualPools extends AbstractCoreBulkResources<FileVirtualPoolR
     public List<NamedRelatedVirtualPoolRep> listByVDC(String shortVdcId) {
         UriBuilder builder = client.uriBuilder(baseUrl);
         builder.queryParam(SearchConstants.VDC_ID_PARAM, shortVdcId);
-        VirtualPoolList response =  client.getURI(VirtualPoolList.class, builder.build());
+        VirtualPoolList response = client.getURI(VirtualPoolList.class, builder.build());
         return ResourceUtils.defaultList(response.getVirtualPool());
-    }        
-    
+    }
+
     /**
      * Gets a list of all file virtual pools.
      * <p>
@@ -123,7 +123,7 @@ public class FileVirtualPools extends AbstractCoreBulkResources<FileVirtualPoolR
      * This is a convenience method for: <tt>getByRefs(list(), filter)</tt>
      * 
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
+     *            the resource filter to apply to the results as they are returned (optional).
      * @return the list of file virtual pools.
      */
     @Override
@@ -138,7 +138,7 @@ public class FileVirtualPools extends AbstractCoreBulkResources<FileVirtualPoolR
      * API Call: <tt>POST /file/vpools</tt>
      * 
      * @param input
-     *        the virtual pool configuration.
+     *            the virtual pool configuration.
      * @return the newly created file virtual pool.
      */
     public FileVirtualPoolRestRep create(FileVirtualPoolParam input) {
@@ -151,7 +151,7 @@ public class FileVirtualPools extends AbstractCoreBulkResources<FileVirtualPoolR
      * API Call: <tt>PUT /file/vpools/{id}</tt>
      * 
      * @param id
-     *        the ID of the file virtual pool to update.
+     *            the ID of the file virtual pool to update.
      * @param input
      * @return
      */
@@ -165,7 +165,7 @@ public class FileVirtualPools extends AbstractCoreBulkResources<FileVirtualPoolR
      * API Call: <tt>POST /file/vpools/{id}/deactivate</tt>
      * 
      * @param id
-     *        the ID of the file virtual pool.
+     *            the ID of the file virtual pool.
      */
     public void deactivate(URI id) {
         doDeactivate(id);
@@ -179,9 +179,9 @@ public class FileVirtualPools extends AbstractCoreBulkResources<FileVirtualPoolR
      * Lists the virtual pools that are associated with the given virtual array.
      * <p>
      * API Call: <tt>GET /vdc/varrays/{id}/vpools</tt>
-     *
+     * 
      * @param varrayId
-     *        the ID of the virtual array.
+     *            the ID of the virtual array.
      * @return the list of virtual pool references.
      */
     public List<NamedRelatedVirtualPoolRep> listByVirtualArray(URI varrayId) {
@@ -192,11 +192,11 @@ public class FileVirtualPools extends AbstractCoreBulkResources<FileVirtualPoolR
     /**
      * Gets the storage pools that are associated with the given block virtual pool.
      * Convenience method for calling getByRefs(listByVirtualArray(varrayId)).
-     *
+     * 
      * @param varrayId
-     *        the ID of the virtual array.
+     *            the ID of the virtual array.
      * @return the list of virtual pools.
-     *
+     * 
      * @see #listByVirtualArray(URI)
      * @see #getByRefs(java.util.Collection)
      */
@@ -207,14 +207,14 @@ public class FileVirtualPools extends AbstractCoreBulkResources<FileVirtualPoolR
     /**
      * Gets the storage pools that are associated with the given block virtual pool.
      * Convenience method for calling getByRefs(listByVirtualArray(varrayId)).
-     *
+     * 
      * @param varrayId
-     *        the ID of the virtual array.
+     *            the ID of the virtual array.
      * @param filter
-     *        the resource filter to apply to the results as they are returned (optional).
-     *
+     *            the resource filter to apply to the results as they are returned (optional).
+     * 
      * @return the list of virtual pools.
-     *
+     * 
      * @see #listByVirtualArray(URI)
      * @see #getByRefs(java.util.Collection)
      */
@@ -249,9 +249,9 @@ public class FileVirtualPools extends AbstractCoreBulkResources<FileVirtualPoolR
      * API Call: <tt>GET /file/vpools/{id}/varrays/{virtualArrayId}/capacity</tt>
      * 
      * @param id
-     *        the ID of the file virtual pool.
+     *            the ID of the file virtual pool.
      * @param virtualArrayId
-     *        the virtual array.
+     *            the virtual array.
      * @return the capacity on the virtual array.
      */
     public CapacityResponse getCapacityOnVirtualArray(URI id, URI virtualArrayId) {
@@ -264,7 +264,7 @@ public class FileVirtualPools extends AbstractCoreBulkResources<FileVirtualPoolR
      * API Call: <tt>GET /file/vpools/{id}/storage-pools</tt>
      * 
      * @param id
-     *        the ID of the file virtual pool.
+     *            the ID of the file virtual pool.
      * @return the list of storage pool references.
      */
     public List<NamedRelatedResourceRep> listStoragePools(URI id) {
@@ -277,7 +277,7 @@ public class FileVirtualPools extends AbstractCoreBulkResources<FileVirtualPoolR
      * <tt>getByRefs(listStoragePools(id))</tt>.
      * 
      * @param id
-     *        the ID of the file virtual pool.
+     *            the ID of the file virtual pool.
      * @return the list of storage pools.
      */
     public List<StoragePoolRestRep> getStoragePools(URI id) {
@@ -291,7 +291,7 @@ public class FileVirtualPools extends AbstractCoreBulkResources<FileVirtualPoolR
      * API Call: <tt>POST /file/vpools/matching-pools</tt>
      * 
      * @param input
-     *        the file virtual pool configuration.
+     *            the file virtual pool configuration.
      * @return the list of matching storage pool references.
      */
     public List<NamedRelatedResourceRep> listMatchingStoragePools(FileVirtualPoolParam input) {
@@ -303,7 +303,7 @@ public class FileVirtualPools extends AbstractCoreBulkResources<FileVirtualPoolR
      * Gets all storage pools that would match the given file virtual pool configuration.
      * 
      * @param input
-     *        the file virtual pool configuration.
+     *            the file virtual pool configuration.
      * @return the list of matching storage pools.
      */
     public List<StoragePoolRestRep> getMatchingStoragePools(FileVirtualPoolParam input) {
@@ -317,7 +317,7 @@ public class FileVirtualPools extends AbstractCoreBulkResources<FileVirtualPoolR
      * API Call: <tt>GET /file/vpools/{id}/refresh-matched-pools</tt>
      * 
      * @param id
-     *        the ID of the file virtual pool.
+     *            the ID of the file virtual pool.
      * @return the list of currently matching storage pool references.
      */
     public List<NamedRelatedResourceRep> refreshMatchingStoragePools(URI id) {
@@ -331,9 +331,9 @@ public class FileVirtualPools extends AbstractCoreBulkResources<FileVirtualPoolR
      * API Call: <tt>PUT /file/vpools/{id}/assign-matched-pools</tt>
      * 
      * @param id
-     *        the ID of the file virtual pool.
+     *            the ID of the file virtual pool.
      * @param input
-     *        the configuration of the storage pool assignments.
+     *            the configuration of the storage pool assignments.
      * @return the updated file virtual pool.
      */
     public FileVirtualPoolRestRep assignStoragePools(URI id, VirtualPoolPoolUpdateParam input) {

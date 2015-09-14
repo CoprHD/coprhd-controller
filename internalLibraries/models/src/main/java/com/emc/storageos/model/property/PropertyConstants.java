@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.model.property;
 
@@ -29,6 +19,7 @@ public class PropertyConstants {
     public static final String EMAILLIST                       = "emaillist";
     public static final String LICENSE                         = "license";
     public static final String HOSTNAME                        = "hostname";
+    public static final String STRICTHOSTNAME                  = "stricthostname";
     public static final String IPLIST                          = "iplist";
     public static final String ENCRYPTEDSTRING                 = "encryptedstring";
     // text is for multi-line, whereas string is for single line 
@@ -36,38 +27,38 @@ public class PropertyConstants {
     public static final String ENCRYPTEDTEXT                   = "encryptedtext";
 
     // node related property key
-    public static final String NODE_ID_KEY                    = "node_id";
-    public static final String NODE_COUNT_KEY                 = "node_count";
+    public static final String NODE_ID_KEY = "node_id";
+    public static final String NODE_COUNT_KEY = "node_count";
 
     // network related property key
-    public static final String IPV4_ADDR_KEY                  = "network_%s_ipaddr";
-    public static final String IPV4_GATEWAY_KEY              = "network_gateway";
-    public static final String IPV4_NETMASK_KEY              = "network_netmask";
-    public static final String IPV4_VIP_KEY                   = "network_vip";
-    public static final String IPV4_ADDR_DEFAULT             = "0.0.0.0";
-    public static final String NETMASK_DEFAULT               = "255.255.255.0";
+    public static final String IPV4_ADDR_KEY = "network_%s_ipaddr";
+    public static final String IPV4_GATEWAY_KEY = "network_gateway";
+    public static final String IPV4_NETMASK_KEY = "network_netmask";
+    public static final String IPV4_VIP_KEY = "network_vip";
+    public static final String IPV4_ADDR_DEFAULT = "0.0.0.0";
+    public static final String NETMASK_DEFAULT = "255.255.255.0";
 
-    public static final String IPV6_ADDR_KEY                 = "network_%s_ipaddr6";
-    public static final String IPV6_GATEWAY_KEY              = "network_gateway6";
-    public static final String IPV6_PREFIX_KEY               = "network_prefix_length";
-    public static final String IPV6_VIP_KEY                  = "network_vip6";
-    public static final String IPV6_ADDR_DEFAULT            = "::0";
-    public static final String IPV6_PREFIX_LEN_DEFAULT     = "64";
+    public static final String IPV6_ADDR_KEY = "network_%s_ipaddr6";
+    public static final String IPV6_GATEWAY_KEY = "network_gateway6";
+    public static final String IPV6_PREFIX_KEY = "network_prefix_length";
+    public static final String IPV6_VIP_KEY = "network_vip6";
+    public static final String IPV6_ADDR_DEFAULT = "::0";
+    public static final String IPV6_PREFIX_LEN_DEFAULT = "64";
 
     // deployment related property keys and value sets.
     public static final String CONFIG_KEY_SCENARIO = "scenario";
-    public static final String INIT_MODE="init";
-    public static final String INSTALL_MODE="install";
-    public static final String CONFIG_MODE="config";
-    public static final String REDEPLOY_MODE="redeploy";
-    public static final String PROPERTY_KEY_ALIVE_NODE =   "alive_node_%s";
+    public static final String INIT_MODE = "init";
+    public static final String INSTALL_MODE = "install";
+    public static final String CONFIG_MODE = "config";
+    public static final String REDEPLOY_MODE = "redeploy";
+    public static final String PROPERTY_KEY_ALIVE_NODE = "alive_node_%s";
 
     // hardware related property keys
-    public static final String PROPERTY_KEY_DISK =   "disk";
-    public static final String PROPERTY_KEY_DISK_CAPACITY =   "disk_capacity";
-    public static final String PROPERTY_KEY_NETIF =  "network_interface";
-    public static final String PROPERTY_KEY_CPU_CORE =   "cpu_core";
-    public static final String PROPERTY_KEY_MEMORY_SIZE =   "memory_size";
+    public static final String PROPERTY_KEY_DISK = "disk";
+    public static final String PROPERTY_KEY_DISK_CAPACITY = "disk_capacity";
+    public static final String PROPERTY_KEY_NETIF = "network_interface";
+    public static final String PROPERTY_KEY_CPU_CORE = "cpu_core";
+    public static final String PROPERTY_KEY_MEMORY_SIZE = "memory_size";
 
     // internal hardware property key for hardware probing
     public static final String NODE_PROBE_KEY_DISK_MET_MIN_REQ = "met_min_req";
@@ -76,7 +67,7 @@ public class PropertyConstants {
 
     // minimum hardware requirements for hardware property
     public static final int MIN_REQ_CPU_CORE = 1;
-    public static final int MIN_REQ_MEM_SIZE = 4032000; //  ~4GB (hypervisor reserves little memory from configured memory)
+    public static final int MIN_REQ_MEM_SIZE = 4032000; // ~4GB (hypervisor reserves little memory from configured memory)
     public static final int MIN_REQ_DISK_SIZE = 100;	 // TODO: for native installed env, the min disk is 122GB
 
     // hardware default values
@@ -85,5 +76,5 @@ public class PropertyConstants {
     public static final String NETIF_DEFAULT = "eth0";
 
     // property key/value pair delimiter
-    public static final String DELIMITER                     = "=";
+    public static final String DELIMITER = "=";
 }

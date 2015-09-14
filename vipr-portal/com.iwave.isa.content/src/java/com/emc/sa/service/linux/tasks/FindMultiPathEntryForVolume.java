@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.linux.tasks;
@@ -44,7 +44,7 @@ public class FindMultiPathEntryForVolume extends LinuxExecutionTask<MultiPathEnt
     protected MultiPathEntry findMultiPathEntry(BlockObjectRestRep blockVolume, List<MultiPathEntry> multipathEntries) {
         for (MultiPathEntry entry : multipathEntries) {
             String entryWwn = stripWwnPrefix(entry.getWwid());
-			logDebug("FindMultiPathEntryForVolume.checking", entry.getName(), entryWwn, blockVolume.getWwn());
+            logDebug("FindMultiPathEntryForVolume.checking", entry.getName(), entryWwn, blockVolume.getWwn());
             if (VolumeWWNUtils.wwnMatches(entryWwn, volume)) {
                 return entry;
             }

@@ -34,6 +34,8 @@ class VcenterDatacenter(object):
                             URI_DATACENTERS + "/{0}/create-vcenter-cluster"
     URI_DATACENTERS_UPDATE_CLUSTER = \
                             URI_DATACENTERS + "/{0}/update-vcenter-cluster"
+    DATACENTERS_FROM_ALL_TENANTS = "No-Filter";
+    DATACENTERS_WITH_NO_TENANTS = "Not-Assigned";
 
     def __init__(self, ipAddr, port):
         '''
@@ -73,7 +75,7 @@ class VcenterDatacenter(object):
 
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port, "GET",
-            VcenterDatacenter.URI_VCENTER_DATACENTERS.format(uri), None)
+            VcenterDatacenter.URI_VCENTER_DATACENTERS.format(uri), VcenterDatacenter.DATACENTERS_FROM_ALL_TENANTS)
 
         o = common.json_decode(s)
 
@@ -193,7 +195,7 @@ class VcenterDatacenter(object):
 
                 body = json.dumps(params)
                 (s, h) = common.service_json_request(
-                    self.__ipAddr, self.__port, "POST",
+                    self.__ipAddr, self.__port, "PUT",
                     VcenterDatacenter.URI_VCENTER_DATACENTERS.format(
                         vcenteruri), body)
                 o = common.json_decode(s)
@@ -267,6 +269,52 @@ class VcenterDatacenter(object):
             VcenterDatacenter.URI_DATACENTERS_UPDATE_CLUSTER.format(dc_uri),
             body)
         return common.json_decode(s)
+
+    def vcenterdatacenter_update(self, label, vcenter, tenantname, newtenantname):
+        '''
+        updates a vcenterdatacenter
+        parameters:
+            label:  label of the vcenterdatacenter
+        Returns:
+            JSON payload response
+        '''
+        try:
+            check = self.vcenterdatacenter_show(label, vcenter, tenantname)
+            if check:
+                raise SOSError(SOSError.NOT_FOUND_ERR,
+                               "vcenterdatacenter " + label + ": found")
+
+        except SOSError as e:
+            if e.err_code == SOSError.NOT_FOUND_ERR:
+
+                uri = self.vcenterdatacenter_query(label, vcenter, VcenterDatacenter.DATACENTERS_FROM_ALL_TENANTS)
+
+                params = dict()
+                params['name'] = label
+                
+                if newtenantname is not None and newtenantname != 'null':
+                    from tenant import Tenant
+                    obj = Tenant(self.__ipAddr, self.__port)
+                    params['tenant'] = obj.tenant_query(newtenantname)
+                elif newtenantname is not None:
+                     params['tenant'] = newtenantname
+
+                body = json.dumps(params)
+
+                (s, h) = common.service_json_request(
+                    self.__ipAddr, self.__port, "PUT",
+                    VcenterDatacenter.URI_DATACENTER.format(uri), body)
+
+                o = common.json_decode(s)
+
+                return o
+            else:
+                raise e
+
+        if not check:
+            raise SOSError(SOSError.ENTRY_ALREADY_EXISTS_ERR,
+                           "vcenterdatacenter with name " + label +
+                           " dost not exist")
 
 
 # datacenter Create routines
@@ -745,6 +793,56 @@ def vcenterdatacenter_update_cluster(args):
         common.format_err_msg_and_raise("update-cluster", "vcenterdatacenter",
                                         e.err_text, e.err_code)
 
+#
+# vcenterdatacenter update routines
+#
+
+def update_parser(subcommand_parsers, common_parser):
+    # create command parser
+    update_parser = subcommand_parsers.add_parser(
+        'update',
+        description='ViPR vCenterDataCenter Update CLI usage.',
+        parents=[common_parser],
+        conflict_handler='resolve',
+        help='Update a vCenterDataCenter')
+
+    mandatory_args = update_parser.add_argument_group('mandatory arguments')
+    mandatory_args.add_argument('-name', '-n',
+                                help='Name of vCenterDataCenter',
+                                metavar='<vcenterdatacentername>',
+                                dest='name',
+                                required=True)
+
+    mandatory_args.add_argument('-vcenter',
+                                help='vcenter',
+                                dest='vcenter',
+                                metavar='<vcenter>',
+                                required=True)
+
+    mandatory_args.add_argument('-tenant', '-tn',
+                                help='Name of Tenant',
+                                metavar='<tenant>',
+                                dest='tenant',
+                                required=True)
+
+    update_parser.add_argument('-newtenant', '-ntn',
+                               help='Name of the new Tenant to be updated. Provide null if want to remove the exsiting tenant from the datacetner',
+                               metavar='<newtenant>',
+                               dest='newtenant',
+                               default=None)
+
+    update_parser.set_defaults(func=vcenterdatacenter_update)
+
+
+def vcenterdatacenter_update(args):
+    obj = VcenterDatacenter(args.ip, args.port)
+    try:
+        res = obj.vcenterdatacenter_update(args.name,
+                                           args.vcenter, args.tenant, args.newtenant)
+    except SOSError as e:
+        common.format_err_msg_and_raise("update", "vcenterdatacenter",
+                                        e.err_text, e.err_code)
+
 
 #
 # vcenterdatacenter Main parser routine
@@ -783,3 +881,6 @@ def vcenterdatacenter_parser(parent_subparser, common_parser):
 
     # update vcenter cluster parser
     update_cluster_parser(subcommand_parsers, common_parser)
+
+    # update vcenter datacenter parser
+    update_parser(subcommand_parsers, common_parser)

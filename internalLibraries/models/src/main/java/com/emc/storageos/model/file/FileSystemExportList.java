@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.file;
@@ -17,14 +17,16 @@ public class FileSystemExportList {
 
     private List<FileSystemExportParam> exportList;
 
-    public FileSystemExportList() {}
-    
+    public FileSystemExportList() {
+    }
+
     public FileSystemExportList(List<FileSystemExportParam> exportList) {
         this.exportList = exportList;
     }
 
     /**
      * List of file system exports
+     * 
      * @valid none
      */
     @XmlElement(name = "filesystem_export")
@@ -38,5 +40,5 @@ public class FileSystemExportList {
     public void setExportList(List<FileSystemExportParam> exportList) {
         this.exportList = exportList;
     }
-    
+
 }

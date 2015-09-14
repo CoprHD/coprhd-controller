@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.util;
@@ -28,7 +28,7 @@ public class SizeUtils {
         String pre = (internationalSystemOfUnits ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + "";
         return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
-    
+
     public static String humanReadableValueOnly(double bytes, boolean internationalSystemOfUnits) {
         int unit = internationalSystemOfUnits ? 1000 : 1024;
         if (bytes <= 0) {
@@ -38,9 +38,9 @@ public class SizeUtils {
             return Double.toString(bytes);
         }
         int exp = (int) (Math.log(bytes) / Math.log(unit));
-        return String.format("%.1f", bytes / Math.pow(unit, exp)); 	
-    }    
-    
+        return String.format("%.1f", bytes / Math.pow(unit, exp));
+    }
+
     public static String humanReadableUnits(double bytes, boolean internationalSystemOfUnits) {
         int unit = internationalSystemOfUnits ? 1000 : 1024;
         if (bytes <= 0) {
@@ -51,9 +51,9 @@ public class SizeUtils {
         }
         int exp = (int) (Math.log(bytes) / Math.log(unit));
         String pre = (internationalSystemOfUnits ? "kMGTPEZY" : "KMGTPEZY").charAt(exp - 1) + "";
-        return String.format("%sB", pre);    	
+        return String.format("%sB", pre);
     }
-    
+
     public static String humanReadableByteCount(BigDecimal bytes, Boolean si) {
         return humanReadableByteCount(bytes.doubleValue(), si);
     }

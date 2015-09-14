@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.linux.tasks;
@@ -15,8 +15,7 @@ public class CheckForPowerPath extends LinuxExecutionTask<String> {
         try {
             executeCommand(command, SHORT_TIMEOUT);
             return null;
-        }
-        catch (PowerPathException e) {
+        } catch (PowerPathException e) {
             return e.getMessage();
         }
     }

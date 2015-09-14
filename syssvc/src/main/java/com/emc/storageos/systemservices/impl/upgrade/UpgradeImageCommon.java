@@ -1,25 +1,12 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.upgrade;
 
 import org.slf4j.Logger;
 
-import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
 import com.emc.storageos.coordinator.client.model.DownloadingInfo;
-import com.emc.storageos.coordinator.client.model.SoftwareVersion;
-import com.emc.storageos.services.util.AlertsLogger;
 import com.emc.vipr.model.sys.NodeProgress.DownloadStatus;
 
 import static com.emc.storageos.coordinator.client.model.Constants.*;
@@ -28,7 +15,6 @@ import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.zip.CRC32;
@@ -44,9 +30,9 @@ public class UpgradeImageCommon {
     OutputStream _out;
     Logger _log;
     String _prefix;
-    UpgradeManager _manager=null;
+    UpgradeManager _manager = null;
     String _version;
-    
+
     public UpgradeImageCommon(InputStream in, OutputStream out, Logger log, String prefix, UpgradeManager manager, String version) {
         _in = in;
         _out = out;
@@ -55,7 +41,7 @@ public class UpgradeImageCommon {
         _manager = manager;
         _version = version;
     }
-    
+
     public boolean start() throws Exception {
         MessageDigest sha1 = MessageDigest.getInstance("SHA1");
 
@@ -70,28 +56,29 @@ public class UpgradeImageCommon {
 
         int bytesRead = 0;
         long bytesWritten = 0;
-        
+
         long bytesDownloaded = 0;
         long currentTime = System.currentTimeMillis();
-        
-        CoordinatorClientExt coordinator=_manager.getCoordinator();
-        String svcId=coordinator.getMySvcId();
+
+        CoordinatorClientExt coordinator = _manager.getCoordinator();
+        String svcId = coordinator.getMySvcId();
         DownloadingInfo targetDownloadingInfo = coordinator.getTargetInfo(DownloadingInfo.class);
         boolean trackProgress = false;
         long imageSize = 0;
         if (targetDownloadingInfo != null && _version.equals(targetDownloadingInfo._version)) {
-            trackProgress  = true;
+            trackProgress = true;
             imageSize = targetDownloadingInfo._size;
         }
-        
+
         ArrayList<Integer> counter = null;
-        // Need to get the accumulated error count, if there is no previous download or it's downloading a new version, we should use a new counter
-        if (trackProgress) {            
+        // Need to get the accumulated error count, if there is no previous download or it's downloading a new version, we should use a new
+        // counter
+        if (trackProgress) {
             DownloadingInfo nodeDownloadingInfo = coordinator.getNodeGlobalScopeInfo(DownloadingInfo.class, "downloadinfo", svcId);
-            if (nodeDownloadingInfo==null || nodeDownloadingInfo._version != targetDownloadingInfo._version) {
-            	counter = targetDownloadingInfo._errorCounter;
+            if (nodeDownloadingInfo == null || nodeDownloadingInfo._version != targetDownloadingInfo._version) {
+                counter = targetDownloadingInfo._errorCounter;
             } else {
-            	counter = nodeDownloadingInfo._errorCounter;
+                counter = nodeDownloadingInfo._errorCounter;
             }
         }
         try {
@@ -100,7 +87,7 @@ public class UpgradeImageCommon {
                 if (bytesRead == -1) {
                     break;
                 }
-                 
+
                 int overFlow = validBytesCnt + bytesRead - TRAILER_LENGTH;
                 if (overFlow > 0) {
                     if (overFlow >= validBytesCnt) {
@@ -127,56 +114,65 @@ public class UpgradeImageCommon {
                     System.arraycopy(buffer, 0, trailerBuffer, validBytesCnt, bytesRead);
                     validBytesCnt += bytesRead;
                 }
-    
+
                 _out.write(buffer, 0, bytesRead);
                 bytesWritten += bytesRead;
-                
+
                 long timeNow = System.currentTimeMillis();
-                if (bytesWritten-bytesDownloaded>DOWNLOAD_MONITORING_SIZE_INCREMENT && timeNow-currentTime>DOWNLOAD_MONITORING_TIME_INCREMENT) {
-                    if(trackProgress) {
+                if (bytesWritten - bytesDownloaded > DOWNLOAD_MONITORING_SIZE_INCREMENT
+                        && timeNow - currentTime > DOWNLOAD_MONITORING_TIME_INCREMENT) {
+                    if (trackProgress) {
                         DownloadingInfo tmpInfo = coordinator.getTargetInfo(DownloadingInfo.class);
-                        bytesDownloaded=bytesWritten;
-                        currentTime=timeNow;
-                        _log.info("The bytesDownloaded is "+bytesDownloaded);
-                        if (null!=tmpInfo && DownloadStatus.CANCELLED==tmpInfo._status){ // Check the target info of the DownloadingInfo class to see if user sent a cancel request
-                            coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(_version, imageSize, 0, DownloadStatus.CANCELLED, counter),"downloadinfo",svcId);
+                        bytesDownloaded = bytesWritten;
+                        currentTime = timeNow;
+                        _log.info("The bytesDownloaded is " + bytesDownloaded);
+                        if (null != tmpInfo && DownloadStatus.CANCELLED == tmpInfo._status) { // Check the target info of the
+                                                                                              // DownloadingInfo class to see if user sent a
+                                                                                              // cancel request
+                            coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(_version, imageSize, 0, DownloadStatus.CANCELLED,
+                                    counter), "downloadinfo", svcId);
                             return false;
                         }
-                        coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(_version, imageSize, bytesDownloaded, DownloadStatus.NORMAL, counter),"downloadinfo",svcId); // reset the bytesDownloaded field
-                    }   
-                }                          
+                        coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(_version, imageSize, bytesDownloaded, DownloadStatus.NORMAL,
+                                counter), "downloadinfo", svcId); // reset the bytesDownloaded field
+                    }
+                }
             }
-    
-            
+
             _log.info(_prefix + "Downloaded " + bytesWritten + " bytes");
-    
+
             byte[] sha1Bytes = sha1.digest();
             // In the case of a failure download.emc.com will still return a 200 status code
-            // but the file that will be downloaded is an error page.  So if a small number of
+            // but the file that will be downloaded is an error page. So if a small number of
             // bytes is downloaded just output the downloaded content to the logs
-            if( bytesWritten > 0 && bytesWritten < MINIMUM_IMAGE_BYTES ) {
+            if (bytesWritten > 0 && bytesWritten < MINIMUM_IMAGE_BYTES) {
                 _log.error(_prefix + "Downloaded error: {}", new String(buffer, "UTF-8"));
-                if(trackProgress) {
+                if (trackProgress) {
                     int downloadErrorCount = counter.get(0);
                     counter.set(0, ++downloadErrorCount);
-                    coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(_version, imageSize, 0, DownloadStatus.DOWNLOADERROR,counter),"downloadinfo", svcId); // It indicate a download error
+                    coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(_version, imageSize, 0, DownloadStatus.DOWNLOADERROR, counter),
+                            "downloadinfo", svcId); // It indicate a download error
                 }
                 return false;
             } else if (!verifyChecksum(sha1Bytes, trailerBuffer, _log)) {
-                if(trackProgress) {
+                if (trackProgress) {
                     int checksumErrorCount = counter.get(1);
                     counter.set(1, ++checksumErrorCount);
-                    coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(_version, imageSize, 0, DownloadStatus.CHECKSUMERROR,counter),"downloadinfo", svcId); // It indicate that checksum failed
+                    coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(_version, imageSize, 0, DownloadStatus.CHECKSUMERROR, counter),
+                            "downloadinfo", svcId); // It indicate that checksum failed
                 }
                 return false;
             }
             if (trackProgress) {
                 DownloadingInfo tmpInfo = coordinator.getTargetInfo(DownloadingInfo.class);
-                if (null!=tmpInfo && DownloadStatus.CANCELLED==tmpInfo._status){ // Check the target info of the DownloadingInfo class to see if user sent a cancel request
-                    coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(_version, imageSize, 0, DownloadStatus.CANCELLED, counter),"downloadinfo",svcId);
+                if (null != tmpInfo && DownloadStatus.CANCELLED == tmpInfo._status) { // Check the target info of the DownloadingInfo class
+                                                                                      // to see if user sent a cancel request
+                    coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(_version, imageSize, 0, DownloadStatus.CANCELLED, counter),
+                            "downloadinfo", svcId);
                     return false;
                 }
-                coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(_version, imageSize, imageSize, DownloadStatus.COMPLETED,counter),"downloadinfo", svcId); // When it reaches here, it means the download is successful
+                coordinator.setNodeGlobalScopeInfo(new DownloadingInfo(_version, imageSize, imageSize, DownloadStatus.COMPLETED, counter),
+                        "downloadinfo", svcId); // When it reaches here, it means the download is successful
             }
         } finally {
             _out.close();
@@ -187,14 +183,14 @@ public class UpgradeImageCommon {
 
     private boolean verifyChecksum(final byte[] sha1Bytes, final byte[] trailerBytes, final Logger log) {
         // decompose trailer
-        byte[] trailerSha =  Arrays.copyOfRange(trailerBytes, TRAILER_SHA_OFFSET, TRAILER_SHA_SIZE);
+        byte[] trailerSha = Arrays.copyOfRange(trailerBytes, TRAILER_SHA_OFFSET, TRAILER_SHA_SIZE);
         byte[] trailerCRC = Arrays.copyOfRange(trailerBytes, TRAILER_CRC_OFFSET, TRAILER_CRC_OFFSET + TRAILER_CRC_SIZE);
         byte[] trailerLen = Arrays.copyOfRange(trailerBytes, TRAILER_LEN_OFFSET, TRAILER_LEN_OFFSET + TRAILER_LEN_SIZE);
         byte[] trailerMagic = Arrays.copyOfRange(trailerBytes, TRAILER_MAGIC_OFFSET, TRAILER_LENGTH);
 
         // calculate crc32 based on trailerSHA, trailerLen, trailerMagic
         byte[] trailerCopy = Arrays.copyOf(trailerBytes, trailerBytes.length);
-        Arrays.fill(trailerCopy, TRAILER_CRC_OFFSET, TRAILER_CRC_OFFSET + TRAILER_CRC_SIZE, (byte)0);
+        Arrays.fill(trailerCopy, TRAILER_CRC_OFFSET, TRAILER_CRC_OFFSET + TRAILER_CRC_SIZE, (byte) 0);
 
         CRC32 crc32 = new CRC32();
         crc32.update(trailerCopy);

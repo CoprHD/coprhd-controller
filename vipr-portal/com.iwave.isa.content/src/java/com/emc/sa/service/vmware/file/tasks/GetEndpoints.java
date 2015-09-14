@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vmware.file.tasks;
@@ -33,7 +33,7 @@ public class GetEndpoints extends ViPRExecutionTask<Set<String>> {
             provideDetailArgs(getMessage("GetEndpoints.detail.cluster"), cluster.getName());
         }
         else {
-        	provideDetailArgs(getMessage("GetEndpoints.detail.host"), host.getName());
+            provideDetailArgs(getMessage("GetEndpoints.detail.host"), host.getName());
         }
     }
 

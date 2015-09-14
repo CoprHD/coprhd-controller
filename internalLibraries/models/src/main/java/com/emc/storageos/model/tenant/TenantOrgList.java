@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.tenant;
@@ -15,14 +15,16 @@ import java.util.List;
 public class TenantOrgList {
     private List<NamedRelatedResourceRep> subtenants;
 
-    public TenantOrgList() {}
-    
+    public TenantOrgList() {
+    }
+
     public TenantOrgList(List<NamedRelatedResourceRep> subtenants) {
         this.subtenants = subtenants;
     }
 
     /**
      * List of this tenant's subtenants.
+     * 
      * @valid none
      * @return List of NamedRelatedResourceRep
      */

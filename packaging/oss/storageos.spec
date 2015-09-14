@@ -22,8 +22,6 @@ Autoreq: 0
     
 %post
 /sbin/ldconfig %{_prefix}/lib
-/usr/bin/systemctl stop SuSEfirewall2_init
-/usr/bin/systemctl stop SuSEfirewall2
 /bin/echo "exit 0" > /etc/sysconfig/SuSEfirewall2
 /bin/echo "exit 0" > /etc/sysconfig/SuSEfirewall2-template
 
@@ -32,11 +30,15 @@ Autoreq: 0
 /usr/bin/systemctl enable nginx
 /usr/bin/systemctl enable storageos-installer
 /etc/storageos/storageos enable
-
-/etc/storageos/boot-ovfenv start
-/usr/bin/systemctl start keepalived
-/usr/bin/systemctl start nginx 
-/etc/storageos/storageos start
+    
+if [ -z "${DO_NOT_START}" ] ; then
+    /usr/bin/systemctl stop SuSEfirewall2_init
+    /usr/bin/systemctl stop SuSEfirewall2
+    /etc/storageos/boot-ovfenv start
+    /usr/bin/systemctl start keepalived
+    /usr/bin/systemctl start nginx 
+    /etc/storageos/storageos start
+fi
 
 %postun
 /sbin/ldconfig
@@ -138,6 +140,7 @@ fi
 %config /etc/sysconfig/ntp
 %config %attr(400,storageos,storageos) /etc/config.defaults
 %config %attr(400,storageos,storageos) /etc/.ovfenv.properties
+%config %attr(400,storageos,storageos) /etc/.iterable.properties
 %config %attr(-,storageos,storageos) /data/db
 %config %attr(-,storageos,storageos) /data/geodb
 %config %attr(-,storageos,storageos) /data/zk

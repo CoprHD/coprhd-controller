@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.model.catalog;
@@ -9,7 +9,7 @@ import javax.xml.bind.annotation.XmlRootElement;
 
 @XmlRootElement(name = "catalog_category_create")
 public class CatalogCategoryCreateParam extends CatalogCategoryCommonParam {
-    
+
     private String tenantId;
 
     @XmlElement(name = "tenantId")
@@ -20,6 +20,5 @@ public class CatalogCategoryCreateParam extends CatalogCategoryCommonParam {
     public void setTenantId(String tenantId) {
         this.tenantId = tenantId;
     }
-    
-    
+
 }

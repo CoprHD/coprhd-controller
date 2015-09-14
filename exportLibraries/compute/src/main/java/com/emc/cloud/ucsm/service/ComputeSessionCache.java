@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.cloud.ucsm.service;
@@ -7,22 +7,23 @@ package com.emc.cloud.ucsm.service;
 import java.io.Serializable;
 
 /**
- Serializable helper class to load and store cached compute device sessions on zk.
-**/
+ * Serializable helper class to load and store cached compute device sessions on zk.
+ **/
 class ComputeSessionCache implements Serializable {
     private String sessionId = null;
     private Long createTime = null;
-    private Long sessionLength =null;
-    private String hashKey =null;
+    private Long sessionLength = null;
+    private String hashKey = null;
 
-    ComputeSessionCache(String sessionId, Long createTime, Long sessionLength,String hashKey) {
+    ComputeSessionCache(String sessionId, Long createTime, Long sessionLength, String hashKey) {
         this.sessionId = sessionId;
         this.createTime = createTime;
         this.sessionLength = sessionLength;
         this.hashKey = hashKey;
     }
-    ComputeSessionCache(){
-        //Empty constructor to null out fields
+
+    ComputeSessionCache() {
+        // Empty constructor to null out fields
     }
 
     String getHashKey() {

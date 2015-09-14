@@ -1,22 +1,11 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.db.client.model;
 
 import com.emc.storageos.model.valid.EnumType;
 
-import java.beans.Transient;
 import java.net.URI;
 import java.util.Collection;
 import java.util.Map;
@@ -24,7 +13,7 @@ import java.util.Set;
 
 @Cf("StoragePool")
 public class StoragePool extends VirtualArrayTaggedResource {
-	private static final long KB = 1024;
+    private static final long KB = 1024;
     // device native ID
     private String _nativeId;
     // pool name
@@ -42,56 +31,58 @@ public class StoragePool extends VirtualArrayTaggedResource {
     // In case of ThinPools, this would indicate how much real storage is being used by
     // the allocated devices in the pool (KBytes)
     private Long _subscribedCapacity;
-    
+
     // Whether limit on number of Resources has been set
     private Boolean isResourceLimitSet = false;
     // Max Resources limit
     private Integer maxResources;
 
-    //DeviceStoragePools in VNXBlock & VMAX considered as THICK Pools
-    //UnifiedStoragePool in VNXBlock & VirtualProvisioningPool in VMAX considered as THIN Pools
+    // DeviceStoragePools in VNXBlock & VMAX considered as THICK Pools
+    // UnifiedStoragePool in VNXBlock & VirtualProvisioningPool in VMAX considered as THIN Pools
     private String _poolClassName;
-    
-    //Supported Raid Levels in Pool
+
+    // Supported Raid Levels in Pool
     private StringSet _supportedRaidLevels;
-    //Setting Id to be used if Tier policy set to Auto
+    // Setting Id to be used if Tier policy set to Auto
     private String _autoTierSettingId;
-  //Setting Id to be used if Tier policy set to No_DataMovement
+    // Setting Id to be used if Tier policy set to No_DataMovement
     private String _noDataMovementId;
-  //Setting Id to be used if Tier policy set to Highest_Available_Tier
+    // Setting Id to be used if Tier policy set to Highest_Available_Tier
     private String _highAvailableTierId;
-  //Setting Id to be used if Tier policy set to Lowest_Available_Tier
+    // Setting Id to be used if Tier policy set to Lowest_Available_Tier
     private String _lowAvailableTierId;
-   //Setting Id to be used if Tier policy set to Start_High_Then_Auto
-    private String _startHighThenAutoTierId;    
-    
-    //Storage Tier Information for each Pool
-    //VNX Pools have multiple tiers and VMAX has single Tier always
+    // Setting Id to be used if Tier policy set to Start_High_Then_Auto
+    private String _startHighThenAutoTierId;
+    // Max Retention days
+    private Integer maxRetention;
+
+    // Storage Tier Information for each Pool
+    // VNX Pools have multiple tiers and VMAX has single Tier always
     private StringSet _tiers;
-    
+
     private StringSet _supportedDriveTypes;
-    
+
     private StringMap _tierUtilizationPercentage;
 
     private StringSet _supportedCopyTypes;
-    
+
     private Integer _maxPoolUtilizationPercentage;
-    
+
     private Integer _maxThinPoolSubscriptionPercentage;
 
     // limit set on array
     private Integer _maxThinPoolSubscriptionPercentageFromArray;
 
     private String _registrationStatus = RegistrationStatus.REGISTERED.toString();
-    
+
     private Boolean thinVolumePreAllocationSupported = false;
-    
+
     private Boolean autoTieringEnabled;
-    
-    //used in finding out whether or not the pool is Compatible
+
+    // used in finding out whether or not the pool is Compatible
     private String _compatibilityStatus = CompatibilityStatus.UNKNOWN.name();
-    
-    private Double _avgStorageDevicePortMetrics; 
+
+    private Double _avgStorageDevicePortMetrics;
     private String _discoveryStatus = DiscoveryStatus.VISIBLE.name();
 
     public static enum PoolClassNames {
@@ -102,21 +93,21 @@ public class StoragePool extends VirtualArrayTaggedResource {
         VNXe_Pool,
         IBMTSDS_VirtualPool,
         Symm_SRPStoragePool;
-        
+
         public static boolean isThinPool(String poolClassName) {
             return (Symm_VirtualProvisioningPool.name().equals(poolClassName)
                     || Symm_SRPStoragePool.name().equals(poolClassName)
                     || Clar_UnifiedStoragePool.name().equals(poolClassName)
                     || VNXe_Pool.name().equals(poolClassName));
         }
-        
+
         public static boolean isThickPool(String poolClassName) {
-            return (Clar_DeviceStoragePool.name().equals(poolClassName) 
-                    || Symm_DeviceStoragePool.name().equals(poolClassName));
+            return (Clar_DeviceStoragePool.name().equals(poolClassName)
+            || Symm_DeviceStoragePool.name().equals(poolClassName));
         }
-        
+
     }
-    
+
     public static enum RaidLevels {
         RAID0, RAID1, RAID2, RAID3, RAID4, RAID5, RAID6, RAID10
     }
@@ -124,35 +115,34 @@ public class StoragePool extends VirtualArrayTaggedResource {
     public static enum CopyTypes {
         ASYNC, SYNC, UNSYNC_ASSOC, UNSYNC_UNASSOC
     }
-    
-    
-    
+
     public static enum SupportedDriveTypeValues {
         FC("FC"),
         SAS("SAS"),
         SATA("SATA SATA2 ATA"),
-        NL_SAS ("NL_SAS"),
+        NL_SAS("NL_SAS"),
         SSD("FC_SSD SATA2_SSD SAS_SSD EFD SSD SAS_SSD_VP"),
         UNKNOWN("UNKNOWN");
-        
+
         private String _diskDriveValues;
-        
+
         SupportedDriveTypeValues(String diskDriveValues) {
-        	_diskDriveValues = diskDriveValues;
+            _diskDriveValues = diskDriveValues;
         }
-        
+
         public String getDiskDriveValues() {
             return _diskDriveValues;
         }
-        
+
         public static String getDiskDriveDisplayName(String diskDrive) {
-            for(SupportedDriveTypeValues driveType : copyOfValues) {
-                if(driveType.getDiskDriveValues().contains(diskDrive))
+            for (SupportedDriveTypeValues driveType : copyOfValues) {
+                if (driveType.getDiskDriveValues().contains(diskDrive)) {
                     return driveType.toString();
+                }
             }
             return null;
         }
-        
+
         private static final SupportedDriveTypeValues[] copyOfValues = values();
 
         public static SupportedDriveTypeValues lookup(String name) {
@@ -164,26 +154,25 @@ public class StoragePool extends VirtualArrayTaggedResource {
             return null;
         }
     }
-   
-    //Operational Status of Pool
+
+    // Operational Status of Pool
     private String _operationalStatus;
 
     public static enum PoolOperationalStatus {
-        READY,NOTREADY
+        READY, NOTREADY
     }
 
-    //Maximum size of Thin Volume which can be carved out of this Storage Pool in KiloBytes
+    // Maximum size of Thin Volume which can be carved out of this Storage Pool in KiloBytes
     private Long _maximumThinVolumeSize;
 
-    //Minimum size of Thin Volume which can be carved out of this Storage Pool in KiloBytes.
+    // Minimum size of Thin Volume which can be carved out of this Storage Pool in KiloBytes.
     private Long _minimumThinVolumeSize;
 
-    //Maximum size of Thick Volume which can be carved out of this Storage Pool in KiloBytes
+    // Maximum size of Thick Volume which can be carved out of this Storage Pool in KiloBytes
     private Long _maximumThickVolumeSize;
 
-    //Minimum size of Thick Volume which can be carved out of this Storage Pool in KiloBytes.
+    // Minimum size of Thick Volume which can be carved out of this Storage Pool in KiloBytes.
     private Long _minimumThickVolumeSize;
-
 
     public static enum ControllerParam {
         PoolType, NativeId,
@@ -203,12 +192,12 @@ public class StoragePool extends VirtualArrayTaggedResource {
         object,
         block_file;
     }
-	
+
     // tells the type of pool in which it belongs Ex. block, file, object.
     private String _poolServiceType;
 
     // tells
-    public  Boolean _longTermRetention;
+    public Boolean _longTermRetention;
 
     // Map of reserved capacity in this storage pool.
     // Key: volume URI, value: capacity
@@ -218,9 +207,9 @@ public class StoragePool extends VirtualArrayTaggedResource {
     private StringMap _customProperties;
 
     /**********************************************
-     * AlternateIDIndex - nativeID  [Clariion+APM12345+C+00000]              *
-     * RelationIndex - StorageDevice             *
-     *                                            *
+     * AlternateIDIndex - nativeID [Clariion+APM12345+C+00000] *
+     * RelationIndex - StorageDevice *
+     * *
      **********************************************/
 
     @RelationIndex(cf = "RelationIndex", type = StorageSystem.class)
@@ -271,7 +260,7 @@ public class StoragePool extends VirtualArrayTaggedResource {
 
     /**
      * Set extensions map - overwrites existing one
-     *
+     * 
      * @param controllerParams
      *            StringMap of extensions to set
      */
@@ -285,6 +274,7 @@ public class StoragePool extends VirtualArrayTaggedResource {
         _operationalStatus = operationalStatus;
         setChanged("operationalStatus");
     }
+
     @Name("operationalStatus")
     public String getOperationalStatus() {
         return _operationalStatus;
@@ -294,6 +284,7 @@ public class StoragePool extends VirtualArrayTaggedResource {
         _poolClassName = poolClassName;
         setChanged("poolClassName");
     }
+
     @Name("poolClassName")
     public String getPoolClassName() {
         return _poolClassName;
@@ -306,7 +297,7 @@ public class StoragePool extends VirtualArrayTaggedResource {
     }
 
     public void setTotalCapacity(Long totalCapacity) {
-        if(_totalCapacity==null || !_totalCapacity.equals(totalCapacity)) {
+        if (_totalCapacity == null || !_totalCapacity.equals(totalCapacity)) {
             _totalCapacity = totalCapacity;
             setChanged("totalCapacity");
         }
@@ -319,7 +310,7 @@ public class StoragePool extends VirtualArrayTaggedResource {
     }
 
     public void setFreeCapacity(Long freeCapacity) {
-        if( _freeCapacity==null || !_freeCapacity.equals(freeCapacity)) {
+        if (_freeCapacity == null || !_freeCapacity.equals(freeCapacity)) {
             _freeCapacity = freeCapacity;
             setChanged("freeCapacity");
         }
@@ -336,7 +327,7 @@ public class StoragePool extends VirtualArrayTaggedResource {
     }
 
     public void setSubscribedCapacity(Long subscribedCapacity) {
-        if( _subscribedCapacity== null || !_subscribedCapacity.equals(subscribedCapacity)) {
+        if (_subscribedCapacity == null || !_subscribedCapacity.equals(subscribedCapacity)) {
             _subscribedCapacity = subscribedCapacity;
             setChanged("subscribedCapacity");
         }
@@ -347,24 +338,35 @@ public class StoragePool extends VirtualArrayTaggedResource {
         return isResourceLimitSet;
     }
 
-    public void setIsResourceLimitSet(Boolean isResourceLimitSet){
+    public void setIsResourceLimitSet(Boolean isResourceLimitSet) {
         this.isResourceLimitSet = isResourceLimitSet;
         setChanged("isResourceLimitSet");
     }
-    
+
     @Name("maxResources")
     public Integer getMaxResources() {
         return ((isResourceLimitSet) ? maxResources : -1);
     }
 
     public void setMaxResources(Integer maxResources) {
-        this.maxResources = (maxResources > 0)? maxResources : 0;
+        this.maxResources = (maxResources > 0) ? maxResources : 0;
         setChanged("maxResources");
     }
 
+    @Name("maxRetention")
+    public Integer getMaxRetention() {
+        return (null != maxRetention) ? maxRetention : 0;
+    }
+
+    public void setMaxRetention(Integer maxRetention) {
+        this.maxRetention = (maxRetention > 0) ? maxRetention : 0;
+        setChanged("maxRetention");
+    }
+
     public boolean supportsProtocols(Set<String> protocols) {
-        if (_protocols == null)
+        if (_protocols == null) {
             return false;
+        }
         return _protocols.containsAll(protocols);
     }
 
@@ -389,6 +391,7 @@ public class StoragePool extends VirtualArrayTaggedResource {
         _maximumThinVolumeSize = maximumThinVolumeSize;
         setChanged("maximumThinVolumeSize");
     }
+
     @Name("maximumThinVolumeSize")
     public Long getMaximumThinVolumeSize() {
         return _maximumThinVolumeSize == null ? 0L : _maximumThinVolumeSize;
@@ -398,6 +401,7 @@ public class StoragePool extends VirtualArrayTaggedResource {
         _minimumThinVolumeSize = minimumThinVolumeSize;
         setChanged("minimumThinVolumeSize");
     }
+
     @Name("minimumThinVolumeSize")
     public Long getMinimumThinVolumeSize() {
         return _minimumThinVolumeSize == null ? 0L : _minimumThinVolumeSize;
@@ -407,6 +411,7 @@ public class StoragePool extends VirtualArrayTaggedResource {
         _maximumThickVolumeSize = maximumThickVolumeSize;
         setChanged("maximumThickVolumeSize");
     }
+
     @Name("maximumThickVolumeSize")
     public Long getMaximumThickVolumeSize() {
         return _maximumThickVolumeSize == null ? 0L : _maximumThickVolumeSize;
@@ -416,6 +421,7 @@ public class StoragePool extends VirtualArrayTaggedResource {
         _minimumThickVolumeSize = minimumThickVolumeSize;
         setChanged("minimumThickVolumeSize");
     }
+
     @Name("minimumThickVolumeSize")
     public Long getMinimumThickVolumeSize() {
         return _minimumThickVolumeSize == null ? 0L : _minimumThickVolumeSize;
@@ -428,8 +434,8 @@ public class StoragePool extends VirtualArrayTaggedResource {
 
     /**
      * Get support volume types by the pool.
-     *
-     * @return   supported volume types
+     * 
+     * @return supported volume types
      */
     @EnumType(SupportedResourceTypes.class)
     @Name("supportedResourceTypes")
@@ -437,11 +443,11 @@ public class StoragePool extends VirtualArrayTaggedResource {
         return _supportedResourceTypes;
     }
 
-
     public void setAutoTierSettingId(String autoTierSettingId) {
         _autoTierSettingId = autoTierSettingId;
         setChanged("autoTierSettingId");
     }
+
     @Name("autoTierSettingId")
     public String getAutoTierSettingId() {
         return _autoTierSettingId;
@@ -451,6 +457,7 @@ public class StoragePool extends VirtualArrayTaggedResource {
         _noDataMovementId = noDataMovementId;
         setChanged("noDataMovementTierSettingId");
     }
+
     @Name("noDataMovementTierSettingId")
     public String getNoDataMovementId() {
         return _noDataMovementId;
@@ -460,6 +467,7 @@ public class StoragePool extends VirtualArrayTaggedResource {
         _highAvailableTierId = highAvailableTierId;
         setChanged("highAvailabilityTierSettingId");
     }
+
     @Name("highAvailabilityTierSettingId")
     public String getHighAvailableTierId() {
         return _highAvailableTierId;
@@ -469,42 +477,46 @@ public class StoragePool extends VirtualArrayTaggedResource {
         _lowAvailableTierId = lowAvailableTierId;
         setChanged("lowAvailabilityTierSettingId");
     }
+
     @Name("lowAvailabilityTierSettingId")
     public String getLowAvailableTierId() {
         return _lowAvailableTierId;
     }
-    
+
     public void setStartHighThenAutoTierId(String startHighThenAutoTierId) {
         _startHighThenAutoTierId = startHighThenAutoTierId;
         setChanged("startHighThenAutoTierSettingId");
     }
+
     @Name("startHighThenAutoTierSettingId")
     public String getStartHighThenAutoTierId() {
         return _startHighThenAutoTierId;
-    }    
-    
+    }
+
     public void addSupportedRaidLevels(Set<String> raidLevels) {
-        if(null == _supportedRaidLevels)
+        if (null == _supportedRaidLevels) {
             _supportedRaidLevels = new StringSet();
-        else
+        } else {
             _supportedRaidLevels.clear();
-        
-        if(!raidLevels.isEmpty())
-        _supportedRaidLevels.addAll(raidLevels);
-        
+        }
+
+        if (!raidLevels.isEmpty()) {
+            _supportedRaidLevels.addAll(raidLevels);
+        }
+
     }
 
     public void setSupportedRaidLevels(StringSet raidLevels) {
         _supportedRaidLevels = raidLevels;
         setChanged("supportedRaidLevels");
     }
+
     @Name("supportedRaidLevels")
     public StringSet getSupportedRaidLevels() {
         return _supportedRaidLevels;
     }
 
-	
-	@EnumType(PoolServiceType.class)
+    @EnumType(PoolServiceType.class)
     @Name("poolServiceType")
     public String getPoolServiceType() {
         return _poolServiceType;
@@ -515,11 +527,10 @@ public class StoragePool extends VirtualArrayTaggedResource {
         setChanged("poolServiceType");
     }
 
-
     @Name("longTermRetention")
     public Boolean getLongTermRetention() {
         return (_longTermRetention != null) ?
-                         _longTermRetention : false;
+                _longTermRetention : false;
     }
 
     public void setLongTermRetention(Boolean longTermRetention) {
@@ -528,38 +539,42 @@ public class StoragePool extends VirtualArrayTaggedResource {
     }
 
     public void addTiers(Set<String> tiers) {
-        if(null != _tiers)
+        if (null != _tiers) {
             _tiers.clear();
-        else
+        } else {
             setTiers(new StringSet());
-        if(!tiers.isEmpty())
+        }
+        if (!tiers.isEmpty()) {
             _tiers.addAll(tiers);
+        }
     }
 
     public void setTiers(StringSet tiers) {
         _tiers = tiers;
         setChanged("tiers");
     }
-    
+
     @Name("tiers")
     public StringSet getTiers() {
         return _tiers;
     }
-    
+
     public void addDriveTypes(Set<String> driveTypes) {
-        if(null != _supportedDriveTypes)
+        if (null != _supportedDriveTypes) {
             _supportedDriveTypes.clear();
-        else
+        } else {
             setSupportedDriveTypes(new StringSet());
-        if(!driveTypes.isEmpty())
+        }
+        if (!driveTypes.isEmpty()) {
             _supportedDriveTypes.addAll(driveTypes);
+        }
     }
 
     public void setSupportedDriveTypes(StringSet supportedDriveTypes) {
         _supportedDriveTypes = supportedDriveTypes;
         setChanged("supportedDriveTypes");
     }
-    
+
     @AlternateId("DriveTypeToPools")
     @EnumType(SupportedDriveTypeValues.class)
     @Name("supportedDriveTypes")
@@ -578,21 +593,23 @@ public class StoragePool extends VirtualArrayTaggedResource {
         return _supportedCopyTypes;
     }
 
-    public void addTierUtilizationPercentage(Map<String,String> tierUtilizationPercentage) {
-        if(null == _tierUtilizationPercentage)
+    public void addTierUtilizationPercentage(Map<String, String> tierUtilizationPercentage) {
+        if (null == _tierUtilizationPercentage) {
             setTierUtilizationPercentage(new StringMap());
-        else
+        } else {
             _tierUtilizationPercentage.clear();
-        if(tierUtilizationPercentage.size() > 0)
+        }
+        if (tierUtilizationPercentage.size() > 0) {
             _tierUtilizationPercentage.putAll(tierUtilizationPercentage);
-        
+        }
+
     }
 
     public void setTierUtilizationPercentage(StringMap tierUtilizationPercentage) {
         this._tierUtilizationPercentage = tierUtilizationPercentage;
         setChanged("tierUtilizationPercentage");
     }
-    
+
     @Name("tierUtilizationPercentage")
     public StringMap getTierUtilizationPercentage() {
         return _tierUtilizationPercentage;
@@ -649,15 +666,16 @@ public class StoragePool extends VirtualArrayTaggedResource {
         setChanged("thinVolumePreAllocationSupported");
     }
 
-    @Ttl(60 * 10)   // set to 10 minutes
-    @Name("reservedCapacityMap")
-    public StringMap getReservedCapacityMap() {
+    @Ttl(60 * 10)
+    // set to 10 minutes
+            @Name("reservedCapacityMap")
+            public
+            StringMap getReservedCapacityMap() {
         if (_reservedCapacityMap == null) {
             _reservedCapacityMap = new StringMap();
         }
         return _reservedCapacityMap;
     }
-
 
     public void setReservedCapacityMap(StringMap reservedCapacityMap) {
         this._reservedCapacityMap = reservedCapacityMap;
@@ -686,12 +704,12 @@ public class StoragePool extends VirtualArrayTaggedResource {
         _compatibilityStatus = compatibilityStatus;
         setChanged("compatibilityStatus");
     }
-    
+
     public void setAutoTieringEnabled(final Boolean autoTieringEnabled) {
         this.autoTieringEnabled = autoTieringEnabled;
         setChanged("autoTieringEnabled");
     }
-    
+
     @Name("autoTieringEnabled")
     public Boolean getAutoTieringEnabled() {
         return this.autoTieringEnabled == null ? false : autoTieringEnabled;
@@ -720,23 +738,25 @@ public class StoragePool extends VirtualArrayTaggedResource {
 
     /**
      * Helper method to get total reserved capacity of the pool.
-     * @return  reserved capacity in KBytes
+     * 
+     * @return reserved capacity in KBytes
      */
     private Long calculateReservedCapacity() {
         Long reservedCapacity = 0L;
         if (_reservedCapacityMap != null) {
             Collection<String> capacityCollection = _reservedCapacityMap.values();
-            for (String capacity : capacityCollection)  {
+            for (String capacity : capacityCollection) {
                 reservedCapacity = reservedCapacity + Long.valueOf(capacity);
             }
         }
 
-        Long reservedCapacityKB = (reservedCapacity%KB == 0)? reservedCapacity/KB : reservedCapacity/KB +1;
+        Long reservedCapacityKB = (reservedCapacity % KB == 0) ? reservedCapacity / KB : reservedCapacity / KB + 1;
         return reservedCapacityKB; // in KB
     }
 
     /**
      * Removes each mapping from the reservedCapacityMap
+     * 
      * @param objectIdStrings - list of Volume/BlockObject ids
      */
     public void removeReservedCapacityForVolumes(Collection<String> objectIdStrings) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.aix;
@@ -7,7 +7,6 @@ package com.emc.aix;
 import java.util.List;
 import java.util.Set;
 
-import com.emc.aix.command.GetNetworkAdapterMacAddressCommand;
 import com.emc.aix.command.GetVIONetworkAdapterMacAddressCommand;
 import com.emc.aix.command.ListVIOHBAInfoCommand;
 import com.emc.aix.command.ListVIOIQNsCommand;
@@ -19,11 +18,11 @@ import com.iwave.ext.linux.model.HBAInfo;
 import com.iwave.utility.ssh.ShellCommandExecutor;
 
 public class AixVioCLI extends SecureShellSupport {
-   
+
     public AixVioCLI(String host, int port, String username, String password) {
         super(host, port, username, password);
     }
-    
+
     @Override
     public void executeCommand(Command command) {
         ShellCommandExecutor executor = new ShellCommandExecutor(this.getHost(), this.getPort(), this.getUsername(), this.getPassword());
@@ -31,25 +30,25 @@ public class AixVioCLI extends SecureShellSupport {
         command.execute();
         executor.disconnect();
     }
-    
+
     public String getNetworkAdapterMacAddress(String adapter) {
         GetVIONetworkAdapterMacAddressCommand cmd = new GetVIONetworkAdapterMacAddressCommand(adapter);
         executeCommand(cmd);
         return cmd.getResults();
     }
-    
+
     public List<HBAInfo> listInitiators() {
         ListVIOHBAInfoCommand cmd = new ListVIOHBAInfoCommand();
         executeCommand(cmd);
         return cmd.getResults();
     }
-    
+
     public Set<String> listIQNs() {
         ListVIOIQNsCommand cmd = new ListVIOIQNsCommand();
         executeCommand(cmd);
         return cmd.getResults();
     }
-    
+
     public AixVersion getVersion() {
         AixVersionCommand version = new GetAixVioVersionCommand();
         executeCommand(version);

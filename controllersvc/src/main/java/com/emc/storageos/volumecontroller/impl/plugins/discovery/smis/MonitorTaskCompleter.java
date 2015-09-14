@@ -1,20 +1,17 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis;
 
-import java.io.IOException;
-
 import com.emc.storageos.db.client.DbClient;
-import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DataCollectionJobStatus;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 
-public class MonitorTaskCompleter extends DataCollectionTaskCompleter  {
+public class MonitorTaskCompleter extends DataCollectionTaskCompleter {
     private static final long serialVersionUID = 1L;
-    
+
     public MonitorTaskCompleter(AsyncTask task) {
         super(task);
         // TODO Auto-generated constructor stub
@@ -22,12 +19,12 @@ public class MonitorTaskCompleter extends DataCollectionTaskCompleter  {
 
     @Override
     final public String getJobType() {
-          return ControllerServiceImpl.MONITORING;
+        return ControllerServiceImpl.MONITORING;
     }
 
     @Override
     protected void updateObjectState(DbClient dbClient,
-                                     DataCollectionJobStatus jobStatus) {
+            DataCollectionJobStatus jobStatus) {
         // TODO provider monitoring status = true or false
 
     }
@@ -35,7 +32,7 @@ public class MonitorTaskCompleter extends DataCollectionTaskCompleter  {
     @Override
     final public void setNextRunTime(DbClient dbClient, long time) {
         // TODO Auto-generated method stub
-        
+
     }
 
     @Override
@@ -49,7 +46,7 @@ public class MonitorTaskCompleter extends DataCollectionTaskCompleter  {
     }
 
     @Override
-    final protected void createDefaultOperation(DbClient dbClient){
+    final protected void createDefaultOperation(DbClient dbClient) {
         // TODO Auto-generated method stub
     }
 

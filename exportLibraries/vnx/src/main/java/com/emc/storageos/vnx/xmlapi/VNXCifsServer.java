@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.vnx.xmlapi;
@@ -21,47 +11,74 @@ import java.util.List;
 public class VNXCifsServer extends VNXBaseClass {
 
     private String _name;
-    private int    _id;
+    private int _id;
     private String _type;
     private boolean _moverIdIsVdm;
-    private List<String> _interfaces = new ArrayList();
+    private List<String> _interfaces = new ArrayList<String>();
+    private String _domain;
+
+    public String getDomain() {
+        return _domain;
+    }
+
+    public void setDomain(String domain) {
+        this._domain = domain;
+    }
 
     public void setName(String name) {
         _name = name;
     }
-    public String getName(){
+
+    public String getName() {
         return _name;
     }
-    public void setId(int id){
+
+    public void setId(int id) {
         _id = id;
     }
+
     public int getId() {
         return _id;
     }
-    public void setType(String type){
+
+    public void setType(String type) {
         _type = type;
     }
+
     public String getType() {
         return _type;
     }
-    public void setMoverIdIsVdm(boolean moverIdIsVdm){ _moverIdIsVdm = moverIdIsVdm; }
-    public boolean getMoverIdIsVdm() { return _moverIdIsVdm; }
-    public List<String> getInterfaces() { return _interfaces; }
-    public void setInterfaces(List interfaces) { _interfaces = interfaces; }
 
+    public void setMoverIdIsVdm(boolean moverIdIsVdm) {
+        _moverIdIsVdm = moverIdIsVdm;
+    }
 
-    public VNXCifsServer() {}
+    public boolean getMoverIdIsVdm() {
+        return _moverIdIsVdm;
+    }
 
-    public VNXCifsServer(String name){
+    public List<String> getInterfaces() {
+        return _interfaces;
+    }
+
+    public void setInterfaces(List<String> interfaces) {
+        _interfaces = interfaces;
+    }
+
+    public VNXCifsServer() {
+    }
+
+    public VNXCifsServer(String name) {
         _name = name;
     }
 
-    public VNXCifsServer(String name, String id, String type, boolean isMoverIsVdm, List<String> interfaces){
+    public VNXCifsServer(String name, String id, String type, boolean isMoverIsVdm, List<String> interfaces, String domain) {
         _name = name;
         _interfaces = interfaces;
         _type = type;
         _id = Integer.valueOf(id);
-        _moverIdIsVdm =isMoverIsVdm;
+        _moverIdIsVdm = isMoverIsVdm;
+        _domain = domain;
     }
 
     @Override
@@ -71,6 +88,4 @@ public class VNXCifsServer extends VNXBaseClass {
 
     }
 
-    // <CifsServer interfaces="10.247.27.32" type="W2K" localUsers="false" name="LOSAT032" mover="1" moverIdIsVdm="false">
-    //<CifsServer interfaces="10.247.27.31" type="W2K" localUsers="false" name="LOSAT031" mover="5" moverIdIsVdm="true">
 }

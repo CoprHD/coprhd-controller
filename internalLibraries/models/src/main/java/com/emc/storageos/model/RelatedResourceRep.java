@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.model;
@@ -34,6 +24,7 @@ public class RelatedResourceRep {
         this.id = id;
         this.selfLink = selfLink;
     }
+
     /**
      * 
      * ViPR ID of the related object
@@ -41,14 +32,14 @@ public class RelatedResourceRep {
      * @valid none
      */
     @XmlElement(name = "id")
-    public URI getId()  {
+    public URI getId() {
         return id;
     }
-    
-    public void setId(URI id)  {
-         this.id = id;
+
+    public void setId(URI id) {
+        this.id = id;
     }
-    
+
     /**
      * 
      * A hyperlink to the related object
@@ -56,9 +47,10 @@ public class RelatedResourceRep {
      * @valid none
      */
     @XmlElement(name = "link")
-    public RestLinkRep getLink(){
+    public RestLinkRep getLink() {
         return selfLink;
     }
+
     public void setLink(RestLinkRep link) {
         selfLink = link;
     }
@@ -75,23 +67,30 @@ public class RelatedResourceRep {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         RelatedResourceRep other = (RelatedResourceRep) obj;
         if (id == null) {
-            if (other.id != null)
+            if (other.id != null) {
                 return false;
-        } else if (!id.equals(other.id))
+            }
+        } else if (!id.equals(other.id)) {
             return false;
+        }
         if (selfLink == null) {
-            if (other.selfLink != null)
+            if (other.selfLink != null) {
                 return false;
-        } else if (!selfLink.equals(other.selfLink))
+            }
+        } else if (!selfLink.equals(other.selfLink)) {
             return false;
+        }
         return true;
     }
 

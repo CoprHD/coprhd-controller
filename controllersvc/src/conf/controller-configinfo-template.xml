@@ -55,6 +55,7 @@
         <entry key="Metering-scaleio" value="discovery-scaleio-context.xml"/>
         <entry key="Discovery-xtremio-all" value="discovery-xtremio-context.xml"/>
         <entry key="Discovery-xtremio-unmanaged_volumes" value="discovery-xtremio-context.xml"/>
+        <entry key="Scanner-xtremio" value="discovery-xtremio-context.xml"/>
 
         <entry key="Discovery-rp-all" value="discovery-recoverpoint-context.xml" />
         <entry key="Metering-block" value="metering-block-context.xml" />
@@ -63,6 +64,8 @@
         <entry key="Metering-netapp" value="metering-block-context.xml" />
         <entry key="Metering-vplex" value="metering-block-context.xml" />
         <entry key="Metering-datadomain" value="discovery-datadomain-context.xml" />
+
+        <entry key="Discovery-ecs-all" value="discovery-ecs-context.xml" />
 
         <!-- in seconds -->
         <!-- how often the job should be scheduled automatically -->

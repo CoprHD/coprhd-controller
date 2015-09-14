@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2011 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2011 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.authentication;
 
@@ -21,7 +11,7 @@ import com.emc.storageos.security.authentication.StorageOSUserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
- *  Dummy authentication filter, takes in the user context from a header string
+ * Dummy authentication filter, takes in the user context from a header string
  */
 public class NoAuthHeaderUserFilter extends AbstractAuthenticationFilter {
     public static String USER_INFO_HEADER_TAG = "BourneUser";
@@ -30,8 +20,7 @@ public class NoAuthHeaderUserFilter extends AbstractAuthenticationFilter {
     private StorageOSUserRepository _userRepo;
 
     private boolean fromLocalhost(HttpServletRequest req) {
-        return (req.getRemoteHost().equalsIgnoreCase("localhost") ||
-                req.getRemoteHost().equals("127.0.0.1"));
+        return (req.getRemoteHost().equalsIgnoreCase("localhost") || req.getRemoteHost().equals("127.0.0.1"));
     }
 
     @Override

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -86,7 +86,8 @@ public class ModelExtensions extends JavaExtensions {
     }
 
     public static boolean isError(OrderLogRestRep log) {
-        return LogLevel.ERROR.equals(log.getLevel()); //NOSONAR ("Suppressing Sonar violation of Remove this call to "equals"; comparisons between unrelated types always return false.Both are same types.")
+        return LogLevel.ERROR.equals(log.getLevel()); // NOSONAR
+                                                      // ("Suppressing Sonar violation of Remove this call to "equals"; comparisons between unrelated types always return false.Both are same types.")
     }
 
     public static boolean isPrecheck(ExecutionStateRestRep state) {
@@ -150,7 +151,7 @@ public class ModelExtensions extends JavaExtensions {
         }
         return logs;
     }
-    
+
     public static List<VcenterDataCenterRestRep> datacenters(VcenterRestRep vcenter) {
         return VCenterUtils.getDataCentersInVCenter(vcenter);
     }
@@ -311,15 +312,15 @@ public class ModelExtensions extends JavaExtensions {
     public static Long getDiscoveryDate(DiscoveredSystemObjectRestRep system) {
         return system.getLastDiscoveryRunTime();
     }
-    
+
     public static String getCompatibilityStatus(StorageProviderRestRep system) {
-    	return CompatibilityStatus.getDisplayValue(system.getCompatibilityStatus());
+        return CompatibilityStatus.getDisplayValue(system.getCompatibilityStatus());
     }
 
     public static String getCompatibilityStatus(DiscoveredSystemObjectRestRep system) {
         return CompatibilityStatus.getDisplayValue(system.getCompatibilityStatus());
     }
-    
+
     public static Long getLastSuccessfulDiscovery(StorageProviderRestRep system) {
         return system.getSuccessScanTime();
     }
@@ -327,7 +328,7 @@ public class ModelExtensions extends JavaExtensions {
     public static Long getLastSuccessfulDiscovery(DiscoveredSystemObjectRestRep system) {
         return system.getSuccessDiscoveryTime();
     }
-    
+
     public static List<ServiceItemRestRep> getAllItemsList(ServiceItemContainerRestRep container) {
         List<ServiceItemRestRep> items = Lists.newArrayList();
         for (ServiceItemRestRep item : container.getItems()) {

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.zkutils;
@@ -26,8 +16,8 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
 
 /**
- * Create simple cli for zk, implements these functions: 
- * 1. Dump contents from zk in human readable form 
+ * Create simple cli for zk, implements these functions:
+ * 1. Dump contents from zk in human readable form
  * 2. Control the upgrade process(including manually prevent, suspend, release, get info)
  */
 // Suppress Sonar violation of Lazy initialization of static fields should be synchronized
@@ -73,17 +63,18 @@ public class Main {
         System.out.println(String.format("\t\t%s \tPrint with data content.", WITH_DATA));
 
         System.out.println("\n\tHandle ZK txn log:");
-        System.out.println(String.format("\t%s \t\tGet last valid logged txn id.", 
+        System.out.println(String.format("\t%s \t\tGet last valid logged txn id.",
                 Command.GETLASTVALIDZXID.name().toLowerCase()));
-        System.out.println(String.format("\t%s \t\tTruncate to the last valid txnlog.",                Command.TRUNCATETXNLOG.name().toLowerCase()));
-        System.out.println(String.format("\t%s <arg>(in hex)\t\tTruncate to the specific txn log.", Command.TRUNCATETXNLOG.name().toLowerCase()));
+        System.out.println(String.format("\t%s \t\tTruncate to the last valid txnlog.", Command.TRUNCATETXNLOG.name().toLowerCase()));
+        System.out.println(String.format("\t%s <arg>(in hex)\t\tTruncate to the specific txn log.", Command.TRUNCATETXNLOG.name()
+                .toLowerCase()));
 
         System.out.println("\n\tHandle Lock Process:");
-        System.out.println(String.format("\t%s <arg>\t\tLock to prevent starting <arg> process", 
+        System.out.println(String.format("\t%s <arg>\t\tLock to prevent starting <arg> process",
                 Command.LOCK.name().toLowerCase()));
         System.out.println(String.format("\t%s <arg>\t\tHold on to suspend <arg> process",
                 Command.HOLD.name().toLowerCase()));
-        System.out.println(String.format("\t%s <arg>\t\tRelase all lock to <arg> continuously", 
+        System.out.println(String.format("\t%s <arg>\t\tRelase all lock to <arg> continuously",
                 Command.RELEASE.name().toLowerCase()));
         System.out.println(String.format("\t%s <arg>\t\tShow the infomation about <arg>",
                 Command.INFO.name().toLowerCase()));
@@ -98,7 +89,7 @@ public class Main {
         System.out.println("\n\tSecurity operations:");
         System.out.println(String.format(
                 "\t%s \t\t\tGet VDC's key and certificate chain.", Command.GETKEYANDCERT
-                .name().toLowerCase()));
+                        .name().toLowerCase()));
         System.out.println(String.format(
                 "\t%s \t\t\tSave the ssh keys and configs for host, root and svcuser",
                 Command.SAVE_SSH_KEYS.name().toLowerCase()));
@@ -173,7 +164,7 @@ public class Main {
                     } else {
                         success = zkTxnHandler.truncateToZxid(args[1]);
                     }
-                    if(!success) {
+                    if (!success) {
                         System.exit(1);
                     }
                     break;
@@ -253,8 +244,8 @@ public class Main {
      * 
      */
     private static void initKeystoreCmdHandler() throws KeyStoreException,
-    NoSuchAlgorithmException, CertificateException, IOException,
-    InterruptedException {
+            NoSuchAlgorithmException, CertificateException, IOException,
+            InterruptedException {
         keystoreCmdHandler = new KeystoreCmdHandler();
     }
 

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  *  Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.export;
 
@@ -123,11 +113,12 @@ public class ExportProcessor extends Processor {
             _rpPortInitiators = RPHelper.getBackendPortInitiators(_dbClient);
             _keyMap.put(Constants.UNMANAGED_EXPORT_MASKS_RECOVERPOINT_INITS_SET, _rpPortInitiators);
         }
-        
-    }
-    
-    /* (non-Javadoc)
-     * @see com.emc.storageos.plugins.common.Processor#processResult(com.emc.storageos.plugins.common.domainmodel.Operation, java.lang.Object, java.util.Map)
+
+    /*
+     * (non-Javadoc)
+     * 
+     * @see com.emc.storageos.plugins.common.Processor#processResult(com.emc.storageos.plugins.common.domainmodel.Operation,
+     * java.lang.Object, java.util.Map)
      */
     @SuppressWarnings("unchecked")
     @Override
@@ -491,7 +482,8 @@ public class ExportProcessor extends Processor {
     
             // why does a simple database query have to be so difficult?
             URI storageSystemUri = (URI) _keyMap.get(Constants.SYSTEMID);
-            DiscoveryUtils.markInActiveUnManagedExportMask(storageSystemUri, _allCurrentUnManagedExportMaskUris, _dbClient, _partitionManager);
+            DiscoveryUtils.markInActiveUnManagedExportMask(storageSystemUri, _allCurrentUnManagedExportMaskUris, _dbClient,
+                    _partitionManager);
             
         } else {
             _logger.info("no need to wrap up yet...");
@@ -641,12 +633,13 @@ public class ExportProcessor extends Processor {
             mask.setId(URIUtil.createId(UnManagedExportMask.class));
         }
         
-
         handlePersistence();
         getAllCurrentUnManagedExportMaskUris().add(mask.getId());
     }
     
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see com.emc.storageos.plugins.common.Processor#setPrerequisiteObjects(java.util.List)
      */
     @Override

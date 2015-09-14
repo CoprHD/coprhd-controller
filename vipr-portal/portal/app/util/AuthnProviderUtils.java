@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -21,8 +21,7 @@ public class AuthnProviderUtils {
     public static AuthnProviderRestRep getAuthnProvider(String id) {
         try {
             return getViprClient().authnProviders().get(uri(id));
-        }
-        catch (ViPRHttpException e) {
+        } catch (ViPRHttpException e) {
             if (e.getHttpCode() == 404) {
                 return null;
             }
@@ -37,20 +36,20 @@ public class AuthnProviderUtils {
     public static List<AuthnProviderRestRep> getAuthnProvider(List<URI> ids) {
         return getViprClient().authnProviders().getByIds(ids);
     }
-    
+
     public static List<AuthnProviderRestRep> getAuthProvidersByDomainName(String domain) {
-    	List<AuthnProviderRestRep> results = Lists.newArrayList();
-    	if (StringUtils.isNotBlank(domain)) {
-	    	List<AuthnProviderRestRep> authnProviderRestReps = AuthnProviderUtils.getAuthnProviders();
-	    	for (AuthnProviderRestRep authnProviderRestRep : authnProviderRestReps) {
-	    		for (String authProviderDomain : authnProviderRestRep.getDomains()) {
-	    			if (StringUtils.equalsIgnoreCase(authProviderDomain, domain)) {
-	    				results.add(authnProviderRestRep);
-	    			}
-	    		}
-	    	}
-    	}    	
-    	return results;
+        List<AuthnProviderRestRep> results = Lists.newArrayList();
+        if (StringUtils.isNotBlank(domain)) {
+            List<AuthnProviderRestRep> authnProviderRestReps = AuthnProviderUtils.getAuthnProviders();
+            for (AuthnProviderRestRep authnProviderRestRep : authnProviderRestReps) {
+                for (String authProviderDomain : authnProviderRestRep.getDomains()) {
+                    if (StringUtils.equalsIgnoreCase(authProviderDomain, domain)) {
+                        results.add(authnProviderRestRep);
+                    }
+                }
+            }
+        }
+        return results;
     }
 
     public static AuthnProviderRestRep create(AuthnCreateParam authnProvider) {

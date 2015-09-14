@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.service.vipr.compute.tasks;
@@ -22,15 +22,15 @@ public class FindHostsInCluster extends ViPRExecutionTask<List<HostRestRep>> {
 
     @Override
     public List<HostRestRep> executeTask() throws Exception {
-    	List<HostRestRep> hosts = Lists.newArrayList();
-    	try {
+        List<HostRestRep> hosts = Lists.newArrayList();
+        try {
             debug(ExecutionUtils.getMessage("compute.cluster.find.cluster.debug", clusterId));
             hosts = getClient().hosts().getByCluster(clusterId);
-    	}catch (Exception e) {
+        } catch (Exception e) {
             // catches if cluster was removed & marked for delete
-            ExecutionUtils.currentContext().logError("compute.cluster.get.hosts.failed", e.getMessage());    		
-    	}
-    	return hosts;	
+            ExecutionUtils.currentContext().logError("compute.cluster.get.hosts.failed", e.getMessage());
+        }
+        return hosts;
     }
-   
+
 }

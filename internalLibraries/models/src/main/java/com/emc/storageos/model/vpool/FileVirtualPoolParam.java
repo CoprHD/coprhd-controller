@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.vpool;
@@ -12,11 +12,12 @@ import javax.xml.bind.annotation.XmlRootElement;
  */
 @XmlRootElement(name = "file_vpool_create")
 public class FileVirtualPoolParam extends VirtualPoolCommonParam {
-    
+
     private FileVirtualPoolProtectionParam protection;
 
-    public FileVirtualPoolParam() {}
-    
+    public FileVirtualPoolParam() {
+    }
+
     public FileVirtualPoolParam(FileVirtualPoolProtectionParam protection) {
         super();
         this.protection = protection;

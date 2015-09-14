@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.systemservices.impl.resource.util;
 
@@ -24,6 +14,9 @@ public class NodeInfo {
     // The node id
     private String _nodeId;
 
+    // The node name
+    private String _nodeName;
+
     // The node IP address.
     private String _ipAddress;
 
@@ -35,12 +28,13 @@ public class NodeInfo {
 
     /**
      * Constructor.
-     *
+     * 
      * @param nodeId The id of the node.
      * @throws Exception If the passed connection info is not valid.
      */
-    public NodeInfo(String nodeId, URI endPointURI) throws Exception {
+    public NodeInfo(String nodeId, String nodeName, URI endPointURI) throws Exception {
         _nodeId = nodeId;
+        _nodeName = nodeName;
         _log.debug("Creating node info or node {}", _nodeId);
         _ipAddress = endPointURI.getHost();
         _log.debug("Node IP address is {}", _ipAddress);
@@ -50,7 +44,7 @@ public class NodeInfo {
 
     /**
      * Getter for the cluster node id.
-     *
+     * 
      * @return The cluster node id.
      */
     public String getId() {
@@ -58,8 +52,17 @@ public class NodeInfo {
     }
 
     /**
-     * Getter for the cluster node IP address.
+     * Getter for the cluster node name.
      *
+     * @return The cluster node name.
+     */
+    public String getName() {
+        return _nodeName;
+    }
+
+    /**
+     * Getter for the cluster node IP address.
+     * 
      * @return The cluster node IP address.
      */
     public String getIpAddress() {
@@ -68,7 +71,7 @@ public class NodeInfo {
 
     /**
      * Getter for the cluster node port.
-     *
+     * 
      * @return The cluster node port.
      */
     public int getPort() {

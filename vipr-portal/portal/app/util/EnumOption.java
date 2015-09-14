@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util;
@@ -33,7 +33,7 @@ public class EnumOption implements Comparable<EnumOption> {
      */
     public EnumOption(Enum value, String namePrefix) {
         this.id = value.name();
-        name = getDisplayValue(id, StringUtils.defaultString(namePrefix, value.getClass().getSimpleName()));        
+        name = getDisplayValue(id, StringUtils.defaultString(namePrefix, value.getClass().getSimpleName()));
     }
 
     public EnumOption(String value, String namePrefix) {
@@ -84,18 +84,18 @@ public class EnumOption implements Comparable<EnumOption> {
         Collections.sort(Arrays.asList(options));
         return options;
     }
-    
+
     public static EnumOption[] options(Enum[] values, String namePrefix, boolean sorted) {
         EnumOption[] options = new EnumOption[values.length];
         for (int i = 0; i < values.length; i++) {
             options[i] = new EnumOption(values[i], namePrefix);
         }
         if (sorted) {
-        	Collections.sort(Arrays.asList(options));
+            Collections.sort(Arrays.asList(options));
         }
         return options;
     }
-    
+
     public static EnumOption[] options(String[] values, String namePrefix, boolean sorted) {
         EnumOption[] options = new EnumOption[values.length];
         for (int i = 0; i < values.length; i++) {
@@ -111,9 +111,9 @@ public class EnumOption implements Comparable<EnumOption> {
      * Get given enum's i18n display-able string.
      * 
      * @param value
-     *        the enumeration value
+     *            the enumeration value
      * @param namePrefix
-     *        the prefix of the message key.
+     *            the prefix of the message key.
      * @return the display value.
      */
     private static String getDisplayValue(String value, String namePrefix) {

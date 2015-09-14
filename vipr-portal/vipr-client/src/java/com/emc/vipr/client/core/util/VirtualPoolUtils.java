@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.core.util;
@@ -15,6 +15,7 @@ public class VirtualPoolUtils {
     public static final String BLOCK = "block";
     public static final String VPLEX_LOCAL = "vplex_local";
     public static final String VPLEX_DISTRIBUTED = "vplex_distributed";
+    public static final String OBJECT = "object";
 
     private static boolean isVplexLocal(String type) {
         return VPLEX_LOCAL.equals(type);
@@ -36,9 +37,13 @@ public class VirtualPoolUtils {
         return byType(pools, BLOCK);
     }
 
+    public static List<NamedRelatedVirtualPoolRep> objectVpools(List<NamedRelatedVirtualPoolRep> pools) {
+        return byType(pools, OBJECT);
+    }
+    
     private static List<NamedRelatedVirtualPoolRep> byType(List<NamedRelatedVirtualPoolRep> pools, String type) {
         List<NamedRelatedVirtualPoolRep> response = new ArrayList<NamedRelatedVirtualPoolRep>();
-        for (NamedRelatedVirtualPoolRep pool: pools) {
+        for (NamedRelatedVirtualPoolRep pool : pools) {
             if (type.equalsIgnoreCase(pool.getVirtualPoolType())) {
                 response.add(pool);
             }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.volumecontroller.impl.plugins.discovery.smis.processor.SRDF;
@@ -31,7 +31,7 @@ public class VolumeToSynchronizedRefProcessor extends StorageProcessor {
     private List<Object> args;
     private Logger _log = LoggerFactory.getLogger(VolumeToSynchronizedRefProcessor.class);
     private DbClient _dbClient;
-    
+
     @Override
     public void processResult(Operation operation, Object resultObj,
             Map<String, Object> keyMap) throws BaseCollectionException {
@@ -61,25 +61,26 @@ public class VolumeToSynchronizedRefProcessor extends StorageProcessor {
                         Constants._SyncedElement).getValue();
                 String sourceNativeGuid = createKeyfromPath(sourcePath);
                 String targetNativeGuid = createKeyfromPath(destPath);
-                _log.info("Source : {} , target : {}",sourceNativeGuid,targetNativeGuid);
+                _log.info("Source : {} , target : {}", sourceNativeGuid, targetNativeGuid);
                 if (!findVolumesArefromSameArray(sourceNativeGuid, targetNativeGuid)) {
-                	 numberOfTargets++;
-                	 copyMode = storageSynchronized.getPropertyValue(MODE).toString();
-                	 _log.info("RDF Group {} detected Copy Mode {}",remoteGroup.getNativeGuid(),copyMode);
+                    numberOfTargets++;
+                    copyMode = storageSynchronized.getPropertyValue(MODE).toString();
+                    _log.info("RDF Group {} detected Copy Mode {}", remoteGroup.getNativeGuid(), copyMode);
                 }
             }
             if (numberOfTargets > 1) {
-                _log.info("RA Group {} is associated with Cascaded SRDF configuration, hence copyMode will not be updated.", remoteGroup.getNativeGuid());
+                _log.info("RA Group {} is associated with Cascaded SRDF configuration, hence copyMode will not be updated.",
+                        remoteGroup.getNativeGuid());
                 remoteGroup.setSupported(false);
             } else {
                 // set copy Mode on Remote Group.
                 // get Volume-->RA Group Mapping
                 // if Copy Mode is already set on ViPr remoteGroup in DB, then don't change it.
-            	remoteGroup.setSupported(true);
+                remoteGroup.setSupported(true);
                 if (updateSupportedCopyMode(remoteGroup.getSupportedCopyMode())) {
                     // in general, this property value can't be null, but in customer case we are seeing this, hence added this check
                     if (null == copyMode) {
-                    	remoteGroup.setSupportedCopyMode(SupportedCopyModes.UNKNOWN.toString());
+                        remoteGroup.setSupportedCopyMode(SupportedCopyModes.UNKNOWN.toString());
                     } else {
                         remoteGroup.setSupportedCopyMode(SupportedCopyModes.getCopyMode(copyMode));
                     }
@@ -91,14 +92,14 @@ public class VolumeToSynchronizedRefProcessor extends StorageProcessor {
             _log.error("Copy Mode Discovery failed for remote Groups ", e);
         }
     }
-    
+
     private String getCopyState(String copyState) {
         if (CONSISTENT_ID.equalsIgnoreCase(copyState)) {
             return CopyStates.CONSISTENT.toString();
         }
         return CopyStates.IN_CONSISTENT.toString();
     }
-    
+
     @Override
     protected void setPrerequisiteObjects(List<Object> inputArgs)
             throws BaseCollectionException {
@@ -106,8 +107,9 @@ public class VolumeToSynchronizedRefProcessor extends StorageProcessor {
     }
 
     private boolean updateSupportedCopyMode(String copyMode) {
-        return  null == copyMode
+        return null == copyMode
                 || SupportedCopyModes.UNKNOWN.toString().equalsIgnoreCase(copyMode)
+                || SupportedCopyModes.ALL.toString().equalsIgnoreCase(copyMode)
                 || SupportedCopyModes.ADAPTIVECOPY.toString().equalsIgnoreCase(copyMode);
     }
 }

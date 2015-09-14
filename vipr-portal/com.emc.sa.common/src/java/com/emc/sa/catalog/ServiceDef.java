@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.catalog;
@@ -14,7 +14,7 @@ public class ServiceDef {
     public String image;
     public String description;
     public String baseService;
-    public Map<String,String> lockFields;
+    public Map<String, String> lockFields;
 
     public String getName() {
         return StringUtils.defaultIfBlank(this.label, StringUtils.replace(title, " ", ""));

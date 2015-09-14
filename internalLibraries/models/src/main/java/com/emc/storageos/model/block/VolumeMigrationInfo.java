@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.block;
@@ -18,8 +18,9 @@ public class VolumeMigrationInfo {
     private URI storageSystem;
     private URI virtualPool;
 
-    public VolumeMigrationInfo() {}
-            
+    public VolumeMigrationInfo() {
+    }
+
     public VolumeMigrationInfo(URI volume, URI storageSystem, URI virtualPool) {
         this.volume = volume;
         this.storageSystem = storageSystem;
@@ -27,9 +28,10 @@ public class VolumeMigrationInfo {
     }
 
     /**
-     * This parameter specifies the id of the 
+     * This parameter specifies the id of the
      * volume to be migrated.
-     * @valid example: URI of the volume to be migrated 
+     * 
+     * @valid example: URI of the volume to be migrated
      */
     @XmlElement(required = true, name = "volume")
     public URI getVolume() {
@@ -41,10 +43,11 @@ public class VolumeMigrationInfo {
     }
 
     /**
-     * This parameter specifies the id of the 
-     * storage system to which the volume is to 
+     * This parameter specifies the id of the
+     * storage system to which the volume is to
      * be migrated.
-     * @valid example: URI of the storage system 
+     * 
+     * @valid example: URI of the storage system
      */
     @XmlElement(required = true, name = "storage_system")
     public URI getStorageSystem() {
@@ -56,9 +59,10 @@ public class VolumeMigrationInfo {
     }
 
     /**
-     * This parameter specifies (optional) the id of the 
+     * This parameter specifies (optional) the id of the
      * virtual pool to which the volume is to be migrated.
-     * @valid example: URI of the virtual pool 
+     * 
+     * @valid example: URI of the virtual pool
      */
     @XmlElement(name = "vpool")
     @JsonProperty("vpool")
@@ -69,5 +73,5 @@ public class VolumeMigrationInfo {
     public void setVirtualPool(URI virtualPool) {
         this.virtualPool = virtualPool;
     }
-    
+
 }

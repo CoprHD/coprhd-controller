@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2013 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.api.service.impl.resource;
 
@@ -20,6 +10,7 @@ import static com.emc.storageos.api.mapper.TaskMapper.toTask;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -78,17 +69,17 @@ import com.google.common.base.Function;
  * Service used to manage resource migrations.
  */
 @Path("/block/migrations")
-@DefaultPermissions(read_roles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, read_acls = {
-    ACL.OWN, ACL.ALL }, write_roles = { Role.TENANT_ADMIN }, write_acls = { ACL.OWN,
-    ACL.ALL })
+@DefaultPermissions(readRoles = { Role.SYSTEM_MONITOR, Role.TENANT_ADMIN }, readAcls = {
+        ACL.OWN, ACL.ALL }, writeRoles = { Role.TENANT_ADMIN }, writeAcls = { ACL.OWN,
+        ACL.ALL })
 public class MigrationService extends TaskResourceService {
-    // A reference to the BlockServiceApi for VPlex. 
+    // A reference to the BlockServiceApi for VPlex.
     VPlexBlockServiceApiImpl _vplexBlockServiceApi = null;
-    
+
     // A logger reference.
     private static final Logger s_logger = LoggerFactory
-        .getLogger(MigrationService.class);
-    
+            .getLogger(MigrationService.class);
+
     /**
      * Setter for the VPlex BlockServiceApi called through Spring configuration.
      * 
@@ -104,7 +95,7 @@ public class MigrationService extends TaskResourceService {
      * volume on the passed source storage system. The volume is migrated to the
      * passed target storage system, which must be connected to the same VPLEX
      * cluster as the source storage system.
-     *      
+     * 
      * 
      * @prereq none
      * 
@@ -124,45 +115,49 @@ public class MigrationService extends TaskResourceService {
         String taskId = UUID.randomUUID().toString();
 
         s_logger.info(
-            "Migrate volume {} from storage system {} to storage system {}",
-            new Object[] { migrateParam.getVolume(), migrateParam.getSrcStorageSystem(),
-                migrateParam.getTgtStorageSystem() });
+                "Migrate volume {} from storage system {} to storage system {}",
+                new Object[] { migrateParam.getVolume(), migrateParam.getSrcStorageSystem(),
+                        migrateParam.getTgtStorageSystem() });
 
         // Verify the requested volume supports migration.
         Volume vplexVolume = verifyRequestedVolumeSupportsMigration(migrateParam.getVolume());
         s_logger.debug("Verfified requested volume");
+                
+        // Make sure that we don't have some pending
+        // operation against the volume
+        checkForPendingTasks(Arrays.asList(vplexVolume.getTenant().getURI()), Arrays.asList(vplexVolume));
 
         // Determine the backend volume of the requested VPlex volume that
         // is to be migrated. It is the volume on the passed source storage
         // system.
         Volume migrationSrc = getMigrationSource(vplexVolume,
-            migrateParam.getSrcStorageSystem());
+                migrateParam.getSrcStorageSystem());
         s_logger.debug("Migration source is {}", migrationSrc.getId());
 
         // The project for the migration target will be the same as that
         // of the source.
         Project migrationTgtProject = _permissionsHelper.getObjectById(migrationSrc
-            .getProject().getURI(), Project.class);
+                .getProject().getURI(), Project.class);
         s_logger.debug("Migration target project is {}", migrationTgtProject.getId());
 
         // The VirtualArray for the migration target will be the same as
         // that of the source.
         VirtualArray migrationTgtNh = _permissionsHelper.getObjectById(
-            migrationSrc.getVirtualArray(), VirtualArray.class);
+                migrationSrc.getVirtualArray(), VirtualArray.class);
         s_logger.debug("Migration target VirtualArray is {}", migrationTgtNh.getId());
 
         // Verify the requested target storage system exists and
         // is a system to which the migration source volume can
         // be migrated.
         verifyTargetStorageSystemForMigration(migrateParam.getVolume(),
-            vplexVolume.getStorageController(), migrateParam.getSrcStorageSystem(),
-            migrateParam.getTgtStorageSystem());
+                vplexVolume.getStorageController(), migrateParam.getSrcStorageSystem(),
+                migrateParam.getTgtStorageSystem());
         s_logger.debug("Verified target storage system {}",
-            migrateParam.getTgtStorageSystem());
+                migrateParam.getTgtStorageSystem());
 
         // Get the VirtualPool for the migration target.
         VirtualPool migrationTgtCos = getVirtualPoolForMigrationTarget(migrateParam.getVirtualPool(),
-            vplexVolume, migrationSrc);
+                vplexVolume, migrationSrc);
         s_logger.debug("Migration target VirtualPool is {}", migrationTgtCos.getId());
 
         // Get the VPlex storage system for the virtual volume.
@@ -177,17 +172,18 @@ public class MigrationService extends TaskResourceService {
         cosWrapper.put(VirtualPoolCapabilityValuesWrapper.SIZE, migrationSrc.getCapacity());
         cosWrapper.put(VirtualPoolCapabilityValuesWrapper.RESOURCE_COUNT, new Integer(1));
         List<Recommendation> recommendations = vplexScheduler.scheduleStorage(
-            migrationTgtNh, requestedVPlexSystems, migrateParam.getTgtStorageSystem(),
-            migrationTgtCos, false, null, null, cosWrapper);
+                migrationTgtNh, requestedVPlexSystems, migrateParam.getTgtStorageSystem(),
+                migrationTgtCos, false, null, null, cosWrapper);
         if (recommendations.isEmpty()) {
-        	throw APIException.badRequests.noStorageFoundForVolumeMigration(migrationTgtCos.getId(), migrationTgtNh.getId(), vplexVolume.getId());
+            throw APIException.badRequests.noStorageFoundForVolumeMigration(migrationTgtCos.getId(), migrationTgtNh.getId(),
+                    vplexVolume.getId());
         }
         s_logger.debug("Got recommendation for migration target");
-        
+
         // There should be a single recommendation.
         Recommendation recommendation = recommendations.get(0);
-        URI recommendedSystem = recommendation.getSourceDevice();
-        URI recommendedPool = recommendation.getSourcePool();
+        URI recommendedSystem = recommendation.getSourceStorageSystem();
+        URI recommendedPool = recommendation.getSourceStoragePool();
         s_logger.debug("Recommendation storage system is {}", recommendedSystem);
         s_logger.debug("Recommendation storage pool is {}", recommendedPool);
 
@@ -195,10 +191,10 @@ public class MigrationService extends TaskResourceService {
         List<URI> migrationTgts = new ArrayList<URI>();
         Map<URI, URI> poolTgtMap = new HashMap<URI, URI>();
         Volume migrationTgt = _vplexBlockServiceApi.prepareVolumeForRequest(
-            migrationSrc.getCapacity(), migrationTgtProject, migrationTgtNh,
-            migrationTgtCos, recommendedSystem, recommendedPool,
-            migrationSrc.getLabel(), ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME, 
-            taskId, _dbClient);
+                migrationSrc.getCapacity(), migrationTgtProject, migrationTgtNh,
+                migrationTgtCos, recommendedSystem, recommendedPool,
+                migrationSrc.getLabel(), ResourceOperationTypeEnum.CREATE_BLOCK_VOLUME,
+                taskId, _dbClient);
         URI migrationTgtURI = migrationTgt.getId();
         migrationTgts.add(migrationTgtURI);
         poolTgtMap.put(recommendedPool, migrationTgtURI);
@@ -207,28 +203,28 @@ public class MigrationService extends TaskResourceService {
         // Prepare the migration.
         Map<URI, URI> migrationsMap = new HashMap<URI, URI>();
         Migration migration = _vplexBlockServiceApi
-            .prepareMigration(migrateParam.getVolume(), migrationSrc.getId(),
-                migrationTgt.getId(), taskId);
+                .prepareMigration(migrateParam.getVolume(), migrationSrc.getId(),
+                        migrationTgt.getId(), taskId);
         migrationsMap.put(migrationTgtURI, migration.getId());
         s_logger.debug("Prepared migration {}", migration.getId());
 
-        // Create a task for the virtual volume being migrated and set the 
+        // Create a task for the virtual volume being migrated and set the
         // initial task state to pending.
         Operation op = _dbClient.createTaskOpStatus(Volume.class,
-            vplexVolume.getId(), taskId, ResourceOperationTypeEnum.MIGRATE_BLOCK_VOLUME);
+                vplexVolume.getId(), taskId, ResourceOperationTypeEnum.MIGRATE_BLOCK_VOLUME);
         TaskResourceRep task = toTask(vplexVolume, taskId, op);
         s_logger.debug("Created task for volume {}", migrateParam.getVolume());
 
         try {
             VPlexController controller = _vplexBlockServiceApi.getController();
             String successMsg = String.format("Migration succeeded for volume %s",
-                migrateParam.getVolume());
+                    migrateParam.getVolume());
             String failMsg = String.format("Migration failed for volume %s",
-                migrateParam.getVolume());
+                    migrateParam.getVolume());
             controller.migrateVolumes(vplexSystemURI, migrateParam.getVolume(),
-                migrationTgts, migrationsMap, poolTgtMap,
-                (migrateParam.getVirtualPool() != null ? migrateParam.getVirtualPool() : null), null,
-                successMsg, failMsg, null, taskId, null);
+                    migrationTgts, migrationsMap, poolTgtMap,
+                    (migrateParam.getVirtualPool() != null ? migrateParam.getVirtualPool() : null), null,
+                    successMsg, failMsg, null, taskId, null);
             s_logger.debug("Got VPlex controller and created migration workflow");
         } catch (InternalException e) {
             s_logger.error("Controller Error", e);
@@ -237,7 +233,7 @@ public class MigrationService extends TaskResourceService {
             task.setMessage(errMsg);
             Operation opStatus = new Operation(Operation.Status.error.name(), errMsg);
             _dbClient.updateTaskOpStatus(Volume.class, task.getResource()
-                .getId(), taskId, opStatus);
+                    .getId(), taskId, opStatus);
             migrationTgt.setInactive(true);
             _dbClient.persistObject(migrationTgt);
             migration.setInactive(true);
@@ -248,11 +244,11 @@ public class MigrationService extends TaskResourceService {
 
         return task;
     }
-    
+
     /**
      * Returns a list of the migrations the user is permitted to see or an empty
      * list if the user is not authorized for any migrations.
-     *      
+     * 
      * 
      * @prereq none
      * 
@@ -271,9 +267,9 @@ public class MigrationService extends TaskResourceService {
         while (uriIter.hasNext()) {
             Migration migration = queryResource(uriIter.next());
             if (BulkList.MigrationFilter.isUserAuthorizedForMigration(migration,
-                getUserFromContext(), _permissionsHelper)) {
+                    getUserFromContext(), _permissionsHelper)) {
                 migrationList.getMigrations().add(
-                    toNamedRelatedResource(migration, migration.getLabel()));
+                        toNamedRelatedResource(migration, migration.getLabel()));
             }
         }
         return migrationList;
@@ -281,7 +277,7 @@ public class MigrationService extends TaskResourceService {
 
     /**
      * Returns the data for the migration with the id specified in the request.
-     *      
+     * 
      * 
      * @prereq none
      * 
@@ -301,7 +297,7 @@ public class MigrationService extends TaskResourceService {
         ArgValidator.checkFieldUriType(id, Migration.class, "id");
         Migration migration = queryResource(id);
         if (!BulkList.MigrationFilter.isUserAuthorizedForMigration(migration,
-            getUserFromContext(), _permissionsHelper)) {
+                getUserFromContext(), _permissionsHelper)) {
             StorageOSUser user = getUserFromContext();
             throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
         } else {
@@ -311,7 +307,7 @@ public class MigrationService extends TaskResourceService {
 
     /**
      * Pause a migration that is in progress. Not yet implemented.
-     *      
+     * 
      * 
      * @prereq none
      * 
@@ -323,14 +319,14 @@ public class MigrationService extends TaskResourceService {
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/pause")
-    @CheckPermission(roles = {Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep pauseMigration(@PathParam("id") URI id) {
         throw APIException.methodNotAllowed.notSupported();
     }
 
     /**
      * Resume a migration that was previously paused. Not yet implemented.
-     *      
+     * 
      * 
      * @prereq none
      * 
@@ -339,17 +335,17 @@ public class MigrationService extends TaskResourceService {
      * @brief Resume a paused migration.
      * @return A TaskResourceRep
      */
-   @POST
+    @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/resume")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep resumeMigration(@PathParam("id") URI id) {
         throw APIException.methodNotAllowed.notSupported();
     }
 
     /**
      * Commit a migration that has successfully completed. Not yet implemented.
-     *      
+     * 
      * 
      * @prereq none
      * 
@@ -368,7 +364,7 @@ public class MigrationService extends TaskResourceService {
 
     /**
      * Cancel a migration that has yet to be committed. Not yet implemented.
-     *      
+     * 
      * 
      * @prereq none
      * 
@@ -380,11 +376,11 @@ public class MigrationService extends TaskResourceService {
     @POST
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/{id}/cancel")
-    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN})
+    @CheckPermission(roles = { Role.SYSTEM_ADMIN, Role.RESTRICTED_SYSTEM_ADMIN })
     public TaskResourceRep cancelMigration(@PathParam("id") URI id) {
         throw APIException.methodNotAllowed.notSupported();
     }
-    
+
     /**
      * {@inheritDoc}
      */
@@ -403,7 +399,7 @@ public class MigrationService extends TaskResourceService {
     protected URI getTenantOwner(URI id) {
         return null;
     }
-    
+
     /**
      * Determines if the passed volume supports migration.
      * 
@@ -424,14 +420,14 @@ public class MigrationService extends TaskResourceService {
         if (vplexSystemURI == null) {
             // Must be an RP protected volume, which uses a protection
             // controller.
-        	throw APIException.badRequests.requestedVolumeIsNotVplexVolume(volumeURI);
+            throw APIException.badRequests.requestedVolumeIsNotVplexVolume(volumeURI);
         } else {
             vplexSystem = _permissionsHelper.getObjectById(vplexSystemURI,
-                StorageSystem.class);
+                    StorageSystem.class);
             if (!DiscoveredDataObject.Type.vplex.name().equals(
-                vplexSystem.getSystemType())) {
+                    vplexSystem.getSystemType())) {
                 // The volume is not a VPlex volume.
-            	throw APIException.badRequests.requestedVolumeIsNotVplexVolume(volumeURI);
+                throw APIException.badRequests.requestedVolumeIsNotVplexVolume(volumeURI);
             }
         }
 
@@ -449,30 +445,30 @@ public class MigrationService extends TaskResourceService {
      */
     private Volume getMigrationSource(Volume vplexVolume, URI srcStorageSystemURI) {
         // Determine the backend volume of the passed VPlex volume that
-        // is to be migrated. It is the volume on the passed source 
+        // is to be migrated. It is the volume on the passed source
         // storage system.
         Volume migrationSrc = null;
         StringSet assocVolumeIds = vplexVolume.getAssociatedVolumes();
         for (String assocVolumeId : assocVolumeIds) {
             Volume assocVolume = _permissionsHelper.getObjectById(
-                URI.create(assocVolumeId), Volume.class);
+                    URI.create(assocVolumeId), Volume.class);
             if (assocVolume.getStorageController().toString()
-                .equals(srcStorageSystemURI.toString())) {
+                    .equals(srcStorageSystemURI.toString())) {
                 migrationSrc = assocVolume;
                 break;
             }
         }
 
         // Validate that we found the migration source.
-        if(migrationSrc == null) {
+        if (migrationSrc == null) {
             throw APIException.badRequests.invalidParameterVolumeNotOnSystem(vplexVolume.getId(), srcStorageSystemURI);
         }
 
         return migrationSrc;
     }
-    
+
     /**
-     * Verifies that the passed target storage system is connected to the passed 
+     * Verifies that the passed target storage system is connected to the passed
      * VPlex storage system.
      * 
      * @param vplexVolumeURI The URI of the VPlex virtual volume.
@@ -481,18 +477,19 @@ public class MigrationService extends TaskResourceService {
      * @param tgtStorageSystemURI The URI of the target storage system.
      */
     private void verifyTargetStorageSystemForMigration(URI vplexVolumeURI,
-        URI vplexSystemURI, URI srcStorageSystemURI, URI tgtStorageSystemURI) {
-        
+            URI vplexSystemURI, URI srcStorageSystemURI, URI tgtStorageSystemURI) {
+
         // Intention is tech refresh, so the source and target systems should
         // be different.
-    	if (tgtStorageSystemURI.toString().equals(srcStorageSystemURI.toString()))
-    	throw APIException.badRequests.targetAndSourceStorageCannotBeSame();
-        
-    	// Verify requested target storage system is active.
+        if (tgtStorageSystemURI.toString().equals(srcStorageSystemURI.toString())) {
+            throw APIException.badRequests.targetAndSourceStorageCannotBeSame();
+        }
+
+        // Verify requested target storage system is active.
         StorageSystem tgtStorageSystem = _permissionsHelper.getObjectById(
-            tgtStorageSystemURI, StorageSystem.class);
+                tgtStorageSystemURI, StorageSystem.class);
         ArgValidator.checkEntity(tgtStorageSystem, tgtStorageSystemURI, false);
-        
+
         // Verify the target storage system is at least connected to the
         // VPlex storage system for the VPlex virtual volume. Technically,
         // it must be connected to the same VPlex cluster as the source
@@ -505,11 +502,11 @@ public class MigrationService extends TaskResourceService {
         if (associatedVplexes.contains(vplexSystemURI)) {
             isConnectedToVPlex = true;
         }
-        if(!isConnectedToVPlex) {
-        	throw APIException.badRequests.storageSystemNotConnectedToCorrectVPlex(tgtStorageSystemURI, vplexSystemURI);
-		}
+        if (!isConnectedToVPlex) {
+            throw APIException.badRequests.storageSystemNotConnectedToCorrectVPlex(tgtStorageSystemURI, vplexSystemURI);
+        }
     }
-    
+
     /**
      * Gets the VirtualPool for the migration target.
      * 
@@ -520,11 +517,11 @@ public class MigrationService extends TaskResourceService {
      * @return A reference to the VirtualPool for the migration target volume.
      */
     private VirtualPool getVirtualPoolForMigrationTarget(URI requestedCosURI, Volume vplexVolume,
-        Volume migrationSrc) {
+            Volume migrationSrc) {
         // Get the VirtualPool for the migration source.
         VirtualPool cosForMigrationSrc = _permissionsHelper.getObjectById(
-            migrationSrc.getVirtualPool(), VirtualPool.class);
-        
+                migrationSrc.getVirtualPool(), VirtualPool.class);
+
         // Determine the VirtualPool for the migration target based on
         // the VirtualPool specified in the request, if any. Note that the
         // VirtualPool specified in the request should be the new VirtualPool for
@@ -536,16 +533,16 @@ public class MigrationService extends TaskResourceService {
             // set it initially as the VirtualPool for the migration
             // target.
             Project vplexVolumeProject = _permissionsHelper.getObjectById(
-                vplexVolume.getProject(), Project.class);
+                    vplexVolume.getProject(), Project.class);
             cosForMigrationTgt = BlockService.getVirtualPoolForRequest(vplexVolumeProject,
-                requestedCosURI, _dbClient, _permissionsHelper);
+                    requestedCosURI, _dbClient, _permissionsHelper);
 
             // Now get the VirtualArray of the migration source volume.
             // We need to know if this is the primary volume or the HA
             // volume.
             URI migrationNhURI = migrationSrc.getVirtualArray();
             if (!migrationNhURI.toString().equals(
-                vplexVolume.getVirtualArray().toString())) {
+                    vplexVolume.getVirtualArray().toString())) {
                 // The HA backend volume is being migrated.
                 // The VirtualPool for the HA volume is potentially
                 // specified by the HA VirtualPool map in the requested
@@ -553,23 +550,23 @@ public class MigrationService extends TaskResourceService {
                 // is the same as that of the VPlex volume.
                 StringMap haNhCosMap = cosForMigrationTgt.getHaVarrayVpoolMap();
                 if ((haNhCosMap != null)
-                    && (haNhCosMap.containsKey(migrationNhURI.toString()))) {
+                        && (haNhCosMap.containsKey(migrationNhURI.toString()))) {
                     cosForMigrationTgt = BlockService.getVirtualPoolForRequest(
-                        vplexVolumeProject,
-                        URI.create(haNhCosMap.get(migrationNhURI.toString())), _dbClient,
-                        _permissionsHelper);
+                            vplexVolumeProject,
+                            URI.create(haNhCosMap.get(migrationNhURI.toString())), _dbClient,
+                            _permissionsHelper);
                 }
-                
+
                 // Now verify the VirtualPool change is legitimate.
                 VirtualPoolChangeAnalyzer.verifyVirtualPoolChangeForTechRefresh(cosForMigrationSrc,
-                    cosForMigrationTgt);
+                        cosForMigrationTgt);
             } else {
                 // The primary or source volume is being migrated.
-                // The VirtualPool for the primary volume is the same as 
+                // The VirtualPool for the primary volume is the same as
                 // that for the VPlex volume. We still need to verify
                 // this is a legitimate VirtualPool change.
                 VirtualPoolChangeAnalyzer.verifyVirtualPoolChangeForTechRefresh(cosForMigrationSrc,
-                    cosForMigrationTgt);
+                        cosForMigrationTgt);
             }
         } else {
             // A new VirtualPool was not specified for the virtual volume, so
@@ -580,9 +577,9 @@ public class MigrationService extends TaskResourceService {
 
         return cosForMigrationTgt;
     }
-        
+
     /**
-     * Migration is not a zone level resource 
+     * Migration is not a zone level resource
      */
     @Override
     protected boolean isZoneLevelResource() {
@@ -590,10 +587,10 @@ public class MigrationService extends TaskResourceService {
     }
 
     @Override
-    protected ResourceTypeEnum getResourceType(){
+    protected ResourceTypeEnum getResourceType() {
         return ResourceTypeEnum.MIGRATION;
     }
-    
+
     /**
      * Implements function called by bulk API to map migration instances to
      * their corresponding REST responses.
@@ -608,42 +605,42 @@ public class MigrationService extends TaskResourceService {
             return BlockMigrationMapper.map(migration);
         }
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @POST
     @Path("/bulk")
-    @Consumes({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    @Produces({MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
+    @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Override
     public BlockMigrationBulkRep getBulkResources(BulkIdParam param) {
         return (BlockMigrationBulkRep) super.getBulkResources(param);
     }
-        
+
     /**
      * {@inheritDoc}
      */
     @Override
     public BlockMigrationBulkRep queryBulkResourceReps(List<URI> ids) {
         Iterator<Migration> _dbIterator = _dbClient.queryIterativeObjects(
-            getResourceClass(), ids);
+                getResourceClass(), ids);
         return new BlockMigrationBulkRep(BulkList.wrapping(_dbIterator,
-            new BlockMigrationAdapter()));
+                new BlockMigrationAdapter()));
     }
-    
+
     /**
      * {@inheritDoc}
      */
     @Override
     protected BlockMigrationBulkRep queryFilteredBulkResourceReps(List<URI> ids) {
         Iterator<Migration> _dbIterator = _dbClient.queryIterativeObjects(
-            getResourceClass(), ids);
+                getResourceClass(), ids);
         return new BlockMigrationBulkRep(BulkList.wrapping(_dbIterator,
-            new BlockMigrationAdapter(), new BulkList.MigrationFilter(
-                getUserFromContext(), _permissionsHelper)));
+                new BlockMigrationAdapter(), new BulkList.MigrationFilter(
+                        getUserFromContext(), _permissionsHelper)));
     }
-        
+
     /**
      * {@inheritDoc}
      */

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.compute;
@@ -11,16 +11,17 @@ import org.codehaus.jackson.annotate.JsonProperty;
 
 import com.emc.storageos.model.valid.Length;
 import com.emc.storageos.model.valid.Range;
-
+import java.net.URI;
 /**
  * The input parameter for the Create Compute System API Call
+ * 
  * @author Dranov,Vladislav
- *
+ * 
  */
 @XmlRootElement(name = "compute_system_create")
 public class ComputeSystemCreate {
 
-	private String name;
+    private String name;
     private String ipAddress;
     private Integer portNumber;
     private String userName;
@@ -28,41 +29,58 @@ public class ComputeSystemCreate {
     private String osInstallNetwork;
     private String systemType;
     private Boolean useSSL;
+    private URI computeImageServer;
 
-    public ComputeSystemCreate() {}
-    
+    public ComputeSystemCreate() {
+    }
+
     @Length(min = 2, max = 128)
     @XmlElement(required = true)
     public String getName() {
-		return name;
-	}
-	public void setName(String name) {
-		this.name = name;
-	}
-	
-	@XmlElement(name = "ip_address")
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    @XmlElement(name = "ip_address")
     @JsonProperty("ip_address")
     public String getIpAddress() {
-		return ipAddress;
-	}
-	public void setIpAddress(String ipAddress) {
-		this.ipAddress = ipAddress;
-	}
-	
-	@XmlElement(name = "port_number")
-    @Range(min=1,max=65535)
+        return ipAddress;
+    }
+
+    public void setIpAddress(String ipAddress) {
+        this.ipAddress = ipAddress;
+    }
+
+    @XmlElement(name = "port_number")
+    @Range(min = 1, max = 65535)
     @JsonProperty("port_number")
     public Integer getPortNumber() {
-		return portNumber;
+        return portNumber;
+    }
+
+    public void setPortNumber(Integer portNumber) {
+        this.portNumber = portNumber;
+    }
+    
+    @XmlElement(name = "compute_image_server")
+    @JsonProperty("compute_image_server")
+    public URI getComputeImageServer() {
+		return computeImageServer;
 	}
-	public void setPortNumber(Integer portNumber) {
-		this.portNumber = portNumber;
+
+	public void setComputeImageServer(URI computeImageServer) {
+		this.computeImageServer = computeImageServer;
 	}
+
     /**
-     * Specifies whether to use SSL (Secure Sockets Layer) 
+     * Specifies whether to use SSL (Secure Sockets Layer)
      * as the authentication method.
-     * @valid none 
-     */     
+     * 
+     * @valid none
+     */
     @XmlElement(name = "use_ssl")
     public Boolean getUseSSL() {
         return useSSL;
@@ -71,44 +89,48 @@ public class ComputeSystemCreate {
     public void setUseSSL(Boolean useSSL) {
         this.useSSL = useSSL;
     }
-    
-	@XmlElement(name = "user_name")
+
+    @XmlElement(name = "user_name")
     @JsonProperty("user_name")
     public String getUserName() {
-		return userName;
-	}
-	public void setUserName(String userName) {
-		this.userName = userName;
-	}
-	
-	@XmlElement()
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    @XmlElement()
     public String getPassword() {
-		return password;
-	}
-	public void setPassword(String password) {
-		this.password = password;
-	}
-	
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
     /**
      * Specifies the type of the compute system.
+     * 
      * @valid ucs
      */
-	@XmlElement(name = "system_type", required = true)
+    @XmlElement(name = "system_type", required = true)
     @JsonProperty("system_type")
     public String getSystemType() {
-		return systemType;
-	}
-	public void setSystemType(String systemType) {
-		this.systemType = systemType;
-	}
+        return systemType;
+    }
 
-	@XmlElement(name = "os_install_network")
-	@JsonProperty("os_install_network")
-	public String getOsInstallNetwork() {
-		return osInstallNetwork;
-	}
+    public void setSystemType(String systemType) {
+        this.systemType = systemType;
+    }
 
-	public void setOsInstallNetwork(String osInstallNetwork) {
-		this.osInstallNetwork = osInstallNetwork;
-	}	
+    @XmlElement(name = "os_install_network")
+    @JsonProperty("os_install_network")
+    public String getOsInstallNetwork() {
+        return osInstallNetwork;
+    }
+
+    public void setOsInstallNetwork(String osInstallNetwork) {
+        this.osInstallNetwork = osInstallNetwork;
+    }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2012-2015 iWave Software LLC
+ * Copyright (c) 2012-2015 iWave Software LLC
  * All Rights Reserved
  */
 package com.emc.sa.asset.providers;
@@ -28,7 +28,7 @@ public class ClusterProvider extends BaseAssetOptionsProvider {
         debug("getting clusters");
         return api(context).clusters().getByTenant(context.getTenant());
     }
-    
+
     @Asset("cluster")
     public List<AssetOption> getClusterOptions(AssetOptionsContext ctx) {
         debug("getting clusters");
@@ -39,7 +39,7 @@ public class ClusterProvider extends BaseAssetOptionsProvider {
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
-    }    
+    }
 
     protected AssetOption createClusterOption(AssetOptionsContext ctx, ClusterRestRep value) {
         String label = value.getName();
@@ -52,17 +52,17 @@ public class ClusterProvider extends BaseAssetOptionsProvider {
         Collection<ClusterRestRep> clusters = getClusters(ctx);
         List<AssetOption> options = Lists.newArrayList();
         for (ClusterRestRep value : clusters) {
-        	//If Cluster has an esx host - then add it to the list
-        	List<HostRestRep> hostList = api(ctx).hosts().getByCluster(value.getId());
-        	for (HostRestRep host : hostList) {
-        		if (host.getType().equalsIgnoreCase(Host.HostType.Esx.name())) {
-        			options.add(createClusterOption(ctx, value));
-        			break;
-        		}
-        	}            
+            // If Cluster has an esx host - then add it to the list
+            List<HostRestRep> hostList = api(ctx).hosts().getByCluster(value.getId());
+            for (HostRestRep host : hostList) {
+                if (host.getType().equalsIgnoreCase(Host.HostType.Esx.name())) {
+                    options.add(createClusterOption(ctx, value));
+                    break;
+                }
+            }
         }
         AssetOptionsUtils.sortOptionsByLabel(options);
         return options;
     }
-    
+
 }

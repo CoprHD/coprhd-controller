@@ -26,13 +26,15 @@ import com.google.common.base.Preconditions;
 public class BackupContext {
     private static final Logger log = LoggerFactory.getLogger(BackupContext.class);
     private File backupDir;
+    private String nodeId;
     private String nodeName;
     private List<String> vdcList;
-    
+
     /**
      * Sets local location which stores backup files
+     * 
      * @param backupDirParam
-     *      The new location path
+     *            The new location path
      */
     public void setBackupDir(final File backupDir) {
         if (backupDir == null) {
@@ -57,25 +59,36 @@ public class BackupContext {
     }
 
     /**
-     * Sets name of current node
-     * @param nodeNameParam
-     *          The name of node
+     * Sets id of current node
+     * 
+     * @param nodeIdParam
+     *            The id of node
      */
+    public void setNodeId(String nodeId) {
+        Preconditions.checkArgument(nodeId != null && !nodeId.trim().isEmpty(),
+                "ViPR node id is invalid");
+        this.nodeId = nodeId;
+    }
+
+    public String getNodeId() {
+        return this.nodeId;
+    }
+
     public void setNodeName(String nodeName) {
         Preconditions.checkArgument(nodeName != null && !nodeName.trim().isEmpty(),
                 "ViPR node name is invalid");
         this.nodeName = nodeName;
     }
-    
+
     public String getNodeName() {
-    	return this.nodeName;
+        return this.nodeName;
     }
 
     public void setVdcList(List<String> vdcList) {
         this.vdcList = vdcList;
     }
-    
+
     public List<String> getVdcList() {
-    	return this.vdcList;
+        return this.vdcList;
     }
 }

@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 
 package com.emc.storageos.volumecontroller.impl.plugins.metering.vnxfile.processor;
@@ -23,7 +13,6 @@ import org.apache.commons.httpclient.methods.PostMethod;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.emc.nas.vnxfile.xmlapi.Checkpoint;
 import com.emc.nas.vnxfile.xmlapi.ResponsePacket;
 import com.emc.nas.vnxfile.xmlapi.Severity;
 import com.emc.nas.vnxfile.xmlapi.Status;
@@ -38,7 +27,7 @@ public class VNXFileQuotaDirectoryIdProcessor extends VNXFileProcessor {
 
     @Override
     public void processResult(Operation operation, Object resultObj,
-                              Map<String, Object> keyMap) throws BaseCollectionException {
+            Map<String, Object> keyMap) throws BaseCollectionException {
         _logger.info("processing quota dir id response" + resultObj);
         final PostMethod result = (PostMethod) resultObj;
         try {
@@ -51,8 +40,8 @@ public class VNXFileQuotaDirectoryIdProcessor extends VNXFileProcessor {
                 boolean isQuotaDirFound = false;
                 List<Object> quotaDirList = getQueryResponse(responsePacket);
                 final String quotaDirName = (String) keyMap.get(VNXFileConstants.QUOTA_DIR_NAME);
-                String quotaDirPath = "/"+quotaDirName;
-                _logger.info( "Quota dir name to match: {} Size of quotadir found {} ", quotaDirName, quotaDirList.size());
+                String quotaDirPath = "/" + quotaDirName;
+                _logger.info("Quota dir name to match: {} Size of quotadir found {} ", quotaDirName, quotaDirList.size());
                 Iterator<Object> quotaDirItr = quotaDirList.iterator();
                 if (quotaDirItr.hasNext()) {
                     Status status = (Status) quotaDirItr.next();
@@ -70,7 +59,7 @@ public class VNXFileQuotaDirectoryIdProcessor extends VNXFileProcessor {
                                 break;
                             }
                         }
-                        if(!isQuotaDirFound)
+                        if (!isQuotaDirFound)
                         {
                             _logger.error("Error in getting the quota dir information.");
                         }

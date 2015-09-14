@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client;
@@ -16,7 +16,7 @@ public class ViPRCoreClient {
 
     /**
      * Convenience method for calling constructor with new ClientConfig().withHost(host)
-     *
+     * 
      * @param host Hostname or IP address for the Virtual IP of the target environment.
      */
     public ViPRCoreClient(String host) {
@@ -25,7 +25,7 @@ public class ViPRCoreClient {
 
     /**
      * Convenience method for calling constructor with new ClientConfig().withHost(host).withIgnoringCertificates(ignoreCertificates)
-     *
+     * 
      * @param host Hostname or IP address for the Virtual IP of the target environment.
      * @param ignoreCertificates True if SSL certificates should be ignored.
      */
@@ -41,7 +41,7 @@ public class ViPRCoreClient {
      * Sets the authentication token to be used for this client.
      * 
      * @param authToken
-     *        The authentication token to set.
+     *            The authentication token to set.
      */
     public void setAuthToken(String authToken) {
         client.setAuthToken(authToken);
@@ -51,7 +51,7 @@ public class ViPRCoreClient {
      * Sets the proxy token to be used for this client.
      * 
      * @param proxyToken
-     *        The authentication token to set.
+     *            The authentication token to set.
      */
     public void setProxyToken(String proxyToken) {
         client.setProxyToken(proxyToken);
@@ -66,9 +66,9 @@ public class ViPRCoreClient {
      * 
      * @see AuthClient#login(String, String)
      * @param username
-     *        The username.
+     *            The username.
      * @param password
-     *        The password.
+     *            The password.
      * @return The updated client.
      */
     public ViPRCoreClient withLogin(String username, String password) {
@@ -81,7 +81,7 @@ public class ViPRCoreClient {
      * 
      * @see #setAuthToken(String)
      * @param token
-     *        The authentication token to set.
+     *            The authentication token to set.
      * @return The updated client.
      */
     public ViPRCoreClient withAuthToken(String token) {
@@ -94,7 +94,7 @@ public class ViPRCoreClient {
      * 
      * @see #setProxyToken(String)
      * @param token
-     *        The proxy token to set.
+     *            The proxy token to set.
      * @return The updated client.
      */
     public ViPRCoreClient withProxyToken(String token) {
@@ -118,7 +118,7 @@ public class ViPRCoreClient {
     public Projects projects() {
         return new Projects(this, client);
     }
-    
+
     public VirtualDataCenters vdcs() {
         return new VirtualDataCenters(this, client);
     }
@@ -150,7 +150,7 @@ public class ViPRCoreClient {
     public BlockVolumes blockVolumes() {
         return new BlockVolumes(this, client);
     }
-    
+
     public BlockFullCopies blockFullCopies() {
         return new BlockFullCopies(this, client);
     }
@@ -167,14 +167,22 @@ public class ViPRCoreClient {
         return new FileVirtualPools(this, client);
     }
 
+    public ObjectVirtualPools objectVpools() {
+        return new ObjectVirtualPools(this, client);
+    }
+    
+    public ObjectBuckets objectBuckets() {
+        return new ObjectBuckets(this, client);
+    }
+    
     public ComputeVirtualPools computeVpools() {
         return new ComputeVirtualPools(this, client);
     }
-    
+
     public ComputeImages computeImages() {
         return new ComputeImages(this, client);
     }
-    
+
     public VirtualArrays varrays() {
         return new VirtualArrays(this, client);
     }
@@ -194,11 +202,11 @@ public class ViPRCoreClient {
     public FileSystems fileSystems() {
         return new FileSystems(this, client);
     }
-    
+
     public QuotaDirectories quotaDirectories() {
         return new QuotaDirectories(this, client);
     }
-    
+
     public FileSnapshots fileSnapshots() {
         return new FileSnapshots(this, client);
     }
@@ -234,6 +242,10 @@ public class ViPRCoreClient {
 
     public StorageSystems storageSystems() {
         return new StorageSystems(this, client);
+    }
+    
+    public VirtualNasServers virtualNasServers() {
+        return new VirtualNasServers(this, client);
     }
 
     public StorageTiers storageTiers() {
@@ -286,11 +298,11 @@ public class ViPRCoreClient {
 
     public ComputeSystems computeSystems() {
         return new ComputeSystems(this, client);
-    }    
-    
+    }
+
     public ComputeElements computeElements() {
         return new ComputeElements(this, client);
-    }    
+    }
 
     public Keystore keystore() {
         return new Keystore(client);
@@ -308,5 +320,7 @@ public class ViPRCoreClient {
         return new CustomConfigs(client);
     }
 
-    public UserGroup getUserGroup() { return new UserGroup(this, client); }
+    public UserGroup getUserGroup() {
+        return new UserGroup(this, client);
+    }
 }

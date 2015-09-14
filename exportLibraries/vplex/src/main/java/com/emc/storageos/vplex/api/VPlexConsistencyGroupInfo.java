@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.vplex.api;
 
@@ -21,7 +11,7 @@ import java.util.List;
  * Info for a VPlex Consistency Group.
  */
 public class VPlexConsistencyGroupInfo extends VPlexResourceInfo {
-    
+
     // Enumerates the virtual volume attributes we are interested in and
     // parse from the VPlex virtual volume response. There must be a setter
     // method for each attribute specified. The format of the setter
@@ -31,10 +21,10 @@ public class VPlexConsistencyGroupInfo extends VPlexResourceInfo {
         VOLUMES("virtual-volumes"),
         VISIBILITY("visibility"),
         STORAGE_AT_CLUSTER("storage-at-clusters");
-        
+
         // The VPlex name for the attribute.
         private String _name;
-        
+
         /**
          * Constructor.
          * 
@@ -43,16 +33,16 @@ public class VPlexConsistencyGroupInfo extends VPlexResourceInfo {
         CGAttribute(String name) {
             _name = name;
         }
-        
+
         /**
          * Getter for the VPlex name for the attribute.
          * 
          * @return The VPlex name for the attribute.
          */
         public String getAttributeName() {
-             return _name;
+            return _name;
         }
-               
+
         /**
          * Returns the enum whose name matches the passed name, else null when
          * not found.
@@ -72,19 +62,19 @@ public class VPlexConsistencyGroupInfo extends VPlexResourceInfo {
             return null;
         }
     };
-    
+
     // The cluster name;
     private String clusterName;
-    
+
     // The virtual volume names
     private List<String> virtualVolumes = new ArrayList<String>();
-    
+
     // The clusters for which the CG has visibility
     private List<String> visibleClusters = new ArrayList<String>();
 
     // The cluster at which the CG has storage
-    private List<String> storageAtClusters = new ArrayList<String>();    
-    
+    private List<String> storageAtClusters = new ArrayList<String>();
+
     /**
      * Getter for the cluster name.
      * 
@@ -102,7 +92,7 @@ public class VPlexConsistencyGroupInfo extends VPlexResourceInfo {
     public void setClusterName(String strVal) {
         clusterName = strVal;
     }
-    
+
     /**
      * Getter for the virtual volume names.
      * 
@@ -120,7 +110,7 @@ public class VPlexConsistencyGroupInfo extends VPlexResourceInfo {
     public void setVirtualVolumes(List<String> strVals) {
         virtualVolumes.addAll(strVals);
     }
-    
+
     /**
      * Getter for the clusters for which the CG has visibility.
      * 
@@ -138,7 +128,7 @@ public class VPlexConsistencyGroupInfo extends VPlexResourceInfo {
     public void setVisibility(List<String> strVals) {
         visibleClusters.addAll(strVals);
     }
-    
+
     /**
      * Getter for the clusters at which the CG has storage.
      * 
@@ -156,7 +146,7 @@ public class VPlexConsistencyGroupInfo extends VPlexResourceInfo {
     public void setStorageAtClusters(List<String> strVals) {
         storageAtClusters.addAll(strVals);
     }
-    
+
     /**
      * Determines if the consistency group has the visibility specified by the
      * passed list of cluster ids.
@@ -169,7 +159,7 @@ public class VPlexConsistencyGroupInfo extends VPlexResourceInfo {
     public boolean hasClusterVisibility(List<String> clusterIds) {
         return visibleClusters.containsAll(clusterIds);
     }
-    
+
     /**
      * If the consistency group is visible on both clusters, it's distributed.
      * 
@@ -199,10 +189,10 @@ public class VPlexConsistencyGroupInfo extends VPlexResourceInfo {
         StringBuilder str = new StringBuilder();
         str.append("ConsistencyGroupInfo ( ");
         str.append(super.toString());
-        str.append(", clusterName: " + clusterName);
-        str.append(", virtualVolumes: " + virtualVolumes.toString());
-        str.append(", visibleClusters: " + visibleClusters.toString());
-        str.append(", storageAtClusters: " + storageAtClusters.toString());
+        str.append(", clusterName: ").append(clusterName);
+        str.append(", virtualVolumes: ").append(virtualVolumes.toString());
+        str.append(", visibleClusters: ").append(visibleClusters.toString());
+        str.append(", storageAtClusters: ").append(storageAtClusters.toString());
         str.append(" )");
         return str.toString();
     }

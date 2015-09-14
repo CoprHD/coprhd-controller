@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.api;
@@ -39,7 +39,7 @@ public class UserPreferenceService extends CatalogResourceService {
     private static final Logger log = Logger.getLogger(UserPreferenceService.class);
 
     private static final String EVENT_SERVICE_TYPE = "user-preferences";
-    
+
     @Autowired
     private UserPreferenceManager userPreferenceManager;
 
@@ -47,12 +47,12 @@ public class UserPreferenceService extends CatalogResourceService {
     public void init() {
         log.info("Initializing UserPreferenceService");
     }
-    
+
     @Override
     public String getServiceType() {
         return EVENT_SERVICE_TYPE;
-    }        
-    
+    }
+
     @GET
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("")
@@ -63,40 +63,40 @@ public class UserPreferenceService extends CatalogResourceService {
             username = user.getUserName();
         }
         verifyAuthorized(username, user);
-        
+
         UserPreferences userPreferences = userPreferenceManager.getPreferences(username);
 
         return map(userPreferences);
     }
-    
+
     @PUT
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("")
     public UserPreferencesRestRep update(UserPreferencesUpdateParam param) {
-        
+
         StorageOSUser user = getUserFromContext();
         String username = param.getUsername();
         if (StringUtils.isBlank(username)) {
             username = user.getUserName();
         }
-        verifyAuthorized(username, user);        
-        
+        verifyAuthorized(username, user);
+
         UserPreferences userPreferences = userPreferenceManager.getPreferences(username);
-        
+
         validateParam(param, userPreferences);
-        
+
         updateObject(userPreferences, param);
 
         userPreferenceManager.updatePreferences(userPreferences);
-        
+
         auditOpSuccess(OperationTypeEnum.UPDATE_USER_PREFERENCES, userPreferences.auditParameters());
-        
+
         userPreferences = userPreferenceManager.getPreferences(userPreferences.getUserId());
-        
+
         return map(userPreferences);
-    }  
-    
+    }
+
     private void validateParam(UserPreferencesUpdateParam input, UserPreferences existing) {
         if (StringUtils.isNotBlank(input.getEmail())) {
             for (String email : StringUtils.split(input.getEmail(), ",")) {
@@ -106,13 +106,13 @@ public class UserPreferenceService extends CatalogResourceService {
                 }
             }
         }
-    }    
-    
+    }
+
     protected void verifyAuthorized(String username, StorageOSUser user) {
-        if(!(username.equals(user.getUserName()) || isSystemAdminOrMonitorUser() ||
-                        _permissionsHelper.userHasGivenRole(user, uri(user.getTenantId()), Role.TENANT_ADMIN))) {
+        if (!(username.equals(user.getUserName()) || isSystemAdminOrMonitorUser() || _permissionsHelper.userHasGivenRole(user,
+                uri(user.getTenantId()), Role.TENANT_ADMIN))) {
             throw APIException.forbidden.insufficientPermissionsForUser(user.getName());
         }
-    }    
+    }
 
 }

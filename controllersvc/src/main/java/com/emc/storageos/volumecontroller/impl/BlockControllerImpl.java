@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2008-2012 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2008-2012 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl;
 
@@ -67,14 +57,14 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
         _util = util;
     }
 
-
     /**
      * Dummy implementation that just returns the first controller that implements this device
-     *
+     * 
      * @param device
      * @return
      * @throws ControllerException
      */
+    @Override
     protected Controller lookupDeviceController(DiscoveredSystemObject device)
             throws ControllerException {
         if (device == null) {
@@ -89,7 +79,7 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
 
     /**
      * Dummy implementation that just returns the controller.
-     *
+     * 
      * @return
      * @throws ControllerException
      */
@@ -103,7 +93,7 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
 
     /**
      * Puts the operation in the zkQueue so it can Dispatch'd to a Device Controller
-     *
+     * 
      * @param methodName
      * @param args
      * @throws ControllerException
@@ -112,17 +102,20 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
         queueTask(_dbClient, StorageSystem.class, _dispatcher, methodName, args);
     }
 
-    public void createVolumes(URI storage, URI pool, List<URI> volumes, VirtualPoolCapabilityValuesWrapper capabilities,String opId)
-        throws InternalException {
-        blockRMI("createVolumes", storage, pool, volumes,capabilities,opId);
+    @Override
+    public void createVolumes(URI storage, URI pool, List<URI> volumes, VirtualPoolCapabilityValuesWrapper capabilities, String opId)
+            throws InternalException {
+        blockRMI("createVolumes", storage, pool, volumes, capabilities, opId);
     }
-    
+
+    @Override
     public void modifyVolumes(URI storage, URI pool, List<URI> volumes, String opId) throws InternalException {
         blockRMI("modifyVolumes", storage, pool, volumes, opId);
     }
 
-    public void createMetaVolume(URI storage, URI pool, URI volume, VirtualPoolCapabilityValuesWrapper capabilities,String opId)
-        throws InternalException {
+    @Override
+    public void createMetaVolume(URI storage, URI pool, URI volume, VirtualPoolCapabilityValuesWrapper capabilities, String opId)
+            throws InternalException {
         blockRMI("createMetaVolume", storage, pool, volume, capabilities, opId);
     }
 
@@ -143,7 +136,7 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     {
         blockRMI("rollBackCreateVolume", systemURI, volumeURIs, opId);
     }
-    
+
     @Override
     public void expandBlockVolume(URI storage, URI pool, URI volume, Long size, String opId)
             throws InternalException {
@@ -164,35 +157,35 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
 
     @Override
     public void deleteVolumes(URI storage, List<URI> volumes, String opId)
-        throws InternalException {
+            throws InternalException {
         blockRMI("deleteVolumes", storage, volumes, opId);
     }
 
     @Override
-    public void createSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, String opId)
+    public void createSnapshot(URI storage, List<URI> snapshotList, Boolean createInactive, Boolean readOnly, String opId)
             throws InternalException {
-        blockRMI("createSnapshot", storage, snapshotList, createInactive, opId);
+        blockRMI("createSnapshot", storage, snapshotList, createInactive, readOnly, opId);
     }
 
     @Override
     public void activateSnapshot(URI storage, List<URI> snapshotList, String opId)
             throws InternalException {
         try {
-        // Direct RMI call to expedite this call without any potential distribute-Q delay
-        StorageSystem storageSystem =
-                _dbClient.queryObject(StorageSystem.class, storage);
+            // Direct RMI call to expedite this call without any potential distribute-Q delay
+            StorageSystem storageSystem =
+                    _dbClient.queryObject(StorageSystem.class, storage);
             Controller controller = lookupDeviceController(storageSystem);
 
-            BlockController blkcontroller = (BlockController)controller;
+            BlockController blkcontroller = (BlockController) controller;
             blkcontroller.activateSnapshot(storage, snapshotList, opId);
         } catch (RetryableDatabaseException e) {
             if (e.getServiceCode() == ServiceCode.DBSVC_CONNECTION_ERROR) {
                 // netflix curator ConnectionException is not serializable
                 // and thus should not be sent back to rmi client.
                 _log.error("Failed to queue task due to dbsvc disconnected. Error: {}", e.getMessage());
-                _log.error(e.getMessage(),e);
+                _log.error(e.getMessage(), e);
                 throw DatabaseException.retryables.connectionFailed();
-    }
+            }
             throw e;
         }
 
@@ -211,11 +204,16 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
+    public void resyncSnapshot(URI storage, URI volume, URI snapshot, Boolean updateOpStatus, String opId) throws InternalException {
+        blockRMI("resyncSnapshot", storage, volume, snapshot, updateOpStatus, opId);
+    }
+
+    @Override
     public void resyncFullCopy(URI storage, List<URI> clone, Boolean updateOpStatus, String opId)
             throws InternalException {
         blockRMI("resyncFullCopy", storage, clone, updateOpStatus, opId);
     }
-    
+
     @Override
     public void connectStorage(URI storage) throws InternalException {
         blockRMI("connectStorage", storage);
@@ -227,41 +225,51 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
-    public void createMirror(URI storage, URI mirror, Boolean createInactive, String opId) throws InternalException {
-        blockRMI("createMirror", storage, mirror, createInactive, opId);
+    public void createMirror(URI storage, List<URI> mirrorList, Boolean isCG, Boolean createInactive, String opId) throws InternalException {
+        blockRMI("createMirror", storage, mirrorList, createInactive, opId);
     }
 
     @Override
-    public void attachNativeContinuousCopies(URI storage, URI sourceVolume, String opId) throws InternalException {
-        blockRMI("attachNativeContinuousCopies", storage, sourceVolume, opId);
+    public void attachNativeContinuousCopies(URI storage, URI sourceVolume, List<URI> mirrorList, String opId) throws InternalException {
+        blockRMI("attachNativeContinuousCopies", storage, sourceVolume, mirrorList, opId);
     }
 
     @Override
     public void detachNativeContinuousCopies(URI storage, List<URI> mirrors, List<URI> promotees,
-                                             String opId) throws InternalException {
+            String opId) throws InternalException {
         blockRMI("detachNativeContinuousCopies", storage, mirrors, promotees, opId);
     }
 
     @Override
     public void pauseNativeContinuousCopies(URI storage, List<URI> mirrors, Boolean sync,
-                                            String opId) throws InternalException {
+            String opId) throws InternalException {
         try {
-        // Direct RMI call to expedite this call without any potential distribute-Q delay
-        StorageSystem storageSystem =
-                _dbClient.queryObject(StorageSystem.class, storage);
+            // Direct RMI call to expedite this call without any potential distribute-Q delay
+            StorageSystem storageSystem =
+                    _dbClient.queryObject(StorageSystem.class, storage);
             Controller controller = lookupDeviceController(storageSystem);
-            BlockController blkcontroller = (BlockController)controller;
+            BlockController blkcontroller = (BlockController) controller;
             blkcontroller.pauseNativeContinuousCopies(storage, mirrors, sync, opId);
         } catch (RetryableDatabaseException e) {
             if (e.getServiceCode() == ServiceCode.DBSVC_CONNECTION_ERROR) {
                 // netflix curator ConnectionException is not serializable
                 // and thus should not be sent back to rmi client.
                 _log.error("Failed to queue task due to dbsvc disconnected. Error: {}", e.getMessage());
-                _log.error(e.getMessage(),e);
+                _log.error(e.getMessage(), e);
                 throw DatabaseException.retryables.connectionFailed();
-    }
+            }
             throw e;
         }
+    }
+
+    @Override
+    public void establishVolumeAndNativeContinuousCopyGroupRelation(URI storage, URI sourceVolume, URI mirror, String opId) throws InternalException {
+        blockRMI("establishVolumeAndNativeContinuousCopyGroupRelation", storage, sourceVolume, mirror, opId);
+    }
+
+    @Override
+    public void establishVolumeAndSnapshotGroupRelation(URI storage, URI sourceVolume, URI snapshot, String opId) throws InternalException {
+        blockRMI("establishVolumeAndSnapshotGroupRelation", storage, sourceVolume, snapshot, opId);
     }
 
     @Override
@@ -270,18 +278,18 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
-    public void detachMirror(URI storage, URI mirror, String opId) throws InternalException {
-        blockRMI("detachMirror", storage, mirror, opId);
+    public void detachMirror(URI storage, List<URI> mirrorList, Boolean deleteGroup, String opId) throws InternalException {
+        blockRMI("detachMirror", storage, mirrorList, deleteGroup, opId);
     }
 
     @Override
-    public void deleteMirror(URI storage, URI mirror, String opId) throws InternalException {
-        blockRMI("deleteMirror", storage, mirror, opId);
+    public void deleteMirror(URI storage, List<URI> mirrorList, String opId) throws InternalException {
+        blockRMI("deleteMirror", storage, mirrorList, opId);
     }
 
     @Override
-    public void deactivateMirror(URI storage, URI mirror, String opId) throws InternalException {
-        blockRMI("deactivateMirror", storage, mirror, opId);
+    public void deactivateMirror(URI storage, List<URI> mirrorList, String opId) throws InternalException {
+        blockRMI("deactivateMirror", storage, mirrorList, opId);
     }
 
     @Override
@@ -290,32 +298,32 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
         blockRMI("createFullCopy", storage, fullCopyVolumes, createInactive, opId);
     }
 
-	@Override
-	public void deleteConsistencyGroup(URI storage, URI consistencyGroup, Boolean markInactive, String opId) throws InternalException {
-		blockRMI("deleteConsistencyGroup", storage, consistencyGroup, markInactive, opId);
-	}
-	
-	@Override
-	public void createConsistencyGroup(URI storage, URI consistencyGroup, String opId) throws InternalException {
-		blockRMI("createConsistencyGroup", storage, consistencyGroup, opId);
-	}
+    @Override
+    public void deleteConsistencyGroup(URI storage, URI consistencyGroup, Boolean markInactive, String opId) throws InternalException {
+        blockRMI("deleteConsistencyGroup", storage, consistencyGroup, markInactive, opId);
+    }
+
+    @Override
+    public void createConsistencyGroup(URI storage, URI consistencyGroup, String opId) throws InternalException {
+        blockRMI("createConsistencyGroup", storage, consistencyGroup, opId);
+    }
 
     @Override
     public void activateFullCopy(URI storage, List<URI> fullCopy, String opId) {
         try {
-        // Direct RMI call to expedite this call without any potential distribute-Q delay
-        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+            // Direct RMI call to expedite this call without any potential distribute-Q delay
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
             Controller controller = lookupDeviceController(storageSystem);
-            BlockController blkcontroller = (BlockController)controller;
+            BlockController blkcontroller = (BlockController) controller;
             blkcontroller.activateFullCopy(storage, fullCopy, opId);
         } catch (RetryableDatabaseException e) {
             if (e.getServiceCode() == ServiceCode.DBSVC_CONNECTION_ERROR) {
                 // netflix curator ConnectionException is not serializable
                 // and thus should not be sent back to rmi client.
                 _log.error("Failed to queue task due to dbsvc disconnected. Error: {}", e.getMessage());
-                _log.error(e.getMessage(),e);
+                _log.error(e.getMessage(), e);
                 throw DatabaseException.retryables.connectionFailed();
-    }
+            }
             throw e;
         }
 
@@ -327,26 +335,31 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     @Override
+    public void establishVolumeAndFullCopyGroupRelation(URI storage, URI sourceVolume, URI fullCopy, String opId) {
+        blockRMI("establishVolumeAndFullCopyGroupRelation", storage, sourceVolume, fullCopy, opId);
+    }
+
+    @Override
     public Integer checkSyncProgress(URI storage, URI source, URI target, String opId) {
         try {
-        StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
+            StorageSystem storageSystem = _dbClient.queryObject(StorageSystem.class, storage);
             Controller controller = lookupDeviceController(storageSystem);
-            BlockController blkcontroller = (BlockController)controller;
+            BlockController blkcontroller = (BlockController) controller;
             return blkcontroller.checkSyncProgress(storage, source, target, opId);
         } catch (RetryableDatabaseException e) {
             if (e.getServiceCode() == ServiceCode.DBSVC_CONNECTION_ERROR) {
                 // netflix curator ConnectionException is not serializable
                 // and thus should not be sent back to rmi client.
                 _log.error("Failed to queue task due to dbsvc disconnected. Error: {}", e.getMessage());
-                _log.error(e.getMessage(),e);
+                _log.error(e.getMessage(), e);
                 throw DatabaseException.retryables.connectionFailed();
-    }
+            }
             throw e;
         }
     }
 
     /**
-     * {@inheritDoc}}
+     * {@inheritDoc}
      */
     @Override
     public void discoverStorageSystem(AsyncTask[] tasks)
@@ -356,19 +369,20 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
         } catch (Exception e) {
             _log.error(
                     "Problem in discoverStorageSystem due to {} ",
-                     e.getMessage());
+                    e.getMessage());
             throw ClientControllerException.fatals.unableToScheduleDiscoverJobs(tasks, e);
         }
     }
+
     /**
-     * {@inheritDoc}}
+     * {@inheritDoc}
      */
     @Override
     public void scanStorageProviders(AsyncTask[] tasks)
             throws ControllerException {
         try {
             DataCollectionScanJob job = new DataCollectionScanJob();
-            for( AsyncTask task : tasks) {
+            for (AsyncTask task : tasks) {
                 job.addCompleter(new ScanTaskCompleter(task));
             }
             ControllerServiceImpl.enqueueDataCollectionJob(job);
@@ -378,7 +392,7 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     }
 
     /**
-     * {@inheritDoc}}
+     * {@inheritDoc}
      */
     @Override
     public void addStorageSystem(URI storage, URI[] providers, boolean primaryProvider, String opId)
@@ -386,9 +400,8 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
         blockRMI("addStorageSystem", storage, providers, primaryProvider, opId);
     }
 
-
     /**
-     * {@inheritDoc}}
+     * {@inheritDoc}
      */
     @Override
     public void startMonitoring(AsyncTask task, Type deviceType)
@@ -403,17 +416,17 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
         }
     }
 
-	@Override
-	public void noActionRollBackStep(URI deviceURI, String opID) {
-		_log.info("Running empty Roll back step for storage system {}", deviceURI);
-		WorkflowStepCompleter.stepSucceded(opID);
+    @Override
+    public void noActionRollBackStep(URI deviceURI, String opID) {
+        _log.info("Running empty Roll back step for storage system {}", deviceURI);
+        WorkflowStepCompleter.stepSucceded(opID);
 
-	}
-	
+    }
+
     @Override
     public void updateConsistencyGroup(URI storage, URI consistencyGroup,
-                                       List<URI> addVolumesList,
-                                       List<URI> removeVolumesList, String task) {
+            List<URI> addVolumesList,
+            List<URI> removeVolumesList, String task) {
         blockRMI("updateConsistencyGroup", storage, consistencyGroup, addVolumesList,
                 removeVolumesList, task);
     }
@@ -431,7 +444,7 @@ public class BlockControllerImpl extends AbstractDiscoveredSystemController impl
     public void restoreFromFullCopy(URI storage, List<URI> clones,
             Boolean updateOpStatus, String opId) throws InternalException {
         blockRMI("restoreFromFullCopy", storage, clones, updateOpStatus, opId);
-        
+
     }
 
 }

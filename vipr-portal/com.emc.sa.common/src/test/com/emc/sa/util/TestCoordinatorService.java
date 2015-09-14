@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.sa.util;
@@ -19,7 +19,7 @@ import org.apache.curator.test.TestingServer;
 
 /**
  * Starts the CoordinatorSvc for testing
- *
+ * 
  * @author dmaddison
  */
 public class TestCoordinatorService {
@@ -29,14 +29,14 @@ public class TestCoordinatorService {
 
     private CoordinatorClientInetAddressMap createInetAddressLookup() throws Exception {
         CoordinatorClientInetAddressMap lookup = new CoordinatorClientInetAddressMap();
-        lookup.setNodeName("localhost");
+        lookup.setNodeId("localhost");
         lookup.setDualInetAddress(DualInetAddress.fromAddress("127.0.0.1"));
         Map<String, DualInetAddress> addressMap = new HashMap<>();
-        addressMap.put(lookup.getNodeName(), lookup.getDualInetAddress());
+        addressMap.put(lookup.getNodeId(), lookup.getDualInetAddress());
         lookup.setControllerNodeIPLookupMap(addressMap);
         return lookup;
     }
-    
+
     /** Starts the Coordinator, but first deletes all persisted Zookeeper data */
     public void startClean() throws Exception {
         start();
@@ -62,5 +62,5 @@ public class TestCoordinatorService {
     public CoordinatorClient getCoordinatorClient() {
         return coordinatorClient;
     }
-    
+
 }

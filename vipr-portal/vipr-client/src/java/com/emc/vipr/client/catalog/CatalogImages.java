@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client.catalog;
@@ -55,7 +55,7 @@ public class CatalogImages extends AbstractCatalogBulkResources<CatalogImageRest
             uriBuilder = uriBuilder.queryParam(SearchConstants.TENANT_ID_PARAM, tenantId);
         }
         CatalogImageList response = client.getURI(CatalogImageList.class, uriBuilder.build());
-        return ResourceUtils.defaultList(response.getCatalogImages());    
+        return ResourceUtils.defaultList(response.getCatalogImages());
     }
 
     @Override
@@ -74,14 +74,14 @@ public class CatalogImages extends AbstractCatalogBulkResources<CatalogImageRest
         CatalogImageBulkRep response = client.post(CatalogImageBulkRep.class, input, getBulkUrl());
         return defaultList(response.getCatalogImages());
     }
-    
+
     /**
      * Creates a catalog image
      * <p>
      * API Call: <tt>POST /catalog/images</tt>
      * 
      * @param input
-     *        the catalog image configuration.
+     *            the catalog image configuration.
      * @return the newly created catalog image.
      */
     public CatalogImageRestRep create(CatalogImageCreateParam input) {
@@ -96,9 +96,9 @@ public class CatalogImages extends AbstractCatalogBulkResources<CatalogImageRest
      * API Call: <tt>PUT /catalog/images/{id}</tt>
      * 
      * @param id
-     *        the ID of the catalog image to update.
+     *            the ID of the catalog image to update.
      * @param input
-     *        the update configuration.
+     *            the update configuration.
      * @return the updated catalog image.
      */
     public CatalogImageRestRep update(URI id, CatalogImageUpdateParam input) {
@@ -111,10 +111,10 @@ public class CatalogImages extends AbstractCatalogBulkResources<CatalogImageRest
      * API Call: <tt>POST /catalog/images/{id}/deactivate</tt>
      * 
      * @param id
-     *        the ID of catalog image to deactivate.
+     *            the ID of catalog image to deactivate.
      */
     public void deactivate(URI id) {
         doDeactivate(id);
-    }        
+    }
 
 }

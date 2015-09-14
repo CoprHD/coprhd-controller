@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2014 EMC Corporation
  * All Rights Reserved
- */
-/**
- *  Copyright (c) 2014 EMC Corporation
- * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.security.ssl;
 
@@ -57,7 +47,7 @@ public class ViPRSSLSocketFactory extends SSLSocketFactory {
     }
 
     public ViPRSSLSocketFactory(CoordinatorClient coordinator) {
-        synchronized(this) {
+        synchronized (this) {
             coordinatorClient = coordinator;
             init();
         }
@@ -81,7 +71,9 @@ public class ViPRSSLSocketFactory extends SSLSocketFactory {
         }
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.ssl.SSLSocketFactory#createSocket(java.net.Socket, java.lang.String, int, boolean)
      */
     @Override
@@ -110,7 +102,9 @@ public class ViPRSSLSocketFactory extends SSLSocketFactory {
         return false;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.ssl.SSLSocketFactory#getDefaultCipherSuites()
      */
     @Override
@@ -121,7 +115,9 @@ public class ViPRSSLSocketFactory extends SSLSocketFactory {
         return defaultCipherSuites;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.ssl.SSLSocketFactory#getSupportedCipherSuites()
      */
     @Override
@@ -132,17 +128,21 @@ public class ViPRSSLSocketFactory extends SSLSocketFactory {
         return supportedCipherSuites;
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.SocketFactory#createSocket(java.lang.String, int)
      */
     @Override
     public Socket createSocket(String host, int port) throws IOException,
-    UnknownHostException {
+            UnknownHostException {
         log.debug("createSocket(String host:" + host + ", int port:" + port + ")");
         return socketFactory.createSocket(host, port);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.SocketFactory#createSocket(java.net.InetAddress, int)
      */
     @Override
@@ -151,7 +151,9 @@ public class ViPRSSLSocketFactory extends SSLSocketFactory {
         return socketFactory.createSocket(host, port);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.SocketFactory#createSocket(java.lang.String, int, java.net.InetAddress, int)
      */
     @Override
@@ -163,7 +165,9 @@ public class ViPRSSLSocketFactory extends SSLSocketFactory {
         return socketFactory.createSocket(host, port, localHost, localPort);
     }
 
-    /* (non-Javadoc)
+    /*
+     * (non-Javadoc)
+     * 
      * @see javax.net.SocketFactory#createSocket(java.net.InetAddress, int, java.net.InetAddress, int)
      */
     @Override

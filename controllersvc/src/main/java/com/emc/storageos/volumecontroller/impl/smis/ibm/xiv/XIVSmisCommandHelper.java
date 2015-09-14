@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2008-2014 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller.impl.smis.ibm.xiv;
 
@@ -135,7 +125,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
     public CimConnection getConnection(StorageSystem storageDevice) {
         return _cimConnection.getConnection(storageDevice);
     }
-    
+
     /*
      * Validate connection
      */
@@ -150,7 +140,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         }
         return isConnectionValid;
     }
-    
+
     /**
      * Invoke CIM method.
      */
@@ -161,7 +151,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         invokeMethod(storageDevice, objectPath, methodName, inArg,
                 new CIMArgument[5]);
     }
-            
+
     /**
      * Invoke CIM method.
      */
@@ -222,7 +212,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         }
 
         String total = String.format("%2.6f",
-                ((double) (System.nanoTime() - start) / 1000000000.0));
+                ((System.nanoTime() - start) / 1000000000.0));
         StringBuilder outputInfoBuffer = new StringBuilder();
         outputInfoBuffer.append("\nSMI-S Provider: ")
                 .append(connection.getHost())
@@ -240,10 +230,10 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
                 }
                 else {
                     outputInfoBuffer.append("    outArg=").append(arg.getName())
-                        .append("=")
-                        .append(arg.getValue())
-                        .append(" (Type ").append(arg.getDataType())
-                        .append(")\n");
+                            .append("=")
+                            .append(arg.getValue())
+                            .append(" (Type ").append(arg.getDataType())
+                            .append(")\n");
                 }
             }
         }
@@ -352,11 +342,11 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         return new CIMArgument[] { _cimArgument.referenceArray(CP_THE_ELEMENTS,
                 volumePaths) };
     }
-    
+
     /**
      * This method is a wrapper for the getInstance. If the object is not found,
      * it returns a null value instead of throwing an exception.
-     * 
+     *
      * @param storage
      *            [required] - StorageSystem object to which an SMI-S connection
      *            would be made
@@ -429,7 +419,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         if (elementName != null) {
             argsList.add(_cimArgument.string(CP_ELEMENT_NAME, elementName));
         }
-        
+
         if (initiators != null && initiators.length > 0) {
             argsList.add(_cimArgument.stringArray(CP_HARDWARE_IDS,
                     initiators));
@@ -497,29 +487,29 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
                 argsList.add(_cimArgument.stringArray(CP_DEVICE_NUMBERS, deviceNumbers.toArray(numbers)));
             }
         }
-        
+
         if (initiators != null && initiators.length > 0) {
             argsList.add(_cimArgument.stringArray(CP_INITIATOR_PORT_IDS, initiators));
         }
-        
+
         if (protocolController != null) {
             argsList.add(_cimArgument.referenceArray(CP_PROTOCOL_CONTROLLERS, new CIMObjectPath[] { protocolController }));
         }
-        
+
         return argsList.toArray(new CIMArgument[argsList.size()]);
-    }        
-    
+    }
+
     /**
      * Construct input arguments for exposing paths with given export mask.
      */
     public CIMArgument[] getExposePathsInputArguments(StorageSystem storage,
             URI exportMask,
             VolumeURIHLU[] volumeURIHLUs,
-            List<Initiator> initiatorList) throws Exception {  
+            List<Initiator> initiatorList) throws Exception {
         CIMObjectPath protocolController = _cimPath.getSCSIProtocolControllerPath(storage, getExportMaskNativeId(exportMask));
         return getExposePathsInputArguments(volumeURIHLUs, getInitiatorNames(initiatorList), protocolController);
-    }   
-    
+    }
+
     /**
      * Construct input arguments for hiding paths.
      */
@@ -566,7 +556,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
 
         return argsList.toArray(new CIMArgument[argsList.size()]);
     }
-    
+
     /**
      * Construct input arguments for deleting protocol controller.
      */
@@ -575,7 +565,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         argsList.add(_cimArgument.reference(CP_PROTOCOL_CONTROLLER, protocolController));
 
         return argsList.toArray(new CIMArgument[argsList.size()]);
-    } 
+    }
 
     /**
      * Construct input arguments for deleting storage hardware ID.
@@ -584,13 +574,13 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
             hwIdPath)
             throws Exception {
         return new CIMArgument[] {
-                _cimArgument.reference(CP_HARDWARE_ID, hwIdPath)};
+                _cimArgument.reference(CP_HARDWARE_ID, hwIdPath) };
     }
 
     /**
      * Returns a CloseableIterator for SCSIProtocolController
      * CIMInstance objects.
-     * 
+     *
      * @param storage
      *            [in] - StorageSystem object. Used to look up SMIS connection.
      * @return CloseableIterator of CIMInstance objects
@@ -601,22 +591,22 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         return getInstances(storage, Constants.IBM_NAMESPACE, CP_SCSI_PROTOCOL_CONTROLLER, true, false, false,
                 PS_CNTRL_NAME_AND_ID);
     }
-    
+
     /*
-     * Return protocol controller instance represented by the export mask. 
+     * Return protocol controller instance represented by the export mask.
      */
     public CIMInstance getSCSIProtocolController(StorageSystem storage,
             ExportMask exportMask)
-            throws Exception {        
+            throws Exception {
         return getInstance(storage,
                 _cimPath.getSCSIProtocolControllerPath(storage, exportMask.getNativeId()),
                 false, true, null);
     }
-    
+
     /**
      * Returns a map of the volume WWNs to their HLU values for a masking
      * container on the array.
-     * 
+     *
      * @param storage
      *            [in] - StorageSystem that the masking belongs to
      * @param controllerPath
@@ -647,7 +637,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
                         .toString();
                 String deviceNumber = CIMPropertyFactory.getPropertyValue(pcu,
                         CP_DEVICE_NUMBER);
-                Integer decimalHLU = (int)Long.parseLong(deviceNumber, 16);
+                Integer decimalHLU = (int) Long.parseLong(deviceNumber, 16);
                 deviceIdToHLU.put(deviceId, decimalHLU);
             }
             iterator = client.associatorInstances(controllerPath, null,
@@ -673,10 +663,10 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         }
         return wwnToHLU;
     }
-    
+
     /**
      * Returns a map of normalized port name to port path for the masking.
-     * 
+     *
      * @param storage
      *            [in] - StorageSystem that the masking belongs to
      * @param controllerPath
@@ -708,11 +698,11 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         }
         return initiatorPortPaths;
     }
-    
+
     /**
      * Given a CIMInstance of a IBMTSDS_SCSIProtocolController return a list of storage ports that
      * it references.
-     * 
+     *
      * @param storage
      *            [in] - StorageSystem that the masking belongs to
      * @param controllerPath
@@ -744,7 +734,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         }
         return storagePorts;
     }
-    
+
     /*
      * Return associated instances.
      */
@@ -755,21 +745,21 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         return getConnection(storageDevice).getCimClient().associatorInstances(
                 path, null, resultClass, null, null, false, prop);
     }
-     
+
     /*
-     * Return CIM instance if there is one, otherwise return null. 
+     * Return CIM instance if there is one, otherwise return null.
      */
     public CIMInstance checkExists(StorageSystem storage,
             CIMObjectPath objectPath,
             boolean propagated,
-            boolean includeClassOrigin) throws Exception {   
-        return checkExists(storage, objectPath, propagated, includeClassOrigin, null);          
+            boolean includeClassOrigin) throws Exception {
+        return checkExists(storage, objectPath, propagated, includeClassOrigin, null);
     }
-    
+
     /**
      * Wrapper for the getInstance. If the object is not found, it returns a null
      * value instead of throwing an exception.
-     * 
+     *
      * @param storage
      *            [required] - StorageSystem object to which an SMI-S connection would be made
      * @param objectPath
@@ -807,11 +797,11 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
             throw e;
         }
         return instance;
-    }    
-            
+    }
+
     /**
      * Wrapper for the WBEMClient enumerateInstances method.
-     * 
+     *
      * @param storage
      *            - StorageArray reference, will be used to lookup SMI-S connection
      * @param namespace
@@ -863,7 +853,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
                 includeClassOrigin, propertyList);
         return cimInstances;
     }
-    
+
     /*
      * Return names of initiator instances.
      */
@@ -878,7 +868,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
 
         return initiatorNameList.toArray(new String[initiatorNameList.size()]);
     }
-  
+
     /*
      * Return mapping of initiator name and initiator instance.
      */
@@ -939,11 +929,11 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
 
         return instance;
     }
-    
+
     /**
      * Loop through the URI list and return a list of nativeIds for each of the
      * BlockObject objects to which the URI applies.
-     * 
+     *
      * @param uris
      *            - Collection of URIs
      * @return Returns a list of nativeId String values
@@ -956,12 +946,12 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
             names.add(getBlockObjectAlternateName(uri));
         }
         return names.toArray(results);
-    }      
-    
+    }
+
     /**
      * This method will take a URI and return alternateName for the BlockObject object to which the
      * URI applies.
-     * 
+     *
      * @param uri
      *            - URI
      * @return Returns a nativeId String value
@@ -983,8 +973,8 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
             throw DeviceControllerException.exceptions.notAVolumeOrBlocksnapshotUri(uri);
         }
         return nativeId;
-    } 
-    
+    }
+
     /*
      * Returns native ID of the export mask.
      */
@@ -993,7 +983,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
                 exportMaskURI);
         return exportMask.getNativeId();
     }
-    
+
     @SuppressWarnings("rawtypes")
     public CIMArgument[] getCreateElementReplicaSnapInputArguments(
             StorageSystem storageDevice, Volume volume, boolean createInactive,
@@ -1045,15 +1035,15 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
         return getConsistencyGroupName(group, storageSystem);
     }
 
-	public String getConsistencyGroupName(final BlockConsistencyGroup group,
-	        final StorageSystem storageSystem) {
-	    String groupName = null;
+    public String getConsistencyGroupName(final BlockConsistencyGroup group,
+            final StorageSystem storageSystem) {
+        String groupName = null;
 
-	    if (group != null && storageSystem != null) {
-	        groupName = group.fetchArrayCgName(storageSystem.getId());
-	    }
+        if (group != null && storageSystem != null) {
+            groupName = group.getCgNameOnStorageSystem(storageSystem.getId());
+        }
 
-	    return groupName;
+        return groupName;
     }
 
     @SuppressWarnings("rawtypes")
@@ -1072,12 +1062,12 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
                 _cimArgument.uint16("Consistency", 3),
                 _cimArgument.uint16("Mode", 3),
                 _cimArgument.uint16(CP_SYNC_TYPE, SNAPSHOT_VALUE),
-                _cimArgument.reference(CP_SOURCE_GROUP, cgPath)};
+                _cimArgument.reference(CP_SOURCE_GROUP, cgPath) };
         final List<CIMArgument> args = new ArrayList<CIMArgument>(
                 Arrays.asList(basicArgs));
         // If active, add the RelationshipName
-        if (!createInactive) {           
-            args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, ACTIVATE_VALUE)); 
+        if (!createInactive) {
+            args.add(_cimArgument.uint16(CP_WAIT_FOR_COPY_STATE, ACTIVATE_VALUE));
             args.add(_cimArgument.string(RELATIONSHIP_NAME, label));
         }
         return args.toArray(new CIMArgument[args.size()]);
@@ -1090,7 +1080,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
                 _cimArgument.uint16(CP_OPERATION, RETURN_TO_RESOURCE_POOL),
                 _cimArgument.reference(CP_SYNCHRONIZATION, syncObjectPath) };
     }
-    
+
     @SuppressWarnings("rawtypes")
     public CIMArgument[] getDeleteListSynchronizationInputArguments(
             StorageSystem storage, CIMObjectPath[] syncObjectPaths) {
@@ -1099,10 +1089,10 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
                 _cimArgument
                         .referenceArray(CP_SYNCHRONIZATION, syncObjectPaths) };
     }
-    
+
     /**
      * Convenience method that wraps SMI-S replication service operation
-     * 
+     *
      * @param storage
      *            [required] - StorageSystem object representing array
      * @param methodName
@@ -1123,7 +1113,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
     /**
      * Convenience method that wraps SMI-S ModifyReplicatSynchronization
      * operation
-     * 
+     *
      * @param storage
      *            [required] - StorageSystem object representing array
      * @param inArgs
@@ -1141,7 +1131,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
     /**
      * This method will loop through the URI list and return a list of nativeIds
      * for each of the BlockObject objects to which the URI applies.
-     * 
+     *
      * @param uris
      *            - Collection of URIs
      * @return Returns a list of nativeId String values
@@ -1224,7 +1214,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
 
     /**
      * Wrapper for WBEM.associatorNames routine
-     * 
+     *
      * @param storageDevice
      *            [required]
      * @param path
@@ -1289,7 +1279,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
 
     /**
      * Convenience method that wraps SMI-S AddMembers operation
-     * 
+     *
      * @param storage
      *            [required] - StorageSystem object representing array
      * @param blockObjects
@@ -1377,7 +1367,7 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
 
         return objectPaths;
     }
-    
+
     /*
      * Use IBMSmisSynchSubTaskJob to check removed CG members
      */
@@ -1411,14 +1401,14 @@ public class XIVSmisCommandHelper implements IBMSmisConstants {
                 null, null, null, null, this);
         long startTime = System.currentTimeMillis();
         int pollCycleCount = 0;
-        while (true) {        	
+        while (true) {
             JobPollResult result = job.poll(jobContext, SYNC_WRAPPER_WAIT);
             pollCycleCount++;
             if (result.getJobStatus().equals(JobStatus.IN_PROGRESS)) {
-            	if (pollCycleCount > pollCycleLimit) {
+                if (pollCycleCount > pollCycleLimit) {
                     throw new SmisException(
-                            "Reached maximum number of poll " + pollCycleLimit);        		
-            	} else if (System.currentTimeMillis() - startTime > SYNC_WRAPPER_TIME_OUT) {
+                            "Reached maximum number of poll " + pollCycleLimit);
+                } else if (System.currentTimeMillis() - startTime > SYNC_WRAPPER_TIME_OUT) {
                     throw new SmisException(
                             "Timed out waiting on smis job to complete after "
                                     + (System.currentTimeMillis() - startTime)

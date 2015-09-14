@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.vipr.client;
@@ -14,9 +14,6 @@ import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.UriBuilder;
 import java.net.URI;
 
-import static com.emc.vipr.client.impl.jersey.ClientUtils.addQueryParam;
-import static com.emc.vipr.client.system.impl.PathConstants.CONTROL_POWER_OFF_CLUSTER_URL;
-
 public class AuthClient {
     protected RestClient client;
 
@@ -26,7 +23,7 @@ public class AuthClient {
 
     /**
      * Convenience method for calling constructor with new ClientConfig().withHost(host)
-     *
+     * 
      * @param host Hostname or IP address for the Virtual IP of the target environment.
      */
     public AuthClient(String host) {
@@ -35,7 +32,7 @@ public class AuthClient {
 
     /**
      * Convenience method for calling constructor with new ClientConfig().withHost(host).withIgnoringCertificates(ignoreCertificates)
-     *
+     * 
      * @param host Hostname or IP address for the Virtual IP of the target environment.
      * @param ignoreCertificates True if SSL certificates should be ignored.
      */
@@ -46,7 +43,7 @@ public class AuthClient {
     public AuthClient(ClientConfig config) {
         this(config.newClient());
     }
-    
+
     public RestClient getClient() {
         return this.client;
     }
@@ -54,7 +51,7 @@ public class AuthClient {
     /**
      * Performs a login operation. The token is automatically associated with this client
      * connection.
-     *
+     * 
      * @param username The username.
      * @param password The password.
      * @return The authentication token.
@@ -70,7 +67,7 @@ public class AuthClient {
 
     public String proxyToken() {
         ClientResponse response = client.resource("/proxytoken").get(ClientResponse.class);
-        MultivaluedMap<String,String> headers = response.getHeaders();
+        MultivaluedMap<String, String> headers = response.getHeaders();
         String proxyToken = headers.getFirst(Constants.PROXY_TOKEN_KEY);
         response.close();
         return proxyToken;
@@ -102,7 +99,7 @@ public class AuthClient {
         }
         client.getURI(String.class, builder.build());
     }
-    
+
     public boolean isLoggedIn() {
         return (client.getAuthToken() != null) && !("".equals(client.getAuthToken()));
     }

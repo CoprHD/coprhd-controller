@@ -1,16 +1,6 @@
 /*
- * Copyright 2015 EMC Corporation
- * All Rights Reserved
- */
-/**
  * Copyright (c) 2013 EMC Corporation
  * All Rights Reserved
- *
- * This software contains the intellectual property of EMC Corporation
- * or is licensed to EMC Corporation from third parties.  Use of this
- * software and the intellectual property contained therein is expressly
- * limited to the terms and conditions of the License Agreement under which
- * it is provided by or on behalf of EMC.
  */
 package com.emc.storageos.volumecontroller;
 
@@ -39,9 +29,9 @@ public class SRDFRecommendation extends Recommendation {
             return targetPool;
         }
 
-		public URI getSourceRAGroup() {
-			return sourceRAGroup;
-		}
+        public URI getSourceRAGroup() {
+            return sourceRAGroup;
+        }
 
         public void setTargetPool(URI targetPool) {
             this.targetPool = targetPool;
@@ -51,17 +41,17 @@ public class SRDFRecommendation extends Recommendation {
             this.targetDevice = targetDevice;
         }
 
-		public void setSourceRAGroup(URI sourceRAGroup) {
-			this.sourceRAGroup = sourceRAGroup;
-		}
+        public void setSourceRAGroup(URI sourceRAGroup) {
+            this.sourceRAGroup = sourceRAGroup;
+        }
 
-		public String getCopyMode() {
-			return copyMode;
-		}
+        public String getCopyMode() {
+            return copyMode;
+        }
 
-		public void setCopyMode(String copyMode) {
-			this.copyMode = copyMode;
-		}
+        public void setCopyMode(String copyMode) {
+            this.copyMode = copyMode;
+        }
 
     }
 

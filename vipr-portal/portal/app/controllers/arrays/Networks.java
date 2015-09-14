@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package controllers.arrays;
@@ -82,7 +82,7 @@ public class Networks extends ViprResourceController {
      * Handles an error while saving a network form.
      * 
      * @param network
-     *        the network form.
+     *            the network form.
      */
     private static void error(NetworkForm network) {
         params.flash();
@@ -98,7 +98,7 @@ public class Networks extends ViprResourceController {
         if (StringUtils.isNotBlank(virtualArrayId)) {
             param.setVarrays(uris(virtualArrayId));
         }
-        
+
         NetworkRestRep network = NetworkUtils.create(param);
         edit(stringId(network), virtualArrayId);
     }
@@ -107,9 +107,9 @@ public class Networks extends ViprResourceController {
      * Displays a page for editing the given network.
      * 
      * @param id
-     *        the network ID.
+     *            the network ID.
      * @param virtualArrayId
-     *        the virtual array from which the edit request came.
+     *            the virtual array from which the edit request came.
      */
     public static void edit(String id, String virtualArrayId) {
         NetworkRestRep network = getNetwork(id);
@@ -122,7 +122,7 @@ public class Networks extends ViprResourceController {
      * Gets a network by ID, or flashes an error and goes back to the referring page or the list page if no referrer.
      * 
      * @param id
-     *        the network ID.
+     *            the network ID.
      * @return the network.
      */
     @Util
@@ -140,7 +140,7 @@ public class Networks extends ViprResourceController {
      * Show the network editor.
      * 
      * @param network
-     *        the network to edit.
+     *            the network to edit.
      */
     private static void edit(NetworkForm network) {
         renderArgs.put("virtualArrayOptions", dataObjectOptions(VirtualArrayUtils.getVirtualArrays()));
@@ -153,7 +153,7 @@ public class Networks extends ViprResourceController {
      * Creates and renders JSON datatable source for endpoints for the given network.
      * 
      * @param networkId
-     *        the network ID.
+     *            the network ID.
      */
     public static void endpointsJson(String networkId) {
         NetworkRestRep network = NetworkUtils.getNetwork(networkId);
@@ -218,7 +218,7 @@ public class Networks extends ViprResourceController {
      * Saves a network and redirects back to the referring page.
      * 
      * @param network
-     *        the network to save.
+     *            the network to save.
      */
     public static void save(NetworkForm network) {
         network.validate("network");
@@ -234,8 +234,7 @@ public class Networks extends ViprResourceController {
             }
             backToReferrer();
             list();
-        }
-        catch (ViPRException e) {
+        } catch (ViPRException e) {
             flashException(e);
             error(network);
         }
@@ -271,9 +270,9 @@ public class Networks extends ViprResourceController {
      * map.
      * 
      * @param nameMap
-     *        the map of ID->name
+     *            the map of ID->name
      * @param ids
-     *        the collection of IDs.
+     *            the collection of IDs.
      * @return the set of names.
      */
     private static Set<String> getNames(Map<URI, String> nameMap, Collection<URI> ids) {
@@ -286,12 +285,12 @@ public class Networks extends ViprResourceController {
         }
         return names;
     }
-    
+
     /**
      * Deletes/deregisters the specified networks.
      * 
      * @param ids
-     *        the IDs of the virtual arrays to delete/deregister.
+     *            the IDs of the virtual arrays to delete/deregister.
      */
     public static void delete(@As(",") String[] ids) {
         delete(uris(ids));
@@ -301,7 +300,7 @@ public class Networks extends ViprResourceController {
      * Deletes/deregisters the specified networks and redirects back to the list page.
      * 
      * @param ids
-     *        the list of IDs.
+     *            the list of IDs.
      */
     private static void delete(List<URI> ids) {
         performSuccessFail(NetworkUtils.getNetworks(ids), new DeactivateOperation(), DELETED_SUCCESS, DELETED_ERROR);
@@ -352,19 +351,18 @@ public class Networks extends ViprResourceController {
                     for (String storagePortId : NetworkUtils.getStoragePortEndpoints(Arrays.asList(decodeIds))) {
                         StoragePortUtils.unassign(storagePortId);
                     }
-                }   
+                }
             }
-            
-        }
-        catch (Exception e) {
+
+        } catch (Exception e) {
             flashException(e);
         }
         edit(id, params.get(VIRTUAL_ARRAY_PARAM));
     }
-    
-    private static String[] decodeIds(String[] ids) throws UnsupportedEncodingException{
+
+    private static String[] decodeIds(String[] ids) throws UnsupportedEncodingException {
         String[] decodedIds = new String[0];
-        if(ids != null && ids.length > 0) {
+        if (ids != null && ids.length > 0) {
             decodedIds = new String[ids.length];
             for (int i = 0; i < ids.length; i++) {
                 decodedIds[i] = URLDecoder.decode(ids[i], "UTF-8");
@@ -373,7 +371,7 @@ public class Networks extends ViprResourceController {
         return decodedIds;
     }
 
-    @FlashException(referrer={"edit"})
+    @FlashException(referrer = { "edit" })
     public static void addPorts(String id, String ports) {
         if (StringUtils.isNotBlank(ports)) {
             String[] values = ports.replaceAll("\r\n", "\n").split("\n");
@@ -398,7 +396,7 @@ public class Networks extends ViprResourceController {
         edit(id, params.get(VIRTUAL_ARRAY_PARAM));
     }
 
-    @FlashException(referrer={"edit"})
+    @FlashException(referrer = { "edit" })
     public static void addHostPorts(String id, @As(",") String[] ids) {
         if (ids != null) {
             List<String> endpoints = NetworkUtils.getHostEndpoints(Arrays.asList(ids));
@@ -409,7 +407,7 @@ public class Networks extends ViprResourceController {
         edit(id, params.get(VIRTUAL_ARRAY_PARAM));
     }
 
-    @FlashException(referrer={"edit"})
+    @FlashException(referrer = { "edit" })
     public static void addArrayPorts(String id, @As(",") String[] ids) {
         if (ids != null) {
             StoragePortUpdate update = new StoragePortUpdate();
@@ -472,8 +470,7 @@ public class Networks extends ViprResourceController {
                 if (Boolean.FALSE.equals(network.getDiscovered())) {
                     NetworkUtils.deactivate(network.getId());
                 }
-            }
-            catch (Exception e) {
+            } catch (Exception e) {
                 // If deactivate failed, re-register the network
                 if (registered) {
                     NetworkUtils.register(network.getId());

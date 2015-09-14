@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.model.tenant;
@@ -17,8 +17,9 @@ public class TenantUpdateParam extends TenantParam {
     private String label;
     private UserMappingChanges userMappingChanges;
 
-    public TenantUpdateParam() {}
-    
+    public TenantUpdateParam() {
+    }
+
     public TenantUpdateParam(String label, UserMappingChanges userMappingChanges) {
         this.label = label;
         this.userMappingChanges = userMappingChanges;
@@ -26,6 +27,7 @@ public class TenantUpdateParam extends TenantParam {
 
     /**
      * Name change for the tenant
+     * 
      * @valid any string within length limits
      */
     @XmlElement(required = false, name = "name")
@@ -40,9 +42,10 @@ public class TenantUpdateParam extends TenantParam {
 
     /**
      * Changes of user mappings for this tenant
+     * 
      * @valid There can be at most one add element and at most one remove element
      */
-    @XmlElement(name="user_mapping_changes")
+    @XmlElement(name = "user_mapping_changes")
     @JsonProperty("user_mapping_changes")
     public UserMappingChanges getUserMappingChanges() {
         return userMappingChanges;
@@ -51,5 +54,5 @@ public class TenantUpdateParam extends TenantParam {
     public void setUserMappingChanges(UserMappingChanges userMappingChanges) {
         this.userMappingChanges = userMappingChanges;
     }
-  
+
 }

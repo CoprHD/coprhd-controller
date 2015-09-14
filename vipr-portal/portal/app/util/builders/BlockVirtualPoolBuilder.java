@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package util.builders;
@@ -56,7 +56,7 @@ public class BlockVirtualPoolBuilder extends VirtualPoolBuilder {
         virtualPool.setHostIOLimitIOPs(limit);
         return this;
     }
-    
+
     public BlockVirtualPoolBuilder setMinPaths(int paths) {
         virtualPool.setMinPaths(paths);
         return this;
@@ -155,10 +155,10 @@ public class BlockVirtualPoolBuilder extends VirtualPoolBuilder {
             if (getProtectionSourcePolicy() == null) {
                 getRecoverPoint().setSourcePolicy(new ProtectionSourcePolicy());
             }
-        
+
             getProtectionSourcePolicy().setJournalSize(journalSize);
         }
-        
+
         return this;
     }
 
@@ -167,10 +167,10 @@ public class BlockVirtualPoolBuilder extends VirtualPoolBuilder {
             if (getProtectionSourcePolicy() == null) {
                 getRecoverPoint().setSourcePolicy(new ProtectionSourcePolicy());
             }
-        
+
             getProtectionSourcePolicy().setRemoteCopyMode(remoteCopyMode);
         }
-        
+
         return this;
     }
 
@@ -182,14 +182,14 @@ public class BlockVirtualPoolBuilder extends VirtualPoolBuilder {
             getProtectionSourcePolicy().setRpoValue(value);
             getProtectionSourcePolicy().setRpoType(type);
         }
-        
+
         return this;
     }
 
-    protected ProtectionSourcePolicy getProtectionSourcePolicy() {        
+    protected ProtectionSourcePolicy getProtectionSourcePolicy() {
         return getRecoverPoint().getSourcePolicy();
     }
-    
+
     public BlockVirtualPoolBuilder setJournalVarrayAndVpool(URI journalVarray, URI journalVpool) {
         if (journalVarray != null) {
             if (getProtectionSourcePolicy() == null) {
@@ -198,20 +198,20 @@ public class BlockVirtualPoolBuilder extends VirtualPoolBuilder {
             getProtectionSourcePolicy().setJournalVarray(journalVarray);
             getProtectionSourcePolicy().setJournalVpool(journalVpool);
         }
-        
+
         return this;
     }
-   
+
     public BlockVirtualPoolBuilder setStandByJournalVArrayVpool(URI standbyJournalVarray, URI standbyJournalVpool) {
-       if (standbyJournalVarray != null) {
-           if (getProtectionSourcePolicy() == null) {
-               getRecoverPoint().setSourcePolicy(new ProtectionSourcePolicy());
-           }      
-           getProtectionSourcePolicy().setStandbyJournalVarray(standbyJournalVarray);
-           getProtectionSourcePolicy().setStandbyJournalVpool(standbyJournalVpool);
-       }
-       
-       return this;
+        if (standbyJournalVarray != null) {
+            if (getProtectionSourcePolicy() == null) {
+                getRecoverPoint().setSourcePolicy(new ProtectionSourcePolicy());
+            }
+            getProtectionSourcePolicy().setStandbyJournalVarray(standbyJournalVarray);
+            getProtectionSourcePolicy().setStandbyJournalVpool(standbyJournalVpool);
+        }
+
+        return this;
     }
 
     public BlockVirtualPoolBuilder setRecoverPointCopies(
@@ -234,7 +234,7 @@ public class BlockVirtualPoolBuilder extends VirtualPoolBuilder {
         return param;
     }
 
-    public BlockVirtualPoolBuilder setHighAvailability(String type, Boolean enableCrossConnect, URI virtualArrayId, 
+    public BlockVirtualPoolBuilder setHighAvailability(String type, Boolean enableCrossConnect, URI virtualArrayId,
             URI virtualPoolId, Boolean activeProtectionAtHASite, Boolean metroPoint) {
         VirtualPoolHighAvailabilityParam highAvailability = new VirtualPoolHighAvailabilityParam();
         if (HighAvailability.isHighAvailability(type)) {

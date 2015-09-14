@@ -51,6 +51,15 @@ public class SiteAddParam {
         this.vip = vip;
     }
 
+    @XmlElement(name = "secretKey")
+    public String getSecretKey() {
+        return secretKey;
+    }
+
+    public void setSecretKey(String secretKey) {
+        this.secretKey = secretKey;
+    };
+    
     @XmlElement(name = "hostIPv4AddressMap")
     public Map<String, String> getHostIPv4AddressMap() {
         return hostIPv4AddressMap;
@@ -94,15 +103,6 @@ public class SiteAddParam {
 
     public void setFreshInstallation(boolean freshInstallation) {
         this.freshInstallation = freshInstallation;
-    }
-
-    @XmlElement(name = "secretKey")
-    public String getSecretKey() {
-        return secretKey;
-    }
-
-    public void setSecretKey(String secretKey) {
-        this.secretKey = secretKey;
     }
 
     @Override

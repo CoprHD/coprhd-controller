@@ -24,8 +24,11 @@
                 </foreach>
             </list>
         </property>
+
         <!-- 9 minutes timeout -->
         <property name="timeoutMs" value="540000"/>
+
+        <property name="siteId" value="${site_id}"/>
     </bean>
 
     <context:property-placeholder location="classpath:syssvc-info.properties" />
@@ -39,7 +42,6 @@
         <property name="defaultProperties" ref="defaultProperties"/>
         <property name="ovfProperties" ref="ovfProperties"/>
         <property name="dbVersionInfo" ref="dbVersionInfo"/>
-        <property name="siteId" value="${site_id}"/>
     </bean>
 
     <bean id="nodeCount" class="java.lang.Integer">

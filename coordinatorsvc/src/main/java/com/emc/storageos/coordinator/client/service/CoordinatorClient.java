@@ -8,6 +8,7 @@ package com.emc.storageos.coordinator.client.service;
 import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
 import com.emc.storageos.coordinator.client.service.impl.DistributedQueueConsumer;
 import com.emc.storageos.coordinator.common.Configuration;
@@ -495,5 +496,11 @@ public interface CoordinatorClient {
      * @return site uuid
      */
     public String getPrimarySiteId();
+    
+    /**
+     * Get current site state
+     * @return SiteState the state of site
+     */
+    public SiteState getSiteState();
     
 }

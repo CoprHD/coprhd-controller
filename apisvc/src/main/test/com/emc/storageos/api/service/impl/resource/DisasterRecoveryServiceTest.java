@@ -1,3 +1,7 @@
+/*
+ * Copyright (c) 2008-2015 EMC Corporation
+ * All Rights Reserved
+ */
 package com.emc.storageos.api.service.impl.resource;
 
 import static org.junit.Assert.assertEquals;
@@ -10,8 +14,12 @@ import static org.mockito.Mockito.spy;
 
 import java.lang.reflect.Constructor;
 import java.net.URI;
+import java.security.NoSuchAlgorithmException;
 import java.util.LinkedList;
 import java.util.List;
+
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -19,6 +27,7 @@ import org.junit.Test;
 import com.emc.storageos.api.mapper.SiteMapper;
 import com.emc.storageos.coordinator.client.model.ProductName;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
@@ -29,6 +38,8 @@ import com.emc.storageos.model.dr.DRNatCheckResponse;
 import com.emc.storageos.model.dr.SiteAddParam;
 import com.emc.storageos.model.dr.SiteList;
 import com.emc.storageos.model.dr.SiteRestRep;
+import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator;
+import com.emc.storageos.security.authentication.InternalApiSignatureKeyGenerator.SignatureKeyType;
 import com.emc.storageos.services.util.SysUtils;
 
 public class DisasterRecoveryServiceTest {
@@ -39,11 +50,14 @@ public class DisasterRecoveryServiceTest {
     private Site standbySite1;
     private Site standbySite2;
     private Site standbySite3;
+    private Site standbyConfig;
+    private SiteAddParam primarySiteParam;
     private List<URI> uriList;
     private List<Site> standbySites;
     private SiteAddParam standby;
     private DRNatCheckParam natCheckParam;
-    
+    private InternalApiSignatureKeyGenerator apiSignatureGeneratorMock;
+
     @Before
     public void setUp() throws Exception {
         uriList = new LinkedList<URI>();
@@ -81,10 +95,15 @@ public class DisasterRecoveryServiceTest {
         standbySite3.setId(new URI("site-object-id-3"));
         standbySite3.setUuid("site-uuid-3");
 
+        primarySiteParam = new SiteAddParam();
+        primarySiteParam.setUuid("primary-site-uuid");
+        primarySiteParam.setVip("127.0.0.1");
+        primarySiteParam.setSecretKey("secret-key");
+        primarySiteParam.setHostIPv4AddressMap(standbySite1.getHostIPv4AddressMap());
+        primarySiteParam.setHostIPv6AddressMap(standbySite1.getHostIPv6AddressMap());
+        
         // setup local VDC
         VirtualDataCenter localVDC = new VirtualDataCenter();
-        localVDC.getSiteUUIDs().add(standbySite1.getUuid());
-        localVDC.getSiteUUIDs().add(standbySite2.getUuid());
 
         // mock DBClient
         dbClientMock = mock(DbClient.class);
@@ -94,15 +113,34 @@ public class DisasterRecoveryServiceTest {
         
         natCheckParam = new DRNatCheckParam();
 
+        localVDC.getSiteUUIDs().add(standbySite1.getUuid());
+        localVDC.getSiteUUIDs().add(standbySite2.getUuid());
+        localVDC.setApiEndpoint("127.0.0.2");
+        localVDC.setHostIPv4AddressesMap(standbySite1.getHostIPv4AddressMap());
+        localVDC.getHostIPv6AddressesMap().put("vipr1", "11:11:11:11");
+        localVDC.getHostIPv6AddressesMap().put("vipr2", "22:22:22:22");
+        localVDC.getHostIPv6AddressesMap().put("vipr4", "33:33:33:33");
+        // mock DBClient
+        dbClientMock = mock(DbClient.class);
+        apiSignatureGeneratorMock = mock(InternalApiSignatureKeyGenerator.class);
+        
         drService = spy(new DisasterRecoveryService());
         drService.setDbClient(dbClientMock);
         drService.setCoordinator(coordinator);
         drService.setSiteMapper(new MockSiteMapper());
         drService.setSysUtils(new SysUtils());
 
+        drService.setApiSignatureGenerator(apiSignatureGeneratorMock);
+        
+        standbyConfig = new Site();
+        standbyConfig.setUuid("standby-site-uuid-1");
+        standbyConfig.setVip(localVDC.getApiEndpoint());
+        standbyConfig.setHostIPv4AddressMap(localVDC.getHostIPv4AddressesMap());
+        standbyConfig.setHostIPv6AddressMap(localVDC.getHostIPv6AddressesMap());
+        
+        doReturn(standbyConfig.getUuid()).when(coordinator).getSiteId();
+        doReturn("primary-site-id").when(coordinator).getPrimarySiteId();
         doReturn(localVDC).when(drService).queryLocalVDC();
-        doReturn("123456").when(coordinator).getPrimarySiteId();
-        doReturn("123456").when(coordinator).getSiteId();
         doReturn("2.4").when(coordinator).getCurrentDbSchemaVersion();
         doReturn(repositoryInfo).when(coordinator).getTargetInfo(RepositoryInfo.class);
     }
@@ -166,7 +204,7 @@ public class DisasterRecoveryServiceTest {
     
     @Test
     public void testPrecheckForStandbyAttach() throws Exception {
-
+        doReturn("primary-site-id").when(coordinator).getSiteId();
         drService.precheckForStandbyAttach(standby);
     }
 
@@ -190,6 +228,31 @@ public class DisasterRecoveryServiceTest {
         } catch (Exception e) {
             // ignore expected exception
         }
+    }    
+    
+    public void testGetStandbyConfig() {
+        SecretKey key = null;
+        try {
+            KeyGenerator keyGenerator = null;
+            keyGenerator = KeyGenerator.getInstance("HmacSHA256");
+            key = keyGenerator.generateKey();
+        } catch (NoSuchAlgorithmException e) {
+            fail("generate key fail");
+        }
+        
+        doReturn(key).when(apiSignatureGeneratorMock).getSignatureKey(SignatureKeyType.INTERVDC_API);
+        doReturn(SiteState.ACTIVE).when(coordinator).getSiteState();
+        SiteRestRep response = drService.getStandbyConfig();
+        compareSiteResponse(response, standbyConfig);
+    }
+    
+    @Test
+    public void testAddPrimary() {
+        SiteRestRep response = drService.addPrimary(primarySiteParam);
+        assertNotNull(response);
+        assertEquals(primarySiteParam.getUuid(), response.getUuid());
+        assertEquals(response.getName(), primarySiteParam.getName());
+        assertEquals(response.getVip(), primarySiteParam.getVip());
     }
 
     @Test
@@ -265,8 +328,8 @@ public class DisasterRecoveryServiceTest {
     
     protected void compareSiteResponse(SiteRestRep response, Site site) {
         assertNotNull(response);
-        assertEquals(response.getUuid(), site.getUuid());
         assertEquals(response.getId(), site.getId());
+        assertEquals(response.getUuid(), site.getUuid());
         assertEquals(response.getName(), site.getName());
         assertEquals(response.getVip(), site.getVip());
 

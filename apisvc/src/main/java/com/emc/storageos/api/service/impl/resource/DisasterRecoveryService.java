@@ -9,7 +9,6 @@ import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_ID;
 import static com.emc.storageos.db.client.model.uimodels.InitialSetup.CONFIG_KIND;
 
 import java.net.URI;
-import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -27,12 +26,12 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
-import org.apache.commons.codec.binary.Base64;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.api.mapper.SiteMapper;
 import com.emc.storageos.coordinator.client.model.RepositoryInfo;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.coordinator.common.Configuration;
@@ -183,28 +182,29 @@ public class DisasterRecoveryService extends TaggedResource {
         return null;
     }
     
+    /**
+     * Get standby site configuration
+     * 
+     * @return SiteRestRep standby site configuration.
+     */
     @GET
+    @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/standby/config")
     public SiteConfigRestRep getStandbyConfig() {
         log.info("Begin to get standby config");
         String siteId = this.coordinator.getSiteId();
+        SiteState siteState = this.coordinator.getSiteState();
         VirtualDataCenter vdc = queryLocalVDC();
         SecretKey key = apiSignatureGenerator.getSignatureKey(SignatureKeyType.INTERVDC_API);
-
-        Site localSite = new Site();
-
-        localSite.setUuid(siteId);
-        localSite.setVip(vdc.getApiEndpoint());
-        localSite.getHostIPv4AddressMap().putAll(vdc.getHostIPv4AddressesMap());
-        localSite.getHostIPv6AddressMap().putAll(vdc.getHostIPv6AddressesMap());
-        localSite.setSecretKey(new String(Base64.encodeBase64(key.getEncoded()), Charset.forName("UTF-8")));
         
+        Site localSite = new Site();
         SiteConfigRestRep siteConfigRestRep = new SiteConfigRestRep(); 
         siteMapper.map(localSite, siteConfigRestRep);
         
         siteConfigRestRep.setDbSchemaVersion(coordinator.getCurrentDbSchemaVersion());
         siteConfigRestRep.setFreshInstallation(isFreshInstallation());
+        siteConfigRestRep.setState(siteState.name());
         
         try {
             siteConfigRestRep.setSoftwareVersion(coordinator.getTargetInfo(RepositoryInfo.class).getCurrentVersion().toString());
@@ -216,20 +216,20 @@ public class DisasterRecoveryService extends TaggedResource {
         return siteConfigRestRep;
     }
     
+    /**
+     * Add primary site
+     * 
+     * @param SiteAddParam primary site configuration
+     * @return SiteRestRep primary site information
+     */
     @POST
     @Consumes({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Produces({ MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON })
     @Path("/internal/standby/config")
     public SiteRestRep addPrimary(SiteAddParam param) {
-        log.info("Begin to add primary site");
+        log.info("Begin to add primary site {}", param);
 
-        Site primarySite = new Site();
-        primarySite.setId(URIUtil.createId(Site.class));
-        primarySite.setUuid(param.getUuid());
-        primarySite.setName(param.getName());
-        primarySite.setVip(param.getVip());
-        primarySite.getHostIPv4AddressMap().putAll(new StringMap(param.getHostIPv4AddressMap()));
-        primarySite.getHostIPv6AddressMap().putAll(new StringMap(param.getHostIPv6AddressMap()));
+        Site primarySite = toSite(param);
 
         VirtualDataCenter vdc = queryLocalVDC();
         vdc.getSiteUUIDs().add(primarySite.getUuid());
@@ -241,6 +241,18 @@ public class DisasterRecoveryService extends TaggedResource {
         _dbClient.persistObject(vdc);
 
         return siteMapper.map(primarySite);
+    }
+
+    private Site toSite(SiteAddParam param) {
+        Site site = new Site();
+        site.setId(URIUtil.createId(Site.class));
+        site.setUuid(param.getUuid());
+        site.setName(param.getName());
+        site.setVip(param.getVip());
+        site.setSecretKey(param.getSecretKey());
+        site.getHostIPv4AddressMap().putAll(new StringMap(param.getHostIPv4AddressMap()));
+        site.getHostIPv6AddressMap().putAll(new StringMap(param.getHostIPv6AddressMap()));
+        return site;
     }
     
     @POST

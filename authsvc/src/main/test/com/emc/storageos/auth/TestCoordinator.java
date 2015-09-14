@@ -8,6 +8,7 @@ package com.emc.storageos.auth;
 import com.emc.storageos.coordinator.client.model.CoordinatorSerializable;
 import com.emc.storageos.coordinator.client.model.DbVersionInfo;
 import com.emc.storageos.coordinator.client.model.MigrationStatus;
+import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.service.*;
 import com.emc.storageos.coordinator.client.service.WorkPool.WorkAssignmentListener;
 import com.emc.storageos.coordinator.client.service.impl.CoordinatorClientInetAddressMap;
@@ -442,5 +443,10 @@ public class TestCoordinator implements CoordinatorClient {
     @Override
     public String getPrimarySiteId() {
         return "test-primary-site-id";
+    }
+    
+    @Override
+    public SiteState getSiteState() {
+        return SiteState.ACTIVE;
     }
 }

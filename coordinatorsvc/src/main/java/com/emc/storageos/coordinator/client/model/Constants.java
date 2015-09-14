@@ -110,4 +110,6 @@ public interface Constants {
     public static final String CATALOG_ACL_CHANGE = "acl_change";
     
     public static final String SITE_PRIMARY_PTR = "primary";
+    public static final String SITE_STATE = "state";
+    public static final String SITE_ID= "siteid";
 }

@@ -61,6 +61,9 @@ _gen_prop2() {
     #'node_id
     [ -z ${_GENCONFIG_node_id} ] && export _GENCONFIG_node_id='standalone'
 
+    #'site_id')
+    export _GENCONFIG_site_id=$(_genconfig_site_id ${_GENCONFIG_site_id})
+
     #'node_index')
     export _GENCONFIG_node_index=$(_genconfig_node_index ${_GENCONFIG_node_id})
 

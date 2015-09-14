@@ -35,6 +35,7 @@ import com.emc.storageos.volumecontroller.TaskCompleter;
 import com.emc.storageos.volumecontroller.impl.ControllerServiceImpl;
 import com.emc.storageos.volumecontroller.impl.cinder.job.CinderSingleVolumeCreateJob;
 import com.emc.storageos.volumecontroller.impl.job.QueueJob;
+import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 
 public class CinderCloneOperations implements CloneOperations
 {
@@ -157,6 +158,7 @@ public class CinderCloneOperations implements CloneOperations
     {
         // Not Supported
         Volume clone = dbClient.queryObject(Volume.class, cloneVolume);
+        ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(clone, dbClient);
         clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
         clone.setReplicaState(ReplicationState.DETACHED.name());
         dbClient.persistObject(clone);

@@ -18,6 +18,8 @@ import models.ComputeSystemTypes;
 import models.RegistrationStatus;
 import models.SearchScopes;
 import models.VlanListTypes;
+import models.datatable.ComputeImageServersDataTable;
+import models.datatable.ComputeImageServersDataTable.ComputeImageServerInfo;
 import models.datatable.ComputeSystemElementDataTable;
 import models.datatable.ComputeSystemElementDataTable.ComputeElementInfo;
 import models.datatable.ComputeSystemsDataTable;
@@ -31,6 +33,7 @@ import play.data.validation.MinSize;
 import play.data.validation.Required;
 import play.data.validation.Validation;
 import play.mvc.With;
+import util.ComputeImageServerUtils;
 import util.ComputeSystemUtils;
 import util.DefaultComputeSystemPortMap;
 import util.EnumOption;
@@ -40,6 +43,7 @@ import util.datatable.DataTablesSupport;
 import util.validation.HostNameOrIpAddressCheck;
 
 import com.emc.storageos.model.compute.ComputeElementRestRep;
+import com.emc.storageos.model.compute.ComputeImageServerRestRep;
 import com.emc.storageos.model.compute.ComputeSystemCreate;
 import com.emc.storageos.model.compute.ComputeSystemRestRep;
 import com.emc.storageos.model.compute.ComputeSystemUpdate;
@@ -130,6 +134,17 @@ public class ComputeSystems extends ViprResourceController {
         render("@edit", computeSystems);
     }
 
+    private static ComputeImageServersDataTable createComputeImageServersDataTable() {
+        System.out.println("createComputeImageServersDataTable ");
+        ComputeImageServersDataTable dataTable = new ComputeImageServersDataTable();
+        dataTable.alterColumn("name").hidden();
+        System.out.println("createComputeImageServersDataTable " + dataTable.toString());
+        dataTable.alterColumn("computeImageServerStatus").setVisible(true);
+        dataTable.setDefaultSort("imageServerIp", "asc");
+
+        return dataTable;
+    }
+
     public static void edit(String id) {
         try {
             addReferenceData();
@@ -148,6 +163,7 @@ public class ComputeSystems extends ViprResourceController {
                 }
                 ComputeSystemForm computeSystems = new ComputeSystemForm(
                         computeSystem);
+                renderArgs.put("computeImageServersDataTable", createComputeImageServersDataTable());
 
                 render("@edit", computeSystems);
             } else {
@@ -285,6 +301,18 @@ public class ComputeSystems extends ViprResourceController {
         renderJSON(DataTablesSupport.createJSON(results, params));
     }
 
+    public static void computeImageServersJson() {
+        System.out.println("computeImageServersJson ");
+        List<ComputeImageServerInfo> results = Lists.newArrayList();
+        List<ComputeImageServerRestRep> computeImageServers = ComputeImageServerUtils.getComputeImageServers();
+        for (ComputeImageServerRestRep computeImageServerRR : computeImageServers) {
+            ComputeImageServerInfo computeImageServer = new ComputeImageServerInfo(computeImageServerRR);
+            results.add(computeImageServer);
+            System.out.println("computeImageServersJson number " + results.size() + " Name " + results.get(0).imageServerIp);
+        }
+        renderJSON(DataTablesSupport.createJSON(results, params));
+    }
+
     public static class ComputeSystemForm {
 
         public String id;
@@ -318,6 +346,8 @@ public class ComputeSystems extends ViprResourceController {
 
         public String vlanList;
 
+        public List<String> computeImageServers = Lists.newArrayList();;
+
         public ComputeSystemForm() {
         }
 
@@ -337,6 +367,11 @@ public class ComputeSystems extends ViprResourceController {
                                 // ("Suppressing Sonar violation of Password Hardcoded. Password is not hardcoded here.")
             this.unregistered = RegistrationStatus.isUnregistered(computeSystem
                     .getRegistrationStatus());
+            List<ComputeImageServerRestRep> computeImageServerList = ComputeImageServerUtils.getComputeImageServers();
+            for (ComputeImageServerRestRep cisrr : computeImageServerList) {
+                System.out.println("ComputeSystems ComputeSystemForm " + cisrr.getImageServerIp());
+                this.computeImageServers.add(cisrr.getId().toString());
+            }
 
         }
 

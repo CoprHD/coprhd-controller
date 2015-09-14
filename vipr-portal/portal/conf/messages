@@ -2508,6 +2508,7 @@ ComputeImageServers.deleted.success=Deleted Successfully
 ComputeImageServers.deleted.error='%s' of '%s' selected Compute Image Server deleted: '%s'.  Please check server log for more details.
 ComputeImageServers.unknown=Unknown Compute Image Servers with ID '%s'
 ComputeImageServers.deleteConfirm=Are you sure you want to delete the selected Compute Image Server(s)?
+computeImageServers.selected=Selected
 computeImageServers.name=Name
 computeImageServers.userName=Username
 computeImageServers.password=Password

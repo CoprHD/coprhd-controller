@@ -321,15 +321,16 @@ public class ImageServerControllerImpl implements ImageServerController {
                         || !imageServer.getComputeImages().contains(
                                 ciId.toString())) {
                     log.info("verify Image Server");
-                    boolean imageServerVerified = verifyImageServer(imageServer);
-                    if (!imageServerVerified) {
-                        throw ImageServerControllerException.exceptions
-                                .imageServerNotSetup("Can't perform image import: "
-                                        + imageServerErrorMsg);
-                    }
+                    String verifyServerStepId = workflow.createStep(IMAGESERVER_VERIFICATION_STEP, String.format(
+                    "Verfiying ImageServer %s", imageServerId), null,
+                    imageServerId, imageServerId.toString(), this
+                            .getClass(), new Workflow.Method(
+                            "verifyComputeImageServer", imageServerId),
+                    null, null);
+
                     workflow.createStep(IMPORT_IMAGE_TO_SERVER_STEP, String
                             .format("Importing image for %s", imageServerId),
-                            null, imageServerId, imageServerId.toString(), this
+                            verifyServerStepId, imageServerId, imageServerId.toString(), this
                                     .getClass(), new Workflow.Method(
                                     "importImageMethod", ciId, imageServer, null),
                             null, null);

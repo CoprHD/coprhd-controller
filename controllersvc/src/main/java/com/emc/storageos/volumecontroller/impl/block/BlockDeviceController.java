@@ -3741,7 +3741,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                                         cgName));
         BlockConsistencyGroup targetCG = null;
         boolean createGroup = false;
-        if (groups.size() == 0) {
+        if (groups.isEmpty()) {
             // create target CG
             targetCG = new BlockConsistencyGroup();
             targetCG.setId(URIUtil.createId(BlockConsistencyGroup.class));

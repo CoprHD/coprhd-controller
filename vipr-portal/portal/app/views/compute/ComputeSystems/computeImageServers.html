@@ -27,7 +27,7 @@ var computeImageServers = function() {
     my.addParams = function(aoData) {
         queried = true;
 
-        $('#computeImageServers .selected input').prop('disabled', true).addClass('disabled');
+        $('#computeImageServers .selectedComputeImageServer input').prop('disabled', false).addClass('disabled');
     }
     
     my.availableComputeImageServers = function(oSettings) {
@@ -44,7 +44,7 @@ var computeImageServers = function() {
         	console.log("  - My Render function id" + id);
             var available = o.aData.available;
         	console.log("  - My Render function available" + available);
-            var checkbox = "<input type='checkbox' name='computeSystems.computeImageServers' ";
+            var checkbox = "<input type='checkbox' name='computeSystems.selectedComputeImageServer' ";
         	console.log("  - My Render function checkbox" + checkbox);
             var ids = $('.computeImageServers[data-ids]').data('ids');
         	console.log("  - My Render function val " + val);

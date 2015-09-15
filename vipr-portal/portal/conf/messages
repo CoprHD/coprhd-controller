@@ -710,6 +710,7 @@ CustomConfigs.scopeValue.mds=MDS
 CustomConfigs.scopeValue.vnxblock=VNX Block
 CustomConfigs.scopeValue.vmax=VMAX
 CustomConfigs.scopeValue.hds=HDS
+CustomConfigs.scopeValue.openstack=OpenStack
 CustomConfigs.scopeValue.vnxfile=VNX File
 CustomConfigs.scopeValue.xtremio=XtremIO
 CustomConfigs.scopeValue.vplex=VPLEX

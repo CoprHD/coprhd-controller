@@ -133,7 +133,7 @@ public class AdminDashboardUtils {
     }
 
     public static Promise<Integer> computeImageServerCount() {
-        return new BulkResourceCount(COMPUTE_IMAGE_SERVER_COUNT_KEY, getViprClient().computeSystems()).asPromise();
+        return new BulkResourceCount(COMPUTE_IMAGE_SERVER_COUNT_KEY, getViprClient().computeImageServers()).asPromise();
     }
 
     public static Promise<Integer> hostCount() {

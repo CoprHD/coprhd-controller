@@ -158,7 +158,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                     log.info("Adding clone steps for create {} volumes", firstVolumeDescriptor.getType());
                     // create new clones for the newly created volumes
                     // add the created clones to clone groups
-                    waitFor = createCloneSteps(workflow, waitFor, volumeDescriptors, volumeList);
+                    waitFor = createCloneSteps(workflow, waitFor, volumeDescriptors, volumeList, cgURI);
                 }
 
                 if (checkIfCGHasMirrorReplica(volumeList)) {
@@ -186,7 +186,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
      * 2. add all clones to an existing replication group
      */
     private String createCloneSteps(final Workflow workflow, String waitFor,
-            final List<VolumeDescriptor> volumeDescriptors, List<Volume> volumeList) {
+            final List<VolumeDescriptor> volumeDescriptors, List<Volume> volumeList, URI cgURI) {
         log.info("START create clone steps");
         List<URI> sourceList = VolumeDescriptor.getVolumeURIs(volumeDescriptors);
         List<Volume> volumes = _dbClient.queryObject(Volume.class, sourceList);
@@ -199,14 +199,14 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         }
 
         for (String repGroupName : repGroupNames) {
-            waitFor = addClonesToReplicationGroupStep(workflow, waitFor, storageSystem, volumes, repGroupName);
+            waitFor = addClonesToReplicationGroupStep(workflow, waitFor, storageSystem, volumes, repGroupName, cgURI);
         }
 
         return waitFor;
     }
 
     private String addClonesToReplicationGroupStep(final Workflow workflow, String waitFor, StorageSystem storageSystem,
-            List<Volume> volumes, String repGroupName) {
+            List<Volume> volumes, String repGroupName, URI cgURI) {
         log.info("START create clone step");
         URI storage = storageSystem.getId();
         List<URI> cloneList = new ArrayList<URI>();
@@ -218,7 +218,6 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             waitFor = _blockDeviceController.createSingleCloneStep(workflow, storage, storageSystem, volume, cloneId, waitFor);
         }
 
-        URI cgURI = volumes.get(0).getConsistencyGroup();
         waitFor = workflow.createStep(BlockDeviceController.UPDATE_CONSISTENCY_GROUP_STEP_GROUP,
                 String.format("Updating consistency group  %s", cgURI), waitFor, storage,
                 _blockDeviceController.getDeviceType(storage), this.getClass(),

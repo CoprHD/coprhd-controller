@@ -1026,7 +1026,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     Initiator initiator = new Initiator();
                     initiator.addInternalFlags(Flag.RECOVERPOINT);
                     // Remove all non alpha-numeric characters, excluding "_", from the hostname
-                    initiator.setHostName(rpSiteName.replaceAll("[^A-Za-z0-9_]", ""));
+                    _log.info(String.format("Setting RP initiator with cluster name : %s", rpSiteName.replaceAll("[^A-Za-z0-9_]", "")));
+                    initiator.setClusterName(rpSiteName.replaceAll("[^A-Za-z0-9_]", ""));
                     initiator.setInitiatorPort(wwn);
                     initiator.setInitiatorNode(wwns.get(wwn));
                     initiator.setProtocol("FC");
@@ -1053,11 +1054,11 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                                 rpNetworkToInitiatorsMap.put(rpInitiatorNetworkURI, new HashSet<Initiator>());
                             }
                             rpNetworkToInitiatorsMap.get(rpInitiatorNetworkURI).add(initiator);
-                            _log.info("RP Initiator [" + initiator.getInitiatorPort() + "] found on network: ["
-                                    + rpInitiatorNetworkURI.toASCIIString() + "]");
+                            _log.info(String.format("RP Initiator [%s] found on network: [%s]", 
+                            		initiator.getInitiatorPort(), rpInitiatorNetworkURI.toASCIIString()));
                         } else {
-                            _log.warn("RP Initiator [" + initiator.getInitiatorPort()
-                                    + "] was not found in any network. Excluding from automated exports");
+                    	  _log.info(String.format("RP Initiator [%s] was not found on any network. Excluding from automated exports", 
+                              		initiator.getInitiatorPort()));                         
                         }
                     }
                 }
@@ -1071,8 +1072,8 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                         rpNetworkToInitiatorsMap, storageSystemURI, varrayURI);
 
                 for (URI networkURI : initiatorPortMap.keySet()) {
-                    for (StoragePort storagePort : initiatorPortMap.get(networkURI)) {
-                        _log.info("Network = [" + networkURI.toString() + "] PORT : [" + storagePort.getLabel() + "]");
+                    for (StoragePort storagePort : initiatorPortMap.get(networkURI)) {                  
+                        _log.info(String.format("Network : [%s] - Port : [%s]", networkURI.toString(), storagePort.getLabel()));
                     }
                 }
 

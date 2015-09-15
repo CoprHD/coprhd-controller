@@ -14,12 +14,10 @@ import org.slf4j.LoggerFactory;
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.Type;
-import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.DiscoveredSystemObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.exceptions.ClientControllerException;
 import com.emc.storageos.impl.AbstractDiscoveredSystemController;
-import com.emc.storageos.model.object.BucketParam;
 import com.emc.storageos.svcs.errorhandling.resources.InternalException;
 import com.emc.storageos.volumecontroller.AsyncTask;
 import com.emc.storageos.volumecontroller.ObjectController;
@@ -111,30 +109,28 @@ public class ObjectControllerImpl extends AbstractDiscoveredSystemController
     }
 
     private void execOb(String methodName, Object... args) throws InternalException {
-        StringBuilder logMsgBuilder = new StringBuilder(String.format(
-                "ObjectControllerImpl Method=%s StorageSystem.class:%s", methodName, StorageSystem.class));
         queueTask(_dbClient, StorageSystem.class, _dispatcher, methodName, args);
     }
 
     @Override
     public void createBucket(URI storage, URI stPool, URI bkt, String label, String namespace, String retention,
             String hardQuota, String softQuota, String owner, String opId) throws InternalException {
-        _log.info("ObjectControllerImpl:createBukcet start");
+        _log.debug("ObjectControllerImpl:createBukcet start");
         execOb("createBucket", storage, stPool, bkt, label, namespace, retention,
                 hardQuota, softQuota, owner, opId);
-        _log.info("ObjectControllerImpl:createBukcet end");
+        _log.debug("ObjectControllerImpl:createBukcet end");
     }
 
     @Override
     public void deleteBucket(URI storage, URI bucket, String task) throws InternalException {
-        _log.info("ObjectControllerImpl:deleteBukcet");
+        _log.debug("ObjectControllerImpl:deleteBukcet");
         execOb("deleteBucket", storage, bucket, task);
     }
 
     @Override
     public void updateBucket(URI storage, URI bucket, Long softQuota, Long hardQuota, Integer retention, String task)
             throws InternalException {
-        _log.info("ObjectControllerImpl:updateBukcet");
+        _log.debug("ObjectControllerImpl:updateBukcet");
         execOb("updateBucket", storage, bucket, softQuota, hardQuota, retention, task);
     }
 }

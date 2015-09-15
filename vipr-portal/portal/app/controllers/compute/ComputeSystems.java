@@ -345,6 +345,8 @@ public class ComputeSystems extends ViprResourceController {
 
         public List<String> computeImageServers = Lists.newArrayList();;
 
+        public String selectedComputeImageServer;
+
         public ComputeSystemForm() {
         }
 
@@ -365,10 +367,13 @@ public class ComputeSystems extends ViprResourceController {
             this.unregistered = RegistrationStatus.isUnregistered(computeSystem
                     .getRegistrationStatus());
             List<ComputeImageServerRestRep> computeImageServerList = ComputeImageServerUtils.getComputeImageServers();
-            for (ComputeImageServerRestRep cisrr : computeImageServerList) {
-                this.computeImageServers.add(cisrr.getId().toString());
+            // for (ComputeImageServerRestRep cisrr : computeImageServerList) {
+            // this.computeImageServers.add(cisrr.getId().toString());
+            // }
+            if (computeSystem.getComputeImageServer() != null) {
+                this.selectedComputeImageServer = computeSystem.getComputeImageServer();
+                System.out.println("ComputeSystemForm " + this.selectedComputeImageServer);
             }
-
         }
 
         public boolean isNew() {
@@ -435,6 +440,11 @@ public class ComputeSystems extends ViprResourceController {
             if (!this.osInstallNetwork.isEmpty()) {
                 createParam.setOsInstallNetwork(this.osInstallNetwork);
             }
+            if (this.selectedComputeImageServer != null) {
+                System.out.println("ComputeSystem create selectedComputeImageServer" + this.selectedComputeImageServer);
+                ComputeImageServerRestRep cisrr = ComputeImageServerUtils.getComputeImageServer(this.selectedComputeImageServer);
+                createParam.setComputeImageServer(cisrr.getId());
+            }
             return ComputeSystemUtils.create(createParam);
         }
 
@@ -460,6 +470,11 @@ public class ComputeSystems extends ViprResourceController {
                 else {
                     updateParam.setOsInstallNetwork(this.vlanList);
                 }
+            }
+            if (this.selectedComputeImageServer != null) {
+                System.out.println("ComputeSystem update " + selectedComputeImageServer);
+                ComputeImageServerRestRep cisrr = ComputeImageServerUtils.getComputeImageServer(this.selectedComputeImageServer);
+                updateParam.setComputeImageServer(cisrr.getId());
             }
             updateParam.setUserName(this.userName);
             updateParam.setUseSSL(this.useSSL);

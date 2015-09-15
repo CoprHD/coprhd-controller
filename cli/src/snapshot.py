@@ -173,7 +173,7 @@ class Snapshot(object):
             }
             if(rptype):
                 parms['type'] = rptype
-            if(readonly):
+            if(readonly == "true"):
                 parms['read_only'] = readonly
             body = json.dumps(parms)
 
@@ -181,7 +181,7 @@ class Snapshot(object):
             parms = {
                 'name': snaplabel
             }
-            if(readonly is not None):
+            if(readonly == "true"):
                 parms['read_only'] = readonly
             body = json.dumps(parms)
         

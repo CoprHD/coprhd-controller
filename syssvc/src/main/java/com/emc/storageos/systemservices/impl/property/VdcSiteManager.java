@@ -233,6 +233,8 @@ public class VdcSiteManager extends AbstractManager {
         } else {
             log.info("Step2: Setting vdc properties not rebooting for single VDC change");
             PropertyInfoExt vdcProperty = new PropertyInfoExt(targetVdcPropInfo.getAllProperties());
+            // set the vdc_config_version to an invalid value so that it always gets retried on failure.
+            vdcProperty.addProperty(VdcConfigUtil.VDC_CONFIG_VERSION, "-1");
             localRepository.setVdcPropertyInfo(vdcProperty);
 
             localRepository.reconfigProperties("coordinator");

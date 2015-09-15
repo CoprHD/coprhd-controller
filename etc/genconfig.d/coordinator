@@ -19,9 +19,8 @@ _get_coordinator_var() {
     local standby_cnt="${!var}"
     if [ -n "${standby_cnt}" ]; then
         local primary_cnt="${_GENCONFIG_node_count}"
-        local standby_indexes="$(seq --separator=' ' $((${primary_cnt} + 1)) $((${primary_cnt} + ${standby_cnt})))"
-        echo "--foreach:iter_site:${standby_indexes}"
-        for standby_index in ${standby_indexes}; do
+        echo "--foreach:iter_site:$(seq --separator=',' $((${primary_cnt} + 1)) $((${primary_cnt} + ${standby_cnt})))"
+        for standby_index in $(seq --separator=' ' $((${primary_cnt} + 1)) $((${primary_cnt} + ${standby_cnt}))); do
             var="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_standby_network_$((${standby_index} - ${primary_cnt}))_ipaddr"
             var6="_GENCONFIG_vdc_${_GENCONFIG_vdc_myid}_standby_network_$((${standby_index} - ${primary_cnt}))_ipaddr6"
             local ipaddr="${!var}"

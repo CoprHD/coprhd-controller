@@ -64,6 +64,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             String taskId) throws InternalException {
         // Get the list of descriptors which represent source volumes that have
         // just been created and added to CG possibly
+        log.info("Volume Decriptors: {}", volumes);
         List<VolumeDescriptor> volumeDescriptors = VolumeDescriptor.filterByType(volumes,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, VolumeDescriptor.Type.SRDF_SOURCE,
                         VolumeDescriptor.Type.SRDF_EXISTING_SOURCE,
@@ -78,34 +79,72 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         // Get the consistency group. If no consistency group for source
         // volumes,
         // just return. Get CG from any descriptor.
-        final VolumeDescriptor firstVolume = volumeDescriptors.get(0);
-        if (firstVolume == null || NullColumnValueGetter.isNullURI(firstVolume.getConsistencyGroupURI())) {
-            return waitFor;
+        final VolumeDescriptor firstVolumeDescriptor = volumeDescriptors.get(0);
+        if (firstVolumeDescriptor != null) {
+            Volume volume = _dbClient.queryObject(Volume.class, firstVolumeDescriptor.getVolumeURI());
+            if (volume == null || !volume.isInCG()) {
+                return waitFor;
+            }
         }
 
-        // find member volumes in the group
-        List<Volume> volumeList = ControllerUtils.getVolumesPartOfCG(firstVolume.getConsistencyGroupURI(), _dbClient);
-        if (checkIfCGHasCloneReplica(volumeList)) {
-            log.info("Adding clone steps for create volumes");
-            // create new clones for the newly created volumes
-            // add the created clones to clone groups
-            waitFor = createCloneSteps(workflow, waitFor, volumeDescriptors, volumeList);
+
+        List<VolumeDescriptor> nonSrdfVolumeDescriptors = VolumeDescriptor.filterByType(volumes,
+                new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA }, null);
+
+        if (nonSrdfVolumeDescriptors != null && !nonSrdfVolumeDescriptors.isEmpty()) {
+            waitFor = createReplicaIfCGHasReplica(workflow, waitFor,
+                    nonSrdfVolumeDescriptors);
+        } else {
+            // Create Replica for SRDF R1 and R2 if any replica available already
+            List<VolumeDescriptor> srdfSourceVolumeDescriptors = VolumeDescriptor.filterByType(volumes,
+                    new VolumeDescriptor.Type[] { VolumeDescriptor.Type.SRDF_SOURCE,
+                            VolumeDescriptor.Type.SRDF_EXISTING_SOURCE }, null);
+
+            List<VolumeDescriptor> srdfTargetVolumeDescriptors = VolumeDescriptor.filterByType(volumes,
+                    new VolumeDescriptor.Type[] { VolumeDescriptor.Type.SRDF_TARGET }, null);
+
+            waitFor = createReplicaIfCGHasReplica(workflow, waitFor,
+                    srdfSourceVolumeDescriptors);
+
+            waitFor = createReplicaIfCGHasReplica(workflow, waitFor,
+                    srdfTargetVolumeDescriptors);
+
         }
 
-        if (checkIfCGHasMirrorReplica(volumeList)) {
-            log.info("Adding mirror steps for create volumes");
-            // create new mirrors for the newly created volumes
-            // add the created mirrors to mirror groups
-            // TODO
-        }
+        return waitFor;
+    }
 
-        if (checkIfCGHasSnapshotReplica(volumeList)) {
-            log.info("Adding snapshot steps for create volumes");
-            // create new snapshots for the newly created volumes
-            // add the created snapshots to snapshot groups
-            // TODO
-        }
+	private String createReplicaIfCGHasReplica(Workflow workflow,
+            String waitFor, List<VolumeDescriptor> volumeDescriptors) {
+        if (volumeDescriptors != null && !volumeDescriptors.isEmpty()) {
+            final VolumeDescriptor firstVolumeDescriptor = volumeDescriptors.get(0);
+            if (firstVolumeDescriptor != null) {
+                Volume volume = _dbClient.queryObject(Volume.class, firstVolumeDescriptor.getVolumeURI());
+                // find member volumes in the group
+                List<Volume> volumeList = ControllerUtils.getVolumesPartOfCG(volume.getConsistencyGroup(), _dbClient);
+                if (checkIfCGHasCloneReplica(volumeList)) {
+                    log.info("Adding clone steps for create {} volumes", firstVolumeDescriptor.getType());
+                    // create new clones for the newly created volumes
+                    // add the created clones to clone groups
+                    waitFor = createCloneSteps(workflow, waitFor, volumeDescriptors, volumeList);
+                }
 
+                if (checkIfCGHasMirrorReplica(volumeList)) {
+                    log.info("Adding mirror steps for create {} volumes", firstVolumeDescriptor.getType());
+                    // create new mirrors for the newly created volumes
+                    // add the created mirrors to mirror groups
+                    // TODO
+                }
+
+                if (checkIfCGHasSnapshotReplica(volumeList)) {
+                    log.info("Adding snapshot steps for create {} volumes", firstVolumeDescriptor.getType());
+                    // create new snapshots for the newly created volumes
+                    // add the created snapshots to snapshot groups
+                    // TODO
+                }
+            }
+
+        }
         return waitFor;
     }
 
@@ -183,7 +222,7 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
 
         fullCopies.add(clone.getId().toString());
 
-        _dbClient.persistObject(clone);
+        _dbClient.createObject(clone);
         _dbClient.persistObject(volume);
 
         return clone;

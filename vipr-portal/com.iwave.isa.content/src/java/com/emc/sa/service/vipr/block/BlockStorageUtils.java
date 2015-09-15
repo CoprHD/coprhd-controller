@@ -87,11 +87,13 @@ import com.emc.storageos.model.block.VolumeRestRep.FullCopyRestRep;
 import com.emc.storageos.model.block.export.ExportBlockParam;
 import com.emc.storageos.model.block.export.ExportGroupRestRep;
 import com.emc.storageos.model.block.export.ITLRestRep;
+import com.emc.storageos.svcs.errorhandling.resources.ServiceCode;
 import com.emc.vipr.client.Task;
 import com.emc.vipr.client.Tasks;
 import com.emc.vipr.client.core.filters.ExportClusterFilter;
 import com.emc.vipr.client.core.filters.ExportHostFilter;
 import com.emc.vipr.client.core.util.ResourceUtils;
+import com.emc.vipr.client.exceptions.ServiceErrorException;
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Collections2;
@@ -429,16 +431,33 @@ public class BlockStorageUtils {
         removeExportIfEmpty(exportId);
     }
 
+    static final int MAX_RETRY_COUNT =30;
+    static final int RETRY_DELAY_MSEC = 60000;
+    
     public static void removeExportIfEmpty(URI exportId) {
-        ExportGroupRestRep export = getExport(exportId);
-        if (ResourceUtils.isActive(export) && export.getVolumes().isEmpty()) {
-            removeExport(export.getId());
-        }
-    }
-
-    public static void removeExport(URI exportId) {
-        Task<ExportGroupRestRep> response = execute(new DeactivateBlockExport(exportId));
-        addAffectedResource(response);
+        boolean retryNeeded = false;
+        int retryCount = 0;
+        do {
+            retryNeeded = false;
+            ExportGroupRestRep export = getExport(exportId);
+            if (ResourceUtils.isActive(export) && export.getVolumes().isEmpty()) {
+                try {
+                Task<ExportGroupRestRep> response = execute(new DeactivateBlockExport(exportId));
+                addAffectedResource(response);
+                } catch (ServiceErrorException e) {
+                    if (retryCount++ < MAX_RETRY_COUNT 
+                            && ServiceCode.toServiceCode(e.getCode()) == ServiceCode.API_TASK_EXECUTION_IN_PROGRESS) {
+                        retryNeeded = true;
+                        try {
+                            Thread.sleep(RETRY_DELAY_MSEC);
+                        } catch (Exception ex) {
+                        }
+                    } else {
+                        throw e;
+                    }
+                }
+            } 
+        } while (retryNeeded);
     }
 
     public static List<URI> getActiveSnapshots(URI volumeId) {

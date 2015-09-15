@@ -64,11 +64,9 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
             String taskId) throws InternalException {
         // Get the list of descriptors which represent source volumes that have
         // just been created and added to CG possibly
-        log.info("Volume Decriptors: {}", volumes);
         List<VolumeDescriptor> volumeDescriptors = VolumeDescriptor.filterByType(volumes,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, VolumeDescriptor.Type.SRDF_SOURCE,
-                        VolumeDescriptor.Type.SRDF_EXISTING_SOURCE,
-                        VolumeDescriptor.Type.SRDF_TARGET }, null);
+                        VolumeDescriptor.Type.SRDF_EXISTING_SOURCE }, null);
 
         // If no source volumes, just return
         if (volumeDescriptors.isEmpty()) {
@@ -79,12 +77,15 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
         // Get the consistency group. If no consistency group for source
         // volumes,
         // just return. Get CG from any descriptor.
+        URI cgURI = null;
         final VolumeDescriptor firstVolumeDescriptor = volumeDescriptors.get(0);
         if (firstVolumeDescriptor != null) {
             Volume volume = _dbClient.queryObject(Volume.class, firstVolumeDescriptor.getVolumeURI());
+            log.info("CG URI:{}", volume.getConsistencyGroup());
             if (volume == null || !volume.isInCG()) {
                 return waitFor;
             }
+            cgURI = volume.getConsistencyGroup();
         }
 
 
@@ -93,21 +94,52 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
 
         if (nonSrdfVolumeDescriptors != null && !nonSrdfVolumeDescriptors.isEmpty()) {
             waitFor = createReplicaIfCGHasReplica(workflow, waitFor,
-                    nonSrdfVolumeDescriptors);
+                    nonSrdfVolumeDescriptors, cgURI);
         } else {
             // Create Replica for SRDF R1 and R2 if any replica available already
             List<VolumeDescriptor> srdfSourceVolumeDescriptors = VolumeDescriptor.filterByType(volumes,
                     new VolumeDescriptor.Type[] { VolumeDescriptor.Type.SRDF_SOURCE,
                             VolumeDescriptor.Type.SRDF_EXISTING_SOURCE }, null);
-
+            log.debug("srdfSourceVolumeDescriptors :{}", srdfSourceVolumeDescriptors);
             List<VolumeDescriptor> srdfTargetVolumeDescriptors = VolumeDescriptor.filterByType(volumes,
                     new VolumeDescriptor.Type[] { VolumeDescriptor.Type.SRDF_TARGET }, null);
-
+            log.debug("srdfTargetVolumeDescriptors :{}", srdfTargetVolumeDescriptors);
+            // Create replica for R1
             waitFor = createReplicaIfCGHasReplica(workflow, waitFor,
-                    srdfSourceVolumeDescriptors);
+                    srdfSourceVolumeDescriptors, cgURI);
 
+            // get target CG
+            // New Target Volume Descriptors and Volume objects will not have CG URI set
+            final URIQueryResultList uriQueryResultList = new URIQueryResultList();
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getBlockObjectsByConsistencyGroup(cgURI.toString()),
+                    uriQueryResultList);
+            Iterator<URI> volumeItr = uriQueryResultList.iterator();
+            List<URI> newSourceVolumes = new ArrayList<URI>();
+            for (VolumeDescriptor volumeDesc : srdfSourceVolumeDescriptors) {
+                newSourceVolumes.add(volumeDesc.getVolumeURI());
+            }
+            URI targetVolumeCGURI = null;
+            while (volumeItr.hasNext()) {
+                URI volumeURI = volumeItr.next();
+                if (!newSourceVolumes.contains(volumeURI)) {
+                    Volume existingSourceVolume = _dbClient.queryObject(Volume.class, volumeURI);
+                    Volume existingTargetVolume = null;
+                    // get target
+                    StringSet targets = existingSourceVolume.getSrdfTargets();
+                    for (String target : targets) {
+                        if (NullColumnValueGetter.isNotNullValue(target)) {
+                            existingTargetVolume = _dbClient.queryObject(Volume.class, URI.create(target));
+                            targetVolumeCGURI = existingTargetVolume.getConsistencyGroup();
+                            break;
+                        }
+                    } 
+                    break;
+                }
+            }
+            
             waitFor = createReplicaIfCGHasReplica(workflow, waitFor,
-                    srdfTargetVolumeDescriptors);
+                    srdfTargetVolumeDescriptors, targetVolumeCGURI);
 
         }
 
@@ -115,13 +147,13 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
     }
 
 	private String createReplicaIfCGHasReplica(Workflow workflow,
-            String waitFor, List<VolumeDescriptor> volumeDescriptors) {
+            String waitFor, List<VolumeDescriptor> volumeDescriptors, URI cgURI) {
+        log.info("CG URI {}", cgURI);
         if (volumeDescriptors != null && !volumeDescriptors.isEmpty()) {
-            final VolumeDescriptor firstVolumeDescriptor = volumeDescriptors.get(0);
-            if (firstVolumeDescriptor != null) {
-                Volume volume = _dbClient.queryObject(Volume.class, firstVolumeDescriptor.getVolumeURI());
+            VolumeDescriptor firstVolumeDescriptor = volumeDescriptors.get(0);
+            if (firstVolumeDescriptor != null && cgURI != null) {
                 // find member volumes in the group
-                List<Volume> volumeList = ControllerUtils.getVolumesPartOfCG(volume.getConsistencyGroup(), _dbClient);
+                List<Volume> volumeList = ControllerUtils.getVolumesPartOfCG(cgURI, _dbClient);
                 if (checkIfCGHasCloneReplica(volumeList)) {
                     log.info("Adding clone steps for create {} volumes", firstVolumeDescriptor.getType());
                     // create new clones for the newly created volumes
@@ -143,8 +175,9 @@ public class ReplicaDeviceController implements Controller, BlockOrchestrationIn
                     // TODO
                 }
             }
-
         }
+
+
         return waitFor;
     }
 

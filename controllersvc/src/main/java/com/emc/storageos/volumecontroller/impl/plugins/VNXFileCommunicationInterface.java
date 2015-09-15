@@ -823,6 +823,7 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                 portGroup.setNativeGuid(adapterNativeGuid);
                 portGroup.setStorageDeviceURI(system.getId());
                 portGroup.setAdapterName(mover.getName());
+                portGroup.setVirtual(false);
                 portGroup.setName((Integer.toString(mover.getId())));
                 portGroup.setFileSharingProtocols(protocols);
                 _logger.info("Found data mover {} at {}", mover.getName(), mover.getId());
@@ -1699,6 +1700,18 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     continue;
                 }
                 // storagePort.setStorageHADomain(mover.getId());
+                
+                //get vnas uri
+                URI moverURI = null;
+                if (mover.getVirtual() == true) {
+                    VirtualNAS virtualNAS = findvNasByNativeId(storageSystem, mover.getName());
+                    moverURI = virtualNAS.getId();
+                    _logger.debug("virtual mover id {} and vnas name {}", mover.getName(), virtualNAS.getNasName());
+                } else {
+                    PhysicalNAS physicalNAS = findPhysicalNasByNativeId(storageSystem, mover.getName());
+                    moverURI = physicalNAS.getId();
+                    _logger.debug("physical id {} and nas name {}", mover.getName(), physicalNAS.getNasName());
+                }
 
                 // Retrieve FS-mountpath map for the Data Mover.
                 _logger.info("Retrieving FS-mountpath map for Data Mover {}.",
@@ -1794,7 +1807,11 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
 
                         _logger.info("UnManaged File System {} valid or invalid {}",
                                 vnxufs.getLabel(), vnxufs.getInactive());
-
+                        //set vNAS on umfs
+                        StringSet moverSet= new StringSet();
+                        moverSet.add(moverURI.toString());
+                        vnxufs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.NAS.toString(), moverSet);
+                        
                         unManagedExportBatch.add(vnxufs);
 
                         if (unManagedExportBatch.size() >= VNXFileConstants.VNX_FILE_BATCH_SIZE) {
@@ -1939,6 +1956,18 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     continue;
                 }
                 // storagePort.setStorageHADomain(mover.getId());
+                
+                //get vnas uri
+                URI moverURI = null;
+                if (mover.getVirtual() == true) {
+                    VirtualNAS virtualNAS = findvNasByNativeId(storageSystem, mover.getName());
+                    moverURI = virtualNAS.getId();
+                    _logger.debug("virtual mover id {} and vnas name {}", mover.getName(), virtualNAS.getNasName());
+                } else {
+                    PhysicalNAS physicalNAS = findPhysicalNasByNativeId(storageSystem, mover.getName());
+                    moverURI = physicalNAS.getId();
+                    _logger.debug("physical id {} and nas name {}", mover.getName(), physicalNAS.getNasName());
+                }
 
                 // Retrieve FS-mountpath map for the Data Mover.
                 _logger.info("Retrieving FS-mountpath map for Data Mover {}.",
@@ -2036,6 +2065,11 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                                     }
 
                                 }
+                                
+                                //set vNAS on umfs
+                                StringSet moverSet= new StringSet();
+                                moverSet.add(moverURI.toString());
+                                vnxufs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.NAS.toString(), moverSet);
 
                                 unManagedExportBatch.add(vnxufs);
 
@@ -2256,7 +2290,17 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                     continue;
                 }
                 // storagePort.setStorageHADomain(mover.getId());
-
+                //get vnas uri
+                URI moverURI = null;
+                if (mover.getVirtual() == true) {
+                    VirtualNAS virtualNAS = findvNasByNativeId(storageSystem, mover.getName());
+                    moverURI = virtualNAS.getId();
+                    _logger.debug("virtual mover id {} and vnas name {}", mover.getName(), virtualNAS.getNasName());
+                } else {
+                    PhysicalNAS physicalNAS = findPhysicalNasByNativeId(storageSystem, mover.getName());
+                    moverURI = physicalNAS.getId();
+                    _logger.debug("physical id {} and nas name {}", mover.getName(), physicalNAS.getNasName());
+                }
                 // Retrieve FS-mountpath map for the Data Mover.
                 _logger.info("Retrieving FS-mountpath map for Data Mover {}.",
                         mover.getAdapterName());
@@ -2420,6 +2464,12 @@ public class VNXFileCommunicationInterface extends ExtendedCommunicationInterfac
                             _logger.info("FileSystem " + fsMountPath + " does not have valid ViPR exports ");
                             vnxufs.setHasExports(false);
                         }
+                        
+                        //set the  vNAS uri in umfs
+                        StringSet moverSet= new StringSet();
+                        moverSet.add(moverURI.toString());
+                        vnxufs.putFileSystemInfo(UnManagedFileSystem.SupportedFileSystemInformation.NAS.toString(), moverSet);
+                        _logger.info("nas server id {} and fs name {}", mover.getName(), fsName);
 
                         unManagedExportBatch.add(vnxufs);
 

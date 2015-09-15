@@ -56,6 +56,7 @@ import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.VirtualArray;
+import com.emc.storageos.db.client.model.VirtualNAS;
 import com.emc.storageos.db.client.model.VirtualPool;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileExportRule;
 import com.emc.storageos.db.client.model.UnManagedDiscoveredObjects.UnManagedFileSystem;
@@ -307,6 +308,10 @@ public class UnManagedFilesystemService extends TaggedResource {
                 String usedCapacity = PropertySetterUtil.extractValueFromStringSet(
                         SupportedFileSystemInformation.ALLOCATED_CAPACITY.toString(),
                         unManagedFileSystemInformation);
+                String nasUri = PropertySetterUtil.extractValueFromStringSet(
+                        SupportedFileSystemInformation.NAS.toString(),
+                        unManagedFileSystemInformation);
+
                 String path = PropertySetterUtil.extractValueFromStringSet(
                         SupportedFileSystemInformation.PATH.toString(),
                         unManagedFileSystemInformation);
@@ -328,6 +333,12 @@ public class UnManagedFilesystemService extends TaggedResource {
                 if (dataMover != null) {
                     _logger.info("Data Mover to Use {} {} {}",
                             new Object[] { dataMover.getAdapterName(), dataMover.getName(), dataMover.getLabel() });
+                }
+                
+                //check ingest is valid for given project
+                if(!isIngestUmfsValidForProject(project, _dbClient, nasUri)) {
+                    _logger.info("ingest umfs {} is invalid on project {} ", path, project.getLabel());
+                    continue;
                 }
 
                 // Check to see if UMFS's storagepool's Tagged neighborhood has the "passed in" neighborhood.
@@ -653,6 +664,40 @@ public class UnManagedFilesystemService extends TaggedResource {
             _logger.info("share ACLs details {}", shareACL.toString());
         }
     }
+    
+    /**
+     * check the ingestion valid for project
+     * @param project
+     * @param dbClient
+     * @param nasUri
+     * @return
+     */
+    public boolean isIngestUmfsValidForProject(Project project, DbClient dbClient, String nasUri) {
+        boolean isIngestValid = true;
+        //step -1 check file system is mounted to VNAS
+        if( URIUtil.getTypeName(nasUri).equals("VirtualNAS")) {
+            VirtualNAS virtualNAS = dbClient.queryObject(VirtualNAS.class, URI.create(nasUri));
+            
+            //step -2 if project has any associated vNAS
+            StringSet vnasStringSet = project.getAssignedVNasServers();
+            if(vnasStringSet != null && !vnasStringSet.isEmpty()) {
+                //step -3 then check nasUri in project associated vnas list
+                if(vnasStringSet.contains(nasUri) == false) {
+                    _logger.debug("vNAS is assicated with other project");
+
+                    isIngestValid = false;
+                }
+            } else {//then check vnas associated with any other project
+                //step -3 //if is associated with other project then don't ingest
+                if(virtualNAS.isNotAssignedToProject() == false) {
+                    _logger.debug("vNAS is assicated with other project");
+                    isIngestValid = false;
+                }
+            }
+        }
+        return isIngestValid;
+    }
+
 
     @Override
     protected ResourceTypeEnum getResourceType() {

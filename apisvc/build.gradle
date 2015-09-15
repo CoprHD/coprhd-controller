@@ -21,8 +21,9 @@ dependencies {
             library(perf4j),
             project(":controllersvc"),
             project(":security"),
-            project(":processmonitor")
-            project(":serviceutils")
+            project(":processmonitor"),
+            project(":serviceutils"),
+            project(":vipr-client")
 
     testCompile library(enunciate),
             rootProject.toolsJar,

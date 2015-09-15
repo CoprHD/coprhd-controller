@@ -18,6 +18,8 @@ public class SiteAddParam {
     private String name;
     private String vip;
     private String secretKey;
+    private String user;
+    private String password;
     private Map<String, String> hostIPv4AddressMap;
     private Map<String, String> hostIPv6AddressMap;
 
@@ -55,7 +57,25 @@ public class SiteAddParam {
 
     public void setSecretKey(String secretKey) {
         this.secretKey = secretKey;
-    };
+    }
+
+    @XmlElement
+    public String getUser() {
+        return user;
+    }
+
+    public void setUser(String user) {
+        this.user = user;
+    }
+
+    @XmlElement
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
     
     @XmlElement(name = "hostIPv4AddressMap")
     public Map<String, String> getHostIPv4AddressMap() {
@@ -73,5 +93,5 @@ public class SiteAddParam {
 
     public void setHostIPv6AddressMap(Map<String, String> hostIPv6AddressMap) {
         this.hostIPv6AddressMap = hostIPv6AddressMap;
-    };
+    }
 }

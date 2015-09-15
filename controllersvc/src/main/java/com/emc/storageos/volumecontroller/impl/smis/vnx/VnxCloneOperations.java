@@ -239,6 +239,7 @@ public class VnxCloneOperations extends AbstractCloneOperations {
             modifyGroupClones(storage, clones, SmisConstants.DETACH_VALUE);
             List<Volume> cloneVols = _dbClient.queryObject(Volume.class, clones);
             for (Volume clone : cloneVols) {
+                ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(clone, _dbClient);
                 clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
                 clone.setReplicaState(ReplicationState.DETACHED.name());
             }

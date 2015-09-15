@@ -17,10 +17,10 @@ import java.util.ArrayList;
 
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.util.SumPrimitiveFieldAggregator;
-
 import com.emc.storageos.volumecontroller.impl.utils.ObjectLocalCache;
 import com.emc.storageos.volumecontroller.impl.utils.ProvisioningAttributeMapBuilder;
 import com.emc.storageos.volumecontroller.impl.utils.attrmatchers.NeighborhoodsMatcher;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,6 +28,7 @@ import com.emc.storageos.api.service.impl.resource.ArgValidator;
 import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
+import com.emc.storageos.db.client.model.Bucket;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.CompatibilityStatus;
 import com.emc.storageos.db.client.model.DiscoveredDataObject.DiscoveryStatus;
 import com.emc.storageos.db.client.model.StoragePool;
@@ -412,9 +413,12 @@ public class CapacityUtils {
             capacity = CustomQueryUtility.aggregatedPrimitiveField(dbClient, Volume.class, "virtualPool",
                     cosId.toString(), PROVISIONED_CAPACITY_STR).
                     getValue();
-        }
-        else {
+        } else if (cosType == VirtualPool.Type.file) {
             capacity = CustomQueryUtility.aggregatedPrimitiveField(dbClient, FileShare.class, "virtualPool",
+                    cosId.toString(), CAPACITY_STR).
+                    getValue();
+        } else if (cosType == VirtualPool.Type.object) {
+            capacity = CustomQueryUtility.aggregatedPrimitiveField(dbClient, Bucket.class, "virtualPool",
                     cosId.toString(), CAPACITY_STR).
                     getValue();
         }

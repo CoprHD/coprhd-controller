@@ -16,11 +16,19 @@ public class XtremIOTagsInfo {
     private XtremIOObjectInfo[] tagsInfo;
 
     public XtremIOObjectInfo[] getTagsInfo() {
-        return tagsInfo;
+    	XtremIOObjectInfo[] result = null;
+    	if(tagsInfo != null){
+    		result = tagsInfo.clone();
+    	}
+        return result;
     }
 
     public void setTagsInfo(XtremIOObjectInfo[] tagsInfo) {
-        this.tagsInfo = tagsInfo;
+    	XtremIOObjectInfo[] input = null;
+    	if(tagsInfo != null){
+    		input = tagsInfo.clone();
+    	}
+        this.tagsInfo = input;
     }
 
     @Override

@@ -868,6 +868,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             String task,
             String copyName, List<VolumeDescriptor> descriptors, Volume journalVolume,
             Volume standbyJournalVolume, Volume changeVpoolVolume, boolean isChangeVpool, boolean isSrcAndHaSwapped) {
+        boolean isPreCreatedVolume = (preCreatedVolume != null);
         Volume rpVolume = preCreatedVolume;
         VirtualArray varray = _dbClient.queryObject(VirtualArray.class, rpRec.getVirtualArray());
         VirtualPool vpool = rpRec.getVirtualPool();
@@ -926,7 +927,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
                 personalityType,
                 rsetName, rpInternalSiteName, copyName,
                 sourceVolume, journalVolume, standbyJournalVolume, vplex,
-                changeVpoolVolume);
+                changeVpoolVolume, isPreCreatedVolume);
 
         boolean createTask = isTaskRequired(rpVolume, capabilities, vplex, taskList);
         if (createTask) {
@@ -1421,57 +1422,61 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
      * @param standbyJournalVolume Stanby journal volume for source
      * @param vplex Boolean that is true if this is a vplex volume
      * @param changeVpoolVolume Existing volume if this is a change vpool
+     * @param isPreCreatedVolume 
      * @return Fully prepared Volume for RP
      */
     public Volume prepareVolume(Volume volume, Project project, VirtualArray varray,
             VirtualPool vpool, String size, RPRecommendation recommendation, String label,
             BlockConsistencyGroup consistencyGroup, URI protectionSystemURI,
             Volume.PersonalityTypes personality, String rsetName, String internalSiteName, String rpCopyName,
-            Volume sourceVolume, Volume journalVolume, Volume standbyJournalVolume, boolean vplex, Volume changeVpoolVolume) {
+            Volume sourceVolume, Volume journalVolume, Volume standbyJournalVolume, boolean vplex, Volume changeVpoolVolume, 
+            boolean isPreCreatedVolume) {
         // Check to see if this is a change vpool volume, if so, use it as the already existing volume.
         volume = (changeVpoolVolume != null) ? changeVpoolVolume : volume;
 
         // If volume is still null, then it's a brand new volume
         boolean isNewVolume = (volume == null);
 
-        if (isNewVolume) {
-            volume = new Volume();
-            volume.setId(URIUtil.createId(Volume.class));
-            volume.setOpStatus(new OpStatusMap());
-        } else {
-            // Reload volume object from DB
-            volume = _dbClient.queryObject(Volume.class, volume.getId());
-        }
-
-        volume.setLabel(label);
-        volume.setCapacity(SizeUtil.translateSize(size));
-        volume.setThinlyProvisioned(VirtualPool.ProvisioningType.Thin
-                .toString()
-                .equalsIgnoreCase(vpool.getSupportedProvisioningType()));
-        volume.setVirtualPool(vpool.getId());
-        volume.setProject(new NamedURI(project.getId(), volume.getLabel()));
-        volume.setTenant(new NamedURI(project.getTenantOrg().getURI(),
-                volume.getLabel()));
-        volume.setVirtualArray(varray.getId());
-
-        if (null != recommendation.getSourceStoragePool()) {
-            StoragePool pool = _dbClient.queryObject(StoragePool.class,
-                    recommendation.getSourceStoragePool());
-            if (null != pool) {
-                volume.setProtocol(new StringSet());
-                volume.getProtocol()
-                        .addAll(VirtualPoolUtil.getMatchingProtocols(
-                                vpool.getProtocols(), pool.getProtocols()));
-
-                if (!vplex) {
-                    volume.setPool(pool.getId());
-                    volume.setStorageController(pool.getStorageDevice());
+        if (isNewVolume || isPreCreatedVolume) {
+            if (!isPreCreatedVolume) {
+                volume = new Volume();
+                volume.setId(URIUtil.createId(Volume.class));
+                volume.setOpStatus(new OpStatusMap());
+            } else {
+                // Reload volume object from DB
+                volume = _dbClient.queryObject(Volume.class, volume.getId());
+            }
+    
+            volume.setLabel(label);
+            volume.setCapacity(SizeUtil.translateSize(size));
+            volume.setThinlyProvisioned(VirtualPool.ProvisioningType.Thin
+                    .toString()
+                    .equalsIgnoreCase(vpool.getSupportedProvisioningType()));
+            volume.setVirtualPool(vpool.getId());
+            volume.setProject(new NamedURI(project.getId(), volume.getLabel()));
+            volume.setTenant(new NamedURI(project.getTenantOrg().getURI(),
+                    volume.getLabel()));
+            volume.setVirtualArray(varray.getId());
+    
+            if (null != recommendation.getSourceStoragePool()) {
+                StoragePool pool = _dbClient.queryObject(StoragePool.class,
+                        recommendation.getSourceStoragePool());
+                if (null != pool) {
+                    volume.setProtocol(new StringSet());
+                    volume.getProtocol()
+                            .addAll(VirtualPoolUtil.getMatchingProtocols(
+                                    vpool.getProtocols(), pool.getProtocols()));
+    
+                    if (!vplex) {
+                        volume.setPool(pool.getId());
+                        volume.setStorageController(pool.getStorageDevice());
+                    }
                 }
             }
+    
+            volume.setVirtualArray(varray.getId());
         }
-
-        volume.setVirtualArray(varray.getId());
-
+    
         if (journalVolume != null) {
             volume.setRpJournalVolume(journalVolume.getId());
         }
@@ -1511,7 +1516,7 @@ public class RPBlockServiceApiImpl extends AbstractBlockServiceApiImpl<RecoverPo
             }
         }
 
-        if (isNewVolume) {
+        if (isNewVolume && !isPreCreatedVolume) {
             // Create the volume in the db
             _dbClient.createObject(volume);
         } else {

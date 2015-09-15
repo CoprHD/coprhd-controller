@@ -1451,7 +1451,7 @@ public class RPHelper {
                     volume.setRpTargets(resetRpTargets);
                 }
             } else {
-                _log.info(String.format("Rollback protection changes for existing RP on volume [%s]...", volume.getLabel()));
+                _log.info(String.format("Rollback changes for existing protected RP volume [%s]...", volume.getLabel()));
                
                 _log.info("Rollback the secondary journal");
                 // Rollback the secondary journal volume if it was created

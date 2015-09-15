@@ -245,6 +245,7 @@ public class VPlexBlockServiceApiImpl extends AbstractBlockServiceApiImpl<VPlexS
 
         // Log volume descriptor information
         logVolumeDescriptorPrecreateInfo(descriptors, task);
+        
         // Now we get the Orchestration controller and use it to create the volumes of all types.
         try {
             BlockOrchestrationController controller = getController(BlockOrchestrationController.class,

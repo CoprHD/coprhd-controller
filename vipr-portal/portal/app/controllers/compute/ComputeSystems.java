@@ -131,14 +131,13 @@ public class ComputeSystems extends ViprResourceController {
         // initializers
         computeSystems.portNumber = getDefaultPort(DefaultComputeSystemPortMap.port443);
         computeSystems.useSSL = true;
+        renderArgs.put("computeImageServersDataTable", createComputeImageServersDataTable());
         render("@edit", computeSystems);
     }
 
     private static ComputeImageServersDataTable createComputeImageServersDataTable() {
-        System.out.println("createComputeImageServersDataTable ");
         ComputeImageServersDataTable dataTable = new ComputeImageServersDataTable();
         dataTable.alterColumn("name").hidden();
-        System.out.println("createComputeImageServersDataTable " + dataTable.toString());
         dataTable.alterColumn("computeImageServerStatus").setVisible(true);
         dataTable.setDefaultSort("imageServerIp", "asc");
 
@@ -302,13 +301,11 @@ public class ComputeSystems extends ViprResourceController {
     }
 
     public static void computeImageServersJson() {
-        System.out.println("computeImageServersJson ");
         List<ComputeImageServerInfo> results = Lists.newArrayList();
         List<ComputeImageServerRestRep> computeImageServers = ComputeImageServerUtils.getComputeImageServers();
         for (ComputeImageServerRestRep computeImageServerRR : computeImageServers) {
             ComputeImageServerInfo computeImageServer = new ComputeImageServerInfo(computeImageServerRR);
             results.add(computeImageServer);
-            System.out.println("computeImageServersJson number " + results.size() + " Name " + results.get(0).imageServerIp);
         }
         renderJSON(DataTablesSupport.createJSON(results, params));
     }
@@ -369,7 +366,6 @@ public class ComputeSystems extends ViprResourceController {
                     .getRegistrationStatus());
             List<ComputeImageServerRestRep> computeImageServerList = ComputeImageServerUtils.getComputeImageServers();
             for (ComputeImageServerRestRep cisrr : computeImageServerList) {
-                System.out.println("ComputeSystems ComputeSystemForm " + cisrr.getImageServerIp());
                 this.computeImageServers.add(cisrr.getId().toString());
             }
 

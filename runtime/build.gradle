@@ -53,8 +53,8 @@ task copyBinaryFiles(type: Copy) {
 }
 copyConfs.finalizedBy(copyBinaryFiles)
 
-task generateMetadata {
-    metadata = new File("${projectDir}/working/conf/sys-metadata-var.xml")
+task generateMetadata(dependsOn: copyConfs) {
+    def metadata = new File("${projectDir}/working/conf/sys-metadata-var.xml")
 
     if ( !metadata.exists() ) {
         def stdout = new ByteArrayOutputStream()
@@ -67,11 +67,13 @@ task generateMetadata {
             //store the output instead of printing to the console:
             standardOutput = stdout
         }
-        metadata.text = stdout.toString()
+        doLast {
+            metadata.text = stdout.toString()
+        }
     }
 }
 
-task generateConfigDefaults(dependsOn: [copyConfs, generateMetadata]) << {
+task generateConfigDefaults(dependsOn: generateMetadata) << {
     def properties = new Properties()
     def metadata = new XmlSlurper().parse(file("${workingDir}/conf/sys-metadata-var.xml"))
     metadata.children().each { bean->

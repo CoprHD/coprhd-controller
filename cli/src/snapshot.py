@@ -131,7 +131,7 @@ class Snapshot(object):
         )
 
     def snapshot_create(self, otype, typename, ouri,
-                        snaplabel, inactive, rptype, sync ,readonly=False):
+                        snaplabel, inactive, rptype, sync ,readonly):
         '''new snapshot is created, for a given shares or volumes
             parameters:
                 otype      : either file or block or object
@@ -173,16 +173,19 @@ class Snapshot(object):
             }
             if(rptype):
                 parms['type'] = rptype
+            if(readonly):
+                parms['read_only'] = readonly
             body = json.dumps(parms)
 
         else:
             parms = {
                 'name': snaplabel
             }
+            if(readonly is not None):
+                parms['read_only'] = readonly
             body = json.dumps(parms)
         
-        if(readonly is not None):
-            parms['read_only'] = readonly
+        
         # REST api call
         (s, h) = common.service_json_request(
             self.__ipAddr, self.__port,

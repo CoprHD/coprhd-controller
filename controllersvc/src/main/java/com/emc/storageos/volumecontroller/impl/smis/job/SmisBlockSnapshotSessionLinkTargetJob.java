@@ -68,7 +68,7 @@ public class SmisBlockSnapshotSessionLinkTargetJob extends SmisSnapShotJob {
     @Override
     public void updateStatus(JobContext jobContext) throws Exception {
         JobStatus jobStatus = getJobStatus();
-        CloseableIterator<CIMObjectPath> targetVolumeIter = null;
+        CloseableIterator<CIMObjectPath> volumeIter = null;
         try {
             DbClient dbClient = jobContext.getDbClient();
             TaskCompleter completer = getTaskCompleter();
@@ -79,33 +79,42 @@ public class SmisBlockSnapshotSessionLinkTargetJob extends SmisSnapShotJob {
             if (jobStatus == JobStatus.SUCCESS) {
                 s_logger.info("Post-processing successful link snapshot session target {} for task {}", snapshot.getId(),
                         completer.getOpId());
-                // Get the snapshot device ID and set it against the BlockSnapshot object
+                // Get the snapshot device ID and set it against the BlockSnapshot object.
+                BlockObject sourceObj = BlockObject.fetch(dbClient, snapshot.getParent().getURI());
                 CIMConnectionFactory cimConnectionFactory = jobContext.getCimConnectionFactory();
                 WBEMClient client = getWBEMClient(dbClient, cimConnectionFactory);
-                targetVolumeIter = client.associatorNames(getCimJob(), null, SmisConstants.CIM_STORAGE_VOLUME, null, null);
-                if (targetVolumeIter.hasNext()) {
+                volumeIter = client.associatorNames(getCimJob(), null, SmisConstants.CIM_STORAGE_VOLUME, null, null);
+                while (volumeIter.hasNext()) {
                     // Get the sync volume native device id
-                    CIMObjectPath targetVolumePath = targetVolumeIter.next();
-                    CIMInstance targetVolume = client.getInstance(targetVolumePath, false, false, null);
-                    String targetVolumeDeviceId = targetVolumePath.getKey(SmisConstants.CP_DEVICE_ID).getValue().toString();
-                    String targetVolumeElementName = CIMPropertyFactory.getPropertyValue(targetVolume, SmisConstants.CP_ELEMENT_NAME);
-                    String targetVolumeWWN = CIMPropertyFactory.getPropertyValue(targetVolume, SmisConstants.CP_WWN_NAME);
-                    String targetVolumeAltName = CIMPropertyFactory.getPropertyValue(targetVolume, SmisConstants.CP_NAME);
-                    BlockObject sourceObj = BlockObject.fetch(dbClient, snapshot.getParent().getURI());
+                    CIMObjectPath volumePath = volumeIter.next();
+                    s_logger.info("volumePath: {}", volumePath.toString());
+                    CIMInstance volume = client.getInstance(volumePath, false, false, null);
+                    String volumeDeviceId = volumePath.getKey(SmisConstants.CP_DEVICE_ID).getValue().toString();
+                    s_logger.info("volumeDeviceId: {}", volumeDeviceId);
+                    if (volumeDeviceId.equals(sourceObj.getNativeId())) {
+                        // Don't want the source, we want the linked target.
+                        continue;
+                    }
+                    String volumeElementName = CIMPropertyFactory.getPropertyValue(volume, SmisConstants.CP_ELEMENT_NAME);
+                    s_logger.info("volumeElementName: {}", volumeElementName);
+                    String volumeWWN = CIMPropertyFactory.getPropertyValue(volume, SmisConstants.CP_WWN_NAME);
+                    s_logger.info("volumeWWN: {}", volumeWWN);
+                    String volumeAltName = CIMPropertyFactory.getPropertyValue(volume, SmisConstants.CP_NAME);
+                    s_logger.info("volumeAltName: {}", volumeAltName);
                     StorageSystem system = dbClient.queryObject(StorageSystem.class, getStorageSystemURI());
+                    snapshot.setNativeId(volumeDeviceId);
                     snapshot.setNativeGuid(NativeGUIDGenerator.generateNativeGuid(system, snapshot));
-                    snapshot.setDeviceLabel(targetVolumeElementName);
+                    snapshot.setDeviceLabel(volumeElementName);
                     snapshot.setInactive(false);
                     snapshot.setIsSyncActive(Boolean.TRUE);
                     snapshot.setCreationTime(Calendar.getInstance());
-                    snapshot.setWWN(targetVolumeWWN.toUpperCase());
-                    snapshot.setAlternateName(targetVolumeAltName);
-                    commonSnapshotUpdate(snapshot, targetVolume, client, system, sourceObj.getNativeId(), targetVolumeDeviceId);
+                    snapshot.setWWN(volumeWWN.toUpperCase());
+                    snapshot.setAlternateName(volumeAltName);
+                    commonSnapshotUpdate(snapshot, volume, client, system, sourceObj.getNativeId(), volumeDeviceId);
                     s_logger.info(String
                             .format("For target volume path %1$s, going to set blocksnapshot %2$s nativeId to %3$s (%4$s). Associated volume is %5$s (%6$s)",
-                                    targetVolumePath.toString(), snapshot.getId().toString(), targetVolumeDeviceId,
-                                    targetVolumeElementName,
-                                    sourceObj.getNativeId(), sourceObj.getDeviceLabel()));
+                                    volumePath.toString(), snapshot.getId().toString(), volumeDeviceId,
+                                    volumeElementName, sourceObj.getNativeId(), sourceObj.getDeviceLabel()));
                     dbClient.persistObject(snapshot);
                 }
             } else if (jobStatus == JobStatus.FAILED || jobStatus == JobStatus.FATAL_ERROR) {
@@ -118,8 +127,8 @@ public class SmisBlockSnapshotSessionLinkTargetJob extends SmisSnapShotJob {
                     + e.getMessage());
             s_logger.error("Encountered an internal error in link snapshot session target job status processing", e);
         } finally {
-            if (targetVolumeIter != null) {
-                targetVolumeIter.close();
+            if (volumeIter != null) {
+                volumeIter.close();
             }
             super.updateStatus(jobContext);
         }

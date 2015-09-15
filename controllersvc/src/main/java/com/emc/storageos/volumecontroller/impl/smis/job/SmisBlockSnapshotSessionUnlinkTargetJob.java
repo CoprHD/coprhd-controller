@@ -15,6 +15,7 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.OpStatusMap;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.Volume;
 import com.emc.storageos.volumecontroller.JobContext;
 import com.emc.storageos.volumecontroller.TaskCompleter;
@@ -93,7 +94,9 @@ public class SmisBlockSnapshotSessionUnlinkTargetJob extends SmisJob {
                         volume.setTenant(sourceVolume.getTenant());
                         volume.setStorageController(snapshot.getStorageController());
                         volume.setPool(sourceVolume.getPool()); // TBD - This is not necessary true. What to do?
-                        volume.setProtocol(snapshot.getProtocol());
+                        StringSet protocols = new StringSet();
+                        protocols.addAll(snapshot.getProtocol());
+                        volume.setProtocol(protocols);
                         volume.setOpStatus(new OpStatusMap());
                         volume.setConsistencyGroup(snapshot.getConsistencyGroup());
                         dbClient.createObject(volume);

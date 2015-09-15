@@ -115,7 +115,7 @@ public class FileStorageUtils {
     }
 
     public static void deleteFileSystem(URI fileSystemId, FileControllerConstants.DeleteTypeEnum fileDeletionType) {
-        if (FileControllerConstants.DeleteTypeEnum.FULL == fileDeletionType) {
+        if (FileControllerConstants.DeleteTypeEnum.FULL.equals(fileDeletionType)) {
             // Remove snapshots for the volume
             for (FileSnapshotRestRep snapshot : getFileSnapshots(fileSystemId)) {
                 deleteFileSnapshot(snapshot.getId());

@@ -24,6 +24,7 @@ import com.emc.storageos.db.client.URIUtil;
 import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.BlockConsistencyGroup;
+import com.emc.storageos.db.client.model.BlockConsistencyGroup.Types;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
 import com.emc.storageos.db.client.model.BlockSnapshot.TechnologyType;
@@ -1042,6 +1043,26 @@ public class VPlexUtil {
                 //not all volumes from the same backend system are selected.
                 result = false;
                 break;
+            }
+        }
+        return result;
+    }
+    
+    /**
+     * Check if the volume is in an ingested VPlex consistency group
+     * @param volume The volume to be checked on
+     * @param dbClient
+     * @return true or false
+     */
+    public static boolean isVolumeInIngestedCG(Volume volume, DbClient dbClient) {
+        boolean result = false;
+        URI cgUri = volume.getConsistencyGroup();
+        if (!NullColumnValueGetter.isNullURI(cgUri)) {
+            BlockConsistencyGroup cg = dbClient.queryObject(BlockConsistencyGroup.class, cgUri);
+            if (cg != null) {
+                if (!cg.getTypes().contains(Types.LOCAL.toString())) {
+                    result = true;
+                }
             }
         }
         return result;

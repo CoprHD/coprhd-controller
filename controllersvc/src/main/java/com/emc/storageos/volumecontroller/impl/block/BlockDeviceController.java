@@ -2698,7 +2698,6 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
             taskCompleter = new BlockMirrorDeactivateCompleter(mirrorList, opId);
 
             String detachStep = workflow.createStepId();
-            // TODO - check if addStepsForDetachMirror is necessary for other arrays as well
             if (storageSystem.deviceIsType(Type.vmax)) {
                 String waitFor = null;
                 /**
@@ -2715,7 +2714,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                 detachStep = addStepsForDetachMirror(workflow, waitFor, "deactivate", mirrorList, isCG);
             }
             else {
-                Workflow.Method detach = new Workflow.Method("detachMirror", storage, mirrorList);
+                Workflow.Method detach = detachMirrorMethod(storage, mirrorList);
                 workflow.createStep("deactivate", "detaching mirror volume: " + mirrorStr, null, storage,
                         storageSystem.getSystemType(), getClass(), detach, null, detachStep);
             }
@@ -3742,7 +3741,7 @@ public class BlockDeviceController implements BlockController, BlockOrchestratio
                                         cgName));
         BlockConsistencyGroup targetCG = null;
         boolean createGroup = false;
-        if (groups.size() == 0) {
+        if (groups.isEmpty()) {
             // create target CG
             targetCG = new BlockConsistencyGroup();
             targetCG.setId(URIUtil.createId(BlockConsistencyGroup.class));

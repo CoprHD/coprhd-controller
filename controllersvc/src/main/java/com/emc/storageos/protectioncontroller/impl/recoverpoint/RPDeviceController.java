@@ -1028,6 +1028,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
                     // Remove all non alpha-numeric characters, excluding "_", from the hostname
                     _log.info(String.format("Setting RP initiator with cluster name : %s", rpSiteName.replaceAll("[^A-Za-z0-9_]", "")));
                     initiator.setClusterName(rpSiteName.replaceAll("[^A-Za-z0-9_]", ""));
+                    initiator.setHostName(rpSiteName.replaceAll("[^A-Za-z0-9_]", ""));
                     initiator.setInitiatorPort(wwn);
                     initiator.setInitiatorNode(wwns.get(wwn));
                     initiator.setProtocol("FC");

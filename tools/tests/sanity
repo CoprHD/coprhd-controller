@@ -2826,7 +2826,7 @@ recoverpoint_tests()
         # MP
         mp_src_vpool='mp_'$rp_type
         mpvolume=${RP_METROPOINT_VOLUME}
-        mpvolumetarget=${mpvolume}'-target-'${mp_tgt_varray}
+        mpvolumetarget=${mpvolume}'-target-'${mp_active_tgt_varray}
 
         # Setup test volumes...
         # Either use volumes that have gone through the change vpool process or

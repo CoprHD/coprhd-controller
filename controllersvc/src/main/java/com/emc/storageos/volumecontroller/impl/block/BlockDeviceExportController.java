@@ -40,6 +40,7 @@ import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.ExportUtils;
+import com.emc.storageos.util.VPlexUtil;
 import com.emc.storageos.volumecontroller.BlockExportController;
 import com.emc.storageos.volumecontroller.ControllerException;
 import com.emc.storageos.volumecontroller.impl.ControllerLockingUtil;
@@ -688,12 +689,32 @@ public class BlockDeviceExportController implements BlockExportController {
             // Read volume from database, update the Vpool to the new completer, and create task completer.
             volume = _dbClient.queryObject(Volume.class, volumeURI);
             URI oldVpoolURI = volume.getVirtualPool();
+            List<URI> rollbackList = new ArrayList<URI>();
+            List<Volume>updatedVolumes = new ArrayList<Volume>();
+            rollbackList.add(volumeURI);
+            // Check if it is a VPlex volume, and get backend volumes
+            Volume backendSrc = VPlexUtil.getVPLEXBackendVolume(volume, true, _dbClient, false);
+            if (backendSrc != null) {
+                // Change the back end volume's vpool too
+                backendSrc.setVirtualPool(newVpoolURI);
+                rollbackList.add(backendSrc.getId());
+                updatedVolumes.add(backendSrc);
+                // VPlex volume, check if it is distributed
+                Volume backendHa = VPlexUtil.getVPLEXBackendVolume(volume, false, _dbClient, false);
+                if (backendHa.getVirtualPool().toString().equals(oldVpoolURI.toString())) {
+                    backendHa.setVirtualPool(newVpoolURI);
+                    rollbackList.add(backendHa.getId());
+                    updatedVolumes.add(backendHa);
+                }
+                
+            }
             // The VolumeVpoolChangeTaskCompleter will restore the old Virtual Pool in event of error.
-            taskCompleter = new VolumeVpoolChangeTaskCompleter(volumeURI, oldVpoolURI, opId);
+            taskCompleter = new VolumeVpoolChangeTaskCompleter(rollbackList, oldVpoolURI, opId);
             volume.setVirtualPool(newVpoolURI);
+            updatedVolumes.add(volume);
             _log.info(String.format("Changing VirtualPool PathParams for volume %s (%s) from %s to %s",
                     volume.getLabel(), volume.getId(), oldVpoolURI, newVpoolURI));
-            _dbClient.updateAndReindexObject(volume);
+            _dbClient.updateAndReindexObject(updatedVolumes);
         } catch (Exception ex) {
             _log.error("Unexpected exception reading volume or generating taskCompleter: ", ex);
             ServiceError serviceError = DeviceControllerException.errors.jobFailed(ex);

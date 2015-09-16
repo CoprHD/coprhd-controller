@@ -16,11 +16,21 @@
 #{get 'moreScripts'/}
 <script type="text/javascript">
   $(document).ready(function() {
-    $('#vCenter_enableTenants').on('change', function() {
-        if ($(this).prop('checked')) {
-          $('#vCenter_tenantsControlGroup').closest("fieldset").show();
-        } else {
-          $('#vCenter_tenantsControlGroup').closest("fieldset").hide();
+    if($('#vCenter_cascadeTenancy').val()) {
+        $('#vCenter_tenantsControlGroup').closest("fieldset").hide();
+        $('#vCenter_tenantControlGroup').closest("fieldset").show();
+      } else {
+        $('#vCenter_tenantsControlGroup').closest("fieldset").show();
+        $('#vCenter_tenantControlGroup').closest("fieldset").hide();
+    }
+
+    $('#vCenter_cascadeTenancy').on('change', function() {
+        if($(this).prop('checked')) {
+            $('#vCenter_tenantsControlGroup').closest("fieldset").hide();
+            $('#vCenter_tenantControlGroup').closest("fieldset").show();
+          } else {
+            $('#vCenter_tenantsControlGroup').closest("fieldset").show();
+            $('#vCenter_tenantControlGroup').closest("fieldset").hide();
         }
     }).trigger('change');
   });
@@ -92,19 +102,29 @@
   #{if tenantOptions}
   <fieldset>
     <legend>&{'security.tenantControlList'}<small>&{'security.tenantControlList.description.vcenter'}</small></legend>
-    #{field 'vCenter.enableTenants'}
+    #{field 'vCenter.cascadeTenancy'}
+      %{
+        field.disabled = disableCascadeTenancy;
+        field.helpTextKey = field.name + '.description'
+      }%
       #{Form.booleanCheckBoxControlGroup field:field /}
     #{/field}
-    <div class="vCenter_enableTenants" data-show="true">
-      <fieldset>
+    <fieldset>
         #{field 'vCenter.tenants'}
-          %{
-              field.helpTextKey = field.name + '.description'
-          }%
-          #{Form.selectManyControlGroup field:field, options:tenantOptions /}
-        #{/field}
-      </fieldset>
-    </div>
+        %{
+          field.helpTextKey = field.name + '.description'
+        }%
+        #{Form.selectManyControlGroup field:field, options:tenantOptions /}
+      #{/field}
+    </fieldset>
+    <fieldset>
+      #{field 'vCenter.tenant'}
+        %{
+          field.helpTextKey = field.name + '.description'
+        }%
+        #{Form.selectOneControlGroup field:field, options:tenantOptionsWithNone /}
+      #{/field}
+    </fieldset>
   </fieldset>
   #{/if}
   #{deadbolt.restrict roles:[['SYSTEM_ADMIN'], ['TENANT_ADMIN']]}

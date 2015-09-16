@@ -42,10 +42,10 @@
     #{doBody/}
   #{/DataTable.buttonBar}
 
-  #{DataTable.formAction @delete(), id:'deleteFormFull', table:'fileSystems', confirm:messages.get('resources.filesystem.deleteConfirm.FULL')}
+  #{DataTable.formAction @delete(), id:'deleteFormFull', table:'fileSystems', confirm:messages.get('resources.filesystems.deleteConfirm.FULL')}
     <input type="hidden" name="deleteType" value="FULL">
   #{/DataTable.formAction}
-  #{DataTable.formAction @delete(), id:'deleteFormViPRonly', table:'fileSystems', confirm:messages.get('resources.filesystem.deleteConfirm.VIPR_ONLY')}
+  #{DataTable.formAction @delete(), id:'deleteFormViPRonly', table:'fileSystems', confirm:messages.get('resources.filesystems.deleteConfirm.VIPR_ONLY')}
     <input type="hidden" name="deleteType" value="VIPR_ONLY">
   #{/DataTable.formAction}                  
 #{/DataTable.table}     

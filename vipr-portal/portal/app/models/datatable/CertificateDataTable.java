@@ -23,8 +23,8 @@ public class CertificateDataTable extends DataTable {
         addColumn("commonName");
         addColumn("organization");
         addColumn("issuedBy");
-        addColumn("notBefore");
-        addColumn("notAfter");
+        addColumn("notBefore").setRenderFunction("render.localDate");
+        addColumn("notAfter").setRenderFunction("render.localDate");
         addColumn("userSupplied").setRenderFunction("render.boolean");
         addColumn("certificateValid").setRenderFunction("render.operationalStatus");
         sortAll();

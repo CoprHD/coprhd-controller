@@ -15,6 +15,7 @@ import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlElementWrapper;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import com.emc.storageos.model.NamedRelatedResourceRep;
 import com.emc.storageos.model.RelatedResourceRep;
 import com.emc.storageos.model.varray.VirtualArrayResourceRestRep;
 
@@ -48,7 +49,7 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
     private String nasState;
 
     // Place holder for hosting storageDomain's information
-    private Set<RelatedResourceRep> storageDomain;
+    private Set<String> storageDomain;
 
     // Registration status of Virtual NAS server
     private String registrationStatus;
@@ -69,7 +70,7 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
     private String baseDirPath;
 
     // place holder for the Parent NAS server the Data Mover
-    private String parentNASURI;
+    private NamedRelatedResourceRep parentNASURI;
 
     // Limits on vNAS
     private String maxStorageObjects;
@@ -77,7 +78,8 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
 
     // Static Load on vNAS
     private String storageObjects;
-    private String storageCapacity;
+    private String usedStorageCapacity;
+    private String percentLoad;
 
     // Dynamic load on vNAS
     private String avgPercentagebusy;
@@ -151,11 +153,11 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
 
     @XmlElementWrapper(name = "storage_domains")
     @XmlElement(name = "storage_domain")
-    public Set<RelatedResourceRep> getStorageDomain() {
+    public Set<String> getStorageDomain() {
         return storageDomain;
     }
 
-    public void setStorageDomain(Set<RelatedResourceRep> storageDomain) {
+    public void setStorageDomain(Set<String> storageDomain) {
         this.storageDomain = storageDomain;
     }
 
@@ -215,11 +217,11 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
     }
 
     @XmlElement(name = "parent_nas")
-    public String getParentNASURI() {
+    public NamedRelatedResourceRep getParentNASURI() {
         return parentNASURI;
     }
 
-    public void setParentNASURI(String parentNASURI) {
+    public void setParentNASURI(NamedRelatedResourceRep parentNASURI) {
         this.parentNASURI = parentNASURI;
     }
 
@@ -251,12 +253,12 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
     }
 
     @XmlElement(name = "storage_capacity")
-    public String getStorageCapacity() {
-        return storageCapacity;
+    public String getUsedStorageCapacity() {
+        return usedStorageCapacity;
     }
 
-    public void setStorageCapacity(String storageCapacity) {
-        this.storageCapacity = storageCapacity;
+    public void setUsedStorageCapacity(String storageCapacity) {
+        this.usedStorageCapacity = storageCapacity;
     }
 
     @XmlElement(name = "avg_percentage_busy")
@@ -284,6 +286,15 @@ public class VirtualNASRestRep extends VirtualArrayResourceRestRep {
 
     public void setIsOverloaded(Boolean isOverloaded) {
         this.isOverloaded = isOverloaded;
+    }
+
+    @XmlElement(name = "percent_load")
+    public String getPercentLoad() {
+        return percentLoad;
+    }
+
+    public void setPercentLoad(String percentLoad) {
+        this.percentLoad = percentLoad;
     }
 
 }

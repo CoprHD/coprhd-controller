@@ -48,6 +48,7 @@ import com.emc.storageos.model.block.VolumeRestRep;
 import com.emc.storageos.svcs.errorhandling.resources.APIException;
 import com.emc.storageos.volumecontroller.BlockController;
 import com.emc.storageos.volumecontroller.ControllerException;
+import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
 
 /**
@@ -326,6 +327,8 @@ public abstract class AbstractBlockFullCopyApiImpl implements BlockFullCopyApi {
                     if (!fullCopyURI.equals(fullCopyVolume.getId())) {
                         volume = _dbClient.queryObject(Volume.class, fullCopyURI);
                     }
+                    ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(volume, _dbClient);
+                    volume.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
                     volume.setReplicaState(ReplicationState.DETACHED.name());
                     _dbClient.persistObject(volume);
                 }

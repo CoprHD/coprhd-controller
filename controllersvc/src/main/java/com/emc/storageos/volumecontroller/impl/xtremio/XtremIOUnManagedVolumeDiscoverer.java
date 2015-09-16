@@ -569,11 +569,15 @@ public class XtremIOUnManagedVolumeDiscoverer {
         unManagedVolumeInformation.put(SupportedVolumeInformation.DEVICE_LABEL.toString(),
                 deviceLabel);
 
-        String volumeWWN = volume.getWwn().isEmpty()? volume.getVolInfo().get(0) :volume.getWwn();
+        String volumeWWN = volume.getWwn().isEmpty() ? volume.getVolInfo().get(0) : volume.getWwn();
         unManagedVolume.setWwn(volumeWWN);
 
         StringSet systemTypes = new StringSet();
         systemTypes.add(system.getSystemType());
+
+        StringSet accessState = new StringSet();
+        accessState.add(Volume.VolumeAccessState.READWRITE.name());
+        unManagedVolumeInformation.put(SupportedVolumeInformation.ACCESS.toString(), accessState);
 
         StringSet provCapacity = new StringSet();
         provCapacity.add(String.valueOf(Long.parseLong(volume.getAllocatedCapacity()) * 1024));

@@ -92,6 +92,9 @@ public enum ResourceOperationTypeEnum {
     CREATE_FILE_SYSTEM_QUOTA_DIR("CREATE FILESYSTEM QUOTA DIR", "create filesystem quota directory"),
     DELETE_FILE_SYSTEM_QUOTA_DIR("DELETE FILESYSTEM QUOTA DIR", "delete filesystem quota directory"),
     UPDATE_FILE_SYSTEM_QUOTA_DIR("UPDATE FILESYSTEM QUOTA DIR", "update filesystem quota directory"),
+    UPDATE_BUCKET("UPDATE BUCKET", "update bucket operation"),
+    DELETE_BUCKET("DELETE BUCKET", "delete bucket operation"),
+    CREATE_BUCKET("CREATE BUCKET", "create bucket operation"),
 
     ASSIGN_FILE_SYSTEM_TAG("TAG A FILESYSTEM", "tag a filesystem"),
     DELETE_FILE_SNAPSHOT("DELETE FILESYSTEM SNAPSHOT", "delete filesystem snapshot"),

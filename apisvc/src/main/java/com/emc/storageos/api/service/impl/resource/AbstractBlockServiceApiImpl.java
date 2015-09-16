@@ -41,6 +41,7 @@ import com.emc.storageos.db.client.model.BlockConsistencyGroup;
 import com.emc.storageos.db.client.model.BlockMirror;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.BlockSnapshot;
+import com.emc.storageos.db.client.model.BlockSnapshotSession;
 import com.emc.storageos.db.client.model.DataObject;
 import com.emc.storageos.db.client.model.DiscoveredDataObject;
 import com.emc.storageos.db.client.model.ExportGroup;
@@ -186,10 +187,22 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
      */
     @Override
     public <T extends DataObject> String checkForDelete(T object) throws InternalException {
-        String depMsg = getDependencyChecker().checkDependencies(object.getId(), object.getClass(), true);
+        URI objectURI = object.getId();
+        String depMsg = getDependencyChecker().checkDependencies(objectURI, object.getClass(), true);
         if (depMsg != null) {
             return depMsg;
         }
+
+        // The dependency checker does not pick up dependencies on
+        // BlockSnapshotSession because the containment constraint
+        // use the base class BlockObject as the parent i.e., source
+        // for a BlockSnapshotSession could be a Volume or BlockSnapshot.
+        List<BlockSnapshotSession> snapSessions = CustomQueryUtility.queryActiveResourcesByConstraint(_dbClient,
+                BlockSnapshotSession.class, ContainmentConstraint.Factory.getParentSnapshotSessionConstraint(objectURI));
+        if (!snapSessions.isEmpty()) {
+            return BlockSnapshotSession.class.getSimpleName();
+        }
+
         return object.canBeDeleted();
     }
 
@@ -270,6 +283,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * {@inheritDoc}
+     * 
      * @throws ControllerException
      */
     @Override
@@ -281,7 +295,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
 
     /**
      * {@inheritDoc}
-     * @throws ControllerException 
+     * 
+     * @throws ControllerException
      */
     @Override
     public TaskList deactivateMirror(StorageSystem storageSystem, URI mirrorURI, String task) throws ControllerException {
@@ -1284,7 +1299,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         StringBuilder volumeLabelBuilder = new StringBuilder(baseVolumeLabel);
         if (volumeCount > 1) {
             volumeLabelBuilder.append("-");
-            volumeLabelBuilder.append(volumeIndex+1);
+            volumeLabelBuilder.append(volumeIndex + 1);
         }
         return volumeLabelBuilder.toString();
     }
@@ -1543,7 +1558,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         // Look for high-order source device first, which would be RP_VPLEX_VIRT_SOURCE or RP_SOURCE
         List<VolumeDescriptor> volumes = VolumeDescriptor.filterByType(volumesDescriptors,
                 new VolumeDescriptor.Type[] { VolumeDescriptor.Type.RP_SOURCE,
-                                              VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE },
+                        VolumeDescriptor.Type.RP_VPLEX_VIRT_SOURCE },
                 new VolumeDescriptor.Type[] {});
 
         // If there are none of those, look for VPLEX_VIRT_VOLUME
@@ -1556,8 +1571,8 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         // Finally look for SRDF or regular block volumes
         if (volumes.isEmpty()) {
             volumes = VolumeDescriptor.filterByType(volumesDescriptors,
-                    new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA, 
-                                                  VolumeDescriptor.Type.SRDF_SOURCE },
+                    new VolumeDescriptor.Type[] { VolumeDescriptor.Type.BLOCK_DATA,
+                            VolumeDescriptor.Type.SRDF_SOURCE },
                     new VolumeDescriptor.Type[] {});
         }
 
@@ -1565,7 +1580,7 @@ public abstract class AbstractBlockServiceApiImpl<T> implements BlockServiceApi 
         if (volumes.isEmpty()) {
             return;
         }
-        
+
         for (VolumeDescriptor desc : volumes) {
             s_logger.info(String.format("Volume and Task Pre-creation Objects [Exec]--  Source Volume: %s, Op: %s",
                     desc.getVolumeURI(), task));

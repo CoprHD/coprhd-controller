@@ -11,7 +11,7 @@
 package com.emc.storageos.db.client.model;
 
 /**
- * 
+ * Class represents an array snapshot point-in-time copy.
  */
 @SuppressWarnings("serial")
 @Cf("BlockSnapshotSession")

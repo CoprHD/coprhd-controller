@@ -8,6 +8,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -15,6 +17,7 @@ import static org.mockito.Mockito.spy;
 import java.lang.reflect.Constructor;
 import java.net.URI;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -23,6 +26,8 @@ import javax.crypto.SecretKey;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import com.emc.storageos.api.mapper.SiteMapper;
 import com.emc.storageos.coordinator.client.model.ProductName;
@@ -31,6 +36,8 @@ import com.emc.storageos.coordinator.client.model.SiteState;
 import com.emc.storageos.coordinator.client.model.SoftwareVersion;
 import com.emc.storageos.coordinator.client.service.CoordinatorClient;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.Site;
 import com.emc.storageos.db.client.model.VirtualDataCenter;
 import com.emc.storageos.model.dr.DRNatCheckParam;
@@ -164,12 +171,25 @@ public class DisasterRecoveryServiceTest {
     public void testGetAllStandby() {
         
         doReturn(uriList).when(dbClientMock).queryByType(Site.class, true);
+        doReturn(standbySite1).when(dbClientMock).queryObject(Site.class, standbySite1.getId());
+        doReturn(standbySite2).when(dbClientMock).queryObject(Site.class, standbySite2.getId());
+        doAnswer(new Answer<Void>(){
 
-        standbySites.add(standbySite1);
-        standbySites.add(standbySite2);
-        standbySites.add(standbySite3);
-        doReturn(standbySites.iterator()).when(dbClientMock).queryIterativeObjects(Site.class, uriList);
-
+            @Override
+            public Void answer(InvocationOnMock invocation) throws Throwable {
+                URIQueryResultList resultList = (URIQueryResultList)invocation.getArguments()[1];
+                
+                List<URI> uriList = new ArrayList<URI>(2);
+                uriList.add(standbySite1.getId());
+                uriList.add(standbySite2.getId());
+                
+                resultList.setResult(uriList.iterator());
+                
+                return null;
+            }
+            
+        }).when(dbClientMock).queryByConstraint(any(ContainmentConstraint.class), any(URIQueryResultList.class));
+        
         SiteList responseList = drService.getAllStandby();
 
         assertNotNull(responseList.getSites());
@@ -309,7 +329,6 @@ public class DisasterRecoveryServiceTest {
         
         try {
             natCheckParam.setIPv4Address("10.247.0.1");
-            natCheckParam.setIPv6Address("10.247.0.2");
             drService.checkIfBehindNat(natCheckParam, null);
             fail();
         } catch (Exception e) {

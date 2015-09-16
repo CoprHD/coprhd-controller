@@ -27,7 +27,7 @@ var computeImageServers = function() {
     my.addParams = function(aoData) {
         queried = true;
 
-        $('#computeImageServers .selected input').prop('disabled', false).addClass('disabled');
+        $('#computeImageServers .selected input').prop('disabled', true).addClass('disabled');
     }
     
     my.availableComputeImageServers = function(oSettings) {
@@ -39,29 +39,32 @@ var computeImageServers = function() {
     my.render = function(o, val) {
         if (o.aData.id) {
             var id = o.aData.id;
-        	console.log("  - My Render function compute image server id " + id);
-            var available = o.aData.available;
             var checkbox = "<input type='checkbox' name='computeSystems.selectedComputeImageServer' ";
-            var ids = $('.computeImageServers[data-ids]').data('ids');
-            if (ids && ids.indexOf(id) > -1) {
+            var selectedComputeImageServerId = '${computeSystems.selectedComputeImageServer}';
+            if (id == selectedComputeImageServerId) {
                 checkbox += "checked='checked' ";
             }
-
             checkbox += "value='"+id+"'>";
-            
             return checkbox;
         }
         else {
             return val;
         }
     }
-    
+
     my.reload = function() {
         console.log("Reloading compute Image Servers");
         getDataTable().fnReloadAjax();
     }
     return my;    
 }();
+
+function renderLink(o, val) {
+	  var data = o.aData;
+	  var url = #{jsAction (_edit ?: @edit(':id')) /};
+	  var href = url(data);
+	  return "<a href='"+href+"'>" + val + "</a>";
+	}
 
 $(document).ready(function() {
     var dataTable = table.computeImageServers.dataTable.getDataTable()

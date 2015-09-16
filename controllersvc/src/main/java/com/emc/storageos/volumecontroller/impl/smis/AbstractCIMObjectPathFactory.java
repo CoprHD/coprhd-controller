@@ -8,7 +8,6 @@ import com.emc.storageos.db.client.DbClient;
 import com.emc.storageos.db.client.model.BlockObject;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.plugins.common.Constants;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -273,5 +272,4 @@ public abstract class AbstractCIMObjectPathFactory implements CIMObjectPathFacto
 
     public abstract CIMObjectPath getMaskingGroupPath(StorageSystem storage, String storageGroupName,
             MASKING_GROUP_TYPE se_deviceMaskingGroup) throws Exception;
-
 }

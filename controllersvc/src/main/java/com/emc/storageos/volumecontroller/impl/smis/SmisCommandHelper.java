@@ -2743,19 +2743,6 @@ public class SmisCommandHelper implements SmisConstants {
         return initiatorNames;
     }
 
-    public String[] getVplexInitiatorNames(List<String> initiators, StorageSystem storageDevice) throws Exception {
-        List<String> initiatorNameList = new ArrayList<String>();
-        String[] initiatorNames = {};
-        for (String initiator : initiators) {
-            String initiatorName = null;
-            initiatorName = "W+".concat(WWNUtility.getUpperWWNWithNoColons(initiator));
-
-            initiatorNameList.add(SmisUtils.translate(storageDevice, initiatorName));
-        }
-        initiatorNames = initiatorNameList.toArray(initiatorNames);
-        return initiatorNames;
-    }
-
     public String getExportMaskName(URI exportMaskURI) throws Exception {
         ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
         return exportMask.getMaskName();

@@ -122,8 +122,6 @@ public class DisasterRecoveryServiceTest {
         
         natCheckParam = new DRNatCheckParam();
 
-        localVDC.getSiteUUIDs().add(standbySite1.getUuid());
-        localVDC.getSiteUUIDs().add(standbySite2.getUuid());
         localVDC.setApiEndpoint("127.0.0.2");
         localVDC.setHostIPv4AddressesMap(standbySite1.getHostIPv4AddressMap());
         localVDC.getHostIPv6AddressesMap().put("vipr1", "11:11:11:11");

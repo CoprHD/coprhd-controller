@@ -17,17 +17,18 @@ import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.Controller;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.model.ExportMask;
 import com.emc.storageos.db.client.model.Initiator;
 import com.emc.storageos.db.client.model.StoragePort;
 import com.emc.storageos.db.client.model.StorageSystem;
 import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.StringSetMap;
-import com.emc.storageos.db.client.model.ExportGroup.ExportGroupType;
 import com.emc.storageos.db.client.util.StringSetUtil;
 import com.emc.storageos.exceptions.DeviceControllerExceptions;
 import com.emc.storageos.locking.LockTimeoutValue;
 import com.emc.storageos.locking.LockType;
+import com.emc.storageos.plugins.common.Constants;
 import com.emc.storageos.svcs.errorhandling.model.ServiceError;
 import com.emc.storageos.util.NetworkLite;
 import com.emc.storageos.volumecontroller.BlockStorageDevice;
@@ -37,15 +38,19 @@ import com.emc.storageos.volumecontroller.placement.StoragePortsAllocator;
 import com.emc.storageos.volumecontroller.placement.StoragePortsAssigner;
 import com.emc.storageos.vplex.api.VPlexApiException;
 import com.emc.storageos.workflow.Workflow;
+import com.emc.storageos.workflow.Workflow.Method;
 import com.emc.storageos.workflow.WorkflowService;
 import com.emc.storageos.workflow.WorkflowStepCompleter;
-import com.emc.storageos.workflow.Workflow.Method;
 
 public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator implements
         VplexBackEndMaskingOrchestrator, Controller {
     private static final Logger _log = LoggerFactory.getLogger(VplexXtremIOMaskingOrchestrator.class);
     private boolean simulation = false;
     private static final int XTREMIO_NUM_PORT_GROUP = 1;
+    // Set morePortGroups to true for testing only if you want to generate additional port groups with
+    // a small number of ports (e.g. two ports per network, which is typical in our Lab)
+    // By default it will require two ports per Network for each Port Group which will generate fewer PortGroups
+    private static boolean morePortGroups = false;
     BlockDeviceController _blockController = null;
     WorkflowService _workflowService = null;
 
@@ -87,29 +92,152 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         super.suggestExportMasksForPlacement(storage, device, initiators, placementDescriptor);
     }
 
+    static final Integer MAX_PORTS_PER_NETWORK = 24;
+
     @Override
     public Set<Map<URI, List<StoragePort>>> getPortGroups(
             Map<URI, List<StoragePort>> allocatablePorts, Map<URI, NetworkLite> networkMap,
             URI varrayURI, int nInitiatorGroups) {
-        Set<Map<URI, List<StoragePort>>> portGroups = new HashSet<Map<URI, List<StoragePort>>>();
-        Map<URI, Integer> portsAllocatedPerNetwork = new HashMap<URI, Integer>();
-        // Port Group is always 1 for XtremIO as of now.
 
+        Set<Map<URI, List<StoragePort>>> portGroups = new HashSet<Map<URI, List<StoragePort>>>();
+
+        StringSet netNames = new StringSet();
+        // Order the networks from those with fewest ports to those with the most ports.
+        List<URI> orderedNetworks = orderNetworksByNumberOfPorts(allocatablePorts);
+        for (URI networkURI : orderedNetworks) {
+            netNames.add(networkMap.get(networkURI).getLabel());
+        }
+        _log.info("Calculating PortGroups for Networks: " + netNames.toString());
+
+        Set<String> cpusUsed = new HashSet<String>();
+        Map<URI, List<StoragePort>> useablePorts = new HashMap<URI, List<StoragePort>>();
+        Set<String> eliminatedPorts = new HashSet<String>();
+        Set<String> usedPorts = new HashSet<String>();
+
+        // Eliminate ports from the same cpus, which are in the same portGroup.
+        // This is to avoid the 4096 LUN limit per cpu.
+        // Cycle through the networks, picking ports that can be used while considering cpus.
+        // Pick one port from each network, then cycle through them again.
+        boolean portWasPicked;
+        do {
+            portWasPicked = false;
+            for (URI networkURI : orderedNetworks) {
+                if (!useablePorts.containsKey(networkURI)) {
+                    useablePorts.put(networkURI, new ArrayList<StoragePort>());
+                }
+                // Pick a port if possible
+                for (StoragePort port : allocatablePorts.get(networkURI)) {
+                    // Do not choose a port that has already been chosen
+                    if (usedPorts.contains(port.getPortName())) {
+                        continue;
+                    }
+                    if (!cpusUsed.contains(port.getPortGroup().split(Constants.HYPEN)[0])) {
+                        // Choose this port, it has a new X-brick.
+                        cpusUsed.add(port.getPortGroup().split(Constants.HYPEN)[0]);
+                        usedPorts.add(port.getPortName());
+                        useablePorts.get(networkURI).add(port);
+                        portWasPicked = true;
+                        break;
+                    } else {
+                        // This port shares a X-brick, don't choose it.
+                        eliminatedPorts.add(port.getPortName());
+                    }
+                }
+            }
+        } while (portWasPicked);
+
+        // If all networks have some ports remaining, use the filtered ports.
+        // If not, emit a warning and do not use the filtered port configuration.
+        boolean useFilteredPorts = true;
+        for (URI networkURI : orderedNetworks) {
+            if (useablePorts.get(networkURI).isEmpty()) {
+                useFilteredPorts = false;
+                break;
+            }
+        }
+        if (useFilteredPorts) {
+            _log.info("Using filtered ports: " + usedPorts.toString());
+            _log.info("Ports eliminated because of sharing a cpu with a used port: " + eliminatedPorts.toString());
+            allocatablePorts = useablePorts;
+        } else {
+            _log.info("Some networks have zero remaining ports after cpu filtering, will use duplicate ports on some cpus. "
+                    + "This is not a recommended configuration.");
+        }
+
+        // Determine the network with the lowest number of allocatable ports.
+        int minPorts = Integer.MAX_VALUE;
+        for (URI networkURI : allocatablePorts.keySet()) {
+            int numPorts = allocatablePorts.get(networkURI).size();
+            if (numPorts > MAX_PORTS_PER_NETWORK) {
+                numPorts = MAX_PORTS_PER_NETWORK;
+            }
+            if (numPorts < minPorts) {
+                minPorts = numPorts;
+            }
+        }
+
+        // Figure out the number of ports in each network per port group (PG).
+        // Then figure out the number of port groups to be generated.
+        // HEURISTIC:
+        // If the smallest network has 1 port, then allow 1 port per Network unless there's only 1 Network.
+        // If there is only one network, require two ports per network in the Port Group.
+        // If it has 2 or more ports per network, use 2 ports per network per MV.
+        // If there are one or two networks, if it has 9 or more ports, use 3 ports per network per MV.
+        // If there are one or two networks, if it has 16 or more ports, use 4 ports per network per MV.
+        // oneNetwork indicates if there is only one Network available.
+        // portsPerPG is the number of ports to be allocated per PortGroup from the
+        // network with the fewest ports.
+        // numPG is the number of Port Groups that will be configured.
+        boolean oneNetwork = allocatablePorts.keySet().size() == 1;
+        boolean moreThanTwoNetworks = allocatablePorts.keySet().size() > 2;
+        int portsPerNetPerPG = oneNetwork ? 2 : 1;
+        // It is best practice if each network has at least two ports, favoring fewer port groups.
+        // But if "morePortGroups" is set, will make additional portGroups if there are fewer ports.
+        if (morePortGroups) {       // This can be set true for testing environments
+            if (minPorts >= 4) {
+                portsPerNetPerPG = 2;   // Makes at least two Port Groups if there are two ports
+            }
+        } else {
+            if (minPorts >= 2) {
+                portsPerNetPerPG = 2;   // Default is to require at least two ports per Port Group
+            }
+        }
+        if (!moreThanTwoNetworks) {
+            if (minPorts >= 9) {
+                portsPerNetPerPG = 3;
+            }
+            if (minPorts >= 16) {
+                portsPerNetPerPG = 4;
+            }
+        }
+        int numPG = minPorts / portsPerNetPerPG;
+        _log.info(String.format("Number Port Groups %d Per Network Ports Per Group %d", numPG, portsPerNetPerPG));
+        if (numPG == 0) {
+            return portGroups;
+        }
+
+        // Make a map per Network of number of ports to allocate.
+        Map<URI, Integer> portsAllocatedPerNetwork = new HashMap<URI, Integer>();
         for (URI netURI : allocatablePorts.keySet()) {
-            Integer nports = allocatablePorts.get(netURI).size() / XTREMIO_NUM_PORT_GROUP;
+            Integer nports = allocatablePorts.get(netURI).size() / numPG;
+            // Don't allow this network to have more than twice the number of
+            // ports from the network with the fewest ports, i.e. do not exceed 2x portsPerPG.
+            if (nports > (2 * portsPerNetPerPG)) {
+                nports = 2 * portsPerNetPerPG;
+            }
             portsAllocatedPerNetwork.put(netURI, nports);
         }
 
-        StoragePortsAllocator allocator = new StoragePortsAllocator();
+        // Now call the StoragePortsAllocator for each Network, assigning required number of ports.
 
-        for (int i = 0; i < XTREMIO_NUM_PORT_GROUP; i++) {
+        StoragePortsAllocator allocator = new StoragePortsAllocator();
+        for (int i = 0; i < numPG; i++) {
             Map<URI, List<StoragePort>> portGroup = new HashMap<URI, List<StoragePort>>();
             StringSet portNames = new StringSet();
             for (URI netURI : allocatablePorts.keySet()) {
                 NetworkLite net = networkMap.get(netURI);
-                List<StoragePort> allocatedPorts = allocatePorts(allocator,
-                        allocatablePorts.get(netURI), portsAllocatedPerNetwork.get(netURI), net,
-                        varrayURI);
+                List<StoragePort> allocatedPorts = allocatePorts(allocator, allocatablePorts.get(netURI),
+                        portsAllocatedPerNetwork.get(netURI), net, varrayURI);
                 portGroup.put(netURI, allocatedPorts);
                 allocatablePorts.get(netURI).removeAll(allocatedPorts);
                 for (StoragePort port : allocatedPorts) {
@@ -118,9 +246,43 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
             }
             portGroups.add(portGroup);
             _log.info(String.format("Port Group %d: %s", i, portNames.toString()));
-
+            // Reinitialize the context in the allocator; we want redundancy within PG
+            allocator.getContext().reinitialize();
         }
         return portGroups;
+    }
+
+    /**
+     * Order the networks from those with least ports to those with most ports
+     * 
+     * @param allocatablePorts -- Map of Network URI to list of ports
+     * @return ordered list of Network URIs
+     */
+    private List<URI> orderNetworksByNumberOfPorts(Map<URI, List<StoragePort>> allocatablePorts) {
+        List<URI> orderedNetworks = new ArrayList<URI>();
+
+        Map<Integer, Set<URI>> numPortsToNetworkSet = new HashMap<Integer, Set<URI>>();
+        for (URI networkURI : allocatablePorts.keySet()) {
+            int numPorts = allocatablePorts.get(networkURI).size();
+            if (numPorts > MAX_PORTS_PER_NETWORK) {
+                numPorts = MAX_PORTS_PER_NETWORK;
+            }
+            if (numPortsToNetworkSet.get(numPorts) == null) {
+                numPortsToNetworkSet.put(numPorts, new HashSet<URI>());
+            }
+            numPortsToNetworkSet.get(numPorts).add(networkURI);
+        }
+
+        for (Integer numPorts = 1; numPorts < MAX_PORTS_PER_NETWORK; numPorts++) {
+            Set<URI> networkURIs = numPortsToNetworkSet.get(numPorts);
+            if (networkURIs == null) {
+                continue;
+            }
+            for (URI networkURI : networkURIs) {
+                orderedNetworks.add(networkURI);
+            }
+        }
+        return orderedNetworks;
     }
 
     private List<StoragePort> allocatePorts(StoragePortsAllocator allocator,
@@ -275,6 +437,7 @@ public class VplexXtremIOMaskingOrchestrator extends XtremIOMaskingOrchestrator 
         return _workflowService;
     }
 
+    @Override
     public void setWorkflowService(WorkflowService _workflowService) {
         this._workflowService = _workflowService;
     }

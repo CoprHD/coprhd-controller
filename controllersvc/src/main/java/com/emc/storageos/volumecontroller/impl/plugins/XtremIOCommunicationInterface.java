@@ -52,7 +52,6 @@ public class XtremIOCommunicationInterface extends
     private static final Logger _logger = LoggerFactory
             .getLogger(XtremIOCommunicationInterface.class);
     private static final String UP = "up";
-    private static final String XTREMIO_PORT_GROUP = "xtremio-portgroup";
     private static final String NEW = "new";
     private static final String EXISTING = "existing";
 
@@ -361,7 +360,7 @@ public class XtremIOCommunicationInterface extends
                         port.setPortName(targetPort.getName());
                         port.setLabel(nativeGuid);
                         port.setOperationalStatus(getOperationalStatus(targetPort).toString());
-                        port.setPortGroup(XTREMIO_PORT_GROUP);
+                        port.setPortGroup(haDomain.getAdapterName());
                         port.setStorageHADomain(haDomain.getId());
                         port.setDiscoveryStatus(DiscoveryStatus.VISIBLE.name());
                         portMap.get(NEW).add(port);

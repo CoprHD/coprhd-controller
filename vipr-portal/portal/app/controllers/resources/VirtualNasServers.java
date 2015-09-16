@@ -8,9 +8,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 
+import models.datatable.VirtualNasServerDataTable;
+import models.datatable.VirtualNasServerDataTable.VirtualNasServerInfo;
+
 import org.apache.commons.lang.StringUtils;
 
-import models.datatable.VirtualNasServerDataTable;
 import play.mvc.With;
 import util.datatable.DataTablesSupport;
 
@@ -37,15 +39,15 @@ public class VirtualNasServers extends ResourceController{
         } else {
             projectId = getActiveProjectId();
         }
-        List<VirtualNASRestRep> vNasServers = getVirtualNasServers(projectId);
+        List<VirtualNasServerInfo> vNasServers = getVirtualNasServers(projectId);
         renderJSON(DataTablesSupport.createJSON(vNasServers, params));
     }
 
-    private static List<VirtualNASRestRep> getVirtualNasServers(String projectId) {
+    private static List<VirtualNasServerInfo> getVirtualNasServers(String projectId) {
         if (projectId == null) {
             return Collections.EMPTY_LIST;
         }
-        List<VirtualNASRestRep> vNasServers = Lists.newArrayList();
+        List<VirtualNasServerInfo> vNasServers = Lists.newArrayList();
         ProjectRestRep projRestRep = getViprClient().projects().get(uri(projectId));
         Set<String> vNasIds = projRestRep.getAssignedVNasServers();
         List<URI> vNasUris = Lists.newArrayList();
@@ -54,7 +56,10 @@ public class VirtualNasServers extends ResourceController{
                 vNasUris.add(uri(id));
             }
             if (!vNasUris.isEmpty()) {
-                vNasServers = getViprClient().virtualNasServers().getByIds(vNasUris);
+                List<VirtualNASRestRep> vNas = getViprClient().virtualNasServers().getByIds(vNasUris);
+                for (VirtualNASRestRep vNasServer : vNas) {
+                    vNasServers.add(new VirtualNasServerInfo(vNasServer,true));
+                }
             }
         }
         return vNasServers;

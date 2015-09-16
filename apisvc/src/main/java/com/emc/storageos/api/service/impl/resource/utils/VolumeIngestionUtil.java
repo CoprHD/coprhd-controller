@@ -331,22 +331,27 @@ public class VolumeIngestionUtil {
         return targetUriList;
     }
 
-    public static List<BlockObject> getCloneObjects(StringSet targets, Map<String, BlockObject> createdObjectMap, DbClient dbClient) {
+    public static List<BlockObject> getVolumeObjects(StringSet targets, Map<String, BlockObject> createdObjectMap, DbClient dbClient) {
         List<BlockObject> targetUriList = new ArrayList<BlockObject>();
         for (String targetId : targets) {
+            _logger.info("targets are " + targets);
             List<URI> targetUris = dbClient.queryByConstraint(AlternateIdConstraint.Factory.getVolumeNativeGuidConstraint(targetId));
+            _logger.info("targetUris are " + targetUris);
             if (null != targetUris && !targetUris.isEmpty()) {
-                BlockObject bo = (BlockObject) dbClient.queryObject(targetUris.get(0));
-                _logger.info("found clone block object: " + bo);
-                if (null != bo) {
-                    targetUriList.add(bo);
+                for (URI targetUri : targetUris) {
+                    BlockObject bo = (BlockObject) dbClient.queryObject(targetUri);
+                    _logger.info("found volume block object: " + bo);
+                    if (null != bo) {
+                        targetUriList.add(bo);
+                        break;
+                    }
                 }
             } else {
-                _logger.info("Clone not ingested yet {}. Checking in the created object map", targetId);
+                _logger.info("Volume not ingested yet {}. Checking in the created object map", targetId);
                 // check in the created object map
                 BlockObject blockObject = createdObjectMap.get(targetId);
                 if (blockObject != null) {
-                    _logger.info("Found the clone in the created object map");
+                    _logger.info("Found the volume in the created object map");
                     targetUriList.add(blockObject);
                 }
             }
@@ -448,10 +453,14 @@ public class VolumeIngestionUtil {
                 .get(SupportedVolumeCharacterstics.HAS_REPLICAS.toString());
         String volumeHasRemoteReplicas = unManagedVolumeCharacteristics
                 .get(SupportedVolumeCharacterstics.REMOTE_MIRRORING.toString());
+        String isVplexVolume = unManagedVolumeCharacteristics
+                .get(SupportedVolumeCharacterstics.IS_VPLEX_VOLUME.toString());
         if (null != volumeHasReplicas
                 && Boolean.parseBoolean(volumeHasReplicas)
                 || (null != volumeHasRemoteReplicas && Boolean
-                        .parseBoolean(volumeHasRemoteReplicas))) {
+                        .parseBoolean(volumeHasRemoteReplicas))
+                || (null != isVplexVolume && Boolean
+                        .parseBoolean(isVplexVolume))) {
             return true;
         }
         return false;
@@ -2036,6 +2045,22 @@ public class VolumeIngestionUtil {
         }
     }
 
+    public static void setupVplexParentRelations(BlockObject child, BlockObject parent, DbClient dbClient) {
+        _logger.info("Setting up relationship between VPLEX backend volume {} and parent {}", 
+                child.getId(), parent.getId());
+        if (parent instanceof Volume) {
+            Volume parentVolume = (Volume) parent;
+            StringSet associatedVolumes = parentVolume.getAssociatedVolumes();
+            if (associatedVolumes == null) {
+                associatedVolumes = new StringSet();
+                parentVolume.setAssociatedVolumes(associatedVolumes);
+            }
+            associatedVolumes.add(child.getId().toString());
+        }
+    }
+
+    
+    
     /**
      * This method will clear the internal flags set during ingestion.
      * Before clearing the flags check if there is any unmanaged volume corresponding to the block object.

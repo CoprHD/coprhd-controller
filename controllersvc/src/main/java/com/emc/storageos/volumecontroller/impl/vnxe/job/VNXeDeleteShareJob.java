@@ -6,14 +6,20 @@
 package com.emc.storageos.volumecontroller.impl.vnxe.job;
 
 import java.net.URI;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.ContainmentConstraint;
+import com.emc.storageos.db.client.model.CifsShareACL;
 import com.emc.storageos.db.client.model.FileShare;
 import com.emc.storageos.db.client.model.SMBShareMap;
 import com.emc.storageos.db.client.model.Snapshot;
+import com.emc.storageos.db.client.util.CustomQueryUtility;
 import com.emc.storageos.services.OperationTypeEnum;
 import com.emc.storageos.vnxe.VNXeApiClient;
 import com.emc.storageos.volumecontroller.FileSMBShare;
@@ -100,6 +106,7 @@ public class VNXeDeleteShareJob extends VNXeJob {
             return;
         }
         shareMap.remove(smbShare.getName());
+        deleteShareACLsFromDB(dbClient, fsObj, null);
         dbClient.persistObject(fsObj);
     }
 
@@ -111,8 +118,53 @@ public class VNXeDeleteShareJob extends VNXeJob {
             return snapObj;
         }
         shareMap.remove(smbShare.getName());
+        deleteShareACLsFromDB(dbClient, null, snapObj);
         dbClient.persistObject(snapObj);
         return snapObj;
+    }
+
+    private void deleteShareACLsFromDB(DbClient dbClient, FileShare fsObj, Snapshot snapObj) {
+
+        List<CifsShareACL> acls = new ArrayList<CifsShareACL>();
+        try {
+
+            ContainmentConstraint containmentConstraint = null;
+            if (isFile && fsObj != null) {
+                _logger.info("Querying DB for Share ACLs of share {} of filesystemId {} ",
+                        fsObj.getName(), fsObj.getId());
+                containmentConstraint = ContainmentConstraint.Factory.getFileCifsShareAclsConstraint(fsObj.getId());
+            } else if (!isFile && snapObj != null) {
+                URI snapshotId = snapObj.getId();
+                _logger.info("Querying DB for Share ACLs of share {} of snapshotId {} ",
+                        smbShare.getName(), snapshotId);
+                containmentConstraint = ContainmentConstraint.Factory.getSnapshotCifsShareAclsConstraint(snapshotId);
+            }
+
+            List<CifsShareACL> shareAclList = CustomQueryUtility.queryActiveResourcesByConstraint(
+                    dbClient, CifsShareACL.class, containmentConstraint);
+
+            Iterator<CifsShareACL> shareAclIter = shareAclList.iterator();
+            while (shareAclIter.hasNext()) {
+                CifsShareACL shareAcl = shareAclIter.next();
+                if (smbShare.getName().equals(shareAcl.getShareName())) {
+                    acls.add(shareAcl);
+                }
+            }
+            List<CifsShareACL> deleteAclList = new ArrayList<CifsShareACL>();
+            for (Iterator<CifsShareACL> iterator = acls.iterator(); iterator.hasNext();) {
+                CifsShareACL cifsShareACL = iterator.next();
+                if (smbShare.getName().equals(cifsShareACL.getShareName())) {
+                    cifsShareACL.setInactive(true);
+                    deleteAclList.add(cifsShareACL);
+                }
+            }
+            if (!deleteAclList.isEmpty()) {
+                _logger.info("Deleting ACL of share {}", smbShare.getName());
+                dbClient.persistObject(deleteAclList);
+            }
+        } catch (Exception e) {
+            _logger.error("Error while querying DB for ACL(s) of a share {}", e);
+        }
     }
 
 }

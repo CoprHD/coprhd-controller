@@ -337,7 +337,7 @@ public class UnManagedFilesystemService extends TaggedResource {
                 
                 //check ingest is valid for given project
                 if(!isIngestUmfsValidForProject(project, _dbClient, nasUri)) {
-                    _logger.info("ingest umfs {} is invalid on project {} ", path, project.getLabel());
+                    _logger.info("ingest umfs {} is mounted to vNAS Uri {} invalid for project", path, nasUri);
                     continue;
                 }
 
@@ -683,14 +683,13 @@ public class UnManagedFilesystemService extends TaggedResource {
             if(vnasStringSet != null && !vnasStringSet.isEmpty()) {
                 //step -3 then check nasUri in project associated vnas list
                 if(vnasStringSet.contains(nasUri) == false) {
-                    _logger.debug("vNAS is assicated with other project");
-
+                    _logger.info("vNAS {} is assicated with other project", nasUri);
                     isIngestValid = false;
                 }
             } else {//then check vnas associated with any other project
                 //step -3 //if is associated with other project then don't ingest
                 if(virtualNAS.isNotAssignedToProject() == false) {
-                    _logger.debug("vNAS is assicated with other project");
+                    _logger.info("vNAS {} is assicated with other project", nasUri);
                     isIngestValid = false;
                 }
             }

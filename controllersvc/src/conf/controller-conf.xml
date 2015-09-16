@@ -421,6 +421,7 @@
             <set>
                 <value>getControllerReplicationSvcPath</value>
                 <value>getReplicationGroupPath</value>
+                <value>getInitiatorToInitiatorPath</value>
             </set>
         </property>
     </bean>

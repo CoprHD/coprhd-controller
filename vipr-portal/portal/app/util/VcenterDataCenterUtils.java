@@ -10,6 +10,7 @@ import com.emc.storageos.model.host.vcenter.VcenterDataCenterRestRep;
 import com.emc.storageos.model.host.vcenter.VcenterDataCenterUpdate;
 import com.emc.storageos.model.host.vcenter.VcenterRestRep;
 import com.emc.vipr.client.exceptions.ViPRHttpException;
+import org.apache.commons.httpclient.HttpStatus;
 
 import java.net.URI;
 import java.util.List;
@@ -17,11 +18,16 @@ import java.util.List;
 import static util.BourneUtil.getViprClient;
 
 public class VcenterDataCenterUtils {
+
+    public void VcenterDataCenterUtils() {
+
+    }
+	
     public static VcenterDataCenterRestRep getDataCenter(URI id) {
         try {
             return (id != null) ? getViprClient().vcenterDataCenters().get(id) : null;
         } catch (ViPRHttpException e) {
-            if (e.getHttpCode() == 404) {
+            if (e.getHttpCode() == HttpStatus.SC_NOT_FOUND) {
                 return null;
             }
             throw e;

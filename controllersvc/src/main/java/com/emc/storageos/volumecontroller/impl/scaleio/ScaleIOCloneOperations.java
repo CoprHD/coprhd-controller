@@ -30,6 +30,7 @@ import com.emc.storageos.scaleio.api.restapi.response.ScaleIOVolume;
 import com.emc.storageos.svcs.errorhandling.model.ServiceCoded;
 import com.emc.storageos.volumecontroller.CloneOperations;
 import com.emc.storageos.volumecontroller.TaskCompleter;
+import com.emc.storageos.volumecontroller.impl.smis.ReplicationUtils;
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Multimap;
@@ -87,6 +88,7 @@ public class ScaleIOCloneOperations implements CloneOperations {
         log.info("START detachSingleClone operation");
         // no operation, set to ready
         Volume clone = dbClient.queryObject(Volume.class, cloneVolume);
+        ReplicationUtils.removeDetachedFullCopyFromSourceFullCopiesList(clone, dbClient);
         clone.setAssociatedSourceVolume(NullColumnValueGetter.getNullURI());
         clone.setReplicaState(ReplicationState.DETACHED.name());
         dbClient.persistObject(clone);

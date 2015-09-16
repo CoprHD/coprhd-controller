@@ -154,12 +154,15 @@ public class VPlexClusterInfo extends VPlexResourceInfo {
                     // This path is Currently for Cinder only
                     s_logger.info("Doing the ITLs lookup");
                     // Example list - [50001442b0037911-500000e0da0e0721-8, 50001442b0037913-500000e0da0e0731-8,
-                    // 50001442b0037912-500000e0da0e0720-8, 50001442b0037910-500000e0da0e0730-8]
+                    // 50001442b0037912-500000e0da0e0720-8, 50001442b0037910-500000e0da0e0730-8]                    
                     List<String> vplexVolItls = storageVolumeInfo.getItls();
                     if (null != vplexVolItls && !vplexVolItls.isEmpty()) {
-                        if (vplexVolItls.contains(backendVolumeItlsList.get(0).trim().toLowerCase())) {
-                            s_logger.info("Found volume '{}' using ITL lookup", storageVolumeName);
-                            return storageVolumeInfo;
+                        for(String itlPair : backendVolumeItlsList) {
+                            //If any one of the pair matches, that is the volume to be considered
+                            if (vplexVolItls.contains(itlPair.trim().toLowerCase())) {
+                                s_logger.info("Found volume '{}' using ITL lookup", storageVolumeName);
+                                return storageVolumeInfo;
+                            }
                         }
                     }
                 }

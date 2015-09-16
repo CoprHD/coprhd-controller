@@ -18,7 +18,7 @@
 #{DataTable.table id:'storageArrayPorts', 
                   dataTable:dataTable,
                   source:@arrayPortsJson(storageSystem.id),
-                  expandable:true,
+                  expandable:storageSystem.systemType != 'ecs',
                   selectable:true}
   #{DataTable.buttonBar}
     #{if storageSystem.getSystemType() == 'openstack'}

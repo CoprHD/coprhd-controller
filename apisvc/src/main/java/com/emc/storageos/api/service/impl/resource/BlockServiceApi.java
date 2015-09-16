@@ -53,16 +53,16 @@ public interface BlockServiceApi {
      * @param varray source VirtualArray
      * @param vpool VirtualPool requested
      * @param recommendations Placement recommendation object
+     * @param taskList list of tasks for source volumes
      * @param task task ID
      * @param vpoolCapabilities wrapper for vpool params
-     * 
      * @return TaskList
      * 
      * @throws InternalException
      */
     public TaskList createVolumes(VolumeCreate param, Project project,
             VirtualArray varray, VirtualPool vpool, List<Recommendation> recommendations,
-            String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
+            TaskList taskList, String task, VirtualPoolCapabilityValuesWrapper vpoolCapabilities)
             throws InternalException;
 
     /**

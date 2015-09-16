@@ -42,6 +42,8 @@ import com.emc.storageos.model.vpool.BlockVirtualPoolProtectionUpdateParam;
 import com.emc.storageos.model.vpool.BlockVirtualPoolUpdateParam;
 import com.emc.storageos.model.vpool.FileVirtualPoolParam;
 import com.emc.storageos.model.vpool.FileVirtualPoolUpdateParam;
+import com.emc.storageos.model.vpool.ObjectVirtualPoolParam;
+import com.emc.storageos.model.vpool.ObjectVirtualPoolUpdateParam;
 import com.emc.storageos.model.vpool.RaidLevelChanges;
 import com.emc.storageos.model.vpool.VirtualPoolHighAvailabilityParam;
 import com.emc.storageos.volumecontroller.impl.utils.VirtualPoolCapabilityValuesWrapper;
@@ -71,6 +73,8 @@ public class VirtualPoolUtil {
     // private static VirtualPoolValidator fileDescriptionValidator = null;
     private static VirtualPoolValidator fileProvisioningValidator = null;
     private static VirtualPoolValidator fileSystemTypeValidator = null;
+    
+    private static VirtualPoolValidator objectTypeValidator = null;
 
     static {
         // blockNameValidator = new NameValidator();
@@ -115,6 +119,13 @@ public class VirtualPoolUtil {
         // fileNameValidator.setNextValidator(fileDescriptionValidator);
         // fileDescriptionValidator.setNextValidator(fileSystemTypeValidator);
         fileSystemTypeValidator.setNextValidator(fileProvisioningValidator);
+    }
+    
+    /**
+     * Object validator
+     */
+    static {
+        objectTypeValidator = new SystemTypeValidator();
     }
 
     /**
@@ -248,6 +259,20 @@ public class VirtualPoolUtil {
         fileSystemTypeValidator.validateVirtualPoolUpdateParam(cos, updateParam, dbClient);
     }
 
+    @SuppressWarnings("unchecked")
+    public static void validateObjectVirtualPoolCreateParams(ObjectVirtualPoolParam param,
+            DbClient dbClient) throws DatabaseException {
+        // Starts object VirtualPool validation chain using objectNameValidator.
+        objectTypeValidator.validateVirtualPoolCreateParam(param, dbClient);
+    }
+
+    @SuppressWarnings("unchecked")
+    public static void validateObjectVirtualPoolUpdateParams(VirtualPool cos,
+            ObjectVirtualPoolUpdateParam updateParam, DbClient dbClient) throws DatabaseException {
+        // Starts object VirtualPool validation chain using objectNameValidator.
+        objectTypeValidator.validateVirtualPoolUpdateParam(cos, updateParam, dbClient);
+    }
+    
     public static boolean isAutoTieringPolicyValidForDeviceType(
             String autoTierPolicyName, String systemType, DbClient dbClient) {
         if (null == autoTierPolicyName || autoTierPolicyName.equalsIgnoreCase("NONE")) {

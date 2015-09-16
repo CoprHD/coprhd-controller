@@ -842,23 +842,6 @@ public abstract class BlockIngestOrchestrator {
             UnManagedVolume currentUnManagedVolume,
             BlockObject currentBlockObject, StringSet unManagedVolumeGUIDs, Map<String, BlockObject> createdObjectMap, Map<BlockObject,
             List<BlockObject>> parentReplicaMap, Map<String, StringBuffer> taskStatusMap) {
-        
-        // TODO: remove this excessive logging to help in testing
-        _logger.info(" ");
-        _logger.info(" ");
-        _logger.info("!!runReplicasIngestedCheck!!");
-        _logger.info("!!!!!!!!!!!!!!!!!");
-        _logger.info("rootUnmanagedVolume :" +rootUnmanagedVolume );
-        _logger.info("rootBlockObject :" + rootBlockObject);
-        _logger.info("currentUnManagedVolume :" + currentUnManagedVolume);
-        _logger.info("currentBlockObject :" + currentBlockObject);
-        _logger.info("unManagedVolumeGUIDs :" + unManagedVolumeGUIDs);
-        _logger.info("createdObjectMap :" + createdObjectMap);
-        _logger.info("parentReplicaMap :" + parentReplicaMap);
-        _logger.info("taskStatusMap :" + taskStatusMap);
-        _logger.info("!!!!!!!!!!!!!!!!!");
-        _logger.info(" ");
-        
         if (rootBlockObject == null) {
             _logger.warn("parent object {} not ingested yet.", rootUnmanagedVolume.getNativeGuid());
             parentReplicaMap.clear();

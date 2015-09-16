@@ -39,8 +39,8 @@ public class SetStorageIOControl extends VMwareTask<Void> {
         Task task = manager.configureDatastoreIORM_Task(datastore, spec);
         try {
             waitForTask(task);
-        }
-        catch (Exception e) {
+        } catch (Exception e) {
+            logError("SetStorageIOControl.detail.error", datastore.getName());
             cancelTask(task);
         }
     }

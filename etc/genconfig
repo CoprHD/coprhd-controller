@@ -64,6 +64,11 @@ _gen_prop2() {
     #'site_id')
     export _GENCONFIG_site_id=$(_genconfig_site_id ${_GENCONFIG_site_id})
 
+    #'site_is_standby'
+    if [ -z ${_GENCONFIG_site_is_standby} ] ; then
+        export _GENCONFIG_site_is_standby='false'
+    fi
+
     #'node_index')
     export _GENCONFIG_node_index=$(_genconfig_node_index ${_GENCONFIG_node_id})
 

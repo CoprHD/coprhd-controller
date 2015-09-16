@@ -585,6 +585,7 @@
                   <property name="dbClient" ref="dbclient"/>
                   <property name="coordinator" ref="coordinator"/>
                   <property name="apiSignatureGenerator" ref="keyGenerator"/>
+                  <property name="sysUtils" ref="sysUtils" />
                 </bean>
             </set>
         </property>
@@ -711,5 +712,6 @@
   	<property name="dbClient" ref="dbclient"/>
   </bean>
   
+  <bean id="sysUtils" class="com.emc.storageos.services.util.SysUtils" />
 </beans>
 

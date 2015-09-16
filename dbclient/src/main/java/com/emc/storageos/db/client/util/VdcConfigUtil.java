@@ -7,9 +7,11 @@ package com.emc.storageos.db.client.util;
 import java.net.*;
 import java.util.*;
 
+import com.emc.storageos.coordinator.client.service.CoordinatorClient;
+import com.emc.storageos.db.client.model.Site;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.constraint.ContainmentConstraint;
 import com.emc.storageos.db.client.constraint.URIQueryResultList;
-import com.emc.storageos.db.client.model.Site;
 import org.apache.commons.lang.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,12 +40,19 @@ public class VdcConfigUtil {
     public static final String VDC_STANDBY_IPADDR_PTN = "vdc_%s_standby_network_%d_ipaddr";
     public static final String VDC_VIP_PTN = "vdc_%s_network_vip";
     public static final String VDC_VIP6_PTN = "vdc_%s_network_vip6";
+    public static final String SITE_IS_STANDBY="site_is_standby";
 
     private DbClient dbclient;
+    private CoordinatorClient coordinator;
 
     @Autowired
     public void setDbclient(DbClient dbclient) {
         this.dbclient = dbclient;
+    }
+
+    @Autowired
+    public void setCoordinator(CoordinatorClient coordinator) {
+        this.coordinator = coordinator;
     }
 
     /**
@@ -176,6 +185,11 @@ public class VdcConfigUtil {
         }
 
         vdcConfig.put(String.format(VDC_STANDBY_NODE_COUNT_PTN, shortId), String.valueOf(standbyNodeCnt));
+ 
+        String primarySiteId = coordinator.getPrimarySiteId();
+        String currentSiteId = coordinator.getSiteId();
+        boolean isStandby = !currentSiteId.equals(primarySiteId);
+        vdcConfig.put(SITE_IS_STANDBY, String.valueOf(isStandby));
     }
 
     private List<String> getHostsFromIPAddrMap(StringMap IPv4Addresses, StringMap IPv6Addresses) {

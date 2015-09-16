@@ -187,6 +187,7 @@ public class VdcSiteManager extends AbstractManager {
     private PropertyInfoExt loadVdcConfigFromDatabase() {
         VdcConfigUtil vdcConfigUtil = new VdcConfigUtil();
         vdcConfigUtil.setDbclient(dbClient);
+        vdcConfigUtil.setCoordinator(coordinator.getCoordinatorClient());
         return new PropertyInfoExt((Map) vdcConfigUtil.genVdcProperties());
     }
 

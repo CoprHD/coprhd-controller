@@ -574,7 +574,8 @@ index_interval: 128
 # http://download.oracle.com/javase/6/docs/technotes/guides/security/jsse/JSSERefGuide.html#CreateKeystore
 #
 server_encryption_options:
-    internode_encryption: ${geodb_encryption}
+    #internode_encryption: ${geodb_encryption}
+    internode_encryption: none
     keystore: /opt/storageos/conf/geostorageos.ks
     keystore_password: geostorageos
     truststore: /opt/storageos/conf/geostorageos.ts

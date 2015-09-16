@@ -85,6 +85,27 @@ fw_custom_iptables() {
     for sourceNode in ${VDC_NODES_IPV6} ; do
         ip6tables -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${INTERVDC_PORT} -j ACCEPT
     done
+
+    # Section for DR primary/standby site communication
+    DR_NODES_IPV4="${dr_nodes_ipaddr}"
+    DR_NODES_IPV6="${dr_nodes_ipaddr6}"
+
+    DR_DB_PORT="7000"
+    DR_GEODB_PORT="7100"
+    DR_ZK_PORT1="2888"
+    DR_ZK_PORT2="2889"
+    for sourceNode in ${DR_NODES_IPV4} ; do
+        iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_DB_PORT} -j ACCEPT
+        iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_GEODB_PORT} -j ACCEPT
+        iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT1} -j ACCEPT
+        iptables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT2} -j ACCEPT
+    done
+    for sourceNode in ${DR_NODES_IPV6} ; do
+        ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_DB_PORT} -j ACCEPT
+        ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_GEODB_PORT} -j ACCEPT
+        ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT1} -j ACCEPT
+        ip6tables  -I input_ext -p tcp -i ${NIC_NAME} -s ${sourceNode} --dport ${DR_ZK_PORT2} -j ACCEPT
+    done
     
     true
 }

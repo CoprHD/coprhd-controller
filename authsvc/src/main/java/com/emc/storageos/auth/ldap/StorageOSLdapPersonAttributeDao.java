@@ -7,11 +7,15 @@ package com.emc.storageos.auth.ldap;
 import com.emc.storageos.auth.AuthenticationManager.ValidationFailureReason;
 import com.emc.storageos.auth.StorageOSPersonAttributeDao;
 import com.emc.storageos.db.client.DbClient;
+import com.emc.storageos.db.client.constraint.AlternateIdConstraint;
+import com.emc.storageos.db.client.constraint.URIQueryResultList;
 import com.emc.storageos.db.client.model.AuthnProvider;
 import com.emc.storageos.db.client.model.AuthnProvider.ProvidersType;
 import com.emc.storageos.db.client.model.StorageOSUserDAO;
+import com.emc.storageos.db.client.model.StringSet;
 import com.emc.storageos.db.client.model.TenantOrg;
 import com.emc.storageos.db.client.model.UserGroup;
+import com.emc.storageos.db.exceptions.DatabaseException;
 import com.emc.storageos.model.usergroup.UserAttributeParam;
 import com.emc.storageos.security.authorization.BasePermissionsHelper;
 import com.emc.storageos.security.authorization.BasePermissionsHelper.UserMapping;
@@ -491,8 +495,10 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
             return null;
         }
 
+        StringSet authnProviderDomains = getAuthnProviderDomains(domain);
+
         List<String> attrs = new ArrayList<String>();
-        Map<URI, List<UserMapping>> tenantToMappingMap = permissionsHelper.getAllUserMappingsForDomain(domain);
+        Map<URI, List<UserMapping>> tenantToMappingMap = permissionsHelper.getAllUserMappingsForDomain(authnProviderDomains);
         if (_searchControls.getReturningAttributes() != null) {
             Collections.addAll(attrs, _searchControls.getReturningAttributes());
         }
@@ -1305,5 +1311,38 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
                 _log.debug(key + " = " + maps.get(key).toString());
             }
         }
+    }
+
+    /**
+     * Gets all the domains supported by the authn providers that supports
+     * the particular domain.
+     *
+     * @param domain to find the supported authn provider.
+     * @return returns all the supported domains of each authn provider
+     * supports the domain.
+     */
+    private StringSet getAuthnProviderDomains(String domain) {
+        StringSet authnProviderDomains = new StringSet();
+        URIQueryResultList providers = new URIQueryResultList();
+        try {
+            _dbClient.queryByConstraint(AlternateIdConstraint.Factory
+                    .getAuthnProviderDomainConstraint(domain), providers);
+        } catch (DatabaseException ex) {
+            _log.error(
+                    "Could not query for authn providers to check for existing domain {}",
+                    domain, ex.getStackTrace());
+            throw ex;
+        }
+
+        //Add all the domains of the AuthnProvider if it is not in disabled state.
+        Iterator<URI> it = providers.iterator();
+        while (it.hasNext()) {
+            URI providerURI = it.next();
+            AuthnProvider provider = _dbClient.queryObject(AuthnProvider.class, providerURI);
+            if (provider != null && provider.getDisable() == false) {
+                authnProviderDomains.addAll(provider.getDomains());
+            }
+        }
+        return authnProviderDomains;
     }
 }

@@ -1095,7 +1095,7 @@ public class RPDeviceController implements RPController, BlockOrchestrationInter
 
                 List<String> lockKeys = ControllerLockingUtil
                         .getHostStorageLockKeys(_dbClient,
-                                ExportGroupType.Cluster,
+                                ExportGroupType.Host,
                                 initiatorSet, storageSystemURI);
                 boolean acquiredLocks = _exportWfUtils.getWorkflowService().acquireWorkflowStepLocks(
                         taskId, lockKeys, LockTimeoutValue.get(LockType.RP_EXPORT));

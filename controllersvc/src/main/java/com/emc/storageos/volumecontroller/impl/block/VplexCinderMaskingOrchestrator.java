@@ -222,7 +222,7 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
             ExportMask exportMask = _dbClient.queryObject(ExportMask.class, exportMaskURI);
             
             // First step would be to update the zoning map based on the connectivity
-            updateZoningMap(initiatorPortMap, exportMask);
+            updateZoningMap(initiatorPortMap, directorToInitiatorIds,exportMask);
             
             boolean passed = VPlexBackEndOrchestratorUtil.validateExportMask(varrayURI, initiatorPortMap, exportMask, null, directorToInitiatorIds,
                     idToInitiatorMap, _dbClient, portWwnToClusterMap);
@@ -258,7 +258,8 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
      * @param initiatorPortMap
      * @param exportMask
      */
-    private void updateZoningMap(Map<URI, List<StoragePort>> initiatorPortMap, ExportMask exportMask) {
+    private void updateZoningMap(Map<URI, List<StoragePort>> initiatorPortMap,
+            Map<String, Set<String>> directorToInitiatorIds, ExportMask exportMask) {
         
         //STEP 1 - Clean the existing zoning map
         for (String initiatorURIStr : exportMask.getZoningMap().keySet()) {
@@ -282,28 +283,59 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
         }
         
         // STEP 3 - From the initiator ports in the mask, generate a map of InitiatorWWN vs its URI
-        Map<String, URI> initiatorWWNvsUriFromMask = new HashMap<>();
+        //Map<String, URI> initiatorWWNvsUriFromMask = new HashMap<>();
+        Map<String, String> initiatorUrivsWWNFromMask = new HashMap<>();
         StringSet initiatorPorts = exportMask.getInitiators();
         for(String initiatorUri : initiatorPorts) {
             Initiator initiator = _dbClient.queryObject(Initiator.class, URI.create(initiatorUri));
             String initiatorWWN = initiator.getInitiatorPort();
-            initiatorWWNvsUriFromMask.put(initiatorWWN, initiator.getId());
+            //initiatorWWNvsUriFromMask.put(initiatorWWN, initiator.getId());
+            initiatorUrivsWWNFromMask.put(initiator.getId().toString(), initiatorWWN);
         }
         
         // STEP 4 - Convert networkURIvsStoragePort to networkURIvsInitiatorPortWWNs
-        Map<URI, List<String>> networkURIvsInitiatorPortWWNList = new HashMap<>();
+        //Map<URI, List<String>> networkURIvsInitiatorPortWWNList = new HashMap<>();
+        Map<String, String> initiatorWWNvsNetworkURI = new HashMap<>();
         Set<URI> networkURIs = initiatorPortMap.keySet();
         for(URI networkURI : networkURIs) {
             List<StoragePort> initiatorPortList = initiatorPortMap.get(networkURI);
             List<String> initiatorWWNList = new ArrayList<>(initiatorPortList.size());
             for(StoragePort initPort : initiatorPortList) {
                 initiatorWWNList.add(initPort.getPortNetworkId());
+                initiatorWWNvsNetworkURI.put(initPort.getPortNetworkId(), networkURI.toString());
             }
-            networkURIvsInitiatorPortWWNList.put(networkURI, initiatorWWNList);            
+            //networkURIvsInitiatorPortWWNList.put(networkURI, initiatorWWNList);            
+        }
+        
+        
+        // Consider directors to restrict paths not more than 4 for each director
+        Map<StoragePort, Integer> portUsage = new HashMap<>();
+        Set<String> directorKeySet = directorToInitiatorIds.keySet();
+        for(String director : directorKeySet) {
+            Set<String> initiatorIds = directorToInitiatorIds.get(director);
+            int directorPaths = 0;
+            for(String initiatorId : initiatorIds) {
+                if(4 == directorPaths) {
+                    break;
+                }
+                
+                String initWWN = initiatorUrivsWWNFromMask.get(initiatorId);
+                String initiatorNetworkURI = initiatorWWNvsNetworkURI.get(initWWN);
+                List<StoragePort> matchingTargetPorts = nwUriVsTargetPortsFromMask.get(initiatorNetworkURI);
+                
+                StoragePort assignedPort = assignPortBasedOnUsage(matchingTargetPorts, portUsage);
+                StringSet targetPortURIs = new StringSet();
+                targetPortURIs.add(assignedPort.getId().toString());
+                _log.info(String.format("Adding zoning map entry - Initiator is %s and its targetPorts %s",
+                        initiatorId, targetPortURIs.toString()));
+                exportMask.addZoningMapEntry(initiatorId, targetPortURIs);
+                directorPaths++;
+            }
+            
         }
         
         // SETP 5 - Build the zoning map entries and add to mask
-        Set<String> initiatorWWNKeys = initiatorWWNvsUriFromMask.keySet();
+        /*Set<String> initiatorWWNKeys = initiatorWWNvsUriFromMask.keySet();
         Set<URI> networkURIKeys = networkURIvsInitiatorPortWWNList.keySet();
         for(String wwn : initiatorWWNKeys) {
             for(URI nwUri : networkURIKeys) {
@@ -320,11 +352,46 @@ public class VplexCinderMaskingOrchestrator extends CinderMaskingOrchestrator
                     exportMask.addZoningMapEntry(initiatorURI, targetPortURIs);
                 }
             }
-        }
+        }*/
         
         // STEP 6 - persist the mask
         _dbClient.updateAndReindexObject(exportMask);
         
+    }
+
+    /**
+     * Doing the best possible assignment. Matched target ports should
+     * be assigned at least to one initiator.
+     * 
+     * @param matchingTargetPorts
+     * @param portUsage
+     * @return
+     */
+    private StoragePort assignPortBasedOnUsage(List<StoragePort> matchingTargetPorts,
+            Map<StoragePort, Integer> portUsage) {
+        
+        StoragePort foundPort= null;
+        for(StoragePort matchedPort : matchingTargetPorts) {
+            
+            if (portUsage.get(matchedPort) == null) {
+                portUsage.put(matchedPort, 0);
+            }
+            
+            if (foundPort == null) {
+                foundPort = matchedPort;
+            } else {
+                if (portUsage.get(matchedPort) < portUsage.get(foundPort)) {
+                    foundPort = matchedPort;
+                }
+            }
+            
+        }
+        
+        if (foundPort != null) {
+            portUsage.put(foundPort, portUsage.get(foundPort) + 1);
+        }
+        
+        return foundPort;
     }
 
     @Override

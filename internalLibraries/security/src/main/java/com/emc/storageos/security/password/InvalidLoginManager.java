@@ -428,4 +428,29 @@ public class InvalidLoginManager {
 
         return false;
     }
+
+
+    /**
+     * get time difference in minutes, between current time and the specified client ip's last access time.
+     * if specified ip is not recorded in zk, return 0.
+     *
+     * @param clientIP
+     * @return
+     */
+    public int getTimeLeftToUnblock(String clientIP) {
+
+        InvalidLogins invLogins = null;
+        try {
+            invLogins = (InvalidLogins) _distDataManager.getData(getZkPath(clientIP), false);
+        } catch (Exception ex) {
+            _log.error("Failed to get failed-login-ip record in zk", ex);
+        }
+        if (null == invLogins) {
+            _log.debug("{} doesn't in zk, return 0", clientIP);
+            return 0;
+        } else {
+            long lastAccesstime = invLogins.getLastAccessTimeInLong();
+            return (int)((System.currentTimeMillis() - lastAccesstime) / MIN_TO_MSECS);
+        }
+    }
 }

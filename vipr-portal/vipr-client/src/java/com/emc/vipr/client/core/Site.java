@@ -46,10 +46,6 @@ public class Site extends AbstractCoreResources<SiteRestRep> implements TopLevel
         return client.get(SiteConfigRestRep.class, PathConstants.SITE_URL + "/standby/config");
     }
     
-    public SiteRestRep addPrimary(SiteAddParam input) {
-        return client.post(SiteRestRep.class, input, PathConstants.SITE_URL + "/internal/standby/config");
-    }
-    
     public DRNatCheckResponse checkIfBehindNat(DRNatCheckParam checkParam) {
         return client.post(DRNatCheckResponse.class, checkParam, PathConstants.SITE_URL + "/standby/natcheck");
     }

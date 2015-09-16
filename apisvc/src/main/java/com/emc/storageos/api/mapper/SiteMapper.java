@@ -21,6 +21,7 @@ public class SiteMapper {
     
     public void map(Site from, SiteRestRep to) {
         if (from == null) {
+            return;
         }
         
         mapDataObjectFields(from, to);

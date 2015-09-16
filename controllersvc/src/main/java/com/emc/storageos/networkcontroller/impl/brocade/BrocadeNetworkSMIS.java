@@ -71,6 +71,8 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
     private static final String _Brocade_ZoneMembershipSettingDataInZoneAlias = "Brocade_ZoneMembershipSettingDataInZoneAlias";
     private static final String _Brocade_ZoneMembershipSettingData = "Brocade_ZoneMembershipSettingData";
     private static final String _Brocade_ZoneServiceInFabric = "Brocade_ZoneServiceInFabric";
+    private static final String _Brocade_PhysicalComputerSystem = "Brocade_PhysicalComputerSystem";
+    private static final String _Brocade_SwitchInPCS = "Brocade_SwitchInPCS";
     private static final String _ActivateZoneSet = "ActivateZoneSet";
     private static final String _Brocade_ZoneService = "Brocade_ZoneService";
     private static final String _ConnectivityMemberID = "ConnectivityMemberID";
@@ -454,23 +456,8 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
         if (deviceNameCache.get(switchWwn) != null) {
             switchName = deviceNameCache.get(switchWwn);
         } else {
-            CIMProperty switchPathProperty = topins
-                    .getProperty(_AntecedentSystem);
-            CIMObjectPath switchPath = (CIMObjectPath) switchPathProperty
-                    .getValue();
-            CloseableIterator<CIMInstance> switchIt = client
-                    .enumerateInstances(switchPath, false, true, true,
-                            null);
-            while (switchIt.hasNext()) {
-                CIMInstance swins = switchIt.next();
-                String namex = formatWWN(cimStringProperty(swins,
-                        _name));
-                String enamex = cimStringProperty(swins, _element_name);
-                if (namex.equals(switchWwn)) {
-                    switchName = enamex;
-                    deviceNameCache.put(switchWwn, switchName);
-                }
-            }
+            switchName = getEndpointPhysicalSwitch(client, topins);
+            deviceNameCache.put(switchWwn, switchName);
         }
         FCEndpoint conn = new FCEndpoint();
         conn.setFabricId(fabricName);
@@ -481,6 +468,38 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
         conn.setSwitchName(switchName);
         conn.setFabricWwn(fabricWwn);
         portConnections.put(remotePortName, conn);
+    }
+
+    /**
+     * Given a TopologyView instance, find the physical switch name of the instance.
+     * The physical switch is the PhysicalComputerSystem (i.e. Chassis) to which the
+     * client device is connected.
+     * 
+     * @param client -- an instance of WBEMClient
+     * @param topins -- an instance of Brocade_TopologyView
+     * @return the name in CMCNE of the chassis to which the client device is physically attached.
+     * @throws WBEMException
+     */
+    private String getEndpointPhysicalSwitch(WBEMClient client, CIMInstance topins) throws WBEMException {
+        CIMProperty switchPathProperty = topins
+                .getProperty(_AntecedentSystem);
+        CIMObjectPath switchPath = (CIMObjectPath) switchPathProperty
+                .getValue();
+        CIMInstance switchIns = client.getInstance(switchPath, false, false, null);
+        CloseableIterator<CIMInstance> pcsIt = null;
+        try {
+            pcsIt = client.associatorInstances(
+                    switchIns.getObjectPath(), _Brocade_SwitchInPCS,
+                    _Brocade_PhysicalComputerSystem, null, null, false, null);
+            while (pcsIt.hasNext()) {
+                return cimStringProperty(pcsIt.next(), _element_name);
+            }
+        } finally {
+            if (pcsIt != null) {
+                pcsIt.close();
+            }
+        }
+        return null;
     }
 
     /**
@@ -663,7 +682,7 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
 
     @SuppressWarnings("unchecked")
     public List<Zoneset> getZoneSets(WBEMClient client, String fabricId, String fabricWwn, String zoneName, boolean excludeMembers,
-    		boolean excludeAliases) throws WBEMException {
+            boolean excludeAliases) throws WBEMException {
         List<Zoneset> zonesets = new ArrayList<Zoneset>();
 
         fabricWwn = StringUtils.isEmpty(fabricWwn) ? getFabricWwn(client, fabricId) : fabricWwn;
@@ -969,11 +988,11 @@ public class BrocadeNetworkSMIS extends BaseSANCIMObject {
         List<ZoneMember> wwnMembers = getZoneOrAliasMembers(client, path, false);
         if (includeAliases) {
             aliasMembers = getZoneAliases(client, path);
-    	} else {
+        } else {
             _log.info("Excluding aliases while getting zone members");
             aliasMembers = wwnMembers;
             return aliasMembers;
-    	}
+        }
         boolean found = false;
         for (ZoneMember wwnMember : wwnMembers) {
             found = false;

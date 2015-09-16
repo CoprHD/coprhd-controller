@@ -623,8 +623,6 @@ public class HDSExportOperations implements ExportMaskOperations {
                             } else {
                                 iSCSIHostsToRegister.get(hdshost).add(portWWN);
                             }
-                        } else {
-                            // unsupported initiator. throw exception
                         }
                     }
                 }

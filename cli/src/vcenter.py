@@ -37,6 +37,7 @@ class VCenter(object):
     URI_VCENTER_DISCOVER = URI_VCENTER + '/discover'
     URI_VCENTER_ACL = URI_VCENTERS + '/{0}/acl'
     URI_VCENTERS_WITH_TENANT_PARAM = URI_VCENTERS + '?tenant={0}'
+    URI_VCENTERS_WITH_DISCOVER_PARAM = URI_VCENTERS + '?discover_vcenter={0}'
     URI_WHO_AM_I = "/user/whoami";
     VCENTERS_FROM_ALL_TENANTS = "No-Filter";
     VCENTERS_WITH_NO_TENANTS = "Not-Assigned";
@@ -216,7 +217,7 @@ class VCenter(object):
         return o
 
     def vcenter_create(self, label, tenant, ipaddress, devport,
-                       username, password, osversion, usessl):
+                       username, password, osversion, usessl, cascade_tenancy):
         '''
         creates a vcenter
         parameters:
@@ -233,28 +234,6 @@ class VCenter(object):
         except SOSError as e:
             if(e.err_code == SOSError.NOT_FOUND_ERR):
 
-                uri = None;
-                if tenant is not None:
-                    from tenant import Tenant
-                    obj = Tenant(self.__ipAddr, self.__port)
-                    uri = obj.tenant_query(tenant)
-
-                var = dict()
-                params = dict()
-                params = {'name': label,
-                          'ip_address': ipaddress,
-                          'os_version': osversion,
-                          'port_number': devport,
-                          'user_name': username,
-                          'password': password,
-                          'use_ssl': usessl
-                          }
-
-                body = json.dumps(params)
-                (s, h) = common.service_json_request(
-                    self.__ipAddr, self.__port, "POST", VCenter.URI_VCENTERS, body)
-                o = common.json_decode(s)
-
                 (s, h) = common.service_json_request(
                     self.__ipAddr, self.__port, "GET", VCenter.URI_WHO_AM_I, None)
 
@@ -269,11 +248,49 @@ class VCenter(object):
                 if VCenter.USER_ROLE_SYSTEM_ADMIN in vdc_roles:
                     sys_admin = True
 
+                var = dict()
+                params = dict()
+                params = {'name': label,
+                          'ip_address': ipaddress,
+                          'os_version': osversion,
+                          'port_number': devport,
+                          'user_name': username,
+                          'password': password,
+                          'use_ssl': usessl
+                          }
+
+                if sys_admin:
+                    params['cascade_tenancy'] = cascade_tenancy;
+                    discover = 'false';
+                    if tenant is None:
+                        discover = 'true';
+
+                    body = json.dumps(params)
+                    (s, h) = common.service_json_request(
+                        self.__ipAddr, self.__port, "POST", VCenter.URI_VCENTERS_WITH_DISCOVER_PARAM.format(discover), body)
+                else:
+                    body = json.dumps(params)
+
+                    from tenant import Tenant
+                    obj = Tenant(self.__ipAddr, self.__port)
+                    tenant_uri = obj.tenant_query(tenant)
+
+                    (s, h) = common.service_json_request(
+                        self.__ipAddr, self.__port, "POST", VCenter.URI_TENANTS_VCENTERS.format(str(tenant_uri)), body)
+
+                o = common.json_decode(s)
+
                 if sys_admin and uri is not None:
+                    tenant_uri = None
+                    if tenant is not None:
+                        from tenant import Tenant
+                        obj = Tenant(self.__ipAddr, self.__port)
+                        tenant_uri = obj.tenant_query(tenant)
+                        
                     vcenter_id = (o['resource'])['id']
                     acls_params = dict()
                     acls_params = {'add' : [{
-                                            'tenant' : str(uri),
+                                            'tenant' : str(tenant_uri),
                                             'privilege' : ['USE']
                                             }]
                                    }
@@ -432,6 +449,11 @@ def create_parser(subcommand_parsers, common_parser):
                                action='store_true',
                                help='Use SSL or not')
 
+    create_parser.add_argument('-cascade_tenancy', '-cascade',
+                               dest='cascade_tenancy',
+                               metavar='<cascade_tenancy>',
+                               help='Whether to cascade the vCenter tenancy to its datacenters, clusters and hosts or not')
+
     create_parser.set_defaults(func=vcenter_create)
 
 
@@ -445,7 +467,7 @@ def vcenter_create(args):
     try:
         res = obj.vcenter_create(args.name, args.tenant, args.vcenter_ip,
                                  args.vcenter_port, args.user, passwd,
-                                 args.osversion, args.usessl)
+                                 args.osversion, args.usessl, args.cascade_tenancy)
     except SOSError as e:
         common.format_err_msg_and_raise("create", "vcenter", e.err_text,
                                         e.err_code)

@@ -283,13 +283,13 @@ public class VNXFileSystemStaticLoadProcessor extends VNXFileProcessor {
                     }
                 }
 
-                if (vdmFsMountMap.get(pNAS.getNativeId()) != null) {
+                if (dmFsMountMap.get(pNAS.getNativeId()) != null) {
 
-                    totalDmObjects = totalDmObjects + vdmFsMountMap.get(pNAS.getNativeId()).size();
+                    totalDmObjects = totalDmObjects + dmFsMountMap.get(pNAS.getNativeId()).size();
                 }
 
-                if (vdmCapacityMap.get(pNAS.getNativeId()) != null) {
-                    totalDmCapacity = totalDmCapacity + vdmCapacityMap.get(pNAS.getNativeId());
+                if (dmCapacityMap.get(pNAS.getNativeId()) != null) {
+                    totalDmCapacity = totalDmCapacity + dmCapacityMap.get(pNAS.getNativeId());
                 }
 
                 for (VirtualNAS vNas : vNasList) {

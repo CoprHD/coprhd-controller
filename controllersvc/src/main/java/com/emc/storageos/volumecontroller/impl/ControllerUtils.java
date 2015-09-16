@@ -990,6 +990,36 @@ public class ControllerUtils {
         return groupNames;
     }
 
+    /**
+     * Gets mirror replication group names from mirrors of all volumes in CG.
+     */
+    public static Set<String> getMirrorReplicationGroupNames(List<Volume> volumes, DbClient dbClient) {
+        Set<String> groupNames = new HashSet<String>();
+
+        // check if replica of any of these volumes have replicationGroupInstance set
+        for (Volume volume : volumes) {
+            URIQueryResultList mirrorList = new URIQueryResultList();
+            dbClient.queryByConstraint(ContainmentConstraint.Factory
+                    .getVolumeBlockMirrorConstraint(volume.getId()), mirrorList);
+            Iterator<URI> iter = mirrorList.iterator();
+            while (iter.hasNext()) {
+                URI mirrorID = iter.next();
+                BlockMirror mirror = dbClient.queryObject(BlockMirror.class, mirrorID);
+                if (mirror != null && !mirror.getInactive()
+                        && NullColumnValueGetter.isNotNullValue(mirror.getReplicationGroupInstance())) {
+                    groupNames.add(mirror.getReplicationGroupInstance());
+                }
+            }
+
+            if (!groupNames.isEmpty()) {
+                // no need to check other CG members
+                break;
+            }
+        }
+
+        return groupNames;
+    }
+
     public static String getMirrorLabel(String sourceLabel, String mirrorLabel) {
         return sourceLabel + LABEL_DELIMITER + mirrorLabel;
     }

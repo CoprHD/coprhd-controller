@@ -468,7 +468,6 @@ public class ComputeSystems extends ViprResourceController {
                 }
             }
             if (this.selectedComputeImageServer != null) {
-                System.out.println("ComputeSystem update " + selectedComputeImageServer);
                 ComputeImageServerRestRep cisrr = ComputeImageServerUtils.getComputeImageServer(this.selectedComputeImageServer);
                 updateParam.setComputeImageServer(cisrr.getId());
             } else {

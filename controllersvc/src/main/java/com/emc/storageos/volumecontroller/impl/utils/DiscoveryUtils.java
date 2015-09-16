@@ -487,7 +487,7 @@ public class DiscoveryUtils {
         SetView<URI> onlyAvailableinDB = Sets.difference(unManagedVolumesInDBSet, discoveredUnManagedVolumes);
 
         _log.info("Diff :" + Joiner.on("\t").join(onlyAvailableinDB));
-        if (onlyAvailableinDB.size() > 0) {
+        if (!onlyAvailableinDB.isEmpty()) {
             List<UnManagedVolume> unManagedVolumeTobeDeleted = new ArrayList<UnManagedVolume>();
             Iterator<UnManagedVolume> unManagedVolumes = dbClient.queryIterativeObjects(UnManagedVolume.class,
                     new ArrayList<URI>(onlyAvailableinDB));
@@ -504,7 +504,7 @@ public class DiscoveryUtils {
                 volume.setInactive(true);
                 unManagedVolumeTobeDeleted.add(volume);
             }
-            if (unManagedVolumeTobeDeleted.size() > 0) {
+            if (!unManagedVolumeTobeDeleted.isEmpty()) {
                 partitionManager.updateAndReIndexInBatches(unManagedVolumeTobeDeleted, 1000,
                         dbClient, UNMANAGED_VOLUME);
             }
@@ -525,7 +525,7 @@ public class DiscoveryUtils {
 
         SetView<URI> onlyAvailableinDB = Sets.difference(allMasksInDatabase, discoveredUnManagedExportMasks);
 
-        if (onlyAvailableinDB.size() > 0) {
+        if (!onlyAvailableinDB.isEmpty()) {
             _log.info("these UnManagedExportMasks are orphaned and will be cleaned up:"
                     + Joiner.on("\t").join(onlyAvailableinDB));
 
@@ -545,7 +545,7 @@ public class DiscoveryUtils {
                 uem.setInactive(true);
                 unManagedExportMasksToBeDeleted.add(uem);
             }
-            if (unManagedExportMasksToBeDeleted.size() > 0) {
+            if (!unManagedExportMasksToBeDeleted.isEmpty()) {
                 partitionManager.updateAndReIndexInBatches(unManagedExportMasksToBeDeleted, Constants.DEFAULT_PARTITION_SIZE,
                         dbClient, UNMANAGED_EXPORT_MASK);
             }

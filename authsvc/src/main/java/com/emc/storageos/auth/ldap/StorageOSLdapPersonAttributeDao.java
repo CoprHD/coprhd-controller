@@ -578,22 +578,26 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
         // Add the user's group based on the attributes.
         addUserGroupsToUserGroupList(permissionsHelper, domain, storageOSUser);
 
-        return new UserAndTenants(storageOSUser, mapUserToTenant(domain, storageOSUser, userMappingAttributes, tenantToMappingMap,
+        return new UserAndTenants(storageOSUser, mapUserToTenant(authnProviderDomains, storageOSUser, userMappingAttributes, tenantToMappingMap,
                 failureReason));
     }
 
     /**
      * Match the user to one and only one tenant if found user there attributes/groups
      * 
-     * @param domain
+     * @param domains
      * @param storageOSUser
      * @param attributeKeyValuesMap
      * @param tenantToMappingMap
      */
-    private Map<URI, UserMapping> mapUserToTenant(String domain, StorageOSUserDAO storageOSUser,
+    private Map<URI, UserMapping> mapUserToTenant(StringSet domains, StorageOSUserDAO storageOSUser,
             Map<String, List<String>> attributeKeyValuesMap, Map<URI,
             List<UserMapping>> tenantToMappingMap, ValidationFailureReason[] failureReason) {
         Map<URI, UserMapping> tenants = new HashMap<URI, UserMapping>();
+        if (CollectionUtils.isEmpty(domains)) {
+            return tenants;
+        }
+
         List<UserMappingAttribute> userMappingAttributes = new ArrayList<UserMappingAttribute>();
 
         for (Entry<String, List<String>> attributeKeyValues : attributeKeyValuesMap.entrySet()) {
@@ -616,9 +620,11 @@ public class StorageOSLdapPersonAttributeDao implements StorageOSPersonAttribute
                 continue;
             }
 
-            for (UserMapping userMapping : tenantToMappingMapEntry.getValue()) {
-                if (userMapping.isMatch(domain, userMappingAttributes, userMappingGroups)) {
-                    tenants.put(tenantToMappingMapEntry.getKey(), userMapping);
+            for (String domain : domains) {
+                for (UserMapping userMapping : tenantToMappingMapEntry.getValue()) {
+                    if (userMapping.isMatch(domain, userMappingAttributes, userMappingGroups)) {
+                        tenants.put(tenantToMappingMapEntry.getKey(), userMapping);
+                    }
                 }
             }
         }

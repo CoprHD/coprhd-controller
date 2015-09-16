@@ -45,6 +45,7 @@ public abstract class AbstractManager implements Runnable {
 
     protected final String upgradeLockId = DISTRIBUTED_UPGRADE_LOCK;
     protected final String propertyLockId = DISTRIBUTED_PROPERTY_LOCK;
+    protected final String vdcLockId = DISTRIBUTED_VDC_LOCK;
 
     public void setCoordinator(CoordinatorClientExt coordinator) {
         this.coordinator = coordinator;

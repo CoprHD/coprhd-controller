@@ -58,6 +58,9 @@ authenticator: org.apache.cassandra.auth.AllowAllAuthenticator
 # authorization backend, implementing IAuthority; used to limit access/provide permissions
 authorizer: org.apache.cassandra.auth.AllowAllAuthorizer
 
+# authorization backend, implementing IInternodeAuthenticatorAuthority; used to limit node ip access
+internode_authenticator: org.apache.cassandra.auth.AllowAllInternodeAuthenticator
+
 # The partitioner is responsible for distributing rows (by key) across
 # nodes in the cluster.  Any IPartitioner may be used, including your
 # own as long as it is on the classpath.  Out of the box, Cassandra
@@ -204,6 +207,7 @@ seed_provider:
       parameters:
           - coordinators: "<foreach iterator="iter" separator=", ">coordinator://${network_${iter}_ipaddr_service}:2181</foreach>"
             id: "db-${node_index}"
+            seeds: "${standby_seeds_ipaddr}"
             siteid: "${site_id}"
 
 # For workloads with more data than can fit in memory, Cassandra's
@@ -489,7 +493,7 @@ cross_node_timeout: false
 #
 # You can use a custom Snitch by setting this to the full class name
 # of the snitch, which will be assumed to be on your classpath.
-endpoint_snitch: SimpleSnitch
+endpoint_snitch: GossipingPropertyFileSnitch
 
 # controls how often to perform the more expensive part of host score
 # calculation
@@ -573,7 +577,9 @@ index_interval: 128
 # http://download.oracle.com/javase/6/docs/technotes/guides/security/jsse/JSSERefGuide.html#CreateKeystore
 #
 server_encryption_options:
-    internode_encryption: ${db_encryption}
+    # TODO rethink db encryption after ipsec is finished
+    # internode_encryption: ${db_encryption}
+    internode_encryption: none
     keystore: /opt/storageos/conf/storageos.ks
     keystore_password: geostorageos
     truststore: /opt/storageos/conf/storageos.ts

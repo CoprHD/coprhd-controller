@@ -73,15 +73,19 @@ public class DisasterRecoveryServiceTest {
         available.add(version);
         RepositoryInfo repositoryInfo = new RepositoryInfo(new SoftwareVersion("vipr-2.4.0.0.100"), available);
         
+        // setup local VDC
+        VirtualDataCenter localVDC = new VirtualDataCenter();
+        
         standby = new SiteAddParam();
         standby.setFreshInstallation(true);
         standby.setDbSchemaVersion("2.4");
         standby.setSoftwareVersion("vipr-2.4.0.0.150");
-        
+
         // setup standby site
         standbySite1 = new Site();
         standbySite1.setId(new URI("site-object-id-1"));
         standbySite1.setUuid("site-uuid-1");
+        standbySite1.setVdc(localVDC.getId());
         standbySite1.setVip("10.247.101.110");
         standbySite1.getHostIPv4AddressMap().put("vipr1", "10.247.101.111");
         standbySite1.getHostIPv4AddressMap().put("vipr2", "10.247.101.112");
@@ -90,10 +94,12 @@ public class DisasterRecoveryServiceTest {
         standbySite2 = new Site();
         standbySite2.setId(new URI("site-object-id-2"));
         standbySite2.setUuid("site-uuid-2");
+        standbySite2.setVdc(localVDC.getId());
 
         standbySite3 = new Site();
         standbySite3.setId(new URI("site-object-id-3"));
         standbySite3.setUuid("site-uuid-3");
+        standbySite3.setVdc(new URI("fake-vdc-id"));
 
         primarySiteParam = new SiteAddParam();
         primarySiteParam.setUuid("primary-site-uuid");
@@ -102,9 +108,12 @@ public class DisasterRecoveryServiceTest {
         primarySiteParam.setHostIPv4AddressMap(standbySite1.getHostIPv4AddressMap());
         primarySiteParam.setHostIPv6AddressMap(standbySite1.getHostIPv6AddressMap());
         
-        // setup local VDC
-        VirtualDataCenter localVDC = new VirtualDataCenter();
-
+        localVDC.setApiEndpoint("127.0.0.2");
+        localVDC.setHostIPv4AddressesMap(standbySite1.getHostIPv4AddressMap());
+        localVDC.getHostIPv6AddressesMap().put("vipr1", "11:11:11:11");
+        localVDC.getHostIPv6AddressesMap().put("vipr2", "22:22:22:22");
+        localVDC.getHostIPv6AddressesMap().put("vipr4", "33:33:33:33");
+        
         // mock DBClient
         dbClientMock = mock(DbClient.class);
         
@@ -120,6 +129,7 @@ public class DisasterRecoveryServiceTest {
         localVDC.getHostIPv6AddressesMap().put("vipr1", "11:11:11:11");
         localVDC.getHostIPv6AddressesMap().put("vipr2", "22:22:22:22");
         localVDC.getHostIPv6AddressesMap().put("vipr4", "33:33:33:33");
+
         // mock DBClient
         dbClientMock = mock(DbClient.class);
         apiSignatureGeneratorMock = mock(InternalApiSignatureKeyGenerator.class);
@@ -190,10 +200,7 @@ public class DisasterRecoveryServiceTest {
         standbySites.add(standbySite3);
         doReturn(standbySites.iterator()).when(dbClientMock).queryIterativeObjects(Site.class, uriList);
 
-        SiteRestRep response = drService.getStandby("site-uuid-3");
-        assertNull(response);
-
-        response = drService.getStandby("site-uuid-not-exist");
+        SiteRestRep response = drService.getStandby("site-uuid-not-exist");
         assertNull(response);
     }
     

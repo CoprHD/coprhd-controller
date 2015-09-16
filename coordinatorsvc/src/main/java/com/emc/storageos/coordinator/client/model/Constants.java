@@ -24,6 +24,7 @@ public interface Constants {
     public static final String NEW_VERSIONS_LOCK = "newVersionsLock";
     public static final String DISTRIBUTED_UPGRADE_LOCK = "controlNodeUpgradeLock";
     public static final String DISTRIBUTED_PROPERTY_LOCK = "controlNodePropertyLock";
+    public static final String DISTRIBUTED_VDC_LOCK = "controlNodeVdcLock";
 
     // service config constants
     // category name under which upgrade target configurations are stored

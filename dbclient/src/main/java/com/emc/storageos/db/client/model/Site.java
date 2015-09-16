@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2008-2015 EMC Corporation
+ * Copyright (c) 2015 EMC Corporation
  * All Rights Reserved
  */
 package com.emc.storageos.db.client.model;
@@ -14,6 +14,7 @@ import java.net.URI;
 public class Site extends DataObject {
 
     private String uuid;
+    private URI vdc;
     private String name;
     private String vip;
     private String secretKey;
@@ -36,6 +37,17 @@ public class Site extends DataObject {
     public void setUuid(String uuid) {
         this.uuid = uuid;
         setChanged("uuid");
+    }
+
+    @RelationIndex(cf = "RelationIndex", type = VirtualDataCenter.class)
+    @Name("vdc")
+    public URI getVdc() {
+        return vdc;
+    }
+
+    public void setVdc(URI vdc) {
+        this.vdc = vdc;
+        setChanged("vdc");
     }
 
     @Name("name")

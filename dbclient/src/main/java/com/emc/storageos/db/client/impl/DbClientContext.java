@@ -178,14 +178,8 @@ public class DbClientContext {
         partitioners.put("org.apache.cassandra.dht.Murmur3Partitioner.class.getCanonicalName()",
                 murmur3partitioner);
 
-        ConsistencyLevel readCL = ConsistencyLevel.CL_QUORUM;
-        ConsistencyLevel writeCL = ConsistencyLevel.CL_QUORUM;
-
-        // Set different consistency level for goedbsvc
-        if (Constants.GEODBSVC_NAME.equals(svcName)) {
-            readCL = ConsistencyLevel.CL_LOCAL_QUORUM;
-            writeCL = ConsistencyLevel.CL_EACH_QUORUM;
-        }
+        ConsistencyLevel readCL = ConsistencyLevel.CL_LOCAL_QUORUM;
+        ConsistencyLevel writeCL = ConsistencyLevel.CL_EACH_QUORUM;
 
         ConnectionPoolConfigurationImpl cfg = new ConnectionPoolConfigurationImpl(DEFAULT_CN_POOL_NANE).setMaxConns(maxConnections)
                 .setMaxConnsPerHost(maxConnectionsPerHost).setConnectTimeout(DEFAULT_CONN_TIMEOUT)

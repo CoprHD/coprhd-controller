@@ -4,6 +4,7 @@
  */
 package com.emc.storageos.model.dr;
 
+import java.net.URI;
 import java.util.Map;
 
 import javax.xml.bind.annotation.XmlAccessType;
@@ -18,6 +19,7 @@ import com.emc.storageos.model.DataObjectRestRep;
 public class SiteRestRep extends DataObjectRestRep {
 
     private String uuid;
+    private URI vdcId;
     private String name;
     private String vip;
     private String state;
@@ -33,6 +35,15 @@ public class SiteRestRep extends DataObjectRestRep {
 
     public void setUuid(String uuid) {
         this.uuid = uuid;
+    }
+
+    @XmlElement(name = "vdc")
+    public URI getVdcId() {
+        return vdcId;
+    }
+
+    public void setVdcId(URI vdcId) {
+        this.vdcId = vdcId;
     }
 
     @XmlElement(name = "name")

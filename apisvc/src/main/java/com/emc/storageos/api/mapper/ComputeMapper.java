@@ -45,10 +45,10 @@ public class ComputeMapper {
         to.setUsername(from.getUsername());
         to.setVersion(from.getVersion());
         to.setOsInstallNetwork(from.getOsInstallNetwork());
-        if (from.getComputeImageServer()!=null){
-        	to.setComputeImageServer(from.getComputeImageServer().toString());
-        }else{
-        	to.setComputeImageServer("");
+        if (from.getComputeImageServer() != null) {
+            to.setComputeImageServer(from.getComputeImageServer().toString());
+        } else {
+            to.setComputeImageServer("");
         }
 
         // sort vlans as numbers
@@ -97,7 +97,7 @@ public class ComputeMapper {
         to.setRegistrationStatus(from.getRegistrationStatus());
         return to;
     }
-    
+
     public static ComputeImageRestRep map(ComputeImage from) {
         if (from == null) {
             return null;
@@ -111,13 +111,14 @@ public class ComputeMapper {
         to.setLastImportStatusMessage(from.getLastImportStatusMessage());
         List<NamedRelatedResourceRep> availableServersList = new ArrayList<NamedRelatedResourceRep>();
         List<NamedRelatedResourceRep> failedServersList = new ArrayList<NamedRelatedResourceRep>();
-	to.setAvailableImageServers(availableServersList);
-	to.setFailedImageServers(failedServersList);
+        to.setAvailableImageServers(availableServersList);
+        to.setFailedImageServers(failedServersList);
 
         return to;
     }
 
-    public static ComputeImageRestRep map(ComputeImage from,List<ComputeImageServer> availableServers, List<ComputeImageServer> failedServers) {
+    public static ComputeImageRestRep map(ComputeImage from, List<ComputeImageServer> availableServers,
+            List<ComputeImageServer> failedServers) {
         if (from == null) {
             return null;
         }
@@ -130,17 +131,17 @@ public class ComputeMapper {
         to.setLastImportStatusMessage(from.getLastImportStatusMessage());
         List<NamedRelatedResourceRep> availableServersList = new ArrayList<NamedRelatedResourceRep>();
         List<NamedRelatedResourceRep> failedServersList = new ArrayList<NamedRelatedResourceRep>();
-        for (ComputeImageServer server: availableServers){
-                NamedRelatedResourceRep serverRep = new NamedRelatedResourceRep();
-                serverRep.setId(server.getId());
-                serverRep.setName(server.getImageServerIp());
-                availableServersList.add(serverRep);
+        for (ComputeImageServer server : availableServers) {
+            NamedRelatedResourceRep serverRep = new NamedRelatedResourceRep();
+            serverRep.setId(server.getId());
+            serverRep.setName(server.getImageServerIp());
+            availableServersList.add(serverRep);
         }
-         for (ComputeImageServer server: failedServers){
-                NamedRelatedResourceRep serverRep = new NamedRelatedResourceRep();
-                serverRep.setId(server.getId());
-                serverRep.setName(server.getImageServerIp());
-                failedServersList.add(serverRep);
+        for (ComputeImageServer server : failedServers) {
+            NamedRelatedResourceRep serverRep = new NamedRelatedResourceRep();
+            serverRep.setId(server.getId());
+            serverRep.setName(server.getImageServerIp());
+            failedServersList.add(serverRep);
         }
 
         to.setAvailableImageServers(availableServersList);
@@ -151,7 +152,8 @@ public class ComputeMapper {
 
     /**
      * Utility mapper method to map fields of {@link ComputeImageServer} columnFamily
-     *  to {@link ComputeImageServerRestRep} rest representation. 
+     * to {@link ComputeImageServerRestRep} rest representation.
+     * 
      * @param from
      * @return
      */

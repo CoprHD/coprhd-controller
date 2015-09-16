@@ -92,6 +92,17 @@ public class DisasterRecoveryService extends TaggedResource {
 
         updateVdcTargetVersion();
 
+        log.info("Updating the primary site info to site: {}", param.getUuid());
+        SiteAddParam primarySite = new SiteAddParam();
+        primarySite.setHostIPv4AddressMap(new StringMap(vdc.getHostIPv4AddressesMap()));
+        primarySite.setHostIPv6AddressMap(new StringMap(vdc.getHostIPv6AddressesMap()));
+        primarySite.setName("primary");
+        primarySite.setSecretKey(vdc.getSecretKey());
+        primarySite.setUuid(_coordinator.getSiteId());
+        primarySite.setVip(vdc.getApiEndpoint());
+
+        viprClient.site().addPrimary(primarySite);
+
         return siteMapper.map(standbySite);
     }
 

@@ -367,12 +367,9 @@ public class ComputeSystems extends ViprResourceController {
             this.unregistered = RegistrationStatus.isUnregistered(computeSystem
                     .getRegistrationStatus());
             List<ComputeImageServerRestRep> computeImageServerList = ComputeImageServerUtils.getComputeImageServers();
-            // for (ComputeImageServerRestRep cisrr : computeImageServerList) {
-            // this.computeImageServers.add(cisrr.getId().toString());
-            // }
             if (computeSystem.getComputeImageServer() != null) {
                 this.selectedComputeImageServer = computeSystem.getComputeImageServer();
-                System.out.println("ComputeSystemForm " + this.selectedComputeImageServer);
+            } else {
             }
         }
 
@@ -441,7 +438,6 @@ public class ComputeSystems extends ViprResourceController {
                 createParam.setOsInstallNetwork(this.osInstallNetwork);
             }
             if (this.selectedComputeImageServer != null) {
-                System.out.println("ComputeSystem create selectedComputeImageServer" + this.selectedComputeImageServer);
                 ComputeImageServerRestRep cisrr = ComputeImageServerUtils.getComputeImageServer(this.selectedComputeImageServer);
                 createParam.setComputeImageServer(cisrr.getId());
             }
@@ -475,6 +471,8 @@ public class ComputeSystems extends ViprResourceController {
                 System.out.println("ComputeSystem update " + selectedComputeImageServer);
                 ComputeImageServerRestRep cisrr = ComputeImageServerUtils.getComputeImageServer(this.selectedComputeImageServer);
                 updateParam.setComputeImageServer(cisrr.getId());
+            } else {
+                System.out.println("update computeSystem.getComputeImageServer is null ");
             }
             updateParam.setUserName(this.userName);
             updateParam.setUseSSL(this.useSSL);
